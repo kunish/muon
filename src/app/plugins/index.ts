@@ -1,19 +1,12 @@
 import type { App } from 'vue'
-import { VueQueryPlugin } from '@tanstack/vue-query'
-import { createPinia } from 'pinia'
-import { createI18n } from 'vue-i18n'
-import en from '@/locales/en.json'
-import zh from '@/locales/zh.json'
 import router from '../router'
+import { i18n } from './i18n'
+import { pinia } from './pinia'
+import { VueQueryPlugin } from './query'
 
 export function setupPlugins(app: App) {
-  app.use(createPinia())
+  app.use(pinia)
   app.use(VueQueryPlugin)
-  app.use(createI18n({
-    legacy: false,
-    locale: 'zh',
-    fallbackLocale: 'en',
-    messages: { zh, en },
-  }))
+  app.use(i18n)
   app.use(router)
 }

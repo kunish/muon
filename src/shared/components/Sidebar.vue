@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { MessageCircle, Phone, Settings, Users } from 'lucide-vue-next'
 import { useRoute, useRouter } from 'vue-router'
+import ThemeToggle from './ThemeToggle.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -28,5 +29,8 @@ function isActive(name: string) {
     >
       <component :is="item.icon" :size="20" />
     </button>
+    <div class="mt-auto">
+      <ThemeToggle />
+    </div>
   </nav>
 </template>
