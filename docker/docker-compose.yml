@@ -1,0 +1,43 @@
+services:
+  conduit:
+    image: matrixconduit/matrix-conduit:latest
+    ports:
+      - "6167:6167"
+    volumes:
+      - conduit_data:/var/lib/matrix-conduit
+    environment:
+      CONDUIT_SERVER_NAME: localhost
+      CONDUIT_DATABASE_BACKEND: rocksdb
+      CONDUIT_ALLOW_REGISTRATION: "true"
+      CONDUIT_ALLOW_FEDERATION: "false"
+      CONDUIT_MAX_REQUEST_SIZE: "20000000"
+      CONDUIT_PORT: "6167"
+    restart: unless-stopped
+
+  livekit:
+    image: livekit/livekit-server:latest
+    ports:
+      - "7880:7880"
+      - "7881:7881"
+      - "50000-50100:50000-50100/udp"
+    volumes:
+      - ./livekit.yaml:/etc/livekit.yaml
+    command: --config /etc/livekit.yaml --dev
+    restart: unless-stopped
+
+  minio:
+    image: minio/minio:latest
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    environment:
+      MINIO_ROOT_USER: muon
+      MINIO_ROOT_PASSWORD: muon12345
+    command: server /data --console-address ":9001"
+    restart: unless-stopped
+
+volumes:
+  conduit_data:
+  minio_data:
