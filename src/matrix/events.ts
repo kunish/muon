@@ -1,7 +1,8 @@
 import mitt from 'mitt'
 import { getClient } from './client'
 
-interface MatrixEvents {
+// eslint-disable-next-line ts/consistent-type-definitions
+type MatrixEvents = {
   'room.message': { roomId: string, event: any }
   'room.redaction': { roomId: string, eventId: string }
   'room.typing': { roomId: string, userIds: string[] }
