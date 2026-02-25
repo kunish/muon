@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useTyping } from '../composables/useTyping'
 import ChatHeader from './ChatHeader.vue'
+import MediaViewer from './MediaViewer.vue'
 import MessageList from './MessageList.vue'
 import RichTextInput from './RichTextInput.vue'
 import TypingIndicator from './TypingIndicator.vue'
@@ -14,5 +15,6 @@ const { typingUsers } = useTyping()
     <MessageList />
     <TypingIndicator :users="typingUsers" />
     <RichTextInput />
+    <MediaViewer />
   </div>
 </template>

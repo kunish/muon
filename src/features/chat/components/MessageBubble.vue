@@ -3,6 +3,10 @@ import { getClient } from '@matrix/client'
 import { format } from 'date-fns'
 import { Copy, Edit, Reply, Trash2 } from 'lucide-vue-next'
 import { computed } from 'vue'
+import AudioMessage from './messages/AudioMessage.vue'
+import FileMessage from './messages/FileMessage.vue'
+import ImageMessage from './messages/ImageMessage.vue'
+import VideoMessage from './messages/VideoMessage.vue'
 
 const props = defineProps<{
   event: any
@@ -15,6 +19,8 @@ const emit = defineEmits<{
   edit: [event: any]
   redact: [event: any]
 }>()
+
+const msgtype = computed(() => props.event.getContent()?.msgtype)
 
 const body = computed(() => props.event.getContent()?.body || '')
 const sender = computed(() => props.event.getSender() || '')
@@ -46,12 +52,21 @@ function copyText() {
       </div>
 
       <div
-        class="rounded-2xl px-3 py-2 text-sm break-words"
-        :class="isMine
-          ? 'bg-primary text-primary-foreground rounded-br-sm'
-          : 'bg-muted rounded-bl-sm'"
+        class="rounded-2xl text-sm break-words"
+        :class="[
+          isMine
+            ? 'bg-primary text-primary-foreground rounded-br-sm'
+            : 'bg-muted rounded-bl-sm',
+          msgtype === 'm.image' || msgtype === 'm.video' ? 'p-1' : 'px-3 py-2',
+        ]"
       >
-        {{ body }}
+        <ImageMessage v-if="msgtype === 'm.image'" :event="event" />
+        <VideoMessage v-else-if="msgtype === 'm.video'" :event="event" />
+        <AudioMessage v-else-if="msgtype === 'm.audio'" :event="event" />
+        <FileMessage v-else-if="msgtype === 'm.file'" :event="event" />
+        <template v-else>
+          {{ body }}
+        </template>
       </div>
 
       <div
