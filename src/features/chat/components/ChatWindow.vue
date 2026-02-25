@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { useTyping } from '../composables/useTyping'
 import ChatHeader from './ChatHeader.vue'
-import MessageInput from './MessageInput.vue'
 import MessageList from './MessageList.vue'
+import RichTextInput from './RichTextInput.vue'
 import TypingIndicator from './TypingIndicator.vue'
 
 const { typingUsers } = useTyping()
@@ -13,6 +13,6 @@ const { typingUsers } = useTyping()
     <ChatHeader />
     <MessageList />
     <TypingIndicator :users="typingUsers" />
-    <MessageInput />
+    <RichTextInput />
   </div>
 </template>
