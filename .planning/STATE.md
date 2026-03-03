@@ -1,6 +1,6 @@
 # Muon - Project State
 
-Last activity: 2026-03-03 - Completed quick-001 (Custom Status & User Blocking)
+Last activity: 2026-03-03 - Completed quick task 001: 用户自定义状态和用户屏蔽拉黑功能
 
 ## Current Phase
 No active phase - using quick tasks for incremental improvements.
@@ -12,4 +12,4 @@ None currently.
 
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
-| 001 | Custom Status & User Blocking | 2026-03-03 | c90b93c, 9c89052 | .planning/quick/001-custom-status-and-user-blocking/ |
+| 001 | 用户自定义状态和用户屏蔽拉黑功能 | 2026-03-03 | 76b394c | [001-custom-status-and-user-blocking](./quick/001-custom-status-and-user-blocking/) |
