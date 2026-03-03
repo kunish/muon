@@ -2,8 +2,9 @@
 import type { RoomSummary } from '@matrix/types'
 import { getClient } from '@matrix/client'
 import { getRoom, findOrCreateDm } from '@matrix/rooms'
-import { getUserPresenceInfo } from '@matrix/index'
-import { X, MessageCircle, Shield, AtSign, Hash, UserCircle } from 'lucide-vue-next'
+import { getUserPresenceInfo, blockUser, unblockUser, isUserBlocked } from '@matrix/index'
+import { ask } from '@tauri-apps/plugin-dialog'
+import { X, MessageCircle, Shield, AtSign, Hash, UserCircle, Ban } from 'lucide-vue-next'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
@@ -149,6 +150,43 @@ async function onSendMessage() {
     console.error('打开私聊失败:', err)
   }
 }
+
+// --- 屏蔽/拉黑 ---
+const isOtherUser = computed(() => {
+  if (!memberInfo.value?.userId) return false
+  const myId = getClient().getUserId()
+  return memberInfo.value.userId.startsWith('@') && memberInfo.value.userId !== myId
+})
+
+const blocked = ref(false)
+
+watch(memberInfo, (info) => {
+  if (info?.userId && info.userId.startsWith('@')) {
+    blocked.value = isUserBlocked(info.userId)
+  } else {
+    blocked.value = false
+  }
+}, { immediate: true })
+
+async function onToggleBlock() {
+  const uid = memberInfo.value?.userId
+  if (!uid) return
+
+  if (blocked.value) {
+    // 解除屏蔽 — 无需确认
+    await unblockUser(uid)
+    blocked.value = false
+  } else {
+    // 屏蔽前确认
+    const confirmed = await ask(t('settings.block_confirm'), {
+      title: t('settings.block_confirm_title'),
+      kind: 'warning',
+    })
+    if (!confirmed) return
+    await blockUser(uid)
+    blocked.value = true
+  }
+}
 </script>
 
 <template>
@@ -217,6 +255,15 @@ async function onSendMessage() {
           </p>
         </div>
 
+        <!-- 已屏蔽横幅 -->
+        <div
+          v-if="blocked && isOtherUser"
+          class="mx-3.5 mt-2 px-3 py-2 rounded-lg bg-destructive/10 text-destructive text-[11px] font-medium flex items-center gap-2"
+        >
+          <Ban :size="12" />
+          {{ t('settings.user_blocked_banner') }}
+        </div>
+
         <!-- 信息行 - 卡片式 -->
         <div class="px-3.5 pt-2.5 pb-2 space-y-1 info-details">
           <div
@@ -251,13 +298,25 @@ async function onSendMessage() {
         </div>
 
         <!-- 操作按钮 -->
-        <div class="px-3.5 pb-3.5 pt-1 info-action">
+        <div class="px-3.5 pb-3.5 pt-1 space-y-1.5 info-action">
           <button
             class="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-primary text-primary-foreground text-[12px] font-semibold hover:brightness-110 active:scale-[0.98] transition-all duration-150 shadow-[0_2px_8px_rgba(0,0,0,0.1)]"
             @click="onSendMessage()"
           >
             <MessageCircle :size="13" />
             {{ t('chat.send_message') }}
+          </button>
+          <!-- 屏蔽/解除屏蔽按钮 -->
+          <button
+            v-if="isOtherUser"
+            class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-[12px] font-medium transition-all duration-150 active:scale-[0.98]"
+            :class="blocked
+              ? 'bg-accent text-muted-foreground hover:bg-accent/80'
+              : 'bg-destructive/10 text-destructive hover:bg-destructive/15'"
+            @click="onToggleBlock()"
+          >
+            <Ban :size="13" />
+            {{ blocked ? t('settings.unblock_user') : t('settings.block_user') }}
           </button>
         </div>
       </div>

@@ -110,7 +110,16 @@
     "status": "自定义状态",
     "status_placeholder": "设置自定义状态...",
     "status_clear": "清除状态",
-    "status_hint": "让其他人知道你在做什么"
+    "status_hint": "让其他人知道你在做什么",
+    "blocked_users": "已屏蔽用户",
+    "blocked_users_desc": "被屏蔽的用户无法向你发送消息",
+    "no_blocked_users": "暂无屏蔽用户",
+    "unblock": "解除屏蔽",
+    "block_user": "屏蔽用户",
+    "block_confirm": "确定要屏蔽此用户吗？屏蔽后将不再收到对方的消息。",
+    "block_confirm_title": "屏蔽用户",
+    "user_blocked_banner": "此用户已被屏蔽",
+    "unblock_user": "解除屏蔽"
   },
   "notifications": {
     "new_message": "新消息",

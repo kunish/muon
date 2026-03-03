@@ -408,7 +408,16 @@
     "status": "Custom Status",
     "status_placeholder": "Set a custom status...",
     "status_clear": "Clear Status",
-    "status_hint": "Let others know what you're up to"
+    "status_hint": "Let others know what you're up to",
+    "blocked_users": "Blocked Users",
+    "blocked_users_desc": "Blocked users cannot send you messages",
+    "no_blocked_users": "No blocked users",
+    "unblock": "Unblock",
+    "block_user": "Block User",
+    "block_confirm": "Are you sure you want to block this user? You will no longer receive their messages.",
+    "block_confirm_title": "Block User",
+    "user_blocked_banner": "This user is blocked",
+    "unblock_user": "Unblock"
   },
   "network": {
     "disconnected": "Network disconnected, trying to reconnect...",

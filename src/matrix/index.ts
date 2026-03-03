@@ -1,4 +1,5 @@
 export { login, logout, register, restoreSession } from './auth'
+export { blockUser, getBlockedUsers, isUserBlocked, unblockUser } from './blocking'
 export { createClient, destroyClient, getClient } from './client'
 export { createEncryptedRoom, initCrypto } from './crypto'
 export { bindClientEvents, matrixEvents, unbindClientEvents } from './events'
