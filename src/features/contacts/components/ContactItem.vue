@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import type { Contact } from '../stores/contactStore'
+import { getUserPresenceInfo } from '@matrix/index'
+import { computed } from 'vue'
 
-defineProps<{
+const props = defineProps<{
   contact: Contact
   selected?: boolean
 }>()
@@ -10,6 +12,10 @@ defineEmits<{
   click: []
   dblclick: []
 }>()
+
+const statusMsg = computed(() => {
+  return getUserPresenceInfo(props.contact.userId).statusMsg || ''
+})
 </script>
 
 <template>
@@ -32,7 +38,10 @@ defineEmits<{
       <div class="text-sm truncate">
         {{ contact.displayName }}
       </div>
-      <div class="text-xs text-muted-foreground truncate">
+      <div v-if="statusMsg" class="text-xs text-muted-foreground/70 truncate">
+        {{ statusMsg }}
+      </div>
+      <div v-else class="text-xs text-muted-foreground truncate">
         {{ contact.userId }}
       </div>
     </div>
