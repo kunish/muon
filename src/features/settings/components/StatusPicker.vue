@@ -1,15 +1,15 @@
 <script setup lang="ts">
 import { clearMyStatus, getMyStatus, setMyStatus } from '@matrix/index'
 import { X } from 'lucide-vue-next'
-import { ref, onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-
-const { t } = useI18n()
 
 const emit = defineEmits<{
   close: []
   updated: [status: string]
 }>()
+
+const { t } = useI18n()
 
 const statusText = ref('')
 const saving = ref(false)
@@ -23,7 +23,7 @@ onMounted(() => {
 
 function insertEmoji(emoji: string) {
   if (statusText.value.length + emoji.length <= MAX_LENGTH) {
-    statusText.value = emoji + ' ' + statusText.value
+    statusText.value = `${emoji} ${statusText.value}`
   }
 }
 
@@ -34,7 +34,8 @@ async function saveStatus() {
     await setMyStatus(text)
     emit('updated', text)
     emit('close')
-  } finally {
+  }
+  finally {
     saving.value = false
   }
 }
@@ -46,7 +47,8 @@ async function onClearStatus() {
     statusText.value = ''
     emit('updated', '')
     emit('close')
-  } finally {
+  }
+  finally {
     saving.value = false
   }
 }
@@ -80,7 +82,9 @@ async function onClearStatus() {
     </div>
 
     <!-- Hint -->
-    <p class="text-[11px] text-muted-foreground/60">{{ t('settings.status_hint') }}</p>
+    <p class="text-[11px] text-muted-foreground/60">
+      {{ t('settings.status_hint') }}
+    </p>
 
     <!-- Quick Emojis -->
     <div class="flex flex-wrap gap-1">

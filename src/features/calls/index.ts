@@ -1,7 +1,0 @@
-export { default as CallsPage } from './components/CallsPage.vue'
-export { default as CallWindow } from './components/CallWindow.vue'
-export { default as IncomingCall } from './components/IncomingCall.vue'
-export { useCall } from './composables/useCall'
-export { useCallHistory } from './composables/useCallHistory'
-export { useCallStore } from './stores/callStore'
-export type { CallHistoryEntry, CallInfo, CallState, CallType } from './types'

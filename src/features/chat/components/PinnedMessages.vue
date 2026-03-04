@@ -3,6 +3,7 @@ import type { MatrixEvent } from 'matrix-js-sdk'
 import { getClient } from '@matrix/client'
 import { Pin, X } from 'lucide-vue-next'
 import { onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 const props = defineProps<{
   roomId: string
@@ -12,6 +13,8 @@ const emit = defineEmits<{
   close: []
   jumpTo: [eventId: string]
 }>()
+
+const { t, locale } = useI18n()
 
 const pinned = ref<MatrixEvent[]>([])
 const loading = ref(true)
@@ -38,7 +41,7 @@ onMounted(async () => {
 })
 
 function formatTime(ts: number): string {
-  return new Date(ts).toLocaleString('zh-CN', {
+  return new Date(ts).toLocaleString(locale.value, {
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
@@ -52,7 +55,7 @@ function formatTime(ts: number): string {
     <div class="flex items-center justify-between p-3 border-b border-border">
       <div class="flex items-center gap-2">
         <Pin :size="14" class="text-primary" />
-        <span class="text-sm font-medium">置顶消息</span>
+        <span class="text-sm font-medium">{{ t('chat.pinned_messages') }}</span>
       </div>
       <button class="p-1 rounded hover:bg-accent" @click="emit('close')">
         <X :size="16" />
@@ -60,11 +63,11 @@ function formatTime(ts: number): string {
     </div>
 
     <div v-if="loading" class="flex-1 flex items-center justify-center text-sm text-muted-foreground">
-      加载中...
+      {{ t('chat.pinned_loading') }}
     </div>
 
     <div v-else-if="pinned.length === 0" class="flex-1 flex items-center justify-center text-sm text-muted-foreground">
-      暂无置顶消息
+      {{ t('chat.pinned_empty') }}
     </div>
 
     <div v-else class="flex-1 overflow-y-auto p-2 space-y-1">
@@ -79,7 +82,7 @@ function formatTime(ts: number): string {
           <span class="text-xs text-muted-foreground">{{ formatTime(ev.getTs()) }}</span>
         </div>
         <div class="text-sm text-muted-foreground line-clamp-2">
-          {{ ev.getContent().body || '[媒体消息]' }}
+          {{ ev.getContent().body || t('chat.media_message') }}
         </div>
       </div>
     </div>

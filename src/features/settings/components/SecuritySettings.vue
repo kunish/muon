@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { Shield, Droplets, UserX } from 'lucide-vue-next'
+import { Droplets, Shield, UserX } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
-import { useSettingsStore } from '../stores/settingsStore'
 import { useWatermark } from '@/shared/composables/useWatermark'
+import { useSettingsStore } from '../stores/settingsStore'
 import BlockedUsers from './BlockedUsers.vue'
 import DeviceList from './DeviceList.vue'
 
@@ -46,8 +46,12 @@ function toggleWatermark() {
       <div class="flex items-center gap-2">
         <UserX :size="16" class="text-muted-foreground" />
         <div>
-          <div class="text-sm font-medium">{{ t('settings.blocked_users') }}</div>
-          <div class="text-xs text-muted-foreground">{{ t('settings.blocked_users_desc') }}</div>
+          <div class="text-sm font-medium">
+            {{ t('settings.blocked_users') }}
+          </div>
+          <div class="text-xs text-muted-foreground">
+            {{ t('settings.blocked_users_desc') }}
+          </div>
         </div>
       </div>
       <BlockedUsers />

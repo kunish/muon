@@ -24,10 +24,22 @@ export interface RoomSummary {
   avatar?: string
   lastMessage?: string
   lastMessageTs?: number
+  lastMessageSender?: string
+  lastMessageType?: string
   unreadCount: number
   isDirect: boolean
   isEncrypted: boolean
   members: string[]
+  dmUserId?: string
+  dmUserAvatar?: string
+  /** Matrix room tag: m.favourite = pinned */
+  isPinned: boolean
+  /** Matrix push rule: muted */
+  isMuted: boolean
+  /** Highlight count (@ mentions) */
+  highlightCount: number
+  /** Total joined member count */
+  memberCount: number
 }
 
 export interface MessageContent {
@@ -42,3 +54,6 @@ export interface MessageContent {
     event_id: string
   }
 }
+
+// Re-export Space types from spaces.ts for convenience
+export type { CategoryInfo, ChannelInfo, SpaceInfo, SpaceMember } from './spaces'

@@ -31,7 +31,22 @@ export {
 export type { SystemEventInfo } from './messages'
 export { clearMyStatus, getMyAvatarUrl, getMyDisplayName, getMyStatus, getUserPresenceInfo, setMyAvatar, setMyDisplayName, setMyStatus } from './profile'
 export { getReadMarkerEventId, getReadUsers, sendReadReceipt } from './receipts'
-export { getRoom, getRoomSummaries, getRoomTopic, getRoomAnnouncement, leaveRoom, findOrCreateDm, setRoomName, setRoomTopic, setRoomAnnouncement, toggleRoomMute, toggleRoomPin, pinMessage, unpinMessage, isMessagePinned, starMessage, unstarMessage, isMessageStarred } from './rooms'
+export { findOrCreateDm, getRoom, getRoomAnnouncement, getRoomSummaries, getRoomTopic, isMessagePinned, isMessageStarred, leaveRoom, pinMessage, setRoomAnnouncement, setRoomName, setRoomTopic, starMessage, toggleRoomMute, toggleRoomPin, unpinMessage, unstarMessage } from './rooms'
+export {
+  addRoomToSpace,
+  buildChannelInfo,
+  createChannel,
+  createSpace,
+  getCategoryChannels,
+  getOrphanRooms,
+  getSpaceHierarchy,
+  getSpaceMembers,
+  getTopLevelSpaces,
+  isVoiceChannel,
+  removeRoomFromSpace,
+  setSpacePowerLevel,
+} from './spaces'
+export type { CategoryInfo, ChannelInfo, SpaceInfo, SpaceMember } from './spaces'
 export { startSync, stopSync, syncState } from './sync'
 export type { RoomSummary } from './types'
 export { sendTyping } from './typing'

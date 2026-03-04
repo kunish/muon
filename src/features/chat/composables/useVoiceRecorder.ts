@@ -23,7 +23,7 @@ export function useVoiceRecorder() {
 
     recorder.onstop = () => {
       audioBlob.value = new Blob(chunks, { type: 'audio/webm' })
-      stream.getTracks().forEach(t => t.stop())
+      stream.getTracks().forEach((t) => { t.stop() })
       if (timer)
         clearInterval(timer)
     }
@@ -35,22 +35,30 @@ export function useVoiceRecorder() {
     }, 1000)
   }
 
-  function stop(): Blob | null {
-    if (recorder?.state === 'recording') {
-      recorder.stop()
-      isRecording.value = false
-    }
-    return audioBlob.value
+  function stop(): Promise<Blob | null> {
+    return new Promise((resolve) => {
+      if (recorder?.state === 'recording') {
+        recorder.addEventListener('stop', () => {
+          resolve(audioBlob.value)
+        }, { once: true })
+        recorder.stop()
+        isRecording.value = false
+      }
+      else {
+        resolve(audioBlob.value)
+      }
+    })
   }
 
   function cancel() {
     if (recorder?.state === 'recording') {
+      // 清空 chunks 在 stop 触发前，这样 onstop 产生的 blob 无内容
+      chunks = []
       recorder.stop()
       isRecording.value = false
     }
     audioBlob.value = null
-    chunks = []
   }
 
-  return { isRecording, duration, audioBlob, start, stop, cancel }
+  return { isRecording, duration, start, stop, cancel }
 }

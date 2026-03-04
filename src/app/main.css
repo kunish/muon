@@ -1,1 +1,165 @@
 @import 'tailwindcss';
+
+@theme {
+  /* Discord Light Theme */
+  --color-background: hsl(0 0% 100%);
+  --color-foreground: hsl(220 13% 18%);
+  --color-muted: hsl(220 13% 95%);
+  --color-muted-foreground: hsl(214 8% 46%);
+  --color-primary: hsl(235 86% 65%);
+  --color-primary-foreground: hsl(0 0% 100%);
+  --color-accent: hsl(220 13% 91%);
+  --color-accent-foreground: hsl(220 13% 18%);
+  --color-destructive: hsl(0 85% 62%);
+  --color-destructive-foreground: hsl(0 0% 100%);
+  --color-border: hsl(220 13% 87%);
+  --color-input: hsl(220 13% 87%);
+  --color-ring: hsl(235 86% 65%);
+  --color-card: hsl(0 0% 100%);
+  --color-card-foreground: hsl(220 13% 18%);
+  --color-secondary: hsl(227 7% 35%);
+  --color-secondary-foreground: hsl(0 0% 100%);
+  --color-popover: hsl(0 0% 100%);
+  --color-popover-foreground: hsl(220 13% 18%);
+  --color-sidebar: hsl(220 13% 95%);
+  --color-sidebar-foreground: hsl(220 13% 18%);
+  --color-sidebar-border: hsl(220 13% 87%);
+  --color-sidebar-accent: hsl(220 13% 91%);
+  --color-sidebar-accent-foreground: hsl(220 13% 18%);
+  --color-server-bar: hsl(220 13% 90%);
+  --color-success: hsl(139 47% 44%);
+  --color-warning: hsl(38 96% 54%);
+  --radius: 0.5rem;
+}
+
+.dark {
+  /* Discord Dark Theme 2023 — #313338 background, #2b2d31 sidebar, #1e1f22 server bar */
+  --color-background: hsl(223 7% 21%);
+  --color-foreground: hsl(210 10% 87%);
+  --color-muted: hsl(223 7% 18%);
+  --color-muted-foreground: hsl(214 8% 61%);
+  --color-primary: hsl(235 86% 65%);
+  --color-primary-foreground: hsl(0 0% 100%);
+  --color-accent: hsl(223 6% 26%);
+  --color-accent-foreground: hsl(210 10% 87%);
+  --color-destructive: hsl(0 85% 62%);
+  --color-destructive-foreground: hsl(0 0% 100%);
+  --color-border: hsl(225 6% 15%);
+  --color-input: hsl(223 7% 24%);
+  --color-ring: hsl(235 86% 65%);
+  --color-card: hsl(223 7% 19%);
+  --color-card-foreground: hsl(210 10% 87%);
+  --color-secondary: hsl(227 7% 35%);
+  --color-secondary-foreground: hsl(0 0% 100%);
+  --color-popover: hsl(225 6% 13%);
+  --color-popover-foreground: hsl(210 10% 87%);
+  --color-sidebar: hsl(223 7% 18%);
+  --color-sidebar-foreground: hsl(210 10% 87%);
+  --color-sidebar-border: hsl(225 6% 15%);
+  --color-sidebar-accent: hsl(223 6% 26%);
+  --color-sidebar-accent-foreground: hsl(210 10% 87%);
+  --color-server-bar: hsl(225 6% 13%);
+  --color-success: hsl(139 47% 44%);
+  --color-warning: hsl(38 96% 54%);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'gg sans', 'Noto Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  input,
+  textarea,
+  select {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* ── 聊天列表动画关键帧 ── */
+@keyframes conv-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(-8px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes conv-skeleton-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes conv-glow-pulse {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes conv-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes conv-unread-ping {
+  0% {
+    transform: translateY(-50%) scaleY(1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: translateY(-50%) scaleY(1.3);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-50%) scaleY(1);
+    opacity: 0.8;
+  }
+}
+
+@keyframes conv-badge-pop {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.15);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes conv-empty-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.9;
+  }
+}

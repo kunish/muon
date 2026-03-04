@@ -5,10 +5,14 @@ import { getClient } from './client'
 type MatrixEvents = {
   'room.message': { roomId: string, event: any }
   'room.redaction': { roomId: string, eventId: string }
+  'room.timeline': { roomId: string }
+  'room.localEchoUpdated': { roomId: string }
   'room.typing': { roomId: string, userIds: string[] }
   'room.receipt': { roomId: string, eventId: string, userId: string }
   'room.member': { roomId: string, userId: string, membership: string }
   'sync.state': { state: string }
+  'space.update': { spaceId: string }
+  'space.member': { spaceId: string, userId: string, membership: string }
 }
 
 export const matrixEvents = mitt<MatrixEvents>()
@@ -21,6 +25,7 @@ export function bindClientEvents(): void {
   const client = getClient()
 
   client.on('Room.timeline' as any, (event: any, room: any) => {
+    matrixEvents.emit('room.timeline', { roomId: room.roomId })
     if (event.getType() === 'm.room.message') {
       matrixEvents.emit('room.message', {
         roomId: room.roomId,
@@ -34,6 +39,11 @@ export function bindClientEvents(): void {
       roomId: room.roomId,
       eventId: event.getId()!,
     })
+  })
+
+  // 本地 echo 状态更新（sending → sent / not_sent）
+  client.on('Room.localEchoUpdated' as any, (_event: any, room: any) => {
+    matrixEvents.emit('room.localEchoUpdated', { roomId: room.roomId })
   })
 
   client.on('RoomMember.typing' as any, (_event: any, member: any) => {
@@ -69,6 +79,26 @@ export function bindClientEvents(): void {
       userId: member.userId,
       membership: member.membership,
     })
+
+    // Also emit space.member if this room is a Space
+    const room = client.getRoom(member.roomId)
+    if (room) {
+      const createEvent = room.currentState.getStateEvents('m.room.create', '')
+      if (createEvent?.getContent()?.type === 'm.space') {
+        matrixEvents.emit('space.member', {
+          spaceId: member.roomId,
+          userId: member.userId,
+          membership: member.membership,
+        })
+      }
+    }
+  })
+
+  // Space child changes (channel added/removed from server)
+  client.on('RoomState.events' as any, (event: any) => {
+    if (event.getType() === 'm.space.child') {
+      matrixEvents.emit('space.update', { spaceId: event.getRoomId()! })
+    }
   })
 
   bound = true

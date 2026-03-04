@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { checkForUpdates, installUpdate, updateAvailable, updateVersion, updating } from '@/tauri/updater'
 
+const { t } = useI18n()
 const APP_VERSION = __APP_VERSION__ as string
 
 const checking = ref(false)
@@ -20,7 +22,7 @@ async function handleCheck() {
 <template>
   <div class="space-y-6">
     <h3 class="text-base font-medium">
-      关于
+      {{ t('settings.about_title') }}
     </h3>
 
     <div class="space-y-3">
@@ -39,22 +41,22 @@ async function handleCheck() {
       </div>
 
       <p class="text-sm text-muted-foreground">
-        基于 Matrix 协议的安全即时通讯客户端
+        {{ t('settings.about_desc') }}
       </p>
     </div>
 
     <div class="space-y-2">
       <div class="text-sm font-medium">
-        更新
+        {{ t('settings.update') }}
       </div>
       <div v-if="updateAvailable" class="text-sm text-primary">
-        发现新版本 {{ updateVersion }}
+        {{ t('settings.new_version') }} {{ updateVersion }}
         <button
           class="ml-2 px-3 py-1 text-xs rounded bg-primary text-primary-foreground disabled:opacity-50"
           :disabled="updating"
           @click="installUpdate"
         >
-          {{ updating ? '更新中...' : '立即更新' }}
+          {{ updating ? t('settings.updating') : t('settings.update_now') }}
         </button>
       </div>
       <button
@@ -63,7 +65,7 @@ async function handleCheck() {
         :disabled="checking"
         @click="handleCheck"
       >
-        {{ checking ? '检查中...' : '检查更新' }}
+        {{ checking ? t('settings.checking') : t('settings.check_update') }}
       </button>
     </div>
 

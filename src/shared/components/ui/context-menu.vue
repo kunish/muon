@@ -21,7 +21,7 @@ defineProps<{
     <ContextMenuPortal>
       <ContextMenuContent
         :class="cn(
-          'z-50 min-w-32 overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md animate-in fade-in-0 zoom-in-95',
+          'z-50 min-w-32 overflow-hidden rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-lg animate-in fade-in-0 zoom-in-95',
           $props.class,
         )"
       >

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Phone, PhoneOff } from 'lucide-vue-next'
 import { onMounted, onUnmounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 defineProps<{
   callerName: string
@@ -11,6 +12,8 @@ const emit = defineEmits<{
   accept: []
   reject: []
 }>()
+
+const { t } = useI18n()
 
 const elapsed = ref(0)
 let timer: ReturnType<typeof setInterval> | null = null
@@ -40,7 +43,7 @@ onUnmounted(() => {
           {{ callerName }}
         </div>
         <div class="text-sm text-muted-foreground">
-          {{ callType === 'video' ? '视频通话' : '语音通话' }}
+          {{ callType === 'video' ? t('calls.video_call') : t('calls.voice_call') }}
         </div>
       </div>
     </div>

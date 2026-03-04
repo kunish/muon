@@ -15,8 +15,8 @@ const formattedDuration = computed(() => {
   return `${m}:${String(s).padStart(2, '0')}`
 })
 
-function handleStop() {
-  const blob = stop()
+async function handleStop() {
+  const blob = await stop()
   if (blob) {
     emit('send', blob, duration.value * 1000)
   }

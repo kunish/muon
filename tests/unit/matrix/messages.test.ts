@@ -43,7 +43,20 @@ describe('messages', () => {
   })
 
   it('should get timeline events', async () => {
-    const mockEvents = [{ getId: () => '$e1' }, { getId: () => '$e2' }]
+    const mockEvents = [
+      {
+        getId: () => '$e1',
+        getType: () => 'm.room.message',
+        getContent: () => ({ msgtype: 'm.text', body: 'hello' }),
+        isRedacted: () => false,
+      },
+      {
+        getId: () => '$e2',
+        getType: () => 'm.room.message',
+        getContent: () => ({ msgtype: 'm.text', body: 'world' }),
+        isRedacted: () => false,
+      },
+    ]
     mockGetRoom.mockReturnValue({
       getLiveTimeline: () => ({
         getEvents: () => mockEvents,

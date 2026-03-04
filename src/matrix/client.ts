@@ -1,4 +1,5 @@
 import type { MatrixConfig } from './types'
+import { fetch } from '@tauri-apps/plugin-http'
 import * as sdk from 'matrix-js-sdk'
 
 let client: sdk.MatrixClient | null = null
@@ -16,6 +17,10 @@ export function createClient(config: MatrixConfig): sdk.MatrixClient {
     userId: config.userId,
     deviceId: config.deviceId,
     timelineSupport: true,
+    fetchFn: fetch as any,
+    // muon 使用 LiveKit 进行通话，禁用 matrix-js-sdk 内置 VoIP 以避免无意义的 TURN 请求
+    disableVoip: true,
+    fallbackICEServerAllowed: false,
   })
   return client
 }

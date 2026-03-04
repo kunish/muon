@@ -1,21 +1,19 @@
 <script setup lang="ts">
 import type { RoomSummary } from '@matrix/types'
 import { getClient } from '@matrix/client'
-import { getRoom, findOrCreateDm } from '@matrix/rooms'
-import { getUserPresenceInfo, blockUser, unblockUser, isUserBlocked } from '@matrix/index'
+import { blockUser, getUserPresenceInfo, isUserBlocked, unblockUser } from '@matrix/index'
+import { findOrCreateDm, getRoom } from '@matrix/rooms'
 import { ask } from '@tauri-apps/plugin-dialog'
-import { X, MessageCircle, Shield, AtSign, Hash, UserCircle, Ban } from 'lucide-vue-next'
+import { AtSign, Ban, Hash, MessageCircle, Shield, X } from 'lucide-vue-next'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useAuthMedia } from '@/shared/composables/useAuthMedia'
+import { useConversations } from '../composables/useConversations'
 import {
   avatarGradient as getGradient,
   initials as getInitials,
 } from '../lib/format'
-import { useAuthMedia } from '@/shared/composables/useAuthMedia'
 import { useChatStore } from '../stores/chatStore'
-import { useConversations } from '../composables/useConversations'
-
-const { t } = useI18n()
 
 const props = defineProps<{
   room: RoomSummary | null
@@ -29,6 +27,8 @@ const emit = defineEmits<{
   close: []
 }>()
 
+const { t } = useI18n()
+
 const memberInfo = ref<{
   displayName: string
   avatarUrl?: string
@@ -40,13 +40,15 @@ const isVisible = computed(() => !!(props.room || props.userId))
 
 // 模式1: 通过 room (会话列表)
 watch(() => props.room, (room) => {
-  if (props.userId) return // userId 模式优先
+  if (props.userId)
+    return // userId 模式优先
   if (!room) {
     memberInfo.value = null
     return
   }
   const matrixRoom = getRoom(room.roomId)
-  if (!matrixRoom) return
+  if (!matrixRoom)
+    return
 
   if (room.isDirect && room.dmUserId) {
     const member = matrixRoom.getMember(room.dmUserId)
@@ -55,7 +57,8 @@ watch(() => props.room, (room) => {
       avatarUrl: member?.getMxcAvatarUrl() || undefined,
       userId: room.dmUserId,
     }
-  } else {
+  }
+  else {
     memberInfo.value = {
       displayName: room.name,
       avatarUrl: room.avatar,
@@ -67,13 +70,16 @@ watch(() => props.room, (room) => {
 // 模式2: 通过 userId (消息列表头像点击)
 watch(() => props.userId, (uid) => {
   if (!uid) {
-    if (!props.room) memberInfo.value = null
+    if (!props.room)
+      memberInfo.value = null
     return
   }
   const rid = props.roomId || props.room?.roomId
-  if (!rid) return
+  if (!rid)
+    return
   const matrixRoom = getRoom(rid)
-  if (!matrixRoom) return
+  if (!matrixRoom)
+    return
   const member = matrixRoom.getMember(uid)
   memberInfo.value = {
     displayName: member?.name || uid.split(':')[0].slice(1),
@@ -92,20 +98,23 @@ const gradient = computed(() => {
 const letter = computed(() => getInitials(memberInfo.value?.displayName || '?'))
 
 const userStatusMsg = computed(() => {
-  if (!memberInfo.value?.userId || !memberInfo.value.userId.startsWith('@')) return ''
+  if (!memberInfo.value?.userId || !memberInfo.value.userId.startsWith('@'))
+    return ''
   return getUserPresenceInfo(memberInfo.value.userId).statusMsg || ''
 })
 
 const resolvedRoomId = computed(() => props.roomId || props.room?.roomId)
 
 const memberCount = computed(() => {
-  if (!resolvedRoomId.value) return 0
+  if (!resolvedRoomId.value)
+    return 0
   const matrixRoom = getRoom(resolvedRoomId.value)
   return matrixRoom?.getJoinedMemberCount() || 0
 })
 
 const panelStyle = computed(() => {
-  if (!isVisible.value) return { display: 'none' }
+  if (!isVisible.value)
+    return { display: 'none' }
   const panelW = 272
   const panelH = 320
   const margin = 8
@@ -117,13 +126,15 @@ const panelStyle = computed(() => {
     x = props.position.x - panelW - margin
   }
   // 左侧溢出兜底
-  if (x < margin) x = margin
+  if (x < margin)
+    x = margin
   // 底部溢出
   if (y + panelH > window.innerHeight - margin) {
     y = window.innerHeight - panelH - margin
   }
   // 顶部溢出
-  if (y < margin) y = margin
+  if (y < margin)
+    y = margin
 
   return {
     position: 'fixed' as const,
@@ -139,21 +150,24 @@ const { restoreRoom } = useConversations()
 /** 点击"发送消息"：找到或创建 DM 房间并跳转 */
 async function onSendMessage() {
   const uid = memberInfo.value?.userId
-  if (!uid || !uid.startsWith('@')) return
+  if (!uid || !uid.startsWith('@'))
+    return
   emit('close')
   try {
     const roomId = await findOrCreateDm(uid)
     // 确保房间在会话列表中可见（可能之前被归档/隐藏）
     restoreRoom(roomId)
     chatStore.setCurrentRoom(roomId)
-  } catch (err) {
+  }
+  catch (err) {
     console.error('打开私聊失败:', err)
   }
 }
 
 // --- 屏蔽/拉黑 ---
 const isOtherUser = computed(() => {
-  if (!memberInfo.value?.userId) return false
+  if (!memberInfo.value?.userId)
+    return false
   const myId = getClient().getUserId()
   return memberInfo.value.userId.startsWith('@') && memberInfo.value.userId !== myId
 })
@@ -163,26 +177,30 @@ const blocked = ref(false)
 watch(memberInfo, (info) => {
   if (info?.userId && info.userId.startsWith('@')) {
     blocked.value = isUserBlocked(info.userId)
-  } else {
+  }
+  else {
     blocked.value = false
   }
 }, { immediate: true })
 
 async function onToggleBlock() {
   const uid = memberInfo.value?.userId
-  if (!uid) return
+  if (!uid)
+    return
 
   if (blocked.value) {
     // 解除屏蔽 — 无需确认
     await unblockUser(uid)
     blocked.value = false
-  } else {
+  }
+  else {
     // 屏蔽前确认
     const confirmed = await ask(t('settings.block_confirm'), {
       title: t('settings.block_confirm_title'),
       kind: 'warning',
     })
-    if (!confirmed) return
+    if (!confirmed)
+      return
     await blockUser(uid)
     blocked.value = true
   }

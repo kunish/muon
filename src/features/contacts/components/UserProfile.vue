@@ -7,13 +7,13 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useContactStore } from '../stores/contactStore'
 
-const { t, locale } = useI18n()
-
 const emit = defineEmits<{
   message: [userId: string]
   audioCall: [userId: string]
   videoCall: [userId: string]
 }>()
+
+const { t, locale } = useI18n()
 
 const store = useContactStore()
 
@@ -22,14 +22,17 @@ const contact = computed(() =>
 )
 
 const presenceInfo = computed(() => {
-  if (!contact.value) return null
+  if (!contact.value)
+    return null
   return getUserPresenceInfo(contact.value.userId)
 })
 
 const presenceLabel = computed(() => {
-  if (!presenceInfo.value) return t('contacts.offline')
+  if (!presenceInfo.value)
+    return t('contacts.offline')
   const { presence, lastActiveAgo } = presenceInfo.value
-  if (presence === 'online') return t('contacts.online')
+  if (presence === 'online')
+    return t('contacts.online')
   if (lastActiveAgo && lastActiveAgo > 0) {
     const lastSeenDate = new Date(Date.now() - lastActiveAgo)
     const dateFnsLocale = locale.value === 'zh' ? zhCN : enUS

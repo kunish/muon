@@ -1,17 +1,20 @@
 <script setup lang="ts">
-import { mxcToHttp } from '@matrix/index'
+import { fetchMediaBlobUrl } from '@matrix/index'
 import { Pause, Play } from 'lucide-vue-next'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 const props = defineProps<{
   event: any
 }>()
 
 const content = computed(() => props.event.getContent())
-const audioUrl = computed(() => {
-  const url = content.value?.url
-  return url ? mxcToHttp(url) : ''
-})
+const audioBlobUrl = ref('')
+
+watch(content, async (c) => {
+  const mxc = c?.url
+  if (mxc)
+    audioBlobUrl.value = await fetchMediaBlobUrl(mxc)
+}, { immediate: true })
 const duration = computed(() => {
   const ms = content.value?.info?.duration || 0
   const s = Math.floor(ms / 1000)
@@ -25,7 +28,7 @@ let audio: HTMLAudioElement | null = null
 
 function toggle() {
   if (!audio) {
-    audio = new Audio(audioUrl.value)
+    audio = new Audio(audioBlobUrl.value)
     audio.ontimeupdate = () => {
       if (audio)
         progress.value = (audio.currentTime / audio.duration) * 100

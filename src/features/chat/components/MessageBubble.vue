@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { getClient } from "@matrix/client";
+import { getClient } from '@matrix/client'
 import {
   getReactions,
   getReadUsers,
@@ -7,17 +7,17 @@ import {
   isUserBlocked,
   redactMessage,
   sendReaction,
-} from "@matrix/index";
+} from '@matrix/index'
 import {
-  pinMessage,
-  unpinMessage,
   isMessagePinned,
-  starMessage,
-  unstarMessage,
   isMessageStarred,
-} from "@matrix/rooms";
-import { ask } from "@tauri-apps/plugin-dialog";
-import DOMPurify from "dompurify";
+  pinMessage,
+  starMessage,
+  unpinMessage,
+  unstarMessage,
+} from '@matrix/rooms'
+import { ask } from '@tauri-apps/plugin-dialog'
+import DOMPurify from 'dompurify'
 import {
   CheckSquare,
   Copy,
@@ -34,83 +34,88 @@ import {
   Star,
   StarOff,
   Trash2,
-} from "lucide-vue-next";
-import { computed, inject, ref } from "vue";
-import { useI18n } from "vue-i18n";
-import { useChatStore } from "../stores/chatStore";
-import { useAuthMedia } from "@/shared/composables/useAuthMedia";
-import { useSettingsStore } from "@/features/settings/stores/settingsStore";
-import { translateText, getSystemLanguage } from "@/shared/lib/translate";
-import AudioMessage from "./messages/AudioMessage.vue";
-import FileMessage from "./messages/FileMessage.vue";
-import ForwardDialog from "./ForwardDialog.vue";
-import ImageMessage from "./messages/ImageMessage.vue";
-import LinkPreview from "./LinkPreview.vue";
-import AnimatedEmoji from "./AnimatedEmoji.vue";
-import ContactCardMessage from "./messages/ContactCardMessage.vue";
-import LocationMessage from "./messages/LocationMessage.vue";
-import VideoMessage from "./messages/VideoMessage.vue";
+} from 'lucide-vue-next'
+import { computed, inject, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { useSettingsStore } from '@/features/settings/stores/settingsStore'
+import { useAuthMedia } from '@/shared/composables/useAuthMedia'
+import { getSystemLanguage, translateText } from '@/shared/lib/translate'
+import { useChatStore } from '../stores/chatStore'
+import AnimatedEmoji from './AnimatedEmoji.vue'
+import ForwardDialog from './ForwardDialog.vue'
+import LinkPreview from './LinkPreview.vue'
+import AudioMessage from './messages/AudioMessage.vue'
+import ContactCardMessage from './messages/ContactCardMessage.vue'
+import FileMessage from './messages/FileMessage.vue'
+import ImageMessage from './messages/ImageMessage.vue'
+import LocationMessage from './messages/LocationMessage.vue'
+import VideoMessage from './messages/VideoMessage.vue'
 
 const props = defineProps<{
-  event: any;
-  isMine: boolean;
-  showSender: boolean;
+  event: any
+  isMine: boolean
+  showSender: boolean
   /** Position within a Telegram-style message group */
-  groupPosition: "alone" | "first" | "middle" | "last";
-}>();
+  groupPosition: 'alone' | 'first' | 'middle' | 'last'
+}>()
 
 const emit = defineEmits<{
-  avatarClick: [userId: string, event: MouseEvent];
-}>();
+  avatarClick: [userId: string, event: MouseEvent]
+}>()
 
-const store = useChatStore();
-const settingsStore = useSettingsStore();
-const { t } = useI18n();
-const triggerEmojiEffect =
-  inject<(emoji: string, rect: DOMRect) => void>("triggerEmojiEffect");
-const showMore = ref(false);
-const showForward = ref(false);
-const translatedText = ref<string | null>(null);
-const translating = ref(false);
+const store = useChatStore()
+const settingsStore = useSettingsStore()
+const { t } = useI18n()
+const triggerEmojiEffect
+  = inject<(emoji: string, rect: DOMRect) => void>('triggerEmojiEffect')
+const showMore = ref(false)
+const showForward = ref(false)
+const translatedText = ref<string | null>(null)
+const translating = ref(false)
 
-const eventId = computed(() => props.event.getId() || "");
-const isSelected = computed(() => store.isMessageSelected(eventId.value));
+const eventId = computed(() => props.event.getId() || '')
+const isSelected = computed(() => store.isMessageSelected(eventId.value))
 
 function onMultiSelect() {
-  showMore.value = false;
-  store.enterMultiSelect();
-  if (eventId.value) store.toggleMessageSelection(eventId.value);
+  showMore.value = false
+  store.enterMultiSelect()
+  if (eventId.value)
+    store.toggleMessageSelection(eventId.value)
 }
 
 function onRowClick() {
-  if (!store.multiSelectMode) return;
-  if (eventId.value) store.toggleMessageSelection(eventId.value);
+  if (!store.multiSelectMode)
+    return
+  if (eventId.value)
+    store.toggleMessageSelection(eventId.value)
 }
 
 const isTextMessage = computed(
-  () => msgtype.value === "m.text" || msgtype.value === "m.notice",
-);
+  () => msgtype.value === 'm.text' || msgtype.value === 'm.notice',
+)
 
 async function onTranslate() {
-  showMore.value = false;
+  showMore.value = false
   if (translatedText.value) {
-    translatedText.value = null;
-    return;
+    translatedText.value = null
+    return
   }
-  translating.value = true;
+  translating.value = true
   try {
-    const targetLang = getSystemLanguage();
-    translatedText.value = await translateText(body.value, targetLang);
-  } catch (err) {
-    console.error("翻译失败:", err);
-  } finally {
-    translating.value = false;
+    const targetLang = getSystemLanguage()
+    translatedText.value = await translateText(body.value, targetLang)
+  }
+  catch (err) {
+    console.error('翻译失败:', err)
+  }
+  finally {
+    translating.value = false
   }
 }
 
 const isRightAligned = computed(
-  () => settingsStore.messageAlignment === "leftright" && props.isMine,
-);
+  () => settingsStore.messageAlignment === 'leftright' && props.isMine,
+)
 
 // Telegram-style grouped bubble border-radius
 // 'alone' = normal rounded, 'first' = rounded top / small bottom,
@@ -119,317 +124,380 @@ const bubbleRadiusClass = computed(() => {
   if (isRightAligned.value) {
     // Right-aligned (mine): avatar side is right, tail side is right
     switch (props.groupPosition) {
-      case "first":
-        return "rounded-lg rounded-br-sm";
-      case "middle":
-        return "rounded-lg rounded-r-sm";
-      case "last":
-        return "rounded-lg rounded-tr-sm";
+      case 'first':
+        return 'rounded-lg rounded-br-sm'
+      case 'middle':
+        return 'rounded-lg rounded-r-sm'
+      case 'last':
+        return 'rounded-lg rounded-tr-sm'
       default:
-        return "rounded-lg";
-    }
-  } else {
-    // Left-aligned: avatar side is left, tail side is left
-    switch (props.groupPosition) {
-      case "first":
-        return "rounded-lg rounded-bl-sm";
-      case "middle":
-        return "rounded-lg rounded-l-sm";
-      case "last":
-        return "rounded-lg rounded-tl-sm";
-      default:
-        return "rounded-lg";
+        return 'rounded-lg'
     }
   }
-});
+  else {
+    // Left-aligned: avatar side is left, tail side is left
+    switch (props.groupPosition) {
+      case 'first':
+        return 'rounded-lg rounded-bl-sm'
+      case 'middle':
+        return 'rounded-lg rounded-l-sm'
+      case 'last':
+        return 'rounded-lg rounded-tl-sm'
+      default:
+        return 'rounded-lg'
+    }
+  }
+})
 
-const isRedacted = computed(() => props.event.isRedacted());
-const msgtype = computed(() => props.event.getContent()?.msgtype);
-const body = computed(() => props.event.getContent()?.body || "");
+const isRedacted = computed(() => props.event.isRedacted())
+const msgtype = computed(() => props.event.getContent()?.msgtype)
+const body = computed(() => props.event.getContent()?.body || '')
 
 // --- 名片消息检测 ---
-const isContactCard = computed(() => msgtype.value === "im.muon.contact_card");
+const isContactCard = computed(() => msgtype.value === 'im.muon.contact_card')
 const contactCardData = computed(() => {
-  if (!isContactCard.value) return null;
-  return props.event.getContent()?.["im.muon.contact_card"] || null;
-});
+  if (!isContactCard.value)
+    return null
+  return props.event.getContent()?.['im.muon.contact_card'] || null
+})
 
 // --- 贴纸消息检测 ---
-const isSticker = computed(() => props.event.getType() === "m.sticker");
+const isSticker = computed(() => props.event.getType() === 'm.sticker')
 const stickerEmoji = computed(() => {
-  if (!isSticker.value) return "";
+  if (!isSticker.value)
+    return ''
   return (
-    props.event.getContent()?.info?.["xyz.muon.emoji"] ||
-    props.event.getContent()?.body ||
-    ""
-  );
-});
+    props.event.getContent()?.info?.['xyz.muon.emoji']
+    || props.event.getContent()?.body
+    || ''
+  )
+})
 const isImageSticker = computed(() => {
-  if (!isSticker.value) return false;
-  const content = props.event.getContent();
-  const url = content?.url || "";
-  const mimetype = content?.info?.mimetype || "";
-  return url.startsWith("mxc://") && mimetype.startsWith("image/");
-});
+  if (!isSticker.value)
+    return false
+  const content = props.event.getContent()
+  const url = content?.url || ''
+  const mimetype = content?.info?.mimetype || ''
+  return url.startsWith('mxc://') && mimetype.startsWith('image/')
+})
 const imageStickerMxcUrl = computed(() => {
-  if (!isImageSticker.value) return undefined;
-  return props.event.getContent()?.url as string | undefined;
-});
-const imageStickerSrc = useAuthMedia(imageStickerMxcUrl, 200, 200);
+  if (!isImageSticker.value)
+    return undefined
+  return props.event.getContent()?.url as string | undefined
+})
+const imageStickerSrc = useAuthMedia(imageStickerMxcUrl, 200, 200)
 
 // --- 发送状态检测 ---
-const sendStatus = computed(() => props.event.status); // null=已发送, 'sending', 'not_sent', 'encrypting'
-const isFailed = computed(() => sendStatus.value === "not_sent");
+const sendStatus = computed(() => props.event.status) // null=已发送, 'sending', 'not_sent', 'encrypting'
+const isFailed = computed(() => sendStatus.value === 'not_sent')
 const isSending = computed(
-  () => sendStatus.value === "sending" || sendStatus.value === "encrypting",
-);
+  () => sendStatus.value === 'sending' || sendStatus.value === 'encrypting',
+)
 
 async function resendMessage() {
   try {
-    const client = getClient();
+    const client = getClient()
     await client.resendEvent(
       props.event,
       client.getRoom(props.event.getRoomId()!)!,
-    );
-  } catch (err) {
-    console.error("重发失败:", err);
+    )
+  }
+  catch (err) {
+    console.error('重发失败:', err)
   }
 }
 
 const replyEvent = computed(() => {
-  const inReplyTo =
-    props.event.getContent()?.["m.relates_to"]?.["m.in_reply_to"]?.event_id;
-  if (!inReplyTo) return null;
-  const client = getClient();
-  const room = client.getRoom(props.event.getRoomId()!);
-  return room?.findEventById(inReplyTo) || null;
-});
+  const inReplyTo
+    = props.event.getContent()?.['m.relates_to']?.['m.in_reply_to']?.event_id
+  if (!inReplyTo)
+    return null
+  const client = getClient()
+  const room = client.getRoom(props.event.getRoomId()!)
+  return room?.findEventById(inReplyTo) || null
+})
 
-const replyBody = computed(() => replyEvent.value?.getContent()?.body || "");
+const replyBody = computed(() => replyEvent.value?.getContent()?.body || '')
 
 const formattedBody = computed(() => {
-  const content = props.event.getContent();
-  if (content?.format === "org.matrix.custom.html" && content?.formatted_body)
-    return content.formatted_body;
-  return "";
-});
+  const content = props.event.getContent()
+  if (content?.format === 'org.matrix.custom.html' && content?.formatted_body)
+    return content.formatted_body
+  return ''
+})
 
 const sanitizedHtml = computed(() => {
-  if (!formattedBody.value) return "";
+  if (!formattedBody.value)
+    return ''
   return DOMPurify.sanitize(formattedBody.value, {
     ALLOWED_TAGS: [
-      "b",
-      "i",
-      "em",
-      "strong",
-      "a",
-      "p",
-      "br",
-      "ul",
-      "ol",
-      "li",
-      "code",
-      "pre",
-      "blockquote",
-      "del",
-      "s",
-      "u",
-      "span",
-      "h1",
-      "h2",
-      "h3",
-      "h4",
-      "h5",
-      "h6",
+      'b',
+      'i',
+      'em',
+      'strong',
+      'a',
+      'p',
+      'br',
+      'ul',
+      'ol',
+      'li',
+      'code',
+      'pre',
+      'blockquote',
+      'del',
+      's',
+      'u',
+      'span',
+      'h1',
+      'h2',
+      'h3',
+      'h4',
+      'h5',
+      'h6',
     ],
-    ALLOWED_ATTR: ["href", "target", "rel", "class"],
-  });
-});
+    ALLOWED_ATTR: ['href', 'target', 'rel', 'class'],
+  })
+})
 
 // --- 纯 Emoji 检测：1-3 个 emoji 时放大显示 ---
-const emojiRegex = /^(?:\p{Emoji_Presentation}|\p{Emoji}\uFE0F)$/u;
-const fullEmojiRegex = /^(?:\p{Emoji_Presentation}|\p{Emoji}\uFE0F){1,3}$/u;
+const emojiRegex = /^(?:\p{Emoji_Presentation}|\p{Emoji}\uFE0F)$/u
+const fullEmojiRegex = /^(?:\p{Emoji_Presentation}|\p{Emoji}\uFE0F){1,3}$/u
 
 const isFullEmoji = computed(() => {
-  if (msgtype.value !== "m.text" || !body.value) return false;
-  const trimmed = body.value.trim();
+  if (msgtype.value !== 'm.text' || !body.value)
+    return false
+  const trimmed = body.value.trim()
   // 使用 Intl.Segmenter 精确分割 emoji
-  const IntlAny = Intl as any;
+  const IntlAny = Intl as any
   if (IntlAny.Segmenter) {
-    const segmenter = new IntlAny.Segmenter("en", { granularity: "grapheme" });
-    const segments = [...segmenter.segment(trimmed)] as { segment: string }[];
-    if (segments.length < 1 || segments.length > 3) return false;
+    const segmenter = new IntlAny.Segmenter('en', { granularity: 'grapheme' })
+    const segments = [...segmenter.segment(trimmed)] as { segment: string }[]
+    if (segments.length < 1 || segments.length > 3)
+      return false
     return segments.every(
       (s: { segment: string }) =>
-        emojiRegex.test(s.segment) ||
-        /^\p{Emoji_Presentation}/u.test(s.segment),
-    );
+        emojiRegex.test(s.segment)
+        || /^\p{Emoji_Presentation}/u.test(s.segment),
+    )
   }
-  return fullEmojiRegex.test(trimmed);
-});
+  return fullEmojiRegex.test(trimmed)
+})
 
-const sender = computed(() => props.event.getSender() || "");
+const sender = computed(() => props.event.getSender() || '')
 
 // 检查发送者是否被屏蔽 — 使用 computed 缓存避免每次渲染都调用
 const isSenderBlocked = computed(() => {
-  const s = sender.value;
-  if (!s) return false;
-  return isUserBlocked(s);
-});
+  const s = sender.value
+  if (!s)
+    return false
+  return isUserBlocked(s)
+})
 
 function copyText() {
-  navigator.clipboard.writeText(body.value);
+  navigator.clipboard.writeText(body.value)
 }
 
 /** 拦截 rich-content 中的 matrix.to mention 链接点击，打开用户卡片 */
 function onRichContentClick(e: MouseEvent) {
-  const target = e.target as HTMLElement;
-  const anchor = target.closest("a[href]") as HTMLAnchorElement | null;
-  if (!anchor) return;
-  const href = anchor.getAttribute("href") || "";
+  const target = e.target as HTMLElement
+  const anchor = target.closest('a[href]') as HTMLAnchorElement | null
+  if (!anchor)
+    return
+  const href = anchor.getAttribute('href') || ''
   // 匹配 https://matrix.to/#/@user:server 格式
-  const match = href.match(/^https:\/\/matrix\.to\/#\/([@!#][^?]*)/);
+  const match = href.match(/^https:\/\/matrix\.to\/#\/([@!#][^?]*)/)
   if (match) {
-    e.preventDefault();
-    e.stopPropagation();
-    const userId = decodeURIComponent(match[1]);
+    e.preventDefault()
+    e.stopPropagation()
+    const userId = decodeURIComponent(match[1])
     // 以 @ 开头的是用户 mention，打开用户卡片
-    if (userId.startsWith("@")) {
-      emit("avatarClick", userId, e);
+    if (userId.startsWith('@')) {
+      emit('avatarClick', userId, e)
     }
   }
 }
 function onReply() {
-  store.setReplyingTo(props.event);
+  store.setReplyingTo(props.event)
 }
 function onEdit() {
-  store.setEditingEvent(props.event);
+  store.setEditingEvent(props.event)
 }
 async function onRedact() {
-  const confirmed = await ask(t("chat.recall_confirm"), {
-    title: t("chat.recall_title"),
-    kind: "warning",
-  });
-  if (!confirmed) return;
-  redactMessage(props.event.getRoomId(), props.event.getId());
+  const confirmed = await ask(t('chat.recall_confirm'), {
+    title: t('chat.recall_title'),
+    kind: 'warning',
+  })
+  if (!confirmed)
+    return
+  redactMessage(props.event.getRoomId(), props.event.getId())
 }
 function toggleMore() {
-  showMore.value = !showMore.value;
+  showMore.value = !showMore.value
 }
 function onForward() {
-  showMore.value = false;
-  showForward.value = true;
+  showMore.value = false
+  showForward.value = true
 }
 
 function onHideForMe() {
-  const eventId = props.event.getId();
+  const eventId = props.event.getId()
   if (eventId) {
-    store.hideMessage(eventId);
+    store.hideMessage(eventId)
   }
-  showMore.value = false;
+  showMore.value = false
 }
 
 // --- Pin / Star ---
 const isPinned = computed(() => {
-  const roomId = props.event.getRoomId();
-  const evId = props.event.getId();
-  if (!roomId || !evId) return false;
-  return isMessagePinned(roomId, evId);
-});
+  const roomId = props.event.getRoomId()
+  const evId = props.event.getId()
+  if (!roomId || !evId)
+    return false
+  return isMessagePinned(roomId, evId)
+})
 
 const isStarred = computed(() => {
-  const roomId = props.event.getRoomId();
-  const evId = props.event.getId();
-  if (!roomId || !evId) return false;
-  return isMessageStarred(roomId, evId);
-});
+  const roomId = props.event.getRoomId()
+  const evId = props.event.getId()
+  if (!roomId || !evId)
+    return false
+  return isMessageStarred(roomId, evId)
+})
 
 async function onTogglePin() {
-  showMore.value = false;
-  const roomId = props.event.getRoomId();
-  const evId = props.event.getId();
-  if (!roomId || !evId) return;
+  showMore.value = false
+  const roomId = props.event.getRoomId()
+  const evId = props.event.getId()
+  if (!roomId || !evId)
+    return
   try {
     if (isPinned.value) {
-      await unpinMessage(roomId, evId);
-    } else {
-      await pinMessage(roomId, evId);
+      await unpinMessage(roomId, evId)
     }
-  } catch (err) {
-    console.error("Pin/Unpin failed:", err);
+    else {
+      await pinMessage(roomId, evId)
+    }
+  }
+  catch (err) {
+    console.error('Pin/Unpin failed:', err)
   }
 }
 
 async function onToggleStar() {
-  showMore.value = false;
-  const roomId = props.event.getRoomId();
-  const evId = props.event.getId();
-  if (!roomId || !evId) return;
+  showMore.value = false
+  const roomId = props.event.getRoomId()
+  const evId = props.event.getId()
+  if (!roomId || !evId)
+    return
   try {
     if (isStarred.value) {
-      await unstarMessage(roomId, evId);
-    } else {
-      await starMessage(roomId, evId);
+      await unstarMessage(roomId, evId)
     }
-  } catch (err) {
-    console.error("Star/Unstar failed:", err);
+    else {
+      await starMessage(roomId, evId)
+    }
+  }
+  catch (err) {
+    console.error('Star/Unstar failed:', err)
   }
 }
 
 // --- URL 检测 ---
-const urlRegex = /https?:\/\/[^\s<>"']+/gi;
+const urlRegex = /https?:\/\/[^\s<>"']+/gi
 const extractedUrls = computed((): string[] => {
-  if (msgtype.value !== "m.text" || !body.value) return [];
-  const matches: string[] | null = body.value.match(urlRegex);
-  return matches ? Array.from(new Set(matches)).slice(0, 3) : [];
-});
+  if (msgtype.value !== 'm.text' || !body.value)
+    return []
+  const matches: string[] | null = body.value.match(urlRegex)
+  return matches ? Array.from(new Set(matches)).slice(0, 3) : []
+})
 
 // --- Reactions ---
-const QUICK_EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "🎉"];
+const QUICK_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🎉']
 const EMOJI_GRID = [
-  "👍", "👏", "🙏", "🤝", "💪", "🫡", "👋", "✌️",
-  "😀", "😊", "😄", "😁", "😆", "🥰", "😂", "🥲",
-  "😎", "🤩", "😏", "🤔", "🙄", "😮", "😢", "😡",
-  "❤️", "🔥", "🎉", "✅", "💯", "⭐", "🙌", "🤗",
-  "👀", "💡", "📌", "🚀", "🎯", "💬", "👌", "🆗",
-];
-const showEmojiPicker = ref(false);
+  '👍',
+  '👏',
+  '🙏',
+  '🤝',
+  '💪',
+  '🫡',
+  '👋',
+  '✌️',
+  '😀',
+  '😊',
+  '😄',
+  '😁',
+  '😆',
+  '🥰',
+  '😂',
+  '🥲',
+  '😎',
+  '🤩',
+  '😏',
+  '🤔',
+  '🙄',
+  '😮',
+  '😢',
+  '😡',
+  '❤️',
+  '🔥',
+  '🎉',
+  '✅',
+  '💯',
+  '⭐',
+  '🙌',
+  '🤗',
+  '👀',
+  '💡',
+  '📌',
+  '🚀',
+  '🎯',
+  '💬',
+  '👌',
+  '🆗',
+]
+const showEmojiPicker = ref(false)
 
 const reactions = computed(() => {
-  const roomId = props.event.getRoomId();
-  const eventId = props.event.getId();
-  if (!roomId || !eventId) return [];
-  return getReactions(roomId, eventId);
-});
+  const roomId = props.event.getRoomId()
+  const eventId = props.event.getId()
+  if (!roomId || !eventId)
+    return []
+  return getReactions(roomId, eventId)
+})
 
 async function onReact(emoji: string) {
-  showEmojiPicker.value = false;
-  const roomId = props.event.getRoomId();
-  const eventId = props.event.getId();
-  if (!roomId || !eventId) return;
-  await sendReaction(roomId, eventId, emoji);
+  showEmojiPicker.value = false
+  const roomId = props.event.getRoomId()
+  const eventId = props.event.getId()
+  if (!roomId || !eventId)
+    return
+  await sendReaction(roomId, eventId, emoji)
 }
 
 // --- 已读回执 ---
 const readUsers = computed(() => {
-  if (!props.isMine) return [];
-  const roomId = props.event.getRoomId();
-  const eventId = props.event.getId();
-  if (!roomId || !eventId) return [];
-  return getReadUsers(roomId, eventId);
-});
+  if (!props.isMine)
+    return []
+  const roomId = props.event.getRoomId()
+  const eventId = props.event.getId()
+  if (!roomId || !eventId)
+    return []
+  return getReadUsers(roomId, eventId)
+})
 
 // --- Thread ---
 const threadReplyCount = computed(() => {
-  const roomId = props.event.getRoomId();
-  const evId = props.event.getId();
-  if (!roomId || !evId) return 0;
-  return getThreadReplies(roomId, evId).length;
-});
+  const roomId = props.event.getRoomId()
+  const evId = props.event.getId()
+  if (!roomId || !evId)
+    return 0
+  return getThreadReplies(roomId, evId).length
+})
 
 function onOpenThread() {
-  const evId = props.event.getId();
-  if (evId) store.openThread(evId);
+  const evId = props.event.getId()
+  if (evId)
+    store.openThread(evId)
 }
 </script>
 
@@ -511,7 +579,7 @@ function onOpenThread() {
             :alt="body"
             :title="body"
             class="max-w-[200px] max-h-[200px] rounded-lg object-contain select-none"
-          />
+          >
           <div
             v-else-if="isImageSticker"
             class="w-[120px] h-[120px] rounded-lg bg-muted/40 animate-pulse"
@@ -521,8 +589,7 @@ function onOpenThread() {
             v-else
             class="text-6xl leading-none select-none"
             :title="body"
-            >{{ stickerEmoji }}</span
-          >
+          >{{ stickerEmoji }}</span>
         </div>
 
         <!-- Normal bubble -->
@@ -565,10 +632,12 @@ function onOpenThread() {
           <div
             v-else-if="sanitizedHtml"
             class="rich-content"
-            v-html="sanitizedHtml"
             @click="onRichContentClick"
+            v-html="sanitizedHtml"
           />
-          <template v-else>{{ body }}</template>
+          <template v-else>
+            {{ body }}
+          </template>
 
           <!-- URL 链接预览 -->
           <LinkPreview v-for="url in extractedUrls" :key="url" :url="url" />
@@ -669,80 +738,80 @@ function onOpenThread() {
               >
                 <MoreHorizontal :size="14" />
               </button>
-            <Transition name="more-menu">
-              <div
-                v-if="showMore"
-                class="absolute top-full right-0 mt-1 bg-popover/95 backdrop-blur-xl border border-border/50 rounded-xl shadow-[0_8px_30px_rgba(0,0,0,0.15)] py-1 z-20 min-w-[140px]"
-              >
-                <!-- Group 1: Edit / Delete (own messages) -->
-                <template v-if="isMine">
-                  <button
-                    class="menu-item"
-                    @click.stop="
-                      onEdit();
-                      showMore = false;
-                    "
-                  >
-                    <Edit :size="13" /> {{ t("chat.edit_message") }}
-                  </button>
-                  <button
-                    class="menu-item text-destructive"
-                    @click.stop="
-                      onRedact();
-                      showMore = false;
-                    "
-                  >
-                    <Trash2 :size="13" /> {{ t("chat.recall") }}
-                  </button>
-                  <div class="h-px bg-border/40 my-1 mx-2" />
-                </template>
+              <Transition name="more-menu">
+                <div
+                  v-if="showMore"
+                  class="absolute top-full right-0 mt-1 bg-popover/95 backdrop-blur-xl border border-border/50 rounded-xl shadow-[0_8px_30px_rgba(0,0,0,0.15)] py-1 z-20 min-w-[140px]"
+                >
+                  <!-- Group 1: Edit / Delete (own messages) -->
+                  <template v-if="isMine">
+                    <button
+                      class="menu-item"
+                      @click.stop="
+                        onEdit();
+                        showMore = false;
+                      "
+                    >
+                      <Edit :size="13" /> {{ t("chat.edit_message") }}
+                    </button>
+                    <button
+                      class="menu-item text-destructive"
+                      @click.stop="
+                        onRedact();
+                        showMore = false;
+                      "
+                    >
+                      <Trash2 :size="13" /> {{ t("chat.recall") }}
+                    </button>
+                    <div class="h-px bg-border/40 my-1 mx-2" />
+                  </template>
 
-                <!-- Group 2: Pin / Star -->
-                <button class="menu-item" @click.stop="onTogglePin">
-                  <component :is="isPinned ? PinOff : Pin" :size="13" />
-                  {{
-                    isPinned ? t("chat.unpin_message") : t("chat.pin_message")
-                  }}
-                </button>
-                <button class="menu-item" @click.stop="onToggleStar">
-                  <component :is="isStarred ? StarOff : Star" :size="13" />
-                  {{
-                    isStarred
-                      ? t("chat.unstar_message")
-                      : t("chat.star_message")
-                  }}
-                </button>
-
-                <!-- Group 3: Translate (text only) -->
-                <template v-if="isTextMessage">
-                  <div class="h-px bg-border/40 my-1 mx-2" />
-                  <button
-                    class="menu-item"
-                    @click.stop="onTranslate"
-                  >
-                    <Languages :size="13" />
+                  <!-- Group 2: Pin / Star -->
+                  <button class="menu-item" @click.stop="onTogglePin">
+                    <component :is="isPinned ? PinOff : Pin" :size="13" />
                     {{
-                      translatedText
-                        ? t("chat.hide_translation")
-                        : t("chat.translate")
+                      isPinned ? t("chat.unpin_message") : t("chat.pin_message")
                     }}
                   </button>
-                </template>
+                  <button class="menu-item" @click.stop="onToggleStar">
+                    <component :is="isStarred ? StarOff : Star" :size="13" />
+                    {{
+                      isStarred
+                        ? t("chat.unstar_message")
+                        : t("chat.star_message")
+                    }}
+                  </button>
 
-                <!-- Group 4: Hide / Multi-select -->
-                <div class="h-px bg-border/40 my-1 mx-2" />
-                <button
-                  class="menu-item text-muted-foreground"
-                  @click.stop="onHideForMe"
-                >
-                  <EyeOff :size="13" /> {{ t("chat.hide_for_me") }}
-                </button>
-                <button class="menu-item" @click.stop="onMultiSelect">
-                  <CheckSquare :size="13" /> {{ t("chat.multi_select") }}
-                </button>
-              </div>
-            </Transition>
-          </div>
+                  <!-- Group 3: Translate (text only) -->
+                  <template v-if="isTextMessage">
+                    <div class="h-px bg-border/40 my-1 mx-2" />
+                    <button
+                      class="menu-item"
+                      @click.stop="onTranslate"
+                    >
+                      <Languages :size="13" />
+                      {{
+                        translatedText
+                          ? t("chat.hide_translation")
+                          : t("chat.translate")
+                      }}
+                    </button>
+                  </template>
+
+                  <!-- Group 4: Hide / Multi-select -->
+                  <div class="h-px bg-border/40 my-1 mx-2" />
+                  <button
+                    class="menu-item text-muted-foreground"
+                    @click.stop="onHideForMe"
+                  >
+                    <EyeOff :size="13" /> {{ t("chat.hide_for_me") }}
+                  </button>
+                  <button class="menu-item" @click.stop="onMultiSelect">
+                    <CheckSquare :size="13" /> {{ t("chat.multi_select") }}
+                  </button>
+                </div>
+              </Transition>
+            </div>
           </div>
         </div>
       </div>
@@ -826,7 +895,7 @@ function onOpenThread() {
                 :alt="u.name"
                 :title="u.name"
                 class="w-3.5 h-3.5 rounded-full ring-1 ring-background object-cover"
-              />
+              >
               <div
                 v-else
                 :title="u.name"
@@ -914,13 +983,13 @@ function onOpenThread() {
   text-decoration: underline;
   text-underline-offset: 2px;
 }
-.rich-content :deep(a[href^="https://matrix.to"]) {
+.rich-content :deep(a[href^='https://matrix.to']) {
   color: var(--color-primary);
   font-weight: 500;
   text-decoration: none;
   cursor: pointer;
 }
-.rich-content :deep(a[href^="https://matrix.to"]):hover {
+.rich-content :deep(a[href^='https://matrix.to']):hover {
   text-decoration: underline;
 }
 .rich-content :deep(strong) {

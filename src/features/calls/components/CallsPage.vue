@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { Phone, PhoneIncoming, PhoneMissed, Video } from 'lucide-vue-next'
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useCallHistory } from '../composables/useCallHistory'
 
+const { t } = useI18n()
 const { history } = useCallHistory()
 
 const isEmpty = computed(() => history.value.length === 0)
@@ -27,7 +29,7 @@ function formatTime(ts: number) {
   <div class="flex-1 flex flex-col h-full">
     <div class="h-14 border-b border-border flex items-center px-4">
       <h2 class="font-medium">
-        通话记录
+        {{ t('calls.history') }}
       </h2>
     </div>
 
@@ -35,7 +37,7 @@ function formatTime(ts: number) {
       <div class="text-center text-muted-foreground">
         <Phone :size="40" class="mx-auto mb-2 opacity-30" />
         <p class="text-sm">
-          暂无通话记录
+          {{ t('calls.no_history') }}
         </p>
       </div>
     </div>
@@ -61,7 +63,7 @@ function formatTime(ts: number) {
             {{ entry.initiator }}
           </div>
           <div class="text-xs text-muted-foreground">
-            {{ entry.missed ? '未接' : formatDuration(entry.duration) }}
+            {{ entry.missed ? t('calls.missed') : formatDuration(entry.duration) }}
           </div>
         </div>
         <div class="text-xs text-muted-foreground">

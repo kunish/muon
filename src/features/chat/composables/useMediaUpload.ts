@@ -1,4 +1,4 @@
-import { sendAudioMessage, sendFileMessage, sendImageMessage, sendVideoMessage } from '@matrix/index'
+import { extractVideoMeta, sendAudioMessage, sendFileMessage, sendImageMessage, sendVideoMessage } from '@matrix/index'
 import { ref } from 'vue'
 
 export function useMediaUpload(roomId: () => string | null) {
@@ -28,8 +28,15 @@ export function useMediaUpload(roomId: () => string | null) {
     uploading.value = true
     progress.value = 0
     try {
-      progress.value = 50
-      await sendVideoMessage(id, file)
+      let meta
+      try {
+        meta = await extractVideoMeta(file)
+      }
+      catch (e) {
+        console.warn('[upload] failed to extract video meta', e)
+      }
+      progress.value = 30
+      await sendVideoMessage(id, file, meta)
       progress.value = 100
     }
     finally {

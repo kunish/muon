@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Search } from 'lucide-vue-next'
+import { useI18n } from 'vue-i18n'
 import { useContactStore } from '../stores/contactStore'
 import ContactItem from './ContactItem.vue'
 
@@ -8,6 +9,7 @@ const emit = defineEmits<{
   open: [userId: string]
 }>()
 
+const { t } = useI18n()
 const store = useContactStore()
 </script>
 
@@ -19,7 +21,7 @@ const store = useContactStore()
         <input
           v-model="store.searchQuery"
           type="text"
-          placeholder="搜索联系人..."
+          :placeholder="t('contacts.search')"
           class="flex-1 bg-transparent text-sm outline-none"
         >
       </div>
@@ -37,7 +39,7 @@ const store = useContactStore()
         v-if="store.filteredContacts.length === 0"
         class="px-4 py-8 text-center text-sm text-muted-foreground"
       >
-        暂无联系人
+        {{ t('contacts.empty') }}
       </div>
     </div>
   </div>

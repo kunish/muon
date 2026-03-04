@@ -22,7 +22,3 @@ export async function createEncryptedRoom(
   })
   return room_id
 }
-
-export function isRoomEncrypted(roomId: string): boolean {
-  return getClient().isRoomEncrypted(roomId)
-}

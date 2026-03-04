@@ -9,7 +9,7 @@ export interface Contact {
   presence: 'online' | 'offline' | 'unavailable'
 }
 
-export interface GroupInfo {
+interface GroupInfo {
   roomId: string
   name: string
   memberCount: number
@@ -43,7 +43,7 @@ export const useContactStore = defineStore('contacts', () => {
     }
 
     contacts.value = Array.from(dmMap.values())
-      .sort((a, b) => a.displayName.localeCompare(b.displayName, 'zh-CN'))
+      .sort((a, b) => a.displayName.localeCompare(b.displayName))
   }
 
   async function loadGroups() {

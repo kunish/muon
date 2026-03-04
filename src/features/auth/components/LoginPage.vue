@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { bindClientEvents, login, register, startSync } from '@matrix/index'
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
+const { t } = useI18n()
 const tab = ref<'login' | 'register'>('login')
-const serverUrl = ref('http://localhost:6167')
+const serverUrl = ref('http://127.0.0.1:6167')
 const username = ref('')
 const password = ref('')
 const displayName = ref('')
@@ -34,7 +36,7 @@ async function handleSubmit() {
     router.push('/chat')
   }
   catch (e: any) {
-    error.value = e?.message || '操作失败'
+    error.value = e?.message || t('auth.error')
   }
   finally {
     loading.value = false
@@ -56,20 +58,20 @@ async function handleSubmit() {
           :class="tab === 'login' ? 'bg-background shadow-sm font-medium' : 'text-muted-foreground'"
           @click="tab = 'login'"
         >
-          登录
+          {{ t('auth.login') }}
         </button>
         <button
           class="flex-1 py-1.5 text-sm rounded-md transition-colors"
           :class="tab === 'register' ? 'bg-background shadow-sm font-medium' : 'text-muted-foreground'"
           @click="tab = 'register'"
         >
-          注册
+          {{ t('auth.register') }}
         </button>
       </div>
 
       <form class="space-y-4" @submit.prevent="handleSubmit">
         <div>
-          <label class="block text-sm mb-1.5">服务器地址</label>
+          <label class="block text-sm mb-1.5">{{ t('auth.server') }}</label>
           <input
             v-model="serverUrl"
             type="text"
@@ -78,7 +80,7 @@ async function handleSubmit() {
         </div>
 
         <div>
-          <label class="block text-sm mb-1.5">用户名</label>
+          <label class="block text-sm mb-1.5">{{ t('auth.username') }}</label>
           <input
             v-model="username"
             type="text"
@@ -88,7 +90,7 @@ async function handleSubmit() {
         </div>
 
         <div>
-          <label class="block text-sm mb-1.5">密码</label>
+          <label class="block text-sm mb-1.5">{{ t('auth.password') }}</label>
           <input
             v-model="password"
             type="password"
@@ -98,11 +100,11 @@ async function handleSubmit() {
         </div>
 
         <div v-if="tab === 'register'">
-          <label class="block text-sm mb-1.5">显示名称</label>
+          <label class="block text-sm mb-1.5">{{ t('auth.display_name') }}</label>
           <input
             v-model="displayName"
             type="text"
-            placeholder="可选"
+            :placeholder="t('auth.optional')"
             class="w-full h-9 px-3 text-sm rounded-md border border-input bg-background outline-none focus:ring-2 focus:ring-ring"
           >
         </div>
@@ -116,7 +118,7 @@ async function handleSubmit() {
           :disabled="loading || !username || !password"
           class="w-full h-9 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {{ loading ? '处理中...' : (tab === 'login' ? '登录' : '注册') }}
+          {{ loading ? t('auth.processing') : (tab === 'login' ? t('auth.login') : t('auth.register')) }}
         </button>
       </form>
     </div>

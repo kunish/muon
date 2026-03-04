@@ -33,11 +33,6 @@ export const useCallStore = defineStore('call', () => {
     }, 1000)
   }
 
-  function setRinging(info: CallInfo) {
-    currentCall.value = info
-    state.value = 'ringing'
-  }
-
   return {
     state,
     currentCall,
@@ -47,6 +42,5 @@ export const useCallStore = defineStore('call', () => {
     startCall,
     setConnected,
     endCall,
-    setRinging,
   }
 })

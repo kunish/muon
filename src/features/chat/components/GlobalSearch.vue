@@ -2,11 +2,14 @@
 import { getClient } from '@matrix/client'
 import { Search } from 'lucide-vue-next'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
 const emit = defineEmits<{
   close: []
 }>()
+
+const { t } = useI18n()
 
 const router = useRouter()
 const query = ref('')
@@ -51,7 +54,7 @@ onUnmounted(() => {
           <input
             v-model="query"
             type="text"
-            placeholder="搜索会话..."
+            :placeholder="t('chat.search_conversations')"
             class="flex-1 bg-transparent text-sm outline-none"
             autofocus
           >
@@ -79,7 +82,7 @@ onUnmounted(() => {
             v-if="rooms.length === 0"
             class="px-4 py-6 text-center text-sm text-muted-foreground"
           >
-            未找到匹配的会话
+            {{ t('chat.search_no_match') }}
           </div>
         </div>
       </div>

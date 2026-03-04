@@ -2,7 +2,7 @@ import { ref, watchEffect } from 'vue'
 
 type Theme = 'light' | 'dark' | 'system'
 
-const theme = ref<Theme>((localStorage.getItem('muon_theme') as Theme) || 'system')
+const theme = ref<Theme>((localStorage.getItem('muon_theme') as Theme) || 'dark')
 
 export function useTheme() {
   watchEffect(() => {

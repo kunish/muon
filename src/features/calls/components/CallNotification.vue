@@ -1,15 +1,17 @@
 <script setup lang="ts">
 import { Phone } from 'lucide-vue-next'
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useCallStore } from '../stores/callStore'
 
+const { t } = useI18n()
 const store = useCallStore()
 
 const statusText = computed(() => {
   switch (store.state) {
-    case 'connecting': return '正在连接...'
-    case 'connected': return '通话中'
-    case 'ended': return '通话已结束'
+    case 'connecting': return t('calls.connecting')
+    case 'connected': return t('calls.in_call')
+    case 'ended': return t('calls.ended')
     default: return ''
   }
 })

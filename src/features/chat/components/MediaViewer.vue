@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { save } from '@tauri-apps/plugin-dialog'
+import { writeFile } from '@tauri-apps/plugin-fs'
+import { fetch as tauriFetch } from '@tauri-apps/plugin-http'
 import { Download, RotateCw, X, ZoomIn, ZoomOut } from 'lucide-vue-next'
 import { ref } from 'vue'
 import { useMediaViewer } from '../composables/useMediaViewer'
@@ -18,12 +21,33 @@ function rotate() {
   rotation.value = (rotation.value + 90) % 360
 }
 
-function download() {
-  const a = document.createElement('a')
-  a.href = currentUrl.value
-  a.download = ''
-  a.target = '_blank'
-  a.click()
+async function download() {
+  const url = currentUrl.value
+  if (!url)
+    return
+
+  // Determine a default file name from the URL
+  const urlPath = url.split('?')[0]
+  const segments = urlPath.split('/')
+  const defaultName = segments[segments.length - 1] || (currentType.value === 'image' ? 'image.png' : 'video.mp4')
+
+  const savePath = await save({
+    defaultPath: defaultName,
+    filters: currentType.value === 'image'
+      ? [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp'] }]
+      : [{ name: 'Videos', extensions: ['mp4', 'webm', 'mov'] }],
+  })
+  if (!savePath)
+    return
+
+  try {
+    const res = await tauriFetch(url)
+    const buf = await res.arrayBuffer()
+    await writeFile(savePath, new Uint8Array(buf))
+  }
+  catch (e) {
+    console.error('[MediaViewer] download failed', e)
+  }
 }
 
 function onBackdrop(e: MouseEvent) {

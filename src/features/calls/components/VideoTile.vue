@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 const props = defineProps<{
   track?: any
@@ -7,6 +8,8 @@ const props = defineProps<{
   muted?: boolean
   local?: boolean
 }>()
+
+const { t } = useI18n()
 
 const videoEl = ref<HTMLVideoElement>()
 
@@ -27,7 +30,7 @@ onMounted(() => {
       playsinline
     />
     <div class="absolute bottom-2 left-2 bg-black/60 text-white text-xs px-2 py-0.5 rounded">
-      {{ name }}{{ muted ? ' (已静音)' : '' }}
+      {{ name }}{{ muted ? ` ${t('calls.muted')}` : '' }}
     </div>
   </div>
 </template>

@@ -17,7 +17,8 @@ async function handleUnblock(userId: string) {
   try {
     await unblockUser(userId)
     refreshList()
-  } finally {
+  }
+  finally {
     unblocking.value = null
   }
 }

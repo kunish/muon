@@ -2,6 +2,7 @@
 import { getClient } from '@matrix/client'
 import { Search, X } from 'lucide-vue-next'
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 const props = defineProps<{
   roomId: string
@@ -11,6 +12,8 @@ const emit = defineEmits<{
   close: []
   jumpTo: [eventId: string]
 }>()
+
+const { t, locale } = useI18n()
 
 const query = ref('')
 const results = ref<Array<{ eventId: string, sender: string, body: string, ts: number }>>([])
@@ -41,7 +44,7 @@ async function handleSearch() {
 }
 
 function formatTime(ts: number): string {
-  return new Date(ts).toLocaleString('zh-CN', {
+  return new Date(ts).toLocaleString(locale.value, {
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
@@ -53,7 +56,7 @@ function formatTime(ts: number): string {
 <template>
   <div class="flex flex-col h-full">
     <div class="flex items-center justify-between p-3 border-b border-border">
-      <span class="text-sm font-medium">搜索消息</span>
+      <span class="text-sm font-medium">{{ t('chat.search_messages') }}</span>
       <button class="p-1 rounded hover:bg-accent" @click="emit('close')">
         <X :size="16" />
       </button>
@@ -61,31 +64,31 @@ function formatTime(ts: number): string {
 
     <div class="p-3">
       <form class="flex items-center gap-2" @submit.prevent="handleSearch">
-        <div class="flex-1 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted">
-          <Search :size="14" class="text-muted-foreground" />
+        <div class="flex-1 min-w-0 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted">
+          <Search :size="14" class="shrink-0 text-muted-foreground" />
           <input
             v-model="query"
             type="text"
-            placeholder="输入关键词..."
-            class="flex-1 bg-transparent text-sm outline-none"
+            :placeholder="t('chat.search_keyword')"
+            class="flex-1 min-w-0 bg-transparent text-sm outline-none"
           >
         </div>
         <button
           type="submit"
-          class="px-3 py-1.5 text-xs rounded-lg bg-primary text-primary-foreground disabled:opacity-50"
+          class="shrink-0 px-3 py-1.5 text-xs rounded-lg bg-primary text-primary-foreground disabled:opacity-50"
           :disabled="!query.trim() || searching"
         >
-          搜索
+          {{ t('chat.search_btn') }}
         </button>
       </form>
     </div>
 
     <div v-if="searching" class="flex-1 flex items-center justify-center text-sm text-muted-foreground">
-      搜索中...
+      {{ t('chat.searching') }}
     </div>
 
     <div v-else-if="results.length === 0 && query.trim()" class="flex-1 flex items-center justify-center text-sm text-muted-foreground">
-      未找到相关消息
+      {{ t('chat.search_no_result') }}
     </div>
 
     <div v-else class="flex-1 overflow-y-auto p-2 space-y-1">

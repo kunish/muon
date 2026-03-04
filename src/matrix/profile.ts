@@ -4,7 +4,8 @@ import { getClient } from './client'
 export function getMyDisplayName(): string {
   const client = getClient()
   const userId = client.getUserId()
-  if (!userId) return ''
+  if (!userId)
+    return ''
   const user = client.getUser(userId)
   return user?.displayName || userId
 }
@@ -13,7 +14,8 @@ export function getMyDisplayName(): string {
 export function getMyAvatarUrl(): string | undefined {
   const client = getClient()
   const userId = client.getUserId()
-  if (!userId) return undefined
+  if (!userId)
+    return undefined
   const user = client.getUser(userId)
   return user?.avatarUrl || undefined
 }
@@ -41,7 +43,8 @@ export async function setMyStatus(statusMsg: string): Promise<void> {
 export function getMyStatus(): string {
   const client = getClient()
   const userId = client.getUserId()
-  if (!userId) return ''
+  if (!userId)
+    return ''
   const user = client.getUser(userId)
   return user?.presenceStatusMsg || ''
 }
@@ -61,13 +64,15 @@ export function getUserPresenceInfo(userId: string): {
   try {
     const client = getClient()
     const user = client.getUser(userId)
-    if (!user) return { presence: 'offline' }
+    if (!user)
+      return { presence: 'offline' }
     return {
       presence: (user.presence as string) || 'offline',
       lastActiveAgo: user.lastActiveAgo,
       statusMsg: user.presenceStatusMsg,
     }
-  } catch {
+  }
+  catch {
     return { presence: 'offline' }
   }
 }

@@ -2,10 +2,12 @@
 import { sendTextMessage } from '@matrix/index'
 import { Send } from 'lucide-vue-next'
 import { ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useTyping } from '../composables/useTyping'
 import { useChatStore } from '../stores/chatStore'
 
 const store = useChatStore()
+const { t } = useI18n()
 const { startTyping, stopTyping } = useTyping()
 const text = ref('')
 const textareaRef = ref<HTMLTextAreaElement>()
@@ -25,6 +27,8 @@ async function send() {
     return
   text.value = ''
   stopTyping()
+  if (roomId)
+    store.setDraft(roomId, '')
   if (textareaRef.value)
     textareaRef.value.style.height = 'auto'
   await sendTextMessage(roomId, msg)
@@ -42,10 +46,20 @@ function onInput() {
   startTyping()
 }
 
-watch(() => store.currentRoomId, () => {
-  text.value = ''
-  if (textareaRef.value)
+// 切换房间时保存草稿 & 恢复草稿
+watch(() => store.currentRoomId, (newId, oldId) => {
+  // 保存旧房间草稿
+  if (oldId) {
+    store.setDraft(oldId, text.value)
+  }
+  // 恢复新房间草稿
+  text.value = newId ? store.getDraft(newId) : ''
+  if (textareaRef.value) {
     textareaRef.value.style.height = 'auto'
+    if (text.value) {
+      requestAnimationFrame(adjustHeight)
+    }
+  }
 })
 </script>
 
@@ -56,7 +70,7 @@ watch(() => store.currentRoomId, () => {
         ref="textareaRef"
         v-model="text"
         rows="1"
-        placeholder="输入消息..."
+        :placeholder="t('chat.input_placeholder')"
         class="flex-1 resize-none bg-muted rounded-lg px-3 py-2 text-sm outline-none placeholder:text-muted-foreground max-h-[120px]"
         @keydown="onKeydown"
         @input="onInput"

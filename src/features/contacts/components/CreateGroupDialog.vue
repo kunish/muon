@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Lock, X } from 'lucide-vue-next'
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useGroupManagement } from '../composables/useGroupManagement'
 
 const emit = defineEmits<{
@@ -8,6 +9,7 @@ const emit = defineEmits<{
   created: [roomId: string]
 }>()
 
+const { t } = useI18n()
 const { createGroup } = useGroupManagement()
 
 const name = ref('')
@@ -44,7 +46,7 @@ async function handleCreate() {
     <div class="bg-background rounded-xl shadow-2xl w-[400px] max-h-[80vh] overflow-y-auto">
       <div class="flex items-center justify-between p-4 border-b border-border">
         <h3 class="font-medium">
-          创建群组
+          {{ t('contacts.create_group') }}
         </h3>
         <button class="p-1 rounded hover:bg-accent" @click="emit('close')">
           <X :size="16" />
@@ -53,27 +55,27 @@ async function handleCreate() {
 
       <div class="p-4 space-y-4">
         <div>
-          <label class="text-sm text-muted-foreground mb-1 block">群名称</label>
+          <label class="text-sm text-muted-foreground mb-1 block">{{ t('contacts.group_name') }}</label>
           <input
             v-model="name"
             type="text"
-            placeholder="输入群名称"
+            :placeholder="t('contacts.group_name_placeholder')"
             class="w-full h-9 px-3 text-sm rounded-lg border border-border bg-background outline-none focus:ring-1 focus:ring-primary"
           >
         </div>
 
         <div>
-          <label class="text-sm text-muted-foreground mb-1 block">群话题（可选）</label>
+          <label class="text-sm text-muted-foreground mb-1 block">{{ t('contacts.group_topic') }}</label>
           <input
             v-model="topic"
             type="text"
-            placeholder="输入群话题"
+            :placeholder="t('contacts.group_topic_placeholder')"
             class="w-full h-9 px-3 text-sm rounded-lg border border-border bg-background outline-none focus:ring-1 focus:ring-primary"
           >
         </div>
 
         <div>
-          <label class="text-sm text-muted-foreground mb-1 block">邀请成员（逗号分隔 Matrix ID）</label>
+          <label class="text-sm text-muted-foreground mb-1 block">{{ t('contacts.invite_members') }}</label>
           <input
             v-model="inviteIds"
             type="text"
@@ -85,7 +87,7 @@ async function handleCreate() {
         <label class="flex items-center gap-2 cursor-pointer">
           <input v-model="encrypted" type="checkbox" class="rounded">
           <Lock :size="14" />
-          <span class="text-sm">启用端到端加密</span>
+          <span class="text-sm">{{ t('contacts.enable_e2e') }}</span>
         </label>
       </div>
 
@@ -94,14 +96,14 @@ async function handleCreate() {
           class="px-4 py-2 text-sm rounded-lg hover:bg-accent"
           @click="emit('close')"
         >
-          取消
+          {{ t('common.cancel') }}
         </button>
         <button
           class="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground disabled:opacity-50"
           :disabled="!name.trim() || creating"
           @click="handleCreate"
         >
-          {{ creating ? '创建中...' : '创建' }}
+          {{ creating ? t('contacts.creating') : t('contacts.create') }}
         </button>
       </div>
     </div>

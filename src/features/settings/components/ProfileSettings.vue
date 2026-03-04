@@ -37,7 +37,8 @@ async function saveName() {
   try {
     await setMyDisplayName(name)
     displayName.value = name
-  } finally {
+  }
+  finally {
     saving.value = false
     editingName.value = false
   }
@@ -48,21 +49,26 @@ async function changeAvatar() {
     multiple: false,
     filters: [{ name: t('settings.filter_image'), extensions: ['png', 'jpg', 'jpeg', 'webp', 'gif'] }],
   })
-  if (!path) return
+  if (!path)
+    return
 
   saving.value = true
   try {
     const bytes = await readFile(path)
     const ext = path.split('.').pop()?.toLowerCase() || 'png'
     const mimeMap: Record<string, string> = {
-      png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg',
-      webp: 'image/webp', gif: 'image/gif',
+      png: 'image/png',
+      jpg: 'image/jpeg',
+      jpeg: 'image/jpeg',
+      webp: 'image/webp',
+      gif: 'image/gif',
     }
     const file = new File([bytes], `avatar.${ext}`, { type: mimeMap[ext] || 'image/png' })
     await setMyAvatar(file)
     // 本地预览用 blob URL，useAuthMedia 会直接透传非 mxc URL
     mxcAvatar.value = URL.createObjectURL(file)
-  } finally {
+  }
+  finally {
     saving.value = false
   }
 }
@@ -70,7 +76,9 @@ async function changeAvatar() {
 
 <template>
   <div class="space-y-6">
-    <h2 class="text-lg font-semibold">{{ t('settings.profile_title') }}</h2>
+    <h2 class="text-lg font-semibold">
+      {{ t('settings.profile_title') }}
+    </h2>
 
     <!-- 头像 -->
     <div class="flex items-center gap-4">
@@ -91,8 +99,12 @@ async function changeAvatar() {
         </div>
       </div>
       <div>
-        <p class="text-sm font-medium">{{ t('settings.avatar_hint') }}</p>
-        <p class="text-xs text-muted-foreground">{{ t('settings.avatar_format') }}</p>
+        <p class="text-sm font-medium">
+          {{ t('settings.avatar_hint') }}
+        </p>
+        <p class="text-xs text-muted-foreground">
+          {{ t('settings.avatar_format') }}
+        </p>
       </div>
     </div>
 

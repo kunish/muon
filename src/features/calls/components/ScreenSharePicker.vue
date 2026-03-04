@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { Monitor, X } from 'lucide-vue-next'
+import { useI18n } from 'vue-i18n'
 
 const emit = defineEmits<{
   select: [stream: MediaStream]
   cancel: []
 }>()
+
+const { t } = useI18n()
 
 async function pickScreen() {
   try {
@@ -25,7 +28,7 @@ async function pickScreen() {
     <div class="bg-background rounded-xl shadow-2xl p-6 w-[320px]">
       <div class="flex items-center justify-between mb-4">
         <h3 class="font-medium">
-          选择共享内容
+          {{ t('calls.share_screen') }}
         </h3>
         <button class="p-1 rounded hover:bg-accent" @click="emit('cancel')">
           <X :size="16" />
@@ -36,7 +39,7 @@ async function pickScreen() {
         @click="pickScreen"
       >
         <Monitor :size="32" class="text-muted-foreground" />
-        <span class="text-sm">选择屏幕或窗口</span>
+        <span class="text-sm">{{ t('calls.share_screen_desc') }}</span>
       </button>
     </div>
   </div>

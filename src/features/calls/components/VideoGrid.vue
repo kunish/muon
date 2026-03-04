@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import VideoTile from './VideoTile.vue'
 
 const props = defineProps<{
   participants: Array<{ id: string, name: string, track?: any, muted?: boolean }>
   localTrack?: any
 }>()
+
+const { t } = useI18n()
 
 const gridCols = computed(() => {
   const count = props.participants.length + 1
@@ -21,7 +24,7 @@ const gridCols = computed(() => {
   <div class="flex-1 p-2 grid gap-2" :class="gridCols">
     <VideoTile
       :track="localTrack"
-      name="我"
+      :name="t('calls.me')"
       local
     />
     <VideoTile

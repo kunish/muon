@@ -17,7 +17,8 @@ export function isUserBlocked(userId: string): boolean {
 export async function blockUser(userId: string): Promise<void> {
   const client = getClient()
   const current = getBlockedUsers()
-  if (current.includes(userId)) return
+  if (current.includes(userId))
+    return
   const ignored_users: Record<string, object> = {}
   for (const uid of [...current, userId]) {
     ignored_users[uid] = {}
@@ -31,7 +32,8 @@ export async function unblockUser(userId: string): Promise<void> {
   const current = getBlockedUsers()
   const ignored_users: Record<string, object> = {}
   for (const uid of current) {
-    if (uid !== userId) ignored_users[uid] = {}
+    if (uid !== userId)
+      ignored_users[uid] = {}
   }
   await client.setAccountData('m.ignored_user_list' as any, { ignored_users } as any)
 }

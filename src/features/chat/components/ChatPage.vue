@@ -1,16 +1,19 @@
 <script setup lang="ts">
 import { watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { useNotificationSound } from '../composables/useNotificationSound'
 import { useChatStore } from '../stores/chatStore'
 import ChatWindow from './ChatWindow.vue'
-import ConversationList from './ConversationList.vue'
 import EmptyState from './EmptyState.vue'
 
 const route = useRoute()
 const store = useChatStore()
 
+// 启用消息通知提示音
+useNotificationSound()
+
 watch(
-  () => route.params.roomId as string | undefined,
+  () => (route.params.roomId || route.params.channelId) as string | undefined,
   (roomId) => {
     store.setCurrentRoom(roomId || null)
   },
@@ -20,9 +23,7 @@ watch(
 
 <template>
   <div class="flex-1 flex h-full min-w-0">
-    <div class="w-[280px] border-r border-border shrink-0">
-      <ConversationList />
-    </div>
+    <!-- Chat window or empty state -->
     <ChatWindow v-if="store.currentRoomId" />
     <EmptyState v-else />
   </div>

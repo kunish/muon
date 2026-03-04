@@ -1,12 +1,10 @@
 <script setup lang="ts">
 import { getClient } from '@matrix/client'
-import { Search, X, Shield, ShieldCheck, Crown } from 'lucide-vue-next'
-import { computed, ref, watch } from 'vue'
+import { Crown, Search, Shield, ShieldCheck, X } from 'lucide-vue-next'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import Avatar from '@/shared/components/ui/avatar.vue'
 import { useChatStore } from '../stores/chatStore'
-import { useAuthMedia } from '@/shared/composables/useAuthMedia'
-import { fetchMediaBlobUrl } from '@matrix/media'
-import { avatarGradient, initials as getInitials } from '../lib/format'
 
 const { t } = useI18n()
 const store = useChatStore()
@@ -24,10 +22,12 @@ interface MemberInfo {
 const members = computed<MemberInfo[]>(() => {
   const client = getClient()
   const roomId = store.currentRoomId
-  if (!roomId) return []
+  if (!roomId)
+    return []
 
   const room = client.getRoom(roomId)
-  if (!room) return []
+  if (!room)
+    return []
 
   const joinedMembers = room.getJoinedMembers()
   return joinedMembers
@@ -41,44 +41,38 @@ const members = computed<MemberInfo[]>(() => {
     }))
     .sort((a, b) => {
       // 管理员排前面
-      if (a.powerLevel !== b.powerLevel) return b.powerLevel - a.powerLevel
+      if (a.powerLevel !== b.powerLevel)
+        return b.powerLevel - a.powerLevel
       return a.displayName.localeCompare(b.displayName)
     })
 })
 
 const filteredMembers = computed(() => {
-  if (!searchQuery.value.trim()) return members.value
+  if (!searchQuery.value.trim())
+    return members.value
   const q = searchQuery.value.toLowerCase()
   return members.value.filter(m =>
     m.displayName.toLowerCase().includes(q) || m.userId.toLowerCase().includes(q),
   )
 })
 
-// 头像缓存
-const avatarCache = ref<Record<string, string>>({})
-
-watch(members, async (list) => {
-  for (const m of list) {
-    if (m.mxcAvatar && m.mxcAvatar.startsWith('mxc://') && !avatarCache.value[m.userId]) {
-      const blob = await fetchMediaBlobUrl(m.mxcAvatar, 32, 32)
-      if (blob) {
-        avatarCache.value = { ...avatarCache.value, [m.userId]: blob }
-      }
-    }
-  }
-}, { immediate: true })
-
 function getPowerLevelIcon(level: number) {
-  if (level >= 100) return Crown
-  if (level >= 50) return ShieldCheck
-  if (level > 0) return Shield
+  if (level >= 100)
+    return Crown
+  if (level >= 50)
+    return ShieldCheck
+  if (level > 0)
+    return Shield
   return null
 }
 
 function getPowerLevelLabel(level: number) {
-  if (level >= 100) return t('chat.role_owner')
-  if (level >= 50) return t('chat.role_admin')
-  if (level > 0) return t('chat.role_moderator')
+  if (level >= 100)
+    return t('chat.role_owner')
+  if (level >= 50)
+    return t('chat.role_admin')
+  if (level > 0)
+    return t('chat.role_moderator')
   return ''
 }
 </script>
@@ -120,19 +114,12 @@ function getPowerLevelLabel(level: number) {
         class="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-accent/50 cursor-pointer transition-colors"
       >
         <!-- Avatar -->
-        <img
-          v-if="avatarCache[member.userId]"
-          :src="avatarCache[member.userId]"
+        <Avatar
+          :src="member.mxcAvatar"
           :alt="member.displayName"
-          class="w-8 h-8 rounded-full object-cover shrink-0"
-        >
-        <div
-          v-else
-          class="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-semibold text-white shrink-0"
-          :style="{ background: avatarGradient(member.userId) }"
-        >
-          {{ getInitials(member.displayName) }}
-        </div>
+          :color-id="member.userId"
+          size="sm"
+        />
 
         <!-- Info -->
         <div class="flex-1 min-w-0">
