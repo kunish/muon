@@ -15,9 +15,9 @@
 
 ### Task Workflow
 
-- [ ] **TASK-01**: User can create a task from any message with assignee, due date, and status fields.
-- [ ] **TASK-02**: User can open a created task and navigate back to the exact source message.
-- [ ] **TASK-03**: User can move tasks across todo, doing, and done states in a task panel.
+- [x] **TASK-01**: User can create a task from any message with assignee, due date, and status fields.
+- [x] **TASK-02**: User can open a created task and navigate back to the exact source message.
+- [x] **TASK-03**: User can move tasks across todo, doing, and done states in a task panel.
 
 ### Retrieval and Digest
 
@@ -63,9 +63,9 @@
 | INBX-03 | Phase 1 | Complete |
 | INBX-04 | Phase 2 | Pending |
 | INBX-05 | Phase 2 | Pending |
-| TASK-01 | Phase 2 | Pending |
-| TASK-02 | Phase 2 | Pending |
-| TASK-03 | Phase 2 | Pending |
+| TASK-01 | Phase 2 | Complete |
+| TASK-02 | Phase 2 | Complete |
+| TASK-03 | Phase 2 | Complete |
 | RETR-01 | Phase 3 | Pending |
 | RETR-02 | Phase 3 | Pending |
 | DIGE-01 | Phase 4 | Pending |

@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: verifying
-stopped_at: Phase 2 context gathered
-last_updated: "2026-03-05T08:01:05.101Z"
+stopped_at: Completed 02-03-PLAN.md
+last_updated: "2026-03-05T10:48:33.201Z"
 last_activity: 2026-03-05 — Completed 01-03 unified inbox UI/jump chain
 progress:
   total_phases: 5
   completed_phases: 1
-  total_plans: 3
-  completed_plans: 3
+  total_plans: 7
+  completed_plans: 5
   percent: 100
 ---
 
@@ -48,6 +48,8 @@ Progress: [██████████] 100%
 **Recent Trend:**
 - Last 5 plans: 3 min, 4 min, 16 min
 - Trend: Stable
+| Phase 02 P03 | 14 min | 1 tasks | 3 files |
+| Phase 02 P04 | 19 min | 2 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -64,6 +66,11 @@ Recent decisions affecting current work:
 - [Phase 01]: 目标事件缺失时回退 getEventContext/REST context，避免跳转丢失
 - [Phase 01]: 统一收件箱入口放在 DM 侧边栏，减少用户跨页面切换
 - [Phase 01]: 跳转前预加载 context，失败时仍允许降级导航
+- [Phase 02]: Task sourceRef 固定由消息 roomId/eventId 注入，避免来源丢失
+- [Phase 02]: 任务提交使用 pending 锁，防止重复创建
+- [Phase 02]: 任务回跳严格复用 loadInboxEventContext + focusEventId 既有定位链路
+- [Phase 02]: 预加载失败仅告警并继续导航，避免阻断任务回跳
+- [Phase 02]: 任务入口接入既有 side panel 状态机，不新增平行页面机制
 
 ### Pending Todos
 
@@ -75,6 +82,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-05T08:01:05.099Z
-Stopped at: Phase 2 context gathered
-Resume file: .planning/phases/02-defer-and-message-to-task-loop/02-CONTEXT.md
+Last session: 2026-03-05T10:48:33.199Z
+Stopped at: Completed 02-03-PLAN.md
+Resume file: None
