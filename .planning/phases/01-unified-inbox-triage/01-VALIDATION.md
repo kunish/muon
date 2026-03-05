@@ -40,7 +40,7 @@ created: 2026-03-05
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
 | 01-01-01 | 01 | 1 | INBX-01 | unit | `pnpm test:unit -- tests/unit/stores/inboxStore.test.ts -t "aggregates unified inbox items"` | ❌ W0 | ⬜ pending |
 | 01-01-02 | 01 | 1 | INBX-02 | unit | `pnpm test:unit -- tests/unit/stores/inboxStore.test.ts -t "filters and batch processes"` | ❌ W0 | ⬜ pending |
-| 01-02-01 | 02 | 1 | INBX-03 | integration | `pnpm test:unit -- tests/components/UnifiedInboxPanel.test.ts -t "jump to source with context"` | ❌ W0 | ⬜ pending |
+| 01-02-01 | 02 | 2 | INBX-03 | integration | `pnpm test:unit -- tests/components/UnifiedInboxPanel.test.ts -t "jump to source with context"` | ❌ W0 | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
