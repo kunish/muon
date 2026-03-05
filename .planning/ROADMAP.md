@@ -29,7 +29,7 @@
 **Plans**: 3 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — 定义 unified inbox 契约并实现聚合/过滤/批量 processed 的本地持久化数据层。
+- [x] 01-01-PLAN.md — 定义 unified inbox 契约并实现聚合/过滤/批量 processed 的本地持久化数据层。
 - [ ] 01-02-PLAN.md — 实现 Matrix 源消息上下文加载 API（目标消息+前后文）并完成单测。
 - [ ] 01-03-PLAN.md — 接入 unified inbox UI 到 DM 侧边栏并打通跳转到源消息上下文。
 
@@ -79,7 +79,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Unified Inbox Triage | 0/3 | Planned | - |
+| 1. Unified Inbox Triage | 1/3 | In Progress | - |
 | 2. Defer and Message-to-Task Loop | 0/TBD | Not started | - |
 | 3. Cross-Conversation Retrieval | 0/TBD | Not started | - |
 | 4. Offline Digest and Decision Capture | 0/TBD | Not started | - |
