@@ -11,7 +11,7 @@
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
 - [x] **Phase 1: Unified Inbox Triage** - 用户可在一个入口集中处理高优先级消息并回到原文上下文。 (completed 2026-03-05)
-- [ ] **Phase 2: Defer and Message-to-Task Loop** - 用户可延后消息并将消息转为可追踪任务形成执行闭环。
+- [x] **Phase 2: Defer and Message-to-Task Loop** - 用户可延后消息并将消息转为可追踪任务形成执行闭环。 (completed 2026-03-05)
 - [ ] **Phase 3: Cross-Conversation Retrieval** - 用户可跨会话检索相关消息且结果严格受权限约束。
 - [ ] **Phase 4: Offline Digest and Decision Capture** - 用户可离线回归重点、验证引用并沉淀可复用决策。
 - [ ] **Phase 5: Reliability and Performance Consistency** - 用户在重连与高负载场景下仍获得一致且流畅的效率体验。
@@ -47,7 +47,7 @@ Plans:
 
 Plans:
 - [x] 02-01-PLAN.md — 定义 defer/task 领域合同与持久化状态机（含 Wave 0 测试骨架）。
-- [ ] 02-02-PLAN.md — 交付 defer 双入口与 defer 队列 Active/History 处理闭环。
+- [x] 02-02-PLAN.md — 交付 defer 双入口与 defer 队列 Active/History 处理闭环。
 - [x] 02-03-PLAN.md — 实现消息转任务与任务状态流转主链路。
 - [x] 02-04-PLAN.md — 打通任务回跳源消息链路并完成侧栏入口协同。
 
@@ -86,7 +86,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Unified Inbox Triage | 3/3 | Complete   | 2026-03-05 |
-| 2. Defer and Message-to-Task Loop | 3/4 | In Progress|  |
+| 2. Defer and Message-to-Task Loop | 4/4 | Complete   | 2026-03-05 |
 | 3. Cross-Conversation Retrieval | 0/TBD | Not started | - |
 | 4. Offline Digest and Decision Capture | 0/TBD | Not started | - |
 | 5. Reliability and Performance Consistency | 0/TBD | Not started | - |
