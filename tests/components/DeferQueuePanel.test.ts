@@ -93,4 +93,31 @@ describe('DeferQueuePanel', () => {
     expect(wrapper.find('[data-testid="defer-history-item-done-item"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="defer-history-item-still-active"]').exists()).toBe(false)
   })
+
+  it('provides scrollable containers for active/history lists', async () => {
+    const deferStore = useDeferStore()
+
+    for (let index = 0; index < 20; index += 1) {
+      deferStore.createDeferredItem({
+        id: `active-${index}`,
+        roomId: '!room:test',
+        eventId: `$event-active-${index}`,
+        reminder: { preset: 'custom', dueAt: Date.parse('2026-03-06T09:00:00Z') + index * 1000 },
+      })
+    }
+
+    const wrapper = mount(DeferQueuePanel)
+    await nextTick()
+
+    const activeList = wrapper.get('[data-testid="defer-active-list"]')
+    expect(activeList.classes()).toContain('overflow-y-auto')
+
+    await wrapper.get('[data-testid="defer-complete-active-0"]').trigger('click')
+    await nextTick()
+    await wrapper.get('[data-testid="defer-history-tab"]').trigger('click')
+    await nextTick()
+
+    const historyList = wrapper.get('[data-testid="defer-history-list"]')
+    expect(historyList.classes()).toContain('overflow-y-auto')
+  })
 })
