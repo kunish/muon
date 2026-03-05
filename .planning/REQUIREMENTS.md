@@ -7,8 +7,8 @@
 
 ### Inbox
 
-- [ ] **INBX-01**: User can view one unified inbox that aggregates mentions, unread priority items, and reply-needed items.
-- [ ] **INBX-02**: User can filter inbox items by type and mark selected items as processed in batch.
+- [x] **INBX-01**: User can view one unified inbox that aggregates mentions, unread priority items, and reply-needed items.
+- [x] **INBX-02**: User can filter inbox items by type and mark selected items as processed in batch.
 - [ ] **INBX-03**: User can jump from an inbox item to the source message with surrounding context loaded.
 - [ ] **INBX-04**: User can defer an inbox item with a reminder time and view it in a personal defer queue.
 - [ ] **INBX-05**: User can mark deferred items as completed or archived from the defer queue.
@@ -58,8 +58,8 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INBX-01 | Phase 1 | Pending |
-| INBX-02 | Phase 1 | Pending |
+| INBX-01 | Phase 1 | Complete |
+| INBX-02 | Phase 1 | Complete |
 | INBX-03 | Phase 1 | Pending |
 | INBX-04 | Phase 2 | Pending |
 | INBX-05 | Phase 2 | Pending |
