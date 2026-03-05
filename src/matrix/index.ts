@@ -3,6 +3,8 @@ export { blockUser, getBlockedUsers, isUserBlocked, unblockUser } from './blocki
 export { createClient, destroyClient, getClient } from './client'
 export { createEncryptedRoom, initCrypto } from './crypto'
 export { bindClientEvents, matrixEvents, unbindClientEvents } from './events'
+export { loadInboxEventContext } from './inbox'
+export type { InboxEventContext } from './inbox'
 export { downloadMedia, extractVideoMeta, fetchMediaBlobUrl, uploadMedia } from './media'
 export {
   editMessage,
