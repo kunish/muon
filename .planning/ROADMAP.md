@@ -26,7 +26,12 @@
   1. 用户可以在一个统一收件箱中看到提及、优先未读和待回复项。
   2. 用户可以按项目类型过滤，并对选中项进行批量“已处理”操作。
   3. 用户可以从任一收件箱项一键跳转到源消息，并看到其前后文。
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — 定义 unified inbox 契约并实现聚合/过滤/批量 processed 的本地持久化数据层。
+- [ ] 01-02-PLAN.md — 实现 Matrix 源消息上下文加载 API（目标消息+前后文）并完成单测。
+- [ ] 01-03-PLAN.md — 接入 unified inbox UI 到 DM 侧边栏并打通跳转到源消息上下文。
 
 ### Phase 2: Defer and Message-to-Task Loop
 **Goal**: 用户可以把消息延后处理并转为任务，在执行中随时回到原始对话语境。
@@ -74,7 +79,7 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Unified Inbox Triage | 0/TBD | Not started | - |
+| 1. Unified Inbox Triage | 0/3 | Planned | - |
 | 2. Defer and Message-to-Task Loop | 0/TBD | Not started | - |
 | 3. Cross-Conversation Retrieval | 0/TBD | Not started | - |
 | 4. Offline Digest and Decision Capture | 0/TBD | Not started | - |
