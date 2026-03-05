@@ -3,8 +3,11 @@ export const DEFER_STORAGE_KEY = 'muon:defer:v1'
 export type DeferStatus = 'deferred' | 'completed' | 'archived'
 
 export type ReminderPreset =
-  | 'later-today'
+  | 'in-1-hour'
+  | 'tonight'
+  | 'tomorrow-morning'
   | 'tomorrow'
+  | 'later-today'
   | 'next-week'
   | 'custom'
 

@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import type { InboxFilterType, UnifiedInboxItem } from '../types/unifiedInbox'
-import { computed } from 'vue'
+import type { ReminderPreset } from '../types/defer'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useUnifiedInbox } from '../composables/useUnifiedInbox'
+import { useDeferStore } from '../stores/deferStore'
 import { useInboxStore } from '../stores/inboxStore'
 
 const emit = defineEmits<{
@@ -11,7 +13,18 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const store = useInboxStore()
+const deferStore = useDeferStore()
 const { items, counts, isLoading } = useUnifiedInbox()
+
+const deferMenuItemId = ref<string | null>(null)
+const customInputByItemId = ref<Record<string, string>>({})
+
+const deferPresetOptions: Array<{ key: Exclude<ReminderPreset, 'custom' | 'later-today' | 'next-week'>, actionId: string, labelKey: string }> = [
+  { key: 'in-1-hour', actionId: '1h', labelKey: 'chat.defer_preset_1h' },
+  { key: 'tonight', actionId: 'tonight', labelKey: 'chat.defer_preset_tonight' },
+  { key: 'tomorrow-morning', actionId: 'tomorrow-morning', labelKey: 'chat.defer_preset_tomorrow_morning' },
+  { key: 'tomorrow', actionId: 'tomorrow', labelKey: 'chat.defer_preset_tomorrow' },
+]
 
 const filterTabs: Array<{ key: InboxFilterType, label: string }> = [
   { key: 'all', label: t('chat.inbox_filter_all') },
@@ -40,6 +53,38 @@ function toggleItemSelection(itemId: string) {
 
 function selectAllVisible() {
   store.selectAll(items.value.map(item => item.id))
+}
+
+function toggleDeferMenu(itemId: string) {
+  deferMenuItemId.value = deferMenuItemId.value === itemId ? null : itemId
+}
+
+function createDeferredByPreset(item: UnifiedInboxItem, preset: Exclude<ReminderPreset, 'custom'>, actionId: string) {
+  deferStore.createDeferredItem({
+    id: `inbox:${item.id}:${actionId}`,
+    roomId: item.roomId,
+    eventId: item.eventId,
+    reminder: { preset },
+  })
+  deferMenuItemId.value = null
+}
+
+function submitCustomDefer(item: UnifiedInboxItem) {
+  const customRaw = customInputByItemId.value[item.id]
+  const dueAt = Date.parse(customRaw)
+  if (!Number.isFinite(dueAt))
+    return
+
+  deferStore.createDeferredItem({
+    id: `inbox:${item.id}:custom`,
+    roomId: item.roomId,
+    eventId: item.eventId,
+    reminder: {
+      preset: 'custom',
+      dueAt,
+    },
+  })
+  deferMenuItemId.value = null
 }
 </script>
 
@@ -126,6 +171,60 @@ function selectAllVisible() {
               {{ item.snippet || '...' }}
             </p>
           </button>
+
+          <div class="relative shrink-0" @click.stop>
+            <button
+              type="button"
+              class="text-[11px] px-2 py-1 rounded-md border border-border text-muted-foreground hover:bg-accent"
+              :data-testid="`inbox-defer-trigger-${item.id}`"
+              @click="toggleDeferMenu(item.id)"
+            >
+              {{ t('chat.defer') }}
+            </button>
+
+            <div
+              v-if="deferMenuItemId === item.id"
+              class="absolute right-0 top-full z-20 mt-1 w-44 rounded-md border border-border bg-sidebar p-2 shadow-lg"
+            >
+              <div class="space-y-1">
+                <button
+                  v-for="preset in deferPresetOptions"
+                  :key="preset.key"
+                  type="button"
+                  class="w-full rounded px-2 py-1 text-left text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
+                  :data-testid="`inbox-defer-preset-${preset.actionId}-${item.id}`"
+                  @click="createDeferredByPreset(item, preset.key, preset.actionId)"
+                >
+                  {{ t(preset.labelKey) }}
+                </button>
+              </div>
+
+              <div class="mt-2 border-t border-border/60 pt-2">
+                <button
+                  type="button"
+                  class="w-full rounded px-2 py-1 text-left text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
+                  :data-testid="`inbox-defer-custom-toggle-${item.id}`"
+                >
+                  {{ t('chat.defer_custom') }}
+                </button>
+                <input
+                  v-model="customInputByItemId[item.id]"
+                  type="datetime-local"
+                  class="mt-1 w-full rounded-md border border-border bg-background px-2 py-1 text-xs"
+                  :data-testid="`inbox-defer-custom-input-${item.id}`"
+                >
+                <button
+                  type="button"
+                  class="mt-1 w-full rounded-md bg-primary px-2 py-1 text-xs text-primary-foreground disabled:opacity-50"
+                  :disabled="!customInputByItemId[item.id]"
+                  :data-testid="`inbox-defer-custom-submit-${item.id}`"
+                  @click="submitCustomDefer(item)"
+                >
+                  {{ t('common.confirm') }}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </li>
     </ul>

@@ -44,8 +44,25 @@ function isValidDeferItem(value: unknown): value is DeferItem {
     && typeof candidate.updatedAt === 'number'
 }
 
-function resolveDueAt(reminder: ReminderInput, now: number): number {
+export function resolveReminderDueAt(reminder: ReminderInput, now: number): number {
+  const base = new Date(now)
+
   switch (reminder.preset) {
+    case 'in-1-hour':
+      return now + 60 * 60 * 1000
+    case 'tonight': {
+      const due = new Date(base)
+      due.setHours(21, 0, 0, 0)
+      if (due.getTime() <= now)
+        due.setDate(due.getDate() + 1)
+      return due.getTime()
+    }
+    case 'tomorrow-morning': {
+      const due = new Date(base)
+      due.setDate(due.getDate() + 1)
+      due.setHours(9, 0, 0, 0)
+      return due.getTime()
+    }
     case 'later-today':
       return now + 2 * 60 * 60 * 1000
     case 'tomorrow':
@@ -119,7 +136,7 @@ export const useDeferStore = defineStore('defer', () => {
 
   function createDeferredItem(input: CreateDeferredItemInput) {
     const now = input.now ?? Date.now()
-    const dueAt = resolveDueAt(input.reminder, now)
+    const dueAt = resolveReminderDueAt(input.reminder, now)
     const item = createDeferItem({
       id: input.id,
       roomId: input.roomId,

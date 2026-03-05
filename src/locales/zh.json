@@ -80,7 +80,13 @@
     "inbox_filter_reply": "待回复",
     "inbox_mark_processed": "标记已处理",
     "inbox_select_all": "全选",
-    "inbox_empty": "收件箱为空"
+    "inbox_empty": "收件箱为空",
+    "defer": "稍后处理",
+    "defer_custom": "自定义时间",
+    "defer_preset_1h": "1 小时后",
+    "defer_preset_tonight": "今晚",
+    "defer_preset_tomorrow_morning": "明早",
+    "defer_preset_tomorrow": "明天"
   },
   "contacts": {
     "contacts": "联系人",
