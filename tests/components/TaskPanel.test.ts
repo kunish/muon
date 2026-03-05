@@ -7,16 +7,31 @@ import TaskPanel from '@/features/chat/components/TaskPanel.vue'
 import { useChatStore } from '@/features/chat/stores/chatStore'
 import { useTaskStore } from '@/features/chat/stores/taskStore'
 
+const routerPush = vi.fn()
+const loadInboxEventContextMock = vi.fn()
+
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({
     t: (key: string) => key,
   }),
 }))
 
+vi.mock('vue-router', () => ({
+  useRouter: () => ({
+    push: routerPush,
+  }),
+}))
+
+vi.mock('@matrix/index', () => ({
+  loadInboxEventContext: (...args: unknown[]) => loadInboxEventContextMock(...args),
+}))
+
 describe('TaskPanel', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     localStorage.clear()
+    routerPush.mockReset()
+    loadInboxEventContextMock.mockReset()
   })
 
   it('transition task status: renders todo/doing/done and syncs transition to store', async () => {
@@ -88,5 +103,64 @@ describe('TaskPanel', () => {
     chatStore.toggleSidePanel('tasks')
     await nextTick()
     expect(chatStore.activeSidePanel).toBe(null)
+  })
+
+  it('jump to source message: preloads context before navigation', async () => {
+    const taskStore = useTaskStore()
+    taskStore.tasks = [{
+      id: 'task-1',
+      title: 'Todo Task',
+      assignee: '@alice:muon.dev',
+      dueAt: Date.now() + 60_000,
+      status: 'todo',
+      sourceRef: { roomId: '!room:muon.dev', eventId: '$event-1' },
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    }]
+    loadInboxEventContextMock.mockResolvedValue({})
+
+    const wrapper = mount(TaskPanel)
+    await nextTick()
+
+    await wrapper.find('[data-testid="task-jump-task-1"]').trigger('click')
+
+    expect(loadInboxEventContextMock).toHaveBeenCalledWith('!room:muon.dev', '$event-1')
+    expect(routerPush).toHaveBeenCalledWith({
+      path: '/dm/!room%3Amuon.dev',
+      query: {
+        focusEventId: '$event-1',
+      },
+    })
+    expect(loadInboxEventContextMock.mock.invocationCallOrder[0]).toBeLessThan(routerPush.mock.invocationCallOrder[0])
+  })
+
+  it('jump to source message: falls back to navigation when preload fails', async () => {
+    const taskStore = useTaskStore()
+    taskStore.tasks = [{
+      id: 'task-1',
+      title: 'Todo Task',
+      assignee: '@alice:muon.dev',
+      dueAt: Date.now() + 60_000,
+      status: 'todo',
+      sourceRef: { roomId: '!room:muon.dev', eventId: '$event-1' },
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    }]
+    loadInboxEventContextMock.mockRejectedValue(new Error('network error'))
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    const wrapper = mount(TaskPanel)
+    await nextTick()
+
+    await wrapper.find('[data-testid="task-jump-task-1"]').trigger('click')
+
+    expect(routerPush).toHaveBeenCalledWith({
+      path: '/dm/!room%3Amuon.dev',
+      query: {
+        focusEventId: '$event-1',
+      },
+    })
+    expect(warnSpy).toHaveBeenCalled()
+    warnSpy.mockRestore()
   })
 })
