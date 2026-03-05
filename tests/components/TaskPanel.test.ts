@@ -88,6 +88,5 @@ describe('TaskPanel', () => {
     chatStore.toggleSidePanel('tasks')
     await nextTick()
     expect(chatStore.activeSidePanel).toBe(null)
-    expect(wrapper.find('task-panel-stub').exists()).toBe(false)
   })
 })

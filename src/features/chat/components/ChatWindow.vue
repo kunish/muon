@@ -13,6 +13,7 @@ import PinnedMessages from './PinnedMessages.vue'
 import RichTextInput from './RichTextInput.vue'
 import SearchMessages from './SearchMessages.vue'
 import StarredMessages from './StarredMessages.vue'
+import TaskPanel from './TaskPanel.vue'
 import ThreadInboxPanel from './ThreadInboxPanel.vue'
 import ThreadPanel from './ThreadPanel.vue'
 import TypingIndicator from './TypingIndicator.vue'
@@ -77,6 +78,7 @@ provide('triggerEmojiEffect', triggerEmojiEffect)
         <ChatSettingsPanel
           v-else-if="store.activeSidePanel === 'settings'"
         />
+        <TaskPanel v-else-if="store.activeSidePanel === 'tasks'" />
       </div>
     </Transition>
 

@@ -39,13 +39,13 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   // --- Discord 风格：侧边面板 ---
-  const activeSidePanel = ref<'threads' | 'search' | 'pinned' | 'starred' | 'members' | 'settings' | null>(null)
+  const activeSidePanel = ref<'threads' | 'search' | 'pinned' | 'starred' | 'members' | 'settings' | 'tasks' | null>(null)
 
   function setActiveTab(_tab: string) {
     // No-op: tabs removed in Discord layout, kept for API compat
   }
 
-  function toggleSidePanel(panel: 'threads' | 'search' | 'pinned' | 'starred' | 'members' | 'settings') {
+  function toggleSidePanel(panel: 'threads' | 'search' | 'pinned' | 'starred' | 'members' | 'settings' | 'tasks') {
     if (activeSidePanel.value === panel) {
       activeSidePanel.value = null
     }
