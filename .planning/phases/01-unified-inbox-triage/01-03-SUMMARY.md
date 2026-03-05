@@ -94,3 +94,9 @@ None - no external service configuration required.
 
 ## Next Phase Readiness
 Phase 1 的 INBX-01/02/03 已具备实现与测试证据，可进入阶段级目标验证。
+
+## Self-Check: PASSED
+
+- FOUND: `.planning/phases/01-unified-inbox-triage/01-03-SUMMARY.md`
+- FOUND: `fe07551`
+- FOUND: `787bb61`
