@@ -58,30 +58,30 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INBX-01 | TBD | Pending |
-| INBX-02 | TBD | Pending |
-| INBX-03 | TBD | Pending |
-| INBX-04 | TBD | Pending |
-| INBX-05 | TBD | Pending |
-| TASK-01 | TBD | Pending |
-| TASK-02 | TBD | Pending |
-| TASK-03 | TBD | Pending |
-| RETR-01 | TBD | Pending |
-| RETR-02 | TBD | Pending |
-| DIGE-01 | TBD | Pending |
-| DIGE-02 | TBD | Pending |
-| DIGE-03 | TBD | Pending |
-| DECI-01 | TBD | Pending |
-| DECI-02 | TBD | Pending |
-| DECI-03 | TBD | Pending |
-| RELI-01 | TBD | Pending |
-| RELI-02 | TBD | Pending |
+| INBX-01 | Phase 1 | Pending |
+| INBX-02 | Phase 1 | Pending |
+| INBX-03 | Phase 1 | Pending |
+| INBX-04 | Phase 2 | Pending |
+| INBX-05 | Phase 2 | Pending |
+| TASK-01 | Phase 2 | Pending |
+| TASK-02 | Phase 2 | Pending |
+| TASK-03 | Phase 2 | Pending |
+| RETR-01 | Phase 3 | Pending |
+| RETR-02 | Phase 3 | Pending |
+| DIGE-01 | Phase 4 | Pending |
+| DIGE-02 | Phase 4 | Pending |
+| DIGE-03 | Phase 4 | Pending |
+| DECI-01 | Phase 4 | Pending |
+| DECI-02 | Phase 4 | Pending |
+| DECI-03 | Phase 4 | Pending |
+| RELI-01 | Phase 5 | Pending |
+| RELI-02 | Phase 5 | Pending |
 
 **Coverage:**
 - v1 requirements: 18 total
-- Mapped to phases: 0
-- Unmapped: 18 ⚠️
+- Mapped to phases: 18
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-03-05*
-*Last updated: 2026-03-05 after milestone v1.0 scope confirmation*
+*Last updated: 2026-03-05 after roadmap creation*
