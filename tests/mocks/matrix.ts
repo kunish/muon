@@ -38,6 +38,8 @@ export function createMockMatrixClient() {
     sendEvent: vi.fn().mockResolvedValue({ event_id: '$mock_event' }),
     sendStateEvent: vi.fn().mockResolvedValue({ event_id: '$mock_state' }),
     redactEvent: vi.fn().mockResolvedValue(undefined),
+    getEventTimeline: vi.fn().mockResolvedValue(null),
+    getEventContext: vi.fn().mockResolvedValue(null),
     paginateEventTimeline: vi.fn().mockResolvedValue(true),
 
     // ---- 媒体 ----
