@@ -48,7 +48,6 @@ Progress: [██████████] 100%
 **Recent Trend:**
 - Last 5 plans: 3 min, 4 min, 16 min
 - Trend: Stable
-| Phase 01 P03 | 6 min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
