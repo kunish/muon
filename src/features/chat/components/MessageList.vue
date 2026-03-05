@@ -4,6 +4,7 @@ import { getReadMarkerEventId } from '@matrix/index'
 import { ChevronDown } from 'lucide-vue-next'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRoute, useRouter } from 'vue-router'
 import { useMessages } from '../composables/useMessages'
 import { useChatStore } from '../stores/chatStore'
 import ChannelWelcome from './ChannelWelcome.vue'
@@ -24,6 +25,8 @@ import UserInfoPanel from './UserInfoPanel.vue'
 const { messages, isLoading, hasMore, loadMore } = useMessages()
 const store = useChatStore()
 const { t } = useI18n()
+const route = useRoute()
+const router = useRouter()
 const containerRef = ref<HTMLElement>()
 const sentinelRef = ref<HTMLElement>()
 const isAtBottom = ref(true)
@@ -68,6 +71,7 @@ const unreadEventId = computed(() => {
 })
 
 let observer: IntersectionObserver | null = null
+const pendingFocusEventId = ref<string | null>(null)
 
 // ── 锚点数据结构 ─────────────────────────────────────────────
 
@@ -157,6 +161,30 @@ function scrollToBottom() {
   liveAnchorEventId = null
   liveAnchorOffset = 0
   showNewMsg.value = false
+}
+
+async function clearFocusQuery() {
+  const nextQuery = { ...route.query }
+  delete nextQuery.focusEventId
+  await router.replace({ query: nextQuery })
+}
+
+async function tryFocusEventFromQuery() {
+  const focusEventId = pendingFocusEventId.value
+  if (!focusEventId)
+    return
+
+  await nextTick()
+  const focused = scrollToPosition(focusEventId, -48)
+  if (focused) {
+    pendingFocusEventId.value = null
+    await clearFocusQuery()
+    return
+  }
+
+  if (hasMore.value && !isPaginating.value && !isLoading.value) {
+    await triggerPagination()
+  }
 }
 
 function onScroll() {
@@ -317,7 +345,22 @@ watch(visibleMessages, async (newArr, oldArr) => {
       showNewMsg.value = true
     }
   }
+
+  if (pendingFocusEventId.value) {
+    await tryFocusEventFromQuery()
+  }
 })
+
+watch(
+  () => route.query.focusEventId,
+  async (value) => {
+    pendingFocusEventId.value = typeof value === 'string' ? value : null
+    if (pendingFocusEventId.value) {
+      await tryFocusEventFromQuery()
+    }
+  },
+  { immediate: true },
+)
 
 // ── ResizeObserver ────────────────────────────────────────────
 

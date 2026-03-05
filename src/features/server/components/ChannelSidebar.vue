@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { getClient } from '@matrix/client'
-import { getMyAvatarUrl, getMyDisplayName } from '@matrix/index'
+import { getMyAvatarUrl, getMyDisplayName, loadInboxEventContext } from '@matrix/index'
 import { CalendarDays, ChevronDown, Gem, Headphones, Mic, MicOff, Search, Settings, Users, X } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useConversations } from '@/features/chat/composables/useConversations'
+import UnifiedInboxPanel from '@/features/chat/components/UnifiedInboxPanel.vue'
 import { useVoiceChannel } from '@/features/server/composables/useVoiceChannel'
 import { useServerStore } from '@/features/server/stores/serverStore'
 import Avatar from '@/shared/components/ui/avatar.vue'
@@ -66,6 +67,22 @@ function openCreateChannel(categoryId?: string) {
 // DM navigation
 function navigateToDm(roomId: string) {
   router.push(`/dm/${encodeURIComponent(roomId)}`)
+}
+
+async function handleInboxJump(payload: { roomId: string, eventId: string }) {
+  try {
+    await loadInboxEventContext(payload.roomId, payload.eventId)
+  }
+  catch (error) {
+    console.warn('[UnifiedInbox] context preload failed, fallback to direct navigation', error)
+  }
+
+  await router.push({
+    path: `/dm/${encodeURIComponent(payload.roomId)}`,
+    query: {
+      focusEventId: payload.eventId,
+    },
+  })
 }
 
 function navigateToFriends() {
@@ -143,6 +160,8 @@ function getPresenceColor(userId: string): string {
           {{ t('server.direct_messages') }}
         </span>
       </div>
+
+      <UnifiedInboxPanel @jump="handleInboxJump" />
 
       <!-- DM conversation list -->
       <ScrollArea class="flex-1">
