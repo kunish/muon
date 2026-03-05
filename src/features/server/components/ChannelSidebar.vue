@@ -6,6 +6,7 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useConversations } from '@/features/chat/composables/useConversations'
+import DeferQueuePanel from '@/features/chat/components/DeferQueuePanel.vue'
 import UnifiedInboxPanel from '@/features/chat/components/UnifiedInboxPanel.vue'
 import { useChatStore } from '@/features/chat/stores/chatStore'
 import { useVoiceChannel } from '@/features/server/composables/useVoiceChannel'
@@ -176,6 +177,7 @@ function getPresenceColor(userId: string): string {
       </div>
 
       <UnifiedInboxPanel @jump="handleInboxJump" />
+      <DeferQueuePanel />
 
       <!-- DM conversation list -->
       <ScrollArea class="flex-1">
