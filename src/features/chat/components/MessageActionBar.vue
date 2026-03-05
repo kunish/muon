@@ -24,7 +24,11 @@ import {
 } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import TaskComposerDialog from './TaskComposerDialog.vue'
 import { useChatStore } from '../stores/chatStore'
+import { useDeferStore } from '../stores/deferStore'
+import { useTaskStore } from '../stores/taskStore'
+import type { TaskStatus } from '../types/task'
 
 const props = defineProps<{
   event: any
@@ -37,8 +41,14 @@ const emit = defineEmits<{
 }>()
 
 const store = useChatStore()
+const deferStore = useDeferStore()
+const taskStore = useTaskStore()
 const { t } = useI18n()
 const showMore = ref(false)
+const showDeferMenu = ref(false)
+const customDeferValue = ref('')
+const showTaskComposer = ref(false)
+const creatingTask = ref(false)
 
 const myUserId = computed(() => getClient().getUserId())
 const isMine = computed(() => props.event.getSender() === myUserId.value)
@@ -99,6 +109,80 @@ function onOpenThread() {
   store.openThread(eventId.value)
   showMore.value = false
 }
+
+function onToggleDeferMenu() {
+  showDeferMenu.value = !showDeferMenu.value
+}
+
+function createDeferredFromMessage(preset: 'in-1-hour' | 'tonight' | 'tomorrow-morning' | 'tomorrow', suffix: string) {
+  if (!eventId.value || !props.roomId)
+    return
+  deferStore.createDeferredItem({
+    id: `message:${props.roomId}:${eventId.value}:${suffix}`,
+    roomId: props.roomId,
+    eventId: eventId.value,
+    reminder: { preset },
+  })
+  showDeferMenu.value = false
+  showMore.value = false
+}
+
+function submitCustomDeferredFromMessage() {
+  if (!eventId.value || !props.roomId)
+    return
+
+  const dueAt = Date.parse(customDeferValue.value)
+  if (!Number.isFinite(dueAt))
+    return
+
+  deferStore.createDeferredItem({
+    id: `message:${props.roomId}:${eventId.value}:custom`,
+    roomId: props.roomId,
+    eventId: eventId.value,
+    reminder: {
+      preset: 'custom',
+      dueAt,
+    },
+  })
+  showDeferMenu.value = false
+  showMore.value = false
+  customDeferValue.value = ''
+}
+
+function onOpenTaskComposer() {
+  showTaskComposer.value = true
+  showMore.value = false
+  showDeferMenu.value = false
+}
+
+function onCloseTaskComposer() {
+  if (creatingTask.value)
+    return
+  showTaskComposer.value = false
+}
+
+async function onSubmitTask(payload: { title: string, assignee: string, dueAt: string, status: TaskStatus }) {
+  if (creatingTask.value || !props.roomId || !eventId.value)
+    return
+
+  creatingTask.value = true
+  try {
+    await Promise.resolve(taskStore.createTask({
+      title: payload.title,
+      assignee: payload.assignee,
+      dueAt: payload.dueAt,
+      status: payload.status,
+      sourceRef: {
+        roomId: props.roomId,
+        eventId: eventId.value,
+      },
+    }))
+    showTaskComposer.value = false
+  }
+  finally {
+    creatingTask.value = false
+  }
+}
 </script>
 
 <template>
@@ -129,6 +213,7 @@ function onOpenThread() {
       <button
         class="action-btn"
         :title="t('chat.more_actions')"
+        data-testid="message-more-trigger"
         @click.stop="showMore = !showMore"
       >
         <MoreHorizontal :size="16" />
@@ -169,6 +254,77 @@ function onOpenThread() {
             <span>{{ t('chat.thread') }}</span>
           </button>
 
+          <button
+            class="dropdown-item"
+            data-testid="message-defer-trigger"
+            @click.stop="onToggleDeferMenu"
+          >
+            <span>{{ t('chat.defer') }}</span>
+          </button>
+
+          <button
+            class="dropdown-item"
+            data-testid="message-convert-task-trigger"
+            @click.stop="onOpenTaskComposer"
+          >
+            <span>{{ t('chat.convert_to_task') }}</span>
+          </button>
+
+          <div v-if="showDeferMenu" class="mx-2 my-1 rounded-md border border-[var(--color-muted)]/20 p-2">
+            <div class="space-y-1">
+              <button
+                class="dropdown-item"
+                data-testid="message-defer-preset-1h"
+                @click.stop="createDeferredFromMessage('in-1-hour', '1h')"
+              >
+                <span>{{ t('chat.defer_preset_1h') }}</span>
+              </button>
+              <button
+                class="dropdown-item"
+                data-testid="message-defer-preset-tonight"
+                @click.stop="createDeferredFromMessage('tonight', 'tonight')"
+              >
+                <span>{{ t('chat.defer_preset_tonight') }}</span>
+              </button>
+              <button
+                class="dropdown-item"
+                data-testid="message-defer-preset-tomorrow-morning"
+                @click.stop="createDeferredFromMessage('tomorrow-morning', 'tomorrow-morning')"
+              >
+                <span>{{ t('chat.defer_preset_tomorrow_morning') }}</span>
+              </button>
+              <button
+                class="dropdown-item"
+                data-testid="message-defer-preset-tomorrow"
+                @click.stop="createDeferredFromMessage('tomorrow', 'tomorrow')"
+              >
+                <span>{{ t('chat.defer_preset_tomorrow') }}</span>
+              </button>
+            </div>
+
+            <button
+              class="dropdown-item"
+              data-testid="message-defer-custom-toggle"
+              @click.stop
+            >
+              <span>{{ t('chat.defer_custom') }}</span>
+            </button>
+            <input
+              v-model="customDeferValue"
+              type="datetime-local"
+              class="mt-1 w-full rounded border border-[var(--color-muted)]/40 bg-background px-2 py-1 text-xs"
+              data-testid="message-defer-custom-input"
+            >
+            <button
+              class="mt-1 w-full rounded bg-primary px-2 py-1 text-xs text-primary-foreground disabled:opacity-50"
+              :disabled="!customDeferValue"
+              data-testid="message-defer-custom-submit"
+              @click.stop="submitCustomDeferredFromMessage"
+            >
+              {{ t('common.confirm') }}
+            </button>
+          </div>
+
           <!-- Copy Text -->
           <button
             class="dropdown-item"
@@ -202,6 +358,14 @@ function onOpenThread() {
         </div>
       </Transition>
     </div>
+
+    <TaskComposerDialog
+      :open="showTaskComposer"
+      :initial-title="body"
+      :submitting="creatingTask"
+      @close="onCloseTaskComposer"
+      @submit="onSubmitTask"
+    />
   </div>
 </template>
 

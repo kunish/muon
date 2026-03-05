@@ -1,7 +1,9 @@
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { nextTick } from 'vue'
 import MessageActionBar from '@/features/chat/components/MessageActionBar.vue'
+import TaskComposerDialog from '@/features/chat/components/TaskComposerDialog.vue'
 import { resolveReminderDueAt, useDeferStore } from '@/features/chat/stores/deferStore'
 import { useTaskStore } from '@/features/chat/stores/taskStore'
 
@@ -119,23 +121,18 @@ describe('MessageActionBar', () => {
     await wrapper.find('[data-testid="message-more-trigger"]').trigger('click')
     await wrapper.find('[data-testid="message-convert-task-trigger"]').trigger('click')
 
-    const titleInput = document.body.querySelector('[data-testid="task-title-input"]') as HTMLInputElement
-    const assigneeInput = document.body.querySelector('[data-testid="task-assignee-input"]') as HTMLInputElement
-    const dueAtInput = document.body.querySelector('[data-testid="task-due-at-input"]') as HTMLInputElement
-    const submitButton = document.body.querySelector('[data-testid="task-submit"]') as HTMLButtonElement
-
-    titleInput.value = 'Follow up from message'
-    titleInput.dispatchEvent(new Event('input'))
-    assigneeInput.value = '@alice:localhost'
-    assigneeInput.dispatchEvent(new Event('input'))
-    dueAtInput.value = '2026-03-06T10:30'
-    dueAtInput.dispatchEvent(new Event('input'))
-
-    await submitButton.click()
+    const composer = wrapper.findComponent(TaskComposerDialog)
+    composer.vm.$emit('submit', {
+      title: 'hello world',
+      assignee: '@alice:localhost',
+      dueAt: '2026-03-06T10:30',
+      status: 'todo',
+    })
+    await nextTick()
 
     expect(createTaskSpy).toHaveBeenCalledTimes(1)
     expect(createTaskSpy).toHaveBeenCalledWith(expect.objectContaining({
-      title: 'Follow up from message',
+      title: 'hello world',
       assignee: '@alice:localhost',
       dueAt: '2026-03-06T10:30',
       status: 'todo',
@@ -166,16 +163,16 @@ describe('MessageActionBar', () => {
     await wrapper.find('[data-testid="message-more-trigger"]').trigger('click')
     await wrapper.find('[data-testid="message-convert-task-trigger"]').trigger('click')
 
-    const assigneeInput = document.body.querySelector('[data-testid="task-assignee-input"]') as HTMLInputElement
-    const dueAtInput = document.body.querySelector('[data-testid="task-due-at-input"]') as HTMLInputElement
-    const submitButton = document.body.querySelector('[data-testid="task-submit"]') as HTMLButtonElement
-
-    assigneeInput.value = '@alice:localhost'
-    assigneeInput.dispatchEvent(new Event('input'))
-    dueAtInput.value = '2026-03-06T10:30'
-    dueAtInput.dispatchEvent(new Event('input'))
-
-    await Promise.all([submitButton.click(), submitButton.click()])
+    const composer = wrapper.findComponent(TaskComposerDialog)
+    const payload = {
+      title: 'hello world',
+      assignee: '@alice:localhost',
+      dueAt: '2026-03-06T10:30',
+      status: 'todo' as const,
+    }
+    composer.vm.$emit('submit', payload)
+    composer.vm.$emit('submit', payload)
+    await nextTick()
 
     expect(createTaskSpy).toHaveBeenCalledTimes(1)
 
