@@ -1,11 +1,14 @@
 <script setup lang="ts">
+import { loadInboxEventContext } from '@matrix/index'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 import { useTaskStore } from '../stores/taskStore'
 import type { TaskItem } from '../types/task'
 
 const { t } = useI18n()
 const taskStore = useTaskStore()
+const router = useRouter()
 
 const taskGroups = computed(() => taskStore.tasksByStatus)
 
@@ -17,6 +20,24 @@ const statusMeta: Record<'todo' | 'doing' | 'done', { label: string }> = {
 
 function transitionTask(task: TaskItem, to: 'todo' | 'doing' | 'done') {
   taskStore.transitionStatus(task.id, to)
+}
+
+async function jumpToSourceMessage(task: TaskItem) {
+  const { roomId, eventId } = task.sourceRef
+
+  try {
+    await loadInboxEventContext(roomId, eventId)
+  }
+  catch (error) {
+    console.warn('[TaskPanel] context preload failed, fallback to direct navigation', error)
+  }
+
+  await router.push({
+    path: `/dm/${encodeURIComponent(roomId)}`,
+    query: {
+      focusEventId: eventId,
+    },
+  })
 }
 </script>
 
@@ -60,6 +81,13 @@ function transitionTask(task: TaskItem, to: 'todo' | 'doing' | 'done') {
             </div>
 
             <div class="mt-2 flex flex-wrap gap-1">
+              <button
+                class="rounded border border-border px-2 py-1 text-xs"
+                :data-testid="`task-jump-${task.id}`"
+                @click="jumpToSourceMessage(task)"
+              >
+                {{ t('chat.task_jump_source') }}
+              </button>
               <button
                 v-if="status !== 'todo'"
                 class="rounded border border-border px-2 py-1 text-xs"

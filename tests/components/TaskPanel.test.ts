@@ -22,9 +22,13 @@ vi.mock('vue-router', () => ({
   }),
 }))
 
-vi.mock('@matrix/index', () => ({
-  loadInboxEventContext: (...args: unknown[]) => loadInboxEventContextMock(...args),
-}))
+vi.mock('@matrix/index', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@matrix/index')>()
+  return {
+    ...actual,
+    loadInboxEventContext: (...args: unknown[]) => loadInboxEventContextMock(...args),
+  }
+})
 
 describe('TaskPanel', () => {
   beforeEach(() => {

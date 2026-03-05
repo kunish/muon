@@ -88,6 +88,7 @@
     "task_move_todo": "移到待办",
     "task_move_doing": "移到进行中",
     "task_move_done": "移到已完成",
+    "task_jump_source": "回到消息",
     "task_empty": "该分栏暂无任务",
     "defer": "稍后处理",
     "defer_custom": "自定义时间",
@@ -100,9 +101,6 @@
     "task_assignee": "负责人",
     "task_due_at": "截止时间",
     "task_status": "状态",
-    "task_status_todo": "待办",
-    "task_status_doing": "进行中",
-    "task_status_done": "已完成",
     "task_create": "创建任务"
   },
   "contacts": {

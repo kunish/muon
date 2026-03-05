@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { getClient } from '@matrix/client'
 import { getMyAvatarUrl, getMyDisplayName, loadInboxEventContext } from '@matrix/index'
-import { CalendarDays, ChevronDown, Gem, Headphones, Mic, MicOff, Search, Settings, Users, X } from 'lucide-vue-next'
+import { CalendarDays, ChevronDown, Gem, Headphones, ListChecks, Mic, MicOff, Search, Settings, Users, X } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useConversations } from '@/features/chat/composables/useConversations'
 import UnifiedInboxPanel from '@/features/chat/components/UnifiedInboxPanel.vue'
+import { useChatStore } from '@/features/chat/stores/chatStore'
 import { useVoiceChannel } from '@/features/server/composables/useVoiceChannel'
 import { useServerStore } from '@/features/server/stores/serverStore'
 import Avatar from '@/shared/components/ui/avatar.vue'
@@ -31,6 +32,7 @@ const emit = defineEmits<{
 
 const router = useRouter()
 const serverStore = useServerStore()
+const chatStore = useChatStore()
 const { t } = useI18n()
 
 // DM mode data
@@ -87,6 +89,10 @@ async function handleInboxJump(payload: { roomId: string, eventId: string }) {
 
 function navigateToFriends() {
   router.push('/contacts')
+}
+
+function openTasksPanel() {
+  chatStore.toggleSidePanel('tasks')
 }
 
 function openEvents() {
@@ -153,6 +159,14 @@ function getPresenceColor(userId: string): string {
       >
         <Users :size="20" />
         {{ t('server.friends') }}
+      </button>
+      <button
+        class="mx-2 mt-1 flex items-center gap-3 rounded-md px-2 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/30 hover:text-foreground"
+        data-testid="tasks-panel-trigger"
+        @click="openTasksPanel"
+      >
+        <ListChecks :size="20" />
+        {{ t('chat.tasks') }}
       </button>
 
       <div class="px-4 py-2">
