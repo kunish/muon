@@ -120,4 +120,36 @@ describe('defer queue panel', () => {
     const historyList = wrapper.get('[data-testid="defer-history-list"]')
     expect(historyList.classes()).toContain('overflow-y-auto')
   })
+
+  it('keeps long list items actionable beyond first screen', async () => {
+    const deferStore = useDeferStore()
+
+    for (let index = 0; index < 24; index += 1) {
+      deferStore.createDeferredItem({
+        id: `long-${index}`,
+        roomId: '!room:test',
+        eventId: `$event-long-${index}`,
+        reminder: { preset: 'custom', dueAt: Date.parse('2026-03-06T09:00:00Z') + index * 1000 },
+      })
+    }
+
+    const wrapper = mount(DeferQueuePanel)
+    await nextTick()
+
+    expect(wrapper.find('[data-testid="defer-active-scroll-container"]').exists()).toBe(true)
+
+    await wrapper.get('[data-testid="defer-complete-long-22"]').trigger('click')
+    await wrapper.get('[data-testid="defer-archive-long-23"]').trigger('click')
+    await nextTick()
+
+    expect(wrapper.find('[data-testid="defer-active-item-long-22"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="defer-active-item-long-23"]').exists()).toBe(false)
+
+    await wrapper.get('[data-testid="defer-history-tab"]').trigger('click')
+    await nextTick()
+
+    expect(wrapper.find('[data-testid="defer-history-scroll-container"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="defer-history-item-long-22"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="defer-history-item-long-23"]').exists()).toBe(true)
+  })
 })
