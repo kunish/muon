@@ -52,11 +52,15 @@ function isOverdue(dueAt: number) {
       </button>
     </div>
 
-    <ul
+    <div
       v-if="activeTab === 'active'"
-      class="mt-2 max-h-56 space-y-1 overflow-y-auto pr-1"
-      data-testid="defer-active-list"
+      class="mt-2 max-h-56 overflow-y-auto pr-1"
+      data-testid="defer-active-scroll-container"
     >
+      <ul
+        class="space-y-1"
+        data-testid="defer-active-list"
+      >
       <li
         v-for="item in deferStore.activeItems"
         :key="item.id"
@@ -90,16 +94,21 @@ function isOverdue(dueAt: number) {
         </div>
       </li>
 
-      <li v-if="deferStore.activeItems.length === 0" class="px-2 py-2 text-xs text-muted-foreground">
-        {{ t('chat.defer_empty_active') }}
-      </li>
-    </ul>
+        <li v-if="deferStore.activeItems.length === 0" class="px-2 py-2 text-xs text-muted-foreground">
+          {{ t('chat.defer_empty_active') }}
+        </li>
+      </ul>
+    </div>
 
-    <ul
+    <div
       v-else
-      class="mt-2 max-h-56 space-y-1 overflow-y-auto pr-1"
-      data-testid="defer-history-list"
+      class="mt-2 max-h-56 overflow-y-auto pr-1"
+      data-testid="defer-history-scroll-container"
     >
+      <ul
+        class="space-y-1"
+        data-testid="defer-history-list"
+      >
       <li
         v-for="item in deferStore.historyItems"
         :key="item.id"
@@ -110,9 +119,10 @@ function isOverdue(dueAt: number) {
         <p class="text-[11px] text-muted-foreground">{{ formatDueAt(item.dueAt) }}</p>
       </li>
 
-      <li v-if="deferStore.historyItems.length === 0" class="px-2 py-2 text-xs text-muted-foreground">
-        {{ t('chat.defer_empty_history') }}
-      </li>
-    </ul>
+        <li v-if="deferStore.historyItems.length === 0" class="px-2 py-2 text-xs text-muted-foreground">
+          {{ t('chat.defer_empty_history') }}
+        </li>
+      </ul>
+    </div>
   </section>
 </template>

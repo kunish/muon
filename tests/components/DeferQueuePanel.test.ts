@@ -109,16 +109,16 @@ describe('defer queue panel', () => {
     const wrapper = mount(DeferQueuePanel)
     await nextTick()
 
-    const activeList = wrapper.get('[data-testid="defer-active-list"]')
-    expect(activeList.classes()).toContain('overflow-y-auto')
+    const activeScrollContainer = wrapper.get('[data-testid="defer-active-scroll-container"]')
+    expect(activeScrollContainer.classes()).toContain('overflow-y-auto')
 
     await wrapper.get('[data-testid="defer-complete-active-0"]').trigger('click')
     await nextTick()
     await wrapper.get('[data-testid="defer-history-tab"]').trigger('click')
     await nextTick()
 
-    const historyList = wrapper.get('[data-testid="defer-history-list"]')
-    expect(historyList.classes()).toContain('overflow-y-auto')
+    const historyScrollContainer = wrapper.get('[data-testid="defer-history-scroll-container"]')
+    expect(historyScrollContainer.classes()).toContain('overflow-y-auto')
   })
 
   it('keeps long list items actionable beyond first screen', async () => {
