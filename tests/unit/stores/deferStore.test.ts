@@ -1,38 +1,114 @@
-import { describe, expect, it } from 'vitest'
-import {
-  createDeferItem,
-  isDeferActive,
-  transitionDeferStatus,
-} from '@/features/chat/types/defer'
+import { createPinia, setActivePinia } from 'pinia'
+import { beforeEach, describe, expect, it } from 'vitest'
+import { DEFER_STORAGE_KEY } from '@/features/chat/types/defer'
+import { useDeferStore } from '@/features/chat/stores/deferStore'
 
-describe('defer contracts (wave 0)', () => {
-  it('defer item 必含 roomId/eventId、dueAt 且默认 status=deferred', () => {
-    const item = createDeferItem({
-      id: 'defer-1',
-      roomId: '!room:example.org',
-      eventId: '$event:example.org',
-      dueAt: Date.now() + 60_000,
-    })
-
-    expect(item.roomId).toBe('!room:example.org')
-    expect(item.eventId).toBe('$event:example.org')
-    expect(item.dueAt).toBeGreaterThan(0)
-    expect(item.status).toBe('deferred')
+describe('deferStore', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    localStorage.clear()
   })
 
-  it('defer 从 deferred 迁移后不再属于 active 列表', () => {
-    const base = createDeferItem({
-      id: 'defer-2',
+  it('createDeferredItem 接收 preset/custom 时间并写入 dueAt', () => {
+    const store = useDeferStore()
+    const now = Date.UTC(2026, 0, 1, 10, 0, 0)
+
+    const presetItem = store.createDeferredItem({
+      id: 'defer-preset',
       roomId: '!room:example.org',
-      eventId: '$event:example.org',
-      dueAt: Date.now() + 120_000,
+      eventId: '$event:preset',
+      reminder: { preset: 'tomorrow' },
+      now,
     })
 
-    const completed = transitionDeferStatus(base, 'completed')
-    const archived = transitionDeferStatus(base, 'archived')
-    const activeItems = [base, completed, archived].filter(isDeferActive)
+    const customItem = store.createDeferredItem({
+      id: 'defer-custom',
+      roomId: '!room:example.org',
+      eventId: '$event:custom',
+      reminder: { preset: 'custom', dueAt: now + 2_700_000 },
+      now,
+    })
 
-    expect(activeItems).toHaveLength(1)
-    expect(activeItems[0]?.status).toBe('deferred')
+    expect(presetItem.dueAt).toBe(now + 24 * 60 * 60 * 1000)
+    expect(customItem.dueAt).toBe(now + 2_700_000)
+  })
+
+  it('activeItems 仅包含 deferred，且按 dueAt 升序', () => {
+    const store = useDeferStore()
+    const now = Date.UTC(2026, 0, 1, 10, 0, 0)
+
+    store.createDeferredItem({
+      id: 'late',
+      roomId: '!room:example.org',
+      eventId: '$late',
+      reminder: { preset: 'custom', dueAt: now + 9_000 },
+      now,
+    })
+    store.createDeferredItem({
+      id: 'early',
+      roomId: '!room:example.org',
+      eventId: '$early',
+      reminder: { preset: 'custom', dueAt: now + 3_000 },
+      now,
+    })
+
+    store.markCompleted('late')
+
+    expect(store.activeItems.map(item => item.id)).toEqual(['early'])
+  })
+
+  it('markCompleted/markArchived 后进入 historyItems 并移出 activeItems', () => {
+    const store = useDeferStore()
+    const now = Date.UTC(2026, 0, 1, 10, 0, 0)
+
+    store.createDeferredItem({
+      id: 'defer-1',
+      roomId: '!room:example.org',
+      eventId: '$event-1',
+      reminder: { preset: 'custom', dueAt: now + 1_000 },
+      now,
+    })
+    store.createDeferredItem({
+      id: 'defer-2',
+      roomId: '!room:example.org',
+      eventId: '$event-2',
+      reminder: { preset: 'custom', dueAt: now + 2_000 },
+      now,
+    })
+
+    store.markCompleted('defer-1')
+    store.markArchived('defer-2')
+
+    expect(store.activeItems).toHaveLength(0)
+    expect(store.historyItems.map(item => item.status).sort()).toEqual(['archived', 'completed'])
+  })
+
+  it('hydrate 可恢复 localStorage，schema 无效时降级为空', () => {
+    localStorage.setItem(
+      DEFER_STORAGE_KEY,
+      JSON.stringify({
+        version: 1,
+        items: [{
+          id: 'persisted',
+          roomId: '!room:example.org',
+          eventId: '$event:persisted',
+          dueAt: 123,
+          status: 'deferred',
+          createdAt: 100,
+          updatedAt: 100,
+        }],
+      }),
+    )
+
+    const store = useDeferStore()
+    store.hydrate()
+    expect(store.activeItems.map(item => item.id)).toEqual(['persisted'])
+
+    localStorage.setItem(DEFER_STORAGE_KEY, JSON.stringify({ version: 1, items: [{ bad: true }] }))
+    setActivePinia(createPinia())
+    const degraded = useDeferStore()
+    degraded.hydrate()
+    expect(degraded.activeItems).toHaveLength(0)
+    expect(degraded.historyItems).toHaveLength(0)
   })
 })
