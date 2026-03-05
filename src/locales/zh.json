@@ -72,7 +72,15 @@
     "welcome_dm_subtitle": "选择一位成员并开始对话。",
     "welcome_action_members": "查看成员",
     "welcome_action_settings": "频道设置",
-    "welcome_action_search": "搜索消息"
+    "welcome_action_search": "搜索消息",
+    "unified_inbox": "统一收件箱",
+    "inbox_filter_all": "全部",
+    "inbox_filter_mention": "提及",
+    "inbox_filter_priority": "优先未读",
+    "inbox_filter_reply": "待回复",
+    "inbox_mark_processed": "标记已处理",
+    "inbox_select_all": "全选",
+    "inbox_empty": "收件箱为空"
   },
   "contacts": {
     "contacts": "联系人",
