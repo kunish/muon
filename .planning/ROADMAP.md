@@ -43,13 +43,14 @@ Plans:
   3. 用户可以从任意消息创建带负责人、截止时间、状态的任务。
   4. 用户可以在任务面板中把任务在 todo/doing/done 之间流转。
   5. 用户可以从任务详情准确跳回对应源消息。
-**Plans**: 4 plans
+**Plans**: 5 plans
 
 Plans:
 - [x] 02-01-PLAN.md — 定义 defer/task 领域合同与持久化状态机（含 Wave 0 测试骨架）。
 - [x] 02-02-PLAN.md — 交付 defer 双入口与 defer 队列 Active/History 处理闭环。
 - [x] 02-03-PLAN.md — 实现消息转任务与任务状态流转主链路。
 - [x] 02-04-PLAN.md — 打通任务回跳源消息链路并完成侧栏入口协同。
+- [x] 02-05-PLAN.md — 修复 DM 侧栏 defer 滚动阻断并补齐长列表可达性回归测试。
 
 ### Phase 3: Cross-Conversation Retrieval
 **Goal**: 用户可以跨会话快速找回相关消息，同时系统保证检索结果不越权。
@@ -86,7 +87,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Unified Inbox Triage | 3/3 | Complete   | 2026-03-05 |
-| 2. Defer and Message-to-Task Loop | 4/4 | Complete   | 2026-03-05 |
+| 2. Defer and Message-to-Task Loop | 5/5 | Complete   | 2026-03-05 |
 | 3. Cross-Conversation Retrieval | 0/TBD | Not started | - |
 | 4. Offline Digest and Decision Capture | 0/TBD | Not started | - |
 | 5. Reliability and Performance Consistency | 0/TBD | Not started | - |

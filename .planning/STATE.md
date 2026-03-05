@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: Completed 02-02-PLAN.md
-last_updated: "2026-03-05T11:29:04.651Z"
-last_activity: 2026-03-05 — Closed 02-02 plan metadata and summary
+stopped_at: Completed 02-05-PLAN.md
+last_updated: "2026-03-05T13:12:30.237Z"
+last_activity: 2026-03-05 — Closed 02-05 plan metadata and summary
 progress:
   total_phases: 5
   completed_phases: 2
-  total_plans: 7
-  completed_plans: 7
+  total_plans: 8
+  completed_plans: 8
   percent: 100
 ---
 
@@ -26,29 +26,30 @@ See: `.planning/PROJECT.md` (updated 2026-03-05)
 ## Current Position
 
 Phase: 2 of 5 (Defer and Message-to-Task Loop)
-Plan: 4 of 4 completed in current phase (phase complete)
-Status: Plan 02-02 closed (phase complete)
-Last activity: 2026-03-05 — Closed 02-02 plan metadata and summary
+Plan: 5 of 5 completed in current phase (phase complete)
+Status: Plan 02-05 closed (phase complete)
+Last activity: 2026-03-05 — Closed 02-05 plan metadata and summary
 
 Progress: [██████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 7
-- Average duration: 9.0 min
-- Total execution time: 1.1 hours
+- Total plans completed: 8
+- Average duration: 9.3 min
+- Total execution time: 1.2 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01 | 3 | 23 min | 7.7 min |
-| 02 | 4 | 40 min | 10.0 min |
+| 02 | 5 | 51 min | 10.2 min |
 
 **Recent Trend:**
-- Last 5 plans: 14 min, 19 min, 1 min, 6 min
+- Last 5 plans: 11 min, 14 min, 19 min, 1 min, 6 min
 - Trend: Stable
+| Phase 02 P05 | 11 min | 2 tasks | 4 files |
 | Phase 02 P03 | 14 min | 1 tasks | 3 files |
 | Phase 02 P04 | 19 min | 2 tasks | 11 files |
 | Phase 02 P01 | 1 min | 3 tasks | 6 files |
@@ -78,6 +79,8 @@ Recent decisions affecting current work:
 - [Phase 02]: 任务状态迁移集中在 taskStore action，组件层禁止直接改写 status
 - [Phase 02]: DeferQueuePanel 采用 Active/History 双 tab，在同一侧栏内完成处理与追溯。
 - [Phase 02]: Active 列表仅展示 deferred，completed/archived 通过 store action 迁移到 history。
+- [Phase 02]: DM 侧栏 inbox/defer 统一使用共享 ScrollArea，避免高度竞争导致 defer 列表不可滚动。
+- [Phase 02]: DeferQueuePanel 为 active/history 增加显式滚动容器标识，保证长列表非首屏事项在回归测试中可达可操作。
 
 ### Pending Todos
 
@@ -89,6 +92,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-05T11:29:04.649Z
-Stopped at: Completed 02-02-PLAN.md
+Last session: 2026-03-05T13:12:30.236Z
+Stopped at: Completed 02-05-PLAN.md
 Resume file: None
