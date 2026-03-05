@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import type { InboxFilterType, UnifiedInboxItem } from '../types/unifiedInbox'
 import type { ReminderPreset } from '../types/defer'
+import type { InboxFilterType, UnifiedInboxItem } from '../types/unifiedInbox'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useUnifiedInbox } from '../composables/useUnifiedInbox'
@@ -89,7 +89,7 @@ function submitCustomDefer(item: UnifiedInboxItem) {
 </script>
 
 <template>
-  <section class="flex flex-col h-full border-t border-border bg-sidebar" data-testid="unified-inbox-panel">
+  <section class="flex min-h-0 flex-col border-t border-border bg-sidebar" data-testid="unified-inbox-panel">
     <div class="px-3 py-2 border-b border-border/60">
       <div class="flex items-center justify-between">
         <h3 class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -134,15 +134,15 @@ function submitCustomDefer(item: UnifiedInboxItem) {
       </button>
     </div>
 
-    <div v-if="isLoading" class="flex-1 flex items-center justify-center text-xs text-muted-foreground">
+    <div v-if="isLoading" class="px-3 py-4 text-center text-xs text-muted-foreground">
       {{ t('chat.loading') }}
     </div>
 
-    <div v-else-if="items.length === 0" class="flex-1 flex items-center justify-center text-xs text-muted-foreground" data-testid="inbox-empty">
+    <div v-else-if="items.length === 0" class="px-3 py-4 text-center text-xs text-muted-foreground" data-testid="inbox-empty">
       {{ t('chat.inbox_empty') }}
     </div>
 
-    <ul v-else class="flex-1 overflow-y-auto p-2 space-y-1" data-testid="inbox-list">
+    <ul v-else class="p-2 space-y-1" data-testid="inbox-list">
       <li
         v-for="item in items"
         :key="item.id"

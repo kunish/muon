@@ -5,7 +5,7 @@ import { nextTick } from 'vue'
 import DeferQueuePanel from '@/features/chat/components/DeferQueuePanel.vue'
 import { useDeferStore } from '@/features/chat/stores/deferStore'
 
-describe('DeferQueuePanel', () => {
+describe('defer queue panel', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     localStorage.clear()

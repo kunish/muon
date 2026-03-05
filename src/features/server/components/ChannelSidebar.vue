@@ -5,9 +5,9 @@ import { CalendarDays, ChevronDown, Gem, Headphones, ListChecks, Mic, MicOff, Se
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { useConversations } from '@/features/chat/composables/useConversations'
 import DeferQueuePanel from '@/features/chat/components/DeferQueuePanel.vue'
 import UnifiedInboxPanel from '@/features/chat/components/UnifiedInboxPanel.vue'
+import { useConversations } from '@/features/chat/composables/useConversations'
 import { useChatStore } from '@/features/chat/stores/chatStore'
 import { useVoiceChannel } from '@/features/server/composables/useVoiceChannel'
 import { useServerStore } from '@/features/server/stores/serverStore'
@@ -138,49 +138,50 @@ function getPresenceColor(userId: string): string {
 </script>
 
 <template>
-  <aside class="flex h-full w-60 shrink-0 flex-col bg-sidebar">
+  <aside class="flex h-full min-h-0 w-60 shrink-0 flex-col bg-sidebar">
     <!-- ═══════════════ DM MODE ═══════════════ -->
     <template v-if="isDmMode">
-      <!-- Search bar -->
-      <div class="p-2">
-        <div class="relative">
-          <Search :size="14" class="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            v-model="dmSearch"
-            :placeholder="t('chat.search_conversations')"
-            class="h-8 pl-8 text-xs"
-          />
+      <ScrollArea class="min-h-0 flex-1">
+        <!-- Search bar -->
+        <div class="p-2">
+          <div class="relative">
+            <Search :size="14" class="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              v-model="dmSearch"
+              :placeholder="t('chat.search_conversations')"
+              class="h-8 pl-8 text-xs"
+            />
+          </div>
         </div>
-      </div>
 
-      <!-- Friends shortcut -->
-      <button
-        class="mx-2 flex items-center gap-3 rounded-md px-2 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/30 hover:text-foreground"
-        @click="navigateToFriends"
-      >
-        <Users :size="20" />
-        {{ t('server.friends') }}
-      </button>
-      <button
-        class="mx-2 mt-1 flex items-center gap-3 rounded-md px-2 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/30 hover:text-foreground"
-        data-testid="tasks-panel-trigger"
-        @click="openTasksPanel"
-      >
-        <ListChecks :size="20" />
-        {{ t('chat.tasks') }}
-      </button>
+        <!-- Friends shortcut -->
+        <button
+          class="mx-2 flex items-center gap-3 rounded-md px-2 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/30 hover:text-foreground"
+          @click="navigateToFriends"
+        >
+          <Users :size="20" />
+          {{ t('server.friends') }}
+        </button>
+        <button
+          class="mx-2 mt-1 flex items-center gap-3 rounded-md px-2 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/30 hover:text-foreground"
+          data-testid="tasks-panel-trigger"
+          @click="openTasksPanel"
+        >
+          <ListChecks :size="20" />
+          {{ t('chat.tasks') }}
+        </button>
 
-      <div class="px-4 py-2">
-        <span class="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-          {{ t('server.direct_messages') }}
-        </span>
-      </div>
+        <div class="px-4 py-2">
+          <span class="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+            {{ t('server.direct_messages') }}
+          </span>
+        </div>
 
-      <UnifiedInboxPanel @jump="handleInboxJump" />
-      <DeferQueuePanel />
+        <div class="min-h-0">
+          <UnifiedInboxPanel @jump="handleInboxJump" />
+          <DeferQueuePanel />
+        </div>
 
-      <!-- DM conversation list -->
-      <ScrollArea class="flex-1">
         <div class="space-y-px px-2 pb-2">
           <button
             v-for="dm in dmList"
@@ -281,7 +282,7 @@ function getPresenceColor(userId: string): string {
       </div>
 
       <!-- Channel tree -->
-      <ScrollArea class="flex-1">
+      <ScrollArea class="min-h-0 flex-1">
         <div class="px-2 pb-2">
           <ChannelCategory
             v-for="category in channelTree"

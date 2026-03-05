@@ -19,7 +19,7 @@ function isOverdue(dueAt: number) {
 </script>
 
 <template>
-  <section class="border-t border-border/60 px-2 py-2" data-testid="defer-queue-panel">
+  <section class="min-h-0 border-t border-border/60 px-2 py-2" data-testid="defer-queue-panel">
     <div class="flex items-center justify-between">
       <h3 class="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
         {{ t('chat.defer_queue_title') }}
@@ -54,7 +54,7 @@ function isOverdue(dueAt: number) {
 
     <ul
       v-if="activeTab === 'active'"
-      class="mt-2 space-y-1"
+      class="mt-2 max-h-56 space-y-1 overflow-y-auto pr-1"
       data-testid="defer-active-list"
     >
       <li
@@ -97,7 +97,7 @@ function isOverdue(dueAt: number) {
 
     <ul
       v-else
-      class="mt-2 space-y-1"
+      class="mt-2 max-h-56 space-y-1 overflow-y-auto pr-1"
       data-testid="defer-history-list"
     >
       <li
