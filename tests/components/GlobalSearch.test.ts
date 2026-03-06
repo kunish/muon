@@ -66,6 +66,17 @@ vi.mock('@/features/chat/stores/retrievalStore', () => ({
 }))
 
 describe('GlobalSearch', () => {
+  function mountGlobalSearch() {
+    return mount(GlobalSearch, {
+      attrs: { onClose: closeMock },
+      global: {
+        stubs: {
+          Teleport: true,
+        },
+      },
+    })
+  }
+
   beforeEach(() => {
     routerPush.mockReset()
     loadInboxEventContextMock.mockReset()
@@ -95,7 +106,7 @@ describe('GlobalSearch', () => {
     ]
     retrievalState.hasSearched = true
 
-    const wrapper = mount(GlobalSearch, { attrs: { onClose: closeMock } })
+    const wrapper = mountGlobalSearch()
 
     await wrapper.find('[data-testid="global-search-input"]').setValue('result')
     await wrapper.find('[data-testid="global-search-form"]').trigger('submit.prevent')
@@ -120,7 +131,7 @@ describe('GlobalSearch', () => {
     ]
     retrievalState.hasSearched = true
 
-    const wrapper = mount(GlobalSearch, { attrs: { onClose: closeMock } })
+    const wrapper = mountGlobalSearch()
 
     expect(wrapper.find('[data-testid="global-search-hit-$left-event"]').exists()).toBe(false)
     expect(wrapper.text()).not.toContain('Left room message')
@@ -140,7 +151,7 @@ describe('GlobalSearch', () => {
     retrievalState.hasSearched = true
     loadInboxEventContextMock.mockResolvedValue({})
 
-    const wrapper = mount(GlobalSearch, { attrs: { onClose: closeMock } })
+    const wrapper = mountGlobalSearch()
 
     await wrapper.find('[data-testid="global-search-hit-$event-1"]').trigger('click')
 
@@ -170,7 +181,7 @@ describe('GlobalSearch', () => {
     loadInboxEventContextMock.mockRejectedValue(new Error('network error'))
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
-    const wrapper = mount(GlobalSearch, { attrs: { onClose: closeMock } })
+    const wrapper = mountGlobalSearch()
 
     await wrapper.find('[data-testid="global-search-hit-$event-1"]').trigger('click')
 
