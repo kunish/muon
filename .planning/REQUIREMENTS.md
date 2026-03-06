@@ -23,15 +23,15 @@
 
 - [x] **RETR-01**: User can search messages across conversations by keyword and receive ranked results.
 - [x] **RETR-02**: User only sees retrieval results from conversations they are currently authorized to access.
-- [ ] **DIGE-01**: User can view an offline catch-up digest for activity during their away window.
-- [ ] **DIGE-02**: User can open source citations from digest entries to verify each summary claim.
-- [ ] **DIGE-03**: User can sort digest focus by personal relevance (my responsibility, my follows, my mentions).
+- [x] **DIGE-01**: User can view an offline catch-up digest for activity during their away window.
+- [x] **DIGE-02**: User can open source citations from digest entries to verify each summary claim.
+- [x] **DIGE-03**: User can sort digest focus by personal relevance (my responsibility, my follows, my mentions).
 
 ### Decision Capture
 
-- [ ] **DECI-01**: User can create a decision card with conclusion, context, owner, status, and linked messages.
-- [ ] **DECI-02**: User can accept or reject AI-suggested action items and blockers extracted from summaries.
-- [ ] **DECI-03**: User can ask a cross-conversation question and receive an answer with traceable citations.
+- [x] **DECI-01**: User can create a decision card with conclusion, context, owner, status, and linked messages.
+- [x] **DECI-02**: User can accept or reject AI-suggested action items and blockers extracted from summaries.
+- [x] **DECI-03**: User can ask a cross-conversation question and receive an answer with traceable citations.
 
 ### Reliability and Consistency
 
@@ -68,12 +68,12 @@
 | TASK-03 | Phase 2 | Complete |
 | RETR-01 | Phase 3 | Complete |
 | RETR-02 | Phase 3 | Complete |
-| DIGE-01 | Phase 4 | Pending |
-| DIGE-02 | Phase 4 | Pending |
-| DIGE-03 | Phase 4 | Pending |
-| DECI-01 | Phase 4 | Pending |
-| DECI-02 | Phase 4 | Pending |
-| DECI-03 | Phase 4 | Pending |
+| DIGE-01 | Phase 4 | Complete |
+| DIGE-02 | Phase 4 | Complete |
+| DIGE-03 | Phase 4 | Complete |
+| DECI-01 | Phase 4 | Complete |
+| DECI-02 | Phase 4 | Complete |
+| DECI-03 | Phase 4 | Complete |
 | RELI-01 | Phase 5 | Pending |
 | RELI-02 | Phase 5 | Pending |
 
