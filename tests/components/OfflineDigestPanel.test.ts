@@ -1,4 +1,4 @@
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import OfflineDigestPanel from '@/features/chat/components/OfflineDigestPanel.vue'
@@ -6,6 +6,8 @@ import { useDigestStore } from '@/features/chat/stores/digestStore'
 
 const routerPush = vi.fn()
 const loadInboxEventContextMock = vi.fn()
+const listDigestEntriesMock = vi.fn()
+const saveDigestEntryMock = vi.fn()
 
 vi.mock('vue-router', () => ({
   useRouter: () => ({
@@ -28,7 +30,25 @@ vi.mock('@/shared/composables/useNetworkStatus', () => ({
 
 vi.mock('@/shared/lib/knowledgeDb', () => ({
   createKnowledgeRepository: () => ({
-    saveDigestEntry: vi.fn().mockResolvedValue(undefined),
+    listDigestEntries: (...args: unknown[]) => listDigestEntriesMock(...args),
+    saveDigestEntry: (...args: unknown[]) => saveDigestEntryMock(...args),
+  }),
+}))
+
+vi.mock('@/matrix/events', () => ({
+  matrixEvents: {
+    on: vi.fn(),
+    off: vi.fn(),
+  },
+}))
+
+vi.mock('@/matrix/rooms', () => ({
+  getRoomSummaries: () => [],
+}))
+
+vi.mock('@/matrix/client', () => ({
+  getClient: () => ({
+    getUserId: () => '@me:muon.dev',
   }),
 }))
 
@@ -45,37 +65,38 @@ describe('OfflineDigestPanel', () => {
     setActivePinia(createPinia())
     routerPush.mockReset()
     loadInboxEventContextMock.mockReset()
+    listDigestEntriesMock.mockReset()
+    saveDigestEntryMock.mockReset()
+
+    listDigestEntriesMock.mockResolvedValue([])
+    saveDigestEntryMock.mockResolvedValue(undefined)
   })
 
-  it('renders digest entries after session build', async () => {
+  it('initializes digest on mount so saved entries restore before refresh', async () => {
     const store = useDigestStore()
-    store.ingestEvent({
-      roomId: '!room:muon.dev',
-      eventId: '$event-1',
-      sender: '@alice:muon.dev',
-      body: 'Digest body',
-      ts: 150,
-      relevanceHint: 'responsibility',
-    })
-    await store.buildDigestSession({ now: 200 })
+    const initializeSpy = vi.spyOn(store, 'initializeDigest')
 
-    const wrapper = mount(OfflineDigestPanel)
+    mount(OfflineDigestPanel)
+    await flushPromises()
 
-    expect(wrapper.find('[data-testid="digest-entry-$event-1"]').exists()).toBe(true)
-    expect(wrapper.text()).toContain('Digest body')
+    expect(initializeSpy).toHaveBeenCalledTimes(1)
   })
 
   it('clicking citation preloads context before focusEventId navigation', async () => {
     const store = useDigestStore()
-    store.ingestEvent({
-      roomId: '!room:muon.dev',
-      eventId: '$event-1',
-      sender: '@alice:muon.dev',
-      body: 'Digest body',
-      ts: 150,
-      relevanceHint: 'responsibility',
-    })
-    await store.buildDigestSession({ now: 200 })
+    store.entries = [
+      {
+        id: 'digest:$event-1',
+        sessionId: 'digest-session:test',
+        title: 'Digest body',
+        summary: 'Digest body',
+        relevance: 'responsibility',
+        citations: [{ roomId: '!room:muon.dev', eventId: '$event-1', quote: 'Digest body' }],
+        citationEventIds: ['$event-1'],
+        createdAt: 150,
+        updatedAt: 150,
+      },
+    ]
     loadInboxEventContextMock.mockResolvedValue({})
 
     const wrapper = mount(OfflineDigestPanel)
@@ -90,15 +111,19 @@ describe('OfflineDigestPanel', () => {
 
   it('preload failure only warns and still navigates', async () => {
     const store = useDigestStore()
-    store.ingestEvent({
-      roomId: '!room:muon.dev',
-      eventId: '$event-1',
-      sender: '@alice:muon.dev',
-      body: 'Digest body',
-      ts: 150,
-      relevanceHint: 'responsibility',
-    })
-    await store.buildDigestSession({ now: 200 })
+    store.entries = [
+      {
+        id: 'digest:$event-1',
+        sessionId: 'digest-session:test',
+        title: 'Digest body',
+        summary: 'Digest body',
+        relevance: 'responsibility',
+        citations: [{ roomId: '!room:muon.dev', eventId: '$event-1', quote: 'Digest body' }],
+        citationEventIds: ['$event-1'],
+        createdAt: 150,
+        updatedAt: 150,
+      },
+    ]
     loadInboxEventContextMock.mockRejectedValue(new Error('network error'))
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
