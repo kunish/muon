@@ -14,7 +14,9 @@
 - [x] **Phase 2: Defer and Message-to-Task Loop** - 用户可延后消息并将消息转为可追踪任务形成执行闭环。 (completed 2026-03-05)
 - [x] **Phase 3: Cross-Conversation Retrieval** - 用户可跨会话检索相关消息且结果严格受权限约束。 (completed 2026-03-06)
 - [x] **Phase 4: Offline Digest and Decision Capture** - 用户可离线回归重点、验证引用并沉淀可复用决策。 (completed 2026-03-06)
-- [ ] **Phase 5: Reliability and Performance Consistency** - 用户在重连与高负载场景下仍获得一致且流畅的效率体验。
+- [x] **Phase 5: Reliability and Performance Consistency** - 用户在重连与高负载场景下仍获得一致且流畅的效率体验。 (completed 2026-03-06)
+- [ ] **Phase 6: Search Surface Integration and Retrieval Completion** - 用户可从真实聊天搜索入口完成跨会话检索、分页与结果回跳，不再停留在未接线实现。 
+- [ ] **Phase 7: Offline Digest Reliability and Knowledge Continuity** - 用户回归后可稳定看到离线 digest、验证引用，并让 digest 驱动的建议链路可靠可用。 
 
 ## Phase Details
 
@@ -97,9 +99,31 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 05-01-PLAN.md — 为 reconnect/catch-up 恢复链路补齐 RELI-01 的 RED→GREEN 测试与 canonical inbox recovery 实现。
-- [ ] 05-02-PLAN.md — 为 UnifiedInbox / GlobalSearch 补齐 RELI-02 的性能回归测试、虚拟化渲染与有预算的回跳预加载。
+- [x] 05-01-PLAN.md — 为 reconnect/catch-up 恢复链路补齐 RELI-01 的 RED→GREEN 测试与 canonical inbox recovery 实现。
+- [x] 05-02-PLAN.md — 为 UnifiedInbox / GlobalSearch 补齐 RELI-02 的性能回归测试、虚拟化渲染与有预算的回跳预加载。
 - [x] 05-03-PLAN.md — 为 taskStore 补齐 RELI-01 的 reconnect/bootstrap continuity 测试与 hydrate 强化。
+
+### Phase 6: Search Surface Integration and Retrieval Completion
+**Goal**: 用户可从真实聊天搜索入口完成跨会话检索、分页与结果回跳，并实际获得受权限约束且流畅的搜索体验。
+**Depends on**: Phase 5
+**Requirements**: RETR-01, RETR-02, RELI-02
+**Gap Closure:** Closes gaps from audit
+**Success Criteria** (what must be TRUE):
+  1. 用户从现有聊天搜索入口打开的是真实跨会话检索面板，而不是仅限当前房间的旧搜索视图。
+  2. 用户可以在生产搜索流中完成检索、分页和结果回跳，且回跳仍走 bounded preload 链路。
+  3. 用户只能看到当前有权限访问的会话结果，且该链路在真实挂载点下被重新验证。
+**Plans**: TBD
+
+### Phase 7: Offline Digest Reliability and Knowledge Continuity
+**Goal**: 用户回归后可稳定读取离线 digest、打开 citations，并让 digest 驱动的建议链路具备可靠输入。
+**Depends on**: Phase 6
+**Requirements**: DIGE-01, DIGE-02, DIGE-03, DECI-02
+**Gap Closure:** Closes gaps from audit
+**Success Criteria** (what must be TRUE):
+  1. 用户重新打开 Knowledge 面板时，已回读的 digest 不会被空 session 覆盖。
+  2. 用户离线期间已同步到本地的消息会按 away-window 时间窗稳定进入 digest。
+  3. 用户可以从稳定可见的 digest 条目打开 citation，并让 digest-backed suggestions 在 decision 链路中可靠出现。
+**Plans**: TBD
 
 ## Progress
 
@@ -109,4 +133,6 @@ Plans:
 | 2. Defer and Message-to-Task Loop | 5/5 | Complete   | 2026-03-05 |
 | 3. Cross-Conversation Retrieval | 2/2 | Complete   | 2026-03-06 |
 | 4. Offline Digest and Decision Capture | 8/8 | Complete | 2026-03-06 |
-| 5. Reliability and Performance Consistency | 1/3 | In Progress | - |
+| 5. Reliability and Performance Consistency | 3/3 | Complete | 2026-03-06 |
+| 6. Search Surface Integration and Retrieval Completion | 0/TBD | Not started | - |
+| 7. Offline Digest Reliability and Knowledge Continuity | 0/TBD | Not started | - |

@@ -21,22 +21,22 @@
 
 ### Retrieval and Digest
 
-- [x] **RETR-01**: User can search messages across conversations by keyword and receive ranked results.
-- [x] **RETR-02**: User only sees retrieval results from conversations they are currently authorized to access.
-- [x] **DIGE-01**: User can view an offline catch-up digest for activity during their away window.
-- [x] **DIGE-02**: User can open source citations from digest entries to verify each summary claim.
-- [x] **DIGE-03**: User can sort digest focus by personal relevance (my responsibility, my follows, my mentions).
+- [ ] **RETR-01**: User can search messages across conversations by keyword and receive ranked results.
+- [ ] **RETR-02**: User only sees retrieval results from conversations they are currently authorized to access.
+- [ ] **DIGE-01**: User can view an offline catch-up digest for activity during their away window.
+- [ ] **DIGE-02**: User can open source citations from digest entries to verify each summary claim.
+- [ ] **DIGE-03**: User can sort digest focus by personal relevance (my responsibility, my follows, my mentions).
 
 ### Decision Capture
 
 - [x] **DECI-01**: User can create a decision card with conclusion, context, owner, status, and linked messages.
-- [x] **DECI-02**: User can accept or reject AI-suggested action items and blockers extracted from summaries.
+- [ ] **DECI-02**: User can accept or reject AI-suggested action items and blockers extracted from summaries.
 - [x] **DECI-03**: User can ask a cross-conversation question and receive an answer with traceable citations.
 
 ### Reliability and Consistency
 
 - [x] **RELI-01**: User sees consistent inbox/task state after reconnect or sync gap recovery without silent item loss.
-- [x] **RELI-02**: User can complete inbox and search workflows without noticeable typing or navigation lag.
+- [ ] **RELI-02**: User can complete inbox and search workflows without noticeable typing or navigation lag.
 
 ## v2 Requirements
 
@@ -66,19 +66,20 @@
 | TASK-01 | Phase 2 | Complete |
 | TASK-02 | Phase 2 | Complete |
 | TASK-03 | Phase 2 | Complete |
-| RETR-01 | Phase 3 | Complete |
-| RETR-02 | Phase 3 | Complete |
-| DIGE-01 | Phase 4 | Complete |
-| DIGE-02 | Phase 4 | Complete |
-| DIGE-03 | Phase 4 | Complete |
+| RETR-01 | Phase 6 | Pending |
+| RETR-02 | Phase 6 | Pending |
+| DIGE-01 | Phase 7 | Pending |
+| DIGE-02 | Phase 7 | Pending |
+| DIGE-03 | Phase 7 | Pending |
 | DECI-01 | Phase 4 | Complete |
-| DECI-02 | Phase 4 | Complete |
+| DECI-02 | Phase 7 | Pending |
 | DECI-03 | Phase 4 | Complete |
 | RELI-01 | Phase 5 | Complete |
-| RELI-02 | Phase 5 | Complete |
+| RELI-02 | Phase 6 | Pending |
 
 **Coverage:**
 - v1 requirements: 18 total
+- Checked off: 11
 - Mapped to phases: 18
 - Unmapped: 0 ✓
 
