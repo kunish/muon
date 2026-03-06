@@ -59,7 +59,11 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. 用户可以按关键词跨会话搜索并获得排序后的相关结果。
   2. 用户检索到的结果仅来自自己当前有访问权限的会话。
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 03-01-PLAN.md — 交付 Matrix 跨会话检索服务（joined-room 授权范围 + 分页）及单测护栏。
+- [ ] 03-02-PLAN.md — 接入 GlobalSearch 跨会话检索 UI 与结果回跳链路并完成组件验证。
 
 ### Phase 4: Offline Digest and Decision Capture
 **Goal**: 用户可以在离线回归时快速理解关键信息，并把讨论结论沉淀为可追溯知识资产。
@@ -88,6 +92,6 @@ Plans:
 |-------|----------------|--------|-----------|
 | 1. Unified Inbox Triage | 3/3 | Complete   | 2026-03-05 |
 | 2. Defer and Message-to-Task Loop | 5/5 | Complete   | 2026-03-05 |
-| 3. Cross-Conversation Retrieval | 0/TBD | Not started | - |
+| 3. Cross-Conversation Retrieval | 0/2 | Not started | - |
 | 4. Offline Digest and Decision Capture | 0/TBD | Not started | - |
 | 5. Reliability and Performance Consistency | 0/TBD | Not started | - |
