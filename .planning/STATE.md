@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: in_progress
-stopped_at: Completed 03-01-PLAN.md
-last_updated: "2026-03-06T04:04:27.747Z"
-last_activity: 2026-03-06 — Completed 03-01 retrieval service implementation
+status: completed
+stopped_at: Completed 03-02-PLAN.md
+last_updated: "2026-03-06T04:15:05.551Z"
+last_activity: 2026-03-06 — Completed 03-02 global retrieval UI integration
 progress:
   total_phases: 5
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 10
-  completed_plans: 9
-  percent: 90
+  completed_plans: 10
+  percent: 100
 ---
 
 # Project State
@@ -21,23 +21,23 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-03-05)
 
 **Core value:** Users can always find, process, and continue the most important conversations quickly in one place.
-**Current focus:** Phase 3 - Cross-Conversation Retrieval
+**Current focus:** Phase 4 - Offline Digest and Decision Capture
 
 ## Current Position
 
 Phase: 3 of 5 (Cross-Conversation Retrieval)
-Plan: 1 of 2 completed in current phase
-Status: Plan 03-01 completed
-Last activity: 2026-03-06 — Completed 03-01 retrieval service implementation
+Plan: 2 of 2 completed in current phase
+Status: Phase 03 completed
+Last activity: 2026-03-06 — Completed 03-02 global retrieval UI integration
 
-Progress: [█████████░] 90%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 9
-- Average duration: 8.6 min
-- Total execution time: 1.3 hours
+- Total plans completed: 10
+- Average duration: 8.2 min
+- Total execution time: 1.4 hours
 
 **By Phase:**
 
@@ -45,10 +45,10 @@ Progress: [█████████░] 90%
 |-------|-------|-------|----------|
 | 01 | 3 | 23 min | 7.7 min |
 | 02 | 5 | 51 min | 10.2 min |
-| 03 | 1 | 3 min | 3.0 min |
+| 03 | 2 | 8 min | 4.0 min |
 
 **Recent Trend:**
-- Last 5 plans: 14 min, 19 min, 1 min, 6 min, 3 min
+- Last 5 plans: 19 min, 1 min, 6 min, 3 min, 5 min
 - Trend: Stable to improving
 | Phase 02 P05 | 11 min | 2 tasks | 4 files |
 | Phase 02 P03 | 14 min | 1 tasks | 3 files |
@@ -56,6 +56,7 @@ Progress: [█████████░] 90%
 | Phase 02 P01 | 1 min | 3 tasks | 6 files |
 | Phase 02 P02 | 6 min | 3 tasks | 6 files |
 | Phase 03 P01 | 3 min | 2 tasks | 4 files |
+| Phase 03 P02 | 5 min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -85,6 +86,9 @@ Recent decisions affecting current work:
 - [Phase 02]: DeferQueuePanel 为 active/history 增加显式滚动容器标识，保证长列表非首屏事项在回归测试中可达可操作。
 - [Phase 03]: Use current joined-room IDs as mandatory filter scope for every search request to satisfy RETR-02.
 - [Phase 03]: Keep pagination state in retrieval session and dedupe by eventId when appending next page results.
+- [Phase 03]: Keep GlobalSearch as the single entry for room-name and cross-conversation message retrieval.
+- [Phase 03]: Result clicks must preload loadInboxEventContext before router push with focusEventId, but fallback navigation remains non-blocking.
+- [Phase 03]: Apply joined-room filtering in UI rendering to prevent left-room hits from appearing even with stale or mocked data.
 
 ### Pending Todos
 
@@ -96,6 +100,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-06T04:04:27.744Z
-Stopped at: Completed 03-01-PLAN.md
+Last session: 2026-03-06T04:15:05.547Z
+Stopped at: Completed 03-02-PLAN.md
 Resume file: None

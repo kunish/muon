@@ -12,7 +12,7 @@
 
 - [x] **Phase 1: Unified Inbox Triage** - 用户可在一个入口集中处理高优先级消息并回到原文上下文。 (completed 2026-03-05)
 - [x] **Phase 2: Defer and Message-to-Task Loop** - 用户可延后消息并将消息转为可追踪任务形成执行闭环。 (completed 2026-03-05)
-- [ ] **Phase 3: Cross-Conversation Retrieval** - 用户可跨会话检索相关消息且结果严格受权限约束。
+- [x] **Phase 3: Cross-Conversation Retrieval** - 用户可跨会话检索相关消息且结果严格受权限约束。 (completed 2026-03-06)
 - [ ] **Phase 4: Offline Digest and Decision Capture** - 用户可离线回归重点、验证引用并沉淀可复用决策。
 - [ ] **Phase 5: Reliability and Performance Consistency** - 用户在重连与高负载场景下仍获得一致且流畅的效率体验。
 
@@ -92,6 +92,6 @@ Plans:
 |-------|----------------|--------|-----------|
 | 1. Unified Inbox Triage | 3/3 | Complete   | 2026-03-05 |
 | 2. Defer and Message-to-Task Loop | 5/5 | Complete   | 2026-03-05 |
-| 3. Cross-Conversation Retrieval | 1/2 | In Progress|  |
+| 3. Cross-Conversation Retrieval | 2/2 | Complete   | 2026-03-06 |
 | 4. Offline Digest and Decision Capture | 0/TBD | Not started | - |
 | 5. Reliability and Performance Consistency | 0/TBD | Not started | - |
