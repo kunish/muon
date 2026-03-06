@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { loadInboxEventContext } from '@matrix/index'
-import { computed } from 'vue'
+import { computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useDigestStore } from '../stores/digestStore'
 import type { DigestFilter } from '../types/digest'
@@ -16,6 +16,14 @@ const filters: Array<{ id: DigestFilter, label: string }> = [
 ]
 
 const entries = computed(() => digestStore.visibleEntries)
+
+onMounted(() => {
+  void digestStore.initializeDigest()
+})
+
+onUnmounted(() => {
+  digestStore.stopRuntimeSync()
+})
 
 async function openCitation(roomId: string, eventId: string) {
   try {
