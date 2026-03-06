@@ -13,6 +13,18 @@ const listSavedQaSessionsMock = vi.fn()
 const routerPush = vi.fn()
 const loadInboxEventContextMock = vi.fn()
 
+vi.mock('@/shared/lib/knowledgeDb', () => ({
+  createKnowledgeRepository: () => ({
+    listDigestEntries: vi.fn().mockResolvedValue([]),
+    listDecisionCards: vi.fn().mockResolvedValue([]),
+    listQaSessions: (...args: unknown[]) => listSavedQaSessionsMock(...args),
+    saveQaSession: vi.fn(),
+    saveDecisionCard: vi.fn(),
+    saveDigestEntry: vi.fn(),
+    updateSuggestionDisposition: vi.fn(),
+  }),
+}))
+
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({
     t: (key: string) => key,

@@ -1,24 +1,34 @@
 <script setup lang="ts">
 import { loadInboxEventContext } from '@matrix/index'
-import { ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { askCrossSessionQuestion } from '../services/crossSessionQa'
-import type { CrossSessionQaAnswer } from '../types/knowledge'
+import { useQaStore } from '../stores/qaStore'
 
 const { t } = useI18n()
 const router = useRouter()
+const qaStore = useQaStore()
 
 const question = ref('')
 const loading = ref(false)
 const error = ref<string | null>(null)
-const answer = ref<CrossSessionQaAnswer | null>(null)
+const answer = computed(() => qaStore.activeAnswer)
+const history = computed(() => qaStore.history)
+
+onMounted(async () => {
+  try {
+    await qaStore.hydrateHistory()
+  }
+  catch (err) {
+    error.value = err instanceof Error ? err.message : String(err)
+  }
+})
 
 async function submitQuestion() {
   loading.value = true
   error.value = null
   try {
-    answer.value = await askCrossSessionQuestion(question.value)
+    await qaStore.askQuestion(question.value)
   }
   catch (err) {
     error.value = err instanceof Error ? err.message : String(err)
@@ -43,6 +53,10 @@ async function openCitation(roomId: string, eventId: string) {
     },
   })
 }
+
+function openHistoryAnswer(answerId: string) {
+  qaStore.selectAnswer(answerId)
+}
 </script>
 
 <template>
@@ -65,6 +79,19 @@ async function openCitation(roomId: string, eventId: string) {
     </div>
 
     <div class="flex-1 overflow-y-auto px-4 py-3">
+      <div v-if="history.length" class="mb-3 space-y-2" data-testid="qa-history-list">
+        <button
+          v-for="item in history"
+          :key="item.id"
+          type="button"
+          class="block w-full rounded-md border border-border px-3 py-2 text-left text-sm"
+          :data-testid="`qa-history-item-${item.id}`"
+          @click="openHistoryAnswer(item.id)"
+        >
+          {{ item.question }}
+        </button>
+      </div>
+
       <div v-if="answer" data-testid="qa-answer-card" class="rounded-md border border-border/70 p-3">
         <div class="text-sm font-semibold text-foreground">
           {{ answer.question }}

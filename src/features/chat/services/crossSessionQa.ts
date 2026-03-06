@@ -33,3 +33,8 @@ export async function askCrossSessionQuestion(question: string, limit = 5) {
   await repository.saveQaSession(answer)
   return answer
 }
+
+export async function listSavedQaSessions() {
+  const sessions = await repository.listQaSessions()
+  return [...sessions].sort((left, right) => right.createdAt - left.createdAt)
+}
