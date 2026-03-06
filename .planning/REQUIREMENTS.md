@@ -35,7 +35,7 @@
 
 ### Reliability and Consistency
 
-- [ ] **RELI-01**: User sees consistent inbox/task state after reconnect or sync gap recovery without silent item loss.
+- [x] **RELI-01**: User sees consistent inbox/task state after reconnect or sync gap recovery without silent item loss.
 - [ ] **RELI-02**: User can complete inbox and search workflows without noticeable typing or navigation lag.
 
 ## v2 Requirements
@@ -74,7 +74,7 @@
 | DECI-01 | Phase 4 | Complete |
 | DECI-02 | Phase 4 | Complete |
 | DECI-03 | Phase 4 | Complete |
-| RELI-01 | Phase 5 | Pending |
+| RELI-01 | Phase 5 | Complete |
 | RELI-02 | Phase 5 | Pending |
 
 **Coverage:**

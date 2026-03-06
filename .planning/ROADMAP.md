@@ -94,7 +94,12 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. 用户在断线重连或同步缺口恢复后，收件箱和任务状态保持一致且无静默丢项。
   2. 用户在执行收件箱处理与检索操作时，不会感知明显输入或导航延迟。
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 05-01-PLAN.md — 为 reconnect/catch-up 恢复链路补齐 RELI-01 的 RED→GREEN 测试与 canonical inbox recovery 实现。
+- [ ] 05-02-PLAN.md — 为 UnifiedInbox / GlobalSearch 补齐 RELI-02 的性能回归测试、虚拟化渲染与有预算的回跳预加载。
+- [x] 05-03-PLAN.md — 为 taskStore 补齐 RELI-01 的 reconnect/bootstrap continuity 测试与 hydrate 强化。
 
 ## Progress
 
@@ -104,4 +109,4 @@ Plans:
 | 2. Defer and Message-to-Task Loop | 5/5 | Complete   | 2026-03-05 |
 | 3. Cross-Conversation Retrieval | 2/2 | Complete   | 2026-03-06 |
 | 4. Offline Digest and Decision Capture | 8/8 | Complete | 2026-03-06 |
-| 5. Reliability and Performance Consistency | 0/TBD | Not started | - |
+| 5. Reliability and Performance Consistency | 1/3 | In Progress | - |
