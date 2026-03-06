@@ -176,7 +176,9 @@ function getPresenceColor(userId: string): string {
         </button>
         <button
           class="mx-2 mt-1 flex items-center gap-3 rounded-md px-2 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/30 hover:text-foreground"
+          :class="chatStore.activeSidePanel === 'knowledge' && 'bg-accent/30 text-foreground'"
           data-testid="knowledge-panel-trigger"
+          :aria-pressed="String(chatStore.activeSidePanel === 'knowledge')"
           @click="openKnowledgePanel"
         >
           <BookOpen :size="20" />

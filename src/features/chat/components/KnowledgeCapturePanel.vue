@@ -28,6 +28,14 @@ const tabs = computed<Array<{ id: KnowledgeTab, label: string }>>(() => [
   { id: 'qa', label: t('chat.knowledge_tab_qa') },
 ])
 
+function getTabId(tab: KnowledgeTab) {
+  return `knowledge-tab-${tab}`
+}
+
+function getPanelId(tab: KnowledgeTab) {
+  return `knowledge-panel-${tab}`
+}
+
 function setActiveTab(tab: KnowledgeTab) {
   activeTab.value = tab
 }
@@ -39,14 +47,18 @@ function setActiveTab(tab: KnowledgeTab) {
       <div class="text-sm font-semibold text-foreground">
         {{ t('chat.knowledge') }}
       </div>
-      <div class="mt-3 flex gap-2">
+      <div class="mt-3 flex gap-2" role="tablist" :aria-label="t('chat.knowledge')">
         <button
           v-for="tab in tabs"
           :key="tab.id"
           type="button"
+          role="tab"
           class="rounded-md border px-3 py-1.5 text-xs"
           :class="activeTab === tab.id ? 'border-primary text-primary' : 'border-border text-muted-foreground'"
           :data-testid="`knowledge-tab-${tab.id}`"
+          :id="getTabId(tab.id)"
+          :aria-controls="getPanelId(tab.id)"
+          :aria-selected="activeTab === tab.id"
           @click="setActiveTab(tab.id)"
         >
           {{ tab.label }}
@@ -55,19 +67,37 @@ function setActiveTab(tab: KnowledgeTab) {
     </header>
 
     <div class="flex-1 overflow-y-auto px-4 py-3">
-      <div v-if="activeTab === 'digest'" data-testid="knowledge-panel-digest">
+      <div
+        v-if="activeTab === 'digest'"
+        :id="getPanelId('digest')"
+        role="tabpanel"
+        :aria-labelledby="getTabId('digest')"
+        data-testid="knowledge-panel-digest"
+      >
         <slot name="digest">
           <OfflineDigestPanel />
         </slot>
       </div>
 
-      <div v-else-if="activeTab === 'decision'" data-testid="knowledge-panel-decision">
+      <div
+        v-else-if="activeTab === 'decision'"
+        :id="getPanelId('decision')"
+        role="tabpanel"
+        :aria-labelledby="getTabId('decision')"
+        data-testid="knowledge-panel-decision"
+      >
         <slot name="decision">
           <DecisionPanel />
         </slot>
       </div>
 
-      <div v-else data-testid="knowledge-panel-qa">
+      <div
+        v-else
+        :id="getPanelId('qa')"
+        role="tabpanel"
+        :aria-labelledby="getTabId('qa')"
+        data-testid="knowledge-panel-qa"
+      >
         <slot name="qa">
           <CrossSessionQaPanel />
         </slot>
