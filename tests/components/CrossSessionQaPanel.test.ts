@@ -6,8 +6,10 @@ import ChatWindow from '@/features/chat/components/ChatWindow.vue'
 import CrossSessionQaPanel from '@/features/chat/components/CrossSessionQaPanel.vue'
 import KnowledgeCapturePanel from '@/features/chat/components/KnowledgeCapturePanel.vue'
 import { useChatStore } from '@/features/chat/stores/chatStore'
+import { useQaStore } from '@/features/chat/stores/qaStore'
 
 const askCrossSessionQuestionMock = vi.fn()
+const listSavedQaSessionsMock = vi.fn()
 const routerPush = vi.fn()
 const loadInboxEventContextMock = vi.fn()
 
@@ -25,6 +27,7 @@ vi.mock('vue-router', () => ({
 
 vi.mock('@/features/chat/services/crossSessionQa', () => ({
   askCrossSessionQuestion: (...args: unknown[]) => askCrossSessionQuestionMock(...args),
+  listSavedQaSessions: (...args: unknown[]) => listSavedQaSessionsMock(...args),
 }))
 
 vi.mock('@matrix/index', async (importOriginal) => {
@@ -39,16 +42,60 @@ describe('CrossSessionQaPanel', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     askCrossSessionQuestionMock.mockReset()
+    listSavedQaSessionsMock.mockReset()
     routerPush.mockReset()
     loadInboxEventContextMock.mockReset()
   })
 
+  it('hydrates the latest saved answer on mount', async () => {
+    listSavedQaSessionsMock.mockResolvedValue([
+      {
+        id: 'qa-2',
+        question: 'Latest question',
+        answer: 'Latest answer',
+        citations: [{ roomId: '!joined:muon.dev', eventId: '$event-2', quote: 'Latest answer' }],
+        citationEventIds: ['$event-2'],
+        createdAt: 200,
+        updatedAt: 200,
+      },
+      {
+        id: 'qa-1',
+        question: 'Earlier question',
+        answer: 'Earlier answer',
+        citations: [{ roomId: '!joined:muon.dev', eventId: '$event-1', quote: 'Earlier answer' }],
+        citationEventIds: ['$event-1'],
+        createdAt: 100,
+        updatedAt: 100,
+      },
+    ])
+
+    const wrapper = mount(CrossSessionQaPanel)
+
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain('Latest answer')
+    })
+  })
+
   it('asks a question and renders the cited answer', async () => {
+    listSavedQaSessionsMock.mockResolvedValue([
+      {
+        id: 'qa-1',
+        question: 'Earlier question',
+        answer: 'Earlier answer',
+        citations: [{ roomId: '!joined:muon.dev', eventId: '$event-1', quote: 'Earlier answer' }],
+        citationEventIds: ['$event-1'],
+        createdAt: 100,
+        updatedAt: 100,
+      },
+    ])
     askCrossSessionQuestionMock.mockResolvedValue({
-      id: 'qa-1',
+      id: 'qa-2',
       question: 'What should ship this week?',
       answer: 'Digest panel should ship this week.',
-      citations: [{ roomId: '!joined:muon.dev', eventId: '$event-1', quote: 'Digest panel should ship this week.' }],
+      citations: [{ roomId: '!joined:muon.dev', eventId: '$event-2', quote: 'Digest panel should ship this week.' }],
+      citationEventIds: ['$event-2'],
+      createdAt: 200,
+      updatedAt: 200,
     })
 
     const wrapper = mount(CrossSessionQaPanel)
@@ -57,14 +104,22 @@ describe('CrossSessionQaPanel', () => {
 
     expect(askCrossSessionQuestionMock).toHaveBeenCalledWith('What should ship this week?')
     expect(wrapper.text()).toContain('Digest panel should ship this week.')
+    expect(wrapper.text()).toContain('Earlier question')
+
+    const store = useQaStore()
+    expect(store.history.map(item => item.id)).toEqual(['qa-2', 'qa-1'])
   })
 
   it('supports citation click with preload fallback navigation', async () => {
+    listSavedQaSessionsMock.mockResolvedValue([])
     askCrossSessionQuestionMock.mockResolvedValue({
       id: 'qa-1',
       question: 'What should ship this week?',
       answer: 'Digest panel should ship this week.',
       citations: [{ roomId: '!joined:muon.dev', eventId: '$event-1', quote: 'Digest panel should ship this week.' }],
+      citationEventIds: ['$event-1'],
+      createdAt: 100,
+      updatedAt: 100,
     })
     loadInboxEventContextMock.mockRejectedValue(new Error('network error'))
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
