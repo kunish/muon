@@ -3,16 +3,16 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 current_phase: 5
-current_plan: 1
+current_plan: 2
 status: executing
-stopped_at: Completed 05-03-PLAN.md
-last_updated: "2026-03-06T10:46:16.181Z"
-last_activity: 2026-03-06 — Completed 05-03 task recovery continuity
+stopped_at: Completed 05-01-PLAN.md
+last_updated: "2026-03-06T10:51:51.466Z"
+last_activity: 2026-03-06
 progress:
   total_phases: 5
   completed_phases: 4
   total_plans: 21
-  completed_plans: 19
+  completed_plans: 20
   percent: 90
 ---
 
@@ -29,13 +29,13 @@ See: `.planning/PROJECT.md` (updated 2026-03-05)
 
 Current Phase: 5
 Total Phases: 5
-Current Plan: 1
+Current Plan: 2
 Total Plans in Phase: 3
 
 Phase: 5 of 5 (Reliability and Performance Consistency)
 Plan: 1 of 3 plans completed in current phase
 Status: In Progress
-Last activity: 2026-03-06 — Completed 05-03 task recovery continuity
+Last activity: 2026-03-06
 
 Progress: [█████████░] 90%
 
@@ -74,6 +74,7 @@ Progress: [█████████░] 90%
 | Phase 04 P06 | 2 min | 2 tasks | 6 files |
 | Phase 04 P08 | 3 min | 2 tasks | 6 files |
 | Phase 05 P03 | 1 min | 2 tasks | 2 files |
+| Phase 05 P01 | 11 min | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -125,6 +126,9 @@ Recent decisions affecting current work:
 - [Phase 04]: Default the Knowledge QA tab to the newest saved answer while keeping citation jumps on the existing preload plus focusEventId chain.
 - [Phase 05]: Repeated task store hydrate reloads TASK_STORAGE_KEY as the single source of truth during recovery entry.
 - [Phase 05]: Hydrate normalizes persisted tasks by filtering invalid rows and collapsing duplicate ids before rewriting storage.
+- [Phase 05]: Promoted RECONNECTING/CATCHUP to first-class SyncState values and emitted every sync lifecycle change through matrixEvents.
+- [Phase 05]: Derived room summaries from getLiveTimeline().getEvents() first, with legacy timeline fallback only when live visible events are unavailable.
+- [Phase 05]: Treated recovery sync.state events as immediate unified inbox refresh triggers instead of waiting for a new room.message event.
 
 ### Pending Todos
 
@@ -136,6 +140,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-06T10:46:16.175Z
-Stopped at: Completed 05-03-PLAN.md
+Last session: 2026-03-06T10:51:51.464Z
+Stopped at: Completed 05-01-PLAN.md
 Resume file: None
