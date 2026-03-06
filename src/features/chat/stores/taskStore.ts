@@ -12,6 +12,11 @@ interface PersistedTaskState {
   items: TaskItem[]
 }
 
+interface LoadedTaskState {
+  items: TaskItem[]
+  normalized: boolean
+}
+
 interface CreateTaskInput {
   id?: string
   title: string
@@ -70,20 +75,42 @@ function generateTaskId(now: number): string {
   return `task:${now}:${suffix}`
 }
 
-function loadState(): TaskItem[] {
+function normalizePersistedItems(items: unknown[]): LoadedTaskState {
+  const deduped = new Map<string, TaskItem>()
+  let normalized = false
+
+  for (const item of items) {
+    if (!isValidTaskItem(item)) {
+      normalized = true
+      continue
+    }
+
+    if (deduped.has(item.id))
+      normalized = true
+
+    deduped.set(item.id, item)
+  }
+
+  return {
+    items: [...deduped.values()],
+    normalized,
+  }
+}
+
+function loadState(): LoadedTaskState {
   try {
     const raw = localStorage.getItem(TASK_STORAGE_KEY)
     if (!raw)
-      return []
+      return { items: [], normalized: false }
 
     const parsed = JSON.parse(raw) as Partial<PersistedTaskState>
     if (parsed.version !== 1 || !Array.isArray(parsed.items))
-      return []
+      return { items: [], normalized: false }
 
-    return parsed.items.filter(isValidTaskItem)
+    return normalizePersistedItems(parsed.items)
   }
   catch {
-    return []
+    return { items: [], normalized: false }
   }
 }
 
@@ -117,10 +144,12 @@ export const useTaskStore = defineStore('task', () => {
   })
 
   function hydrate() {
-    if (hydrated.value)
-      return
+    const { items, normalized } = loadState()
     hydrated.value = true
-    tasks.value = loadState()
+    tasks.value = items
+
+    if (normalized)
+      persistState(items)
   }
 
   function createTask(input: CreateTaskInput): TaskItem {
