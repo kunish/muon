@@ -85,6 +85,7 @@ describe('CrossSessionQaPanel', () => {
 
   it('integrates knowledge tabs and chat side-panel toggle', async () => {
     const knowledgeWrapper = mount(KnowledgeCapturePanel)
+    await knowledgeWrapper.get('[data-testid="knowledge-tab-qa"]').trigger('click')
     expect(knowledgeWrapper.findComponent(CrossSessionQaPanel).exists()).toBe(true)
 
     const chatStore = useChatStore()

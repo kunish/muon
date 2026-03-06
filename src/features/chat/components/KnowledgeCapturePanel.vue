@@ -1,5 +1,9 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
+import CrossSessionQaPanel from './CrossSessionQaPanel.vue'
+import DecisionPanel from './DecisionPanel.vue'
+import OfflineDigestPanel from './OfflineDigestPanel.vue'
 import type { KnowledgeTab } from '../types/knowledge'
 
 const props = withDefaults(defineProps<{
@@ -7,6 +11,8 @@ const props = withDefaults(defineProps<{
 }>(), {
   initialTab: 'digest',
 })
+
+const { t } = useI18n()
 
 defineSlots<{
   digest?: () => any
@@ -17,9 +23,9 @@ defineSlots<{
 const activeTab = ref<KnowledgeTab>(props.initialTab)
 
 const tabs = computed<Array<{ id: KnowledgeTab, label: string }>>(() => [
-  { id: 'digest', label: 'Digest' },
-  { id: 'decision', label: 'Decision' },
-  { id: 'qa', label: 'Q&A' },
+  { id: 'digest', label: t('chat.knowledge_tab_digest') },
+  { id: 'decision', label: t('chat.knowledge_tab_decision') },
+  { id: 'qa', label: t('chat.knowledge_tab_qa') },
 ])
 
 function setActiveTab(tab: KnowledgeTab) {
@@ -31,7 +37,7 @@ function setActiveTab(tab: KnowledgeTab) {
   <section class="flex h-full flex-col" data-testid="knowledge-capture-panel">
     <header class="border-b border-border px-4 py-3">
       <div class="text-sm font-semibold text-foreground">
-        Knowledge
+        {{ t('chat.knowledge') }}
       </div>
       <div class="mt-3 flex gap-2">
         <button
@@ -51,25 +57,19 @@ function setActiveTab(tab: KnowledgeTab) {
     <div class="flex-1 overflow-y-auto px-4 py-3">
       <div v-if="activeTab === 'digest'" data-testid="knowledge-panel-digest">
         <slot name="digest">
-          <p class="text-sm text-muted-foreground">
-            Digest panel placeholder.
-          </p>
+          <OfflineDigestPanel />
         </slot>
       </div>
 
       <div v-else-if="activeTab === 'decision'" data-testid="knowledge-panel-decision">
         <slot name="decision">
-          <p class="text-sm text-muted-foreground">
-            Decision panel placeholder.
-          </p>
+          <DecisionPanel />
         </slot>
       </div>
 
       <div v-else data-testid="knowledge-panel-qa">
         <slot name="qa">
-          <p class="text-sm text-muted-foreground">
-            Q&amp;A panel placeholder.
-          </p>
+          <CrossSessionQaPanel />
         </slot>
       </div>
     </div>

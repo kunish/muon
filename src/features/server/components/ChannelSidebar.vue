@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { getClient } from '@matrix/client'
 import { getMyAvatarUrl, getMyDisplayName, loadInboxEventContext } from '@matrix/index'
-import { CalendarDays, ChevronDown, Gem, Headphones, ListChecks, Mic, MicOff, Search, Settings, Users, X } from 'lucide-vue-next'
+import { BookOpen, CalendarDays, ChevronDown, Gem, Headphones, ListChecks, Mic, MicOff, Search, Settings, Users, X } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
@@ -96,6 +96,10 @@ function openTasksPanel() {
   chatStore.toggleSidePanel('tasks')
 }
 
+function openKnowledgePanel() {
+  chatStore.toggleSidePanel('knowledge')
+}
+
 function openEvents() {
   router.push('/calendar')
 }
@@ -169,6 +173,14 @@ function getPresenceColor(userId: string): string {
         >
           <ListChecks :size="20" />
           {{ t('chat.tasks') }}
+        </button>
+        <button
+          class="mx-2 mt-1 flex items-center gap-3 rounded-md px-2 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/30 hover:text-foreground"
+          data-testid="knowledge-panel-trigger"
+          @click="openKnowledgePanel"
+        >
+          <BookOpen :size="20" />
+          {{ t('chat.knowledge') }}
         </button>
 
         <div class="px-4 py-2">

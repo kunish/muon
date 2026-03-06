@@ -10,6 +10,7 @@ import MemberListPanel from './MemberListPanel.vue'
 import MessageList from './MessageList.vue'
 import MultiSelectBar from './MultiSelectBar.vue'
 import PinnedMessages from './PinnedMessages.vue'
+import KnowledgeCapturePanel from './KnowledgeCapturePanel.vue'
 import RichTextInput from './RichTextInput.vue'
 import SearchMessages from './SearchMessages.vue'
 import StarredMessages from './StarredMessages.vue'
@@ -78,6 +79,7 @@ provide('triggerEmojiEffect', triggerEmojiEffect)
         <ChatSettingsPanel
           v-else-if="store.activeSidePanel === 'settings'"
         />
+        <KnowledgeCapturePanel v-else-if="store.activeSidePanel === 'knowledge'" />
         <TaskPanel v-else-if="store.activeSidePanel === 'tasks'" />
       </div>
     </Transition>
