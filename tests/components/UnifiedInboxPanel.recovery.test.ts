@@ -8,10 +8,22 @@ import { matrixEvents } from '@/matrix/events'
 import { mockClient } from '../mocks/matrix'
 import { createMatrixEvent, createRecoveryRoom } from '../mocks/recovery'
 
-async function flushInboxRecovery() {
-  await nextTick()
-  await new Promise(resolve => setTimeout(resolve, 120))
-  await nextTick()
+async function waitFor(assertion: () => void, attempts = 20) {
+  let lastError: unknown
+
+  for (let index = 0; index < attempts; index++) {
+    await nextTick()
+    try {
+      assertion()
+      return
+    }
+    catch (error) {
+      lastError = error
+      await new Promise(resolve => setTimeout(resolve, 20))
+    }
+  }
+
+  throw lastError
 }
 
 describe('UnifiedInboxPanel recovery', () => {
@@ -36,14 +48,18 @@ describe('UnifiedInboxPanel recovery', () => {
     vi.mocked(mockClient.getRoom).mockImplementation((roomId: string) => (roomId === staleRoom.roomId ? staleRoom : null))
 
     const wrapper = mount(UnifiedInboxPanel)
-    await flushInboxRecovery()
+    await waitFor(() => {
+      expect(wrapper.findAll('[data-testid^="inbox-jump-"]')).toHaveLength(1)
+    })
 
     expect(wrapper.text()).toContain('stale summary body')
 
     liveEvents.splice(0, liveEvents.length, createMatrixEvent({ eventId: '$new', ts: 300, body: 'recovered latest body' }))
 
     matrixEvents.emit('sync.state', { state: 'CATCHUP' })
-    await flushInboxRecovery()
+    await waitFor(() => {
+      expect(wrapper.text()).toContain('recovered latest body')
+    })
 
     expect(wrapper.text()).toContain('recovered latest body')
     expect(wrapper.text()).not.toContain('stale summary body')
@@ -75,10 +91,14 @@ describe('UnifiedInboxPanel recovery', () => {
     })
 
     const wrapper = mount(UnifiedInboxPanel)
-    await flushInboxRecovery()
+    await waitFor(() => {
+      expect(wrapper.findAll('[data-testid^="inbox-jump-"]')).toHaveLength(2)
+    })
 
     matrixEvents.emit('sync.state', { state: 'PREPARED' })
-    await flushInboxRecovery()
+    await waitFor(() => {
+      expect(wrapper.text()).toContain('newest visible event')
+    })
 
     const jumpButtons = wrapper.findAll('[data-testid^="inbox-jump-"]')
     expect(jumpButtons[0]?.text()).toContain('Newest Room')
