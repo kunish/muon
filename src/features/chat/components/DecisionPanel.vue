@@ -1,8 +1,11 @@
 <script setup lang="ts">
-import { reactive } from 'vue'
+import { loadInboxEventContext } from '@matrix/index'
+import { onMounted, reactive } from 'vue'
+import { useRouter } from 'vue-router'
 import { useDecisionStore } from '../stores/decisionStore'
 
 const decisionStore = useDecisionStore()
+const router = useRouter()
 
 const form = reactive({
   conclusion: '',
@@ -11,6 +14,10 @@ const form = reactive({
   status: 'open' as const,
   roomId: '',
   eventId: '',
+})
+
+onMounted(async () => {
+  await decisionStore.hydrateCards()
 })
 
 async function saveDecisionCard() {
@@ -30,6 +37,22 @@ async function acceptSuggestion(decisionId: string, suggestionId: string) {
 
 async function rejectSuggestion(decisionId: string, suggestionId: string) {
   await decisionStore.setSuggestionDisposition(decisionId, suggestionId, 'rejected')
+}
+
+async function openLinkedMessage(roomId: string, eventId: string) {
+  try {
+    await loadInboxEventContext(roomId, eventId)
+  }
+  catch (error) {
+    console.warn('[DecisionPanel] context preload failed, fallback to direct navigation', error)
+  }
+
+  await router.push({
+    path: `/dm/${encodeURIComponent(roomId)}`,
+    query: {
+      focusEventId: eventId,
+    },
+  })
 }
 </script>
 
@@ -71,6 +94,22 @@ async function rejectSuggestion(decisionId: string, suggestionId: string) {
           {{ card.owner }} · {{ card.status }}
         </div>
 
+        <div v-if="card.citations.length" class="mt-3 space-y-2">
+          <div class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Linked messages
+          </div>
+          <button
+            v-for="citation in card.citations"
+            :key="citation.eventId"
+            class="flex w-full items-start justify-between rounded border border-border/60 px-2 py-2 text-left text-xs"
+            :data-testid="`decision-linked-message-${citation.eventId}`"
+            @click="openLinkedMessage(citation.roomId, citation.eventId)"
+          >
+            <span>{{ citation.quote ?? citation.eventId }}</span>
+            <span class="text-muted-foreground">Open</span>
+          </button>
+        </div>
+
         <div v-if="card.suggestions.length" class="mt-3 space-y-2">
           <div
             v-for="suggestion in card.suggestions"
@@ -82,7 +121,7 @@ async function rejectSuggestion(decisionId: string, suggestionId: string) {
               {{ suggestion.summary }}
             </div>
             <div class="mt-1 text-xs text-muted-foreground">
-              {{ suggestion.disposition }}
+              {{ suggestion.kind }} · digest summary · {{ suggestion.disposition }}
             </div>
             <div class="mt-2 flex gap-2">
               <button class="rounded border border-border px-2 py-1 text-xs" :data-testid="`decision-accept-${suggestion.id}`" @click="acceptSuggestion(card.id, suggestion.id)">
