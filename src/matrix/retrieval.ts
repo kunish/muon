@@ -15,6 +15,7 @@ export interface RetrievalSession {
   searchResults: ISearchResults
   items: RetrievalItem[]
   seenEventIds: Set<string>
+  allowedRoomIds: Set<string>
 }
 
 export interface RetrievalPage {
@@ -35,11 +36,111 @@ export async function searchRoomEvents(term: string, limit = 20): Promise<Retrie
     }
   }
 
-  void limit
-  void getClient
-  throw new Error('searchRoomEvents is not implemented yet')
+  const client = getClient() as any
+  const joinedRoomIds: string[] = (client.getRooms?.() ?? [])
+    .filter((room: any) => room.getMyMembership?.() === 'join')
+    .map((room: any) => room.roomId)
+    .filter((roomId: unknown): roomId is string => typeof roomId === 'string' && roomId.length > 0)
+
+  if (joinedRoomIds.length === 0) {
+    return {
+      items: [],
+      nextBatch: null,
+      canPaginate: false,
+      session: null,
+    }
+  }
+
+  const searchResults = await client.searchRoomEvents({
+    term: normalizedTerm,
+    filter: { rooms: joinedRoomIds, limit },
+  })
+
+  const allowedRoomIds = new Set(joinedRoomIds)
+  const items = mapSearchResults(searchResults?.results, allowedRoomIds)
+  const seenEventIds = new Set(items.map(item => item.eventId))
+
+  const session: RetrievalSession = {
+    term: normalizedTerm,
+    searchResults,
+    items,
+    seenEventIds,
+    allowedRoomIds,
+  }
+
+  return {
+    items,
+    nextBatch: getNextBatch(searchResults),
+    canPaginate: hasNextBatch(searchResults),
+    session,
+  }
 }
 
-export async function backPaginateRoomEventsSearch(_session: RetrievalSession): Promise<RetrievalPage> {
-  throw new Error('backPaginateRoomEventsSearch is not implemented yet')
+export async function backPaginateRoomEventsSearch(session: RetrievalSession): Promise<RetrievalPage> {
+  const nextBatch = getNextBatch(session.searchResults)
+  if (!nextBatch) {
+    return {
+      items: [...session.items],
+      nextBatch: null,
+      canPaginate: false,
+      session,
+    }
+  }
+
+  const client = getClient() as any
+  await client.backPaginateRoomEventsSearch(session.searchResults)
+
+  const paginatedItems = mapSearchResults(session.searchResults?.results, session.allowedRoomIds)
+  const appended: RetrievalItem[] = []
+  for (const item of paginatedItems) {
+    if (session.seenEventIds.has(item.eventId))
+      continue
+    session.seenEventIds.add(item.eventId)
+    appended.push(item)
+  }
+
+  if (appended.length > 0)
+    session.items = [...session.items, ...appended]
+
+  return {
+    items: [...session.items],
+    nextBatch: getNextBatch(session.searchResults),
+    canPaginate: hasNextBatch(session.searchResults),
+    session,
+  }
+}
+
+function mapSearchResults(results: unknown, allowedRoomIds: Set<string>): RetrievalItem[] {
+  if (!Array.isArray(results))
+    return []
+
+  const mapped: RetrievalItem[] = []
+  for (const entry of results as any[]) {
+    const roomId = entry?.result?.room_id
+    const eventId = entry?.result?.event_id
+    if (!roomId || !eventId)
+      continue
+    if (!allowedRoomIds.has(roomId))
+      continue
+
+    mapped.push({
+      roomId,
+      eventId,
+      body: entry?.result?.content?.body ?? '',
+      sender: entry?.result?.sender ?? '',
+      ts: Number(entry?.result?.origin_server_ts ?? 0),
+      rank: Number(entry?.rank ?? 0),
+    })
+  }
+
+  return mapped
+}
+
+function getNextBatch(searchResults: unknown): string | null {
+  const token = (searchResults as any)?.next_batch
+  return typeof token === 'string' && token.length > 0 ? token : null
+}
+
+function hasNextBatch(searchResults: unknown): boolean {
+  return getNextBatch(searchResults) !== null
 }

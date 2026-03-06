@@ -33,6 +33,8 @@ export {
 export type { SystemEventInfo } from './messages'
 export { clearMyStatus, getMyAvatarUrl, getMyDisplayName, getMyStatus, getUserPresenceInfo, setMyAvatar, setMyDisplayName, setMyStatus } from './profile'
 export { getReadMarkerEventId, getReadUsers, sendReadReceipt } from './receipts'
+export { backPaginateRoomEventsSearch, searchRoomEvents } from './retrieval'
+export type { RetrievalItem, RetrievalPage, RetrievalSession } from './retrieval'
 export { findOrCreateDm, getRoom, getRoomAnnouncement, getRoomSummaries, getRoomTopic, isMessagePinned, isMessageStarred, leaveRoom, pinMessage, setRoomAnnouncement, setRoomName, setRoomTopic, starMessage, toggleRoomMute, toggleRoomPin, unpinMessage, unstarMessage } from './rooms'
 export {
   addRoomToSpace,
