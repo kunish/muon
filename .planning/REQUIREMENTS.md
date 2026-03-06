@@ -21,8 +21,8 @@
 
 ### Retrieval and Digest
 
-- [ ] **RETR-01**: User can search messages across conversations by keyword and receive ranked results.
-- [ ] **RETR-02**: User only sees retrieval results from conversations they are currently authorized to access.
+- [x] **RETR-01**: User can search messages across conversations by keyword and receive ranked results.
+- [x] **RETR-02**: User only sees retrieval results from conversations they are currently authorized to access.
 - [ ] **DIGE-01**: User can view an offline catch-up digest for activity during their away window.
 - [ ] **DIGE-02**: User can open source citations from digest entries to verify each summary claim.
 - [ ] **DIGE-03**: User can sort digest focus by personal relevance (my responsibility, my follows, my mentions).
@@ -66,8 +66,8 @@
 | TASK-01 | Phase 2 | Complete |
 | TASK-02 | Phase 2 | Complete |
 | TASK-03 | Phase 2 | Complete |
-| RETR-01 | Phase 3 | Pending |
-| RETR-02 | Phase 3 | Pending |
+| RETR-01 | Phase 3 | Complete |
+| RETR-02 | Phase 3 | Complete |
 | DIGE-01 | Phase 4 | Pending |
 | DIGE-02 | Phase 4 | Pending |
 | DIGE-03 | Phase 4 | Pending |
