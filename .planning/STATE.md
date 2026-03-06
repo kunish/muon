@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 04-01-PLAN.md
-last_updated: "2026-03-06T05:03:28.526Z"
-last_activity: 2026-03-06 — Completed 04-01 shared knowledge foundation
+stopped_at: Completed 04-03-PLAN.md
+last_updated: "2026-03-06T05:15:40.252Z"
+last_activity: 2026-03-06 — Completed 04-03 decision capture flow
 progress:
   total_phases: 5
   completed_phases: 3
   total_plans: 14
-  completed_plans: 11
-  percent: 79
+  completed_plans: 13
+  percent: 93
 ---
 
 # Project State
@@ -26,17 +26,17 @@ See: `.planning/PROJECT.md` (updated 2026-03-05)
 ## Current Position
 
 Phase: 4 of 5 (Offline Digest and Decision Capture)
-Plan: 1 of 4 completed in current phase
+Plan: 3 of 4 completed in current phase
 Status: Executing Phase 04
-Last activity: 2026-03-06 — Completed 04-01 shared knowledge foundation
+Last activity: 2026-03-06 — Completed 04-03 decision capture flow
 
-Progress: [████████░░] 79%
+Progress: [█████████░] 93%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 11
-- Average duration: 7.7 min
+- Total plans completed: 13
+- Average duration: 7.1 min
 - Total execution time: 1.4 hours
 
 **By Phase:**
@@ -58,6 +58,8 @@ Progress: [████████░░] 79%
 | Phase 03 P01 | 3 min | 2 tasks | 4 files |
 | Phase 03 P02 | 5 min | 2 tasks | 5 files |
 | Phase 04 P01 | 3 min | 2 tasks | 4 files |
+| Phase 04 P02 | 2 min | 2 tasks | 6 files |
+| Phase 04 P03 | 3 min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -93,6 +95,10 @@ Recent decisions affecting current work:
 - [Phase 04]: Use one shared knowledge.ts contract file for digest/decision/qa. — Keeps all citation-bearing features on a single data contract before Wave 2 parallel work.
 - [Phase 04]: Persist citationEventIds alongside citation objects in knowledge entities. — Allows direct Dexie indexing by event link while preserving rich citation payloads.
 - [Phase 04]: Keep KnowledgeCapturePanel as the single future side-panel entry. — Avoids introducing parallel routes or navigation mechanisms for Phase 4 knowledge features.
+- [Phase 04]: Use a simple source-event to digest-entry materializer for v1 digest generation. — Preserves citation-first structure now while leaving room for richer summarization later.
+- [Phase 04]: Centralize digest relevance sorting in shared helpers and digestStore. — Keeps responsibility/follow/mention ordering deterministic across all digest surfaces.
+- [Phase 04]: Persist decision creation and suggestion disposition changes only through decisionStore actions. — Prevents UI components from mutating audited decision state directly.
+- [Phase 04]: Allow only pending to accepted/rejected suggestion transitions. — Keeps explicit user intent and audit semantics simple and trustworthy.
 
 ### Pending Todos
 
@@ -104,6 +110,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-06T05:03:28.524Z
-Stopped at: Completed 04-01-PLAN.md
+Last session: 2026-03-06T05:15:40.250Z
+Stopped at: Completed 04-03-PLAN.md
 Resume file: None
