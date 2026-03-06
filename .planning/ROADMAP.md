@@ -112,7 +112,11 @@ Plans:
   1. 用户从现有聊天搜索入口打开的是真实跨会话检索面板，而不是仅限当前房间的旧搜索视图。
   2. 用户可以在生产搜索流中完成检索、分页和结果回跳，且回跳仍走 bounded preload 链路。
   3. 用户只能看到当前有权限访问的会话结果，且该链路在真实挂载点下被重新验证。
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 06-01-PLAN.md — 先补齐 ChatWindow 真实挂载点搜索集成测试与 `/dm` 回跳回归护栏。
+- [ ] 06-02-PLAN.md — 将真实聊天搜索入口改接到 inline GlobalSearch，并移除旧 room-scoped reachable path。
 
 ### Phase 7: Offline Digest Reliability and Knowledge Continuity
 **Goal**: 用户回归后可稳定读取离线 digest、打开 citations，并让 digest 驱动的建议链路具备可靠输入。
@@ -134,5 +138,5 @@ Plans:
 | 3. Cross-Conversation Retrieval | 2/2 | Complete   | 2026-03-06 |
 | 4. Offline Digest and Decision Capture | 8/8 | Complete | 2026-03-06 |
 | 5. Reliability and Performance Consistency | 3/3 | Complete | 2026-03-06 |
-| 6. Search Surface Integration and Retrieval Completion | 0/TBD | Not started | - |
+| 6. Search Surface Integration and Retrieval Completion | 0/2 | Not started | - |
 | 7. Offline Digest Reliability and Knowledge Continuity | 0/TBD | Not started | - |
