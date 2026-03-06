@@ -16,7 +16,7 @@ export interface RegisterParams {
   displayName?: string
 }
 
-export type SyncState = 'PREPARED' | 'SYNCING' | 'ERROR' | 'STOPPED'
+export type SyncState = 'PREPARED' | 'SYNCING' | 'RECONNECTING' | 'CATCHUP' | 'ERROR' | 'STOPPED'
 
 export interface RoomSummary {
   roomId: string

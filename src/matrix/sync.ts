@@ -2,11 +2,17 @@ import type { SyncState } from './types'
 import { ref } from 'vue'
 import { triggerPing } from '@/shared/composables/useNetworkStatus'
 import { getClient } from './client'
+import { matrixEvents } from './events'
 
 export const syncState = ref<SyncState>('STOPPED')
 
 let errorCount = 0
 let retryTimer: ReturnType<typeof setTimeout> | null = null
+
+function applySyncState(state: SyncState) {
+  syncState.value = state
+  matrixEvents.emit('sync.state', { state })
+}
 
 function scheduleRetry() {
   if (retryTimer)
@@ -35,16 +41,22 @@ export function startSync(): void {
 
   client.on('sync' as any, (state: string) => {
     switch (state) {
+      case 'RECONNECTING':
+        applySyncState('RECONNECTING')
+        break
+      case 'CATCHUP':
+        applySyncState('CATCHUP')
+        break
       case 'PREPARED':
-        syncState.value = 'PREPARED'
+        applySyncState('PREPARED')
         errorCount = 0
         break
       case 'SYNCING':
-        syncState.value = 'SYNCING'
+        applySyncState('SYNCING')
         errorCount = 0
         break
       case 'ERROR':
-        syncState.value = 'ERROR'
+        applySyncState('ERROR')
         // 通知网络状态检测立即 ping
         triggerPing()
         // 安排指数退避重试
@@ -65,5 +77,5 @@ export function stopSync(): void {
   }
   errorCount = 0
   getClient().stopClient()
-  syncState.value = 'STOPPED'
+  applySyncState('STOPPED')
 }

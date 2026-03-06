@@ -23,11 +23,12 @@ describe('UnifiedInboxPanel recovery', () => {
   })
 
   it('recomputes inbox items from canonical room data after recovery without waiting for a fresh room.message event', async () => {
+    const liveEvents = [createMatrixEvent({ eventId: '$old', ts: 100, body: 'stale summary body' })]
     const staleRoom = createRecoveryRoom({
       roomId: '!stale:localhost',
       name: 'Recovered Project',
       timelineEvents: [createMatrixEvent({ eventId: '$old', ts: 100, body: 'stale summary body' })],
-      liveTimelineEvents: [createMatrixEvent({ eventId: '$new', ts: 300, body: 'recovered latest body' })],
+      liveTimelineEvents: liveEvents,
       unreadCount: 2,
     })
 
@@ -38,6 +39,8 @@ describe('UnifiedInboxPanel recovery', () => {
     await flushInboxRecovery()
 
     expect(wrapper.text()).toContain('stale summary body')
+
+    liveEvents.splice(0, liveEvents.length, createMatrixEvent({ eventId: '$new', ts: 300, body: 'recovered latest body' }))
 
     matrixEvents.emit('sync.state', { state: 'CATCHUP' })
     await flushInboxRecovery()

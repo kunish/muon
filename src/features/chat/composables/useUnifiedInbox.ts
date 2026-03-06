@@ -5,7 +5,8 @@ import { getRoom, getRoomSummaries, matrixEvents } from '@matrix/index'
 import { computed, getCurrentInstance, onMounted, ref, shallowRef } from 'vue'
 import { useInboxStore } from '../stores/inboxStore'
 
-const LISTENED_EVENTS = ['room.message', 'room.member', 'sync.state', 'room.receipt'] as const
+const LISTENED_EVENTS = ['room.message', 'room.member', 'room.receipt'] as const
+const RECOVERY_SYNC_STATES = new Set(['RECONNECTING', 'CATCHUP', 'PREPARED', 'SYNCING'])
 
 const summaries = shallowRef<RoomSummary[]>([])
 const isLoading = ref(true)
@@ -28,6 +29,14 @@ function refreshNow() {
   }
   summaries.value = getRoomSummaries()
   isLoading.value = false
+}
+
+function handleSyncState({ state }: { state: string }) {
+  if (RECOVERY_SYNC_STATES.has(state)) {
+    refreshNow()
+    return
+  }
+  scheduleRefresh()
 }
 
 function getLatestEventMeta(roomId: string): { eventId: string, ts: number, sender?: string, body?: string } {
@@ -103,6 +112,7 @@ export function useUnifiedInbox() {
       listenersBound = true
       for (const evt of LISTENED_EVENTS)
         matrixEvents.on(evt, scheduleRefresh)
+      matrixEvents.on('sync.state', handleSyncState)
     }
   }
 
@@ -149,6 +159,9 @@ export function useUnifiedInbox() {
 }
 
 export function __resetUnifiedInboxForTests() {
+  for (const evt of LISTENED_EVENTS)
+    matrixEvents.off(evt, scheduleRefresh)
+  matrixEvents.off('sync.state', handleSyncState)
   summaries.value = []
   isLoading.value = true
   listenersBound = false

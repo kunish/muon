@@ -1,4 +1,5 @@
 import mitt from 'mitt'
+import type { SyncState } from './types'
 import { getClient } from './client'
 
 // eslint-disable-next-line ts/consistent-type-definitions
@@ -10,7 +11,7 @@ type MatrixEvents = {
   'room.typing': { roomId: string, userIds: string[] }
   'room.receipt': { roomId: string, eventId: string, userId: string }
   'room.member': { roomId: string, userId: string, membership: string }
-  'sync.state': { state: string }
+  'sync.state': { state: SyncState }
   'space.update': { spaceId: string }
   'space.member': { spaceId: string, userId: string, membership: string }
 }

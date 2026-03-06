@@ -5,6 +5,32 @@ import { getClient } from './client'
 
 const VISIBLE_TYPES = new Set(['m.room.message', 'm.sticker', 'm.room.encrypted'])
 
+function getTimelineEvents(room: Room): any[] {
+  return room.getLiveTimeline?.().getEvents?.() ?? room.timeline ?? []
+}
+
+function getLatestVisibleEvent(room: Room) {
+  const liveEvents = getTimelineEvents(room)
+
+  for (let i = liveEvents.length - 1; i >= 0; i--) {
+    const event = liveEvents[i]
+    if (VISIBLE_TYPES.has(event.getType()))
+      return { event, lastTimeEvent: liveEvents[liveEvents.length - 1] }
+  }
+
+  const fallbackEvents = room.timeline ?? []
+  for (let i = fallbackEvents.length - 1; i >= 0; i--) {
+    const event = fallbackEvents[i]
+    if (VISIBLE_TYPES.has(event.getType()))
+      return { event, lastTimeEvent: liveEvents[liveEvents.length - 1] ?? fallbackEvents[fallbackEvents.length - 1] }
+  }
+
+  return {
+    event: null,
+    lastTimeEvent: liveEvents[liveEvents.length - 1] ?? fallbackEvents[fallbackEvents.length - 1],
+  }
+}
+
 export function getRoom(roomId: string): Room | null {
   return getClient().getRoom(roomId)
 }
@@ -27,17 +53,7 @@ export function getRoomSummaries(): RoomSummary[] {
 
   return rooms
     .map((room): RoomSummary => {
-      // 从 timeline 末尾向前查找最新的可见消息事件（跳过状态事件）
-      let lastEvent = null
-      for (let i = room.timeline.length - 1; i >= 0; i--) {
-        const ev = room.timeline[i]
-        if (VISIBLE_TYPES.has(ev.getType())) {
-          lastEvent = ev
-          break
-        }
-      }
-      // 如果没有可见消息，用 timeline 最后一个事件的时间戳（保证排序正确）
-      const lastTimeEvent = room.timeline[room.timeline.length - 1]
+      const { event: lastEvent, lastTimeEvent } = getLatestVisibleEvent(room)
 
       const members = room.getJoinedMembers().map(m => m.userId)
       const dmUserId = dmRoomMap.get(room.roomId)
