@@ -100,5 +100,5 @@ Plans:
 | 1. Unified Inbox Triage | 3/3 | Complete   | 2026-03-05 |
 | 2. Defer and Message-to-Task Loop | 5/5 | Complete   | 2026-03-05 |
 | 3. Cross-Conversation Retrieval | 2/2 | Complete   | 2026-03-06 |
-| 4. Offline Digest and Decision Capture | 5/5 | In verification | - |
+| 4. Offline Digest and Decision Capture | 5/5 | Complete | 2026-03-06 |
 | 5. Reliability and Performance Consistency | 0/TBD | Not started | - |
