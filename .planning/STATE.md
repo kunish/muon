@@ -2,16 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: completed
-stopped_at: Completed 04-05-PLAN.md
-last_updated: "2026-03-06T08:57:14.454Z"
-last_activity: 2026-03-06 — Completed 04-05 knowledge entry integration
+current_phase: 4
+current_plan: 8
+status: active
+stopped_at: Completed 04-06-PLAN.md
+last_updated: "2026-03-06T09:44:19.776Z"
+last_activity: 2026-03-06 — Completed 04-06 digest runtime recovery
 progress:
   total_phases: 5
   completed_phases: 4
-  total_plans: 15
-  completed_plans: 15
-  percent: 100
+  total_plans: 18
+  completed_plans: 18
+  percent: 94
 ---
 
 # Project State
@@ -21,21 +23,26 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-03-05)
 
 **Core value:** Users can always find, process, and continue the most important conversations quickly in one place.
-**Current focus:** Phase 5 - Reliability and Performance Consistency
+**Current focus:** Phase 4 - Offline Digest and Decision Capture
 
 ## Current Position
 
-Phase: 5 of 5 (Reliability and Performance Consistency)
-Plan: 0 plans started in current phase
-Status: Ready to plan Phase 05
-Last activity: 2026-03-06 — Completed 04-05 knowledge entry integration
+Current Phase: 4
+Total Phases: 5
+Current Plan: 8
+Total Plans in Phase: 8
 
-Progress: [██████████] 100%
+Phase: 4 of 5 (Offline Digest and Decision Capture)
+Plan: 8 of 8 in current phase
+Status: Ready to execute 04-08-PLAN.md
+Last activity: 2026-03-06 — Completed 04-06 digest runtime recovery
+
+Progress: [█████████░] 94%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 15
+- Total plans completed: 17
 - Average duration: 6.3 min
 - Total execution time: 1.6 hours
 
@@ -63,6 +70,9 @@ Progress: [██████████] 100%
 | Phase 04 P03 | 3 min | 2 tasks | 5 files |
 | Phase 04 P04 | 3 min | 2 tasks | 10 files |
 | Phase 04 P05 | 1 min | 2 tasks | 3 files |
+| Phase 04 P07 | 2 min | 2 tasks | 6 files |
+| Phase 04 P06 | 2 min | 2 tasks | 6 files |
+| Phase 04 P08 | 3 min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -104,6 +114,14 @@ Recent decisions affecting current work:
 - [Phase 04]: Allow only pending to accepted/rejected suggestion transitions. — Keeps explicit user intent and audit semantics simple and trustworthy.
 - [Phase 04]: Use one focused integration test file to lock the Knowledge entry contract across shell, mount point, and sidebar trigger wiring.
 - [Phase 04]: Expose Knowledge navigation state through accessible attributes instead of adding new routes or duplicate panel state.
+- [Phase 04]: Digest summaries are converted into stable decision drafts with ids in the form decision:digest:<entry-id>.
+- [Phase 04]: Digest suggestion ids are deterministic (<entry-id>:<kind>:<index>) so re-hydration can merge with existing audit history.
+- [Phase 04]: DecisionPanel reuses loadInboxEventContext plus focusEventId routing for linked-message verification instead of adding a new navigation path.
+- [Phase 04]: Hydrate persisted digest entries before any away-window rebuild so reopened Knowledge panels never start empty.
+- [Phase 04]: Subscribe digest runtime sync directly to matrixEvents room.message and expose explicit start/stop actions to avoid duplicate listeners.
+- [Phase 04]: Derive follow from pinned rooms and responsibility from highlight/current-user mention heuristics, with mention as the final fallback bucket.
+- [Phase 04]: Introduce qaStore as the single orchestration point for QA history replay and active-answer updates.
+- [Phase 04]: Default the Knowledge QA tab to the newest saved answer while keeping citation jumps on the existing preload plus focusEventId chain.
 
 ### Pending Todos
 
@@ -115,6 +133,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-06T08:57:14.451Z
-Stopped at: Completed 04-05-PLAN.md
+Last session: 2026-03-06T09:43:26.967Z
+Stopped at: Completed 04-08-PLAN.md
 Resume file: None

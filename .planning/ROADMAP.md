@@ -43,7 +43,7 @@ Plans:
   3. 用户可以从任意消息创建带负责人、截止时间、状态的任务。
   4. 用户可以在任务面板中把任务在 todo/doing/done 之间流转。
   5. 用户可以从任务详情准确跳回对应源消息。
-**Plans**: 5 plans
+**Plans**: 8 plans
 
 Plans:
 - [x] 02-01-PLAN.md — 定义 defer/task 领域合同与持久化状态机（含 Wave 0 测试骨架）。
@@ -75,7 +75,7 @@ Plans:
   3. 用户可以创建包含结论、背景、owner、状态和关联消息的决策卡。
   4. 用户可以对 AI 建议的行动项与阻塞项进行接受或拒绝。
   5. 用户可以提出跨会话问题并获得带可追溯引用的回答。
-**Plans**: 5 plans
+**Plans**: 8 plans
 
 Plans:
 - [x] 04-01-PLAN.md — 建立 Phase 4 共享知识合同（citation-first）与 Dexie 离线持久化底座。
@@ -83,6 +83,9 @@ Plans:
 - [x] 04-03-PLAN.md — 交付决策卡创建与 AI 建议 accept/reject 审计链路。
 - [x] 04-04-PLAN.md — 交付跨会话 QA 服务与问答面板（带 citations）。
 - [x] 04-05-PLAN.md — 接线统一 Knowledge 侧栏入口并集成 digest/decision/qa 三个子视图。
+- [x] 04-06-PLAN.md — 回填 digest 历史回读与 Knowledge 面板 reopen hydration 缺口。
+- [x] 04-07-PLAN.md — 修复 decision 回读、linked-message 回跳与 digest-backed pending suggestions 主链路。
+- [ ] 04-08-PLAN.md — 收口剩余 Phase 4 gap closure 与最终验证问题。
 
 ### Phase 5: Reliability and Performance Consistency
 **Goal**: 用户在重连恢复与日常高频使用中，收件箱与检索体验保持一致、无明显卡顿。
@@ -100,5 +103,5 @@ Plans:
 | 1. Unified Inbox Triage | 3/3 | Complete   | 2026-03-05 |
 | 2. Defer and Message-to-Task Loop | 5/5 | Complete   | 2026-03-05 |
 | 3. Cross-Conversation Retrieval | 2/2 | Complete   | 2026-03-06 |
-| 4. Offline Digest and Decision Capture | 5/5 | Complete | 2026-03-06 |
+| 4. Offline Digest and Decision Capture | 7/8 | In Progress | - |
 | 5. Reliability and Performance Consistency | 0/TBD | Not started | - |
