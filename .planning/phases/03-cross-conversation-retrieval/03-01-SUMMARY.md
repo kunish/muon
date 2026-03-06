@@ -86,7 +86,7 @@ None - plan executed exactly as written.
 
 ## Issues Encountered
 
-None.
+- `state advance-plan` returned `Cannot parse Current Plan or Total Plans in Phase from STATE.md`; state counters/position were updated with remaining `gsd-tools` commands plus a manual STATE.md normalization patch.
 
 ## User Setup Required
 
