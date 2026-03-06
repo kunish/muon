@@ -2,7 +2,7 @@
 phase: 04
 slug: offline-digest-and-decision-capture
 status: draft
-nyquist_compliant: false
+nyquist_compliant: true
 wave_0_complete: false
 created: 2026-03-06
 ---
@@ -48,6 +48,12 @@ created: 2026-03-06
 | 04-04-02 | 04 | 2 | DECI-03 | component | `pnpm vitest run tests/components/CrossSessionQaPanel.test.ts -t "citation" -x` | ❌ W0 | ⬜ pending |
 | 04-05-01 | 05 | 4 | DIGE-01, DECI-01, DECI-03 | component | `pnpm vitest run tests/components/KnowledgeCapturePanel.integration.test.ts -t "tabs|mount" -x` | ❌ W0 | ⬜ pending |
 | 04-05-02 | 05 | 4 | DIGE-02, DECI-02 | component | `pnpm vitest run tests/components/KnowledgeCapturePanel.integration.test.ts -t "knowledge entry|side-panel" -x` | ❌ W0 | ⬜ pending |
+| 04-06-01 | 06 | 1 | DIGE-01, DIGE-03 | unit + component | `pnpm vitest run tests/unit/stores/digestStore.test.ts tests/components/OfflineDigestPanel.test.ts` | ✅ existing | ⬜ pending |
+| 04-06-02 | 06 | 1 | DIGE-01, DIGE-02, DIGE-03 | unit + component | `pnpm vitest run tests/unit/stores/digestStore.test.ts tests/components/OfflineDigestPanel.test.ts` | ✅ existing | ⬜ pending |
+| 04-07-01 | 07 | 1 | DECI-01, DECI-02 | unit + component | `pnpm vitest run tests/unit/services/suggestionExtraction.test.ts tests/unit/stores/decisionStore.test.ts tests/components/DecisionPanel.test.ts` | ❌ W0 | ⬜ pending |
+| 04-07-02 | 07 | 1 | DECI-01, DECI-02 | unit + component | `pnpm vitest run tests/unit/services/suggestionExtraction.test.ts tests/unit/stores/decisionStore.test.ts tests/components/DecisionPanel.test.ts` | ❌ W0 | ⬜ pending |
+| 04-08-01 | 08 | 1 | DECI-03 | unit + component | `pnpm vitest run tests/unit/stores/qaStore.test.ts tests/unit/services/crossSessionQa.test.ts tests/components/CrossSessionQaPanel.test.ts` | ❌ W0 | ⬜ pending |
+| 04-08-02 | 08 | 1 | DECI-03 | unit + component | `pnpm vitest run tests/unit/stores/qaStore.test.ts tests/unit/services/crossSessionQa.test.ts tests/components/CrossSessionQaPanel.test.ts` | ❌ W0 | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -63,6 +69,8 @@ created: 2026-03-06
 - [ ] `tests/unit/services/crossSessionQa.test.ts` — covers DECI-03
 - [ ] `tests/components/CrossSessionQaPanel.test.ts` — covers DECI-03
 - [ ] `tests/components/KnowledgeCapturePanel.integration.test.ts` — covers unified Knowledge entry integration
+- [ ] `tests/unit/services/suggestionExtraction.test.ts` — covers DECI-02 extraction contract for gap plan 04-07
+- [ ] `tests/unit/stores/qaStore.test.ts` — covers DECI-03 history hydration for gap plan 04-08
 
 ---
 
