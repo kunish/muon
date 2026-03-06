@@ -13,7 +13,7 @@
 - [x] **Phase 1: Unified Inbox Triage** - 用户可在一个入口集中处理高优先级消息并回到原文上下文。 (completed 2026-03-05)
 - [x] **Phase 2: Defer and Message-to-Task Loop** - 用户可延后消息并将消息转为可追踪任务形成执行闭环。 (completed 2026-03-05)
 - [x] **Phase 3: Cross-Conversation Retrieval** - 用户可跨会话检索相关消息且结果严格受权限约束。 (completed 2026-03-06)
-- [ ] **Phase 4: Offline Digest and Decision Capture** - 用户可离线回归重点、验证引用并沉淀可复用决策。
+- [x] **Phase 4: Offline Digest and Decision Capture** - 用户可离线回归重点、验证引用并沉淀可复用决策。 (completed 2026-03-06)
 - [ ] **Phase 5: Reliability and Performance Consistency** - 用户在重连与高负载场景下仍获得一致且流畅的效率体验。
 
 ## Phase Details
@@ -85,7 +85,7 @@ Plans:
 - [x] 04-05-PLAN.md — 接线统一 Knowledge 侧栏入口并集成 digest/decision/qa 三个子视图。
 - [x] 04-06-PLAN.md — 回填 digest 历史回读与 Knowledge 面板 reopen hydration 缺口。
 - [x] 04-07-PLAN.md — 修复 decision 回读、linked-message 回跳与 digest-backed pending suggestions 主链路。
-- [ ] 04-08-PLAN.md — 收口剩余 Phase 4 gap closure 与最终验证问题。
+- [x] 04-08-PLAN.md — 收口剩余 Phase 4 gap closure 与最终验证问题。
 
 ### Phase 5: Reliability and Performance Consistency
 **Goal**: 用户在重连恢复与日常高频使用中，收件箱与检索体验保持一致、无明显卡顿。
@@ -103,5 +103,5 @@ Plans:
 | 1. Unified Inbox Triage | 3/3 | Complete   | 2026-03-05 |
 | 2. Defer and Message-to-Task Loop | 5/5 | Complete   | 2026-03-05 |
 | 3. Cross-Conversation Retrieval | 2/2 | Complete   | 2026-03-06 |
-| 4. Offline Digest and Decision Capture | 7/8 | In Progress | - |
+| 4. Offline Digest and Decision Capture | 8/8 | Complete | 2026-03-06 |
 | 5. Reliability and Performance Consistency | 0/TBD | Not started | - |
