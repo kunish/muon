@@ -75,7 +75,13 @@ Plans:
   3. 用户可以创建包含结论、背景、owner、状态和关联消息的决策卡。
   4. 用户可以对 AI 建议的行动项与阻塞项进行接受或拒绝。
   5. 用户可以提出跨会话问题并获得带可追溯引用的回答。
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+- [ ] 04-01-PLAN.md — 建立 Phase 4 共享知识合同（citation-first）与 Dexie 离线持久化底座。
+- [ ] 04-02-PLAN.md — 交付离线 digest 生成/相关性排序/引用回跳闭环。
+- [ ] 04-03-PLAN.md — 交付决策卡创建与 AI 建议 accept/reject 审计链路。
+- [ ] 04-04-PLAN.md — 交付跨会话 QA（带 citations）并集成统一 Knowledge 侧栏入口。
 
 ### Phase 5: Reliability and Performance Consistency
 **Goal**: 用户在重连恢复与日常高频使用中，收件箱与检索体验保持一致、无明显卡顿。
