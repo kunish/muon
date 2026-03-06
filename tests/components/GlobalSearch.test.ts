@@ -7,7 +7,6 @@ const routerPush = vi.fn()
 const loadInboxEventContextMock = vi.fn()
 const searchMock = vi.fn()
 const loadMoreMock = vi.fn()
-const closeMock = vi.fn()
 
 const retrievalState = reactive({
   query: '',
@@ -68,7 +67,6 @@ vi.mock('@/features/chat/stores/retrievalStore', () => ({
 describe('GlobalSearch', () => {
   function mountGlobalSearch() {
     return mount(GlobalSearch, {
-      attrs: { onClose: closeMock },
       global: {
         stubs: {
           Teleport: true,
@@ -77,13 +75,16 @@ describe('GlobalSearch', () => {
     })
   }
 
+  async function flushUi() {
+    await Promise.resolve()
+    await Promise.resolve()
+  }
+
   beforeEach(() => {
     routerPush.mockReset()
     loadInboxEventContextMock.mockReset()
     searchMock.mockReset()
     loadMoreMock.mockReset()
-    closeMock.mockReset()
-
     retrievalState.query = ''
     retrievalState.loading = false
     retrievalState.loadingMore = false
@@ -154,6 +155,7 @@ describe('GlobalSearch', () => {
     const wrapper = mountGlobalSearch()
 
     await wrapper.find('[data-testid="global-search-hit-$event-1"]').trigger('click')
+    await flushUi()
 
     expect(loadInboxEventContextMock).toHaveBeenCalledWith('!joined:muon.dev', '$event-1')
     expect(routerPush).toHaveBeenCalledWith({
@@ -163,7 +165,7 @@ describe('GlobalSearch', () => {
       },
     })
     expect(loadInboxEventContextMock.mock.invocationCallOrder[0]).toBeLessThan(routerPush.mock.invocationCallOrder[0])
-    expect(closeMock).toHaveBeenCalled()
+    expect(wrapper.emitted('close')).toBeTruthy()
   })
 
   it('falls back to navigation when context preload fails and warns', async () => {
@@ -184,6 +186,7 @@ describe('GlobalSearch', () => {
     const wrapper = mountGlobalSearch()
 
     await wrapper.find('[data-testid="global-search-hit-$event-1"]').trigger('click')
+    await flushUi()
 
     expect(warnSpy).toHaveBeenCalled()
     expect(routerPush).toHaveBeenCalledWith({
@@ -192,7 +195,7 @@ describe('GlobalSearch', () => {
         focusEventId: '$event-1',
       },
     })
-    expect(closeMock).toHaveBeenCalled()
+    expect(wrapper.emitted('close')).toBeTruthy()
     warnSpy.mockRestore()
   })
 })

@@ -1,17 +1,31 @@
-import type { RetrievalItem } from '@matrix/index'
+import type { RetrievalItem, RetrievalSession } from '@matrix/index'
 import { backPaginateRoomEventsSearch, searchRoomEvents } from '@matrix/index'
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, shallowRef } from 'vue'
+
+function mergeResults(current: RetrievalItem[], next: RetrievalItem[]) {
+  const merged = [...current]
+  const seenEventIds = new Set(current.map(item => item.eventId))
+
+  for (const item of next) {
+    if (seenEventIds.has(item.eventId))
+      continue
+    seenEventIds.add(item.eventId)
+    merged.push(item)
+  }
+
+  return merged
+}
 
 export const useRetrievalStore = defineStore('retrieval', () => {
   const query = ref('')
-  const results = ref<RetrievalItem[]>([])
+  const results = shallowRef<RetrievalItem[]>([])
   const loading = ref(false)
   const loadingMore = ref(false)
   const hasSearched = ref(false)
   const error = ref<string | null>(null)
   const canLoadMore = ref(false)
-  const session = ref<any>(null)
+  const session = shallowRef<RetrievalSession | null>(null)
 
   function resetState(nextQuery = '') {
     query.value = nextQuery
@@ -40,7 +54,7 @@ export const useRetrievalStore = defineStore('retrieval', () => {
 
     try {
       const page = await searchRoomEvents(normalized)
-      results.value = page.items
+      results.value = [...page.items]
       session.value = page.session
       canLoadMore.value = page.canPaginate
     }
@@ -64,8 +78,8 @@ export const useRetrievalStore = defineStore('retrieval', () => {
     error.value = null
 
     try {
-      const page = await backPaginateRoomEventsSearch(session.value as any)
-      results.value = page.items
+      const page = await backPaginateRoomEventsSearch(session.value)
+      results.value = mergeResults(results.value, page.items)
       session.value = page.session
       canLoadMore.value = page.canPaginate
     }

@@ -115,7 +115,9 @@ describe('GlobalSearch performance', () => {
     expect(firstRenderCount).toBeGreaterThan(0)
     expect(wrapper.find('[data-testid="global-search-hit-$event-left-0"]').exists()).toBe(false)
 
-    await wrapper.find('button').trigger('click')
+    const loadMoreButton = wrapper.findAll('button').find(button => button.text() === 'chat.search_load_more')
+    expect(loadMoreButton).toBeTruthy()
+    await loadMoreButton!.trigger('click')
     await flushUi()
 
     expect(retrievalStore.results).toHaveLength(290)

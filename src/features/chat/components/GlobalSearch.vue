@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { getClient } from '@matrix/client'
 import { loadInboxEventContext } from '@matrix/index'
+import { useVirtualizer } from '@tanstack/vue-virtual'
 import { useRetrievalStore } from '@/features/chat/stores/retrievalStore'
 import { Search } from 'lucide-vue-next'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
@@ -17,6 +18,11 @@ const router = useRouter()
 const query = ref('')
 const client = getClient()
 const retrievalStore = useRetrievalStore()
+const resultsScrollRef = ref<HTMLElement | null>(null)
+
+const MESSAGE_HIT_HEIGHT = 88
+const PRELOAD_TIMEOUT_MS = 250
+const FALLBACK_VISIBLE_COUNT = 24
 
 const joinedRoomIds = computed(() => new Set(
   client
@@ -37,6 +43,32 @@ const rooms = computed(() => {
 })
 
 const messageHits = computed(() => retrievalStore.results.filter(hit => joinedRoomIds.value.has(hit.roomId)))
+const messageHitVirtualizer = useVirtualizer(computed(() => ({
+  count: messageHits.value.length,
+  getScrollElement: () => resultsScrollRef.value,
+  estimateSize: () => MESSAGE_HIT_HEIGHT,
+  overscan: 6,
+})))
+const virtualMessageHits = computed(() => {
+  const measuredItems = messageHitVirtualizer.value.getVirtualItems()
+  if (measuredItems.length > 0)
+    return measuredItems
+
+  return messageHits.value.slice(0, FALLBACK_VISIBLE_COUNT).map((_, index) => ({
+    index,
+    start: index * MESSAGE_HIT_HEIGHT,
+  }))
+})
+const messageHitTotalHeight = computed(() => {
+  const measuredHeight = messageHitVirtualizer.value.getTotalSize()
+  if (measuredHeight > 0)
+    return measuredHeight
+  return messageHits.value.length * MESSAGE_HIT_HEIGHT
+})
+
+function timeoutAfter(ms: number) {
+  return new Promise<'timeout'>(resolve => setTimeout(() => resolve('timeout'), ms))
+}
 
 function formatTime(ts: number): string {
   return new Date(ts).toLocaleString('en', {
@@ -65,16 +97,17 @@ async function loadMore() {
 }
 
 async function jumpToResult(roomId: string, eventId: string) {
-  try {
-    await loadInboxEventContext(roomId, eventId)
-  }
-  catch (error) {
-    console.warn('[global-search] failed to preload context, fallback to direct navigation', {
-      roomId,
-      eventId,
-      error,
-    })
-  }
+  await Promise.race([
+    loadInboxEventContext(roomId, eventId).catch((error) => {
+      console.warn('[global-search] failed to preload context, fallback to direct navigation', {
+        roomId,
+        eventId,
+        error,
+      })
+      return 'failed' as const
+    }),
+    timeoutAfter(PRELOAD_TIMEOUT_MS),
+  ])
 
   await router.push({
     path: `/chat/${encodeURIComponent(roomId)}`,
@@ -125,7 +158,7 @@ onUnmounted(() => {
           <kbd class="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">ESC</kbd>
         </div>
 
-        <div class="flex-1 overflow-y-auto py-1">
+        <div ref="resultsScrollRef" class="flex-1 overflow-y-auto py-1">
           <div class="px-4 py-2 text-xs font-medium text-muted-foreground">
             {{ t('chat.search_conversations') }}
           </div>
@@ -153,26 +186,29 @@ onUnmounted(() => {
             {{ t('chat.searching') }}
           </div>
 
-          <div
-            v-for="item in messageHits"
-            :key="item.eventId"
-            :data-testid="`global-search-hit-${item.eventId}`"
-            class="px-4 py-2.5 cursor-pointer hover:bg-accent/50 border-b border-border/40"
-            @click="jumpToResult(item.roomId, item.eventId)"
-          >
-            <div class="flex items-center justify-between gap-2 mb-1">
-              <div class="text-xs font-medium truncate">
-                {{ roomLabel(item.roomId) }}
+          <div v-if="messageHits.length > 0" class="relative" :style="{ height: `${messageHitTotalHeight}px` }">
+            <div
+              v-for="virtualItem in virtualMessageHits"
+              :key="messageHits[virtualItem.index]?.eventId"
+              :data-testid="`global-search-hit-${messageHits[virtualItem.index]?.eventId}`"
+              class="absolute left-0 top-0 w-full cursor-pointer border-b border-border/40 px-4 py-2.5 hover:bg-accent/50"
+              :style="{ transform: `translateY(${virtualItem.start}px)` }"
+              @click="messageHits[virtualItem.index] && jumpToResult(messageHits[virtualItem.index]!.roomId, messageHits[virtualItem.index]!.eventId)"
+            >
+              <div v-if="messageHits[virtualItem.index]" class="flex items-center justify-between gap-2 mb-1">
+                <div class="text-xs font-medium truncate">
+                  {{ roomLabel(messageHits[virtualItem.index]!.roomId) }}
+                </div>
+                <div class="text-xs text-muted-foreground shrink-0">
+                  {{ formatTime(messageHits[virtualItem.index]!.ts) }}
+                </div>
               </div>
-              <div class="text-xs text-muted-foreground shrink-0">
-                {{ formatTime(item.ts) }}
+              <div class="text-xs text-muted-foreground mb-1 truncate">
+                {{ messageHits[virtualItem.index]?.sender }}
               </div>
-            </div>
-            <div class="text-xs text-muted-foreground mb-1 truncate">
-              {{ item.sender }}
-            </div>
-            <div class="text-sm line-clamp-2">
-              {{ item.body }}
+              <div class="text-sm line-clamp-2">
+                {{ messageHits[virtualItem.index]?.body }}
+              </div>
             </div>
           </div>
 
