@@ -2,9 +2,10 @@
 import { Plus, Save, Trash2 } from 'lucide-vue-next'
 import { onMounted, ref } from 'vue'
 import { getClient } from '@/matrix/client'
-import Button from '@/shared/components/ui/button.vue'
-import Input from '@/shared/components/ui/input.vue'
-import Separator from '@/shared/components/ui/separator.vue'
+import { Button } from '@/shared/components/ui/button'
+import { Input } from '@/shared/components/ui/input'
+import { Label } from '@/shared/components/ui/label'
+import { Separator } from '@/shared/components/ui/separator'
 
 const props = defineProps<{
   serverId: string
@@ -22,28 +23,28 @@ interface Role {
 
 // Preset colors for role color picker
 const presetColors = [
-  '#5865f2', // blurple
-  '#eb459e', // fuchsia
-  '#ed4245', // red
-  '#fee75c', // yellow
-  '#57f287', // green
-  '#3ba55c', // dark green
-  '#5bc0eb', // sky blue
-  '#1abc9c', // teal
-  '#e67e22', // orange
-  '#9b59b6', // purple
-  '#e91e63', // pink
-  '#f0b132', // gold
-  '#607d8b', // gray-blue
-  '#ffffff', // white
-  '#99aab5', // gray
+  '#c08b2e', // amber
+  '#b85c4a', // terracotta
+  '#a0524a', // brick
+  '#d4a84a', // warm gold
+  '#4a9882', // sage
+  '#4a7a6a', // dark sage
+  '#6b88a0', // steel blue
+  '#5a7a9a', // slate blue
+  '#8b6fb0', // lavender
+  '#b06878', // dusty rose
+  '#a0785c', // sienna
+  '#7a8f52', // olive
+  '#8a8580', // warm gray
+  '#e8e4df', // off-white
+  '#6a6560', // dark warm gray
 ]
 
 const DEFAULT_ROLES: Omit<Role, 'id'>[] = [
-  { name: 'Owner', color: '#f0b132', powerLevel: 100, isDefault: true },
-  { name: 'Admin', color: '#ed4245', powerLevel: 75, isDefault: true },
-  { name: 'Moderator', color: '#3ba55c', powerLevel: 50, isDefault: true },
-  { name: 'Member', color: '#99aab5', powerLevel: 0, isDefault: true },
+  { name: 'Owner', color: '#c08b2e', powerLevel: 100, isDefault: true },
+  { name: 'Admin', color: '#b85c4a', powerLevel: 75, isDefault: true },
+  { name: 'Moderator', color: '#4a9882', powerLevel: 50, isDefault: true },
+  { name: 'Member', color: '#8a8580', powerLevel: 0, isDefault: true },
 ]
 
 // ── State ──
@@ -74,7 +75,7 @@ function loadRoles() {
     roles.value = content.roles.map((r: any, idx: number) => ({
       id: r.id || `role_${idx}`,
       name: r.name || 'Unnamed',
-      color: r.color || '#99aab5',
+      color: r.color || '#8a8580',
       powerLevel: r.powerLevel ?? 0,
       isDefault: r.isDefault ?? false,
     }))
@@ -107,7 +108,7 @@ function addRole() {
   const newRole: Role = {
     id: `role_${Date.now()}`,
     name: 'New Role',
-    color: '#5865f2',
+    color: '#c08b2e',
     powerLevel: 1,
     isDefault: false,
   }
@@ -235,9 +236,9 @@ onMounted(loadRoles)
         <div class="space-y-5">
           <!-- Role Name -->
           <div class="space-y-2">
-            <label class="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+            <Label class="text-xs font-bold uppercase tracking-wide text-muted-foreground">
               Role Name
-            </label>
+            </Label>
             <Input
               v-model="editName"
               placeholder="Role name"
@@ -246,9 +247,9 @@ onMounted(loadRoles)
 
           <!-- Role Color -->
           <div class="space-y-2">
-            <label class="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+            <Label class="text-xs font-bold uppercase tracking-wide text-muted-foreground">
               Role Color
-            </label>
+            </Label>
             <div class="flex flex-wrap gap-2">
               <button
                 v-for="color in presetColors"
@@ -259,7 +260,7 @@ onMounted(loadRoles)
                 @click="editColor = color"
               />
               <!-- Custom color input -->
-              <label
+              <Label
                 class="relative flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border-2 border-dashed border-muted-foreground/30 transition-colors hover:border-muted-foreground/60"
               >
                 <input
@@ -268,7 +269,7 @@ onMounted(loadRoles)
                   class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
                 >
                 <span class="text-xs text-muted-foreground">+</span>
-              </label>
+              </Label>
             </div>
             <div class="flex items-center gap-2">
               <span
@@ -281,9 +282,9 @@ onMounted(loadRoles)
 
           <!-- Power Level -->
           <div class="space-y-2">
-            <label class="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+            <Label class="text-xs font-bold uppercase tracking-wide text-muted-foreground">
               Power Level — {{ editPowerLevel }}
-            </label>
+            </Label>
             <div class="flex items-center gap-3">
               <span class="text-xs text-muted-foreground/50">0</span>
               <input
@@ -291,7 +292,7 @@ onMounted(loadRoles)
                 type="range"
                 min="0"
                 max="100"
-                class="h-2 flex-1 cursor-pointer appearance-none rounded-full bg-[#2b2d31] accent-primary"
+                class="h-2 flex-1 cursor-pointer appearance-none rounded-full bg-muted accent-primary"
               >
               <span class="text-xs text-muted-foreground/50">100</span>
             </div>

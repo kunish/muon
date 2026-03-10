@@ -50,10 +50,10 @@ onUnmounted(() => {
     <Transition name="settings-overlay">
       <div
         v-if="open && currentServer"
-        class="fixed inset-0 z-[100] flex bg-[#111214]"
+        class="fixed inset-0 z-[100] flex bg-popover"
       >
         <!-- Left nav sidebar -->
-        <div class="flex w-[218px] shrink-0 flex-col items-end bg-[#1e1f22] overflow-y-auto">
+        <div class="flex w-[218px] shrink-0 flex-col items-end bg-sidebar overflow-y-auto">
           <nav class="w-[190px] py-[60px] pr-2 pl-5">
             <div class="mb-2 px-2.5 text-xs font-bold uppercase tracking-wide text-muted-foreground/50">
               {{ currentServer.name }}
@@ -78,7 +78,7 @@ onUnmounted(() => {
         <div class="relative flex flex-1 flex-col overflow-hidden">
           <!-- Close button -->
           <button
-            class="absolute right-4 top-[60px] z-10 flex h-9 w-9 items-center justify-center rounded-full border border-[#4e5058]/40 text-muted-foreground transition-colors hover:border-[#4e5058] hover:text-foreground"
+            class="absolute right-4 top-[60px] z-10 flex h-9 w-9 items-center justify-center rounded-full border border-border/40 text-muted-foreground transition-colors hover:border-border hover:text-foreground"
             title="ESC"
             @click="close"
           >

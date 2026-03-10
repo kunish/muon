@@ -3,7 +3,7 @@ import { getClient } from '@matrix/client'
 import { Crown, Search, Shield, ShieldCheck, X } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import Avatar from '@/shared/components/ui/avatar.vue'
+import { Avatar } from '@/shared/components/ui/avatar'
 import { useChatStore } from '../stores/chatStore'
 
 const { t } = useI18n()
@@ -130,7 +130,7 @@ function getPowerLevelLabel(level: number) {
               v-if="getPowerLevelIcon(member.powerLevel)"
               :size="12"
               class="shrink-0"
-              :class="member.powerLevel >= 100 ? 'text-yellow-500' : 'text-blue-500'"
+              :class="member.powerLevel >= 100 ? 'text-warning' : 'text-primary'"
               :title="getPowerLevelLabel(member.powerLevel)"
             />
           </div>

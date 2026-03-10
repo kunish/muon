@@ -1,6 +1,7 @@
 <script setup lang="ts">
+import type { TaskStatus } from '../types/task'
 /**
- * Discord 风格消息悬浮操作栏
+ * 消息悬浮操作栏
  * 显示在消息右上角，包含：Add Reaction、Reply、More 下拉菜单
  */
 import { getClient } from '@matrix/client'
@@ -24,11 +25,10 @@ import {
 } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import TaskComposerDialog from './TaskComposerDialog.vue'
 import { useChatStore } from '../stores/chatStore'
 import { useDeferStore } from '../stores/deferStore'
 import { useTaskStore } from '../stores/taskStore'
-import type { TaskStatus } from '../types/task'
+import TaskComposerDialog from './TaskComposerDialog.vue'
 
 const props = defineProps<{
   event: any
@@ -187,7 +187,7 @@ async function onSubmitTask(payload: { title: string, assignee: string, dueAt: s
 
 <template>
   <div
-    class="discord-action-bar flex items-center bg-popover border border-[var(--color-muted)]/30 rounded-md shadow-[0_2px_8px_rgba(0,0,0,0.3)] overflow-hidden"
+    class="action-bar flex items-center bg-popover border border-border rounded-md shadow-sm overflow-hidden"
     @mouseleave="showMore = false"
   >
     <!-- Add Reaction -->

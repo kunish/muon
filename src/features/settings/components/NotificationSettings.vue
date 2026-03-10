@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
+import { Label } from '@/shared/components/ui/label'
+import { Switch } from '@/shared/components/ui/switch'
 import { useSettingsStore } from '../stores/settingsStore'
 
 const { t } = useI18n()
@@ -12,21 +14,21 @@ const store = useSettingsStore()
       {{ t('settings.notification_title') }}
     </h3>
 
-    <label class="flex items-center justify-between">
+    <Label class="flex items-center justify-between">
       <div>
         <div class="text-sm">{{ t('settings.enable_notifications') }}</div>
         <div class="text-xs text-muted-foreground">{{ t('settings.enable_notifications_desc') }}</div>
       </div>
-      <input v-model="store.notificationsEnabled" type="checkbox" class="rounded">
-    </label>
+      <Switch :checked="store.notificationsEnabled" @update:checked="val => store.notificationsEnabled = val" />
+    </Label>
 
-    <label class="flex items-center justify-between">
+    <Label class="flex items-center justify-between">
       <div>
         <div class="text-sm">{{ t('settings.message_preview') }}</div>
         <div class="text-xs text-muted-foreground">{{ t('settings.message_preview_desc') }}</div>
       </div>
-      <input v-model="store.notificationPreview" type="checkbox" class="rounded">
-    </label>
+      <Switch :checked="store.notificationPreview" @update:checked="val => store.notificationPreview = val" />
+    </Label>
 
     <div class="space-y-2">
       <div class="text-sm">

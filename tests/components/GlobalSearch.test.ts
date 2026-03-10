@@ -56,11 +56,14 @@ vi.mock('@matrix/index', async (importOriginal) => {
   }
 })
 
+const resetStateMock = vi.fn()
+
 vi.mock('@/features/chat/stores/retrievalStore', () => ({
   useRetrievalStore: () => ({
     ...retrievalState,
     search: (...args: unknown[]) => searchMock(...args),
     loadMore: (...args: unknown[]) => loadMoreMock(...args),
+    resetState: (...args: unknown[]) => resetStateMock(...args),
   }),
 }))
 
@@ -68,9 +71,7 @@ describe('GlobalSearch', () => {
   function mountGlobalSearch() {
     return mount(GlobalSearch, {
       global: {
-        stubs: {
-          Teleport: true,
-        },
+        stubs: {},
       },
     })
   }
@@ -85,6 +86,7 @@ describe('GlobalSearch', () => {
     loadInboxEventContextMock.mockReset()
     searchMock.mockReset()
     loadMoreMock.mockReset()
+    resetStateMock.mockReset()
     retrievalState.query = ''
     retrievalState.loading = false
     retrievalState.loadingMore = false
@@ -159,7 +161,7 @@ describe('GlobalSearch', () => {
 
     expect(loadInboxEventContextMock).toHaveBeenCalledWith('!joined:muon.dev', '$event-1')
     expect(routerPush).toHaveBeenCalledWith({
-      path: '/chat/!joined%3Amuon.dev',
+      path: '/dm/!joined%3Amuon.dev',
       query: {
         focusEventId: '$event-1',
       },
@@ -190,7 +192,7 @@ describe('GlobalSearch', () => {
 
     expect(warnSpy).toHaveBeenCalled()
     expect(routerPush).toHaveBeenCalledWith({
-      path: '/chat/!joined%3Amuon.dev',
+      path: '/dm/!joined%3Amuon.dev',
       query: {
         focusEventId: '$event-1',
       },

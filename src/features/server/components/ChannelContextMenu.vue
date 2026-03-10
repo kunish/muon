@@ -7,17 +7,16 @@ import {
   Pencil,
   Trash2,
 } from 'lucide-vue-next'
-import {
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuPortal,
-  ContextMenuRoot,
-  ContextMenuSeparator,
-  ContextMenuTrigger,
-} from 'radix-vue'
 import { computed } from 'vue'
 import { useServerStore } from '@/features/server/stores/serverStore'
 import { getClient } from '@/matrix/client'
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from '@/shared/components/ui/context-menu'
 
 const props = defineProps<{
   channel: ChannelInfo
@@ -58,61 +57,59 @@ function handleCopyLink() {
 </script>
 
 <template>
-  <ContextMenuRoot>
+  <ContextMenu>
     <ContextMenuTrigger as-child>
       <slot />
     </ContextMenuTrigger>
-    <ContextMenuPortal>
-      <ContextMenuContent
-        class="z-50 min-w-48 overflow-hidden rounded-md border border-border bg-popover p-1.5 text-popover-foreground shadow-xl animate-in fade-in-0 zoom-in-95"
+    <ContextMenuContent
+      class="min-w-48 p-1.5 shadow-xl"
+    >
+      <ContextMenuItem
+        class="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+        @select="emit('markAsRead', channel.roomId)"
       >
-        <ContextMenuItem
-          class="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
-          @select="emit('markAsRead', channel.roomId)"
-        >
-          <CheckCheck :size="16" />
-          Mark as Read
-        </ContextMenuItem>
+        <CheckCheck :size="16" />
+        Mark as Read
+      </ContextMenuItem>
 
-        <ContextMenuItem
-          class="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
-          @select="emit('muteChannel', channel.roomId)"
-        >
-          <BellOff :size="16" />
-          Mute Channel
-        </ContextMenuItem>
+      <ContextMenuItem
+        class="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+        @select="emit('muteChannel', channel.roomId)"
+      >
+        <BellOff :size="16" />
+        Mute Channel
+      </ContextMenuItem>
 
-        <ContextMenuSeparator class="mx-1 my-1 h-px bg-border" />
+      <ContextMenuSeparator class="mx-1 my-1 h-px bg-border" />
 
-        <!-- Admin-only actions -->
-        <ContextMenuItem
-          v-if="isAdmin"
-          class="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
-          @select="emit('editChannel', channel.roomId)"
-        >
-          <Pencil :size="16" />
-          Edit Channel
-        </ContextMenuItem>
+      <!-- Admin-only actions -->
+      <ContextMenuItem
+        v-if="isAdmin"
+        class="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+        @select="emit('editChannel', channel.roomId)"
+      >
+        <Pencil :size="16" />
+        Edit Channel
+      </ContextMenuItem>
 
-        <ContextMenuItem
-          v-if="isAdmin"
-          class="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-destructive outline-none transition-colors hover:bg-destructive hover:text-destructive-foreground focus:bg-destructive focus:text-destructive-foreground"
-          @select="emit('deleteChannel', channel.roomId)"
-        >
-          <Trash2 :size="16" />
-          Delete Channel
-        </ContextMenuItem>
+      <ContextMenuItem
+        v-if="isAdmin"
+        class="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-destructive outline-none transition-colors hover:bg-destructive hover:text-destructive-foreground focus:bg-destructive focus:text-destructive-foreground"
+        @select="emit('deleteChannel', channel.roomId)"
+      >
+        <Trash2 :size="16" />
+        Delete Channel
+      </ContextMenuItem>
 
-        <ContextMenuSeparator v-if="isAdmin" class="mx-1 my-1 h-px bg-border" />
+      <ContextMenuSeparator v-if="isAdmin" class="mx-1 my-1 h-px bg-border" />
 
-        <ContextMenuItem
-          class="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
-          @select="handleCopyLink"
-        >
-          <Copy :size="16" />
-          Copy Link
-        </ContextMenuItem>
-      </ContextMenuContent>
-    </ContextMenuPortal>
-  </ContextMenuRoot>
+      <ContextMenuItem
+        class="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+        @select="handleCopyLink"
+      >
+        <Copy :size="16" />
+        Copy Link
+      </ContextMenuItem>
+    </ContextMenuContent>
+  </ContextMenu>
 </template>

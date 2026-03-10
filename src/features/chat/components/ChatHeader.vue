@@ -58,12 +58,12 @@ function openDisappearing() {
 
 <template>
   <div v-if="room" class="shrink-0 border-b border-border bg-background">
-    <!-- Discord-style single header row -->
+    <!-- Header row -->
     <div class="flex items-center h-12 px-4 gap-2">
       <!-- Left: channel icon + name + topic -->
       <div class="flex items-center gap-1.5 min-w-0 flex-1">
         <AtSign v-if="isDirect" :size="20" class="text-muted-foreground shrink-0" />
-        <Lock v-else-if="isEncrypted" :size="20" class="text-green-500 shrink-0" />
+        <Lock v-else-if="isEncrypted" :size="20" class="text-success shrink-0" />
         <Hash v-else :size="20" class="text-muted-foreground shrink-0" />
         <span class="font-semibold text-[15px] text-foreground truncate shrink-0">{{ room.name }}</span>
         <template v-if="roomTopic">

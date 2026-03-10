@@ -25,7 +25,10 @@ const entered = ref(false)
 onMounted(async () => {
   for (let i = 0; i < emojis.length; i++) {
     const el = slotRefs.value[i]
-    if (!el) { failed.value[i] = true; continue }
+    if (!el) {
+      failed.value[i] = true
+      continue
+    }
 
     const data = await fetchEmojiLottie(emojis[i])
     if (!data) {
@@ -50,7 +53,9 @@ onMounted(async () => {
     }, i * 120)
   }
 
-  requestAnimationFrame(() => { entered.value = true })
+  requestAnimationFrame(() => {
+    entered.value = true
+  })
 })
 
 const SHAKE_EMOJIS = new Set(['🎉', '🎊', '🔥', '👍', '💩', '😂', '🥳', '💀', '🚀'])
@@ -75,7 +80,9 @@ function shakeScreen() {
 function onTap() {
   // 弹跳动画
   bouncing.value = false
-  requestAnimationFrame(() => { bouncing.value = true })
+  requestAnimationFrame(() => {
+    bouncing.value = true
+  })
 
   // 重播 Lottie
   for (let i = 0; i < animations.length; i++) {

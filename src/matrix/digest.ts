@@ -1,5 +1,5 @@
-import type { DigestEntry } from '@/features/chat/types/knowledge'
 import type { DigestSession, DigestSourceEvent } from '@/features/chat/types/digest'
+import type { DigestEntry } from '@/features/chat/types/knowledge'
 import { compareDigestEntries, deriveDigestRelevance, toDigestEntry } from '@/features/chat/types/digest'
 import { getClient } from './client'
 import { getRoomSummaries } from './rooms'

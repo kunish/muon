@@ -27,7 +27,7 @@ const bgColor = computed(() => {
     hash = props.spaceId.charCodeAt(i) + ((hash << 5) - hash)
   }
   const hue = Math.abs(hash) % 360
-  return `hsl(${hue}, 70%, 50%)`
+  return `oklch(65% 0.15 ${hue})`
 })
 
 // Unread info
@@ -40,7 +40,7 @@ const hasHighlight = computed(() => unreadInfo.value.highlightCount > 0)
   <div class="relative">
     <div
       class="server-icon transition-all duration-150"
-      :class="isSelected ? 'rounded-2xl' : 'rounded-3xl hover:rounded-2xl'"
+      :class="isSelected ? 'rounded-xl' : 'rounded-xl hover:rounded-lg'"
     >
       <img
         v-if="avatarSrc"
@@ -50,7 +50,7 @@ const hasHighlight = computed(() => unreadInfo.value.highlightCount > 0)
       >
       <span
         v-else
-        class="text-white text-lg font-semibold"
+        class="text-white text-sm font-semibold"
         :style="{ backgroundColor: bgColor }"
       >
         {{ initial }}
@@ -60,13 +60,13 @@ const hasHighlight = computed(() => unreadInfo.value.highlightCount > 0)
     <!-- Unread dot -->
     <div
       v-if="hasUnread && !isSelected && !hasHighlight"
-      class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-foreground rounded-full"
+      class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-foreground rounded-full"
     />
 
     <!-- Mention badge -->
     <div
       v-if="hasHighlight"
-      class="absolute -bottom-1 -right-1 min-w-[18px] h-[18px] bg-destructive text-destructive-foreground text-[11px] font-bold rounded-full flex items-center justify-center px-1"
+      class="absolute -bottom-1 -right-1 min-w-[16px] h-[16px] bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full flex items-center justify-center px-1"
     >
       {{ unreadInfo.highlightCount > 99 ? '99+' : unreadInfo.highlightCount }}
     </div>
@@ -75,13 +75,13 @@ const hasHighlight = computed(() => unreadInfo.value.highlightCount > 0)
 
 <style scoped>
 .server-icon {
-  width: 48px;
-  height: 48px;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  background: hsl(223 7% 21%);
+  background-color: var(--color-muted);
 }
 
 .server-icon span {

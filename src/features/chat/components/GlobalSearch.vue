@@ -2,11 +2,11 @@
 import { getClient } from '@matrix/client'
 import { loadInboxEventContext } from '@matrix/index'
 import { useVirtualizer } from '@tanstack/vue-virtual'
-import { useRetrievalStore } from '@/features/chat/stores/retrievalStore'
 import { Search } from 'lucide-vue-next'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
+import { useRetrievalStore } from '@/features/chat/stores/retrievalStore'
 
 const emit = defineEmits<{
   close: []
@@ -84,7 +84,7 @@ function roomLabel(roomId: string): string {
 }
 
 function selectRoom(roomId: string) {
-  router.push(`/chat/${encodeURIComponent(roomId)}`)
+  router.push(`/dm/${encodeURIComponent(roomId)}`)
   emit('close')
 }
 
@@ -110,7 +110,7 @@ async function jumpToResult(roomId: string, eventId: string) {
   ])
 
   await router.push({
-    path: `/chat/${encodeURIComponent(roomId)}`,
+    path: `/dm/${encodeURIComponent(roomId)}`,
     query: {
       focusEventId: eventId,
     },
@@ -124,126 +124,126 @@ function onKeydown(e: KeyboardEvent) {
 }
 
 onMounted(() => {
+  // Reset retrieval state on open so stale results are never shown
+  retrievalStore.resetState()
+  query.value = ''
   document.addEventListener('keydown', onKeydown)
 })
 
 onUnmounted(() => {
   document.removeEventListener('keydown', onKeydown)
+  // Clean up retrieval state on close
+  retrievalStore.resetState()
 })
 </script>
 
 <template>
-  <Teleport to="body">
-    <div class="fixed inset-0 z-50 bg-black/50 flex items-start justify-center pt-[15vh]" @click.self="emit('close')">
-      <div class="bg-background rounded-xl shadow-2xl w-[480px] max-h-[60vh] flex flex-col">
-        <div class="flex items-center gap-3 px-4 py-3 border-b border-border">
-          <Search :size="16" class="text-muted-foreground shrink-0" />
-          <form data-testid="global-search-form" class="flex-1 flex items-center gap-2" @submit.prevent="submitSearch">
-            <input
-              v-model="query"
-              data-testid="global-search-input"
-              type="text"
-              :placeholder="t('chat.search_conversations')"
-              class="flex-1 bg-transparent text-sm outline-none"
-              autofocus
-            >
-            <button
-              type="submit"
-              class="text-xs rounded-md px-2 py-1 bg-primary text-primary-foreground disabled:opacity-50"
-              :disabled="!query.trim() || retrievalStore.loading"
-            >
-              {{ t('chat.search_btn') }}
-            </button>
-          </form>
-          <kbd class="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">ESC</kbd>
+  <div class="flex flex-col h-full">
+    <div class="flex items-center gap-3 px-3 py-3 border-b border-border shrink-0">
+      <Search :size="16" class="text-muted-foreground shrink-0" />
+      <form data-testid="global-search-form" class="flex-1 flex items-center gap-2" @submit.prevent="submitSearch">
+        <input
+          v-model="query"
+          data-testid="global-search-input"
+          type="text"
+          :placeholder="t('chat.search_conversations')"
+          class="flex-1 bg-transparent text-sm outline-none"
+          autofocus
+        >
+        <button
+          type="submit"
+          class="text-xs rounded-md px-2 py-1 bg-primary text-primary-foreground disabled:opacity-50"
+          :disabled="!query.trim() || retrievalStore.loading"
+        >
+          {{ t('chat.search_btn') }}
+        </button>
+      </form>
+    </div>
+
+    <div ref="resultsScrollRef" class="flex-1 overflow-y-auto py-1">
+      <div class="px-3 py-2 text-xs font-medium text-muted-foreground">
+        {{ t('chat.search_conversations') }}
+      </div>
+      <div
+        v-for="r in rooms"
+        :key="r.roomId"
+        class="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-accent/50"
+        @click="selectRoom(r.roomId)"
+      >
+        <div class="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-medium shrink-0">
+          {{ (r.name || '?').slice(0, 1) }}
         </div>
-
-        <div ref="resultsScrollRef" class="flex-1 overflow-y-auto py-1">
-          <div class="px-4 py-2 text-xs font-medium text-muted-foreground">
-            {{ t('chat.search_conversations') }}
-          </div>
-          <div
-            v-for="r in rooms"
-            :key="r.roomId"
-            class="flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-accent/50"
-            @click="selectRoom(r.roomId)"
-          >
-            <div class="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-medium shrink-0">
-              {{ (r.name || '?').slice(0, 1) }}
-            </div>
-            <div class="flex-1 min-w-0">
-              <div class="text-sm truncate">
-                {{ r.name || r.roomId }}
-              </div>
-            </div>
-          </div>
-
-          <div class="px-4 pt-3 pb-2 text-xs font-medium text-muted-foreground border-t border-border mt-1">
-            {{ t('chat.search_messages_global_title') }}
-          </div>
-
-          <div v-if="retrievalStore.loading" class="px-4 py-3 text-sm text-muted-foreground">
-            {{ t('chat.searching') }}
-          </div>
-
-          <div v-if="messageHits.length > 0" class="relative" :style="{ height: `${messageHitTotalHeight}px` }">
-            <div
-              v-for="virtualItem in virtualMessageHits"
-              :key="messageHits[virtualItem.index]?.eventId"
-              :data-testid="`global-search-hit-${messageHits[virtualItem.index]?.eventId}`"
-              class="absolute left-0 top-0 w-full cursor-pointer border-b border-border/40 px-4 py-2.5 hover:bg-accent/50"
-              :style="{ transform: `translateY(${virtualItem.start}px)` }"
-              @click="messageHits[virtualItem.index] && jumpToResult(messageHits[virtualItem.index]!.roomId, messageHits[virtualItem.index]!.eventId)"
-            >
-              <div v-if="messageHits[virtualItem.index]" class="flex items-center justify-between gap-2 mb-1">
-                <div class="text-xs font-medium truncate">
-                  {{ roomLabel(messageHits[virtualItem.index]!.roomId) }}
-                </div>
-                <div class="text-xs text-muted-foreground shrink-0">
-                  {{ formatTime(messageHits[virtualItem.index]!.ts) }}
-                </div>
-              </div>
-              <div class="text-xs text-muted-foreground mb-1 truncate">
-                {{ messageHits[virtualItem.index]?.sender }}
-              </div>
-              <div class="text-sm line-clamp-2">
-                {{ messageHits[virtualItem.index]?.body }}
-              </div>
-            </div>
-          </div>
-
-          <div
-            v-if="retrievalStore.hasSearched && !retrievalStore.loading && messageHits.length === 0"
-            class="px-4 py-4 text-sm text-muted-foreground"
-          >
-            <div>{{ t('chat.search_no_result') }}</div>
-            <div class="text-xs mt-1">
-              {{ t('chat.search_encrypted_hint') }}
-            </div>
-          </div>
-
-          <div v-if="retrievalStore.error" class="px-4 py-3 text-sm text-destructive">
-            {{ retrievalStore.error }}
-          </div>
-
-          <div v-if="retrievalStore.canLoadMore" class="px-4 py-3">
-            <button
-              class="w-full text-xs rounded-md border border-border px-3 py-2 hover:bg-accent/40 disabled:opacity-50"
-              :disabled="retrievalStore.loadingMore"
-              @click="loadMore"
-            >
-              {{ retrievalStore.loadingMore ? t('chat.searching') : t('chat.search_load_more') }}
-            </button>
-          </div>
-
-          <div
-            v-if="rooms.length === 0 && !query.trim()"
-            class="px-4 py-6 text-center text-sm text-muted-foreground"
-          >
-            {{ t('chat.search_no_match') }}
+        <div class="flex-1 min-w-0">
+          <div class="text-sm truncate">
+            {{ r.name || r.roomId }}
           </div>
         </div>
       </div>
+
+      <div class="px-3 pt-3 pb-2 text-xs font-medium text-muted-foreground border-t border-border mt-1">
+        {{ t('chat.search_messages_global_title') }}
+      </div>
+
+      <div v-if="retrievalStore.loading" class="px-3 py-3 text-sm text-muted-foreground">
+        {{ t('chat.searching') }}
+      </div>
+
+      <div v-if="messageHits.length > 0" class="relative" :style="{ height: `${messageHitTotalHeight}px` }">
+        <div
+          v-for="virtualItem in virtualMessageHits"
+          :key="messageHits[virtualItem.index]?.eventId"
+          :data-testid="`global-search-hit-${messageHits[virtualItem.index]?.eventId}`"
+          class="absolute left-0 top-0 w-full cursor-pointer border-b border-border/40 px-3 py-2.5 hover:bg-accent/50"
+          :style="{ transform: `translateY(${virtualItem.start}px)` }"
+          @click="messageHits[virtualItem.index] && jumpToResult(messageHits[virtualItem.index]!.roomId, messageHits[virtualItem.index]!.eventId)"
+        >
+          <div v-if="messageHits[virtualItem.index]" class="flex items-center justify-between gap-2 mb-1">
+            <div class="text-xs font-medium truncate">
+              {{ roomLabel(messageHits[virtualItem.index]!.roomId) }}
+            </div>
+            <div class="text-xs text-muted-foreground shrink-0">
+              {{ formatTime(messageHits[virtualItem.index]!.ts) }}
+            </div>
+          </div>
+          <div class="text-xs text-muted-foreground mb-1 truncate">
+            {{ messageHits[virtualItem.index]?.sender }}
+          </div>
+          <div class="text-sm line-clamp-2">
+            {{ messageHits[virtualItem.index]?.body }}
+          </div>
+        </div>
+      </div>
+
+      <div
+        v-if="retrievalStore.hasSearched && !retrievalStore.loading && messageHits.length === 0"
+        class="px-3 py-4 text-sm text-muted-foreground"
+      >
+        <div>{{ t('chat.search_no_result') }}</div>
+        <div class="text-xs mt-1">
+          {{ t('chat.search_encrypted_hint') }}
+        </div>
+      </div>
+
+      <div v-if="retrievalStore.error" class="px-3 py-3 text-sm text-destructive">
+        {{ retrievalStore.error }}
+      </div>
+
+      <div v-if="retrievalStore.canLoadMore" class="px-3 py-3">
+        <button
+          class="w-full text-xs rounded-md border border-border px-3 py-2 hover:bg-accent/40 disabled:opacity-50"
+          :disabled="retrievalStore.loadingMore"
+          @click="loadMore"
+        >
+          {{ retrievalStore.loadingMore ? t('chat.searching') : t('chat.search_load_more') }}
+        </button>
+      </div>
+
+      <div
+        v-if="rooms.length === 0 && !query.trim()"
+        class="px-3 py-6 text-center text-sm text-muted-foreground"
+      >
+        {{ t('chat.search_no_match') }}
+      </div>
     </div>
-  </Teleport>
+  </div>
 </template>

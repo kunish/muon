@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { getClient } from '@matrix/client'
 import { computed } from 'vue'
-import Avatar from '@/shared/components/ui/avatar.vue'
+import { Avatar } from '@/shared/components/ui/avatar'
 
 const props = defineProps<{
   /** The sender user ID, e.g. @alice:matrix.org */

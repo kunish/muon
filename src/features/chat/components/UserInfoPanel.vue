@@ -256,7 +256,7 @@ async function onToggleBlock() {
               {{ letter }}
             </div>
             <!-- 在线状态点 -->
-            <div class="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-emerald-500 ring-[2.5px] ring-popover shadow-[0_1px_4px_rgba(16,185,129,0.4)]" />
+            <div class="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-success ring-[2.5px] ring-popover shadow-sm" />
           </div>
 
           <h3 class="mt-3 text-[14px] font-semibold truncate max-w-full tracking-tight">
@@ -296,9 +296,9 @@ async function onToggleBlock() {
 
           <div
             v-if="room?.isEncrypted"
-            class="flex items-center gap-2.5 px-2.5 py-2 rounded-xl bg-emerald-500/8 text-[11.5px] text-emerald-600 dark:text-emerald-400 transition-colors hover:bg-emerald-500/12"
+            class="flex items-center gap-2.5 px-2.5 py-2 rounded-xl bg-success/8 text-[11.5px] text-success transition-colors hover:bg-success/12"
           >
-            <div class="w-6 h-6 rounded-lg bg-emerald-500/12 flex items-center justify-center">
+            <div class="w-6 h-6 rounded-lg bg-success/12 flex items-center justify-center">
               <Shield :size="12" />
             </div>
             <span class="font-medium">{{ t('chat.e2e_encrypted') }}</span>
@@ -374,15 +374,15 @@ async function onToggleBlock() {
 
 /* 交错入场动画 */
 .info-card .info-avatar-section {
-  animation: conv-slide-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: panel-slide-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
   animation-delay: 0.06s;
 }
 .info-card .info-details {
-  animation: conv-slide-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: panel-slide-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
   animation-delay: 0.12s;
 }
 .info-card .info-action {
-  animation: conv-slide-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: panel-slide-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
   animation-delay: 0.18s;
 }
 </style>

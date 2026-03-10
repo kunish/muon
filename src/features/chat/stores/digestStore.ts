@@ -1,11 +1,11 @@
+import type { DigestFilter, DigestSession, DigestSourceEvent } from '../types/digest'
+import type { DigestEntry } from '../types/knowledge'
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import { useNetworkStatus } from '@/shared/composables/useNetworkStatus'
-import { createKnowledgeRepository } from '@/shared/lib/knowledgeDb'
 import { materializeOfflineDigest } from '@/matrix/digest'
 import { matrixEvents } from '@/matrix/events'
-import type { DigestEntry } from '../types/knowledge'
-import type { DigestFilter, DigestSession, DigestSourceEvent } from '../types/digest'
+import { useNetworkStatus } from '@/shared/composables/useNetworkStatus'
+import { createKnowledgeRepository } from '@/shared/lib/knowledgeDb'
 import { compareDigestEntries } from '../types/digest'
 
 const repository = createKnowledgeRepository()
@@ -117,8 +117,13 @@ export const useDigestStore = defineStore('digest', () => {
       })
 
       session.value = nextSession
-      entries.value = nextSession.entries
 
+      if (nextSession.entries.length === 0 && entries.value.length > 0) {
+        // Preserve hydrated entries; do not overwrite with empty materialization
+        return entries.value
+      }
+
+      entries.value = nextSession.entries
       await Promise.all(nextSession.entries.map(entry => repository.saveDigestEntry(entry)))
       return nextSession.entries
     }

@@ -16,7 +16,7 @@ const router = createRouter({
         // Default: redirect to DM view
         { path: '', redirect: '/dm' },
 
-        // Discord-style server/channel routes
+        // Server/channel routes
         {
           path: 'server/:serverId/channel/:channelId',
           name: 'channel',

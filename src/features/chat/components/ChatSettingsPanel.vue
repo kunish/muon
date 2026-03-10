@@ -14,7 +14,9 @@ import {
 } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import Avatar from '@/shared/components/ui/avatar.vue'
+import { Avatar } from '@/shared/components/ui/avatar'
+import { Switch } from '@/shared/components/ui/switch'
+import { Textarea } from '@/shared/components/ui/textarea'
 import { useChatStore } from '../stores/chatStore'
 
 const { t } = useI18n()
@@ -181,7 +183,7 @@ function cancelEditTopic() {
             {{ roomName }}
           </div>
           <div class="flex items-center gap-1.5 text-[11px] text-muted-foreground/60 mt-0.5">
-            <Shield v-if="isEncrypted" :size="11" class="text-green-500 shrink-0" />
+            <Shield v-if="isEncrypted" :size="11" class="text-success shrink-0" />
             <span v-if="isEncrypted">{{ t('chat.e2e_encrypted') }}</span>
             <span v-if="isEncrypted && memberCount"> · </span>
             <span>{{ t('chat.member_count', { count: memberCount }) }}</span>
@@ -209,7 +211,7 @@ function cancelEditTopic() {
           </button>
         </template>
         <div v-else class="flex flex-col gap-1.5">
-          <textarea
+          <Textarea
             v-model="topicDraft"
             rows="2"
             class="w-full text-xs rounded-lg bg-accent/40 border border-transparent px-2.5 py-2 outline-none resize-none placeholder:text-muted-foreground/35 transition-all duration-200 focus:bg-accent/70 focus:border-ring/20"
@@ -281,15 +283,7 @@ function cancelEditTopic() {
             <Bell v-else :size="15" class="text-muted-foreground/60" />
             <span class="text-sm">{{ isMuted ? t('chat.ctx_unmute') : t('chat.ctx_mute') }}</span>
           </span>
-          <div
-            class="w-8 h-[18px] rounded-full transition-colors relative"
-            :class="isMuted ? 'bg-primary' : 'bg-muted-foreground/20'"
-          >
-            <div
-              class="absolute top-0.5 w-3.5 h-3.5 rounded-full bg-white shadow-sm transition-transform"
-              :class="isMuted ? 'translate-x-[14px]' : 'translate-x-0.5'"
-            />
-          </div>
+          <Switch :checked="isMuted" @update:checked="() => onToggleMute()" />
         </button>
 
         <!-- Pin to top -->
@@ -302,15 +296,7 @@ function cancelEditTopic() {
             <Pin v-else :size="15" class="text-muted-foreground/60" />
             <span class="text-sm">{{ isPinned ? t('chat.ctx_unpin') : t('chat.ctx_pin') }}</span>
           </span>
-          <div
-            class="w-8 h-[18px] rounded-full transition-colors relative"
-            :class="isPinned ? 'bg-primary' : 'bg-muted-foreground/20'"
-          >
-            <div
-              class="absolute top-0.5 w-3.5 h-3.5 rounded-full bg-white shadow-sm transition-transform"
-              :class="isPinned ? 'translate-x-[14px]' : 'translate-x-0.5'"
-            />
-          </div>
+          <Switch :checked="isPinned" @update:checked="() => onTogglePin()" />
         </button>
       </div>
 
@@ -328,7 +314,7 @@ function cancelEditTopic() {
           <span class="text-[11px] text-muted-foreground/60 truncate flex-1 text-left font-mono">
             {{ store.currentRoomId }}
           </span>
-          <Check v-if="copied" :size="12" class="shrink-0 text-green-500" />
+          <Check v-if="copied" :size="12" class="shrink-0 text-success" />
           <Copy v-else :size="12" class="shrink-0 text-muted-foreground/30 group-hover:text-muted-foreground/60 transition-colors" />
         </button>
       </div>
@@ -338,7 +324,7 @@ function cancelEditTopic() {
       <!-- Leave room -->
       <div class="px-4 py-3">
         <button
-          class="w-full text-sm text-red-500 hover:text-red-400 text-center py-2 rounded-lg hover:bg-red-500/5 transition-colors"
+          class="w-full text-sm text-destructive hover:text-destructive/80 text-center py-2 rounded-lg hover:bg-destructive/5 transition-colors"
           @click="onLeaveRoom"
         >
           {{ isDirect ? t('chat.ctx_leave') : t('contacts.leave_group') }}

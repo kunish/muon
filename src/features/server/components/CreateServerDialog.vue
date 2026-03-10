@@ -3,9 +3,10 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useServerStore } from '@/features/server/stores/serverStore'
 import { createSpace } from '@/matrix/spaces'
-import Button from '@/shared/components/ui/button.vue'
-import Dialog from '@/shared/components/ui/dialog.vue'
-import Input from '@/shared/components/ui/input.vue'
+import { Button } from '@/shared/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/shared/components/ui/dialog'
+import { Input } from '@/shared/components/ui/input'
+import { Label } from '@/shared/components/ui/label'
 
 const router = useRouter()
 const serverStore = useServerStore()
@@ -38,31 +39,24 @@ async function handleCreate() {
 
 <template>
   <Dialog v-model:open="open">
-    <template #trigger>
+    <DialogTrigger as-child>
       <slot name="trigger" />
-    </template>
-
-    <div class="space-y-4">
-      <div>
-        <h2 class="text-xl font-bold text-foreground">
-          Create a Server
-        </h2>
-        <p class="text-sm text-muted-foreground mt-1">
-          Your server is where you and your friends hang out. Make yours and start talking.
-        </p>
-      </div>
-
+    </DialogTrigger>
+    <DialogContent>
+      <DialogHeader>
+        <DialogTitle>Create a Server</DialogTitle>
+        <DialogDescription>Your server is where you and your friends hang out. Make yours and start talking.</DialogDescription>
+      </DialogHeader>
       <div class="space-y-2">
-        <label class="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+        <Label class="text-xs font-bold text-muted-foreground uppercase tracking-wide">
           Server Name
-        </label>
+        </Label>
         <Input
           v-model="serverName"
           placeholder="Enter server name"
           @keydown.enter="handleCreate"
         />
       </div>
-
       <div class="flex justify-end gap-2">
         <Button variant="ghost" @click="open = false">
           Cancel
@@ -71,6 +65,6 @@ async function handleCreate() {
           {{ isCreating ? 'Creating...' : 'Create' }}
         </Button>
       </div>
-    </div>
+    </DialogContent>
   </Dialog>
 </template>

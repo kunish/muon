@@ -1,7 +1,14 @@
+import { Preset } from 'matrix-js-sdk'
 import { getClient } from './client'
 
+/** initCrypto and setCryptoTrustCrossSignedDevices are not on typed MatrixClient */
+interface CryptoClient {
+  initCrypto: () => Promise<void>
+  setCryptoTrustCrossSignedDevices: (trust: boolean) => void
+}
+
 export async function initCrypto(): Promise<void> {
-  const client = getClient() as any
+  const client = getClient() as unknown as CryptoClient
   await client.initCrypto()
   client.setCryptoTrustCrossSignedDevices(true)
 }
@@ -18,7 +25,7 @@ export async function createEncryptedRoom(
       type: 'm.room.encryption',
       content: { algorithm: 'm.megolm.v1.aes-sha2' },
     }],
-    preset: 'private_chat' as any,
+    preset: Preset.PrivateChat,
   })
   return room_id
 }

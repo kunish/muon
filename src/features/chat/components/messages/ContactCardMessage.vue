@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { UserCircle } from 'lucide-vue-next'
-import Avatar from '@/shared/components/ui/avatar.vue'
+import { Avatar } from '@/shared/components/ui/avatar'
 
 defineProps<{
   userId: string

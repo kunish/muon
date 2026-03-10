@@ -7,7 +7,7 @@ import { MessageSquarePlus, Search } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import Avatar from '@/shared/components/ui/avatar.vue'
+import { Avatar } from '@/shared/components/ui/avatar'
 import { useConversations } from '../composables/useConversations'
 import { useGlobalTyping } from '../composables/useGlobalTyping'
 import { useChatStore } from '../stores/chatStore'
@@ -250,7 +250,7 @@ function selectQuickContact(roomId: string) {
       >
         <div
           class="w-11 h-11 rounded-xl bg-accent/50 flex items-center justify-center mb-3 shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
-          style="animation: conv-empty-breathe 3s ease-in-out infinite"
+          style="animation: breathe 3s ease-in-out infinite"
         >
           <MessageSquarePlus :size="18" class="opacity-35" />
         </div>
@@ -306,7 +306,7 @@ function selectQuickContact(roomId: string) {
     color-mix(in srgb, var(--color-accent) 50%, transparent) 100%
   );
   background-size: 200% 100%;
-  animation: conv-skeleton-shimmer 1.8s ease-in-out infinite;
+  animation: skeleton-shimmer 1.8s ease-in-out infinite;
 }
 
 /* 顶栏底部分隔线 */

@@ -7,7 +7,7 @@ export function avatarGradient(id: string): string {
     hash = ch.charCodeAt(0) + ((hash << 5) - hash)
   }
   const hue = Math.abs(hash) % 360
-  return `linear-gradient(135deg, hsl(${hue} 45% 58%), hsl(${(hue + 40) % 360} 50% 42%))`
+  return `linear-gradient(135deg, oklch(62% 0.12 ${hue}), oklch(48% 0.12 ${(hue + 40) % 360}))`
 }
 
 /**

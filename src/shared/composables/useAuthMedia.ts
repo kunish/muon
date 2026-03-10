@@ -36,9 +36,15 @@ export function useAuthMedia(
   const src = ref<string | undefined>()
 
   watch(mxcUrl, async (url) => {
-    if (!url) { src.value = undefined; return }
+    if (!url) {
+      src.value = undefined
+      return
+    }
     // 已经是 blob/http(非 mxc) 直接用
-    if (!url.startsWith('mxc://')) { src.value = url; return }
+    if (!url.startsWith('mxc://')) {
+      src.value = url
+      return
+    }
     src.value = await resolve(url, width, height)
   }, { immediate: true })
 

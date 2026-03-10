@@ -56,13 +56,13 @@ const presenceLabel = computed(() => {
     <div
       class="flex items-center gap-1 text-xs"
       :class="[
-        presenceInfo?.presence === 'online' ? 'text-green-500' : 'text-muted-foreground',
+        presenceInfo?.presence === 'online' ? 'text-success' : 'text-muted-foreground',
         presenceInfo?.statusMsg ? 'mb-1' : 'mb-6',
       ]"
     >
       <div
         class="w-2 h-2 rounded-full"
-        :class="presenceInfo?.presence === 'online' ? 'bg-green-500' : 'bg-muted-foreground/30'"
+        :class="presenceInfo?.presence === 'online' ? 'bg-success' : 'bg-muted-foreground/30'"
       />
       {{ presenceLabel }}
     </div>

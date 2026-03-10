@@ -31,7 +31,7 @@ const statusMsg = computed(() => {
       </div>
       <div
         class="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-background"
-        :class="contact.presence === 'online' ? 'bg-green-500' : 'bg-muted-foreground/30'"
+        :class="contact.presence === 'online' ? 'bg-success' : 'bg-muted-foreground/30'"
       />
     </div>
     <div class="flex-1 min-w-0">

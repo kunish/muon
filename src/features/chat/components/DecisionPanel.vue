@@ -2,6 +2,7 @@
 import { loadInboxEventContext } from '@matrix/index'
 import { onMounted, reactive } from 'vue'
 import { useRouter } from 'vue-router'
+import { Textarea } from '@/shared/components/ui/textarea'
 import { useDecisionStore } from '../stores/decisionStore'
 
 const decisionStore = useDecisionStore()
@@ -66,7 +67,7 @@ async function openLinkedMessage(roomId: string, eventId: string) {
 
     <div class="space-y-3 border-b border-border px-4 py-3">
       <input v-model="form.conclusion" data-testid="decision-conclusion-input" class="w-full rounded-md border border-border px-3 py-2 text-sm" placeholder="Conclusion">
-      <textarea v-model="form.context" data-testid="decision-context-input" class="min-h-20 w-full rounded-md border border-border px-3 py-2 text-sm" placeholder="Context" />
+      <Textarea v-model="form.context" data-testid="decision-context-input" class="min-h-20 w-full rounded-md border border-border px-3 py-2 text-sm" placeholder="Context" />
       <input v-model="form.owner" data-testid="decision-owner-input" class="w-full rounded-md border border-border px-3 py-2 text-sm" placeholder="Owner">
       <div class="grid grid-cols-2 gap-3">
         <input v-model="form.roomId" data-testid="decision-room-input" class="rounded-md border border-border px-3 py-2 text-sm" placeholder="Room ID">

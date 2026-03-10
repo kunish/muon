@@ -69,9 +69,9 @@ interface RoleGroup {
 }
 
 const roleGroups: RoleGroup[] = [
-  { key: 'owner', label: 'OWNER', color: '#f0b132', minPower: 100, maxPower: Infinity },
-  { key: 'admin', label: 'ADMIN', color: '#e8594f', minPower: 75, maxPower: 99 },
-  { key: 'moderator', label: 'MODERATOR', color: '#3ba55c', minPower: 50, maxPower: 74 },
+  { key: 'owner', label: 'OWNER', color: '#c08b2e', minPower: 100, maxPower: Infinity },
+  { key: 'admin', label: 'ADMIN', color: '#b85c4a', minPower: 75, maxPower: 99 },
+  { key: 'moderator', label: 'MODERATOR', color: '#4a9882', minPower: 50, maxPower: 74 },
   { key: 'member', label: 'MEMBER', color: 'var(--color-foreground)', minPower: 0, maxPower: 49 },
 ]
 

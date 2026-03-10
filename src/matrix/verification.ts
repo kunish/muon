@@ -1,6 +1,7 @@
+import type { IMyDevice } from 'matrix-js-sdk'
 import { getClient } from './client'
 
-export async function getDevices(): Promise<any[]> {
+export async function getDevices(): Promise<IMyDevice[]> {
   const res = await getClient().getDevices()
   return res.devices ?? []
 }

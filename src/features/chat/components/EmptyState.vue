@@ -13,7 +13,7 @@ const { t } = useI18n()
     <!-- 图标容器 - 浮动呼吸动画 -->
     <div
       class="relative"
-      style="animation: conv-float 4s ease-in-out infinite"
+      style="animation: float 4s ease-in-out infinite"
     >
       <div class="w-16 h-16 rounded-2xl bg-accent/40 flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.04)] backdrop-blur-sm">
         <MessageCircle :size="28" :stroke-width="1.3" class="text-muted-foreground/40" />
@@ -21,7 +21,7 @@ const { t } = useI18n()
       <!-- 装饰光点 -->
       <div
         class="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-primary/20"
-        style="animation: conv-glow-pulse 2.5s ease-in-out infinite"
+        style="animation: subtle-pulse 2.5s ease-in-out infinite"
       />
     </div>
 
@@ -40,7 +40,7 @@ const { t } = useI18n()
 
 <style scoped>
 .empty-state {
-  animation: conv-slide-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: panel-slide-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
   animation-delay: 0.15s;
 }
 
@@ -49,7 +49,7 @@ const { t } = useI18n()
 }
 
 .empty-text {
-  animation: conv-slide-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: panel-slide-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
   animation-delay: 0.3s;
 }
 </style>

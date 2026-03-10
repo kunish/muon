@@ -3,6 +3,7 @@ import { bindClientEvents, restoreSession, startSync, syncState } from '@matrix/
 import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
+import { Toaster } from '@/shared/components/ui/sonner'
 import ErrorBoundary from './components/ErrorBoundary.vue'
 
 const router = useRouter()
@@ -52,4 +53,5 @@ onMounted(async () => {
     </div>
     <RouterView v-else />
   </ErrorBoundary>
+  <Toaster rich-colors />
 </template>

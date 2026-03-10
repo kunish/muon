@@ -1,3 +1,4 @@
+import type { DeferItem, DeferStatus, ReminderPreset } from '../types/defer'
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import {
@@ -6,7 +7,6 @@ import {
   isDeferActive,
   transitionDeferStatus,
 } from '../types/defer'
-import type { DeferItem, DeferStatus, ReminderPreset } from '../types/defer'
 
 interface PersistedDeferState {
   version: 1

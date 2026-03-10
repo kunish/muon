@@ -12,12 +12,12 @@ defineProps<{
     <Lock
       v-if="verified !== false"
       :size="12"
-      class="text-green-500"
+      class="text-success"
     />
     <ShieldAlert
       v-else
       :size="12"
-      class="text-orange-500"
+      class="text-warning"
     />
   </span>
 </template>

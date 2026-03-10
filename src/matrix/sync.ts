@@ -1,4 +1,5 @@
 import type { SyncState } from './types'
+import { ClientEvent } from 'matrix-js-sdk'
 import { ref } from 'vue'
 import { triggerPing } from '@/shared/composables/useNetworkStatus'
 import { getClient } from './client'
@@ -21,6 +22,7 @@ function scheduleRetry() {
   // 指数退避：2s, 4s, 8s, 16s, 最大 30s
   const delay = Math.min(2000 * 2 ** (errorCount - 1), 30_000)
   if (import.meta.env.DEV)
+    // eslint-disable-next-line no-console
     console.debug(`[sync] 将在 ${delay}ms 后重试 (第 ${errorCount} 次失败)`)
 
   retryTimer = setTimeout(() => {
@@ -39,7 +41,7 @@ export function startSync(): void {
   const client = getClient()
   errorCount = 0
 
-  client.on('sync' as any, (state: string) => {
+  client.on(ClientEvent.Sync, (state: SyncState) => {
     switch (state) {
       case 'RECONNECTING':
         applySyncState('RECONNECTING')

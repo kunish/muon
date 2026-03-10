@@ -61,7 +61,9 @@ onUnmounted(() => {
 // --- 操作 ---
 async function handlePin() {
   store.togglePin(roomId.value)
-  try { await toggleRoomPin(roomId.value) }
+  try {
+    await toggleRoomPin(roomId.value)
+  }
   catch { /* Conduit 可能不支持 */ }
   refresh()
   store.closeContextMenu()
@@ -69,7 +71,9 @@ async function handlePin() {
 
 async function handleMute() {
   store.toggleMute(roomId.value)
-  try { await toggleRoomMute(roomId.value) }
+  try {
+    await toggleRoomMute(roomId.value)
+  }
   catch { /* Conduit 可能不支持 */ }
   refresh()
   store.closeContextMenu()

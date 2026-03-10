@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { Progress } from '@/shared/components/ui/progress'
+
 defineProps<{
   progress: number
   visible: boolean
@@ -7,11 +9,6 @@ defineProps<{
 
 <template>
   <div v-if="visible" class="px-4 py-1">
-    <div class="h-1 bg-muted rounded-full overflow-hidden">
-      <div
-        class="h-full bg-primary rounded-full transition-all duration-300"
-        :style="{ width: `${progress}%` }"
-      />
-    </div>
+    <Progress :model-value="progress" class="h-1" />
   </div>
 </template>

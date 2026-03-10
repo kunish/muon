@@ -1,4 +1,5 @@
 import type { ISearchResults } from 'matrix-js-sdk'
+import type { SearchResult } from 'matrix-js-sdk/lib/models/search-result'
 import { getClient } from './client'
 
 export interface RetrievalItem {
@@ -36,11 +37,11 @@ export async function searchRoomEvents(term: string, limit = 20): Promise<Retrie
     }
   }
 
-  const client = getClient() as any
-  const joinedRoomIds: string[] = (client.getRooms?.() ?? [])
-    .filter((room: any) => room.getMyMembership?.() === 'join')
-    .map((room: any) => room.roomId)
-    .filter((roomId: unknown): roomId is string => typeof roomId === 'string' && roomId.length > 0)
+  const client = getClient()
+  const joinedRoomIds: string[] = client.getRooms()
+    .filter(room => room.getMyMembership() === 'join')
+    .map(room => room.roomId)
+    .filter((roomId): roomId is string => typeof roomId === 'string' && roomId.length > 0)
 
   if (joinedRoomIds.length === 0) {
     return {
@@ -87,7 +88,7 @@ export async function backPaginateRoomEventsSearch(session: RetrievalSession): P
     }
   }
 
-  const client = getClient() as any
+  const client = getClient()
   await client.backPaginateRoomEventsSearch(session.searchResults)
 
   const paginatedItems = mapSearchResults(session.searchResults?.results, session.allowedRoomIds)
@@ -110,14 +111,15 @@ export async function backPaginateRoomEventsSearch(session: RetrievalSession): P
   }
 }
 
-function mapSearchResults(results: unknown, allowedRoomIds: Set<string>): RetrievalItem[] {
+function mapSearchResults(results: SearchResult[] | undefined, allowedRoomIds: Set<string>): RetrievalItem[] {
   if (!Array.isArray(results))
     return []
 
   const mapped: RetrievalItem[] = []
-  for (const entry of results as any[]) {
-    const roomId = entry?.result?.room_id
-    const eventId = entry?.result?.event_id
+  for (const entry of results) {
+    const event = entry.context.getEvent()
+    const roomId = event.getRoomId()
+    const eventId = event.getId()
     if (!roomId || !eventId)
       continue
     if (!allowedRoomIds.has(roomId))
@@ -126,21 +128,21 @@ function mapSearchResults(results: unknown, allowedRoomIds: Set<string>): Retrie
     mapped.push({
       roomId,
       eventId,
-      body: entry?.result?.content?.body ?? '',
-      sender: entry?.result?.sender ?? '',
-      ts: Number(entry?.result?.origin_server_ts ?? 0),
-      rank: Number(entry?.rank ?? 0),
+      body: event.getContent()?.body ?? '',
+      sender: event.getSender() ?? '',
+      ts: event.getTs() ?? 0,
+      rank: entry.rank ?? 0,
     })
   }
 
   return mapped
 }
 
-function getNextBatch(searchResults: unknown): string | null {
-  const token = (searchResults as any)?.next_batch
+function getNextBatch(searchResults: ISearchResults): string | null {
+  const token = searchResults.next_batch
   return typeof token === 'string' && token.length > 0 ? token : null
 }
 
-function hasNextBatch(searchResults: unknown): boolean {
+function hasNextBatch(searchResults: ISearchResults): boolean {
   return getNextBatch(searchResults) !== null
 }

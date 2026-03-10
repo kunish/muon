@@ -4,10 +4,11 @@ import { Search, ShieldAlert, UserX } from 'lucide-vue-next'
 import { computed, onMounted, ref } from 'vue'
 import { getClient } from '@/matrix/client'
 import { getSpaceMembers, setSpacePowerLevel } from '@/matrix/spaces'
-import Avatar from '@/shared/components/ui/avatar.vue'
-import Button from '@/shared/components/ui/button.vue'
-import Dialog from '@/shared/components/ui/dialog.vue'
-import Input from '@/shared/components/ui/input.vue'
+import { Avatar } from '@/shared/components/ui/avatar'
+import { Button } from '@/shared/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog'
+import { Input } from '@/shared/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select'
 
 const props = defineProps<{
   serverId: string
@@ -22,9 +23,9 @@ interface RoleOption {
 }
 
 const roleOptions: RoleOption[] = [
-  { label: 'Owner', powerLevel: 100, color: '#f0b132' },
-  { label: 'Admin', powerLevel: 75, color: '#e8594f' },
-  { label: 'Moderator', powerLevel: 50, color: '#3ba55c' },
+  { label: 'Owner', powerLevel: 100, color: '#c08b2e' },
+  { label: 'Admin', powerLevel: 75, color: '#b85c4a' },
+  { label: 'Moderator', powerLevel: 50, color: '#4a9882' },
   { label: 'Member', powerLevel: 0, color: 'var(--color-muted-foreground)' },
 ]
 
@@ -241,26 +242,31 @@ onMounted(loadMembers)
 
           <!-- Role select -->
           <div class="w-28">
-            <select
-              :value="getRoleForPowerLevel(member.powerLevel).powerLevel"
+            <Select
+              :model-value="String(getRoleForPowerLevel(member.powerLevel).powerLevel)"
               :disabled="
                 member.userId === myUserId
                   || member.powerLevel >= myPowerLevel
                   || isChangingRole === member.userId
               "
-              class="w-full cursor-pointer rounded-md border border-transparent bg-transparent px-2 py-1 text-xs transition-colors hover:border-border focus:border-ring focus:outline-none disabled:cursor-not-allowed disabled:opacity-40"
-              :style="{ color: getRoleForPowerLevel(member.powerLevel).color }"
-              @change="changeRole(member, Number(($event.target as HTMLSelectElement).value))"
+              @update:model-value="val => changeRole(member, Number(val))"
             >
-              <option
-                v-for="role in roleOptions"
-                :key="role.powerLevel"
-                :value="role.powerLevel"
-                class="bg-popover text-foreground"
+              <SelectTrigger
+                class="w-full cursor-pointer rounded-md border border-transparent bg-transparent px-2 py-1 text-xs transition-colors hover:border-border focus:border-ring focus:outline-none disabled:cursor-not-allowed disabled:opacity-40"
+                :style="{ color: getRoleForPowerLevel(member.powerLevel).color }"
               >
-                {{ role.label }}
-              </option>
-            </select>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem
+                  v-for="role in roleOptions"
+                  :key="role.powerLevel"
+                  :value="String(role.powerLevel)"
+                >
+                  {{ role.label }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <!-- Actions -->
@@ -295,17 +301,15 @@ onMounted(loadMembers)
 
     <!-- Kick confirmation dialog -->
     <Dialog v-model:open="showKickDialog">
-      <div class="space-y-4">
-        <div>
-          <h3 class="text-lg font-bold text-foreground">
-            Kick Member
-          </h3>
-          <p class="mt-2 text-sm text-muted-foreground">
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Kick Member</DialogTitle>
+          <DialogDescription>
             Are you sure you want to kick
             <strong class="text-foreground">{{ kickTarget?.displayName }}</strong>
             from this server? They will be able to rejoin with an invite.
-          </p>
-        </div>
+          </DialogDescription>
+        </DialogHeader>
         <div class="flex justify-end gap-2">
           <Button variant="ghost" @click="showKickDialog = false">
             Cancel
@@ -318,22 +322,20 @@ onMounted(loadMembers)
             {{ isKicking ? 'Kicking...' : 'Kick' }}
           </Button>
         </div>
-      </div>
+      </DialogContent>
     </Dialog>
 
     <!-- Ban confirmation dialog -->
     <Dialog v-model:open="showBanDialog">
-      <div class="space-y-4">
-        <div>
-          <h3 class="text-lg font-bold text-foreground">
-            Ban Member
-          </h3>
-          <p class="mt-2 text-sm text-muted-foreground">
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Ban Member</DialogTitle>
+          <DialogDescription>
             Are you sure you want to ban
             <strong class="text-foreground">{{ banTarget?.displayName }}</strong>
             from this server? They will not be able to rejoin unless unbanned.
-          </p>
-        </div>
+          </DialogDescription>
+        </DialogHeader>
         <div class="flex justify-end gap-2">
           <Button variant="ghost" @click="showBanDialog = false">
             Cancel
@@ -346,7 +348,7 @@ onMounted(loadMembers)
             {{ isBanning ? 'Banning...' : 'Ban' }}
           </Button>
         </div>
-      </div>
+      </DialogContent>
     </Dialog>
   </div>
 </template>

@@ -13,6 +13,7 @@ import {
 } from 'lucide-vue-next'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { Progress } from '@/shared/components/ui/progress'
 import { useDownloadStore } from '../stores/downloadStore'
 
 defineEmits<{ close: [] }>()
@@ -47,8 +48,8 @@ const statusIcon: Record<DownloadItem['status'], typeof Download> = {
 
 const statusColor: Record<DownloadItem['status'], string> = {
   pending: 'text-muted-foreground',
-  downloading: 'text-blue-500',
-  completed: 'text-green-500',
+  downloading: 'text-primary',
+  completed: 'text-success',
   failed: 'text-destructive',
 }
 
@@ -126,12 +127,7 @@ async function openFolder(item: DownloadItem) {
               v-if="item.status === 'downloading' || item.status === 'pending'"
               class="mt-1.5"
             >
-              <div class="h-1.5 bg-muted rounded-full overflow-hidden">
-                <div
-                  class="h-full bg-blue-500 rounded-full transition-all duration-300"
-                  :style="{ width: `${progressPercent(item)}%` }"
-                />
-              </div>
+              <Progress :model-value="progressPercent(item)" class="h-1.5" />
               <div class="flex justify-between mt-1 text-xs text-muted-foreground">
                 <span>{{ formatSize(item.downloaded) }} / {{ formatSize(item.size) }}</span>
                 <span>{{ progressPercent(item) }}%</span>

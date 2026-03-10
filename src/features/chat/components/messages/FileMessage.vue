@@ -33,18 +33,18 @@ const fileExt = computed(() => {
 const fileIconColor = computed(() => {
   const ext = fileExt.value.toLowerCase()
   const colorMap: Record<string, string> = {
-    'pdf': 'text-red-500 bg-red-50 dark:bg-red-950/30',
-    'doc': 'text-blue-500 bg-blue-50 dark:bg-blue-950/30',
-    'docx': 'text-blue-500 bg-blue-50 dark:bg-blue-950/30',
-    'xls': 'text-green-500 bg-green-50 dark:bg-green-950/30',
-    'xlsx': 'text-green-500 bg-green-50 dark:bg-green-950/30',
-    'ppt': 'text-orange-500 bg-orange-50 dark:bg-orange-950/30',
-    'pptx': 'text-orange-500 bg-orange-50 dark:bg-orange-950/30',
-    'zip': 'text-yellow-600 bg-yellow-50 dark:bg-yellow-950/30',
-    'rar': 'text-yellow-600 bg-yellow-50 dark:bg-yellow-950/30',
-    '7z': 'text-yellow-600 bg-yellow-50 dark:bg-yellow-950/30',
-    'mp3': 'text-purple-500 bg-purple-50 dark:bg-purple-950/30',
-    'mp4': 'text-pink-500 bg-pink-50 dark:bg-pink-950/30',
+    'pdf': 'text-destructive bg-destructive/5',
+    'doc': 'text-primary bg-primary/5',
+    'docx': 'text-primary bg-primary/5',
+    'xls': 'text-success bg-success/5',
+    'xlsx': 'text-success bg-success/5',
+    'ppt': 'text-warning bg-warning/5',
+    'pptx': 'text-warning bg-warning/5',
+    'zip': 'text-warning bg-warning/5',
+    'rar': 'text-warning bg-warning/5',
+    '7z': 'text-warning bg-warning/5',
+    'mp3': 'text-secondary bg-secondary/5',
+    'mp4': 'text-destructive/70 bg-destructive/5',
   }
   return colorMap[ext] || 'text-primary bg-primary/10'
 })
@@ -55,7 +55,9 @@ const toastMessage = ref('')
 
 function showToast(msg: string) {
   toastMessage.value = msg
-  setTimeout(() => { toastMessage.value = '' }, 2000)
+  setTimeout(() => {
+    toastMessage.value = ''
+  }, 2000)
 }
 
 async function download() {
@@ -76,7 +78,7 @@ async function download() {
     setTimeout(() => URL.revokeObjectURL(blobUrl), 1000)
     showToast(t('chat.download_complete'))
   }
-  catch (e) {
+  catch {
     downloadError.value = t('chat.download_failed')
     showToast(t('chat.download_failed_retry'))
   }

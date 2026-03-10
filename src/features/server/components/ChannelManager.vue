@@ -4,8 +4,8 @@ import { GripVertical, Hash, Pencil, Trash2, Volume2 } from 'lucide-vue-next'
 import { onMounted, ref } from 'vue'
 import { useServerStore } from '@/features/server/stores/serverStore'
 import { getCategoryChannels, getSpaceHierarchy, removeRoomFromSpace } from '@/matrix/spaces'
-import Button from '@/shared/components/ui/button.vue'
-import Dialog from '@/shared/components/ui/dialog.vue'
+import { Button } from '@/shared/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog'
 
 const props = defineProps<{
   serverId: string
@@ -189,17 +189,15 @@ onMounted(loadChannels)
 
     <!-- Delete confirmation dialog -->
     <Dialog v-model:open="showDeleteDialog">
-      <div class="space-y-4">
-        <div>
-          <h3 class="text-lg font-bold text-foreground">
-            Delete Channel
-          </h3>
-          <p class="mt-2 text-sm text-muted-foreground">
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Delete Channel</DialogTitle>
+          <DialogDescription>
             Are you sure you want to delete
             <strong class="text-foreground">#{{ deleteTarget?.channel.name }}</strong>?
             This action cannot be undone.
-          </p>
-        </div>
+          </DialogDescription>
+        </DialogHeader>
         <div class="flex justify-end gap-2">
           <Button variant="ghost" @click="showDeleteDialog = false">
             Cancel
@@ -212,7 +210,7 @@ onMounted(loadChannels)
             {{ isDeleting ? 'Deleting...' : 'Delete Channel' }}
           </Button>
         </div>
-      </div>
+      </DialogContent>
     </Dialog>
   </div>
 </template>

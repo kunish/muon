@@ -8,12 +8,12 @@ export async function uploadMedia(file: File | Blob): Promise<string> {
   return response.content_uri
 }
 
-function mxcToHttp(mxcUrl: string): string {
+function _mxcToHttp(mxcUrl: string): string {
   const client = getClient()
   return client.mxcUrlToHttp(mxcUrl) || ''
 }
 
-function getThumbnailUrl(mxcUrl: string, width: number, height: number): string {
+function _getThumbnailUrl(mxcUrl: string, width: number, height: number): string {
   const client = getClient()
   return client.mxcUrlToHttp(mxcUrl, width, height, 'crop') || ''
 }
@@ -66,6 +66,7 @@ export async function fetchMediaBlobUrl(mxcUrl: string, width?: number, height?:
       const buf = await res.arrayBuffer()
       const blob = new Blob([buf], { type: contentType })
       if (import.meta.env.DEV)
+        // eslint-disable-next-line no-console
         console.debug(`[media] OK ${url} blob size=${blob.size} type=${blob.type}`)
       return URL.createObjectURL(blob)
     }

@@ -33,6 +33,7 @@ import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useCurrentRoom } from '../composables/useCurrentRoom'
 import { useEditor } from '../composables/useEditor'
+import { getFloatingPosition } from '../composables/useFloatingPosition'
 import { useMediaUpload } from '../composables/useMediaUpload'
 import { useMention } from '../composables/useMention'
 import { useTyping } from '../composables/useTyping'
@@ -95,13 +96,16 @@ const placeholderText = computed(() => {
 })
 
 const { editor, clear, insertEmoji } = useEditor({
-  placeholder: placeholderText.value,
+  placeholder: placeholderText,
   onSubmit: handleSend,
   mentionSearch: (query: string) => filterMembers(query),
   onMentionState: (state: MentionPopupState) => {
     mentionState.value = state
   },
 })
+
+// 草稿缓存：roomId → HTML content
+const drafts = new Map<string, string>()
 
 type ExpressionTab = 'emoji' | 'gif' | 'sticker'
 
@@ -114,47 +118,11 @@ const activeExpressionAnchor = ref<HTMLElement | null>(null)
 const prewarmExpressionPicker = ref(false)
 let prewarmExpressionTimer = 0
 
-const FLOAT_MARGIN = 8
-const FLOAT_OFFSET = 8
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(Math.max(value, min), max)
-}
-
-function getFloatingStyle(triggerEl: HTMLElement, panelEl: HTMLElement): { left: string, top: string } {
-  const triggerRect = triggerEl.getBoundingClientRect()
-  const panelRect = panelEl.getBoundingClientRect()
-
-  const maxLeft = window.innerWidth - panelRect.width - FLOAT_MARGIN
-  let left = triggerRect.left
-  if (left > maxLeft) {
-    left = triggerRect.right - panelRect.width
-  }
-  left = clamp(left, FLOAT_MARGIN, Math.max(FLOAT_MARGIN, maxLeft))
-
-  const aboveTop = triggerRect.top - panelRect.height - FLOAT_OFFSET
-  const belowTop = triggerRect.bottom + FLOAT_OFFSET
-  const canFitAbove = aboveTop >= FLOAT_MARGIN
-  const canFitBelow = belowTop + panelRect.height <= window.innerHeight - FLOAT_MARGIN
-
-  let top = canFitAbove || !canFitBelow
-    ? aboveTop
-    : belowTop
-
-  const maxTop = window.innerHeight - panelRect.height - FLOAT_MARGIN
-  top = clamp(top, FLOAT_MARGIN, Math.max(FLOAT_MARGIN, maxTop))
-
-  return {
-    left: `${Math.round(left)}px`,
-    top: `${Math.round(top)}px`,
-  }
-}
-
 function positionExpressionPicker() {
   const trigger = activeExpressionAnchor.value || expressionTriggerRef.value
   if (!trigger || !expressionPickerRef.value)
     return
-  expressionPickerStyle.value = getFloatingStyle(trigger, expressionPickerRef.value)
+  expressionPickerStyle.value = getFloatingPosition(trigger, expressionPickerRef.value)
 }
 
 async function openExpressionPicker(tab: ExpressionTab, anchor?: HTMLElement | null) {
@@ -208,17 +176,20 @@ async function handleSend(html: string, text: string) {
   if (!roomId || !text.trim())
     return
   clear()
+  drafts.delete(roomId)
   stopTyping()
 
   if (store.editingEvent) {
     const eventId = store.editingEvent.getId()
     store.clearCompose()
-    await editMessage(roomId, eventId, text)
+    if (eventId)
+      await editMessage(roomId, eventId, text)
   }
   else if (store.replyingTo) {
     const eventId = store.replyingTo.getId()
     store.clearCompose()
-    await replyToMessage(roomId, eventId, text)
+    if (eventId)
+      await replyToMessage(roomId, eventId, text)
   }
   else {
     await sendTextMessage(roomId, text, html)
@@ -323,22 +294,31 @@ function handleTranscript(text: string) {
 
 watch(
   () => store.currentRoomId,
-  () => {
-    clear()
+  (newId, oldId) => {
+    // 保存当前房间草稿
+    if (oldId && editor.value) {
+      const text = editor.value.getText().trim()
+      if (text) {
+        drafts.set(oldId, editor.value.getHTML())
+      }
+      else {
+        drafts.delete(oldId)
+      }
+    }
+
+    // 恢复目标房间草稿或清空
+    const saved = newId ? drafts.get(newId) : undefined
+    if (saved) {
+      editor.value?.commands.setContent(saved)
+    }
+    else {
+      clear()
+    }
+
     store.clearCompose()
     showExpressionPicker.value = false
     showLocationPicker.value = false
     showContactCardPicker.value = false
-    // Update TipTap placeholder to reflect new channel name
-    if (editor.value) {
-      const placeholderExt = editor.value.extensionManager.extensions.find(
-        (ext: any) => ext.name === 'placeholder',
-      )
-      if (placeholderExt) {
-        placeholderExt.options.placeholder = placeholderText.value
-        editor.value.view.dispatch(editor.value.state.tr)
-      }
-    }
   },
 )
 
@@ -392,7 +372,7 @@ onUnmounted(() => {
       </button>
     </div>
 
-    <!-- Discord 风格主输入容器 -->
+    <!-- 主输入容器 -->
     <div class="flex items-end gap-0 rounded-lg bg-input" @input="onInput">
       <!-- 左侧: + 附件按钮 -->
       <div class="flex items-center shrink-0 pl-1 pb-1.5">
@@ -485,6 +465,14 @@ onUnmounted(() => {
 
       <!-- 右侧: GIF / Sticker / Emoji — 简洁布局 -->
       <div ref="expressionTriggerRef" class="flex items-center shrink-0 gap-0 pr-1 pb-1.5">
+        <!-- @ 提及 -->
+        <button
+          class="p-1.5 rounded-md hover:bg-accent text-muted-foreground"
+          :title="t('chat.mention_btn')"
+          @click="insertMention"
+        >
+          <AtSign :size="16" />
+        </button>
         <!-- Aa 格式切换 — 仅当有内容或格式栏已展开时显示 -->
         <button
           v-if="showFormatBar || editor?.getText().trim()"
@@ -502,8 +490,8 @@ onUnmounted(() => {
         <!-- GIF -->
         <button
           class="p-1.5 rounded-md hover:bg-accent text-muted-foreground"
-          :title="t('chat.gift')"
-          @click="toggleContactCardPicker"
+          :title="t('chat.gif')"
+          @click="toggleGifPicker"
         >
           <Gift :size="16" />
         </button>
@@ -517,21 +505,9 @@ onUnmounted(() => {
           <Smile :size="16" />
           <span class="text-[11px] font-semibold leading-none">GIF</span>
         </button>
-      </div>
-      <!-- 隐藏的功能按钮（保留功能但不在主行显示） -->
-      <div class="hidden">
-        <!-- @ 提及 -->
+        <!-- 展开/收起编辑器 -->
         <button
-          :title="t('chat.mention_btn')"
-          @click="insertMention"
-        >
-          <AtSign :size="18" />
-        </button>
-        <!-- 语音相关 -->
-        <VoiceRecorder @send="uploadAudio" />
-        <VoiceToTextButton @transcript="handleTranscript" />
-        <!-- 展开/收起 -->
-        <button
+          class="p-1.5 rounded-md hover:bg-accent text-muted-foreground"
           :title="
             editorExpanded
               ? t('chat.collapse_editor')
@@ -542,6 +518,11 @@ onUnmounted(() => {
           <Minimize2 v-if="editorExpanded" :size="16" />
           <Maximize2 v-else :size="16" />
         </button>
+      </div>
+      <!-- 语音相关（保留功能但不在主行显示） -->
+      <div class="hidden">
+        <VoiceRecorder @send="uploadAudio" />
+        <VoiceToTextButton @transcript="handleTranscript" />
       </div>
     </div>
 

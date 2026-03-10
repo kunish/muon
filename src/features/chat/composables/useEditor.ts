@@ -1,8 +1,9 @@
-import Image from '@tiptap/extension-image'
+import type { MaybeRefOrGetter } from 'vue'
 import Mention from '@tiptap/extension-mention'
 import Placeholder from '@tiptap/extension-placeholder'
 import StarterKit from '@tiptap/starter-kit'
 import { useEditor as useTiptapEditor } from '@tiptap/vue-3'
+import { toValue, watch } from 'vue'
 
 interface MentionItem {
   id: string
@@ -19,7 +20,7 @@ export interface MentionPopupState {
 }
 
 export function useEditor(options: {
-  placeholder?: string
+  placeholder?: MaybeRefOrGetter<string>
   onSubmit: (html: string, text: string) => void
   mentionSearch?: (query: string) => MentionItem[]
   onMentionState?: (state: MentionPopupState) => void
@@ -34,7 +35,7 @@ export function useEditor(options: {
         codeBlock: false,
       }),
       Placeholder.configure({
-        placeholder: options.placeholder || '',
+        placeholder: () => toValue(options.placeholder) || '',
       }),
       Mention.configure({
         HTMLAttributes: { class: 'mention' },
@@ -61,8 +62,15 @@ export function useEditor(options: {
               })
             }
 
+            /** TipTap suggestion callback props — @tiptap/suggestion is not a direct dependency */
+            interface SuggestionCallbackProps {
+              items: MentionItem[]
+              command: (item: { id: string, label: string }) => void
+              clientRect?: (() => DOMRect | null) | null
+            }
+
             return {
-              onStart(props: any) {
+              onStart(props: SuggestionCallbackProps) {
                 mentionActive = true
                 selectedIndex = 0
                 currentItems = props.items
@@ -72,7 +80,7 @@ export function useEditor(options: {
                 }
                 emitState(true)
               },
-              onUpdate(props: any) {
+              onUpdate(props: SuggestionCallbackProps) {
                 selectedIndex = 0
                 currentItems = props.items
                 lastClientRect = props.clientRect ?? null
@@ -81,7 +89,7 @@ export function useEditor(options: {
                 }
                 emitState(true)
               },
-              onKeyDown(props: any) {
+              onKeyDown(props: { event: KeyboardEvent }) {
                 const { event } = props
                 if (event.key === 'Escape') {
                   mentionActive = false
@@ -124,7 +132,6 @@ export function useEditor(options: {
           },
         },
       }),
-      Image,
     ],
     editorProps: {
       handleKeyDown(_view, event) {
@@ -154,6 +161,15 @@ export function useEditor(options: {
     editor.value?.commands.insertContent(emoji)
     editor.value?.commands.focus()
   }
+
+  // placeholder 响应式更新：当 getter/ref 变化时触发 TipTap 重新渲染
+  watch(
+    () => toValue(options.placeholder),
+    () => {
+      // Placeholder 使用函数模式，只需触发一次视图更新即可拿到新值
+      editor.value?.view.dispatch(editor.value.state.tr)
+    },
+  )
 
   return { editor, clear, insertEmoji }
 }

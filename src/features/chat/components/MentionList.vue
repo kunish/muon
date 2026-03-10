@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { fetchMediaBlobUrl } from '@matrix/media'
-import { ref, watch } from 'vue'
+import { nextTick, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 const props = defineProps<{
@@ -17,6 +17,9 @@ const { t } = useI18n()
 // 头像 blob URL 缓存：mxc:// → blob:
 const avatarCache = ref<Record<string, string>>({})
 
+// 列表容器 ref，用于 scrollIntoView
+const listRef = ref<HTMLElement>()
+
 // 当列表变化时异步加载头像
 watch(() => props.items, (items) => {
   for (const item of items) {
@@ -29,10 +32,20 @@ watch(() => props.items, (items) => {
     })
   }
 }, { immediate: true })
+
+// 键盘导航时自动滚动选中项到可视区域
+watch(() => props.selectedIndex, async () => {
+  await nextTick()
+  const container = listRef.value
+  if (!container)
+    return
+  const selected = container.children[props.selectedIndex] as HTMLElement | undefined
+  selected?.scrollIntoView({ block: 'nearest' })
+})
 </script>
 
 <template>
-  <div class="bg-popover/95 backdrop-blur-xl border border-border/60 rounded-xl shadow-[0_8px_30px_rgba(0,0,0,0.12)] py-1.5 max-h-[240px] overflow-y-auto min-w-[200px]">
+  <div ref="listRef" class="bg-popover/95 backdrop-blur-xl border border-border/60 rounded-xl shadow-[0_8px_30px_rgba(0,0,0,0.12)] py-1.5 max-h-[240px] overflow-y-auto min-w-[200px]">
     <button
       v-for="(item, i) in items"
       :key="item.id"

@@ -96,7 +96,7 @@ export const useServerStore = defineStore('server', () => {
     const { categories, uncategorizedChannels } = getSpaceHierarchy(serverId)
     const tree: ChannelTreeCategory[] = []
 
-    // Uncategorized channels split into Discord-like sections
+    // Uncategorized channels split into default sections
     if (uncategorizedChannels.length > 0) {
       const textChannels = uncategorizedChannels.filter(ch => !ch.isVoice)
       const voiceChannels = uncategorizedChannels.filter(ch => ch.isVoice)

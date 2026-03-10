@@ -1,9 +1,9 @@
 <script setup lang="ts">
+import type { DigestFilter } from '../types/digest'
 import { loadInboxEventContext } from '@matrix/index'
 import { computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useDigestStore } from '../stores/digestStore'
-import type { DigestFilter } from '../types/digest'
 
 const router = useRouter()
 const digestStore = useDigestStore()

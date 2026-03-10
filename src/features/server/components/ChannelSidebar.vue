@@ -11,10 +11,10 @@ import { useConversations } from '@/features/chat/composables/useConversations'
 import { useChatStore } from '@/features/chat/stores/chatStore'
 import { useVoiceChannel } from '@/features/server/composables/useVoiceChannel'
 import { useServerStore } from '@/features/server/stores/serverStore'
-import Avatar from '@/shared/components/ui/avatar.vue'
-import Badge from '@/shared/components/ui/badge.vue'
-import Input from '@/shared/components/ui/input.vue'
-import ScrollArea from '@/shared/components/ui/scroll-area.vue'
+import { Avatar } from '@/shared/components/ui/avatar'
+import { Badge } from '@/shared/components/ui/badge'
+import { Input } from '@/shared/components/ui/input'
+import { ScrollArea } from '@/shared/components/ui/scroll-area'
 import ChannelCategory from './ChannelCategory.vue'
 import ChannelContextMenu from './ChannelContextMenu.vue'
 import CreateChannelDialog from './CreateChannelDialog.vue'
@@ -134,15 +134,15 @@ function openSettings() {
 function getPresenceColor(userId: string): string {
   const presence = getClient().getUser(userId)?.presence
   if (presence === 'online')
-    return 'bg-green-500'
+    return 'bg-success'
   if (presence === 'unavailable')
-    return 'bg-yellow-500'
-  return 'bg-gray-500'
+    return 'bg-warning'
+  return 'bg-muted-foreground/40'
 }
 </script>
 
 <template>
-  <aside class="flex h-full min-h-0 w-60 shrink-0 flex-col bg-sidebar">
+  <aside class="flex h-full min-h-0 w-[280px] shrink-0 flex-col bg-sidebar">
     <!-- ═══════════════ DM MODE ═══════════════ -->
     <template v-if="isDmMode">
       <ScrollArea class="min-h-0 flex-1">
@@ -178,7 +178,7 @@ function getPresenceColor(userId: string): string {
           class="mx-2 mt-1 flex items-center gap-3 rounded-md px-2 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/30 hover:text-foreground"
           :class="chatStore.activeSidePanel === 'knowledge' && 'bg-accent/30 text-foreground'"
           data-testid="knowledge-panel-trigger"
-          :aria-pressed="String(chatStore.activeSidePanel === 'knowledge')"
+          :aria-pressed="chatStore.activeSidePanel === 'knowledge'"
           @click="openKnowledgePanel"
         >
           <BookOpen :size="20" />
@@ -186,7 +186,7 @@ function getPresenceColor(userId: string): string {
         </button>
 
         <div class="px-4 py-2">
-          <span class="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+          <span class="text-xs font-medium tracking-normal text-muted-foreground">
             {{ t('server.direct_messages') }}
           </span>
         </div>
@@ -252,7 +252,7 @@ function getPresenceColor(userId: string): string {
         </template>
       </ServerDropdown>
 
-      <!-- Server quick entries (Discord style shortcuts) -->
+      <!-- Server quick entry panel -->
       <div
         v-if="channelTree.length <= 2"
         class="border-b border-border px-3 py-3"
@@ -325,7 +325,7 @@ function getPresenceColor(userId: string): string {
     <VoiceStatusBar />
 
     <!-- ═══════════════ USER INFO PANEL ═══════════════ -->
-    <div class="user-panel flex shrink-0 items-center gap-2 border-t border-border bg-[hsl(225_6%_15%)] px-2 py-2">
+    <div class="user-panel flex shrink-0 items-center gap-2 border-t border-border bg-popover px-2 py-2">
       <!-- Avatar + name block -->
       <div class="flex min-w-0 flex-1 items-center gap-2">
         <Avatar

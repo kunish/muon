@@ -5,14 +5,14 @@ import { useChatStore } from '../stores/chatStore'
 import ChatHeader from './ChatHeader.vue'
 import ChatSettingsPanel from './ChatSettingsPanel.vue'
 import EmojiEffectLayer from './EmojiEffectLayer.vue'
+import GlobalSearch from './GlobalSearch.vue'
+import KnowledgeCapturePanel from './KnowledgeCapturePanel.vue'
 import MediaViewer from './MediaViewer.vue'
 import MemberListPanel from './MemberListPanel.vue'
 import MessageList from './MessageList.vue'
 import MultiSelectBar from './MultiSelectBar.vue'
 import PinnedMessages from './PinnedMessages.vue'
-import KnowledgeCapturePanel from './KnowledgeCapturePanel.vue'
 import RichTextInput from './RichTextInput.vue'
-import SearchMessages from './SearchMessages.vue'
 import StarredMessages from './StarredMessages.vue'
 import TaskPanel from './TaskPanel.vue'
 import ThreadInboxPanel from './ThreadInboxPanel.vue'
@@ -38,7 +38,7 @@ provide('triggerEmojiEffect', triggerEmojiEffect)
     <div class="flex-1 flex flex-col h-full min-w-0" data-chat-area>
       <ChatHeader />
 
-      <!-- Chat content (Discord layout: no tabs, always show chat) -->
+      <!-- Chat content -->
       <MessageList />
       <TypingIndicator :users="typingUsers" />
       <MultiSelectBar v-if="store.multiSelectMode" />
@@ -54,9 +54,8 @@ provide('triggerEmojiEffect', triggerEmojiEffect)
         v-if="store.activeSidePanel"
         class="w-[320px] h-full border-l border-border bg-background shrink-0 overflow-hidden"
       >
-        <SearchMessages
-          v-if="store.activeSidePanel === 'search' && store.currentRoomId"
-          :room-id="store.currentRoomId"
+        <GlobalSearch
+          v-if="store.activeSidePanel === 'search'"
           @close="store.closeSidePanel()"
         />
         <ThreadInboxPanel

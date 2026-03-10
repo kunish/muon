@@ -5,9 +5,11 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useServerStore } from '@/features/server/stores/serverStore'
 import { createChannel } from '@/matrix/spaces'
-import Button from '@/shared/components/ui/button.vue'
-import Dialog from '@/shared/components/ui/dialog.vue'
-import Input from '@/shared/components/ui/input.vue'
+import { Button } from '@/shared/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/shared/components/ui/dialog'
+import { Input } from '@/shared/components/ui/input'
+import { Label } from '@/shared/components/ui/label'
+import { Switch } from '@/shared/components/ui/switch'
 
 const props = withDefaults(defineProps<{
   /** Pre-fill category when creating from a category header */
@@ -72,26 +74,20 @@ async function handleCreate() {
 
 <template>
   <Dialog v-model:open="open">
-    <template #trigger>
+    <DialogTrigger as-child>
       <slot name="trigger" />
-    </template>
-
-    <div class="space-y-5">
-      <!-- Header -->
-      <div>
-        <h2 class="text-xl font-bold text-foreground">
-          {{ t('channel.create_channel') }}
-        </h2>
-        <p class="mt-1 text-sm text-muted-foreground">
-          {{ categoryId ? t('channel.in_this_category') : t('channel.in_your_server') }}
-        </p>
-      </div>
+    </DialogTrigger>
+    <DialogContent>
+      <DialogHeader>
+        <DialogTitle>{{ t('channel.create_channel') }}</DialogTitle>
+        <DialogDescription>{{ categoryId ? t('channel.in_this_category') : t('channel.in_your_server') }}</DialogDescription>
+      </DialogHeader>
 
       <!-- Channel Type -->
       <div class="space-y-2">
-        <label class="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+        <Label class="text-xs font-bold uppercase tracking-wide text-muted-foreground">
           {{ t('channel.channel_type') }}
-        </label>
+        </Label>
         <div class="space-y-1">
           <button
             class="flex w-full items-center gap-3 rounded-md px-3 py-2.5 transition-colors"
@@ -145,9 +141,9 @@ async function handleCreate() {
 
       <!-- Channel Name -->
       <div class="space-y-2">
-        <label class="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+        <Label class="text-xs font-bold uppercase tracking-wide text-muted-foreground">
           {{ t('channel.channel_name') }}
-        </label>
+        </Label>
         <div class="relative">
           <div class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
             <Hash v-if="channelType === 'text'" :size="16" />
@@ -163,9 +159,8 @@ async function handleCreate() {
       </div>
 
       <!-- Private Toggle -->
-      <button
+      <div
         class="flex w-full items-center gap-3 rounded-md"
-        @click="isPrivate = !isPrivate"
       >
         <Lock :size="16" class="text-muted-foreground" />
         <div class="text-left">
@@ -176,16 +171,10 @@ async function handleCreate() {
             {{ t('channel.private_channel_desc') }}
           </div>
         </div>
-        <div
-          class="ml-auto h-5 w-10 shrink-0 rounded-full p-0.5 transition-colors"
-          :class="isPrivate ? 'bg-primary' : 'bg-muted'"
-        >
-          <div
-            class="h-4 w-4 rounded-full bg-white shadow-sm transition-transform"
-            :class="isPrivate ? 'translate-x-5' : 'translate-x-0'"
-          />
+        <div class="ml-auto">
+          <Switch :checked="isPrivate" @update:checked="val => isPrivate = val" />
         </div>
-      </button>
+      </div>
 
       <!-- Actions -->
       <div class="flex justify-end gap-2">
@@ -196,6 +185,6 @@ async function handleCreate() {
           {{ isCreating ? t('chat.creating') : t('channel.create_channel') }}
         </Button>
       </div>
-    </div>
+    </DialogContent>
   </Dialog>
 </template>

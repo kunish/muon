@@ -75,6 +75,8 @@ const translating = ref(false)
 
 const eventId = computed(() => props.event.getId() || '')
 const isSelected = computed(() => store.isMessageSelected(eventId.value))
+const msgtype = computed(() => props.event.getContent()?.msgtype)
+const body = computed(() => props.event.getContent()?.body || '')
 
 function onMultiSelect() {
   showMore.value = false
@@ -150,8 +152,6 @@ const bubbleRadiusClass = computed(() => {
 })
 
 const isRedacted = computed(() => props.event.isRedacted())
-const msgtype = computed(() => props.event.getContent()?.msgtype)
-const body = computed(() => props.event.getContent()?.body || '')
 
 // --- 名片消息检测 ---
 const isContactCard = computed(() => msgtype.value === 'im.muon.contact_card')

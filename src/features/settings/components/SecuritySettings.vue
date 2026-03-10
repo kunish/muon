@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { Droplets, Shield, UserX } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
+import { Label } from '@/shared/components/ui/label'
+import { Switch } from '@/shared/components/ui/switch'
 import { useWatermark } from '@/shared/composables/useWatermark'
 import { useSettingsStore } from '../stores/settingsStore'
 import BlockedUsers from './BlockedUsers.vue'
@@ -25,7 +27,7 @@ function toggleWatermark() {
       </h2>
     </div>
 
-    <label class="flex items-center justify-between">
+    <Label class="flex items-center justify-between">
       <div class="flex items-center gap-3">
         <Droplets :size="18" class="text-muted-foreground" />
         <div>
@@ -33,13 +35,8 @@ function toggleWatermark() {
           <div class="text-xs text-muted-foreground">{{ t('settings.watermark_desc') }}</div>
         </div>
       </div>
-      <input
-        :checked="store.watermarkEnabled"
-        type="checkbox"
-        class="rounded"
-        @change="toggleWatermark"
-      >
-    </label>
+      <Switch :checked="store.watermarkEnabled" @update:checked="() => toggleWatermark()" />
+    </Label>
 
     <!-- 已屏蔽用户 -->
     <div class="space-y-3">

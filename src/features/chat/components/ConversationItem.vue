@@ -3,7 +3,7 @@ import type { RoomSummary } from '@matrix/types'
 import { BellOff, FileText, Film, Image, Lock, Mic, Pin } from 'lucide-vue-next'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import Avatar from '@/shared/components/ui/avatar.vue'
+import { Avatar } from '@/shared/components/ui/avatar'
 import {
   formatMessageTime,
   messageTypeLabel as getTypeLabel,
@@ -93,7 +93,7 @@ const sender = computed(() => {
     <span
       v-if="room.unreadCount > 0 && !active"
       class="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-primary/80"
-      style="animation: conv-unread-ping 2.5s ease-in-out infinite"
+      style="animation: indicator-ping 2.5s ease-in-out infinite"
     />
 
     <!-- 头像 - 增强悬停效果 -->
@@ -112,7 +112,7 @@ const sender = computed(() => {
       <!-- 加密徽标 -->
       <div
         v-if="room.isEncrypted"
-        class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 flex items-center justify-center ring-[1.5px] ring-sidebar shadow-[0_1px_3px_rgba(16,185,129,0.3)]"
+        class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-success flex items-center justify-center ring-[1.5px] ring-sidebar shadow-sm"
       >
         <Lock :size="7" class="text-white" />
       </div>
@@ -192,7 +192,7 @@ const sender = computed(() => {
         <span
           v-if="room.unreadCount > 0 && !muted"
           class="shrink-0 min-w-[17px] h-[17px] rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center px-1.5 leading-none shadow-[0_1px_4px_rgba(0,0,0,0.1)]"
-          style="animation: conv-badge-pop 0.35s cubic-bezier(0.34,1.56,0.64,1) both"
+          style="animation: badge-pop 0.35s cubic-bezier(0.34,1.56,0.64,1) both"
         >
           {{ room.unreadCount > 99 ? '99+' : room.unreadCount }}
         </span>
@@ -215,7 +215,7 @@ const sender = computed(() => {
     background-color 0.18s ease,
     box-shadow 0.22s ease,
     transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
-  animation: conv-slide-in 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: panel-slide-in 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
   animation-delay: calc(var(--conv-index, 0) * 35ms);
 }
 

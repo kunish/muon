@@ -1,4 +1,5 @@
 import type { RoomSummary } from '@matrix/types'
+import type { MatrixEvent } from 'matrix-js-sdk'
 import { defineStore } from 'pinia'
 import { reactive, ref } from 'vue'
 
@@ -7,8 +8,8 @@ export type ConversationFilter = 'all' | 'unread' | 'dm' | 'group'
 export const useChatStore = defineStore('chat', () => {
   const currentRoomId = ref<string | null>(null)
   const searchQuery = ref('')
-  const replyingTo = ref<any>(null)
-  const editingEvent = ref<any>(null)
+  const replyingTo = ref<MatrixEvent | null>(null)
+  const editingEvent = ref<MatrixEvent | null>(null)
 
   // --- 会话管理状态 ---
   const pinnedRooms = reactive(new Set<string>())
@@ -38,11 +39,11 @@ export const useChatStore = defineStore('chat', () => {
     return selectedMessages.has(eventId)
   }
 
-  // --- Discord 风格：侧边面板 ---
+  // --- Side panel ---
   const activeSidePanel = ref<'threads' | 'search' | 'pinned' | 'starred' | 'members' | 'settings' | 'tasks' | 'knowledge' | null>(null)
 
   function setActiveTab(_tab: string) {
-    // No-op: tabs removed in Discord layout, kept for API compat
+    // No-op: tabs removed, kept for API compat
   }
 
   function toggleSidePanel(panel: 'threads' | 'search' | 'pinned' | 'starred' | 'members' | 'settings' | 'tasks' | 'knowledge') {
@@ -91,12 +92,12 @@ export const useChatStore = defineStore('chat', () => {
     searchQuery.value = query
   }
 
-  function setReplyingTo(event: any) {
+  function setReplyingTo(event: MatrixEvent | null) {
     editingEvent.value = null
     replyingTo.value = event
   }
 
-  function setEditingEvent(event: any) {
+  function setEditingEvent(event: MatrixEvent | null) {
     replyingTo.value = null
     editingEvent.value = event
   }

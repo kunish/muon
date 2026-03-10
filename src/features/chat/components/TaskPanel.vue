@@ -1,10 +1,10 @@
 <script setup lang="ts">
+import type { TaskItem } from '../types/task'
 import { loadInboxEventContext } from '@matrix/index'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useTaskStore } from '../stores/taskStore'
-import type { TaskItem } from '../types/task'
 
 const { t } = useI18n()
 const taskStore = useTaskStore()

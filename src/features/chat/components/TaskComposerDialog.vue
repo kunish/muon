@@ -2,6 +2,8 @@
 import type { TaskStatus } from '../types/task'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { Label } from '@/shared/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select'
 
 const props = defineProps<{
   open: boolean
@@ -65,7 +67,7 @@ function onSubmit() {
         </h3>
 
         <div class="mt-3 space-y-3">
-          <label class="block">
+          <Label class="block">
             <span class="mb-1 block text-xs text-muted-foreground">{{ t('chat.task_title') }}</span>
             <input
               v-model="title"
@@ -73,9 +75,9 @@ function onSubmit() {
               class="h-9 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-1 focus:ring-primary/40"
               data-testid="task-title-input"
             >
-          </label>
+          </Label>
 
-          <label class="block">
+          <Label class="block">
             <span class="mb-1 block text-xs text-muted-foreground">{{ t('chat.task_assignee') }}</span>
             <input
               v-model="assignee"
@@ -83,9 +85,9 @@ function onSubmit() {
               class="h-9 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-1 focus:ring-primary/40"
               data-testid="task-assignee-input"
             >
-          </label>
+          </Label>
 
-          <label class="block">
+          <Label class="block">
             <span class="mb-1 block text-xs text-muted-foreground">{{ t('chat.task_due_at') }}</span>
             <input
               v-model="dueAt"
@@ -93,26 +95,32 @@ function onSubmit() {
               class="h-9 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-1 focus:ring-primary/40"
               data-testid="task-due-at-input"
             >
-          </label>
+          </Label>
 
-          <label class="block">
+          <div class="block">
             <span class="mb-1 block text-xs text-muted-foreground">{{ t('chat.task_status') }}</span>
-            <select
+            <Select
               v-model="status"
-              class="h-9 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-1 focus:ring-primary/40"
               data-testid="task-status-select"
             >
-              <option value="todo">
-                {{ t('chat.task_status_todo') }}
-              </option>
-              <option value="doing">
-                {{ t('chat.task_status_doing') }}
-              </option>
-              <option value="done">
-                {{ t('chat.task_status_done') }}
-              </option>
-            </select>
-          </label>
+              <SelectTrigger
+                class="h-9 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-1 focus:ring-primary/40"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todo">
+                  {{ t('chat.task_status_todo') }}
+                </SelectItem>
+                <SelectItem value="doing">
+                  {{ t('chat.task_status_doing') }}
+                </SelectItem>
+                <SelectItem value="done">
+                  {{ t('chat.task_status_done') }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         <div class="mt-4 flex justify-end gap-2">

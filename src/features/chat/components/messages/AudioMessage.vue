@@ -2,6 +2,7 @@
 import { fetchMediaBlobUrl } from '@matrix/index'
 import { Pause, Play } from 'lucide-vue-next'
 import { computed, ref, watch } from 'vue'
+import { Progress } from '@/shared/components/ui/progress'
 
 const props = defineProps<{
   event: any
@@ -58,12 +59,7 @@ function toggle() {
       <Play v-else :size="14" class="ml-0.5" />
     </button>
     <div class="flex-1">
-      <div class="h-1.5 bg-muted rounded-full overflow-hidden">
-        <div
-          class="h-full bg-primary rounded-full transition-all"
-          :style="{ width: `${progress}%` }"
-        />
-      </div>
+      <Progress :model-value="progress" class="h-1.5" />
     </div>
     <span class="text-xs text-muted-foreground shrink-0">{{ duration }}</span>
   </div>

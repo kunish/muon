@@ -3,6 +3,7 @@ import { loadInboxEventContext } from '@matrix/index'
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
+import { Textarea } from '@/shared/components/ui/textarea'
 import { useQaStore } from '../stores/qaStore'
 
 const { t } = useI18n()
@@ -62,7 +63,7 @@ function openHistoryAnswer(answerId: string) {
 <template>
   <section class="flex h-full flex-col" data-testid="cross-session-qa-panel">
     <div class="space-y-3 border-b border-border px-4 py-3">
-      <textarea
+      <Textarea
         v-model="question"
         data-testid="qa-question-input"
         class="min-h-20 w-full rounded-md border border-border px-3 py-2 text-sm"

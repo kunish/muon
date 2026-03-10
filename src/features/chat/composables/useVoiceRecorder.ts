@@ -23,7 +23,9 @@ export function useVoiceRecorder() {
 
     recorder.onstop = () => {
       audioBlob.value = new Blob(chunks, { type: 'audio/webm' })
-      stream.getTracks().forEach((t) => { t.stop() })
+      stream.getTracks().forEach((t) => {
+        t.stop()
+      })
       if (timer)
         clearInterval(timer)
     }

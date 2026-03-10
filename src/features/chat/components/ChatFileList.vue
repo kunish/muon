@@ -92,10 +92,10 @@ function getFileIcon(msgtype: string) {
 
 function getFileIconClass(msgtype: string) {
   switch (msgtype) {
-    case 'm.image': return 'text-green-500 bg-green-50 dark:bg-green-950/30'
-    case 'm.video': return 'text-pink-500 bg-pink-50 dark:bg-pink-950/30'
-    case 'm.audio': return 'text-purple-500 bg-purple-50 dark:bg-purple-950/30'
-    default: return 'text-blue-500 bg-blue-50 dark:bg-blue-950/30'
+    case 'm.image': return 'text-success bg-success/5'
+    case 'm.video': return 'text-destructive/70 bg-destructive/5'
+    case 'm.audio': return 'text-secondary bg-secondary/5'
+    default: return 'text-primary bg-primary/5'
   }
 }
 

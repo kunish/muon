@@ -157,7 +157,7 @@ vi.mock('@/features/chat/components/MessageList.vue', () => ({ default: createSt
 vi.mock('@/features/chat/components/MultiSelectBar.vue', () => ({ default: createStub('MultiSelectBarStub') }))
 vi.mock('@/features/chat/components/PinnedMessages.vue', () => ({ default: createStub('PinnedMessagesStub') }))
 vi.mock('@/features/chat/components/RichTextInput.vue', () => ({ default: createStub('RichTextInputStub') }))
-vi.mock('@/features/chat/components/SearchMessages.vue', () => ({ default: createStub('SearchMessagesStub') }))
+vi.mock('@/features/chat/components/GlobalSearch.vue', () => ({ default: createStub('GlobalSearchStub') }))
 vi.mock('@/features/chat/components/StarredMessages.vue', () => ({ default: createStub('StarredMessagesStub') }))
 vi.mock('@/features/chat/components/TaskPanel.vue', () => ({ default: createStub('TaskPanelStub', 'task-panel') }))
 vi.mock('@/features/chat/components/ThreadInboxPanel.vue', () => ({ default: createStub('ThreadInboxPanelStub') }))
@@ -172,10 +172,10 @@ vi.mock('@/features/server/components/ServerDropdown.vue', () => ({ default: cre
 vi.mock('@/features/server/components/TextChannelItem.vue', () => ({ default: createStub('TextChannelItemStub') }))
 vi.mock('@/features/server/components/VoiceChannelItem.vue', () => ({ default: createStub('VoiceChannelItemStub') }))
 vi.mock('@/features/server/components/VoiceStatusBar.vue', () => ({ default: createStub('VoiceStatusBarStub') }))
-vi.mock('@/shared/components/ui/avatar.vue', () => ({ default: createStub('AvatarStub') }))
-vi.mock('@/shared/components/ui/badge.vue', () => ({ default: createStub('BadgeStub') }))
-vi.mock('@/shared/components/ui/input.vue', () => ({ default: createInputStub() }))
-vi.mock('@/shared/components/ui/scroll-area.vue', () => ({ default: createScrollAreaStub() }))
+vi.mock('@/shared/components/ui/avatar', () => ({ Avatar: createStub('AvatarStub') }))
+vi.mock('@/shared/components/ui/badge', () => ({ Badge: createStub('BadgeStub') }))
+vi.mock('@/shared/components/ui/input', () => ({ Input: createInputStub() }))
+vi.mock('@/shared/components/ui/scroll-area', () => ({ ScrollArea: createScrollAreaStub() }))
 
 import ChannelSidebar from '../../src/features/server/components/ChannelSidebar.vue'
 import ChatWindow from '../../src/features/chat/components/ChatWindow.vue'

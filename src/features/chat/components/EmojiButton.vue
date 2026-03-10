@@ -21,7 +21,6 @@ function updatePosition() {
     return
   const rect = el.getBoundingClientRect()
   const vw = window.innerWidth
-  const vh = window.innerHeight
 
   // 水平：优先左对齐，超出右边界则右对齐
   let left = rect.left

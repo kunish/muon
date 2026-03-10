@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * Discord 风格的 "NEW" 未读分割线
+ * "NEW" 未读分割线
  * 红色水平线 + "NEW" 徽章
  */
 </script>

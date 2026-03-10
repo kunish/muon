@@ -1,10 +1,10 @@
 <script setup lang="ts">
+import type { KnowledgeTab } from '../types/knowledge'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import CrossSessionQaPanel from './CrossSessionQaPanel.vue'
 import DecisionPanel from './DecisionPanel.vue'
 import OfflineDigestPanel from './OfflineDigestPanel.vue'
-import type { KnowledgeTab } from '../types/knowledge'
 
 const props = withDefaults(defineProps<{
   initialTab?: KnowledgeTab
@@ -12,13 +12,13 @@ const props = withDefaults(defineProps<{
   initialTab: 'digest',
 })
 
-const { t } = useI18n()
-
 defineSlots<{
   digest?: () => any
   decision?: () => any
   qa?: () => any
 }>()
+
+const { t } = useI18n()
 
 const activeTab = ref<KnowledgeTab>(props.initialTab)
 
@@ -50,13 +50,13 @@ function setActiveTab(tab: KnowledgeTab) {
       <div class="mt-3 flex gap-2" role="tablist" :aria-label="t('chat.knowledge')">
         <button
           v-for="tab in tabs"
+          :id="getTabId(tab.id)"
           :key="tab.id"
           type="button"
           role="tab"
           class="rounded-md border px-3 py-1.5 text-xs"
           :class="activeTab === tab.id ? 'border-primary text-primary' : 'border-border text-muted-foreground'"
           :data-testid="`knowledge-tab-${tab.id}`"
-          :id="getTabId(tab.id)"
           :aria-controls="getPanelId(tab.id)"
           :aria-selected="activeTab === tab.id"
           @click="setActiveTab(tab.id)"

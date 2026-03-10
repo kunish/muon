@@ -106,15 +106,15 @@ function formatDate(ts: number) {
 
 function getDocIconColor(ext: string) {
   const colorMap: Record<string, string> = {
-    PDF: 'text-red-500 bg-red-50 dark:bg-red-950/30',
-    DOC: 'text-blue-500 bg-blue-50 dark:bg-blue-950/30',
-    DOCX: 'text-blue-500 bg-blue-50 dark:bg-blue-950/30',
-    XLS: 'text-green-500 bg-green-50 dark:bg-green-950/30',
-    XLSX: 'text-green-500 bg-green-50 dark:bg-green-950/30',
-    PPT: 'text-orange-500 bg-orange-50 dark:bg-orange-950/30',
-    PPTX: 'text-orange-500 bg-orange-50 dark:bg-orange-950/30',
+    PDF: 'text-destructive bg-destructive/5',
+    DOC: 'text-primary bg-primary/5',
+    DOCX: 'text-primary bg-primary/5',
+    XLS: 'text-success bg-success/5',
+    XLSX: 'text-success bg-success/5',
+    PPT: 'text-warning bg-warning/5',
+    PPTX: 'text-warning bg-warning/5',
   }
-  return colorMap[ext] || 'text-blue-500 bg-blue-50 dark:bg-blue-950/30'
+  return colorMap[ext] || 'text-primary bg-primary/5'
 }
 
 function getSenderName(userId: string) {

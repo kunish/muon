@@ -3,9 +3,10 @@ import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useServerStore } from '@/features/server/stores/serverStore'
 import { createSpace } from '@/matrix/spaces'
-import Button from '@/shared/components/ui/button.vue'
-import Dialog from '@/shared/components/ui/dialog.vue'
-import Input from '@/shared/components/ui/input.vue'
+import { Button } from '@/shared/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog'
+import { Input } from '@/shared/components/ui/input'
+import { Label } from '@/shared/components/ui/label'
 
 const open = defineModel<boolean>('open', { default: false })
 
@@ -48,27 +49,21 @@ async function handleCreate() {
 
 <template>
   <Dialog v-model:open="open">
-    <div class="space-y-4">
-      <div>
-        <h2 class="text-xl font-bold text-foreground">
-          {{ t('channel.create_category') }}
-        </h2>
-        <p class="mt-1 text-sm text-muted-foreground">
-          {{ t('channel.in_your_server') }}
-        </p>
-      </div>
-
+    <DialogContent>
+      <DialogHeader>
+        <DialogTitle>{{ t('channel.create_category') }}</DialogTitle>
+        <DialogDescription>{{ t('channel.in_your_server') }}</DialogDescription>
+      </DialogHeader>
       <div class="space-y-2">
-        <label class="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+        <Label class="text-xs font-bold uppercase tracking-wide text-muted-foreground">
           {{ t('channel.category_name') }}
-        </label>
+        </Label>
         <Input
           v-model="categoryName"
           :placeholder="t('channel.category_name_placeholder')"
           @keydown.enter="handleCreate"
         />
       </div>
-
       <div class="flex justify-end gap-2">
         <Button variant="ghost" @click="open = false">
           {{ t('common.cancel') }}
@@ -77,6 +72,6 @@ async function handleCreate() {
           {{ isCreating ? t('chat.creating') : t('channel.create_category') }}
         </Button>
       </div>
-    </div>
+    </DialogContent>
   </Dialog>
 </template>

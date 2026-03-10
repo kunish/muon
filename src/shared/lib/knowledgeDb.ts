@@ -1,10 +1,11 @@
-import Dexie, { type EntityTable } from 'dexie'
+import type { EntityTable } from 'dexie'
 import type {
   CrossSessionQaAnswer,
   DecisionCard,
   DigestEntry,
   SuggestionDisposition,
 } from '@/features/chat/types/knowledge'
+import Dexie from 'dexie'
 import {
   crossSessionQaAnswerSchema,
   decisionCardSchema,
@@ -32,19 +33,19 @@ export class MuonKnowledgeDB extends Dexie {
 
 export const knowledgeDb = new MuonKnowledgeDB()
 
-type CollectionLike<T> = {
+interface CollectionLike<T> {
   toArray: () => Promise<T[]>
 }
 
-type WhereClauseLike<T> = {
+interface WhereClauseLike<T> {
   equals: (value: unknown) => CollectionLike<T>
 }
 
-type OrderByClauseLike<T> = {
+interface OrderByClauseLike<T> {
   reverse: () => CollectionLike<T>
 }
 
-type KnowledgeTable<T extends { id: string }> = {
+interface KnowledgeTable<T extends { id: string }> {
   put: (value: T) => Promise<string | number>
   get: (id: string) => Promise<T | undefined>
   update: (id: string, changes: Partial<T>) => Promise<number>

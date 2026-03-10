@@ -5,6 +5,7 @@ import { readFile } from '@tauri-apps/plugin-fs'
 import { Camera, Check, Pencil, SmilePlus, X } from 'lucide-vue-next'
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { Label } from '@/shared/components/ui/label'
 import { useAuthMedia } from '@/shared/composables/useAuthMedia'
 import StatusPicker from './StatusPicker.vue'
 
@@ -110,7 +111,7 @@ async function changeAvatar() {
 
     <!-- 昵称 -->
     <div>
-      <label class="text-sm font-medium text-muted-foreground mb-1.5 block">{{ t('settings.nickname') }}</label>
+      <Label class="text-sm font-medium text-muted-foreground mb-1.5 block">{{ t('settings.nickname') }}</Label>
       <div v-if="!editingName" class="flex items-center gap-2 group">
         <span class="text-sm">{{ displayName }}</span>
         <button
@@ -138,7 +139,7 @@ async function changeAvatar() {
 
     <!-- 自定义状态 -->
     <div>
-      <label class="text-sm font-medium text-muted-foreground mb-1.5 block">{{ t('settings.status') }}</label>
+      <Label class="text-sm font-medium text-muted-foreground mb-1.5 block">{{ t('settings.status') }}</Label>
       <div class="relative">
         <button
           class="flex items-center gap-2 group text-sm text-muted-foreground hover:text-foreground transition-colors"

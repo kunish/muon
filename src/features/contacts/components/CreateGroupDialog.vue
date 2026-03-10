@@ -2,6 +2,8 @@
 import { Lock, X } from 'lucide-vue-next'
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { Label } from '@/shared/components/ui/label'
+import { Switch } from '@/shared/components/ui/switch'
 import { useGroupManagement } from '../composables/useGroupManagement'
 
 const emit = defineEmits<{
@@ -55,7 +57,7 @@ async function handleCreate() {
 
       <div class="p-4 space-y-4">
         <div>
-          <label class="text-sm text-muted-foreground mb-1 block">{{ t('contacts.group_name') }}</label>
+          <Label class="text-sm text-muted-foreground mb-1 block">{{ t('contacts.group_name') }}</Label>
           <input
             v-model="name"
             type="text"
@@ -65,7 +67,7 @@ async function handleCreate() {
         </div>
 
         <div>
-          <label class="text-sm text-muted-foreground mb-1 block">{{ t('contacts.group_topic') }}</label>
+          <Label class="text-sm text-muted-foreground mb-1 block">{{ t('contacts.group_topic') }}</Label>
           <input
             v-model="topic"
             type="text"
@@ -75,7 +77,7 @@ async function handleCreate() {
         </div>
 
         <div>
-          <label class="text-sm text-muted-foreground mb-1 block">{{ t('contacts.invite_members') }}</label>
+          <Label class="text-sm text-muted-foreground mb-1 block">{{ t('contacts.invite_members') }}</Label>
           <input
             v-model="inviteIds"
             type="text"
@@ -84,11 +86,11 @@ async function handleCreate() {
           >
         </div>
 
-        <label class="flex items-center gap-2 cursor-pointer">
-          <input v-model="encrypted" type="checkbox" class="rounded">
+        <Label class="flex items-center gap-2 cursor-pointer">
+          <Switch :checked="encrypted" @update:checked="val => encrypted = val" />
           <Lock :size="14" />
           <span class="text-sm">{{ t('contacts.enable_e2e') }}</span>
-        </label>
+        </Label>
       </div>
 
       <div class="p-4 border-t border-border flex justify-end gap-2">

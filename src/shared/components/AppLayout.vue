@@ -10,8 +10,8 @@ import ServerList from '@/features/server/components/ServerList.vue'
 import ServerSettings from '@/features/server/components/ServerSettings.vue'
 import { useServerStore } from '@/features/server/stores/serverStore'
 import { useSettingsStore } from '@/features/settings/stores/settingsStore'
-import Button from '@/shared/components/ui/button.vue'
-import Dialog from '@/shared/components/ui/dialog.vue'
+import { Button } from '@/shared/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog'
 import { useTheme } from '@/shared/composables/useTheme'
 import NetworkStatusBar from './NetworkStatusBar.vue'
 import WatermarkOverlay from './WatermarkOverlay.vue'
@@ -93,10 +93,10 @@ onUnmounted(() => {
   <div class="flex h-screen bg-background text-foreground overflow-hidden">
     <NetworkStatusBar />
 
-    <!-- Column 1: Server List (72px) -->
+    <!-- Navigation Rail -->
     <ServerList />
 
-    <!-- Column 2: Channel Sidebar (240px) -->
+    <!-- Sidebar -->
     <ChannelSidebar
       @server-settings="showServerSettings = true"
       @invite-people="showInviteDialog = true"
@@ -105,8 +105,8 @@ onUnmounted(() => {
       @notification-settings="openNotificationSettings"
     />
 
-    <!-- Column 3 & 4: Chat Area + Member Panel (via RouterView) -->
-    <main class="flex-1 flex min-w-0">
+    <!-- Content -->
+    <main class="flex-1 flex min-w-0 bg-background">
       <RouterView />
     </main>
 
@@ -125,15 +125,11 @@ onUnmounted(() => {
     />
 
     <Dialog v-model:open="showLeaveConfirm">
-      <div class="space-y-4">
-        <div>
-          <h3 class="text-lg font-semibold text-foreground">
-            {{ t('server.leave_server') }}
-          </h3>
-          <p class="mt-1 text-sm text-muted-foreground">
-            {{ t('server.leave_server_confirm') }}
-          </p>
-        </div>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{{ t('server.leave_server') }}</DialogTitle>
+          <DialogDescription>{{ t('server.leave_server_confirm') }}</DialogDescription>
+        </DialogHeader>
         <div class="flex justify-end gap-2">
           <Button variant="ghost" @click="showLeaveConfirm = false">
             {{ t('common.cancel') }}
@@ -146,7 +142,7 @@ onUnmounted(() => {
             {{ t('server.leave_server') }}
           </Button>
         </div>
-      </div>
+      </DialogContent>
     </Dialog>
   </div>
 </template>

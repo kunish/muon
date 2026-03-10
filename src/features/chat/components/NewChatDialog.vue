@@ -7,7 +7,9 @@ import { useRouter } from 'vue-router'
 import { useContacts } from '@/features/contacts/composables/useContacts'
 import { useGroupManagement } from '@/features/contacts/composables/useGroupManagement'
 import { useContactStore } from '@/features/contacts/stores/contactStore'
-import Avatar from '@/shared/components/ui/avatar.vue'
+import { Avatar } from '@/shared/components/ui/avatar'
+import { Label } from '@/shared/components/ui/label'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs'
 import { useChatStore } from '../stores/chatStore'
 
 const emit = defineEmits<{
@@ -167,132 +169,124 @@ async function handleCreateGroup() {
           </button>
         </div>
 
-        <!-- 标签切换 -->
-        <div class="flex items-center gap-1 px-4 pb-2">
-          <button
-            class="px-3 py-1.5 text-[12px] rounded-lg transition-all duration-150"
-            :class="activeTab === 'dm'
-              ? 'bg-primary/10 text-primary font-semibold'
-              : 'text-muted-foreground hover:bg-accent'"
-            @click="activeTab = 'dm'"
-          >
-            {{ t('chat.direct_message') }}
-          </button>
-          <button
-            class="px-3 py-1.5 text-[12px] rounded-lg transition-all duration-150 flex items-center gap-1"
-            :class="activeTab === 'group'
-              ? 'bg-primary/10 text-primary font-semibold'
-              : 'text-muted-foreground hover:bg-accent'"
-            @click="activeTab = 'group'"
-          >
-            <Users :size="12" />
-            {{ t('chat.create_group') }}
-          </button>
-        </div>
-
-        <!-- 私聊模式 -->
-        <template v-if="activeTab === 'dm'">
-          <!-- 搜索框 -->
+        <!-- 标签切换 + 内容 -->
+        <Tabs v-model="activeTab" class="flex-1 flex flex-col overflow-hidden">
           <div class="px-4 pb-2">
-            <div class="relative">
-              <Search :size="14" class="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/50" />
-              <input
-                v-model="query"
-                :placeholder="t('chat.search_user_placeholder')"
-                class="w-full pl-8 pr-3 py-2 text-sm rounded-lg border border-border bg-muted/30 outline-none focus:ring-1 focus:ring-primary/40 transition-all"
-                autofocus
-              >
-            </div>
+            <TabsList class="grid w-full grid-cols-2">
+              <TabsTrigger value="dm">
+                {{ t('chat.direct_message') }}
+              </TabsTrigger>
+              <TabsTrigger value="group" class="flex items-center gap-1">
+                <Users :size="12" />
+                {{ t('chat.create_group') }}
+              </TabsTrigger>
+            </TabsList>
           </div>
 
-          <!-- 用户列表 -->
-          <div class="flex-1 overflow-y-auto px-2 pb-2">
-            <!-- 加载中 -->
-            <div v-if="loading" class="flex items-center justify-center py-8 text-muted-foreground/50">
-              <span class="text-sm">{{ t('chat.searching') }}</span>
-            </div>
-
-            <!-- 空状态 -->
-            <div
-              v-else-if="dmList.length === 0 && query"
-              class="text-center text-sm text-muted-foreground/50 py-8"
-            >
-              {{ t('chat.user_not_found') }}
-            </div>
-
-            <div
-              v-else-if="dmList.length === 0 && !query"
-              class="text-center text-sm text-muted-foreground/50 py-8"
-            >
-              {{ t('chat.search_to_start') }}
+          <!-- 私聊模式 -->
+          <TabsContent value="dm" class="flex-1 flex flex-col overflow-hidden mt-0">
+            <!-- 搜索框 -->
+            <div class="px-4 pb-2">
+              <div class="relative">
+                <Search :size="14" class="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/50" />
+                <input
+                  v-model="query"
+                  :placeholder="t('chat.search_user_placeholder')"
+                  class="w-full pl-8 pr-3 py-2 text-sm rounded-lg border border-border bg-muted/30 outline-none focus:ring-1 focus:ring-primary/40 transition-all"
+                  autofocus
+                >
+              </div>
             </div>
 
             <!-- 用户列表 -->
-            <button
-              v-for="u in dmList"
-              :key="u.userId"
-              class="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-accent transition-colors text-left"
-              :disabled="starting"
-              @click="startDm(u.userId)"
-            >
-              <Avatar :src="u.avatarMxc" :alt="u.displayName" :color-id="u.userId" size="sm" shape="circle" />
-              <div class="flex-1 min-w-0">
-                <div class="text-sm font-medium truncate">
-                  {{ u.displayName }}
-                </div>
-                <div class="text-[11px] text-muted-foreground truncate">
-                  {{ u.userId }}
-                </div>
+            <div class="flex-1 overflow-y-auto px-2 pb-2">
+              <!-- 加载中 -->
+              <div v-if="loading" class="flex items-center justify-center py-8 text-muted-foreground/50">
+                <span class="text-sm">{{ t('chat.searching') }}</span>
               </div>
-            </button>
-          </div>
-        </template>
 
-        <!-- 创建群组模式 -->
-        <template v-else>
-          <div class="flex-1 overflow-y-auto px-4 pb-4 space-y-3">
-            <div>
-              <label class="text-[12px] text-muted-foreground mb-1 block">{{ t('chat.group_name') }}</label>
-              <input
-                v-model="groupName"
-                type="text"
-                :placeholder="t('chat.group_name_placeholder')"
-                class="w-full h-9 px-3 text-sm rounded-lg border border-border bg-background outline-none focus:ring-1 focus:ring-primary/40"
-                autofocus
+              <!-- 空状态 -->
+              <div
+                v-else-if="dmList.length === 0 && query"
+                class="text-center text-sm text-muted-foreground/50 py-8"
               >
-            </div>
+                {{ t('chat.user_not_found') }}
+              </div>
 
-            <div>
-              <label class="text-[12px] text-muted-foreground mb-1 block">{{ t('chat.group_topic') }}</label>
-              <input
-                v-model="groupTopic"
-                type="text"
-                :placeholder="t('chat.group_topic_placeholder')"
-                class="w-full h-9 px-3 text-sm rounded-lg border border-border bg-background outline-none focus:ring-1 focus:ring-primary/40"
+              <div
+                v-else-if="dmList.length === 0 && !query"
+                class="text-center text-sm text-muted-foreground/50 py-8"
               >
-            </div>
+                {{ t('chat.search_to_start') }}
+              </div>
 
-            <div>
-              <label class="text-[12px] text-muted-foreground mb-1 block">{{ t('chat.invite_members') }}</label>
-              <input
-                v-model="groupInvites"
-                type="text"
-                placeholder="@user1:server, @user2:server"
-                class="w-full h-9 px-3 text-sm rounded-lg border border-border bg-background outline-none focus:ring-1 focus:ring-primary/40"
-              >
-            </div>
-
-            <div class="pt-1 flex justify-end">
+              <!-- 用户列表 -->
               <button
-                class="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground disabled:opacity-50 transition-all"
-                :disabled="!groupName.trim() || creatingGroup"
-                @click="handleCreateGroup"
+                v-for="u in dmList"
+                :key="u.userId"
+                class="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-accent transition-colors text-left"
+                :disabled="starting"
+                @click="startDm(u.userId)"
               >
-                {{ creatingGroup ? t('chat.creating') : t('chat.create_group') }}
+                <Avatar :src="u.avatarMxc" :alt="u.displayName" :color-id="u.userId" size="sm" shape="circle" />
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm font-medium truncate">
+                    {{ u.displayName }}
+                  </div>
+                  <div class="text-[11px] text-muted-foreground truncate">
+                    {{ u.userId }}
+                  </div>
+                </div>
               </button>
             </div>
-          </div>
-        </template>
+          </TabsContent>
+
+          <!-- 创建群组模式 -->
+          <TabsContent value="group" class="flex-1 overflow-hidden mt-0">
+            <div class="flex-1 overflow-y-auto px-4 pb-4 space-y-3">
+              <div>
+                <Label class="text-[12px] text-muted-foreground mb-1 block">{{ t('chat.group_name') }}</Label>
+                <input
+                  v-model="groupName"
+                  type="text"
+                  :placeholder="t('chat.group_name_placeholder')"
+                  class="w-full h-9 px-3 text-sm rounded-lg border border-border bg-background outline-none focus:ring-1 focus:ring-primary/40"
+                  autofocus
+                >
+              </div>
+
+              <div>
+                <Label class="text-[12px] text-muted-foreground mb-1 block">{{ t('chat.group_topic') }}</Label>
+                <input
+                  v-model="groupTopic"
+                  type="text"
+                  :placeholder="t('chat.group_topic_placeholder')"
+                  class="w-full h-9 px-3 text-sm rounded-lg border border-border bg-background outline-none focus:ring-1 focus:ring-primary/40"
+                >
+              </div>
+
+              <div>
+                <Label class="text-[12px] text-muted-foreground mb-1 block">{{ t('chat.invite_members') }}</Label>
+                <input
+                  v-model="groupInvites"
+                  type="text"
+                  placeholder="@user1:server, @user2:server"
+                  class="w-full h-9 px-3 text-sm rounded-lg border border-border bg-background outline-none focus:ring-1 focus:ring-primary/40"
+                >
+              </div>
+
+              <div class="pt-1 flex justify-end">
+                <button
+                  class="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground disabled:opacity-50 transition-all"
+                  :disabled="!groupName.trim() || creatingGroup"
+                  @click="handleCreateGroup"
+                >
+                  {{ creatingGroup ? t('chat.creating') : t('chat.create_group') }}
+                </button>
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   </Teleport>

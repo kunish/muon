@@ -2,7 +2,7 @@
 import type { SpaceMember } from '@/matrix/spaces'
 import { computed } from 'vue'
 import { getUserPresenceInfo } from '@/matrix/profile'
-import Avatar from '@/shared/components/ui/avatar.vue'
+import { Avatar } from '@/shared/components/ui/avatar'
 
 const props = defineProps<{
   member: SpaceMember

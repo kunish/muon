@@ -1,66 +1,83 @@
 @import 'tailwindcss';
+@import 'tw-animate-css';
 
 @theme {
-  /* Discord Light Theme */
-  --color-background: hsl(0 0% 100%);
-  --color-foreground: hsl(220 13% 18%);
-  --color-muted: hsl(220 13% 95%);
-  --color-muted-foreground: hsl(214 8% 46%);
-  --color-primary: hsl(235 86% 65%);
-  --color-primary-foreground: hsl(0 0% 100%);
-  --color-accent: hsl(220 13% 91%);
-  --color-accent-foreground: hsl(220 13% 18%);
-  --color-destructive: hsl(0 85% 62%);
-  --color-destructive-foreground: hsl(0 0% 100%);
-  --color-border: hsl(220 13% 87%);
-  --color-input: hsl(220 13% 87%);
-  --color-ring: hsl(235 86% 65%);
-  --color-card: hsl(0 0% 100%);
-  --color-card-foreground: hsl(220 13% 18%);
-  --color-secondary: hsl(227 7% 35%);
-  --color-secondary-foreground: hsl(0 0% 100%);
-  --color-popover: hsl(0 0% 100%);
-  --color-popover-foreground: hsl(220 13% 18%);
-  --color-sidebar: hsl(220 13% 95%);
-  --color-sidebar-foreground: hsl(220 13% 18%);
-  --color-sidebar-border: hsl(220 13% 87%);
-  --color-sidebar-accent: hsl(220 13% 91%);
-  --color-sidebar-accent-foreground: hsl(220 13% 18%);
-  --color-server-bar: hsl(220 13% 90%);
-  --color-success: hsl(139 47% 44%);
-  --color-warning: hsl(38 96% 54%);
-  --radius: 0.5rem;
+  /* ── Muon Light — Minimal Monochrome + Amber accent ── */
+  --color-background: oklch(100% 0 0);
+  --color-foreground: oklch(14% 0.004 285);
+  --color-muted: oklch(97.5% 0.003 85);
+  --color-muted-foreground: oklch(55% 0.01 260);
+  --color-primary: oklch(72% 0.17 65);
+  --color-primary-foreground: oklch(16% 0.03 65);
+  --color-accent: oklch(96% 0.005 85);
+  --color-accent-foreground: oklch(14% 0.004 285);
+  --color-destructive: oklch(55% 0.22 27);
+  --color-destructive-foreground: oklch(97% 0 0);
+  --color-border: oklch(93% 0.005 85);
+  --color-input: oklch(95% 0.005 85);
+  --color-ring: oklch(72% 0.17 65);
+  --color-card: oklch(100% 0 0);
+  --color-card-foreground: oklch(14% 0.004 285);
+  --color-secondary: oklch(45% 0.01 260);
+  --color-secondary-foreground: oklch(97% 0 0);
+  --color-popover: oklch(100% 0 0);
+  --color-popover-foreground: oklch(14% 0.004 285);
+  --color-sidebar: oklch(98.5% 0.003 85);
+  --color-sidebar-foreground: oklch(14% 0.004 285);
+  --color-sidebar-border: oklch(93% 0.005 85);
+  --color-sidebar-accent: oklch(95% 0.005 85);
+  --color-sidebar-accent-foreground: oklch(14% 0.004 285);
+  --color-sidebar-primary: oklch(72% 0.17 65);
+  --color-sidebar-primary-foreground: oklch(16% 0.03 65);
+  --color-sidebar-ring: oklch(72% 0.17 65);
+  --color-server-bar: oklch(96.5% 0.003 85);
+  --color-success: oklch(62% 0.17 155);
+  --color-warning: oklch(75% 0.15 75);
+  --color-chart-1: oklch(72% 0.17 65);
+  --color-chart-2: oklch(62% 0.17 155);
+  --color-chart-3: oklch(55% 0.22 27);
+  --color-chart-4: oklch(60% 0.15 250);
+  --color-chart-5: oklch(55% 0.01 260);
+  --radius: 0.625rem;
 }
 
 .dark {
-  /* Discord Dark Theme 2023 — #313338 background, #2b2d31 sidebar, #1e1f22 server bar */
-  --color-background: hsl(223 7% 21%);
-  --color-foreground: hsl(210 10% 87%);
-  --color-muted: hsl(223 7% 18%);
-  --color-muted-foreground: hsl(214 8% 61%);
-  --color-primary: hsl(235 86% 65%);
-  --color-primary-foreground: hsl(0 0% 100%);
-  --color-accent: hsl(223 6% 26%);
-  --color-accent-foreground: hsl(210 10% 87%);
-  --color-destructive: hsl(0 85% 62%);
-  --color-destructive-foreground: hsl(0 0% 100%);
-  --color-border: hsl(225 6% 15%);
-  --color-input: hsl(223 7% 24%);
-  --color-ring: hsl(235 86% 65%);
-  --color-card: hsl(223 7% 19%);
-  --color-card-foreground: hsl(210 10% 87%);
-  --color-secondary: hsl(227 7% 35%);
-  --color-secondary-foreground: hsl(0 0% 100%);
-  --color-popover: hsl(225 6% 13%);
-  --color-popover-foreground: hsl(210 10% 87%);
-  --color-sidebar: hsl(223 7% 18%);
-  --color-sidebar-foreground: hsl(210 10% 87%);
-  --color-sidebar-border: hsl(225 6% 15%);
-  --color-sidebar-accent: hsl(223 6% 26%);
-  --color-sidebar-accent-foreground: hsl(210 10% 87%);
-  --color-server-bar: hsl(225 6% 13%);
-  --color-success: hsl(139 47% 44%);
-  --color-warning: hsl(38 96% 54%);
+  /* ── Muon Dark — True warm-dark with amber accent ── */
+  --color-background: oklch(13% 0.005 75);
+  --color-foreground: oklch(90% 0.005 85);
+  --color-muted: oklch(17% 0.005 75);
+  --color-muted-foreground: oklch(58% 0.01 80);
+  --color-primary: oklch(75% 0.16 70);
+  --color-primary-foreground: oklch(14% 0.03 70);
+  --color-accent: oklch(20% 0.008 75);
+  --color-accent-foreground: oklch(90% 0.005 85);
+  --color-destructive: oklch(60% 0.2 25);
+  --color-destructive-foreground: oklch(97% 0 0);
+  --color-border: oklch(23% 0.008 75);
+  --color-input: oklch(19% 0.007 75);
+  --color-ring: oklch(75% 0.16 70);
+  --color-card: oklch(15% 0.005 75);
+  --color-card-foreground: oklch(90% 0.005 85);
+  --color-secondary: oklch(45% 0.01 80);
+  --color-secondary-foreground: oklch(97% 0 0);
+  --color-popover: oklch(18% 0.006 75);
+  --color-popover-foreground: oklch(90% 0.005 85);
+  --color-sidebar: oklch(11% 0.005 75);
+  --color-sidebar-foreground: oklch(90% 0.005 85);
+  --color-sidebar-border: oklch(20% 0.007 75);
+  --color-sidebar-accent: oklch(22% 0.008 75);
+  --color-sidebar-accent-foreground: oklch(90% 0.005 85);
+  --color-sidebar-primary: oklch(75% 0.16 70);
+  --color-sidebar-primary-foreground: oklch(14% 0.03 70);
+  --color-sidebar-ring: oklch(75% 0.16 70);
+  --color-server-bar: oklch(9% 0.004 75);
+  --color-success: oklch(65% 0.16 155);
+  --color-warning: oklch(78% 0.15 75);
+  --color-chart-1: oklch(75% 0.16 70);
+  --color-chart-2: oklch(65% 0.16 155);
+  --color-chart-3: oklch(60% 0.2 25);
+  --color-chart-4: oklch(62% 0.14 250);
+  --color-chart-5: oklch(58% 0.01 80);
 }
 
 @layer base {
@@ -70,9 +87,16 @@
 
   body {
     @apply bg-background text-foreground;
-    font-family: 'gg sans', 'Noto Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family:
+      'Inter',
+      -apple-system,
+      BlinkMacSystemFont,
+      'Segoe UI',
+      system-ui,
+      sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    letter-spacing: -0.011em;
   }
 
   input,
@@ -82,19 +106,19 @@
   }
 }
 
-/* ── 聊天列表动画关键帧 ── */
-@keyframes conv-slide-in {
+/* ── Panel transitions ── */
+@keyframes panel-slide-in {
   from {
     opacity: 0;
-    transform: translateX(-8px) scale(0.97);
+    transform: translateX(-6px);
   }
   to {
     opacity: 1;
-    transform: translateX(0) scale(1);
+    transform: translateX(0);
   }
 }
 
-@keyframes conv-skeleton-shimmer {
+@keyframes skeleton-shimmer {
   0% {
     background-position: -200% 0;
   }
@@ -103,48 +127,48 @@
   }
 }
 
-@keyframes conv-glow-pulse {
+@keyframes subtle-pulse {
   0%,
   100% {
-    opacity: 0.5;
+    opacity: 0.6;
   }
   50% {
     opacity: 1;
   }
 }
 
-@keyframes conv-float {
+@keyframes float {
   0%,
   100% {
     transform: translateY(0);
   }
   50% {
-    transform: translateY(-6px);
+    transform: translateY(-4px);
   }
 }
 
-@keyframes conv-unread-ping {
+@keyframes indicator-ping {
   0% {
-    transform: translateY(-50%) scaleY(1);
+    transform: scale(1);
     opacity: 0.8;
   }
   50% {
-    transform: translateY(-50%) scaleY(1.3);
+    transform: scale(1.2);
     opacity: 1;
   }
   100% {
-    transform: translateY(-50%) scaleY(1);
+    transform: scale(1);
     opacity: 0.8;
   }
 }
 
-@keyframes conv-badge-pop {
+@keyframes badge-pop {
   0% {
     transform: scale(0.6);
     opacity: 0;
   }
   60% {
-    transform: scale(1.15);
+    transform: scale(1.1);
   }
   100% {
     transform: scale(1);
@@ -152,14 +176,14 @@
   }
 }
 
-@keyframes conv-empty-breathe {
+@keyframes breathe {
   0%,
   100% {
     transform: scale(1);
     opacity: 0.6;
   }
   50% {
-    transform: scale(1.05);
-    opacity: 0.9;
+    transform: scale(1.03);
+    opacity: 0.85;
   }
 }

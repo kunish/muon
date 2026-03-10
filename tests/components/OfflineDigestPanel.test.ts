@@ -109,6 +109,55 @@ describe('OfflineDigestPanel', () => {
     })
   })
 
+  it('remounting panel after unmount shows previously persisted entries', async () => {
+    const persistedEntries = [
+      {
+        id: 'digest:$persisted-a',
+        sessionId: 'digest-session:test',
+        title: 'Persisted entry A',
+        summary: 'Persisted digest entry A',
+        relevance: 'responsibility',
+        citations: [{ roomId: '!room:muon.dev', eventId: '$persisted-a', quote: 'Persisted digest entry A' }],
+        citationEventIds: ['$persisted-a'],
+        createdAt: 150,
+        updatedAt: 150,
+      },
+      {
+        id: 'digest:$persisted-b',
+        sessionId: 'digest-session:test',
+        title: 'Persisted entry B',
+        summary: 'Persisted digest entry B',
+        relevance: 'follow',
+        citations: [{ roomId: '!room:muon.dev', eventId: '$persisted-b', quote: 'Persisted digest entry B' }],
+        citationEventIds: ['$persisted-b'],
+        createdAt: 160,
+        updatedAt: 160,
+      },
+    ]
+
+    // First mount: Dexie returns persisted entries via hydration
+    listDigestEntriesMock.mockResolvedValue(persistedEntries)
+
+    const wrapper1 = mount(OfflineDigestPanel)
+    await flushPromises()
+    expect(wrapper1.findAll('article')).toHaveLength(2)
+
+    // Unmount the panel (simulates user switching tabs)
+    wrapper1.unmount()
+
+    // Remount: Dexie still returns the same persisted entries
+    // sourceEvents is empty after remount, so initializeDigest should
+    // preserve hydrated entries (not overwrite with empty materialization)
+    listDigestEntriesMock.mockResolvedValue(persistedEntries)
+
+    const wrapper2 = mount(OfflineDigestPanel)
+    await flushPromises()
+
+    expect(wrapper2.findAll('article')).toHaveLength(2)
+    expect(wrapper2.text()).toContain('Persisted entry A')
+    expect(wrapper2.text()).toContain('Persisted entry B')
+  })
+
   it('preload failure only warns and still navigates', async () => {
     const store = useDigestStore()
     store.entries = [

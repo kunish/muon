@@ -3,6 +3,8 @@ import { bindClientEvents, login, register, startSync } from '@matrix/index'
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
+import { Label } from '@/shared/components/ui/label'
+import { Tabs, TabsList, TabsTrigger } from '@/shared/components/ui/tabs'
 
 const router = useRouter()
 const { t } = useI18n()
@@ -52,26 +54,20 @@ async function handleSubmit() {
       </h1>
 
       <!-- Tabs -->
-      <div class="flex mb-6 bg-muted rounded-lg p-1">
-        <button
-          class="flex-1 py-1.5 text-sm rounded-md transition-colors"
-          :class="tab === 'login' ? 'bg-background shadow-sm font-medium' : 'text-muted-foreground'"
-          @click="tab = 'login'"
-        >
-          {{ t('auth.login') }}
-        </button>
-        <button
-          class="flex-1 py-1.5 text-sm rounded-md transition-colors"
-          :class="tab === 'register' ? 'bg-background shadow-sm font-medium' : 'text-muted-foreground'"
-          @click="tab = 'register'"
-        >
-          {{ t('auth.register') }}
-        </button>
-      </div>
+      <Tabs v-model="tab" class="w-full">
+        <TabsList class="grid w-full grid-cols-2 mb-6">
+          <TabsTrigger value="login">
+            {{ t('auth.login') }}
+          </TabsTrigger>
+          <TabsTrigger value="register">
+            {{ t('auth.register') }}
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
 
       <form class="space-y-4" @submit.prevent="handleSubmit">
         <div>
-          <label class="block text-sm mb-1.5">{{ t('auth.server') }}</label>
+          <Label class="block text-sm mb-1.5">{{ t('auth.server') }}</Label>
           <input
             v-model="serverUrl"
             type="text"
@@ -80,7 +76,7 @@ async function handleSubmit() {
         </div>
 
         <div>
-          <label class="block text-sm mb-1.5">{{ t('auth.username') }}</label>
+          <Label class="block text-sm mb-1.5">{{ t('auth.username') }}</Label>
           <input
             v-model="username"
             type="text"
@@ -90,7 +86,7 @@ async function handleSubmit() {
         </div>
 
         <div>
-          <label class="block text-sm mb-1.5">{{ t('auth.password') }}</label>
+          <Label class="block text-sm mb-1.5">{{ t('auth.password') }}</Label>
           <input
             v-model="password"
             type="password"
@@ -100,7 +96,7 @@ async function handleSubmit() {
         </div>
 
         <div v-if="tab === 'register'">
-          <label class="block text-sm mb-1.5">{{ t('auth.display_name') }}</label>
+          <Label class="block text-sm mb-1.5">{{ t('auth.display_name') }}</Label>
           <input
             v-model="displayName"
             type="text"

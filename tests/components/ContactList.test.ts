@@ -39,7 +39,7 @@ describe('contactItem', () => {
         selected: false,
       },
     })
-    expect(wrapper.find('.bg-green-500').exists()).toBe(true)
+    expect(wrapper.find('.bg-success').exists()).toBe(true)
   })
 
   it('should apply selected style', () => {

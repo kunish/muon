@@ -4,6 +4,7 @@ import { readFile } from '@tauri-apps/plugin-fs'
 import { Camera, FileUp, Image, ImagePlus, MapPin, Plus, Sticker, UserCircle, Video } from 'lucide-vue-next'
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { getFloatingPosition } from '../composables/useFloatingPosition'
 
 const emit = defineEmits<{
   image: [file: File]
@@ -35,14 +36,11 @@ const videoFilter: FileFilter[] = [
 ]
 
 function updatePosition() {
-  const el = btnRef.value
-  if (!el)
+  const trigger = btnRef.value
+  const panel = menuRef.value
+  if (!trigger || !panel)
     return
-  const rect = el.getBoundingClientRect()
-  menuStyle.value = {
-    left: `${rect.left}px`,
-    top: `${rect.top - 8}px`,
-  }
+  menuStyle.value = getFloatingPosition(trigger, panel)
 }
 
 function toggle() {
@@ -62,7 +60,13 @@ async function pickFile(filters: FileFilter[] | undefined, type: 'image' | 'vide
   const ext = name.split('.').pop()?.toLowerCase() || ''
   const mime = guessMime(ext, type)
   const file = new File([bytes], name, { type: mime })
-  ;(emit as any)(type, file)
+
+  if (type === 'image')
+    emit('image', file)
+  else if (type === 'video')
+    emit('video', file)
+  else
+    emit('file', file)
 }
 
 function guessMime(ext: string, type: string): string {
@@ -111,7 +115,6 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', onClickOutside
         ref="menuRef"
         class="fixed z-50 bg-background border border-border rounded-lg shadow-lg py-1 min-w-[140px]"
         :style="{ left: menuStyle.left, top: menuStyle.top }"
-        style="transform: translateY(-100%);"
       >
         <button
           class="w-full px-3 py-1.5 text-sm text-left flex items-center gap-2 hover:bg-accent"

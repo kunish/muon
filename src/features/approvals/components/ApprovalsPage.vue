@@ -6,9 +6,9 @@ import { useI18n } from 'vue-i18n'
 const { t } = useI18n()
 
 const stats = computed(() => [
-  { label: t('approvals.pending'), count: 0, icon: Clock, color: 'text-yellow-500' },
-  { label: t('approvals.approved'), count: 0, icon: FileCheck, color: 'text-green-500' },
-  { label: t('approvals.initiated'), count: 0, icon: FilePlus, color: 'text-blue-500' },
+  { label: t('approvals.pending'), count: 0, icon: Clock, color: 'text-warning' },
+  { label: t('approvals.approved'), count: 0, icon: FileCheck, color: 'text-success' },
+  { label: t('approvals.initiated'), count: 0, icon: FilePlus, color: 'text-primary' },
 ])
 </script>
 

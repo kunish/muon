@@ -1,4 +1,4 @@
-import type { MatrixEvent } from 'matrix-js-sdk'
+import type { MatrixClient, MatrixEvent } from 'matrix-js-sdk'
 import { getClient } from '@matrix/client'
 
 export interface InboxEventContext {
@@ -9,7 +9,14 @@ export interface InboxEventContext {
   eventsAfter: MatrixEvent[]
 }
 
-function normalizeContextPayload(roomId: string, eventId: string, payload: any): InboxEventContext {
+/** Raw context payload from the matrix client's getEventContext / authedRequest */
+interface ContextPayload {
+  event?: MatrixEvent
+  events_before?: MatrixEvent[]
+  events_after?: MatrixEvent[]
+}
+
+function normalizeContextPayload(roomId: string, eventId: string, payload: ContextPayload): InboxEventContext {
   if (!payload?.event)
     throw new Error(`target event ${eventId} missing in context payload`)
 
@@ -22,8 +29,14 @@ function normalizeContextPayload(roomId: string, eventId: string, payload: any):
   }
 }
 
+/** getEventContext is private in matrix-js-sdk typing, so we need a narrow cast */
+interface ClientWithContextAPI {
+  getEventContext: (roomId: string, eventId: string, limit: number) => Promise<ContextPayload>
+  http?: { authedRequest: (method: string, path: string, params: Record<string, unknown>) => Promise<ContextPayload> }
+}
+
 async function fallbackLoadContext(roomId: string, eventId: string, limit: number): Promise<InboxEventContext> {
-  const client = getClient() as any
+  const client = getClient() as unknown as ClientWithContextAPI
 
   if (typeof client.getEventContext === 'function') {
     const payload = await client.getEventContext(roomId, eventId, limit)
@@ -44,7 +57,7 @@ async function fallbackLoadContext(roomId: string, eventId: string, limit: numbe
 
 export async function loadInboxEventContext(roomId: string, eventId: string, limit = 20): Promise<InboxEventContext> {
   try {
-    const client = getClient() as any
+    const client: MatrixClient = getClient()
     const room = client.getRoom(roomId)
     if (!room)
       throw new Error(`room ${roomId} not found`)

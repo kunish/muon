@@ -50,7 +50,7 @@ function formatTime(ts: number): string {
   <div class="flex flex-col h-full">
     <div class="flex items-center justify-between p-3 border-b border-border">
       <div class="flex items-center gap-2">
-        <Star :size="14" class="text-yellow-500" />
+        <Star :size="14" class="text-warning" />
         <span class="text-sm font-medium">{{ t('chat.starred_messages') }}</span>
       </div>
       <button class="p-1 rounded hover:bg-accent" @click="emit('close')">

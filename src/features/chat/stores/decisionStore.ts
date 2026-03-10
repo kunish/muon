@@ -1,11 +1,11 @@
+import type { CreateDecisionCardInput, DecisionCard, SuggestionDisposition } from '../types/decision'
+import type { DigestEntry } from '../types/knowledge'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { createKnowledgeRepository } from '@/shared/lib/knowledgeDb'
 import { extractSuggestionsFromSummary } from '../services/suggestionExtraction'
-import { decisionCardSchema } from '../types/knowledge'
-import type { CreateDecisionCardInput, DecisionCard, SuggestionDisposition } from '../types/decision'
 import { createDecisionCard } from '../types/decision'
-import type { DigestEntry } from '../types/knowledge'
+import { decisionCardSchema } from '../types/knowledge'
 
 const repository = createKnowledgeRepository()
 
@@ -78,7 +78,13 @@ export const useDecisionStore = defineStore('decision', () => {
     cards.value = savedCards.map(card => decisionCardSchema.parse(card)).sort((left, right) => right.updatedAt - left.updatedAt)
 
     const digestEntries = await repository.listDigestEntries()
-    await Promise.all(digestEntries.map(entry => materializeSuggestionsFromDigest(entry)))
+    // Only materialize suggestions from the most recent session
+    const latestSessionId = digestEntries[0]?.sessionId
+    const currentSessionEntries = latestSessionId
+      ? digestEntries.filter(entry => entry.sessionId === latestSessionId)
+      : []
+
+    await Promise.all(currentSessionEntries.map(entry => materializeSuggestionsFromDigest(entry)))
 
     return cards.value
   }

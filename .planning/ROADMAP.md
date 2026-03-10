@@ -15,8 +15,8 @@
 - [x] **Phase 3: Cross-Conversation Retrieval** - 用户可跨会话检索相关消息且结果严格受权限约束。 (completed 2026-03-06)
 - [x] **Phase 4: Offline Digest and Decision Capture** - 用户可离线回归重点、验证引用并沉淀可复用决策。 (completed 2026-03-06)
 - [x] **Phase 5: Reliability and Performance Consistency** - 用户在重连与高负载场景下仍获得一致且流畅的效率体验。 (completed 2026-03-06)
-- [ ] **Phase 6: Search Surface Integration and Retrieval Completion** - 用户可从真实聊天搜索入口完成跨会话检索、分页与结果回跳，不再停留在未接线实现。 
-- [ ] **Phase 7: Offline Digest Reliability and Knowledge Continuity** - 用户回归后可稳定看到离线 digest、验证引用，并让 digest 驱动的建议链路可靠可用。 
+- [x] **Phase 6: Search Surface Integration and Retrieval Completion** - 用户可从真实聊天搜索入口完成跨会话检索、分页与结果回跳，不再停留在未接线实现。 (completed 2026-03-09)
+- [x] **Phase 7: Offline Digest Reliability and Knowledge Continuity** - 用户回归后可稳定看到离线 digest、验证引用，并让 digest 驱动的建议链路可靠可用。 (completed 2026-03-09)
 
 ## Phase Details
 
@@ -64,8 +64,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 03-01-PLAN.md — 交付 Matrix 跨会话检索服务（joined-room 授权范围 + 分页）及单测护栏。
-- [ ] 03-02-PLAN.md — 接入 GlobalSearch 跨会话检索 UI 与结果回跳链路并完成组件验证。
+- [x] 03-01-PLAN.md — 交付 Matrix 跨会话检索服务（joined-room 授权范围 + 分页）及单测护栏。
+- [x] 03-02-PLAN.md — 接入 GlobalSearch 跨会话检索 UI 与结果回跳链路并完成组件验证。
 
 ### Phase 4: Offline Digest and Decision Capture
 **Goal**: 用户可以在离线回归时快速理解关键信息，并把讨论结论沉淀为可追溯知识资产。
@@ -115,8 +115,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 06-01-PLAN.md — 先补齐 ChatWindow 真实挂载点搜索集成测试与 `/dm` 回跳回归护栏。
-- [ ] 06-02-PLAN.md — 将真实聊天搜索入口改接到 inline GlobalSearch，并移除旧 room-scoped reachable path。
+- [x] 06-01-PLAN.md — 先补齐 ChatWindow 真实挂载点搜索集成测试与 `/dm` 回跳回归护栏。
+- [x] 06-02-PLAN.md — 将真实聊天搜索入口改接到 inline GlobalSearch，并移除旧 room-scoped reachable path。
 
 ### Phase 7: Offline Digest Reliability and Knowledge Continuity
 **Goal**: 用户回归后可稳定读取离线 digest、打开 citations，并让 digest 驱动的建议链路具备可靠输入。
@@ -127,7 +127,11 @@ Plans:
   1. 用户重新打开 Knowledge 面板时，已回读的 digest 不会被空 session 覆盖。
   2. 用户离线期间已同步到本地的消息会按 away-window 时间窗稳定进入 digest。
   3. 用户可以从稳定可见的 digest 条目打开 citation，并让 digest-backed suggestions 在 decision 链路中可靠出现。
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [x] 07-01-PLAN.md — 先锁定 digest 空 session 覆盖、面板 remount 条目丢失、stale session suggestion 泄漏的失败测试（RED）。
+- [x] 07-02-PLAN.md — 实现 digestStore merge-on-empty 与 decisionStore session-scoped materialization 并转绿（GREEN）。
 
 ## Progress
 
@@ -138,5 +142,5 @@ Plans:
 | 3. Cross-Conversation Retrieval | 2/2 | Complete   | 2026-03-06 |
 | 4. Offline Digest and Decision Capture | 8/8 | Complete | 2026-03-06 |
 | 5. Reliability and Performance Consistency | 3/3 | Complete | 2026-03-06 |
-| 6. Search Surface Integration and Retrieval Completion | 0/2 | Not started | - |
-| 7. Offline Digest Reliability and Knowledge Continuity | 0/TBD | Not started | - |
+| 6. Search Surface Integration and Retrieval Completion | 2/2 | Complete | 2026-03-09 |
+| 7. Offline Digest Reliability and Knowledge Continuity | 2/2 | Complete | 2026-03-09 |

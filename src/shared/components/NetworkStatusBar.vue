@@ -44,7 +44,7 @@ watch(status, (current: ConnectionStatus, previous: ConnectionStatus) => {
     <div
       v-if="visible"
       class="fixed top-0 left-0 right-0 z-[9999] flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium"
-      :class="showRecovered ? 'bg-green-500 text-white' : status === 'offline' ? 'bg-destructive text-destructive-foreground' : 'bg-amber-500 text-white'"
+      :class="showRecovered ? 'bg-success text-white' : status === 'offline' ? 'bg-destructive text-destructive-foreground' : 'bg-warning text-white'"
       role="alert"
     >
       <component :is="showRecovered ? Wifi : status === 'offline' ? WifiOff : ServerOff" class="size-4" />

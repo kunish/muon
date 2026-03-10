@@ -8,7 +8,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useMessages } from '../composables/useMessages'
 import { useChatStore } from '../stores/chatStore'
 import ChannelWelcome from './ChannelWelcome.vue'
-import DiscordMessageGroup from './DiscordMessageGroup.vue'
+import MessageGroup from './MessageGroup.vue'
 import UserInfoPanel from './UserInfoPanel.vue'
 
 // ── Telegram 风格锚点式滚动位置管理 ───────────────────────────
@@ -468,8 +468,8 @@ onUnmounted(() => {
       <span class="text-xs text-muted-foreground">{{ t("chat.loading") }}</span>
     </div>
 
-    <!-- Discord-style message rendering: delegate grouping to DiscordMessageGroup -->
-    <DiscordMessageGroup
+    <!-- Message rendering: delegate grouping to MessageGroup -->
+    <MessageGroup
       v-if="visibleMessages.length"
       :events="visibleMessages"
       :room-id="store.currentRoomId || ''"

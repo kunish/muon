@@ -75,9 +75,7 @@ describe('GlobalSearch performance', () => {
   function mountGlobalSearch() {
     return mount(GlobalSearch, {
       global: {
-        stubs: {
-          Teleport: true,
-        },
+        stubs: {},
       },
     })
   }
@@ -148,7 +146,7 @@ describe('GlobalSearch performance', () => {
     await flushUi()
 
     expect(routerPush).toHaveBeenCalledWith({
-      path: '/chat/!joined%3Amuon.dev',
+      path: '/dm/!joined%3Amuon.dev',
       query: {
         focusEventId: '$event-joined-1',
       },

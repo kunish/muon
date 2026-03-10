@@ -1,5 +1,7 @@
-import type { Room } from 'matrix-js-sdk'
-import { NotificationCountType } from 'matrix-js-sdk'
+import type { ICreateRoomStateEvent, MatrixEvent, Room } from 'matrix-js-sdk'
+import type { SpaceChildEventContent } from 'matrix-js-sdk/lib/@types/state_events'
+import type {} from './matrix-sdk.d'
+import { EventType, NotificationCountType, Preset } from 'matrix-js-sdk'
 import { getClient } from './client'
 
 // ── Types ──
@@ -58,7 +60,7 @@ function isSpace(room: Room): boolean {
 
 /** Check if a room is a voice channel */
 export function isVoiceChannel(room: Room): boolean {
-  const voiceEvent = room.currentState.getStateEvents('im.muon.voice_channel' as any, '')
+  const voiceEvent = room.currentState.getStateEvents('im.muon.voice_channel', '')
   return voiceEvent?.getContent()?.enabled === true
 }
 
@@ -69,17 +71,17 @@ function getSpaceChildren(spaceId: string): { roomId: string, order?: string, is
   if (!space)
     return []
 
-  const childEvents = space.currentState.getStateEvents('m.space.child' as any)
+  const childEvents = space.currentState.getStateEvents(EventType.SpaceChild)
   if (!Array.isArray(childEvents))
     return []
 
   return childEvents
-    .filter((ev: any) => {
+    .filter((ev: MatrixEvent) => {
       const content = ev.getContent()
       // m.space.child with empty content = removed child
       return content && Object.keys(content).length > 0 && content.via
     })
-    .map((ev: any) => {
+    .map((ev: MatrixEvent) => {
       const childRoomId = ev.getStateKey()!
       const content = ev.getContent()
       const childRoom = client.getRoom(childRoomId)
@@ -209,7 +211,7 @@ export async function createSpace(name: string, opts: {
   const { room_id } = await client.createRoom({
     name,
     topic: opts.topic,
-    preset: opts.isPublic ? 'public_chat' as any : 'private_chat' as any,
+    preset: opts.isPublic ? Preset.PublicChat : Preset.PrivateChat,
     creation_content: { type: 'm.space' },
     initial_state: opts.avatar
       ? [{ type: 'm.room.avatar', content: { url: opts.avatar } }]
@@ -222,7 +224,7 @@ export async function createSpace(name: string, opts: {
       redact: 50,
       state_default: 50,
     },
-  } as any)
+  })
 
   // If this is a sub-space (category), add it as a child of the parent
   if (opts.parentSpaceId) {
@@ -238,8 +240,8 @@ export async function addRoomToSpace(spaceId: string, roomId: string, opts: {
   suggested?: boolean
 } = {}): Promise<void> {
   const client = getClient()
-  const homeserver = client.getDomain()
-  await client.sendStateEvent(spaceId, 'm.space.child' as any, {
+  const homeserver = client.getDomain() ?? ''
+  await client.sendStateEvent(spaceId, EventType.SpaceChild, {
     via: [homeserver],
     order: opts.order,
     suggested: opts.suggested ?? true,
@@ -250,7 +252,7 @@ export async function addRoomToSpace(spaceId: string, roomId: string, opts: {
 export async function removeRoomFromSpace(spaceId: string, roomId: string): Promise<void> {
   const client = getClient()
   // Sending empty content removes the child relationship
-  await client.sendStateEvent(spaceId, 'm.space.child' as any, {}, roomId)
+  await client.sendStateEvent(spaceId, EventType.SpaceChild, {} as SpaceChildEventContent, roomId)
 }
 
 /** Get members of a Space with their power levels */
@@ -285,7 +287,7 @@ export async function setSpacePowerLevel(spaceId: string, userId: string, level:
   const users: Record<string, number> = { ...(content.users || {}) }
   users[userId] = level
 
-  await client.sendStateEvent(spaceId, 'm.room.power_levels' as any, {
+  await client.sendStateEvent(spaceId, EventType.RoomPowerLevels, {
     ...content,
     users,
   })
@@ -299,9 +301,9 @@ export async function createChannel(spaceId: string, name: string, opts: {
   categoryId?: string
 } = {}): Promise<string> {
   const client = getClient()
-  const homeserver = client.getDomain()
+  const homeserver = client.getDomain() ?? ''
 
-  const initialState: any[] = []
+  const initialState: ICreateRoomStateEvent[] = []
   // Mark as voice channel if requested
   if (opts.isVoice) {
     initialState.push({
@@ -322,9 +324,9 @@ export async function createChannel(spaceId: string, name: string, opts: {
   const { room_id } = await client.createRoom({
     name,
     topic: opts.topic,
-    preset: opts.isPrivate ? 'private_chat' as any : 'public_chat' as any,
+    preset: opts.isPrivate ? Preset.PrivateChat : Preset.PublicChat,
     initial_state: initialState,
-  } as any)
+  })
 
   // Add as child of the parent space/category
   await addRoomToSpace(parentId, room_id)
@@ -356,14 +358,14 @@ export function getOrphanRooms(): Room[] {
 
   // Also check m.space.parent on rooms
   for (const room of allRooms) {
-    const parentEvents = room.currentState.getStateEvents('m.space.parent' as any)
+    const parentEvents = room.currentState.getStateEvents(EventType.SpaceParent)
     if (Array.isArray(parentEvents) && parentEvents.length > 0) {
       spaceManagedRoomIds.add(room.roomId)
     }
   }
 
   // DM rooms are excluded from "orphan" classification
-  const directEvent = client.getAccountData('m.direct' as any)
+  const directEvent = client.getAccountData(EventType.Direct)
   const directContent: Record<string, string[]> = directEvent?.getContent() ?? {}
   const dmRoomIds = new Set<string>()
   for (const roomIds of Object.values(directContent)) {

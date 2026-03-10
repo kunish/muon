@@ -142,8 +142,8 @@ export function useUnifiedInbox() {
   const counts = computed(() => {
     const raw = allItems.value.filter(item => !store.isProcessed(item.id))
     return {
-      all: raw.length,
-      mention: raw.filter(item => item.type === 'mention').length,
+      'all': raw.length,
+      'mention': raw.filter(item => item.type === 'mention').length,
       'priority-unread': raw.filter(item => item.type === 'priority-unread').length,
       'reply-needed': raw.filter(item => item.type === 'reply-needed').length,
     }

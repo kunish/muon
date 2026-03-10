@@ -2,9 +2,10 @@
 import { Check, Copy, Link } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { getClient } from '@/matrix/client'
-import Button from '@/shared/components/ui/button.vue'
-import Dialog from '@/shared/components/ui/dialog.vue'
-import Input from '@/shared/components/ui/input.vue'
+import { Button } from '@/shared/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/shared/components/ui/dialog'
+import { Input } from '@/shared/components/ui/input'
+import { Label } from '@/shared/components/ui/label'
 
 const props = defineProps<{
   spaceId: string
@@ -63,25 +64,20 @@ async function copyToClipboard() {
 
 <template>
   <Dialog v-model:open="open">
-    <template #trigger>
+    <DialogTrigger as-child>
       <slot name="trigger" />
-    </template>
-
-    <div class="space-y-5">
-      <div>
-        <h2 class="text-xl font-bold text-foreground">
-          Invite People
-        </h2>
-        <p class="mt-1 text-sm text-muted-foreground">
-          Share this server's address so others can join.
-        </p>
-      </div>
+    </DialogTrigger>
+    <DialogContent>
+      <DialogHeader>
+        <DialogTitle>Invite People</DialogTitle>
+        <DialogDescription>Share this server's address so others can join.</DialogDescription>
+      </DialogHeader>
 
       <!-- Room address / alias -->
       <div class="space-y-2">
-        <label class="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+        <Label class="text-xs font-bold uppercase tracking-wide text-muted-foreground">
           Server Address
-        </label>
+        </Label>
         <div class="flex gap-2">
           <div class="relative flex-1">
             <Link
@@ -109,12 +105,12 @@ async function copyToClipboard() {
       </div>
 
       <!-- Instructions -->
-      <div class="rounded-md bg-[#111214] p-3">
+      <div class="rounded-md bg-popover p-3">
         <p class="text-xs leading-relaxed text-muted-foreground">
           Anyone on the Matrix network can join your server using this address.
           Share it in a DM, another room, or outside of the app.
         </p>
       </div>
-    </div>
+    </DialogContent>
   </Dialog>
 </template>

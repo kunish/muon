@@ -4,8 +4,10 @@ import { computed, ref, watch } from 'vue'
 import { useServerStore } from '@/features/server/stores/serverStore'
 import { getClient } from '@/matrix/client'
 import { setRoomName, setRoomTopic } from '@/matrix/rooms'
-import Button from '@/shared/components/ui/button.vue'
-import Input from '@/shared/components/ui/input.vue'
+import { Button } from '@/shared/components/ui/button'
+import { Input } from '@/shared/components/ui/input'
+import { Label } from '@/shared/components/ui/label'
+import { Textarea } from '@/shared/components/ui/textarea'
 
 const props = defineProps<{
   serverId: string
@@ -128,7 +130,7 @@ const resolvedAvatar = computed(() => {
       <!-- Avatar section -->
       <div class="flex shrink-0 flex-col items-center gap-2">
         <button
-          class="group relative flex h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-[#2b2d31] transition-colors hover:bg-[#36373d]"
+          class="group relative flex h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-muted transition-colors hover:bg-accent"
           @click="triggerAvatarUpload"
         >
           <img
@@ -165,9 +167,9 @@ const resolvedAvatar = computed(() => {
       <div class="flex-1 space-y-5">
         <!-- Server Name -->
         <div class="space-y-2">
-          <label class="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+          <Label class="text-xs font-bold uppercase tracking-wide text-muted-foreground">
             Server Name
-          </label>
+          </Label>
           <Input
             v-model="name"
             placeholder="Server name"
@@ -176,10 +178,10 @@ const resolvedAvatar = computed(() => {
 
         <!-- Description / Topic -->
         <div class="space-y-2">
-          <label class="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+          <Label class="text-xs font-bold uppercase tracking-wide text-muted-foreground">
             Server Description
-          </label>
-          <textarea
+          </Label>
+          <Textarea
             v-model="topic"
             rows="4"
             placeholder="Tell people about your server"
@@ -198,7 +200,7 @@ const resolvedAvatar = computed(() => {
     <Transition name="save-bar">
       <div
         v-if="isDirty"
-        class="mt-6 flex items-center justify-between rounded-md bg-[#111214] p-3"
+        class="mt-6 flex items-center justify-between rounded-md bg-popover p-3"
       >
         <span class="text-sm text-muted-foreground">
           Careful — you have unsaved changes!

@@ -6,9 +6,9 @@ const { t } = useI18n()
 
 // Mock data — these names/times are hardcoded demo content
 const recentDocs = [
-  { name: '项目需求文档', type: 'DOCX', time: '刚刚', color: 'text-blue-500' },
-  { name: '会议纪要 - 周例会', type: 'DOC', time: '2小时前', color: 'text-blue-500' },
-  { name: 'Q4 预算表', type: 'XLSX', time: '昨天', color: 'text-green-500' },
+  { name: '项目需求文档', type: 'DOCX', time: '刚刚', color: 'text-primary' },
+  { name: '会议纪要 - 周例会', type: 'DOC', time: '2小时前', color: 'text-primary' },
+  { name: 'Q4 预算表', type: 'XLSX', time: '昨天', color: 'text-success' },
 ]
 </script>
 
@@ -34,11 +34,11 @@ const recentDocs = [
         <!-- Quick access -->
         <div class="grid grid-cols-3 gap-3 mb-6">
           <button class="flex flex-col items-center gap-2 p-4 rounded-xl bg-accent/30 border border-border/40 hover:bg-accent/50 transition-colors">
-            <FileText :size="20" class="text-blue-500" />
+            <FileText :size="20" class="text-primary" />
             <span class="text-xs font-medium">{{ t('docs.new_doc') }}</span>
           </button>
           <button class="flex flex-col items-center gap-2 p-4 rounded-xl bg-accent/30 border border-border/40 hover:bg-accent/50 transition-colors">
-            <FolderOpen :size="20" class="text-yellow-500" />
+            <FolderOpen :size="20" class="text-warning" />
             <span class="text-xs font-medium">{{ t('docs.my_folder') }}</span>
           </button>
           <button class="flex flex-col items-center gap-2 p-4 rounded-xl bg-accent/30 border border-border/40 hover:bg-accent/50 transition-colors">

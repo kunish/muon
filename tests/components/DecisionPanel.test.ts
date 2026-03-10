@@ -111,6 +111,47 @@ describe('DecisionPanel', () => {
     expect(updateSuggestionDispositionMock).toHaveBeenCalledWith('decision-1', 'suggestion-1', 'rejected', 'local-user', expect.any(Number))
   })
 
+  it('digest-backed suggestions are visible only from latest-session digest entries', async () => {
+    listDecisionCardsMock.mockResolvedValue([])
+    listDigestEntriesMock.mockResolvedValue([
+      {
+        id: 'digest-latest-1',
+        sessionId: 'session-latest',
+        title: 'Latest session entry',
+        summary: 'Action: Schedule the release call. Blocker: Missing sign-off from legal.',
+        relevance: 'responsibility',
+        citations: [{ roomId: '!room:muon.dev', eventId: '$latest-1', quote: 'Schedule the release call' }],
+        citationEventIds: ['$latest-1'],
+        createdAt: 300,
+        updatedAt: 300,
+      },
+      {
+        id: 'digest-old-1',
+        sessionId: 'session-old',
+        title: 'Old session entry',
+        summary: 'Action: Review the design doc. Blocker: Pending stakeholder feedback.',
+        relevance: 'responsibility',
+        citations: [{ roomId: '!room:muon.dev', eventId: '$old-1', quote: 'Review the design doc' }],
+        citationEventIds: ['$old-1'],
+        createdAt: 50,
+        updatedAt: 50,
+      },
+    ])
+
+    const wrapper = mount(DecisionPanel)
+    await flushPromises()
+
+    // Only latest-session digest entry should produce visible suggestion cards
+    expect(wrapper.text()).toContain('Schedule the release call')
+    expect(wrapper.text()).not.toContain('Review the design doc')
+
+    // Verify only the latest-session card exists in the store
+    const store = useDecisionStore()
+    const digestCards = store.cards.filter(card => card.owner === 'digest')
+    expect(digestCards).toHaveLength(1)
+    expect(digestCards[0]?.id).toBe('decision:digest:digest-latest-1')
+  })
+
   it('hydrates saved decisions, renders linked messages, and jumps with preload plus focusEventId', async () => {
     listDecisionCardsMock.mockResolvedValue([
       {

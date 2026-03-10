@@ -1,7 +1,7 @@
+import type { CrossSessionQaAnswer } from '../types/knowledge'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { askCrossSessionQuestion, listSavedQaSessions } from '../services/crossSessionQa'
-import type { CrossSessionQaAnswer } from '../types/knowledge'
 
 function sortByNewest(sessions: CrossSessionQaAnswer[]) {
   return [...sessions].sort((left, right) => right.createdAt - left.createdAt)

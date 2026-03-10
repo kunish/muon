@@ -1,3 +1,4 @@
+import type { TaskItem, TaskSourceRef, TaskStatus } from '../types/task'
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import {
@@ -5,7 +6,6 @@ import {
   createTaskItem,
   TASK_STORAGE_KEY,
 } from '../types/task'
-import type { TaskItem, TaskSourceRef, TaskStatus } from '../types/task'
 
 interface PersistedTaskState {
   version: 1

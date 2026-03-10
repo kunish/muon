@@ -6,7 +6,7 @@ import { avatarGradient } from '@/features/chat/lib/format'
 import { getClient } from '@/matrix/client'
 import { getUserPresenceInfo } from '@/matrix/profile'
 import { findOrCreateDm } from '@/matrix/rooms'
-import Avatar from '@/shared/components/ui/avatar.vue'
+import { Avatar } from '@/shared/components/ui/avatar'
 
 const props = defineProps<{
   member: SpaceMember | null
@@ -67,11 +67,11 @@ const roleColor = computed(() => {
     return ''
   const pl = props.member.powerLevel
   if (pl >= 100)
-    return '#f0b132'
+    return '#c08b2e'
   if (pl >= 75)
-    return '#e8594f'
+    return '#b85c4a'
   if (pl >= 50)
-    return '#3ba55c'
+    return '#4a9882'
   return 'var(--color-muted-foreground)'
 })
 

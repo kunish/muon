@@ -28,12 +28,12 @@ Users can always find, process, and continue the most important conversations qu
 
 ### Active
 
-- [ ] User can triage a unified inbox of high-priority conversation items.
-- [ ] User can defer messages and return to them in a personal pending queue.
-- [ ] User can convert a message into a tracked task and navigate back to original message context.
-- [ ] User can quickly retrieve relevant messages across conversations.
-- [ ] User receives concise offline catch-up summary after returning.
-- [ ] User can capture discussion outcomes as decision cards for later reuse.
+- [x] User can triage a unified inbox of high-priority conversation items.
+- [x] User can defer messages and return to them in a personal pending queue.
+- [x] User can convert a message into a tracked task and navigate back to original message context.
+- [x] User can quickly retrieve relevant messages across conversations.
+- [x] User receives concise offline catch-up summary after returning.
+- [x] User can capture discussion outcomes as decision cards for later reuse.
 
 ### Out of Scope
 

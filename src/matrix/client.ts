@@ -17,7 +17,7 @@ export function createClient(config: MatrixConfig): sdk.MatrixClient {
     userId: config.userId,
     deviceId: config.deviceId,
     timelineSupport: true,
-    fetchFn: fetch as any,
+    fetchFn: fetch as typeof globalThis.fetch,
     // muon 使用 LiveKit 进行通话，禁用 matrix-js-sdk 内置 VoIP 以避免无意义的 TURN 请求
     disableVoip: true,
     fallbackICEServerAllowed: false,

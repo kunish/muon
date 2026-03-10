@@ -1,6 +1,8 @@
 import type { MatrixEvent } from 'matrix-js-sdk'
+import type { RoomMessageEventContent, StickerEventContent } from 'matrix-js-sdk/lib/@types/events'
+import type { VideoInfo } from 'matrix-js-sdk/lib/@types/media'
 import { fetch as tauriFetch } from '@tauri-apps/plugin-http'
-import { MsgType, RelationType } from 'matrix-js-sdk'
+import { EventType, MsgType, RelationType } from 'matrix-js-sdk'
 import { getClient } from './client'
 import { uploadMedia } from './media'
 
@@ -24,19 +26,20 @@ function convertMentionsToMatrix(html: string): { html: string, userIds: string[
 }
 
 export async function sendTextMessage(roomId: string, body: string, html?: string): Promise<string> {
-  const content: Record<string, any> = { msgtype: MsgType.Text, body }
+  let content: RoomMessageEventContent = { msgtype: MsgType.Text, body }
 
   if (html && html !== `<p>${body}</p>`) {
     const { html: matrixHtml, userIds } = convertMentionsToMatrix(html)
-    content.format = 'org.matrix.custom.html'
-    content.formatted_body = matrixHtml
-    // 添加 m.mentions 用于通知被提及的用户
-    if (userIds.length > 0) {
-      content['m.mentions'] = { user_ids: userIds }
-    }
+    content = {
+      ...content,
+      format: 'org.matrix.custom.html',
+      formatted_body: matrixHtml,
+      // 添加 m.mentions 用于通知被提及的用户
+      ...(userIds.length > 0 ? { 'm.mentions': { user_ids: userIds } } : {}),
+    } as RoomMessageEventContent
   }
 
-  const res = await getClient().sendMessage(roomId, content as any)
+  const res = await getClient().sendMessage(roomId, content)
   return res.event_id
 }
 
@@ -68,7 +71,7 @@ export async function sendVideoMessage(
   meta?: { thumbnail: Blob, width: number, height: number, duration: number },
 ): Promise<string> {
   const mxcUrl = await uploadMedia(file)
-  const info: Record<string, any> = { mimetype: file.type, size: file.size }
+  const info: VideoInfo = { mimetype: file.type, size: file.size }
   if (meta) {
     info.w = meta.width
     info.h = meta.height
@@ -85,7 +88,7 @@ export async function sendVideoMessage(
     body: file.name,
     url: mxcUrl,
     info,
-  } as any)
+  } as RoomMessageEventContent)
   return res.event_id
 }
 
@@ -96,7 +99,7 @@ export async function sendAudioMessage(roomId: string, file: Blob, duration: num
     body: 'Voice message',
     url: mxcUrl,
     info: { mimetype: file.type, size: file.size, duration },
-  } as any)
+  } as RoomMessageEventContent)
   return res.event_id
 }
 
@@ -106,7 +109,7 @@ export async function editMessage(roomId: string, eventId: string, newBody: stri
     'body': `* ${newBody}`,
     'm.new_content': { msgtype: MsgType.Text, body: newBody },
     'm.relates_to': { rel_type: RelationType.Replace, event_id: eventId },
-  } as any)
+  } as RoomMessageEventContent)
 }
 
 export async function redactMessage(roomId: string, eventId: string, reason?: string): Promise<void> {
@@ -422,20 +425,20 @@ export async function sendGifMessage(
       h: height,
     },
     'xyz.muon.gif_source': url,
-  } as any)
+  } as RoomMessageEventContent)
   return res.event_id
 }
 
 /** 发送 emoji 贴纸消息 */
 export async function sendStickerMessage(roomId: string, emoji: string, name: string): Promise<string> {
-  const res = await getClient().sendEvent(roomId, 'm.sticker' as any, {
+  const res = await getClient().sendEvent(roomId, EventType.Sticker, {
     body: name,
     url: '',
     info: {
       'mimetype': 'text/plain',
       'xyz.muon.emoji': emoji,
     },
-  })
+  } as StickerEventContent)
   return res.event_id
 }
 
@@ -446,7 +449,7 @@ export async function sendImageStickerMessage(
   mxcUrl: string,
   info: { w: number, h: number, mimetype: string, size?: number },
 ): Promise<string> {
-  const res = await getClient().sendEvent(roomId, 'm.sticker' as any, {
+  const res = await getClient().sendEvent(roomId, EventType.Sticker, {
     body: name,
     url: mxcUrl,
     info: {
@@ -455,13 +458,13 @@ export async function sendImageStickerMessage(
       mimetype: info.mimetype,
       size: info.size ?? 0,
     },
-  })
+  } as StickerEventContent)
   return res.event_id
 }
 
 /** 发送 emoji reaction */
 export async function sendReaction(roomId: string, eventId: string, emoji: string): Promise<void> {
-  await getClient().sendEvent(roomId, 'm.reaction' as any, {
+  await getClient().sendEvent(roomId, EventType.Reaction, {
     'm.relates_to': {
       rel_type: RelationType.Annotation,
       event_id: eventId,
@@ -479,13 +482,13 @@ export async function sendLocationMessage(
   const geoUri = `geo:${latitude},${longitude}`
   const body = description || `Location: ${latitude}, ${longitude}`
   const { event_id } = await getClient().sendMessage(roomId, {
-    msgtype: 'm.location',
+    msgtype: MsgType.Location,
     body,
     geo_uri: geoUri,
     info: {
       description: body,
     },
-  } as any)
+  } as RoomMessageEventContent)
   return event_id
 }
 
@@ -513,7 +516,7 @@ export async function sendThreadReply(
       'is_falling_back': true,
       'm.in_reply_to': { event_id: threadRootId },
     },
-  } as any)
+  } as RoomMessageEventContent)
   return event_id
 }
 
@@ -564,7 +567,7 @@ export async function sendContactCard(
       display_name: displayName,
       avatar_url: avatarUrl || '',
     },
-  } as any)
+  } as unknown as RoomMessageEventContent)
   return event_id
 }
 

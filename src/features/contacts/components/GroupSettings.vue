@@ -14,6 +14,7 @@ import {
 } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { Textarea } from '@/shared/components/ui/textarea'
 import { useConversations } from '../../chat/composables/useConversations'
 import { useChatStore } from '../../chat/stores/chatStore'
 import { useGroupManagement } from '../composables/useGroupManagement'
@@ -189,7 +190,7 @@ const isAdmin = computed(() => getPowerLevel(myUserId) >= 50)
         </button>
       </div>
       <div v-if="editingTopic" class="space-y-1.5">
-        <textarea
+        <Textarea
           v-model="topicInput"
           rows="2"
           class="w-full px-2 py-1.5 text-sm rounded border border-border bg-background outline-none resize-none focus:ring-1 focus:ring-primary"
@@ -226,7 +227,7 @@ const isAdmin = computed(() => getPowerLevel(myUserId) >= 50)
         </button>
       </div>
       <div v-if="editingAnnouncement" class="space-y-1.5">
-        <textarea
+        <Textarea
           v-model="announcementInput"
           rows="3"
           class="w-full px-2 py-1.5 text-sm rounded border border-border bg-background outline-none resize-none focus:ring-1 focus:ring-primary"
@@ -242,7 +243,7 @@ const isAdmin = computed(() => getPowerLevel(myUserId) >= 50)
           </button>
         </div>
       </div>
-      <div v-else-if="currentAnnouncement" class="text-sm p-2 rounded-lg bg-amber-500/5 border border-amber-500/10">
+      <div v-else-if="currentAnnouncement" class="text-sm p-2 rounded-lg bg-warning/5 border border-warning/10">
         {{ currentAnnouncement }}
       </div>
       <p v-else class="text-sm text-muted-foreground">

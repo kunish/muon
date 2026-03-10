@@ -55,7 +55,7 @@ onUnmounted(() => {
         <PhoneOff :size="20" />
       </button>
       <button
-        class="w-12 h-12 rounded-full bg-green-500 text-white flex items-center justify-center"
+        class="w-12 h-12 rounded-full bg-success text-white flex items-center justify-center"
         @click="emit('accept')"
       >
         <Phone :size="20" />
