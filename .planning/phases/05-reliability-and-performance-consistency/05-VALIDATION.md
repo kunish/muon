@@ -15,13 +15,13 @@ created: 2026-03-06
 
 ## Test Infrastructure
 
-| Property | Value |
-|----------|-------|
-| **Framework** | vitest + Vue Test Utils + Playwright |
-| **Config file** | `vitest.config.ts`, `playwright.config.ts` |
-| **Quick run command** | `pnpm vitest run tests/unit/matrix/syncRecovery.test.ts tests/components/UnifiedInboxPanel.recovery.test.ts tests/components/GlobalSearch.performance.test.ts` |
-| **Full suite command** | `pnpm test:unit && pnpm test:e2e` |
-| **Estimated runtime** | ~45 seconds |
+| Property               | Value                                                                                                                                                          |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Framework**          | vitest + Vue Test Utils + Playwright                                                                                                                           |
+| **Config file**        | `vitest.config.ts`, `playwright.config.ts`                                                                                                                     |
+| **Quick run command**  | `pnpm vitest run tests/unit/matrix/syncRecovery.test.ts tests/components/UnifiedInboxPanel.recovery.test.ts tests/components/GlobalSearch.performance.test.ts` |
+| **Full suite command** | `pnpm test:unit && pnpm test:e2e`                                                                                                                              |
+| **Estimated runtime**  | ~45 seconds                                                                                                                                                    |
 
 ---
 
@@ -36,14 +36,14 @@ created: 2026-03-06
 
 ## Per-Task Verification Map
 
-| Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
-|---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 05-01-01 | 01 | 1 | RELI-01 | unit | `pnpm vitest run tests/unit/matrix/syncRecovery.test.ts -x` | ❌ W0 | ⬜ pending |
-| 05-01-02 | 01 | 1 | RELI-01 | component | `pnpm vitest run tests/components/UnifiedInboxPanel.recovery.test.ts tests/unit/stores/taskStore.recovery.test.ts -x` | ❌ W0 | ⬜ pending |
-| 05-02-01 | 02 | 1 | RELI-02 | component | `pnpm vitest run tests/components/UnifiedInboxPanel.performance.test.ts tests/components/GlobalSearch.performance.test.ts -x` | ❌ W0 | ⬜ pending |
-| 05-02-02 | 02 | 1 | RELI-02 | smoke | `pnpm vitest run tests/components/GlobalSearch.performance.test.ts -x` | ❌ W0 | ⬜ pending |
+| Task ID  | Plan | Wave | Requirement | Test Type | Automated Command                                                                                                             | File Exists | Status     |
+| -------- | ---- | ---- | ----------- | --------- | ----------------------------------------------------------------------------------------------------------------------------- | ----------- | ---------- |
+| 05-01-01 | 01   | 1    | RELI-01     | unit      | `pnpm vitest run tests/unit/matrix/syncRecovery.test.ts -x`                                                                   | ❌ W0       | ⬜ pending |
+| 05-01-02 | 01   | 1    | RELI-01     | component | `pnpm vitest run tests/components/UnifiedInboxPanel.recovery.test.ts tests/unit/stores/taskStore.recovery.test.ts -x`         | ❌ W0       | ⬜ pending |
+| 05-02-01 | 02   | 1    | RELI-02     | component | `pnpm vitest run tests/components/UnifiedInboxPanel.performance.test.ts tests/components/GlobalSearch.performance.test.ts -x` | ❌ W0       | ⬜ pending |
+| 05-02-02 | 02   | 1    | RELI-02     | smoke     | `pnpm vitest run tests/components/GlobalSearch.performance.test.ts -x`                                                        | ❌ W0       | ⬜ pending |
 
-*Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
+_Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky_
 
 ---
 
@@ -60,10 +60,10 @@ created: 2026-03-06
 
 ## Manual-Only Verifications
 
-| Behavior | Requirement | Why Manual | Test Instructions |
-|----------|-------------|------------|-------------------|
-| Reconnect the desktop client during active inbox/task usage and confirm no visible item loss or duplicate navigation regression | RELI-01 | Real reconnect timing and Matrix server latency are hard to model fully in unit tests | Launch app, simulate disconnect/reconnect, verify inbox/task counts and source-message jump behavior remain consistent |
-| Validate inbox/search interactions still feel responsive with realistic room volume | RELI-02 | Perceived lag threshold is experiential even with component budgets | Open large workspace fixture, type in search, scroll inbox, and confirm no noticeable typing or navigation lag |
+| Behavior                                                                                                                        | Requirement | Why Manual                                                                            | Test Instructions                                                                                                      |
+| ------------------------------------------------------------------------------------------------------------------------------- | ----------- | ------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Reconnect the desktop client during active inbox/task usage and confirm no visible item loss or duplicate navigation regression | RELI-01     | Real reconnect timing and Matrix server latency are hard to model fully in unit tests | Launch app, simulate disconnect/reconnect, verify inbox/task counts and source-message jump behavior remain consistent |
+| Validate inbox/search interactions still feel responsive with realistic room volume                                             | RELI-02     | Perceived lag threshold is experiential even with component budgets                   | Open large workspace fixture, type in search, scroll inbox, and confirm no noticeable typing or navigation lag         |
 
 ---
 

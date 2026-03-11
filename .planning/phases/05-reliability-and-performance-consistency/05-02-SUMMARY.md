@@ -63,6 +63,7 @@ completed: 2026-03-06
 - **Files modified:** 6
 
 ## Accomplishments
+
 - Added RED-first performance regression coverage for large inbox lists, large search result sets, pagination continuity, and bounded jump latency.
 - Virtualized unified inbox rows and global-search message hits using the repo's existing `@tanstack/vue-virtual` pattern.
 - Updated retrieval pagination to append deduped pages by `eventId` and kept jump navigation responsive with a 250ms preload budget.
@@ -75,6 +76,7 @@ Each task was committed atomically:
 2. **Task 2: Virtualize inbox and GlobalSearch rendering while keeping jump navigation non-blocking** - `24dbae3` (feat)
 
 ## Files Created/Modified
+
 - `tests/components/UnifiedInboxPanel.performance.test.ts` - Failing-then-green render-budget coverage for large inbox datasets.
 - `tests/components/GlobalSearch.performance.test.ts` - Regression tests for bounded search rendering, load-more continuity, and preload timeout navigation.
 - `src/features/chat/components/UnifiedInboxPanel.vue` - Virtualized inbox row rendering with bounded fallback window.
@@ -83,6 +85,7 @@ Each task was committed atomically:
 - `tests/components/GlobalSearch.test.ts` - Async assertion updates aligned with emitted close behavior.
 
 ## Decisions Made
+
 - Kept `GlobalSearch` submit-driven and focused on render hardening instead of adding incremental search-on-type behavior.
 - Preserved the existing preload-first jump chain, but stopped letting stalled preload block route changes.
 - Used a small jsdom-safe virtual-list fallback slice so component tests still exercise real UI behavior while production paths use `useVirtualizer`.
@@ -92,6 +95,7 @@ Each task was committed atomically:
 ### Auto-fixed Issues
 
 **1. [Rule 3 - Blocking] Swapped invalid `vitest -x` invocation for a plain targeted run**
+
 - **Found during:** Task 1 verification
 - **Issue:** The plan's `pnpm vitest run ... -x` command is unsupported by the installed Vitest 4 CLI.
 - **Fix:** Ran the same targeted file set without `-x` so RED/GREEN verification could proceed.
@@ -100,6 +104,7 @@ Each task was committed atomically:
 - **Committed in:** `c5103a4` / `24dbae3` verification flow
 
 **2. [Rule 3 - Blocking] Added jsdom-safe bounded fallback when virtualizer cannot measure scroll containers**
+
 - **Found during:** Task 2 verification
 - **Issue:** Vue virtualizer returned zero rows in component tests because jsdom reports zero-sized scroll containers.
 - **Fix:** Kept `useVirtualizer` as the primary path, but added a small bounded fallback slice so tests and non-measured environments still render a usable subset.
@@ -113,6 +118,7 @@ Each task was committed atomically:
 **Impact on plan:** Both fixes were execution unblockers for the intended RELI-02 scope; no product-surface scope creep was introduced.
 
 ## Issues Encountered
+
 - `useVirtualizer` needs a measured scroll container to render rows in jsdom, so test-safe bounded fallbacks were required.
 
 ## User Setup Required
@@ -120,12 +126,14 @@ Each task was committed atomically:
 None - no external service configuration required.
 
 ## Next Phase Readiness
+
 - RELI-02 now has explicit regression coverage for heavy inbox/search workloads and jump latency.
 - Retrieval pagination and result navigation semantics are stable enough for remaining Phase 5 validation work.
 
 ---
-*Phase: 05-reliability-and-performance-consistency*
-*Completed: 2026-03-06*
+
+_Phase: 05-reliability-and-performance-consistency_
+_Completed: 2026-03-06_
 
 ## Self-Check: PASSED
 

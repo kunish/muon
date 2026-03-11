@@ -41,60 +41,60 @@ gaps:
 
 ### Observable Truths
 
-| # | Truth | Status | Evidence |
-| --- | --- | --- | --- |
-| 1 | User sees the same inbox-derived work items after reconnect or sync catch-up without waiting for a brand-new message. | ✓ VERIFIED | `src/matrix/sync.ts` emits `sync.state`; `src/features/chat/composables/useUnifiedInbox.ts` refreshes on recovery states; `tests/unit/matrix/syncRecovery.test.ts` and `tests/components/UnifiedInboxPanel.recovery.test.ts` passed. |
-| 2 | Limited timeline / recovery refreshes do not regress inbox ordering or silently drop the latest visible event context. | ✓ VERIFIED | `src/matrix/rooms.ts` derives from `room.getLiveTimeline().getEvents()` first and falls back best-effort; recovery tests passed. |
-| 3 | User can scroll and process a large inbox without rendering every row eagerly. | ✓ VERIFIED | `src/features/chat/components/UnifiedInboxPanel.vue` uses `useVirtualizer`; `UnifiedInboxPanel` is mounted from `src/features/server/components/ChannelSidebar.vue`; `tests/components/UnifiedInboxPanel.performance.test.ts` passed. |
-| 4 | User can search across conversations and page through results without noticeable navigation delay. | ✗ FAILED | `src/features/chat/components/GlobalSearch.vue` implements this, but no production file imports it; `src/features/chat/components/ChatWindow.vue` still renders `SearchMessages.vue` for `activeSidePanel === 'search'`. |
-| 5 | Search-result jumps keep the existing best-effort preload behavior but stop waiting past a short latency budget. | ✗ FAILED | `GlobalSearch.vue` uses `Promise.race(...)`, but the reachable search UI is `SearchMessages.vue`, not `GlobalSearch.vue`. |
-| 6 | User-created tasks remain available after reconnect/bootstrap instead of being silently cleared or duplicated. | ✓ VERIFIED | `src/features/chat/stores/taskStore.ts` rehydrates from `TASK_STORAGE_KEY` on `hydrate()`; `tests/unit/stores/taskStore.recovery.test.ts` passed. |
-| 7 | Task persistence tolerates repeated hydrate/recovery entry with invalid legacy rows filtered out deterministically. | ✓ VERIFIED | `taskStore.ts` normalizes persisted items and rewrites storage when needed; recovery tests passed. |
+| #   | Truth                                                                                                                  | Status     | Evidence                                                                                                                                                                                                                              |
+| --- | ---------------------------------------------------------------------------------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | User sees the same inbox-derived work items after reconnect or sync catch-up without waiting for a brand-new message.  | ✓ VERIFIED | `src/matrix/sync.ts` emits `sync.state`; `src/features/chat/composables/useUnifiedInbox.ts` refreshes on recovery states; `tests/unit/matrix/syncRecovery.test.ts` and `tests/components/UnifiedInboxPanel.recovery.test.ts` passed.  |
+| 2   | Limited timeline / recovery refreshes do not regress inbox ordering or silently drop the latest visible event context. | ✓ VERIFIED | `src/matrix/rooms.ts` derives from `room.getLiveTimeline().getEvents()` first and falls back best-effort; recovery tests passed.                                                                                                      |
+| 3   | User can scroll and process a large inbox without rendering every row eagerly.                                         | ✓ VERIFIED | `src/features/chat/components/UnifiedInboxPanel.vue` uses `useVirtualizer`; `UnifiedInboxPanel` is mounted from `src/features/server/components/ChannelSidebar.vue`; `tests/components/UnifiedInboxPanel.performance.test.ts` passed. |
+| 4   | User can search across conversations and page through results without noticeable navigation delay.                     | ✗ FAILED   | `src/features/chat/components/GlobalSearch.vue` implements this, but no production file imports it; `src/features/chat/components/ChatWindow.vue` still renders `SearchMessages.vue` for `activeSidePanel === 'search'`.              |
+| 5   | Search-result jumps keep the existing best-effort preload behavior but stop waiting past a short latency budget.       | ✗ FAILED   | `GlobalSearch.vue` uses `Promise.race(...)`, but the reachable search UI is `SearchMessages.vue`, not `GlobalSearch.vue`.                                                                                                             |
+| 6   | User-created tasks remain available after reconnect/bootstrap instead of being silently cleared or duplicated.         | ✓ VERIFIED | `src/features/chat/stores/taskStore.ts` rehydrates from `TASK_STORAGE_KEY` on `hydrate()`; `tests/unit/stores/taskStore.recovery.test.ts` passed.                                                                                     |
+| 7   | Task persistence tolerates repeated hydrate/recovery entry with invalid legacy rows filtered out deterministically.    | ✓ VERIFIED | `taskStore.ts` normalizes persisted items and rewrites storage when needed; recovery tests passed.                                                                                                                                    |
 
 **Score:** 5/7 truths verified
 
 ### Required Artifacts
 
-| Artifact | Expected | Status | Details |
-| --- | --- | --- | --- |
-| `src/matrix/sync.ts` | Full sync lifecycle handling plus recovery event emission | ✓ VERIFIED | Emits `sync.state` for `RECONNECTING`, `CATCHUP`, `PREPARED`, `SYNCING`, `ERROR`, `STOPPED`. |
-| `src/matrix/rooms.ts` | Canonical room-summary derivation from live timeline APIs | ✓ VERIFIED | Uses live timeline events first and preserves fallback ordering metadata. |
-| `src/features/chat/composables/useUnifiedInbox.ts` | Recovery-triggered inbox recomputation | ✓ VERIFIED | Binds `matrixEvents.on('sync.state', handleSyncState)` and calls `getRoomSummaries()` on recovery states. |
-| `tests/unit/matrix/syncRecovery.test.ts` | Regression coverage for reconnect/catch-up/gap handling | ✓ VERIFIED | Present and passed in fresh verification run. |
-| `src/features/chat/components/UnifiedInboxPanel.vue` | Virtualized inbox rendering for long lists | ✓ VERIFIED | Uses `useVirtualizer`; mounted by `ChannelSidebar.vue`; performance test passed. |
-| `src/features/chat/components/GlobalSearch.vue` | Virtualized/bounded search result rendering and timed preload navigation | ⚠️ ORPHANED | Implementation is substantive, but no production component imports or mounts it. |
-| `src/features/chat/stores/retrievalStore.ts` | Stable result-session state for large paginated result sets | ⚠️ ORPHANED | Store logic is substantive, but only `GlobalSearch.vue` consumes it, and that component is not wired into the app. |
-| `tests/components/GlobalSearch.performance.test.ts` | Regression coverage for render budget and bounded jump latency | ✓ VERIFIED | Present and passed in fresh verification run. |
-| `src/features/chat/stores/taskStore.ts` | Idempotent task continuity across hydrate/recovery bootstrap | ✓ VERIFIED | Reads/writes `TASK_STORAGE_KEY`, normalizes persisted rows, and preserves follow-up writes. |
-| `tests/unit/stores/taskStore.recovery.test.ts` | Regression coverage for persisted task continuity | ✓ VERIFIED | Present and passed in fresh verification run. |
+| Artifact                                             | Expected                                                                 | Status      | Details                                                                                                            |
+| ---------------------------------------------------- | ------------------------------------------------------------------------ | ----------- | ------------------------------------------------------------------------------------------------------------------ |
+| `src/matrix/sync.ts`                                 | Full sync lifecycle handling plus recovery event emission                | ✓ VERIFIED  | Emits `sync.state` for `RECONNECTING`, `CATCHUP`, `PREPARED`, `SYNCING`, `ERROR`, `STOPPED`.                       |
+| `src/matrix/rooms.ts`                                | Canonical room-summary derivation from live timeline APIs                | ✓ VERIFIED  | Uses live timeline events first and preserves fallback ordering metadata.                                          |
+| `src/features/chat/composables/useUnifiedInbox.ts`   | Recovery-triggered inbox recomputation                                   | ✓ VERIFIED  | Binds `matrixEvents.on('sync.state', handleSyncState)` and calls `getRoomSummaries()` on recovery states.          |
+| `tests/unit/matrix/syncRecovery.test.ts`             | Regression coverage for reconnect/catch-up/gap handling                  | ✓ VERIFIED  | Present and passed in fresh verification run.                                                                      |
+| `src/features/chat/components/UnifiedInboxPanel.vue` | Virtualized inbox rendering for long lists                               | ✓ VERIFIED  | Uses `useVirtualizer`; mounted by `ChannelSidebar.vue`; performance test passed.                                   |
+| `src/features/chat/components/GlobalSearch.vue`      | Virtualized/bounded search result rendering and timed preload navigation | ⚠️ ORPHANED | Implementation is substantive, but no production component imports or mounts it.                                   |
+| `src/features/chat/stores/retrievalStore.ts`         | Stable result-session state for large paginated result sets              | ⚠️ ORPHANED | Store logic is substantive, but only `GlobalSearch.vue` consumes it, and that component is not wired into the app. |
+| `tests/components/GlobalSearch.performance.test.ts`  | Regression coverage for render budget and bounded jump latency           | ✓ VERIFIED  | Present and passed in fresh verification run.                                                                      |
+| `src/features/chat/stores/taskStore.ts`              | Idempotent task continuity across hydrate/recovery bootstrap             | ✓ VERIFIED  | Reads/writes `TASK_STORAGE_KEY`, normalizes persisted rows, and preserves follow-up writes.                        |
+| `tests/unit/stores/taskStore.recovery.test.ts`       | Regression coverage for persisted task continuity                        | ✓ VERIFIED  | Present and passed in fresh verification run.                                                                      |
 
 ### Key Link Verification
 
-| From | To | Via | Status | Details |
-| --- | --- | --- | --- | --- |
-| `src/matrix/sync.ts` | `src/matrix/events.ts` | `matrixEvents.emit('sync.state', { state })` | ✓ WIRED | `applySyncState()` emits recovery lifecycle updates used elsewhere. |
-| `src/features/chat/composables/useUnifiedInbox.ts` | `src/matrix/rooms.ts` | `getRoomSummaries()` during recovery refresh | ✓ WIRED | `refreshNow()` pulls canonical summaries and `handleSyncState()` triggers it on reconnect/catch-up states. |
-| `src/features/chat/components/UnifiedInboxPanel.vue` | `@tanstack/vue-virtual` | `useVirtualizer` over inbox items | ✓ WIRED | Virtualizer is instantiated and used to produce rendered rows / fallback slice. |
-| `src/features/chat/components/GlobalSearch.vue` | `src/features/chat/stores/retrievalStore.ts` | `retrievalStore.results / canLoadMore / loadMore` | ✓ WIRED | Internal component wiring is correct. |
-| `src/features/chat/components/GlobalSearch.vue` | `loadInboxEventContext` | `Promise.race` timeout budget before navigation | ✓ WIRED | `jumpToResult()` races preload against a 250ms timeout. |
-| `src/features/chat/stores/taskStore.ts` | `localStorage` | `hydrate()` and `persistState()` | ✓ WIRED | Reads and rewrites `TASK_STORAGE_KEY` as the persistence source of truth. |
-| `src/features/chat/components/ChatWindow.vue` | `src/features/chat/components/GlobalSearch.vue` | Active `search` side panel | ✗ NOT_WIRED | `ChatWindow.vue` renders `SearchMessages.vue` instead of `GlobalSearch.vue` when search is opened. |
+| From                                                 | To                                              | Via                                               | Status      | Details                                                                                                    |
+| ---------------------------------------------------- | ----------------------------------------------- | ------------------------------------------------- | ----------- | ---------------------------------------------------------------------------------------------------------- |
+| `src/matrix/sync.ts`                                 | `src/matrix/events.ts`                          | `matrixEvents.emit('sync.state', { state })`      | ✓ WIRED     | `applySyncState()` emits recovery lifecycle updates used elsewhere.                                        |
+| `src/features/chat/composables/useUnifiedInbox.ts`   | `src/matrix/rooms.ts`                           | `getRoomSummaries()` during recovery refresh      | ✓ WIRED     | `refreshNow()` pulls canonical summaries and `handleSyncState()` triggers it on reconnect/catch-up states. |
+| `src/features/chat/components/UnifiedInboxPanel.vue` | `@tanstack/vue-virtual`                         | `useVirtualizer` over inbox items                 | ✓ WIRED     | Virtualizer is instantiated and used to produce rendered rows / fallback slice.                            |
+| `src/features/chat/components/GlobalSearch.vue`      | `src/features/chat/stores/retrievalStore.ts`    | `retrievalStore.results / canLoadMore / loadMore` | ✓ WIRED     | Internal component wiring is correct.                                                                      |
+| `src/features/chat/components/GlobalSearch.vue`      | `loadInboxEventContext`                         | `Promise.race` timeout budget before navigation   | ✓ WIRED     | `jumpToResult()` races preload against a 250ms timeout.                                                    |
+| `src/features/chat/stores/taskStore.ts`              | `localStorage`                                  | `hydrate()` and `persistState()`                  | ✓ WIRED     | Reads and rewrites `TASK_STORAGE_KEY` as the persistence source of truth.                                  |
+| `src/features/chat/components/ChatWindow.vue`        | `src/features/chat/components/GlobalSearch.vue` | Active `search` side panel                        | ✗ NOT_WIRED | `ChatWindow.vue` renders `SearchMessages.vue` instead of `GlobalSearch.vue` when search is opened.         |
 
 ### Requirements Coverage
 
-| Requirement | Source Plan | Description | Status | Evidence |
-| --- | --- | --- | --- | --- |
-| `RELI-01` | `05-01-PLAN.md`, `05-03-PLAN.md` | User sees consistent inbox/task state after reconnect or sync gap recovery without silent item loss. | ✓ SATISFIED | Recovery sync emission, canonical inbox refresh, and reconnect-safe `taskStore` hydrate are implemented and covered by fresh passing tests. |
-| `RELI-02` | `05-02-PLAN.md` | User can complete inbox and search workflows without noticeable typing or navigation lag. | ✗ BLOCKED | Inbox virtualization is wired, but the retrieval implementation (`GlobalSearch.vue` + `retrievalStore.ts`) is not mounted in production; reachable search still uses `SearchMessages.vue`. |
+| Requirement | Source Plan                      | Description                                                                                          | Status      | Evidence                                                                                                                                                                                   |
+| ----------- | -------------------------------- | ---------------------------------------------------------------------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `RELI-01`   | `05-01-PLAN.md`, `05-03-PLAN.md` | User sees consistent inbox/task state after reconnect or sync gap recovery without silent item loss. | ✓ SATISFIED | Recovery sync emission, canonical inbox refresh, and reconnect-safe `taskStore` hydrate are implemented and covered by fresh passing tests.                                                |
+| `RELI-02`   | `05-02-PLAN.md`                  | User can complete inbox and search workflows without noticeable typing or navigation lag.            | ✗ BLOCKED   | Inbox virtualization is wired, but the retrieval implementation (`GlobalSearch.vue` + `retrievalStore.ts`) is not mounted in production; reachable search still uses `SearchMessages.vue`. |
 
 **Requirement accounting:** All requirement IDs declared in Phase 5 plan frontmatter (`RELI-01`, `RELI-02`) are present in `REQUIREMENTS.md`. No orphaned Phase 5 requirement IDs were found.
 
 ### Anti-Patterns Found
 
-| File | Line | Pattern | Severity | Impact |
-| --- | --- | --- | --- | --- |
-| `src/features/chat/components/GlobalSearch.vue` | 1-249 | Implemented but unused production component | 🛑 Blocker | RELI-02 search improvements are not reachable by users. |
-| `src/features/chat/stores/retrievalStore.ts` | 20-107 | Reachable only through orphaned UI | ⚠️ Warning | Pagination/session stability exists in code but not in actual workflow. |
+| File                                            | Line   | Pattern                                     | Severity   | Impact                                                                  |
+| ----------------------------------------------- | ------ | ------------------------------------------- | ---------- | ----------------------------------------------------------------------- |
+| `src/features/chat/components/GlobalSearch.vue` | 1-249  | Implemented but unused production component | 🛑 Blocker | RELI-02 search improvements are not reachable by users.                 |
+| `src/features/chat/stores/retrievalStore.ts`    | 20-107 | Reachable only through orphaned UI          | ⚠️ Warning | Pagination/session stability exists in code but not in actual workflow. |
 
 ### Human Verification Required
 

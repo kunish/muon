@@ -186,7 +186,7 @@ describe('decisionStore', () => {
     ])
   })
 
-  it('AI suggestions default to pending and only transition to accepted/rejected', async () => {
+  it('aI suggestions default to pending and only transition to accepted/rejected', async () => {
     const { useDecisionStore } = await import('@/features/chat/stores/decisionStore')
     const store = useDecisionStore()
 

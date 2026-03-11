@@ -60,6 +60,7 @@ completed: 2026-03-06
 - **Files modified:** 6
 
 ## Accomplishments
+
 - Added deterministic digest-summary suggestion extraction for `action` and `blocker` items with preserved citations.
 - Extended `decisionStore` with `hydrateCards()` and digest-backed draft materialization while preserving accepted/rejected audit state.
 - Updated `DecisionPanel` to load hydrated cards on mount, render linked messages, and jump back to source events with preload + fallback navigation.
@@ -72,6 +73,7 @@ Each task was committed atomically:
 2. **Task 2: 实现 digest suggestion 提取、decision 回读与 linked-message 追溯 UI** - `4ba80fd` (feat)
 
 ## Files Created/Modified
+
 - `src/features/chat/services/suggestionExtraction.ts` - Extracts deterministic action/blocker suggestions from digest title/summary text.
 - `src/features/chat/stores/decisionStore.ts` - Hydrates persisted cards, materializes digest-backed drafts, and preserves suggestion disposition audits.
 - `src/features/chat/components/DecisionPanel.vue` - Loads hydrated cards, renders linked messages, and reuses Matrix focus navigation.
@@ -80,6 +82,7 @@ Each task was committed atomically:
 - `tests/components/DecisionPanel.test.ts` - Covers hydrated rendering plus linked-message jump behavior.
 
 ## Decisions Made
+
 - Used digest entry ids as the source of truth for draft decision ids so repeated materialization merges into the same persisted card.
 - Preserved accepted/rejected audit metadata when digest suggestions are regenerated, preventing rematerialization from erasing user intent.
 - Reused the established Matrix preload-then-focus navigation chain for linked-message verification.
@@ -102,8 +105,9 @@ None - no external service configuration required.
 - Ready for the remaining Phase 4 gap-closure work and final phase verification.
 
 ---
-*Phase: 04-offline-digest-and-decision-capture*
-*Completed: 2026-03-06*
+
+_Phase: 04-offline-digest-and-decision-capture_
+_Completed: 2026-03-06_
 
 ## Self-Check: PASSED
 

@@ -47,6 +47,7 @@ completed: 2026-03-05
 - **Files modified:** 4
 
 ## Accomplishments
+
 - 修复 DM 侧栏组合布局：inbox + defer 区域进入共享滚动上下文，避免高度挤压。
 - DeferQueuePanel 增加 active/history 滚动容器，长列表下仍可触达后段事项并执行动作。
 - 新增长列表可达性与非首屏 completed/archived 迁移测试，覆盖本次验证阻断场景。
@@ -63,12 +64,14 @@ Each task was committed atomically:
 **Plan metadata:** Pending
 
 ## Files Created/Modified
+
 - `src/features/server/components/ChannelSidebar.vue` - DM 模式将 inbox/defer 置于共享滚动区域。
 - `src/features/chat/components/UnifiedInboxPanel.vue` - 调整根布局为非阻塞高度策略（移除 h-full 抢占）。
 - `src/features/chat/components/DeferQueuePanel.vue` - active/history 引入显式滚动容器并保持操作按钮可达。
 - `tests/components/DeferQueuePanel.test.ts` - 补充滚动容器与长列表非首屏操作回归测试。
 
 ## Decisions Made
+
 - 侧栏组合面板统一遵循 `min-h-0 + shared scroll`，避免再次出现“逻辑存在但无法滚动操作”的可用性缺口。
 - 长列表场景使用明确的滚动容器 test id 作为回归断言锚点，降低 UI 结构调整时的漏测风险。
 
@@ -94,8 +97,9 @@ None - no external service configuration required.
 - 可进入下一阶段（Phase 3）规划与执行。
 
 ---
-*Phase: 02-defer-and-message-to-task-loop*
-*Completed: 2026-03-05*
+
+_Phase: 02-defer-and-message-to-task-loop_
+_Completed: 2026-03-05_
 
 ## Self-Check: PASSED
 

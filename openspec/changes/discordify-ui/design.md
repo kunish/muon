@@ -9,6 +9,7 @@ Muon 是一个基于 Matrix 协议的桌面 IM 客户端（Tauri 2 + Vue 3 + Typ
 ## Goals / Non-Goals
 
 **Goals:**
+
 - 实现 Discord 四栏布局：服务器栏(72px) → 频道侧栏(240px) → 聊天主区(flex) → 成员面板(240px, 可折叠)
 - 基于 Matrix Spaces API 实现服务器/频道层级结构
 - 暗色优先的 Discord 颜色体系
@@ -17,6 +18,7 @@ Muon 是一个基于 Matrix 协议的桌面 IM 客户端（Tauri 2 + Vue 3 + Typ
 - 服务器设置与角色权限管理（基于 Matrix power levels）
 
 **Non-Goals:**
+
 - 不实现 Discord Nitro 等付费功能
 - 不实现 Discord Bot 框架（保持 Matrix 原生 bot 支持）
 - 不实现 Discord 的「发现服务器」公共目录（可后续迭代）
@@ -31,6 +33,7 @@ Muon 是一个基于 Matrix 协议的桌面 IM 客户端（Tauri 2 + Vue 3 + Typ
 **选择**: 在 `AppLayout.vue` 中采用嵌套 RouterView，外层为服务器栏 + 内容区，内容区根据路由渲染频道侧栏和聊天区。
 
 **路由结构**:
+
 ```
 /server/:serverId/channel/:channelId  → 服务器内频道
 /dm/:roomId                            → DM 对话
@@ -63,6 +66,7 @@ Muon 是一个基于 Matrix 协议的桌面 IM 客户端（Tauri 2 + Vue 3 + Typ
 ### D3: 新增 `src/matrix/spaces.ts` 模块
 
 **选择**: 新增独立模块封装所有 Spaces API 调用：
+
 - `getSpaceHierarchy(spaceId)` — 获取 Space 层级
 - `createSpace(name, opts)` — 创建服务器/分类
 - `addRoomToSpace(spaceId, roomId, opts)` — 添加频道
@@ -79,17 +83,17 @@ Muon 是一个基于 Matrix 协议的桌面 IM 客户端（Tauri 2 + Vue 3 + Typ
 ```css
 :root {
   /* Discord Blurple 作为 primary */
-  --color-primary: hsl(235 86% 65%);         /* #5865F2 */
+  --color-primary: hsl(235 86% 65%); /* #5865F2 */
   --color-primary-foreground: hsl(0 0% 100%);
 }
 .dark {
-  --color-background: hsl(220 8% 25%);       /* #36393f - 主背景 */
-  --color-foreground: hsl(210 10% 87%);       /* #dcddde - 主文字 */
-  --color-muted: hsl(220 7% 20%);             /* #2f3136 - 侧边栏 */
-  --color-card: hsl(220 8% 22%);              /* #32353b - 卡片 */
-  --color-sidebar: hsl(220 8% 14%);           /* #202225 - 服务器栏 */
-  --color-border: hsl(220 4% 15%);            /* #26282c */
-  --color-accent: hsl(220 8% 30%);            /* hover 高亮 */
+  --color-background: hsl(220 8% 25%); /* #36393f - 主背景 */
+  --color-foreground: hsl(210 10% 87%); /* #dcddde - 主文字 */
+  --color-muted: hsl(220 7% 20%); /* #2f3136 - 侧边栏 */
+  --color-card: hsl(220 8% 22%); /* #32353b - 卡片 */
+  --color-sidebar: hsl(220 8% 14%); /* #202225 - 服务器栏 */
+  --color-border: hsl(220 4% 15%); /* #26282c */
+  --color-accent: hsl(220 8% 30%); /* hover 高亮 */
 }
 ```
 
@@ -102,6 +106,7 @@ Muon 是一个基于 Matrix 协议的桌面 IM 客户端（Tauri 2 + Vue 3 + Typ
 **选择**: 创建新的 `DiscordMessage.vue` 和 `DiscordMessageGroup.vue` 组件，替代现有 `MessageBubble.vue` 的气泡样式。
 
 **消息布局结构**:
+
 ```
 [48px 头像] [用户名 timestamp]
            [消息内容]

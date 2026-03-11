@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
 import type { DigestEntry } from '@/features/chat/types/knowledge'
+import { describe, expect, it } from 'vitest'
 
 function createDigestEntry(overrides: Partial<DigestEntry> = {}): DigestEntry {
   return {

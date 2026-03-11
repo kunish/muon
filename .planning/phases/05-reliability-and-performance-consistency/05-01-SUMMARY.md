@@ -52,6 +52,7 @@ completed: 2026-03-06
 - **Files modified:** 8
 
 ## Accomplishments
+
 - Added RED regression coverage for reconnect state emission, canonical recovery recompute, and limited-timeline summary drift.
 - Extended Matrix sync handling to emit `sync.state` for reconnect/catch-up/prepared/syncing/error/stop transitions.
 - Reworked room summary and unified inbox refresh logic to reconcile from live timeline room state during recovery.
@@ -66,6 +67,7 @@ Each task was committed atomically:
 **Plan metadata:** pending
 
 ## Files Created/Modified
+
 - `tests/mocks/recovery.ts` - Shared recovery fixtures for sync lifecycle and limited-timeline rooms.
 - `tests/unit/matrix/syncRecovery.test.ts` - Regression tests for sync lifecycle emission and live timeline summary derivation.
 - `tests/components/UnifiedInboxPanel.recovery.test.ts` - Component recovery tests for inbox refresh without fresh message delivery.
@@ -76,6 +78,7 @@ Each task was committed atomically:
 - `src/features/chat/composables/useUnifiedInbox.ts` - Recovery sync events trigger immediate canonical inbox refresh and test cleanup removes leaked listeners.
 
 ## Decisions Made
+
 - Emitted sync lifecycle updates from the sync bridge rather than adding a separate recovery store, matching the plan’s single-source-of-truth constraint.
 - Kept live-timeline fallback best-effort in `rooms.ts` so limited timelines preserve visible ordering without assuming perfect history continuity.
 - Left preload-then-fallback navigation untouched; this plan only changed sync/inbox reconciliation surfaces.
@@ -85,6 +88,7 @@ Each task was committed atomically:
 ### Auto-fixed Issues
 
 **1. [Rule 1 - Bug] Reset recovery listeners between component tests**
+
 - **Found during:** Task 2 (canonical sync and inbox reconciliation)
 - **Issue:** New `sync.state` listeners in `useUnifiedInbox()` leaked across tests, making recovery assertions order-dependent.
 - **Fix:** Added explicit `matrixEvents.off(...)` cleanup in `__resetUnifiedInboxForTests()` and stabilized async recovery assertions with condition-based waiting.
@@ -93,6 +97,7 @@ Each task was committed atomically:
 - **Committed in:** `7f37da1`
 
 **2. [Rule 3 - Blocking] Replaced obsolete Vitest `-x` flag during execution verification**
+
 - **Found during:** Task 1 verification
 - **Issue:** The plan’s canned `pnpm vitest ... -x` command is not supported by Vitest 4 in this repo, so RED verification aborted before executing tests.
 - **Fix:** Ran the equivalent targeted `pnpm vitest run ...` command without `-x` for RED/GREEN verification.
@@ -106,6 +111,7 @@ Each task was committed atomically:
 **Impact on plan:** Both fixes were required to make the planned recovery coverage reliable and executable. No scope creep.
 
 ## Issues Encountered
+
 - Component recovery assertions were initially timing-sensitive; switching to condition-based waiting removed the flake while keeping the intended behavior checks.
 
 ## User Setup Required
@@ -113,6 +119,7 @@ Each task was committed atomically:
 None - no external service configuration required.
 
 ## Next Phase Readiness
+
 - RELI-01 Matrix inbox recovery is covered and implemented, ready for Phase 05 Plan 02 performance work.
 - No blocker found for the next plan.
 

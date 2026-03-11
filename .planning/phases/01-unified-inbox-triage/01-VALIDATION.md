@@ -15,13 +15,13 @@ created: 2026-03-05
 
 ## Test Infrastructure
 
-| Property | Value |
-|----------|-------|
-| **Framework** | vitest + Vue Test Utils |
-| **Config file** | `vitest.config.ts` |
-| **Quick run command** | `pnpm test:unit -- tests/unit/stores/inboxStore.test.ts` |
-| **Full suite command** | `pnpm test` |
-| **Estimated runtime** | ~120 seconds |
+| Property               | Value                                                    |
+| ---------------------- | -------------------------------------------------------- |
+| **Framework**          | vitest + Vue Test Utils                                  |
+| **Config file**        | `vitest.config.ts`                                       |
+| **Quick run command**  | `pnpm test:unit -- tests/unit/stores/inboxStore.test.ts` |
+| **Full suite command** | `pnpm test`                                              |
+| **Estimated runtime**  | ~120 seconds                                             |
 
 ---
 
@@ -36,13 +36,13 @@ created: 2026-03-05
 
 ## Per-Task Verification Map
 
-| Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
-|---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 01-01-01 | 01 | 1 | INBX-01 | unit | `pnpm test:unit -- tests/unit/stores/inboxStore.test.ts -t "aggregates unified inbox items"` | ❌ W0 | ⬜ pending |
-| 01-01-02 | 01 | 1 | INBX-02 | unit | `pnpm test:unit -- tests/unit/stores/inboxStore.test.ts -t "filters and batch processes"` | ❌ W0 | ⬜ pending |
-| 01-02-01 | 02 | 2 | INBX-03 | integration | `pnpm test:unit -- tests/components/UnifiedInboxPanel.test.ts -t "jump to source with context"` | ❌ W0 | ⬜ pending |
+| Task ID  | Plan | Wave | Requirement | Test Type   | Automated Command                                                                               | File Exists | Status     |
+| -------- | ---- | ---- | ----------- | ----------- | ----------------------------------------------------------------------------------------------- | ----------- | ---------- |
+| 01-01-01 | 01   | 1    | INBX-01     | unit        | `pnpm test:unit -- tests/unit/stores/inboxStore.test.ts -t "aggregates unified inbox items"`    | ❌ W0       | ⬜ pending |
+| 01-01-02 | 01   | 1    | INBX-02     | unit        | `pnpm test:unit -- tests/unit/stores/inboxStore.test.ts -t "filters and batch processes"`       | ❌ W0       | ⬜ pending |
+| 01-02-01 | 02   | 2    | INBX-03     | integration | `pnpm test:unit -- tests/components/UnifiedInboxPanel.test.ts -t "jump to source with context"` | ❌ W0       | ⬜ pending |
 
-*Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
+_Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky_
 
 ---
 
@@ -56,9 +56,9 @@ created: 2026-03-05
 
 ## Manual-Only Verifications
 
-| Behavior | Requirement | Why Manual | Test Instructions |
-|----------|-------------|------------|-------------------|
-| 跳转后上下文渲染体验（滚动定位、前后文连续性） | INBX-03 | 真实时间线与列表交互体验难用单测完全覆盖 | 启动 `pnpm dev`，在收件箱点击目标项，确认落位到源消息并显示前后文 |
+| Behavior                                       | Requirement | Why Manual                               | Test Instructions                                                 |
+| ---------------------------------------------- | ----------- | ---------------------------------------- | ----------------------------------------------------------------- |
+| 跳转后上下文渲染体验（滚动定位、前后文连续性） | INBX-03     | 真实时间线与列表交互体验难用单测完全覆盖 | 启动 `pnpm dev`，在收件箱点击目标项，确认落位到源消息并显示前后文 |
 
 ---
 

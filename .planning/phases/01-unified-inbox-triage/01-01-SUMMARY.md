@@ -42,6 +42,7 @@ completed: 2026-03-05
 - **Files modified:** 4
 
 ## Accomplishments
+
 - 定义统一 inbox 契约（item/filter/processed/storage key）
 - 实现 inboxStore 的筛选、选择、批量 processed 与持久化
 - 实现 useUnifiedInbox 的 mentions / priority-unread / reply-needed 聚合与过滤
@@ -55,12 +56,14 @@ Each task was committed atomically:
 2. **Task 2: 以 TDD 实现 inboxStore 与 useUnifiedInbox 核心逻辑** - `bc49642` (feat)
 
 ## Files Created/Modified
+
 - `src/features/chat/types/unifiedInbox.ts` - 统一 inbox 类型与持久化常量
 - `src/features/chat/stores/inboxStore.ts` - 选择与批量 processed 的 store action
 - `src/features/chat/composables/useUnifiedInbox.ts` - 三类事项聚合、过滤、计数
 - `tests/unit/stores/inboxStore.test.ts` - INBX-01/INBX-02 行为验证
 
 ## Decisions Made
+
 - priority unread 严格按 highlight/mention 核心规则实现。
 - processed 仅使用本地存储，不引入任何跨设备同步逻辑。
 

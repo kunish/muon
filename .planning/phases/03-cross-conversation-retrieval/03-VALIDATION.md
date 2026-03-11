@@ -15,13 +15,13 @@ created: 2026-03-06
 
 ## Test Infrastructure
 
-| Property | Value |
-|----------|-------|
-| **Framework** | Vitest ^4.0.18 + Playwright ^1.58.2 |
-| **Config file** | `vitest.config.ts`, `playwright.config.ts` |
-| **Quick run command** | `pnpm test:unit` |
-| **Full suite command** | `pnpm test` |
-| **Estimated runtime** | ~120 seconds |
+| Property               | Value                                      |
+| ---------------------- | ------------------------------------------ |
+| **Framework**          | Vitest ^4.0.18 + Playwright ^1.58.2        |
+| **Config file**        | `vitest.config.ts`, `playwright.config.ts` |
+| **Quick run command**  | `pnpm test:unit`                           |
+| **Full suite command** | `pnpm test`                                |
+| **Estimated runtime**  | ~120 seconds                               |
 
 ---
 
@@ -36,14 +36,14 @@ created: 2026-03-06
 
 ## Per-Task Verification Map
 
-| Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
-|---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 03-01-01 | 01 | 1 | RETR-01 | unit | `pnpm vitest run tests/unit/matrix/retrieval.test.ts -t "cross-room search"` | ❌ W0 | ⬜ pending |
-| 03-01-02 | 01 | 1 | RETR-02 | unit | `pnpm vitest run tests/unit/matrix/retrieval.test.ts -t "joined-room scope"` | ❌ W0 | ⬜ pending |
-| 03-02-01 | 02 | 2 | RETR-01 | component | `pnpm vitest run tests/components/GlobalSearch.test.ts -t "jump to result"` | ❌ W0 | ⬜ pending |
-| 03-02-02 | 02 | 2 | RETR-02 | component | `pnpm vitest run tests/components/GlobalSearch.test.ts -t "exclude left rooms"` | ❌ W0 | ⬜ pending |
+| Task ID  | Plan | Wave | Requirement | Test Type | Automated Command                                                               | File Exists | Status     |
+| -------- | ---- | ---- | ----------- | --------- | ------------------------------------------------------------------------------- | ----------- | ---------- |
+| 03-01-01 | 01   | 1    | RETR-01     | unit      | `pnpm vitest run tests/unit/matrix/retrieval.test.ts -t "cross-room search"`    | ❌ W0       | ⬜ pending |
+| 03-01-02 | 01   | 1    | RETR-02     | unit      | `pnpm vitest run tests/unit/matrix/retrieval.test.ts -t "joined-room scope"`    | ❌ W0       | ⬜ pending |
+| 03-02-01 | 02   | 2    | RETR-01     | component | `pnpm vitest run tests/components/GlobalSearch.test.ts -t "jump to result"`     | ❌ W0       | ⬜ pending |
+| 03-02-02 | 02   | 2    | RETR-02     | component | `pnpm vitest run tests/components/GlobalSearch.test.ts -t "exclude left rooms"` | ❌ W0       | ⬜ pending |
 
-*Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
+_Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky_
 
 ---
 
@@ -57,10 +57,10 @@ created: 2026-03-06
 
 ## Manual-Only Verifications
 
-| Behavior | Requirement | Why Manual | Test Instructions |
-|----------|-------------|------------|-------------------|
-| 检索体验在真实数据下的相关性体感 | RETR-01 | 相关性主观感受难以完全自动化量化 | 启动 `pnpm dev`，跨 3+ 会话输入关键词，确认结果排序符合预期且可分页加载 |
-| 加密房间检索缺失提示可理解 | RETR-02 | 文案可理解性需人工验证 | 在含 E2EE 房间环境搜索已知关键词，确认无越权结果且提示语清晰 |
+| Behavior                         | Requirement | Why Manual                       | Test Instructions                                                       |
+| -------------------------------- | ----------- | -------------------------------- | ----------------------------------------------------------------------- |
+| 检索体验在真实数据下的相关性体感 | RETR-01     | 相关性主观感受难以完全自动化量化 | 启动 `pnpm dev`，跨 3+ 会话输入关键词，确认结果排序符合预期且可分页加载 |
+| 加密房间检索缺失提示可理解       | RETR-02     | 文案可理解性需人工验证           | 在含 E2EE 房间环境搜索已知关键词，确认无越权结果且提示语清晰            |
 
 ---
 

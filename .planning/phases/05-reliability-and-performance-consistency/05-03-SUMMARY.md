@@ -51,6 +51,7 @@ completed: 2026-03-06
 - **Files modified:** 2
 
 ## Accomplishments
+
 - 新增 `taskStore.recovery` 回归测试，锁定重复 hydrate、无效 legacy 行过滤和 recovery 后可继续写入三类行为。
 - 强化 `taskStore.hydrate()`，使其在 recovery/bootstrap 重入时重新从 `TASK_STORAGE_KEY` 读取状态，而不是静默跳过。
 - 在 hydrate 阶段规范化持久化数据，过滤非法任务并按任务 id 去重后回写到原有 localStorage 键。
@@ -63,10 +64,12 @@ Each task was committed atomically:
 2. **Task 2: Harden taskStore hydrate for reconnect-safe continuity** - `8749b79` (feat)
 
 ## Files Created/Modified
+
 - `tests/unit/stores/taskStore.recovery.test.ts` - 覆盖 recovery 重入、legacy 脏数据过滤、恢复后继续更新任务的回归场景。
 - `src/features/chat/stores/taskStore.ts` - 让 hydrate 重读持久化状态并在必要时规范化回写，保持任务状态连续性。
 
 ## Decisions Made
+
 - 重连/bootstrap 恢复阶段继续以 `TASK_STORAGE_KEY` 为唯一真源，不引入新的任务持久化层。
 - persisted task 规范化放在 hydrate 内部完成，这样 recovery 重入和首次加载都共享同一条确定性恢复路径。
 
@@ -75,6 +78,7 @@ Each task was committed atomically:
 ### Auto-fixed Issues
 
 **1. [Rule 3 - Blocking] Replaced invalid Vitest `-x` flag with a supported run command**
+
 - **Found during:** Task 1 (Add failing task recovery tests for repeated hydrate/bootstrap entry)
 - **Issue:** Plan verification command used `pnpm vitest run ... -x`, but Vitest 4 rejects `-x` as an unknown option, preventing RED/GREEN verification.
 - **Fix:** Used the equivalent supported command without `-x` so the targeted test files could run and prove the red-green cycle.
@@ -108,5 +112,6 @@ None - no external service configuration required.
 - FOUND: 8749b79
 
 ---
-*Phase: 05-reliability-and-performance-consistency*
-*Completed: 2026-03-06*
+
+_Phase: 05-reliability-and-performance-consistency_
+_Completed: 2026-03-06_

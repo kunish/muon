@@ -26,7 +26,7 @@ async function waitFor(assertion: () => void, attempts = 20) {
   throw lastError
 }
 
-describe('UnifiedInboxPanel recovery', () => {
+describe('unifiedInboxPanel recovery', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     setActivePinia(createPinia())

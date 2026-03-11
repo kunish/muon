@@ -155,14 +155,14 @@ export const handlers = [
 
   // ---- 媒体下载（返回空图片） ----
   http.get(`${BASE}/media/v3/download/:serverName/:mediaId`, () => {
-    return new HttpResponse(new Uint8Array([0x89, 0x50, 0x4e, 0x47]), {
+    return new HttpResponse(new Uint8Array([0x89, 0x50, 0x4E, 0x47]), {
       headers: { 'Content-Type': 'image/png' },
     })
   }),
 
   // ---- 缩略图 ----
   http.get(`${BASE}/media/v3/thumbnail/:serverName/:mediaId`, () => {
-    return new HttpResponse(new Uint8Array([0x89, 0x50, 0x4e, 0x47]), {
+    return new HttpResponse(new Uint8Array([0x89, 0x50, 0x4E, 0x47]), {
       headers: { 'Content-Type': 'image/png' },
     })
   }),

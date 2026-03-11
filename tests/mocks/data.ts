@@ -116,7 +116,7 @@ function audioMsg(sender: string, duration: number, mxcUrl: string, minute: numb
   }
 }
 
-function replyMsg(sender: string, body: string, replyToEventId: string, minute: number): MockEvent {
+function _replyMsg(sender: string, body: string, replyToEventId: string, minute: number): MockEvent {
   return {
     eventId: nextEventId(),
     type: 'm.room.message',
@@ -155,7 +155,7 @@ function stickerMsg(sender: string, emoji: string, minute: number): MockEvent {
     content: {
       body: emoji,
       url: '',
-      info: { mimetype: 'text/plain', 'xyz.muon.emoji': emoji },
+      info: { 'mimetype': 'text/plain', 'xyz.muon.emoji': emoji },
     },
   }
 }
@@ -475,7 +475,7 @@ export function createMockEvent(evt: MockEvent) {
 }
 
 /** 创建一个模拟的 RoomMember 对象 */
-export function createMockMember(userId: string, roomId?: string) {
+export function createMockMember(userId: string, _roomId?: string) {
   const user = USERS[userId]
   return {
     userId,
@@ -506,10 +506,12 @@ export function createMockRoom(room: MockRoom) {
     getLiveTimeline: () => ({
       getEvents: () => events,
     }),
-    getUnreadNotificationCount: (type?: string) => {
+    getUnreadNotificationCount: (_type?: string) => {
       // DM 房间模拟 1-3 条未读
-      if (room.isDirect && room.roomId === '!dm_alice:localhost') return 3
-      if (room.roomId === '!group_project:localhost') return 5
+      if (room.isDirect && room.roomId === '!dm_alice:localhost')
+        return 3
+      if (room.roomId === '!group_project:localhost')
+        return 5
       return 0
     },
     currentState: {

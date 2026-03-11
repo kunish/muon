@@ -48,6 +48,7 @@ completed: 2026-03-05
 - **Files modified:** 6
 
 ## Accomplishments
+
 - 新增 `UnifiedInboxPanel`，支持 all/mention/priority-unread/reply-needed 过滤
 - 提供多选与批量 processed 按钮，接入既有 inboxStore
 - 在 DM 侧边栏挂载 inbox 面板并接通 jump 事件
@@ -60,6 +61,7 @@ completed: 2026-03-05
 2. **Task 2: 在 DM 侧边栏接入收件箱并打通源消息跳转** - `787bb61` (feat)
 
 ## Files Created/Modified
+
 - `src/features/chat/components/UnifiedInboxPanel.vue` - inbox 列表/过滤/批处理 UI
 - `src/features/server/components/ChannelSidebar.vue` - DM 模式挂载 inbox 并处理 jump
 - `src/features/chat/components/MessageList.vue` - focusEventId 驱动定位
@@ -67,6 +69,7 @@ completed: 2026-03-05
 - `src/locales/en.json` / `src/locales/zh.json` - inbox 文案
 
 ## Decisions Made
+
 - 在 DM 侧边栏直出 unified inbox，保证“一个入口”可达性。
 - 跳转采用“预加载 context + query 定位”的两段式，兼顾可靠性与 UI 解耦。
 
@@ -75,6 +78,7 @@ completed: 2026-03-05
 ### Auto-fixed Issues
 
 **1. [Rule 3 - Blocking] `test:unit -- <file>` 触发全量测试**
+
 - **Found during:** Task 1/2 验证阶段
 - **Issue:** 计划中的 `pnpm test:unit -- tests/components/UnifiedInboxPanel.test.ts` 会触发无关用例。
 - **Fix:** 使用 `pnpm vitest run <target files>` 精确执行本计划测试。
@@ -87,12 +91,15 @@ completed: 2026-03-05
 **Impact on plan:** 仅调整验证方式，不影响功能范围与交付目标。
 
 ## Issues Encountered
+
 None
 
 ## User Setup Required
+
 None - no external service configuration required.
 
 ## Next Phase Readiness
+
 Phase 1 的 INBX-01/02/03 已具备实现与测试证据，可进入阶段级目标验证。
 
 ## Self-Check: PASSED

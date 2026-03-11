@@ -15,12 +15,14 @@
 - No `CONTEXT.md` exists for this phase; research scope is constrained to roadmap, requirements, state, codebase evidence, and verified external docs.
 
 <phase_requirements>
+
 ## Phase Requirements
 
-| ID | Description | Research Support |
-|----|-------------|-----------------|
+| ID      | Description                                                                                          | Research Support                                                                                                                                                                           |
+| ------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | RELI-01 | User sees consistent inbox/task state after reconnect or sync gap recovery without silent item loss. | Gap-aware sync handling, canonical recompute from Matrix room state, de-duplication by eventId, recovery tests for reconnect/limited timeline, and preservation of local task/defer state. |
-| RELI-02 | User can complete inbox and search workflows without noticeable typing or navigation lag. | Stable shallow reactive collections, list virtualization for large inbox/search result sets, bounded non-blocking navigation preload, and performance-focused component tests. |
+| RELI-02 | User can complete inbox and search workflows without noticeable typing or navigation lag.            | Stable shallow reactive collections, list virtualization for large inbox/search result sets, bounded non-blocking navigation preload, and performance-focused component tests.             |
+
 </phase_requirements>
 
 ## Summary
@@ -34,30 +36,34 @@ The most important planning direction is: **treat Matrix SDK room state as the c
 ## Standard Stack
 
 ### Core
-| Library | Version | Purpose | Why Standard |
-|---------|---------|---------|--------------|
-| `matrix-js-sdk` | `^41.0.0` | Canonical Matrix sync/search/timeline state | Official SDK already owns `/sync`, search pagination, room timelines, retry, and room models. |
-| `vue` | `^3.5.29` | UI/reactivity | Official Vue perf guidance explicitly recommends stable props, computed stability, virtualization, and shallow reactivity for large immutable structures. |
-| `pinia` | `^3.0.4` | Recovery and derived-state orchestration | Existing repo pattern centralizes mutations in store actions; Phase 5 should extend that, not bypass it. |
-| `@tanstack/vue-virtual` | `^3.13.19` | Virtualized rendering for large inbox/search lists | Already used in `ConversationList.vue`, so it is the existing blessed virtualization stack. |
+
+| Library                 | Version    | Purpose                                            | Why Standard                                                                                                                                              |
+| ----------------------- | ---------- | -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `matrix-js-sdk`         | `^41.0.0`  | Canonical Matrix sync/search/timeline state        | Official SDK already owns `/sync`, search pagination, room timelines, retry, and room models.                                                             |
+| `vue`                   | `^3.5.29`  | UI/reactivity                                      | Official Vue perf guidance explicitly recommends stable props, computed stability, virtualization, and shallow reactivity for large immutable structures. |
+| `pinia`                 | `^3.0.4`   | Recovery and derived-state orchestration           | Existing repo pattern centralizes mutations in store actions; Phase 5 should extend that, not bypass it.                                                  |
+| `@tanstack/vue-virtual` | `^3.13.19` | Virtualized rendering for large inbox/search lists | Already used in `ConversationList.vue`, so it is the existing blessed virtualization stack.                                                               |
 
 ### Supporting
-| Library | Version | Purpose | When to Use |
-|---------|---------|---------|-------------|
-| `dexie` | `^4.3.0` | Durable recovery metadata/checkpoints if Phase 5 needs IndexedDB persistence | Use for recovery cursors/journals or larger reliability metadata; do **not** migrate all localStorage state unless tests prove it necessary. |
-| `@vue/test-utils` | `^2.4.6` | Component verification | Use for inbox/search recovery and render-budget tests. |
-| `vitest` | `^4.0.18` | Unit/component validation | Fast guardrail for reconnect, gap recovery, and render-performance regressions. |
-| `@playwright/test` | `^1.58.2` | End-to-end smoke validation | Use for one browser-level reconnect/navigation smoke once unit coverage exists. |
+
+| Library            | Version   | Purpose                                                                      | When to Use                                                                                                                                  |
+| ------------------ | --------- | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `dexie`            | `^4.3.0`  | Durable recovery metadata/checkpoints if Phase 5 needs IndexedDB persistence | Use for recovery cursors/journals or larger reliability metadata; do **not** migrate all localStorage state unless tests prove it necessary. |
+| `@vue/test-utils`  | `^2.4.6`  | Component verification                                                       | Use for inbox/search recovery and render-budget tests.                                                                                       |
+| `vitest`           | `^4.0.18` | Unit/component validation                                                    | Fast guardrail for reconnect, gap recovery, and render-performance regressions.                                                              |
+| `@playwright/test` | `^1.58.2` | End-to-end smoke validation                                                  | Use for one browser-level reconnect/navigation smoke once unit coverage exists.                                                              |
 
 ### Alternatives Considered
-| Instead of | Could Use | Tradeoff |
-|------------|-----------|----------|
-| `matrix-js-sdk` sync/search APIs | Hand-rolled REST `/sync` and `/search` clients | Not recommended; duplicates SDK responsibilities and increases gap/retry risk. |
-| `@tanstack/vue-virtual` | Manual pagination / custom windowing | Avoid; virtualization is already in-repo and official Vue guidance says not to hand-roll large-list rendering. |
-| Re-deriving from canonical room state | Incremental UI-only patching from emitted events | Incremental patching is cheaper initially but is fragile under reconnect, limited timelines, and timeline resets. |
-| New global persistence migration | Keep existing localStorage for task/defer/processed ids and add targeted Dexie metadata | Recommended unless Phase 5 tests expose quota or consistency failures. |
+
+| Instead of                            | Could Use                                                                               | Tradeoff                                                                                                          |
+| ------------------------------------- | --------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `matrix-js-sdk` sync/search APIs      | Hand-rolled REST `/sync` and `/search` clients                                          | Not recommended; duplicates SDK responsibilities and increases gap/retry risk.                                    |
+| `@tanstack/vue-virtual`               | Manual pagination / custom windowing                                                    | Avoid; virtualization is already in-repo and official Vue guidance says not to hand-roll large-list rendering.    |
+| Re-deriving from canonical room state | Incremental UI-only patching from emitted events                                        | Incremental patching is cheaper initially but is fragile under reconnect, limited timelines, and timeline resets. |
+| New global persistence migration      | Keep existing localStorage for task/defer/processed ids and add targeted Dexie metadata | Recommended unless Phase 5 tests expose quota or consistency failures.                                            |
 
 **Installation:**
+
 ```bash
 npm install matrix-js-sdk vue pinia @tanstack/vue-virtual dexie
 ```
@@ -65,6 +71,7 @@ npm install matrix-js-sdk vue pinia @tanstack/vue-virtual dexie
 ## Architecture Patterns
 
 ### Recommended Project Structure
+
 ```text
 src/
 ├── matrix/
@@ -81,11 +88,13 @@ src/
 ```
 
 ### Pattern 1: Canonical Reconciliation on Sync Recovery
+
 **What:** On reconnect-related sync states, run one bounded reconciliation pass that rebuilds inbox/search-facing derived data from current Matrix SDK room state plus existing local task/defer/processed state.
 
 **When to use:** Any time sync transitions through `RECONNECTING`, `CATCHUP`, `PREPARED`, or returns to `SYNCING` after an error.
 
 **Example:**
+
 ```typescript
 // Source: https://matrix-org.github.io/matrix-js-sdk/enums/matrix.ClientEvent.html#sync
 client.on('sync', (state, prevState) => {
@@ -101,11 +110,13 @@ client.on('sync', (state, prevState) => {
 ```
 
 ### Pattern 2: Replace-Root Updates for Large Derived Collections
+
 **What:** Keep large room/inbox/search arrays in `shallowRef()` and update by replacing the root array, not mutating nested structures in place.
 
 **When to use:** Any derived collection refreshed from Matrix SDK room summaries or search pages.
 
 **Example:**
+
 ```typescript
 // Source: https://vuejs.org/guide/best-practices/performance#reduce-reactivity-overhead-for-large-immutable-structures
 const summaries = shallowRef<RoomSummary[]>([])
@@ -116,11 +127,13 @@ function applySummaries(next: RoomSummary[]) {
 ```
 
 ### Pattern 3: Virtualize Inbox/Search Result Rendering
+
 **What:** Use `@tanstack/vue-virtual` for result-heavy inbox/search lists instead of rendering every item.
 
 **When to use:** `UnifiedInboxPanel` and `GlobalSearch` once result counts can grow with joined rooms or paginated search results.
 
 **Example:**
+
 ```typescript
 // Source: https://tanstack.com/virtual/v3/docs/framework/vue/vue-virtual
 const virtualizer = useVirtualizer(computed(() => ({
@@ -132,11 +145,13 @@ const virtualizer = useVirtualizer(computed(() => ({
 ```
 
 ### Pattern 4: Bounded, Non-Blocking Navigation Preload
+
 **What:** Keep current “preload context, warn on failure, continue navigation” behavior, but add a timeout/budget so reliability work never makes navigation feel slower.
 
 **When to use:** Inbox jump, task jump, search result jump, digest/decision/QA citation jump.
 
 **Example:**
+
 ```typescript
 // Source: existing repo pattern + Matrix context APIs
 await Promise.race([
@@ -148,6 +163,7 @@ await router.push({ path: `/chat/${encodeURIComponent(roomId)}`, query: { focusE
 ```
 
 ### Anti-Patterns to Avoid
+
 - **Listening for `sync.state` without emitting it:** `useUnifiedInbox()` and `useConversations()` subscribe to `sync.state`, but current code never emits it.
 - **Ignoring `CATCHUP` / `RECONNECTING`:** official Matrix sync states include both; current `SyncState` type and `startSync()` logic ignore them.
 - **Using deprecated `room.timeline` as the main summary source:** official SDK docs deprecate it; `getLiveTimeline().getEvents()` is the safer current API.
@@ -156,43 +172,48 @@ await router.push({ path: `/chat/${encodeURIComponent(roomId)}`, query: { focusE
 
 ## Don't Hand-Roll
 
-| Problem | Don't Build | Use Instead | Why |
-|---------|-------------|-------------|-----|
-| Matrix sync loop and retry state machine | Custom `/sync` polling | `matrix-js-sdk` `startClient()`, sync events, retry hooks | SDK already models `PREPARED`, `SYNCING`, `ERROR`, `RECONNECTING`, `CATCHUP`, pagination, and room state. |
-| Gap token semantics | Custom opaque token bookkeeping | Matrix `next_batch` / `prev_batch` flow and SDK pagination/search APIs | Matrix spec defines the token lifecycle; custom handling is easy to get wrong. |
-| Large-list DOM windowing | Custom scroll math | `@tanstack/vue-virtual` | Existing project precedent and official Vue perf guidance favor virtualization. |
-| IndexedDB transaction control | Raw IndexedDB orchestration | Dexie transactions | Dexie documents transaction/error pitfalls and is already in the repo. |
-| Recovery correctness via UI deltas | Manual patch chains in components | Central reconcile action in store/service | UI deltas are fragile under reconnect and limited timelines. |
+| Problem                                  | Don't Build                       | Use Instead                                                            | Why                                                                                                       |
+| ---------------------------------------- | --------------------------------- | ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Matrix sync loop and retry state machine | Custom `/sync` polling            | `matrix-js-sdk` `startClient()`, sync events, retry hooks              | SDK already models `PREPARED`, `SYNCING`, `ERROR`, `RECONNECTING`, `CATCHUP`, pagination, and room state. |
+| Gap token semantics                      | Custom opaque token bookkeeping   | Matrix `next_batch` / `prev_batch` flow and SDK pagination/search APIs | Matrix spec defines the token lifecycle; custom handling is easy to get wrong.                            |
+| Large-list DOM windowing                 | Custom scroll math                | `@tanstack/vue-virtual`                                                | Existing project precedent and official Vue perf guidance favor virtualization.                           |
+| IndexedDB transaction control            | Raw IndexedDB orchestration       | Dexie transactions                                                     | Dexie documents transaction/error pitfalls and is already in the repo.                                    |
+| Recovery correctness via UI deltas       | Manual patch chains in components | Central reconcile action in store/service                              | UI deltas are fragile under reconnect and limited timelines.                                              |
 
 **Key insight:** in this phase, custom glue is acceptable; custom infrastructure is not. Reuse SDK/state/rendering primitives and add orchestration around them.
 
 ## Common Pitfalls
 
 ### Pitfall 1: Reconnect States Are Partially Modeled
+
 **What goes wrong:** Recovery logic never runs when the SDK enters `RECONNECTING` or `CATCHUP`.
 **Why it happens:** Current `SyncState` only includes `PREPARED | SYNCING | ERROR | STOPPED`, and `startSync()` switches on only those states.
 **How to avoid:** Expand local sync-state modeling to include the full official sync lifecycle and route recovery through one coordinator.
 **Warning signs:** UI only reacts to hard error/success, not “catching up”; reconnect produces stale inbox/search until a fresh message arrives.
 
 ### Pitfall 2: `sync.state` Subscribers Never Fire
+
 **What goes wrong:** Inbox/conversation refresh logic misses reconnect-driven updates.
 **Why it happens:** `useUnifiedInbox()` and `useConversations()` listen for `sync.state`, but no code emits that event.
 **How to avoid:** Emit `matrixEvents.emit('sync.state', { state })` from the sync bridge and treat it as a reconciliation trigger, not a cosmetic signal.
 **Warning signs:** Event listeners exist in composables, but grep shows no emitter.
 
 ### Pitfall 3: Timeline Gaps Cause Silent Drift
+
 **What goes wrong:** After a limited `/sync`, derived inbox state may be computed from incomplete timeline assumptions.
 **Why it happens:** Matrix spec allows `limited` timelines and explicit gaps; clients must reconcile gaps using `prev_batch` / `/rooms/{roomId}/messages`, and duplicates can appear across APIs.
 **How to avoid:** Reconcile after recovery, de-duplicate by `eventId`, and verify gap scenarios in tests. If canonical SDK room state is insufficient for a failing scenario, add explicit gap backfill as a targeted follow-up.
 **Warning signs:** Missing inbox categories after reconnect, duplicate hits after search/pagination, or state changes appearing without expected timeline continuity.
 
 ### Pitfall 4: Deprecated Timeline Access Makes Recovery More Fragile
+
 **What goes wrong:** Summary derivation reads a stale or reset-prone timeline reference.
 **Why it happens:** `getRoomSummaries()` currently walks `room.timeline`, but official SDK docs deprecate that property and warn that the live timeline can change when a gap occurs.
 **How to avoid:** Use `room.getLiveTimeline().getEvents()` or other official room APIs for summary derivation.
 **Warning signs:** Gap-related bugs appear only after reconnect / limited sync, not on steady-state live traffic.
 
 ### Pitfall 5: Reliability Fixes Introduce Input Lag
+
 **What goes wrong:** Inbox/search become correct but feel slower.
 **Why it happens:** Eager rerenders, large computed lists, and unvirtualized results move too much work onto the main thread.
 **How to avoid:** Use shallow collections, root replacement, virtualization, and bounded navigation preload.
@@ -203,6 +224,7 @@ await router.push({ path: `/chat/${encodeURIComponent(roomId)}`, query: { focusE
 Verified patterns from official sources:
 
 ### Sync Recovery Trigger
+
 ```typescript
 // Source: https://matrix-org.github.io/matrix-js-sdk/enums/matrix.ClientEvent.html#sync
 client.on('sync', (state) => {
@@ -213,6 +235,7 @@ client.on('sync', (state) => {
 ```
 
 ### Gap-Aware Deduplication Rule
+
 ```typescript
 // Source: https://spec.matrix.org/v1.17/client-server-api/#get_matrixclientv3sync
 const seenEventIds = new Set<string>()
@@ -228,6 +251,7 @@ function appendUnique<T extends { eventId: string }>(items: T[], next: T[]) {
 ```
 
 ### Virtualized Results
+
 ```typescript
 // Source: https://tanstack.com/virtual/v3/docs/framework/vue/vue-virtual
 const virtualizer = useVirtualizer(computed(() => ({
@@ -239,6 +263,7 @@ const virtualizer = useVirtualizer(computed(() => ({
 ```
 
 ### Shallow Immutable Collection Update
+
 ```typescript
 // Source: https://vuejs.org/guide/best-practices/performance#reduce-reactivity-overhead-for-large-immutable-structures
 const list = shallowRef<ResultItem[]>([])
@@ -254,14 +279,15 @@ function replaceResultAt(index: number, next: ResultItem) {
 
 ## State of the Art
 
-| Old Approach | Current Approach | When Changed | Impact |
-|--------------|------------------|--------------|--------|
-| Treat sync as `PREPARED/SYNCING/ERROR/STOPPED` only | Respect full Matrix sync lifecycle including `RECONNECTING` and `CATCHUP` | Current official `matrix-js-sdk` ClientEvent docs | Recovery planning must model catch-up explicitly. |
-| Read `room.timeline` directly | Prefer `room.getLiveTimeline().getEvents()` | Current `matrix-js-sdk` Room docs | Safer against live-timeline resets during gaps. |
-| Render full large result lists | Virtualize long lists | Current Vue perf guidance + existing repo precedent | Reduces typing/navigation lag risk. |
-| Deep reactive large arrays by default | `shallowRef` + replace-root updates | Vue 3 current perf guidance | Lower main-thread/reactivity overhead during frequent refreshes. |
+| Old Approach                                        | Current Approach                                                          | When Changed                                        | Impact                                                           |
+| --------------------------------------------------- | ------------------------------------------------------------------------- | --------------------------------------------------- | ---------------------------------------------------------------- |
+| Treat sync as `PREPARED/SYNCING/ERROR/STOPPED` only | Respect full Matrix sync lifecycle including `RECONNECTING` and `CATCHUP` | Current official `matrix-js-sdk` ClientEvent docs   | Recovery planning must model catch-up explicitly.                |
+| Read `room.timeline` directly                       | Prefer `room.getLiveTimeline().getEvents()`                               | Current `matrix-js-sdk` Room docs                   | Safer against live-timeline resets during gaps.                  |
+| Render full large result lists                      | Virtualize long lists                                                     | Current Vue perf guidance + existing repo precedent | Reduces typing/navigation lag risk.                              |
+| Deep reactive large arrays by default               | `shallowRef` + replace-root updates                                       | Vue 3 current perf guidance                         | Lower main-thread/reactivity overhead during frequent refreshes. |
 
 **Deprecated/outdated:**
+
 - `room.timeline`: deprecated in official SDK docs; use `getLiveTimeline().getEvents()` instead.
 - “Retry immediately on any sync error” as an automatic loop: official SDK docs say `retryImmediately()` is for explicit user retry; Phase 5 should not depend on repeatedly forcing it from app code.
 
@@ -285,25 +311,29 @@ function replaceResultAt(index: number, next: ResultItem) {
 ## Validation Architecture
 
 ### Test Framework
-| Property | Value |
-|----------|-------|
-| Framework | Vitest `^4.0.18` + Vue Test Utils `^2.4.6`; Playwright `^1.58.2` for browser smoke |
-| Config file | `vitest.config.ts`, `playwright.config.ts` |
-| Quick run command | `pnpm vitest run tests/unit/matrix/syncRecovery.test.ts tests/components/UnifiedInboxPanel.recovery.test.ts tests/components/GlobalSearch.performance.test.ts` |
-| Full suite command | `pnpm test:unit && pnpm test:e2e` |
+
+| Property           | Value                                                                                                                                                          |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Framework          | Vitest `^4.0.18` + Vue Test Utils `^2.4.6`; Playwright `^1.58.2` for browser smoke                                                                             |
+| Config file        | `vitest.config.ts`, `playwright.config.ts`                                                                                                                     |
+| Quick run command  | `pnpm vitest run tests/unit/matrix/syncRecovery.test.ts tests/components/UnifiedInboxPanel.recovery.test.ts tests/components/GlobalSearch.performance.test.ts` |
+| Full suite command | `pnpm test:unit && pnpm test:e2e`                                                                                                                              |
 
 ### Phase Requirements → Test Map
-| Req ID | Behavior | Test Type | Automated Command | File Exists? |
-|--------|----------|-----------|-------------------|-------------|
-| RELI-01 | Reconnect / limited-sync recovery re-derives inbox + preserves task state without silent loss | unit + component integration | `pnpm vitest run tests/unit/matrix/syncRecovery.test.ts tests/components/UnifiedInboxPanel.recovery.test.ts tests/unit/stores/taskStore.recovery.test.ts -x` | ❌ Wave 0 |
-| RELI-02 | Inbox/search interactions stay responsive under larger result sets and navigation preload remains bounded | component perf + smoke | `pnpm vitest run tests/components/UnifiedInboxPanel.performance.test.ts tests/components/GlobalSearch.performance.test.ts -x` | ❌ Wave 0 |
+
+| Req ID  | Behavior                                                                                                  | Test Type                    | Automated Command                                                                                                                                            | File Exists? |
+| ------- | --------------------------------------------------------------------------------------------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------ |
+| RELI-01 | Reconnect / limited-sync recovery re-derives inbox + preserves task state without silent loss             | unit + component integration | `pnpm vitest run tests/unit/matrix/syncRecovery.test.ts tests/components/UnifiedInboxPanel.recovery.test.ts tests/unit/stores/taskStore.recovery.test.ts -x` | ❌ Wave 0    |
+| RELI-02 | Inbox/search interactions stay responsive under larger result sets and navigation preload remains bounded | component perf + smoke       | `pnpm vitest run tests/components/UnifiedInboxPanel.performance.test.ts tests/components/GlobalSearch.performance.test.ts -x`                                | ❌ Wave 0    |
 
 ### Sampling Rate
+
 - **Per task commit:** `pnpm vitest run tests/unit/matrix/syncRecovery.test.ts tests/components/UnifiedInboxPanel.recovery.test.ts tests/components/GlobalSearch.performance.test.ts`
 - **Per wave merge:** `pnpm test:unit`
 - **Phase gate:** Full suite green before `/gsd-verify-work`
 
 ### Wave 0 Gaps
+
 - [ ] `tests/unit/matrix/syncRecovery.test.ts` — covers RELI-01 sync-state transitions, gap dedupe, and recovery trigger wiring.
 - [ ] `tests/components/UnifiedInboxPanel.recovery.test.ts` — covers reconnect/gap-driven inbox consistency.
 - [ ] `tests/unit/stores/taskStore.recovery.test.ts` — covers task persistence continuity through reconnect/bootstrap.
@@ -314,6 +344,7 @@ function replaceResultAt(index: number, next: ResultItem) {
 ## Sources
 
 ### Primary (HIGH confidence)
+
 - Matrix Client-Server API v1.17 — `/sync` gap handling, `limited`, `prev_batch`, dedupe guidance, and search pagination/security: https://spec.matrix.org/v1.17/client-server-api/
 - matrix-js-sdk `ClientEvent.Sync` docs — official sync state lifecycle including `RECONNECTING` and `CATCHUP`: https://matrix-org.github.io/matrix-js-sdk/enums/matrix.ClientEvent.html#sync
 - matrix-js-sdk `Room` docs — live timeline can change on gaps; `timeline` accessor deprecated: https://matrix-org.github.io/matrix-js-sdk/classes/matrix.Room.html
@@ -323,15 +354,18 @@ function replaceResultAt(index: number, next: ResultItem) {
 - Dexie best practices — transaction/error handling guidance: https://dexie.org/docs/Tutorial/Best-Practices
 
 ### Secondary (MEDIUM confidence)
+
 - Existing repo code in `src/features/chat/composables/useConversations.ts` and `ConversationList.vue` — proves current project pattern is shallow refs + debounced refresh + virtualization.
 - Existing repo code in `GlobalSearch.vue`, `UnifiedInboxPanel.vue`, `sync.ts`, `rooms.ts`, and `types.ts` — exposes current Phase 5 gaps directly.
 
 ### Tertiary (LOW confidence)
+
 - `.planning/research/SUMMARY.md` and `.planning/research/PITFALLS.md` — useful historical direction, but not authoritative versus current code and official docs.
 
 ## Metadata
 
 **Confidence breakdown:**
+
 - Standard stack: HIGH - Current repo dependencies align with official docs and existing implementation patterns.
 - Architecture: MEDIUM - Canonical recompute direction is strongly supported, but exact need for explicit gap backfill depends on Phase 5 tests.
 - Pitfalls: HIGH - Several gaps are directly observable in current code and corroborated by official Matrix/Vue docs.

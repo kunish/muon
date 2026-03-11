@@ -60,6 +60,7 @@ completed: 2026-03-06
 - **Files modified:** 6
 
 ## Accomplishments
+
 - Added digest source-event/session types and a Matrix-side materializer that filters events inside the away window.
 - Added digestStore with centralized relevance ordering and persistence through the shared knowledge repository.
 - Added OfflineDigestPanel with citation jump navigation and graceful preload fallback.
@@ -72,6 +73,7 @@ Each task was committed atomically:
 2. **Task 2: 实现 digest materialization/store/panel 并转绿** - `ad185b0` (feat)
 
 ## Files Created/Modified
+
 - `src/features/chat/types/digest.ts` - Digest source-event/session types and shared ordering helpers.
 - `src/matrix/digest.ts` - Away-window digest materialization from ingested Matrix events.
 - `src/features/chat/stores/digestStore.ts` - Digest state, filtering, sorting, and persistence bridge.
@@ -80,6 +82,7 @@ Each task was committed atomically:
 - `tests/components/OfflineDigestPanel.test.ts` - UI coverage for rendering and citation jump success/fallback flows.
 
 ## Decisions Made
+
 - Kept the first version of digest materialization event-granular, but ensured every entry carries citations and can later be replaced by higher-level summarization without schema churn.
 - Stored ordering logic in shared helpers so responsibility/follow/mention ordering stays deterministic.
 
@@ -88,6 +91,7 @@ Each task was committed atomically:
 ### Auto-fixed Issues
 
 **1. [Rule 3 - Blocking] Plan verification command used unsupported Vitest `-x` flag**
+
 - **Found during:** Task 1 (先写 digest store + panel 的 RED 测试)
 - **Issue:** The planned `-x` flag is not supported by this repo’s Vitest CLI.
 - **Fix:** Used the file-targeted `pnpm vitest run tests/unit/stores/digestStore.test.ts tests/components/OfflineDigestPanel.test.ts` command instead.
@@ -101,6 +105,7 @@ Each task was committed atomically:
 **Impact on plan:** No scope change; only normalized the verification command to match installed tooling.
 
 ## Issues Encountered
+
 - None.
 
 ## User Setup Required
@@ -113,8 +118,9 @@ None - no external service configuration required.
 - Citation jump semantics now match inbox/task/search flows, reducing integration risk for final Phase 4 assembly.
 
 ---
-*Phase: 04-offline-digest-and-decision-capture*
-*Completed: 2026-03-06*
+
+_Phase: 04-offline-digest-and-decision-capture_
+_Completed: 2026-03-06_
 
 ## Self-Check: PASSED
 

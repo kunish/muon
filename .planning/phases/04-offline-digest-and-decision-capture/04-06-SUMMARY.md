@@ -60,6 +60,7 @@ completed: 2026-03-06
 - **Files modified:** 6
 
 ## Accomplishments
+
 - Added RED coverage for digest hydration order, runtime `room.message` wiring, and real relevance derivation.
 - Implemented `initializeDigest`, runtime sync lifecycle, and persisted-entry hydration in the digest store.
 - Moved digest relevance materialization to real Matrix room/user signals and wired panel mount/unmount to initialization and teardown.
@@ -72,6 +73,7 @@ Each task was committed atomically:
 2. **Task 2: 实现 digest 初始化、真实消息接线与 relevance materialization** - `5ccb34a` (feat)
 
 ## Files Created/Modified
+
 - `src/features/chat/types/digest.ts` - Adds room-signal relevance derivation helpers and explicit digest room signal typing.
 - `src/matrix/digest.ts` - Materializes digest entries from real room summaries and current user identity.
 - `src/features/chat/stores/digestStore.ts` - Hydrates saved entries, manages runtime Matrix listeners, and rebuilds away-window sessions.
@@ -80,6 +82,7 @@ Each task was committed atomically:
 - `tests/components/OfflineDigestPanel.test.ts` - Verifies mount-time initialization plus existing citation preload/fallback behavior.
 
 ## Decisions Made
+
 - Hydration happens before away-window refresh so users immediately regain persisted digest context when reopening Knowledge.
 - Runtime sync is explicit store lifecycle state instead of implicit component-only wiring, which prevents duplicate `room.message` listeners.
 - Real relevance remains deterministic by centralizing pinned/highlight/current-user mention mapping inside digest materialization.
@@ -102,8 +105,9 @@ None - no external service configuration required.
 - Remaining Phase 4 work can build on the same hydrate-on-open and citation-first runtime pattern for decision and suggestion flows.
 
 ---
-*Phase: 04-offline-digest-and-decision-capture*
-*Completed: 2026-03-06*
+
+_Phase: 04-offline-digest-and-decision-capture_
+_Completed: 2026-03-06_
 
 ## Self-Check: PASSED
 

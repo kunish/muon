@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { findOrCreateDm } from '@matrix/index'
-import Avatar from '@/shared/components/ui/avatar/Avatar.vue'
 import { Plus } from 'lucide-vue-next'
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
+import Avatar from '@/shared/components/ui/avatar/Avatar.vue'
 import { useConversations } from '../../chat/composables/useConversations'
 import { useContactStore } from '../stores/contactStore'
 import ContactList from './ContactList.vue'

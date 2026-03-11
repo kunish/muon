@@ -59,6 +59,7 @@ completed: 2026-03-06
 - **Files modified:** 5
 
 ## Accomplishments
+
 - Added decision domain helpers for building cards and default-pending suggestions from citation-linked inputs.
 - Added decisionStore with repository-backed create and suggestion disposition actions.
 - Added DecisionPanel UI and tests covering card creation plus accept/reject interactions.
@@ -71,6 +72,7 @@ Each task was committed atomically:
 2. **Task 2: 实现 decisionStore 与 DecisionPanel（GREEN）** - `0040228` (feat)
 
 ## Files Created/Modified
+
 - `src/features/chat/types/decision.ts` - Decision card input helpers and suggestion factories.
 - `src/features/chat/stores/decisionStore.ts` - Decision creation and audited suggestion disposition transitions.
 - `src/features/chat/components/DecisionPanel.vue` - Decision creation form plus suggestion accept/reject UI.
@@ -78,6 +80,7 @@ Each task was committed atomically:
 - `tests/components/DecisionPanel.test.ts` - Component coverage for create / accept / reject flows.
 
 ## Decisions Made
+
 - Reused the shared knowledge schemas instead of creating a separate decision-only persistence shape.
 - Kept pending → accepted/rejected as the only valid suggestion flow to preserve explicit user intent.
 
@@ -86,6 +89,7 @@ Each task was committed atomically:
 ### Auto-fixed Issues
 
 **1. [Rule 3 - Blocking] Repository patch responses in tests were partial and initially failed full-card schema validation**
+
 - **Found during:** Task 2 (实现 decisionStore 与 DecisionPanel)
 - **Issue:** Mocked repository updates returned only patched suggestion fields, causing `decisionCardSchema` validation to fail when replacing the whole suggestion object.
 - **Fix:** Merged repository patch payloads onto existing suggestion records before schema validation.
@@ -94,6 +98,7 @@ Each task was committed atomically:
 - **Committed in:** `0040228`
 
 **2. [Rule 3 - Blocking] Plan verification command used unsupported Vitest `-x` flag**
+
 - **Found during:** Task 1 (先写 decision store + panel RED 测试)
 - **Issue:** The planned CLI flag is unsupported in this repository.
 - **Fix:** Used the equivalent file-targeted vitest command without `-x`.
@@ -107,6 +112,7 @@ Each task was committed atomically:
 **Impact on plan:** Both fixes were implementation correctness/tooling compatibility issues; no scope creep.
 
 ## Issues Encountered
+
 - None.
 
 ## User Setup Required
@@ -119,8 +125,9 @@ None - no external service configuration required.
 - Audit metadata is now available for future QA/answer workflows to mirror when user confirmation is required.
 
 ---
-*Phase: 04-offline-digest-and-decision-capture*
-*Completed: 2026-03-06*
+
+_Phase: 04-offline-digest-and-decision-capture_
+_Completed: 2026-03-06_
 
 ## Self-Check: PASSED
 

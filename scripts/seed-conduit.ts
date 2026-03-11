@@ -1,4 +1,5 @@
 #!/usr/bin/env npx tsx
+import process from 'node:process'
 /**
  * Seed 脚本 — 在本地 Conduit 上创建测试用户、DM 房间、群聊房间并发送消息
  *
@@ -238,11 +239,12 @@ const GROUP_ROOMS: GroupRoomDef[] = [
 
 async function matrixFetch(
   path: string,
-  opts: { method?: string; body?: any; token?: string } = {},
+  opts: { method?: string, body?: any, token?: string } = {},
 ): Promise<any> {
   const { method = 'GET', body, token } = opts
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  if (token) headers['Authorization'] = `Bearer ${token}`
+  if (token)
+    headers.Authorization = `Bearer ${token}`
 
   const res = await fetch(`${BASE_URL}${path}`, {
     method,
@@ -316,11 +318,13 @@ async function main() {
         }
         userTokens[u.localpart] = loginRes.access_token
         userIds[u.localpart] = loginRes.user_id
-      } else {
+      }
+      else {
         console.error(`   ✗ ${u.localpart} 注册失败:`, regResult)
         continue
       }
-    } else {
+    }
+    else {
       userTokens[u.localpart] = regResult.access_token
       userIds[u.localpart] = regResult.user_id
       console.log(`   ✓ ${u.localpart} 注册成功: ${regResult.user_id}`)
@@ -373,7 +377,8 @@ async function main() {
     })
     if (joinRes._error) {
       console.error(`     ✗ ${dm.peer} 加入失败:`, joinRes)
-    } else {
+    }
+    else {
       console.log(`     ✓ ${dm.peer} 已加入`)
     }
 
@@ -385,8 +390,10 @@ async function main() {
     )
     const directContent = existingDirect._error ? {} : existingDirect
     const peerId = userIds[dm.peer]
-    if (!directContent[peerId]) directContent[peerId] = []
-    if (!directContent[peerId].includes(roomId)) directContent[peerId].push(roomId)
+    if (!directContent[peerId])
+      directContent[peerId] = []
+    if (!directContent[peerId].includes(roomId))
+      directContent[peerId].push(roomId)
     await matrixFetch(
       `/_matrix/client/v3/user/${encodeURIComponent(kunishUserId)}/account_data/m.direct`,
       { method: 'PUT', token: kunishToken, body: directContent },
@@ -396,7 +403,8 @@ async function main() {
     let txnId = 0
     for (const msg of dm.messages) {
       const senderToken = msg.sender === 'kunish' ? kunishToken : userTokens[msg.sender]
-      if (!senderToken) continue
+      if (!senderToken)
+        continue
 
       await matrixFetch(
         `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/send/m.room.message/${txnId++}`,
@@ -440,7 +448,8 @@ async function main() {
     // 成员加入
     for (const member of group.members) {
       const memberToken = userTokens[member]
-      if (!memberToken) continue
+      if (!memberToken)
+        continue
       const joinRes = await matrixFetch(
         `/_matrix/client/v3/join/${encodeURIComponent(roomId)}`,
         { method: 'POST', token: memberToken, body: {} },
@@ -455,7 +464,8 @@ async function main() {
     let txnId = 0
     for (const msg of group.messages) {
       const senderToken = msg.sender === 'kunish' ? kunishToken : userTokens[msg.sender]
-      if (!senderToken) continue
+      if (!senderToken)
+        continue
 
       await matrixFetch(
         `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/send/m.room.message/${txnId++}`,
@@ -475,7 +485,7 @@ async function main() {
   console.log('kunish 账号可以在 Muon 中登录查看所有对话\n')
 }
 
-main().catch(e => {
+main().catch((e) => {
   console.error('脚本执行出错:', e)
   process.exit(1)
 })

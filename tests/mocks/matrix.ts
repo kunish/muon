@@ -1,11 +1,10 @@
 import { vi } from 'vitest'
 import {
-  ALL_ROOMS,
+  getMockRoomById,
   M_DIRECT_CONTENT,
   MOCK_ROOM_OBJECTS,
   SELF_USER_ID,
   USERS,
-  getMockRoomById,
 } from './data'
 
 export function createMockMatrixClient() {

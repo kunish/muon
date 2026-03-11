@@ -50,6 +50,7 @@ completed: 2026-03-05
 - **Files modified:** 11
 
 ## Accomplishments
+
 - 新增 `TaskPanel`，按 todo/doing/done 分栏渲染并通过 `taskStore.transitionStatus` 执行状态流转。
 - `ChatWindow` 挂载任务侧边面板，`chatStore.activeSidePanel` 扩展 `'tasks'` 状态。
 - 新增“Jump to source”动作，先调用 `loadInboxEventContext(roomId, eventId)`，再携带 `focusEventId` 导航。
@@ -64,6 +65,7 @@ completed: 2026-03-05
 4. **Task 2 (GREEN): 交付回跳源消息 + Sidebar 协同入口** - `4261441` (feat)
 
 ## Files Created/Modified
+
 - `src/features/chat/components/TaskPanel.vue` - 任务三栏渲染、状态流转、回跳动作
 - `src/features/chat/stores/taskStore.ts` - 任务持久化、状态机与流转动作
 - `src/features/chat/components/ChatWindow.vue` - 任务面板挂载点
@@ -73,6 +75,7 @@ completed: 2026-03-05
 - `src/locales/en.json`, `src/locales/zh.json` - 任务面板与回跳文案
 
 ## Decisions Made
+
 - 沿用 Phase 1 的消息定位链路，不新增第二套定位机制，避免行为分裂。
 - 把“任务入口”接入既有侧栏状态机，保持交互一致性与可维护性。
 
@@ -81,6 +84,7 @@ completed: 2026-03-05
 ### Auto-fixed Issues
 
 **1. [Rule 3 - Blocking] 测试中对 `@matrix/index` 的全量 mock 破坏了 ChatWindow 依赖**
+
 - **Found during:** Task 2（整体验证阶段）
 - **Issue:** 仅暴露 `loadInboxEventContext` 的 mock 导致 `useTyping` 依赖的 `matrixEvents` 丢失。
 - **Fix:** 改为 partial mock（保留原模块导出，仅覆盖 `loadInboxEventContext`）。

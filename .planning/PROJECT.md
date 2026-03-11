@@ -13,6 +13,7 @@ Users can always find, process, and continue the most important conversations qu
 **Goal:** Turn high-volume chat streams into clear, actionable workflow with less context-switching.
 
 **Target features:**
+
 - Unified inbox for mentions, unreplied, and deferred items
 - Message-to-task workflow with jump-back to source context
 - Cross-conversation retrieval, offline digest, and decision capture
@@ -57,11 +58,12 @@ Users can always find, process, and continue the most important conversations qu
 
 ## Key Decisions
 
-| Decision | Rationale | Outcome |
-|----------|-----------|---------|
-| Prioritize efficiency + capture over gamification | Target metric is daily active usage/time via clearer workflow, not novelty mechanics | — Pending |
-| Deliver in staged layers (inbox/task/retrieval first) | Reduces integration risk on existing brownfield codebase | — Pending |
-| Keep Matrix event model as source of truth | Prevents protocol drift and preserves existing synchronization behavior | — Pending |
+| Decision                                              | Rationale                                                                            | Outcome   |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------ | --------- |
+| Prioritize efficiency + capture over gamification     | Target metric is daily active usage/time via clearer workflow, not novelty mechanics | — Pending |
+| Deliver in staged layers (inbox/task/retrieval first) | Reduces integration risk on existing brownfield codebase                             | — Pending |
+| Keep Matrix event model as source of truth            | Prevents protocol drift and preserves existing synchronization behavior              | — Pending |
 
 ---
-*Last updated: 2026-03-05 after milestone v1.0 initialization*
+
+_Last updated: 2026-03-05 after milestone v1.0 initialization_

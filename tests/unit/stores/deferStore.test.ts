@@ -1,7 +1,7 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { DEFER_STORAGE_KEY } from '@/features/chat/types/defer'
 import { useDeferStore } from '@/features/chat/stores/deferStore'
+import { DEFER_STORAGE_KEY } from '@/features/chat/types/defer'
 
 describe('deferStore', () => {
   beforeEach(() => {

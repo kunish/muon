@@ -48,6 +48,7 @@ completed: 2026-03-05
 - **Files modified:** 6
 
 ## Accomplishments
+
 - 固化 defer/task 领域合同（含 sourceRef、状态联合类型、versioned storage key）。
 - 建立 deferStore 的 active/history 分流、完成/归档迁移与持久化恢复容错。
 - 建立 taskStore 的创建/更新/状态流转与按状态分组派生能力。
@@ -63,6 +64,7 @@ Each task was committed atomically:
 **Plan metadata:** （待本次执行提交）
 
 ## Files Created/Modified
+
 - `src/features/chat/types/defer.ts` - defer 领域合同、默认状态与状态迁移辅助。
 - `src/features/chat/types/task.ts` - task 合同、sourceRef 结构与状态迁移约束。
 - `src/features/chat/stores/deferStore.ts` - defer 状态机、提醒时间解析、持久化 hydrate。
@@ -71,6 +73,7 @@ Each task was committed atomically:
 - `tests/unit/stores/taskStore.test.ts` - task store 行为测试（字段约束、流转、分组、恢复）。
 
 ## Decisions Made
+
 - 使用版本化 localStorage key，确保后续 schema 升级可控。
 - 将状态迁移规则收敛到 store action，避免组件层状态漂移。
 
@@ -79,18 +82,22 @@ Each task was committed atomically:
 None - plan executed exactly as written.
 
 ## Issues Encountered
+
 None.
 
 ## User Setup Required
+
 None - no external service configuration required.
 
 ## Next Phase Readiness
+
 - 02-01 所需 contracts/store/test 基线均可用。
 - 可继续补齐 02-02（defer UI 闭环）并复用现有 store action。
 
 ---
-*Phase: 02-defer-and-message-to-task-loop*
-*Completed: 2026-03-05*
+
+_Phase: 02-defer-and-message-to-task-loop_
+_Completed: 2026-03-05_
 
 ## Self-Check: PASSED
 

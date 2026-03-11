@@ -48,41 +48,43 @@
 
 ## Out of Scope
 
-| Feature | Reason |
-|---------|--------|
-| Gamified engagement system (badges/challenges/leaderboards) | Not aligned with this milestone's efficiency-first core value |
-| Full workflow engine with complex dependency automation | Too much process overhead before message-to-task model is validated |
-| Fully autonomous task generation from all messages | High false-positive risk and trust erosion in early milestone |
+| Feature                                                     | Reason                                                              |
+| ----------------------------------------------------------- | ------------------------------------------------------------------- |
+| Gamified engagement system (badges/challenges/leaderboards) | Not aligned with this milestone's efficiency-first core value       |
+| Full workflow engine with complex dependency automation     | Too much process overhead before message-to-task model is validated |
+| Fully autonomous task generation from all messages          | High false-positive risk and trust erosion in early milestone       |
 
 ## Traceability
 
-| Requirement | Phase | Status |
-|-------------|-------|--------|
-| INBX-01 | Phase 1 | Complete |
-| INBX-02 | Phase 1 | Complete |
-| INBX-03 | Phase 1 | Complete |
-| INBX-04 | Phase 2 | Complete |
-| INBX-05 | Phase 2 | Complete |
-| TASK-01 | Phase 2 | Complete |
-| TASK-02 | Phase 2 | Complete |
-| TASK-03 | Phase 2 | Complete |
-| RETR-01 | Phase 6 | Pending |
-| RETR-02 | Phase 6 | Pending |
-| DIGE-01 | Phase 7 | Pending |
-| DIGE-02 | Phase 7 | Pending |
-| DIGE-03 | Phase 7 | Pending |
-| DECI-01 | Phase 4 | Complete |
-| DECI-02 | Phase 7 | Pending |
-| DECI-03 | Phase 4 | Complete |
-| RELI-01 | Phase 5 | Complete |
-| RELI-02 | Phase 6 | Pending |
+| Requirement | Phase   | Status   |
+| ----------- | ------- | -------- |
+| INBX-01     | Phase 1 | Complete |
+| INBX-02     | Phase 1 | Complete |
+| INBX-03     | Phase 1 | Complete |
+| INBX-04     | Phase 2 | Complete |
+| INBX-05     | Phase 2 | Complete |
+| TASK-01     | Phase 2 | Complete |
+| TASK-02     | Phase 2 | Complete |
+| TASK-03     | Phase 2 | Complete |
+| RETR-01     | Phase 6 | Pending  |
+| RETR-02     | Phase 6 | Pending  |
+| DIGE-01     | Phase 7 | Pending  |
+| DIGE-02     | Phase 7 | Pending  |
+| DIGE-03     | Phase 7 | Pending  |
+| DECI-01     | Phase 4 | Complete |
+| DECI-02     | Phase 7 | Pending  |
+| DECI-03     | Phase 4 | Complete |
+| RELI-01     | Phase 5 | Complete |
+| RELI-02     | Phase 6 | Pending  |
 
 **Coverage:**
+
 - v1 requirements: 18 total
 - Checked off: 11
 - Mapped to phases: 18
 - Unmapped: 0 ✓
 
 ---
-*Requirements defined: 2026-03-05*
-*Last updated: 2026-03-05 after roadmap creation*
+
+_Requirements defined: 2026-03-05_
+_Last updated: 2026-03-05 after roadmap creation_

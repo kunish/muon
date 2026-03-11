@@ -17,8 +17,8 @@ vi.mock('@/features/chat/composables/useUnifiedInbox', () => ({
   useUnifiedInbox: () => ({
     items: computed(() => inboxItems.value),
     counts: computed(() => ({
-      all: inboxItems.value.length,
-      mention: inboxItems.value.filter(item => item.type === 'mention').length,
+      'all': inboxItems.value.length,
+      'mention': inboxItems.value.filter(item => item.type === 'mention').length,
       'priority-unread': inboxItems.value.filter(item => item.type === 'priority-unread').length,
       'reply-needed': inboxItems.value.filter(item => item.type === 'reply-needed').length,
     })),
@@ -43,7 +43,7 @@ function createInboxItem(index: number): UnifiedInboxItem {
   }
 }
 
-describe('UnifiedInboxPanel performance', () => {
+describe('unifiedInboxPanel performance', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     inboxItems.value = Array.from({ length: 200 }, (_, index) => createInboxItem(index))

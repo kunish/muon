@@ -1,5 +1,4 @@
-import { mount } from '@vue/test-utils'
-import { flushPromises } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import DecisionPanel from '@/features/chat/components/DecisionPanel.vue'
@@ -41,7 +40,7 @@ vi.mock('@matrix/index', async (importOriginal) => {
   }
 })
 
-describe('DecisionPanel', () => {
+describe('decisionPanel', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     listDecisionCardsMock.mockReset()

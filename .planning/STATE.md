@@ -43,15 +43,15 @@ Progress: [██████████] 100%
 
 ## Phase Summary
 
-| Phase | Plans | Status | Completed |
-|-------|-------|--------|-----------|
-| 1. Unified Inbox Triage | 3/3 | Complete | 2026-03-05 |
-| 2. Defer and Message-to-Task Loop | 5/5 | Complete | 2026-03-05 |
-| 3. Cross-Conversation Retrieval | 2/2 | Complete | 2026-03-06 |
-| 4. Offline Digest and Decision Capture | 8/8 | Complete | 2026-03-06 |
-| 5. Reliability and Performance Consistency | 3/3 | Complete | 2026-03-06 |
-| 6. Search Surface Integration and Retrieval Completion | 2/2 | Complete | 2026-03-09 |
-| 7. Offline Digest Reliability and Knowledge Continuity | 2/2 | Complete | 2026-03-09 |
+| Phase                                                  | Plans | Status   | Completed  |
+| ------------------------------------------------------ | ----- | -------- | ---------- |
+| 1. Unified Inbox Triage                                | 3/3   | Complete | 2026-03-05 |
+| 2. Defer and Message-to-Task Loop                      | 5/5   | Complete | 2026-03-05 |
+| 3. Cross-Conversation Retrieval                        | 2/2   | Complete | 2026-03-06 |
+| 4. Offline Digest and Decision Capture                 | 8/8   | Complete | 2026-03-06 |
+| 5. Reliability and Performance Consistency             | 3/3   | Complete | 2026-03-06 |
+| 6. Search Surface Integration and Retrieval Completion | 2/2   | Complete | 2026-03-09 |
+| 7. Offline Digest Reliability and Knowledge Continuity | 2/2   | Complete | 2026-03-09 |
 
 ## Accumulated Context
 

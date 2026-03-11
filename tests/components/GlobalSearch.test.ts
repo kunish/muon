@@ -67,7 +67,7 @@ vi.mock('@/features/chat/stores/retrievalStore', () => ({
   }),
 }))
 
-describe('GlobalSearch', () => {
+describe('globalSearch', () => {
   function mountGlobalSearch() {
     return mount(GlobalSearch, {
       global: {

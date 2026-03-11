@@ -60,7 +60,7 @@ vi.mock('@matrix/index', async (importOriginal) => {
   }
 })
 
-describe('OfflineDigestPanel', () => {
+describe('offlineDigestPanel', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     routerPush.mockReset()

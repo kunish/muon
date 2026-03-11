@@ -52,6 +52,7 @@ completed: 2026-03-05
 - **Files modified:** 3
 
 ## Accomplishments
+
 - 在消息 More 菜单新增“Convert to task”入口并弹出任务创建弹窗。
 - 弹窗提交时将 assignee、dueAt、status 与 sourceRef(roomId/eventId) 写入 createTask。
 - 增加 pending 提交锁，防止提交进行中重复创建任务。
@@ -62,11 +63,13 @@ completed: 2026-03-05
 2. **Task 1 (GREEN): 实现消息转任务链路与弹窗提交** - `00f7289` (feat)
 
 ## Files Created/Modified
+
 - `src/features/chat/components/TaskComposerDialog.vue` - 任务创建弹窗，收集标题/负责人/截止时间/状态。
 - `src/features/chat/components/MessageActionBar.vue` - More 菜单新增转任务入口并提交到 taskStore。
 - `tests/components/MessageActionBar.test.ts` - 覆盖打开弹窗、提交 payload、pending 防重三类行为。
 
 ## Decisions Made
+
 - 将 sourceRef 设为不可编辑并由消息上下文强制注入，避免任务与消息来源脱钩。
 - 提交流程统一走组件内 pending guard + store action，保持 UI 层幂等。
 

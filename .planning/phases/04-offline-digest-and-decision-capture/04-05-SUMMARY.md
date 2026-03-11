@@ -56,6 +56,7 @@ completed: 2026-03-06
 - **Files modified:** 3
 
 ## Accomplishments
+
 - Added a dedicated integration test that verifies Knowledge shell tabs, chat side-panel mounting, and DM sidebar trigger behavior together.
 - Added explicit tab/tab-panel semantics to the shared Knowledge shell so active subviews are machine-readable and easier to verify.
 - Added pressed-state semantics to the DM Knowledge trigger while keeping the existing chatStore side-panel toggle flow.
@@ -68,11 +69,13 @@ Each task was committed atomically:
 2. **Task 2: 实现 Knowledge 统一入口接线并转绿** - `97a8e67` (feat)
 
 ## Files Created/Modified
+
 - `tests/components/KnowledgeCapturePanel.integration.test.ts` - Integration coverage for tab shell behavior, ChatWindow mounting, and ChannelSidebar trigger wiring.
 - `src/features/chat/components/KnowledgeCapturePanel.vue` - Adds explicit tab and tabpanel accessibility semantics to the shared Knowledge shell.
 - `src/features/server/components/ChannelSidebar.vue` - Reflects knowledge side-panel state on the DM sidebar trigger without changing navigation flow.
 
 ## Decisions Made
+
 - Kept the plan focused on the existing side-panel integration path and validated it with one integration suite instead of introducing a second page-level flow.
 - Represented active Knowledge navigation state with aria metadata so discoverability improves without changing the underlying state machine.
 
@@ -81,6 +84,7 @@ Each task was committed atomically:
 ### Auto-fixed Issues
 
 **1. [Rule 3 - Blocking] Planned Vitest verification flag `-x` is unsupported in this repository**
+
 - **Found during:** Task 1 (先写 Knowledge 入口集成 RED 测试)
 - **Issue:** `pnpm vitest run tests/components/KnowledgeCapturePanel.integration.test.ts -x` fails with `CACError: Unknown option '-x'` on Vitest 4.0.18.
 - **Fix:** Used the equivalent file-targeted command without `-x` for RED/GREEN and final verification.
@@ -94,6 +98,7 @@ Each task was committed atomically:
 **Impact on plan:** No scope change; only normalized the verification command to match the installed Vitest CLI.
 
 ## Issues Encountered
+
 - None.
 
 ## User Setup Required
@@ -101,12 +106,14 @@ Each task was committed atomically:
 None - no external service configuration required.
 
 ## Next Phase Readiness
+
 - Phase 4 now has dedicated integration coverage for the single Knowledge entry flow expected by the roadmap.
 - The shared side-panel Knowledge workflow is ready for phase-level verification and transition into Phase 5 reliability work.
 
 ---
-*Phase: 04-offline-digest-and-decision-capture*
-*Completed: 2026-03-06*
+
+_Phase: 04-offline-digest-and-decision-capture_
+_Completed: 2026-03-06_
 
 ## Self-Check: PASSED
 

@@ -50,7 +50,7 @@ vi.mock('@matrix/index', async (importOriginal) => {
   }
 })
 
-describe('CrossSessionQaPanel', () => {
+describe('crossSessionQaPanel', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     askCrossSessionQuestionMock.mockReset()

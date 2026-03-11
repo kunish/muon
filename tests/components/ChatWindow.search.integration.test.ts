@@ -40,13 +40,15 @@ vi.mock('@matrix/client', () => ({
   }),
 }))
 
-const mockGetRoom = (roomId: string) => ({
-  roomId,
-  name: roomId === '!joined:muon.dev' ? 'Joined Room' : 'Left Room',
-  getMyMembership: () => roomId === '!joined:muon.dev' ? 'join' : 'leave',
-  getJoinedMemberCount: () => 2,
-  hasEncryptionStateEvent: () => false,
-})
+function mockGetRoom(roomId: string) {
+  return {
+    roomId,
+    name: roomId === '!joined:muon.dev' ? 'Joined Room' : 'Left Room',
+    getMyMembership: () => roomId === '!joined:muon.dev' ? 'join' : 'leave',
+    getJoinedMemberCount: () => 2,
+    hasEncryptionStateEvent: () => false,
+  }
+}
 
 vi.mock('@matrix/rooms', () => ({
   getRoom: (roomId: string) => mockGetRoom(roomId),
@@ -93,7 +95,7 @@ async function flushUi() {
   await nextTick()
 }
 
-describe('ChatWindow search integration', () => {
+describe('chatWindow search integration', () => {
   let chatStore: ReturnType<typeof useChatStore>
 
   beforeEach(() => {

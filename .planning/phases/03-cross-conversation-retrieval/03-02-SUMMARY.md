@@ -60,6 +60,7 @@ completed: 2026-03-06
 - **Files modified:** 5
 
 ## Accomplishments
+
 - Added RED-first component tests that lock retrieval rendering, left-room exclusion, and jump fallback behavior.
 - Implemented a dedicated retrieval Pinia store for search lifecycle state and page continuation.
 - Upgraded GlobalSearch UI to show message hits, load more results, and navigate with `focusEventId` after context preload.
@@ -72,6 +73,7 @@ Each task was committed atomically:
 2. **Task 2: 实现 retrieval store 与 GlobalSearch 跨会话消息检索 UI（GREEN）** - `a38ee3d` (feat)
 
 ## Files Created/Modified
+
 - `src/features/chat/stores/retrievalStore.ts` - Retrieval query/results/loading/error/pagination state container.
 - `src/features/chat/components/GlobalSearch.vue` - Unified room + message search UI, result list, load-more, and jump handling.
 - `tests/components/GlobalSearch.test.ts` - Component coverage for rendering, scope filtering, and jump success/fallback flows.
@@ -79,6 +81,7 @@ Each task was committed atomically:
 - `src/locales/zh.json` - Added Chinese retrieval labels and encrypted-room limitation hint.
 
 ## Decisions Made
+
 - Reused existing modal entry and navigation chain (`loadInboxEventContext` + `focusEventId`) instead of adding new routes.
 - Kept preload failure as non-blocking warning to preserve jump reliability under partial backend failures.
 
@@ -100,8 +103,9 @@ None - no external service configuration required.
 - Ready for Phase 4 planning and implementation.
 
 ---
-*Phase: 03-cross-conversation-retrieval*
-*Completed: 2026-03-06*
+
+_Phase: 03-cross-conversation-retrieval_
+_Completed: 2026-03-06_
 
 ## Self-Check: PASSED
 

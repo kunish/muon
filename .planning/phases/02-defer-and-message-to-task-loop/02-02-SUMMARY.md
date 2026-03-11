@@ -54,6 +54,7 @@ completed: 2026-03-05
 - **Files modified:** 6
 
 ## Accomplishments
+
 - 完成 Inbox defer 的快捷预设与自定义时间入口，并写入 defer store。
 - 完成 Message More defer 入口并验证与 inbox 共享 defer 创建逻辑。
 - 新增 DeferQueuePanel，完成 active/history 分视图、完成/归档迁移与 DM 侧栏挂载。
@@ -65,6 +66,7 @@ completed: 2026-03-05
 3. **Task 3: DeferQueuePanel + Sidebar 接入（TDD）** - `1d447a5`, `c3f0415`
 
 ## Files Created/Modified
+
 - `src/features/chat/components/DeferQueuePanel.vue` - defer active/history 双 tab 队列与完成/归档动作
 - `tests/components/DeferQueuePanel.test.ts` - active 排序、迁移历史、历史过滤行为测试
 - `src/features/server/components/ChannelSidebar.vue` - DM 侧栏接入 defer queue 面板
@@ -72,6 +74,7 @@ completed: 2026-03-05
 - `src/locales/zh.json` - defer queue 文案键
 
 ## Decisions Made
+
 - 历史视图采用同面板 tab，而非独立页面或抽屉，保持 DM 侧栏内处理连贯性。
 - 逾期提示采用明显文案/颜色提示（Overdue），不引入动画，保持执行效率导向。
 
@@ -80,6 +83,7 @@ completed: 2026-03-05
 ### Auto-fixed Issues
 
 **1. [Rule 3 - Blocking] 缺失 DeferQueuePanel 与测试文件导致 Task 3 无法验证**
+
 - **Found during:** Task 3 (TDD RED)
 - **Issue:** `tests/components/DeferQueuePanel.test.ts` 依赖的组件文件不存在，验证命令无法执行真实行为断言。
 - **Fix:** 先补全 RED 测试，再实现 `DeferQueuePanel`、接入 `ChannelSidebar` 与文案 key，形成完整闭环。
@@ -93,12 +97,15 @@ completed: 2026-03-05
 **Impact on plan:** 仅补齐阻塞项，无额外范围扩张。
 
 ## Issues Encountered
+
 - 组件测试存在大量既有 `zh` locale 缺失 key warning（不影响本计划功能验收）。已记录到 `.planning/phases/02-defer-and-message-to-task-loop/deferred-items.md`。
 
 ## User Setup Required
+
 None - no external service configuration required.
 
 ## Next Phase Readiness
+
 - defer 闭环（创建→排序→完成/归档→历史）已就绪。
 - 可继续后续 phase 计划，无新增阻塞。
 

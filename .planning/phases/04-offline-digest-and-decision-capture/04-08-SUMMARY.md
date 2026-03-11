@@ -59,6 +59,7 @@ completed: 2026-03-06
 - **Files modified:** 6
 
 ## Accomplishments
+
 - Added a dedicated qaStore that hydrates persisted QA history and tracks the currently displayed answer.
 - Extended the QA service with saved-session listing so store hydration can replay prior answers newest-first.
 - Updated CrossSessionQaPanel to restore the latest saved answer on mount and keep earlier history visible after follow-up questions.
@@ -71,6 +72,7 @@ Each task was committed atomically:
 2. **Task 2: 实现 qaStore、历史读取 API 与 QA 面板回显** - `3ced806` (feat)
 
 ## Files Created/Modified
+
 - `src/features/chat/stores/qaStore.ts` - Hydrates saved QA sessions, tracks history, and manages the active answer.
 - `src/features/chat/services/crossSessionQa.ts` - Exposes saved QA session listing alongside ask flow.
 - `src/features/chat/components/CrossSessionQaPanel.vue` - Replays saved answers on mount and renders a selectable QA history list.
@@ -79,6 +81,7 @@ Each task was committed atomically:
 - `tests/components/CrossSessionQaPanel.test.ts` - Covers mount-time replay, follow-up history retention, and citation navigation.
 
 ## Decisions Made
+
 - Introduced qaStore as the single orchestration point for history replay and active-answer updates so the component stays focused on rendering.
 - Kept saved QA history newest-first and defaulted the panel to the latest answer to match reopen expectations.
 - Preserved the existing preload-first citation navigation chain instead of introducing a separate history-specific jump path.
@@ -88,6 +91,7 @@ Each task was committed atomically:
 ### Auto-fixed Issues
 
 **1. [Rule 3 - Blocking] Mocked knowledge repository in component tests to avoid IndexedDB runtime failures**
+
 - **Found during:** Task 2 (实现 qaStore、历史读取 API 与 QA 面板回显)
 - **Issue:** `KnowledgeCapturePanel` imports other knowledge stores during component tests, which triggered IndexedDB access in jsdom and produced an unhandled runtime error.
 - **Fix:** Added a focused `knowledgeDb` mock in `tests/components/CrossSessionQaPanel.test.ts` so the panel test stays scoped to QA history behavior.
@@ -101,6 +105,7 @@ Each task was committed atomically:
 **Impact on plan:** No scope creep; the auto-fix only stabilized the intended QA-focused test environment.
 
 ## Issues Encountered
+
 None.
 
 ## User Setup Required
@@ -108,12 +113,14 @@ None.
 None - no external service configuration required.
 
 ## Next Phase Readiness
+
 - QA reopen behavior now satisfies the verification gap around "save but not replay" for DECI-03.
 - Phase 4 still needs separate follow-up work for digest and decision history/readback gaps tracked in verification.
 
 ---
-*Phase: 04-offline-digest-and-decision-capture*
-*Completed: 2026-03-06*
+
+_Phase: 04-offline-digest-and-decision-capture_
+_Completed: 2026-03-06_
 
 ## Self-Check: PASSED
 

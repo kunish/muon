@@ -38,13 +38,13 @@ mod = 修改
 
 ### Component Responsibilities
 
-| Component | Responsibility | Typical Implementation |
-|-----------|----------------|------------------------|
-| `InboxPage` *(new)* | 汇总 mentions / unreplied / deferred，支持 triage | 路由页 + 虚拟列表 + 批量动作，读 `inboxStore` |
-| `MessageActionBar` *(modified)* | 新增 “Defer / 转任务 / 记录决策”入口 | 保持现有 hover actions，新增 emit 到 efficiency actions |
-| `TaskPanel` *(new)* | 个人任务队列、状态流转、跳回原消息 | 侧栏面板，读写 `taskStore`，调用 `router + jumpToMessage` |
-| `DecisionHub` *(new)* | 决策卡列表/检索（按房间、标签） | 独立页或 side panel，读 `decisionStore` |
-| `DigestCenter` *(new)* | 离线回归摘要展示与确认已读 | 启动后弹层/页，基于 `digestStore.computeSince(lastSeenAt)` |
+| Component                       | Responsibility                                    | Typical Implementation                                     |
+| ------------------------------- | ------------------------------------------------- | ---------------------------------------------------------- |
+| `InboxPage` _(new)_             | 汇总 mentions / unreplied / deferred，支持 triage | 路由页 + 虚拟列表 + 批量动作，读 `inboxStore`              |
+| `MessageActionBar` _(modified)_ | 新增 “Defer / 转任务 / 记录决策”入口              | 保持现有 hover actions，新增 emit 到 efficiency actions    |
+| `TaskPanel` _(new)_             | 个人任务队列、状态流转、跳回原消息                | 侧栏面板，读写 `taskStore`，调用 `router + jumpToMessage`  |
+| `DecisionHub` _(new)_           | 决策卡列表/检索（按房间、标签）                   | 独立页或 side panel，读 `decisionStore`                    |
+| `DigestCenter` _(new)_          | 离线回归摘要展示与确认已读                        | 启动后弹层/页，基于 `digestStore.computeSince(lastSeenAt)` |
 
 ## Recommended Project Structure
 
@@ -102,10 +102,11 @@ src/
 **Trade-offs:** 一致性更好；实现上需要重放/修复机制。
 
 **Example:**
+
 ```ts
 // matrix event -> local projection
 matrixEvents.on('room.message', ({ roomId, event }) => {
-  inboxService.projectMessage(roomId, event)   // 生成 triage item
+  inboxService.projectMessage(roomId, event) // 生成 triage item
   retrievalService.indexMessage(roomId, event) // 更新本地索引
 })
 ```
@@ -117,6 +118,7 @@ matrixEvents.on('room.message', ({ roomId, event }) => {
 **Trade-offs:** store 数量增加；但职责边界清晰、测试更容易。
 
 **Example:**
+
 ```ts
 // MessageActionBar
 function onConvertToTask(event: MatrixEvent, roomId: string) {
@@ -170,14 +172,14 @@ InboxPage / TaskPanel / DecisionHub / DigestCenter
 
 ## New vs Modified Integration Map
 
-| Area | New | Modified | Integration Point |
-|------|-----|----------|-------------------|
-| Router | `inbox/decision/digest` 路由 | `app/router/index.ts` | 保持 `AppLayout` 容器不变，仅扩子路由 |
-| Chat actions | `TaskPanel` / `DecisionHub` | `MessageActionBar.vue`, `ChatWindow.vue` | 从消息动作发起 triage/task/decision |
-| State | `inbox/task/retrieval/digest/decision` stores | `chatStore.ts`（仅加 bridge 状态） | 避免把效率状态塞进 chatStore |
-| Matrix integration | `matrixEfficiencyAdapter.ts` | `matrix/events.ts`, `rooms.ts`, `messages.ts` | 复用现有 mitt 事件总线 |
-| Persistence | `localIndexAdapter.ts` (Dexie) | 无或少量 app bootstrap | 离线检索与 digest 依赖本地索引 |
-| Notifications | `notificationAdapter.ts`（可选） | `src-tauri/src/lib.rs`（若启用插件） | 目前 Rust 未初始化 notification 插件 |
+| Area               | New                                           | Modified                                      | Integration Point                     |
+| ------------------ | --------------------------------------------- | --------------------------------------------- | ------------------------------------- |
+| Router             | `inbox/decision/digest` 路由                  | `app/router/index.ts`                         | 保持 `AppLayout` 容器不变，仅扩子路由 |
+| Chat actions       | `TaskPanel` / `DecisionHub`                   | `MessageActionBar.vue`, `ChatWindow.vue`      | 从消息动作发起 triage/task/decision   |
+| State              | `inbox/task/retrieval/digest/decision` stores | `chatStore.ts`（仅加 bridge 状态）            | 避免把效率状态塞进 chatStore          |
+| Matrix integration | `matrixEfficiencyAdapter.ts`                  | `matrix/events.ts`, `rooms.ts`, `messages.ts` | 复用现有 mitt 事件总线                |
+| Persistence        | `localIndexAdapter.ts` (Dexie)                | 无或少量 app bootstrap                        | 离线检索与 digest 依赖本地索引        |
+| Notifications      | `notificationAdapter.ts`（可选）              | `src-tauri/src/lib.rs`（若启用插件）          | 目前 Rust 未初始化 notification 插件  |
 
 ## Implementation Sequencing (Recommended Build Order)
 
@@ -216,11 +218,11 @@ InboxPage / TaskPanel / DecisionHub / DigestCenter
 
 ## Scaling Considerations
 
-| Scale | Architecture Adjustments |
-|-------|--------------------------|
-| 0-1k users | 纯客户端投影 + Matrix server-side search 足够 |
+| Scale         | Architecture Adjustments                             |
+| ------------- | ---------------------------------------------------- |
+| 0-1k users    | 纯客户端投影 + Matrix server-side search 足够        |
 | 1k-100k users | 对本地索引做分片（按 room/time），增加冷数据淘汰策略 |
-| 100k+ users | 考虑服务端检索/摘要服务，客户端仅保留最近窗口缓存 |
+| 100k+ users   | 考虑服务端检索/摘要服务，客户端仅保留最近窗口缓存    |
 
 ### Scaling Priorities
 
@@ -245,20 +247,20 @@ InboxPage / TaskPanel / DecisionHub / DigestCenter
 
 ### External Services
 
-| Service | Integration Pattern | Notes |
-|---------|---------------------|-------|
-| Matrix Client-Server API | `matrix-js-sdk` (`searchRoomEvents`, `setAccountData`, `/sync`) | 作为真值源；`room_events` 不含 E2EE 房间明文检索 |
-| Tauri Notification Plugin (optional) | `@tauri-apps/plugin-notification` + Rust plugin init | 当前 `src-tauri/src/lib.rs` 未初始化 notification 插件，需显式接入 |
-| Local IndexedDB (Dexie) | `localIndexAdapter` | 当前依赖已存在但未落地使用，适合离线检索与 digest 快照 |
+| Service                              | Integration Pattern                                             | Notes                                                              |
+| ------------------------------------ | --------------------------------------------------------------- | ------------------------------------------------------------------ |
+| Matrix Client-Server API             | `matrix-js-sdk` (`searchRoomEvents`, `setAccountData`, `/sync`) | 作为真值源；`room_events` 不含 E2EE 房间明文检索                   |
+| Tauri Notification Plugin (optional) | `@tauri-apps/plugin-notification` + Rust plugin init            | 当前 `src-tauri/src/lib.rs` 未初始化 notification 插件，需显式接入 |
+| Local IndexedDB (Dexie)              | `localIndexAdapter`                                             | 当前依赖已存在但未落地使用，适合离线检索与 digest 快照             |
 
 ### Internal Boundaries
 
-| Boundary | Communication | Notes |
-|----------|---------------|-------|
-| `matrix/events.ts` ↔ `efficiency/adapters` | typed event bus | 统一入口做归一化，避免每个 store 重复解析 MatrixEvent |
-| `chat/components` ↔ `efficiency/stores` | Pinia action API | 消息动作只发命令，不做持久化 |
-| `efficiency/services` ↔ `matrix/*` | service calls | 统一错误重试/回滚策略 |
-| `efficiency/services` ↔ `localIndexAdapter` | repository interface | 保持离线存储可替换（Dexie/tauri-sql） |
+| Boundary                                    | Communication        | Notes                                                 |
+| ------------------------------------------- | -------------------- | ----------------------------------------------------- |
+| `matrix/events.ts` ↔ `efficiency/adapters`  | typed event bus      | 统一入口做归一化，避免每个 store 重复解析 MatrixEvent |
+| `chat/components` ↔ `efficiency/stores`     | Pinia action API     | 消息动作只发命令，不做持久化                          |
+| `efficiency/services` ↔ `matrix/*`          | service calls        | 统一错误重试/回滚策略                                 |
+| `efficiency/services` ↔ `localIndexAdapter` | repository interface | 保持离线存储可替换（Dexie/tauri-sql）                 |
 
 ## Sources
 
@@ -282,5 +284,6 @@ InboxPage / TaskPanel / DecisionHub / DigestCenter
   - https://v2.tauri.app/reference/javascript/notification/
 
 ---
-*Architecture research for: Muon milestone “chat-efficiency features”*
-*Researched: 2026-03-05*
+
+_Architecture research for: Muon milestone “chat-efficiency features”_
+_Researched: 2026-03-05_

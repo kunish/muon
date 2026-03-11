@@ -31,7 +31,7 @@ function createEventMock() {
   }
 }
 
-describe('MessageActionBar', () => {
+describe('messageActionBar', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     localStorage.clear()
@@ -153,10 +153,10 @@ describe('MessageActionBar', () => {
     })
 
     const taskStore = useTaskStore()
-    let resolveCreateTask: ((value: unknown) => void) | null = null
+    let _resolveCreateTask: ((value: unknown) => void) | null = null
     const createTaskSpy = vi.spyOn(taskStore, 'createTask').mockImplementation(() => {
       return new Promise((resolve) => {
-        resolveCreateTask = resolve
+        _resolveCreateTask = resolve
       }) as any
     })
 

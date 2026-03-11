@@ -1,7 +1,12 @@
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
-import { computed, defineComponent, h, reactive, ref } from 'vue'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { computed, defineComponent, h, reactive, ref } from 'vue'
+
+import ChatWindow from '../../src/features/chat/components/ChatWindow.vue'
+import KnowledgeCapturePanel from '../../src/features/chat/components/KnowledgeCapturePanel.vue'
+import { useChatStore } from '../../src/features/chat/stores/chatStore'
+import ChannelSidebar from '../../src/features/server/components/ChannelSidebar.vue'
 
 const { routerPush, loadInboxEventContext } = vi.hoisted(() => ({
   routerPush: vi.fn(),
@@ -177,14 +182,9 @@ vi.mock('@/shared/components/ui/badge', () => ({ Badge: createStub('BadgeStub') 
 vi.mock('@/shared/components/ui/input', () => ({ Input: createInputStub() }))
 vi.mock('@/shared/components/ui/scroll-area', () => ({ ScrollArea: createScrollAreaStub() }))
 
-import ChannelSidebar from '../../src/features/server/components/ChannelSidebar.vue'
-import ChatWindow from '../../src/features/chat/components/ChatWindow.vue'
-import KnowledgeCapturePanel from '../../src/features/chat/components/KnowledgeCapturePanel.vue'
-import { useChatStore } from '../../src/features/chat/stores/chatStore'
-
 let pinia: ReturnType<typeof createPinia>
 
-describe('KnowledgeCapturePanel integration', () => {
+describe('knowledgeCapturePanel integration', () => {
   beforeEach(() => {
     pinia = createPinia()
     setActivePinia(pinia)

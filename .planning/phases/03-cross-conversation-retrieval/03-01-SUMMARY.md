@@ -59,6 +59,7 @@ completed: 2026-03-06
 - **Files modified:** 4
 
 ## Accomplishments
+
 - Delivered retrieval service contract and RED tests validating term passthrough, joined-room scope, pagination, and blank-query short-circuit.
 - Implemented production retrieval logic using Matrix SDK `searchRoomEvents` and `backPaginateRoomEventsSearch` with `next_batch` tracking.
 - Exported retrieval API in `src/matrix/index.ts` and stabilized session-level dedupe to avoid duplicate first-page items during pagination.
@@ -71,12 +72,14 @@ Each task was committed atomically:
 2. **Task 2: 实现 joined-room 受限检索与分页续取（转绿灯）** - `e7a9ffd` (feat)
 
 ## Files Created/Modified
+
 - `src/matrix/retrieval.ts` - Retrieval contract, joined-room filter, pagination and dedupe session handling.
 - `src/matrix/index.ts` - Public export surface for retrieval service and related types.
 - `tests/unit/matrix/retrieval.test.ts` - Unit coverage for term forwarding, scope enforcement, pagination continuation, blank term behavior.
 - `tests/mocks/matrix-search.ts` - Deterministic search fixtures with mixed membership rooms and `next_batch` pages.
 
 ## Decisions Made
+
 - Enforced joined-room-only scope at request build time instead of trusting broader server visibility semantics.
 - Preserved SDK result order and appended only unseen `eventId` entries when paginating.
 
@@ -98,8 +101,9 @@ None - no external service configuration required.
 - No blockers for advancing Phase 3.
 
 ---
-*Phase: 03-cross-conversation-retrieval*
-*Completed: 2026-03-06*
+
+_Phase: 03-cross-conversation-retrieval_
+_Completed: 2026-03-06_
 
 ## Self-Check: PASSED
 

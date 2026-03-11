@@ -30,7 +30,7 @@ vi.mock('@matrix/index', async (importOriginal) => {
   }
 })
 
-describe('TaskPanel', () => {
+describe('taskPanel', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     localStorage.clear()

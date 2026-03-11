@@ -7,7 +7,7 @@ import { __resetUnifiedInboxForTests } from '@/features/chat/composables/useUnif
 import { useDeferStore } from '@/features/chat/stores/deferStore'
 import { useInboxStore } from '@/features/chat/stores/inboxStore'
 
-describe('UnifiedInboxPanel', () => {
+describe('unifiedInboxPanel', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     localStorage.clear()

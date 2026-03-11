@@ -10,4 +10,5 @@ Those capabilities are captured as validated requirements in `PROJECT.md`.
 - v1.0 — Chat Efficiency and Knowledge Capture (initialized, not started)
 
 ---
-*Last updated: 2026-03-05 during milestone initialization*
+
+_Last updated: 2026-03-05 during milestone initialization_

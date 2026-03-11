@@ -27,6 +27,7 @@ status: complete
 ### Task 2: Rewire ChatWindow and retire SearchMessages
 
 **`src/features/chat/components/ChatWindow.vue`**:
+
 - Replaced `import SearchMessages from './SearchMessages.vue'` with `import GlobalSearch from './GlobalSearch.vue'`
 - Changed template from `<SearchMessages v-if="store.activeSidePanel === 'search' && store.currentRoomId" :room-id="..." @close="..." />` to `<GlobalSearch v-if="store.activeSidePanel === 'search'" @close="store.closeSidePanel()" />`
 - Removed `currentRoomId` guard — GlobalSearch handles cross-conversation search and doesn't need a room context
@@ -37,15 +38,16 @@ status: complete
 
 ## Test results
 
-| Test file | Result |
-|-----------|--------|
-| ChatWindow.search.integration.test.ts | 5/5 ✓ |
-| GlobalSearch.test.ts | 4/4 ✓ |
-| GlobalSearch.performance.test.ts | 2/2 ✓ |
-| KnowledgeCapturePanel.integration.test.ts | 3/3 ✓ |
-| Full suite (33 files) | 32 passed, 1 pre-existing failure (lottie-web) |
+| Test file                                 | Result                                         |
+| ----------------------------------------- | ---------------------------------------------- |
+| ChatWindow.search.integration.test.ts     | 5/5 ✓                                          |
+| GlobalSearch.test.ts                      | 4/4 ✓                                          |
+| GlobalSearch.performance.test.ts          | 2/2 ✓                                          |
+| KnowledgeCapturePanel.integration.test.ts | 3/3 ✓                                          |
+| Full suite (33 files)                     | 32 passed, 1 pre-existing failure (lottie-web) |
 
 ## Files modified
+
 - `src/features/chat/components/GlobalSearch.vue` (refactored: Teleport modal → inline panel, /dm/ nav, resetState lifecycle)
 - `src/features/chat/components/ChatWindow.vue` (SearchMessages → GlobalSearch)
 - `src/features/chat/components/SearchMessages.vue` (deleted)
@@ -54,6 +56,7 @@ status: complete
 - `tests/components/KnowledgeCapturePanel.integration.test.ts` (SearchMessages → GlobalSearch mock)
 
 ## Success criteria met
+
 - ✅ ChatWindow's reachable search path uses cross-conversation retrieval panel, not SearchMessages
 - ✅ Search result and room jumps use canonical `/dm` navigation with `focusEventId` and 250ms preload budget
 - ✅ Retrieval reopen behavior is deterministic — `resetState()` called on mount/unmount, no stale results

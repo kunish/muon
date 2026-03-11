@@ -58,6 +58,7 @@ completed: 2026-03-06
 - **Files modified:** 4
 
 ## Accomplishments
+
 - Added shared Zod-backed types for citations, digest entries, decision cards, suggestions, and cross-session QA answers.
 - Added `MuonKnowledgeDB` with versioned Dexie store definitions and repository helpers for digest / decision / QA persistence flows.
 - Added `KnowledgeCapturePanel` as a single tabbed shell for future digest, decision, and QA subpanels.
@@ -70,12 +71,14 @@ Each task was committed atomically:
 2. **Task 2: 实现 Dexie 持久化仓储与 Knowledge 面板壳层（GREEN）** - `baa0f77` (feat)
 
 ## Files Created/Modified
+
 - `src/features/chat/types/knowledge.ts` - Shared domain contracts and validation schemas for all knowledge features.
 - `src/shared/lib/knowledgeDb.ts` - Dexie schema plus repository helpers for saving and querying knowledge entities.
 - `src/features/chat/components/KnowledgeCapturePanel.vue` - Unified tab shell for digest, decision, and QA surfaces.
 - `tests/unit/stores/knowledgeDb.test.ts` - Contract coverage for schema constraints, indexes, repository queries, and suggestion disposition updates.
 
 ## Decisions Made
+
 - Centralized all citation-bearing entities in one contract file to keep Wave 2 and Wave 3 aligned on a single data shape.
 - Stored `citationEventIds` separately from citation objects so event-based indexes remain simple and deterministic.
 - Used injected table adapters in repository tests to avoid adding extra IndexedDB test dependencies during Phase 4 foundation work.
@@ -85,6 +88,7 @@ Each task was committed atomically:
 ### Auto-fixed Issues
 
 **1. [Rule 3 - Blocking] Plan verification command used unsupported Vitest `-x` flag**
+
 - **Found during:** Task 1 (建立共享知识合同与 Knowledge DB 的 RED 测试)
 - **Issue:** `pnpm vitest run ... -x` fails in this repo’s Vitest 4 CLI with `Unknown option '-x'`.
 - **Fix:** Executed the equivalent verification command without `-x` and continued with the same targeted test file.
@@ -98,6 +102,7 @@ Each task was committed atomically:
 **Impact on plan:** No scope change; only adjusted the verification invocation to match the installed Vitest CLI.
 
 ## Issues Encountered
+
 - Vitest CLI in this project does not support the planned `-x` flag; used the file-targeted run command instead.
 
 ## User Setup Required
@@ -110,8 +115,9 @@ None - no external service configuration required.
 - Knowledge side-panel shell is ready for integration with real digest / decision / QA content in later plans.
 
 ---
-*Phase: 04-offline-digest-and-decision-capture*
-*Completed: 2026-03-06*
+
+_Phase: 04-offline-digest-and-decision-capture_
+_Completed: 2026-03-06_
 
 ## Self-Check: PASSED
 

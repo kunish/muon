@@ -15,13 +15,13 @@ created: 2026-03-09
 
 ## Test Infrastructure
 
-| Property | Value |
-|----------|-------|
-| **Framework** | Vitest 4.0.18 + Vue Test Utils 2.4.6 |
-| **Config file** | `vitest.config.ts` |
-| **Quick run command** | `pnpm vitest run tests/unit/stores/digestStore.test.ts tests/unit/stores/decisionStore.test.ts tests/components/OfflineDigestPanel.test.ts tests/components/DecisionPanel.test.ts` |
-| **Full suite command** | `pnpm vitest run` |
-| **Estimated runtime** | ~30 seconds |
+| Property               | Value                                                                                                                                                                              |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Framework**          | Vitest 4.0.18 + Vue Test Utils 2.4.6                                                                                                                                               |
+| **Config file**        | `vitest.config.ts`                                                                                                                                                                 |
+| **Quick run command**  | `pnpm vitest run tests/unit/stores/digestStore.test.ts tests/unit/stores/decisionStore.test.ts tests/components/OfflineDigestPanel.test.ts tests/components/DecisionPanel.test.ts` |
+| **Full suite command** | `pnpm vitest run`                                                                                                                                                                  |
+| **Estimated runtime**  | ~30 seconds                                                                                                                                                                        |
 
 ---
 
@@ -36,16 +36,16 @@ created: 2026-03-09
 
 ## Per-Task Verification Map
 
-| Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
-|---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 07-01-01 | 01 | 0 | DIGE-01 / DIGE-03 | unit | `pnpm vitest run tests/unit/stores/digestStore.test.ts` | ⚠️ extend | ⬜ pending |
-| 07-01-02 | 01 | 0 | DECI-02 | unit | `pnpm vitest run tests/unit/stores/decisionStore.test.ts` | ⚠️ extend | ⬜ pending |
-| 07-01-03 | 01 | 0 | DIGE-01 / DIGE-02 | component | `pnpm vitest run tests/components/OfflineDigestPanel.test.ts tests/components/DecisionPanel.test.ts` | ⚠️ extend | ⬜ pending |
-| 07-02-01 | 02 | 1 | DIGE-01 / DIGE-03 | unit | `pnpm vitest run tests/unit/stores/digestStore.test.ts` | ⬜ W0 | ⬜ pending |
-| 07-02-02 | 02 | 1 | DECI-02 | unit | `pnpm vitest run tests/unit/stores/decisionStore.test.ts` | ⬜ W0 | ⬜ pending |
-| 07-02-03 | 02 | 1 | DIGE-01 / DIGE-02 | component | `pnpm vitest run tests/components/OfflineDigestPanel.test.ts tests/components/DecisionPanel.test.ts` | ⬜ W0 | ⬜ pending |
+| Task ID  | Plan | Wave | Requirement       | Test Type | Automated Command                                                                                    | File Exists | Status     |
+| -------- | ---- | ---- | ----------------- | --------- | ---------------------------------------------------------------------------------------------------- | ----------- | ---------- |
+| 07-01-01 | 01   | 0    | DIGE-01 / DIGE-03 | unit      | `pnpm vitest run tests/unit/stores/digestStore.test.ts`                                              | ⚠️ extend   | ⬜ pending |
+| 07-01-02 | 01   | 0    | DECI-02           | unit      | `pnpm vitest run tests/unit/stores/decisionStore.test.ts`                                            | ⚠️ extend   | ⬜ pending |
+| 07-01-03 | 01   | 0    | DIGE-01 / DIGE-02 | component | `pnpm vitest run tests/components/OfflineDigestPanel.test.ts tests/components/DecisionPanel.test.ts` | ⚠️ extend   | ⬜ pending |
+| 07-02-01 | 02   | 1    | DIGE-01 / DIGE-03 | unit      | `pnpm vitest run tests/unit/stores/digestStore.test.ts`                                              | ⬜ W0       | ⬜ pending |
+| 07-02-02 | 02   | 1    | DECI-02           | unit      | `pnpm vitest run tests/unit/stores/decisionStore.test.ts`                                            | ⬜ W0       | ⬜ pending |
+| 07-02-03 | 02   | 1    | DIGE-01 / DIGE-02 | component | `pnpm vitest run tests/components/OfflineDigestPanel.test.ts tests/components/DecisionPanel.test.ts` | ⬜ W0       | ⬜ pending |
 
-*Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
+_Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky_
 
 ---
 
@@ -62,10 +62,10 @@ created: 2026-03-09
 
 ## Manual-Only Verifications
 
-| Behavior | Requirement | Why Manual | Test Instructions |
-|----------|-------------|------------|-------------------|
-| Digest entries survive real app restart and reappear on Knowledge reopen | DIGE-01 | Requires real Dexie persistence in a running app | Open Knowledge panel, view digest, close app, reopen, navigate to Knowledge — entries should still be visible |
-| Digest-backed decision suggestions reflect only the current away-window | DECI-02 | Requires real offline/online transition with actual Matrix events | Go offline, receive messages, come back online, open Knowledge → Digest, then switch to Decision — suggestions should match current session entries |
+| Behavior                                                                 | Requirement | Why Manual                                                        | Test Instructions                                                                                                                                   |
+| ------------------------------------------------------------------------ | ----------- | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Digest entries survive real app restart and reappear on Knowledge reopen | DIGE-01     | Requires real Dexie persistence in a running app                  | Open Knowledge panel, view digest, close app, reopen, navigate to Knowledge — entries should still be visible                                       |
+| Digest-backed decision suggestions reflect only the current away-window  | DECI-02     | Requires real offline/online transition with actual Matrix events | Go offline, receive messages, come back online, open Knowledge → Digest, then switch to Decision — suggestions should match current session entries |
 
 ---
 

@@ -64,6 +64,7 @@ completed: 2026-03-06
 - **Files modified:** 10
 
 ## Accomplishments
+
 - Added a retrieval-backed QA service that composes answers only from cited message hits and persists them.
 - Added CrossSessionQaPanel with ask / render / citation-jump behavior.
 - Integrated digest, decision, and QA into one Knowledge side panel reachable from the DM sidebar.
@@ -76,6 +77,7 @@ Each task was committed atomically:
 2. **Task 2: 实现 QA 服务与 Knowledge 统一入口集成（GREEN）** - `0af1c76` (feat)
 
 ## Files Created/Modified
+
 - `src/features/chat/services/crossSessionQa.ts` - Retrieval-backed cited answer generation and persistence.
 - `src/features/chat/components/CrossSessionQaPanel.vue` - Q&A UI, answer display, and citation navigation.
 - `src/features/chat/components/KnowledgeCapturePanel.vue` - Real digest / decision / QA panel integration.
@@ -87,6 +89,7 @@ Each task was committed atomically:
 - `tests/components/CrossSessionQaPanel.test.ts` - Component coverage for answer rendering, citation jump, and knowledge integration toggle.
 
 ## Decisions Made
+
 - Reused retrieval service output directly as QA evidence, which keeps DECI-03 under the same joined-room authorization guarantees as Phase 3.
 - Used the existing side-panel mechanism for Knowledge to avoid adding a second navigation paradigm.
 
@@ -95,6 +98,7 @@ Each task was committed atomically:
 ### Auto-fixed Issues
 
 **1. [Rule 3 - Blocking] Knowledge panel integration test initially checked QA content without switching tabs**
+
 - **Found during:** Task 2 (实现 QA 服务与 Knowledge 统一入口集成)
 - **Issue:** `KnowledgeCapturePanel` defaults to the digest tab, so the QA child component is not visible until the QA tab is selected.
 - **Fix:** Updated the integration test to switch to the QA tab before asserting `CrossSessionQaPanel` presence.
@@ -103,6 +107,7 @@ Each task was committed atomically:
 - **Committed in:** `0af1c76`
 
 **2. [Rule 3 - Blocking] Plan verification command used unsupported Vitest `-x` flag**
+
 - **Found during:** Task 1 (先写 cross-session QA RED 测试)
 - **Issue:** The planned flag is unsupported in this repo’s Vitest CLI.
 - **Fix:** Used the equivalent file-targeted command without `-x`, then ran `pnpm test:unit` for wider regression coverage.
@@ -116,6 +121,7 @@ Each task was committed atomically:
 **Impact on plan:** No scope change; fixes only aligned tests/tooling with the implemented panel behavior and local Vitest CLI.
 
 ## Issues Encountered
+
 - `pnpm test:unit` passed, but existing unrelated locale warning noise remains in several older component tests due incomplete `zh.json` coverage outside Phase 4 scope.
 
 ## User Setup Required
@@ -128,8 +134,9 @@ None - no external service configuration required.
 - Ready for phase-level verification against DIGE / DECI requirements and must-have truths.
 
 ---
-*Phase: 04-offline-digest-and-decision-capture*
-*Completed: 2026-03-06*
+
+_Phase: 04-offline-digest-and-decision-capture_
+_Completed: 2026-03-06_
 
 ## Self-Check: PASSED
 

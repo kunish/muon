@@ -59,7 +59,7 @@ async function flushUi() {
   await nextTick()
 }
 
-describe('GlobalSearch performance', () => {
+describe('globalSearch performance', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     routerPush.mockReset()

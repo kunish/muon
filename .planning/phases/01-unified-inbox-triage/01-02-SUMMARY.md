@@ -42,6 +42,7 @@ completed: 2026-03-05
 - **Files modified:** 4
 
 ## Accomplishments
+
 - 定义 `InboxEventContext` 与 `loadInboxEventContext` 契约并补齐失败测试（接口先行）
 - 实现 timeline 优先的上下文加载逻辑（`getEventTimeline` + 双向 `paginateEventTimeline`）
 - 实现目标消息缺失时的 fallback（`getEventContext` / REST `/context`）
@@ -55,12 +56,14 @@ Each task was committed atomically:
 2. **Task 2: 实现 Matrix context loader 并从 matrix/index 导出** - `0c42d25` (feat)
 
 ## Files Created/Modified
+
 - `src/matrix/inbox.ts` - INBX-03 上下文加载入口（timeline + fallback）
 - `src/matrix/index.ts` - 对外 re-export `loadInboxEventContext` 与类型
 - `tests/unit/matrix/inbox.test.ts` - 覆盖命中/回填/异常三类场景
 - `tests/mocks/matrix.ts` - 扩展 context timeline 相关 mock 能力
 
 ## Decisions Made
+
 - 先用 timeline API 拿上下文，再在必要时回退 context API，降低“本地窗口缺事件”导致的跳转失败。
 - 错误路径统一抛出可识别错误前缀 `Failed to load inbox event context`，方便上层处理。
 
