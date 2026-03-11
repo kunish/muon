@@ -3,6 +3,26 @@
   "type": "module",
   "version": "0.1.0",
   "private": true,
+  "description": "A modern, fast Matrix chat client built with Tauri and Vue 3",
+  "author": "Muon Contributors",
+  "license": "MIT",
+  "homepage": "https://github.com/kunish/muon#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kunish/muon.git"
+  },
+  "bugs": {
+    "url": "https://github.com/kunish/muon/issues"
+  },
+  "keywords": [
+    "matrix",
+    "chat",
+    "tauri",
+    "vue",
+    "desktop",
+    "encrypted",
+    "messenger"
+  ],
   "packageManager": "pnpm@10.29.3",
   "scripts": {
     "dev": "vite",
