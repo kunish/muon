@@ -36,7 +36,7 @@ Key conventions:
 
 Use [Conventional Commits](https://www.conventionalcommits.org/):
 
-```
+```text
 feat: add room search functionality
 fix: resolve message rendering issue
 docs: update contributing guide
@@ -68,7 +68,7 @@ Use the [Feature Request](https://github.com/kunish/muon/issues/new?template=fea
 
 ## Project Architecture
 
-```
+```text
 src/
 ├── app/          # App shell: router, layouts, global providers
 ├── features/     # Feature modules (each with its own components, composables, stores)

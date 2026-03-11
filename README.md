@@ -24,16 +24,16 @@ A modern, fast [Matrix](https://matrix.org) chat client built with [Tauri](https
 
 ## Tech Stack
 
-| Layer      | Technology                              |
-| ---------- | --------------------------------------- |
-| Framework  | Tauri 2 (Rust) + Vite 7                 |
-| Frontend   | Vue 3 (Composition API) + TypeScript    |
-| Styling    | Tailwind CSS v4 + shadcn-vue (reka-ui)  |
-| State      | Pinia + TanStack Query                  |
-| Matrix SDK | matrix-js-sdk                           |
-| Editor     | Tiptap 3                                |
-| Testing    | Vitest + Playwright                     |
-| i18n       | vue-i18n                                |
+| Layer      | Technology                             |
+| ---------- | -------------------------------------- |
+| Framework  | Tauri 2 (Rust) + Vite 7                |
+| Frontend   | Vue 3 (Composition API) + TypeScript   |
+| Styling    | Tailwind CSS v4 + shadcn-vue (reka-ui) |
+| State      | Pinia + TanStack Query                 |
+| Matrix SDK | matrix-js-sdk                          |
+| Editor     | Tiptap 3                               |
+| Testing    | Vitest + Playwright                    |
+| i18n       | vue-i18n                               |
 
 ## Download
 
@@ -84,23 +84,23 @@ pnpm services:down
 
 ### Available Scripts
 
-| Command                  | Description                            |
-| ------------------------ | -------------------------------------- |
-| `pnpm dev`               | Start Vite dev server                  |
-| `pnpm tauri dev`         | Start Tauri desktop app (dev mode)     |
-| `pnpm build`             | Type-check and build for production    |
-| `pnpm preview`           | Preview production build locally       |
-| `pnpm lint`              | Run ESLint                             |
-| `pnpm type-check`        | Run TypeScript type checking           |
-| `pnpm test:unit`         | Run unit tests (Vitest)                |
-| `pnpm test:unit:watch`   | Run unit tests in watch mode           |
-| `pnpm test:unit:coverage`| Run unit tests with coverage report    |
-| `pnpm test:e2e`          | Run end-to-end tests (Playwright)      |
-| `pnpm test`              | Run all tests                          |
+| Command                   | Description                         |
+| ------------------------- | ----------------------------------- |
+| `pnpm dev`                | Start Vite dev server               |
+| `pnpm tauri dev`          | Start Tauri desktop app (dev mode)  |
+| `pnpm build`              | Type-check and build for production |
+| `pnpm preview`            | Preview production build locally    |
+| `pnpm lint`               | Run ESLint                          |
+| `pnpm type-check`         | Run TypeScript type checking        |
+| `pnpm test:unit`          | Run unit tests (Vitest)             |
+| `pnpm test:unit:watch`    | Run unit tests in watch mode        |
+| `pnpm test:unit:coverage` | Run unit tests with coverage report |
+| `pnpm test:e2e`           | Run end-to-end tests (Playwright)   |
+| `pnpm test`               | Run all tests                       |
 
 ### Project Structure
 
-```
+```text
 muon/
 ├── src/                  # Vue frontend source
 │   ├── app/              # App shell, router, layouts
