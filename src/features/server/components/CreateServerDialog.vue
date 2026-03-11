@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import { useServerStore } from '@/features/server/stores/serverStore'
 import { createSpace } from '@/matrix/spaces'
 import { Button } from '@/shared/components/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/shared/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog'
 import { Input } from '@/shared/components/ui/input'
 import { Label } from '@/shared/components/ui/label'
 
@@ -39,9 +39,9 @@ async function handleCreate() {
 
 <template>
   <Dialog v-model:open="open">
-    <DialogTrigger as-child>
+    <span class="contents" @click="open = true">
       <slot name="trigger" />
-    </DialogTrigger>
+    </span>
     <DialogContent>
       <DialogHeader>
         <DialogTitle>Create a Server</DialogTitle>

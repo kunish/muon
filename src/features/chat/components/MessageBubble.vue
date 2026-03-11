@@ -596,7 +596,7 @@ function onOpenThread() {
         <!-- Normal bubble -->
         <div
           v-else
-          class="msg-bubble max-w-[min(65vw,560px)] text-sm break-words"
+          class="msg-bubble max-w-[min(65vw,560px)] w-fit text-sm break-words"
           :class="[
             isMine ? 'bg-primary/10' : 'bg-muted',
             msgtype === 'm.image' || msgtype === 'm.video'

@@ -309,7 +309,7 @@ function openThread() {
     class="chat-message relative flex py-0.5 group"
     :class="[
       avatarColumnHidden
-        ? (isRightAligned ? 'w-full justify-end px-0' : 'w-full px-0')
+        ? (isRightAligned ? 'justify-end px-0' : 'w-full px-0')
         : (isRightAligned ? 'justify-end pr-4 pl-12' : 'pr-12 pl-4'),
       isFirst
         ? (avatarColumnHidden ? 'pt-0.5' : 'mt-[1.0625rem] pt-0.5')
@@ -354,13 +354,13 @@ function openThread() {
     <div
       class="min-w-0 flex flex-col"
       :class="avatarColumnHidden
-        ? (isRightAligned ? 'w-full items-end max-w-[min(72%,900px)]' : 'w-full items-start')
+        ? (isRightAligned ? 'items-end' : 'w-full items-start')
         : (isRightAligned ? 'order-1 items-end max-w-[min(72%,900px)]' : 'order-2 items-start flex-1')"
     >
       <!-- 首条消息：用户名 + 时间戳 -->
       <div
         v-if="isFirst"
-        class="mb-0.5 flex w-full items-baseline gap-2"
+        class="mb-0.5 flex items-baseline gap-2"
         :class="isRightAligned ? 'justify-end' : ''"
       >
         <span
@@ -432,6 +432,7 @@ function openThread() {
           v-else-if="sanitizedHtml"
           class="rich-content text-[15px] leading-relaxed text-foreground/90"
           :class="isRightAligned ? 'rounded-2xl bg-primary/10 px-3 py-2' : ''"
+          :style="isRightAligned ? { width: 'fit-content', maxWidth: '100%', marginLeft: 'auto' } : {}"
           @click="onRichContentClick"
           v-html="sanitizedHtml"
         />
@@ -446,6 +447,7 @@ function openThread() {
           v-else
           class="text-[15px] leading-relaxed text-foreground/90 whitespace-pre-wrap break-words"
           :class="isRightAligned ? 'rounded-2xl bg-primary/10 px-3 py-2' : ''"
+          :style="isRightAligned ? { width: 'fit-content', maxWidth: '100%', marginLeft: 'auto' } : {}"
         >
           {{ body }}<span v-if="isEdited" class="text-[10px] text-muted-foreground/30 ml-1">({{ t('chat.edited') }})</span>
         </p>
