@@ -125,6 +125,8 @@ function openDisappearing() {
           <button
             class="header-btn"
             :title="t('chat.more_actions')"
+            aria-haspopup="menu"
+            :aria-expanded="showMore"
             @click="showMore = !showMore"
           >
             <MoreHorizontal :size="18" />
@@ -132,13 +134,14 @@ function openDisappearing() {
 
           <div
             v-if="showMore"
+            role="menu"
             class="absolute right-0 top-full z-30 mt-1 min-w-[170px] rounded-md bg-popover p-1 shadow-[0_8px_24px_rgba(0,0,0,0.45)]"
           >
-            <button class="header-menu-item" @click="toggleStarred">
+            <button role="menuitem" class="header-menu-item" @click="toggleStarred">
               <Star :size="14" />
               <span>{{ t('chat.starred_messages') }}</span>
             </button>
-            <button class="header-menu-item" @click="openDisappearing">
+            <button role="menuitem" class="header-menu-item" @click="openDisappearing">
               <Timer :size="14" />
               <span>{{ t('chat.disappearing_messages') }}</span>
             </button>
@@ -163,7 +166,7 @@ function openDisappearing() {
   align-items: center;
   justify-content: center;
   padding: 6px;
-  border-radius: 4px;
+  border-radius: var(--radius);
   color: var(--color-muted-foreground);
   transition: all 0.15s ease;
   cursor: pointer;
@@ -180,7 +183,7 @@ function openDisappearing() {
 .header-search-btn {
   display: flex;
   align-items: center;
-  border-radius: 4px;
+  border-radius: var(--radius);
   color: var(--color-muted-foreground);
   transition: all 0.15s ease;
   cursor: pointer;
@@ -191,7 +194,7 @@ function openDisappearing() {
   align-items: center;
   gap: 6px;
   width: 140px;
-  border-radius: 4px;
+  border-radius: var(--radius);
   background: var(--color-input);
   padding: 6px 8px;
   font-size: 12px;
@@ -213,7 +216,7 @@ function openDisappearing() {
   width: 100%;
   align-items: center;
   gap: 8px;
-  border-radius: 4px;
+  border-radius: var(--radius);
   padding: 6px 8px;
   color: var(--color-muted-foreground);
   cursor: pointer;
@@ -221,7 +224,7 @@ function openDisappearing() {
 }
 
 .header-menu-item:hover {
-  background: var(--color-primary);
-  color: var(--color-primary-foreground);
+  background: var(--color-accent);
+  color: var(--color-accent-foreground);
 }
 </style>

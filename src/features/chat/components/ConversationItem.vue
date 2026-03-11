@@ -215,8 +215,6 @@ const sender = computed(() => {
     background-color 0.18s ease,
     box-shadow 0.22s ease,
     transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
-  animation: panel-slide-in 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
-  animation-delay: calc(var(--conv-index, 0) * 35ms);
 }
 
 .conv-item:active {

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { findOrCreateDm } from '@matrix/index'
+import Avatar from '@/shared/components/ui/avatar/Avatar.vue'
 import { Plus } from 'lucide-vue-next'
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -80,9 +81,7 @@ async function handleOpenMessage(userId: string) {
           :class="selectedGroupId === group.roomId ? 'bg-accent' : 'hover:bg-accent/50'"
           @click="handleSelectGroup(group.roomId)"
         >
-          <div class="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-medium">
-            {{ group.name.slice(0, 1) }}
-          </div>
+          <Avatar :alt="group.name" :color-id="group.roomId || group.name" size="sm" />
           <div class="flex-1 min-w-0">
             <div class="text-sm truncate">
               {{ group.name }}

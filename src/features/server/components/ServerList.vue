@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Compass, Gamepad2, Plus } from 'lucide-vue-next'
+import { Compass, MessageCircle, Plus } from 'lucide-vue-next'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
@@ -98,7 +98,7 @@ function onDrop(targetIndex: number) {
               class="server-icon bg-background text-foreground group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-150"
               :class="isDmMode ? 'rounded-2xl bg-primary text-primary-foreground' : 'rounded-3xl'"
             >
-              <Gamepad2 :size="23" />
+              <MessageCircle :size="23" />
             </div>
             <!-- Indicator -->
             <div

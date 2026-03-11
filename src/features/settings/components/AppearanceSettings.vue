@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { MessageAlignment, ThemeMode } from '../stores/settingsStore'
 import { useI18n } from 'vue-i18n'
+import { Tabs, TabsList, TabsTrigger } from '@/shared/components/ui/tabs'
 import { useSettingsStore } from '../stores/settingsStore'
 
 const { t } = useI18n()
@@ -33,58 +34,39 @@ const alignmentOptions: { value: MessageAlignment, label: () => string, desc: ()
       <div class="text-sm">
         {{ t('settings.theme') }}
       </div>
-      <div class="flex gap-2">
-        <button
-          v-for="opt in themeOptions"
-          :key="opt.value"
-          class="px-4 py-2 text-sm rounded-lg border transition-colors"
-          :class="store.theme === opt.value
-            ? 'border-primary bg-primary/10 text-primary'
-            : 'border-border hover:bg-accent'"
-          @click="store.theme = opt.value"
-        >
-          {{ opt.label() }}
-        </button>
-      </div>
+      <Tabs :model-value="store.theme" @update:model-value="v => store.theme = v as ThemeMode">
+        <TabsList>
+          <TabsTrigger v-for="opt in themeOptions" :key="opt.value" :value="opt.value">
+            {{ opt.label() }}
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
     </div>
 
     <div class="space-y-2">
       <div class="text-sm">
         {{ t('settings.language') }}
       </div>
-      <div class="flex gap-2">
-        <button
-          v-for="opt in localeOptions"
-          :key="opt.value"
-          class="px-4 py-2 text-sm rounded-lg border transition-colors"
-          :class="store.locale === opt.value
-            ? 'border-primary bg-primary/10 text-primary'
-            : 'border-border hover:bg-accent'"
-          @click="store.locale = opt.value"
-        >
-          {{ opt.label() }}
-        </button>
-      </div>
+      <Tabs :model-value="store.locale" @update:model-value="v => store.locale = v as string">
+        <TabsList>
+          <TabsTrigger v-for="opt in localeOptions" :key="opt.value" :value="opt.value">
+            {{ opt.label() }}
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
     </div>
 
     <div class="space-y-2">
       <div class="text-sm">
         {{ t('settings.msg_align') }}
       </div>
-      <div class="flex gap-2">
-        <button
-          v-for="opt in alignmentOptions"
-          :key="opt.value"
-          class="px-4 py-2 text-sm rounded-lg border transition-colors"
-          :class="store.messageAlignment === opt.value
-            ? 'border-primary bg-primary/10 text-primary'
-            : 'border-border hover:bg-accent'"
-          :title="opt.desc()"
-          @click="store.messageAlignment = opt.value"
-        >
-          {{ opt.label() }}
-        </button>
-      </div>
+      <Tabs :model-value="store.messageAlignment" @update:model-value="v => store.messageAlignment = v as MessageAlignment">
+        <TabsList>
+          <TabsTrigger v-for="opt in alignmentOptions" :key="opt.value" :value="opt.value" :title="opt.desc()">
+            {{ opt.label() }}
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
       <p class="text-xs text-muted-foreground">
         {{ alignmentOptions.find(o => o.value === store.messageAlignment)?.desc() }}
       </p>

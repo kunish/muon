@@ -3,6 +3,7 @@ import { bindClientEvents, login, register, startSync } from '@matrix/index'
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
+import { Input } from '@/shared/components/ui/input'
 import { Label } from '@/shared/components/ui/label'
 import { Tabs, TabsList, TabsTrigger } from '@/shared/components/ui/tabs'
 
@@ -35,7 +36,7 @@ async function handleSubmit() {
     }
     bindClientEvents()
     startSync()
-    router.push('/chat')
+    router.push('/dm')
   }
   catch (e: any) {
     error.value = e?.message || t('auth.error')
@@ -68,41 +69,41 @@ async function handleSubmit() {
       <form class="space-y-4" @submit.prevent="handleSubmit">
         <div>
           <Label class="block text-sm mb-1.5">{{ t('auth.server') }}</Label>
-          <input
+          <Input
             v-model="serverUrl"
             type="text"
-            class="w-full h-9 px-3 text-sm rounded-md border border-input bg-background outline-none focus:ring-2 focus:ring-ring"
-          >
+            class="h-9"
+          />
         </div>
 
         <div>
           <Label class="block text-sm mb-1.5">{{ t('auth.username') }}</Label>
-          <input
+          <Input
             v-model="username"
             type="text"
             autocomplete="username"
-            class="w-full h-9 px-3 text-sm rounded-md border border-input bg-background outline-none focus:ring-2 focus:ring-ring"
-          >
+            class="h-9"
+          />
         </div>
 
         <div>
           <Label class="block text-sm mb-1.5">{{ t('auth.password') }}</Label>
-          <input
+          <Input
             v-model="password"
             type="password"
             autocomplete="current-password"
-            class="w-full h-9 px-3 text-sm rounded-md border border-input bg-background outline-none focus:ring-2 focus:ring-ring"
-          >
+            class="h-9"
+          />
         </div>
 
         <div v-if="tab === 'register'">
           <Label class="block text-sm mb-1.5">{{ t('auth.display_name') }}</Label>
-          <input
+          <Input
             v-model="displayName"
             type="text"
             :placeholder="t('auth.optional')"
-            class="w-full h-9 px-3 text-sm rounded-md border border-input bg-background outline-none focus:ring-2 focus:ring-ring"
-          >
+            class="h-9"
+          />
         </div>
 
         <div v-if="error" class="text-sm text-destructive">

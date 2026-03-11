@@ -18,7 +18,6 @@ import {
   AtSign,
   Bold,
   Code,
-  Gift,
   Italic,
   List,
   ListOrdered,
@@ -45,8 +44,10 @@ import LocationPicker from './LocationPicker.vue'
 import MentionList from './MentionList.vue'
 import StickerPackManager from './StickerPackManager.vue'
 import UploadProgress from './UploadProgress.vue'
-import VoiceRecorder from './VoiceRecorder.vue'
-import VoiceToTextButton from './VoiceToTextButton.vue'
+// Voice components (VoiceRecorder, VoiceToTextButton) are available but disabled
+// until voice UI is implemented. Their imports are kept commented for reference:
+// import VoiceRecorder from './VoiceRecorder.vue'
+// import VoiceToTextButton from './VoiceToTextButton.vue'
 
 const store = useChatStore()
 const { t } = useI18n()
@@ -57,7 +58,6 @@ const {
   progress,
   uploadImage,
   uploadVideo,
-  uploadAudio,
   uploadFile,
 } = useMediaUpload(() => store.currentRoomId)
 const { filterMembers } = useMention()
@@ -287,11 +287,6 @@ function insertMention() {
   editor.value?.chain().focus().insertContent('@').run()
 }
 
-function handleTranscript(text: string) {
-  editor.value?.commands.insertContent(text)
-  editor.value?.commands.focus('end')
-}
-
 watch(
   () => store.currentRoomId,
   (newId, oldId) => {
@@ -487,15 +482,6 @@ onUnmounted(() => {
         >
           <ALargeSmall :size="16" />
         </button>
-        <!-- GIF -->
-        <button
-          class="p-1.5 rounded-md hover:bg-accent text-muted-foreground"
-          :title="t('chat.gif')"
-          @click="toggleGifPicker"
-        >
-          <Gift :size="16" />
-        </button>
-
         <!-- GIF / Sticker / Emoji 整合入口 -->
         <button
           class="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-muted-foreground transition-colors hover:bg-accent"
@@ -519,11 +505,7 @@ onUnmounted(() => {
           <Maximize2 v-else :size="16" />
         </button>
       </div>
-      <!-- 语音相关（保留功能但不在主行显示） -->
-      <div class="hidden">
-        <VoiceRecorder @send="uploadAudio" />
-        <VoiceToTextButton @transcript="handleTranscript" />
-      </div>
+      <!-- TODO: Voice features (VoiceRecorder, VoiceToTextButton) disabled until voice UI is implemented -->
     </div>
 
     <!-- Mention 弹窗 -->

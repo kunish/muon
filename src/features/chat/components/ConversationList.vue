@@ -233,10 +233,7 @@ function selectQuickContact(roomId: string) {
           :active="conversations[vItem.index].roomId === store.currentRoomId"
           :typing-users="getTypingUsers(conversations[vItem.index].roomId)"
           class="absolute top-0 left-0 w-full"
-          :style="{
-            'transform': `translateY(${vItem.start}px)`,
-            '--conv-index': vItem.index,
-          }"
+          :style="{ transform: `translateY(${vItem.start}px)` }"
           @select="selectRoom"
           @avatar-click="onAvatarClick"
           @contextmenu="onContextMenu"

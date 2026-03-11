@@ -31,6 +31,7 @@ import {
   PinOff,
   RefreshCw,
   Reply,
+  SmilePlus,
   Star,
   StarOff,
   Trash2,
@@ -695,7 +696,7 @@ function onOpenThread() {
                 :title="t('chat.action_emoji')"
                 @click.stop="showEmojiPicker = !showEmojiPicker"
               >
-                😀
+                <SmilePlus :size="14" />
               </button>
               <Transition name="more-menu">
                 <div
