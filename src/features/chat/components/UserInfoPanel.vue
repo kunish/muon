@@ -7,6 +7,7 @@ import { ask } from '@tauri-apps/plugin-dialog'
 import { AtSign, Ban, Hash, MessageCircle, Shield, X } from 'lucide-vue-next'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { toast } from 'vue-sonner'
 import { useAuthMedia } from '@/shared/composables/useAuthMedia'
 import { useConversations } from '../composables/useConversations'
 import {
@@ -159,8 +160,8 @@ async function onSendMessage() {
     restoreRoom(roomId)
     chatStore.setCurrentRoom(roomId)
   }
-  catch (err) {
-    console.error('打开私聊失败:', err)
+  catch {
+    toast.error(t('auth.error'))
   }
 }
 

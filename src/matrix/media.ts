@@ -59,7 +59,6 @@ export async function fetchMediaBlobUrl(mxcUrl: string, width?: number, height?:
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       })
       if (!res.ok) {
-        console.warn(`[media] ${res.status} ${url}`)
         continue
       }
       const contentType = res.headers.get('content-type') || 'application/octet-stream'
@@ -70,8 +69,7 @@ export async function fetchMediaBlobUrl(mxcUrl: string, width?: number, height?:
         console.debug(`[media] OK ${url} blob size=${blob.size} type=${blob.type}`)
       return URL.createObjectURL(blob)
     }
-    catch (e) {
-      console.warn('[media] error', url, e)
+    catch {
       continue
     }
   }

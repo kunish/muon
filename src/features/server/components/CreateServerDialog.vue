@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
+import { toast } from 'vue-sonner'
 import { useServerStore } from '@/features/server/stores/serverStore'
 import { createSpace } from '@/matrix/spaces'
 import { Button } from '@/shared/components/ui/button'
@@ -10,6 +12,7 @@ import { Label } from '@/shared/components/ui/label'
 
 const router = useRouter()
 const serverStore = useServerStore()
+const { t } = useI18n()
 
 const open = ref(false)
 const serverName = ref('')
@@ -30,6 +33,7 @@ async function handleCreate() {
   }
   catch (error) {
     console.error('Failed to create server:', error)
+    toast.error(t('auth.error'))
   }
   finally {
     isCreating.value = false

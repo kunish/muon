@@ -2,6 +2,8 @@
 import type { SpaceMember } from '@/matrix/spaces'
 import { Search, ShieldAlert, UserX } from 'lucide-vue-next'
 import { computed, onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { toast } from 'vue-sonner'
 import { getClient } from '@/matrix/client'
 import { getSpaceMembers, setSpacePowerLevel } from '@/matrix/spaces'
 import { Avatar } from '@/shared/components/ui/avatar'
@@ -13,6 +15,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 const props = defineProps<{
   serverId: string
 }>()
+
+const { t } = useI18n()
 
 // ── Role definitions (matching MemberPanel) ──
 
@@ -112,6 +116,7 @@ async function changeRole(member: SpaceMember, newLevel: number) {
   }
   catch (err) {
     console.error('Failed to change role:', err)
+    toast.error(t('auth.error'))
   }
   finally {
     isChangingRole.value = null
@@ -139,6 +144,7 @@ async function handleKick() {
   }
   catch (err) {
     console.error('Failed to kick member:', err)
+    toast.error(t('auth.error'))
   }
   finally {
     isKicking.value = false
@@ -166,6 +172,7 @@ async function handleBan() {
   }
   catch (err) {
     console.error('Failed to ban member:', err)
+    toast.error(t('auth.error'))
   }
   finally {
     isBanning.value = false

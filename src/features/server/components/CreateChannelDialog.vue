@@ -3,6 +3,7 @@ import { Hash, Lock, Volume2 } from 'lucide-vue-next'
 import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
+import { toast } from 'vue-sonner'
 import { useServerStore } from '@/features/server/stores/serverStore'
 import { createChannel } from '@/matrix/spaces'
 import { Button } from '@/shared/components/ui/button'
@@ -65,6 +66,7 @@ async function handleCreate() {
   }
   catch (error) {
     console.error('Failed to create channel:', error)
+    toast.error(t('auth.error'))
   }
   finally {
     isCreating.value = false

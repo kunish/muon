@@ -2,6 +2,8 @@
 import type { SpaceMember } from '@/matrix/spaces'
 import { MessageCircle, X } from 'lucide-vue-next'
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { toast } from 'vue-sonner'
 import { avatarGradient } from '@/features/chat/lib/format'
 import { getClient } from '@/matrix/client'
 import { getUserPresenceInfo } from '@/matrix/profile'
@@ -17,6 +19,7 @@ const emit = defineEmits<{
   close: []
 }>()
 
+const { t } = useI18n()
 const isVisible = computed(() => !!props.member)
 
 // ── 头像 ──
@@ -123,6 +126,7 @@ async function onMessage() {
   }
   catch (err) {
     console.error('Failed to open DM:', err)
+    toast.error(t('auth.error'))
   }
 }
 </script>

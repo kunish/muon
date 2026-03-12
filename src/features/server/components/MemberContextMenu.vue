@@ -10,6 +10,8 @@ import {
   UserX,
 } from 'lucide-vue-next'
 import { computed, onUnmounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { toast } from 'vue-sonner'
 import { getClient } from '@/matrix/client'
 import { findOrCreateDm } from '@/matrix/rooms'
 
@@ -25,6 +27,7 @@ const emit = defineEmits<{
 
 const menuRef = ref<HTMLElement | null>(null)
 const isOpen = computed(() => !!props.member)
+const { t } = useI18n()
 
 // ── 权限判断 ──
 
@@ -111,6 +114,7 @@ async function onMessage() {
   }
   catch (err) {
     console.error('Failed to open DM:', err)
+    toast.error(t('auth.error'))
   }
 }
 

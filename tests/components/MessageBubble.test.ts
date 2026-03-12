@@ -2,6 +2,8 @@ import { mount } from '@vue/test-utils'
 import { describe, expect, it, vi } from 'vitest'
 import { createI18n } from 'vue-i18n'
 
+import en from '../../src/locales/en.json'
+
 vi.mock('lottie-web', () => ({
   default: {
     loadAnimation: vi.fn(() => ({
@@ -66,7 +68,7 @@ vi.mock('@/shared/composables/useAuthMedia', () => ({
 const i18n = createI18n({
   legacy: false,
   locale: 'en',
-  messages: { en: {} },
+  messages: { en },
 })
 
 describe('messageBubble', () => {

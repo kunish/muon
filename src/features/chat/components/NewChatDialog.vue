@@ -4,6 +4,7 @@ import { Search, Users, X } from 'lucide-vue-next'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
+import { toast } from 'vue-sonner'
 import { useContacts } from '@/features/contacts/composables/useContacts'
 import { useGroupManagement } from '@/features/contacts/composables/useGroupManagement'
 import { useContactStore } from '@/features/contacts/stores/contactStore'
@@ -118,8 +119,8 @@ async function startDm(userId: string) {
     router.push(`/chat/${roomId}`)
     emit('close')
   }
-  catch (err) {
-    console.error('Failed to create DM:', err)
+  catch {
+    toast.error(t('auth.error'))
   }
   finally {
     starting.value = false
@@ -146,8 +147,8 @@ async function handleCreateGroup() {
     router.push(`/chat/${roomId}`)
     emit('close')
   }
-  catch (err) {
-    console.error('Failed to create group:', err)
+  catch {
+    toast.error(t('auth.error'))
   }
   finally {
     creatingGroup.value = false

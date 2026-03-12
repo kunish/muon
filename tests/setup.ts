@@ -1,6 +1,8 @@
 import { config } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { createI18n } from 'vue-i18n'
+import en from '../src/locales/en.json'
+import zh from '../src/locales/zh.json'
 import { server } from './mocks/server'
 
 import './mocks/matrix'
@@ -15,8 +17,9 @@ beforeEach(() => {
 
 const i18n = createI18n({
   locale: 'zh',
+  fallbackLocale: 'en',
   legacy: false,
-  messages: { zh: {}, en: {} },
+  messages: { zh, en },
 })
 
 config.global.plugins = [i18n]

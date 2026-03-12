@@ -5,6 +5,7 @@ import { ask } from '@tauri-apps/plugin-dialog'
 import { ArrowLeft, ImagePlus, Plus, Trash2, X } from 'lucide-vue-next'
 import { computed, defineComponent, h, ref, toRef } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { toast } from 'vue-sonner'
 import { useAuthMedia } from '@/shared/composables/useAuthMedia'
 import { useStickerStore } from '../stores/stickerStore'
 
@@ -95,8 +96,8 @@ async function addStickers() {
         stickerStore.addSticker(activePackId.value!, sticker)
       }
     }
-    catch (err) {
-      console.error('上传贴纸失败:', err)
+    catch {
+      toast.error(t('auth.error'))
     }
     finally {
       uploading.value = false

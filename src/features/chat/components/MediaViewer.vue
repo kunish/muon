@@ -4,9 +4,13 @@ import { writeFile } from '@tauri-apps/plugin-fs'
 import { fetch as tauriFetch } from '@tauri-apps/plugin-http'
 import { Download, RotateCw, X, ZoomIn, ZoomOut } from 'lucide-vue-next'
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { toast } from 'vue-sonner'
 import { useMediaViewer } from '../composables/useMediaViewer'
 
 const { visible, currentUrl, currentType, close } = useMediaViewer()
+
+const { t } = useI18n()
 
 const scale = ref(1)
 const rotation = ref(0)
@@ -45,8 +49,8 @@ async function download() {
     const buf = await res.arrayBuffer()
     await writeFile(savePath, new Uint8Array(buf))
   }
-  catch (e) {
-    console.error('[MediaViewer] download failed', e)
+  catch {
+    toast.error(t('chat.download_failed'))
   }
 }
 

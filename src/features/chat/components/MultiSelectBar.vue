@@ -4,6 +4,7 @@ import { ask } from '@tauri-apps/plugin-dialog'
 import { Forward, Trash2, X } from 'lucide-vue-next'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { toast } from 'vue-sonner'
 import { useChatStore } from '../stores/chatStore'
 
 const emit = defineEmits<{
@@ -32,8 +33,8 @@ async function onBatchDelete() {
     try {
       await redactMessage(roomId, eventId)
     }
-    catch (err) {
-      console.error('撤回失败:', eventId, err)
+    catch {
+      toast.error(t('auth.error'))
     }
   }
   store.exitMultiSelect()

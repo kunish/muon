@@ -38,6 +38,7 @@ import {
 } from 'lucide-vue-next'
 import { computed, inject, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { toast } from 'vue-sonner'
 import { useSettingsStore } from '@/features/settings/stores/settingsStore'
 import { useAuthMedia } from '@/shared/composables/useAuthMedia'
 import { getSystemLanguage, translateText } from '@/shared/lib/translate'
@@ -108,8 +109,8 @@ async function onTranslate() {
     const targetLang = getSystemLanguage()
     translatedText.value = await translateText(body.value, targetLang)
   }
-  catch (err) {
-    console.error('翻译失败:', err)
+  catch {
+    toast.error(t('auth.error'))
   }
   finally {
     translating.value = false
@@ -203,8 +204,8 @@ async function resendMessage() {
       client.getRoom(props.event.getRoomId()!)!,
     )
   }
-  catch (err) {
-    console.error('重发失败:', err)
+  catch {
+    toast.error(t('chat.send_failed'))
   }
 }
 
@@ -379,8 +380,8 @@ async function onTogglePin() {
       await pinMessage(roomId, evId)
     }
   }
-  catch (err) {
-    console.error('Pin/Unpin failed:', err)
+  catch {
+    toast.error(t('auth.error'))
   }
 }
 
@@ -398,8 +399,8 @@ async function onToggleStar() {
       await starMessage(roomId, evId)
     }
   }
-  catch (err) {
-    console.error('Star/Unstar failed:', err)
+  catch {
+    toast.error(t('auth.error'))
   }
 }
 

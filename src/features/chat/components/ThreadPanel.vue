@@ -5,6 +5,7 @@ import { format } from 'date-fns'
 import { MessageSquare, Send, X } from 'lucide-vue-next'
 import { computed, nextTick, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { toast } from 'vue-sonner'
 import { useChatStore } from '../stores/chatStore'
 
 const props = defineProps<{
@@ -65,8 +66,8 @@ async function onSend() {
     await nextTick()
     listRef.value?.scrollTo({ top: listRef.value.scrollHeight, behavior: 'smooth' })
   }
-  catch (err) {
-    console.error('Thread reply failed:', err)
+  catch {
+    toast.error(t('chat.send_failed'))
   }
   finally {
     sending.value = false

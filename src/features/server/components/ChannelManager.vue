@@ -2,6 +2,8 @@
 import type { ChannelInfo } from '@/matrix/spaces'
 import { GripVertical, Hash, Pencil, Trash2, Volume2 } from 'lucide-vue-next'
 import { onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { toast } from 'vue-sonner'
 import { useServerStore } from '@/features/server/stores/serverStore'
 import { getCategoryChannels, getSpaceHierarchy, removeRoomFromSpace } from '@/matrix/spaces'
 import { Button } from '@/shared/components/ui/button'
@@ -12,6 +14,7 @@ const props = defineProps<{
 }>()
 
 const serverStore = useServerStore()
+const { t } = useI18n()
 
 // ── Types ──
 
@@ -90,6 +93,7 @@ async function handleDelete() {
   }
   catch (err) {
     console.error('Failed to delete channel:', err)
+    toast.error(t('auth.error'))
   }
   finally {
     isDeleting.value = false

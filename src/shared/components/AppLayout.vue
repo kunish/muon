@@ -3,6 +3,7 @@ import { getClient } from '@matrix/client'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
+import { toast } from 'vue-sonner'
 import ChannelSidebar from '@/features/server/components/ChannelSidebar.vue'
 import CreateCategoryDialog from '@/features/server/components/CreateCategoryDialog.vue'
 import InviteDialog from '@/features/server/components/InviteDialog.vue'
@@ -51,6 +52,7 @@ async function confirmLeaveServer() {
   }
   catch (err: unknown) {
     console.error('Failed to leave server:', err)
+    toast.error(t('auth.error'))
   }
   finally {
     isLeavingServer.value = false

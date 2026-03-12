@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { Camera } from 'lucide-vue-next'
 import { computed, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { toast } from 'vue-sonner'
 import { useServerStore } from '@/features/server/stores/serverStore'
 import { getClient } from '@/matrix/client'
 import { setRoomName, setRoomTopic } from '@/matrix/rooms'
@@ -17,6 +19,7 @@ const props = defineProps<{
 }>()
 
 const serverStore = useServerStore()
+const { t } = useI18n()
 
 const name = ref(props.serverName)
 const topic = ref(props.serverTopic ?? '')
@@ -97,6 +100,7 @@ async function handleAvatarChange(event: Event) {
   }
   catch (err) {
     console.error('Failed to upload avatar:', err)
+    toast.error(t('auth.error'))
     avatarPreview.value = null
   }
   finally {

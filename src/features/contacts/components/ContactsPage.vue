@@ -4,6 +4,7 @@ import { Plus } from 'lucide-vue-next'
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
+import { toast } from 'vue-sonner'
 import Avatar from '@/shared/components/ui/avatar/Avatar.vue'
 import { useConversations } from '../../chat/composables/useConversations'
 import { useContactStore } from '../stores/contactStore'
@@ -42,8 +43,8 @@ async function handleOpenMessage(userId: string) {
     restoreRoom(roomId)
     router.push(`/chat/${roomId}`)
   }
-  catch (err) {
-    console.error('打开私聊失败:', err)
+  catch {
+    toast.error(t('auth.error'))
   }
 }
 </script>

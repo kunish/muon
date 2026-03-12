@@ -14,6 +14,7 @@ import {
 } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { toast } from 'vue-sonner'
 import { Textarea } from '@/shared/components/ui/textarea'
 import { useConversations } from '../../chat/composables/useConversations'
 import { useChatStore } from '../../chat/stores/chatStore'
@@ -113,8 +114,8 @@ async function handleLeave() {
     removeRoom(props.roomId)
     emit('leave')
   }
-  catch (err) {
-    console.error('退出群组失败:', err)
+  catch {
+    toast.error(t('auth.error'))
   }
 }
 

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { toast } from 'vue-sonner'
 import { useServerStore } from '@/features/server/stores/serverStore'
 import { createSpace } from '@/matrix/spaces'
 import { Button } from '@/shared/components/ui/button'
@@ -40,6 +41,7 @@ async function handleCreate() {
   }
   catch (error) {
     console.error('Failed to create category:', error)
+    toast.error(t('auth.error'))
   }
   finally {
     isCreating.value = false

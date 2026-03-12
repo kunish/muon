@@ -13,6 +13,7 @@ import {
 } from 'lucide-vue-next'
 import { computed, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { toast } from 'vue-sonner'
 import { useConversations } from '../composables/useConversations'
 import { useChatStore } from '../stores/chatStore'
 
@@ -118,8 +119,8 @@ async function handleLeave() {
       removeRoom(targetRoomId)
     }
   }
-  catch (err) {
-    console.error('退出房间失败:', err)
+  catch {
+    toast.error(t('auth.error'))
   }
 }
 </script>
