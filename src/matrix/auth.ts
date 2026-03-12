@@ -20,8 +20,16 @@ function clearSession(): void {
 
 export async function login(serverUrl: string, credentials: LoginCredentials): Promise<StoredSession> {
   const client = createClient({ serverUrl })
+
+  // Strip leading '@' and any ':server' suffix so both
+  // "kunish", "@kunish" and "@kunish:example.com" work.
+  const localpart = credentials.username.replace(/^@/, '').split(':')[0]
+
   const response = await client.login('m.login.password', {
-    user: credentials.username,
+    identifier: {
+      type: 'm.id.user',
+      user: localpart,
+    },
     password: credentials.password,
   })
 
@@ -39,8 +47,9 @@ export async function login(serverUrl: string, credentials: LoginCredentials): P
 
 export async function register(serverUrl: string, params: RegisterParams): Promise<StoredSession> {
   const client = createClient({ serverUrl })
+  const localpart = params.username.replace(/^@/, '').split(':')[0]
   const response = await client.register(
-    params.username,
+    localpart,
     params.password,
     null,
     { type: 'm.login.dummy' },

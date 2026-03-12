@@ -42,7 +42,10 @@ describe('auth', () => {
     })
 
     expect(mockLogin).toHaveBeenCalledWith('m.login.password', {
-      user: 'testuser',
+      identifier: {
+        type: 'm.id.user',
+        user: 'testuser',
+      },
       password: 'testpass',
     })
     expect(session.userId).toBe('@test:localhost')
