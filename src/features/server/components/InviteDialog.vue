@@ -45,19 +45,7 @@ async function copyToClipboard() {
     }, 2000)
   }
   catch {
-    // Fallback for non-secure contexts
-    const textarea = document.createElement('textarea')
-    textarea.value = roomAlias.value
-    textarea.style.position = 'fixed'
-    textarea.style.opacity = '0'
-    document.body.appendChild(textarea)
-    textarea.select()
-    document.execCommand('copy')
-    document.body.removeChild(textarea)
-    copied.value = true
-    setTimeout(() => {
-      copied.value = false
-    }, 2000)
+    /* clipboard API unavailable — silently ignore in non-secure contexts */
   }
 }
 </script>

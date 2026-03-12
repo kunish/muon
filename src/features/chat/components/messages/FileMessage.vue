@@ -6,6 +6,7 @@ import { writeFile } from '@tauri-apps/plugin-fs'
 import { Copy, Download, FileText, Forward } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { triggerBlobDownload } from '@/shared/lib/download'
 
 const props = defineProps<{
   event: MatrixEvent
@@ -70,12 +71,7 @@ async function download() {
     if (!url)
       return
     const blob = await downloadMedia(url)
-    const a = document.createElement('a')
-    const blobUrl = URL.createObjectURL(blob)
-    a.href = blobUrl
-    a.download = fileName.value
-    a.click()
-    setTimeout(() => URL.revokeObjectURL(blobUrl), 1000)
+    triggerBlobDownload(blob, fileName.value)
     showToast(t('chat.download_complete'))
   }
   catch {

@@ -38,8 +38,8 @@ async function handleSubmit() {
     startSync()
     router.push('/dm')
   }
-  catch (e: any) {
-    error.value = e?.message || t('auth.error')
+  catch (e: unknown) {
+    error.value = e instanceof Error ? e.message : t('auth.error')
   }
   finally {
     loading.value = false

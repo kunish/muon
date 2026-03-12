@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { getClient } from '@matrix/client'
-import { downloadMedia } from '@matrix/index'
 import { Download, FileText, Search } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { downloadMediaFile } from '@/shared/lib/download'
 import { useChatStore } from '../stores/chatStore'
 
 const { t, locale } = useI18n()
@@ -127,16 +127,10 @@ async function downloadDoc(doc: DocItem) {
   if (!doc.url)
     return
   try {
-    const blob = await downloadMedia(doc.url)
-    const a = document.createElement('a')
-    const blobUrl = URL.createObjectURL(blob)
-    a.href = blobUrl
-    a.download = doc.name
-    a.click()
-    setTimeout(() => URL.revokeObjectURL(blobUrl), 1000)
+    await downloadMediaFile(doc.url, doc.name)
   }
   catch {
-    // silently fail
+    /* download failure is shown via browser UI */
   }
 }
 </script>

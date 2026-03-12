@@ -61,8 +61,8 @@ async function saveChanges() {
       serverStore.loadChannelTree(serverStore.currentServerId)
     }
   }
-  catch (err: any) {
-    saveError.value = err?.message || 'Failed to save changes'
+  catch (err: unknown) {
+    saveError.value = err instanceof Error ? err.message : 'Failed to save changes'
   }
   finally {
     isSaving.value = false

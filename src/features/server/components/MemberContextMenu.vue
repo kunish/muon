@@ -121,25 +121,7 @@ function onMention() {
   emit('close')
 }
 
-function onChangeNickname() {
-  // TODO: 打开改昵称对话框
-  emit('close')
-}
-
-function onMute() {
-  // TODO: 静音用户
-  emit('close')
-}
-
-function onKick() {
-  // TODO: 踢出用户
-  emit('close')
-}
-
-function onBan() {
-  // TODO: 封禁用户
-  emit('close')
-}
+// TODO: onChangeNickname, onMute, onKick, onBan — not yet implemented, buttons are disabled in template
 </script>
 
 <template>
@@ -172,24 +154,24 @@ function onBan() {
         <template v-if="isAdmin && !isSelf">
           <div class="ctx-divider" />
 
-          <button class="ctx-item" @click="onChangeNickname">
+          <button class="ctx-item ctx-disabled" disabled title="Not implemented yet">
             <Pencil :size="14" />
             <span>Change Nickname</span>
           </button>
 
-          <button class="ctx-item" @click="onMute">
+          <button class="ctx-item ctx-disabled" disabled title="Not implemented yet">
             <MicOff :size="14" />
             <span>Mute</span>
           </button>
 
           <div class="ctx-divider" />
 
-          <button class="ctx-item ctx-danger" @click="onKick">
+          <button class="ctx-item ctx-danger ctx-disabled" disabled title="Not implemented yet">
             <UserX :size="14" />
             <span>Kick</span>
           </button>
 
-          <button class="ctx-item ctx-danger" @click="onBan">
+          <button class="ctx-item ctx-danger ctx-disabled" disabled title="Not implemented yet">
             <Ban :size="14" />
             <span>Ban</span>
           </button>
@@ -225,6 +207,14 @@ function onBan() {
 }
 .ctx-danger:hover {
   background: color-mix(in srgb, var(--color-destructive) 10%, transparent);
+}
+
+.ctx-disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.ctx-disabled:hover {
+  background: transparent;
 }
 
 .ctx-divider {

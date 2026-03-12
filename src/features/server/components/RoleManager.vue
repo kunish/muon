@@ -142,8 +142,8 @@ async function saveRole() {
       })),
     })
   }
-  catch (err: any) {
-    saveError.value = err?.message || 'Failed to save role'
+  catch (err: unknown) {
+    saveError.value = err instanceof Error ? err.message : 'Failed to save role'
   }
   finally {
     isSaving.value = false
@@ -180,8 +180,8 @@ async function deleteRole() {
       selectedRoleId.value = null
     }
   }
-  catch (err: any) {
-    saveError.value = err?.message || 'Failed to delete role'
+  catch (err: unknown) {
+    saveError.value = err instanceof Error ? err.message : 'Failed to delete role'
   }
   finally {
     isDeleting.value = false
