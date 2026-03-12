@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { MatrixEvent } from 'matrix-js-sdk'
 import { fetchMediaBlobUrl } from '@matrix/index'
 import { Play } from 'lucide-vue-next'
 import { computed, ref, watch } from 'vue'
@@ -6,7 +7,7 @@ import { useI18n } from 'vue-i18n'
 import { useMediaViewer } from '../../composables/useMediaViewer'
 
 const props = defineProps<{
-  event: any
+  event: MatrixEvent
 }>()
 
 const { openVideo } = useMediaViewer()

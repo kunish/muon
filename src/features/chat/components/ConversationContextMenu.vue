@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { getClient } from '@matrix/client'
 import { leaveRoom, toggleRoomMute, toggleRoomPin } from '@matrix/index'
 import { ask } from '@tauri-apps/plugin-dialog'
 import {
@@ -14,6 +13,7 @@ import {
 import { computed, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
+import { isDirectRoom } from '@/shared/lib/roomUtils'
 import { useConversations } from '../composables/useConversations'
 import { useChatStore } from '../stores/chatStore'
 
@@ -90,10 +90,7 @@ async function handleLeave() {
   store.closeContextMenu()
 
   // 判断是否为 DM 房间
-  const client = getClient()
-  const directEvent = client.getAccountData('m.direct' as any)
-  const directContent: Record<string, string[]> = directEvent?.getContent() ?? {}
-  const isDm = Object.values(directContent).some(ids => ids.includes(targetRoomId))
+  const isDm = isDirectRoom(targetRoomId)
 
   const message = isDm
     ? t('chat.ctx_leave_dm_msg')

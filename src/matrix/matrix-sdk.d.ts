@@ -35,10 +35,23 @@ declare module 'matrix-js-sdk' {
     'im.muon.announcement': MuonAnnouncementContent
     'im.muon.message_retention': MuonMessageRetentionContent
     'im.muon.voice_channel': MuonVoiceChannelContent
+    'im.muon.roles': { roles: { name: string, level: number }[] }
+    'm.room.avatar': { url: string }
+    'm.room.power_levels': {
+      users?: Record<string, number>
+      events?: Record<string, number>
+      state_default?: number
+      events_default?: number
+      users_default?: number
+      ban?: number
+      kick?: number
+      redact?: number
+    }
   }
 
   interface AccountDataEvents {
     'im.muon.starred': MuonStarredContent
+    'm.direct': Record<string, string[]>
   }
 
   interface TimelineEvents {

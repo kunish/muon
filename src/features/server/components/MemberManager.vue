@@ -26,21 +26,21 @@ interface RoleOption {
   color: string
 }
 
-const roleOptions: RoleOption[] = [
-  { label: 'Owner', powerLevel: 100, color: '#c08b2e' },
-  { label: 'Admin', powerLevel: 75, color: '#b85c4a' },
-  { label: 'Moderator', powerLevel: 50, color: '#4a9882' },
-  { label: 'Member', powerLevel: 0, color: 'var(--color-muted-foreground)' },
-]
+const roleOptions = computed<RoleOption[]>(() => [
+  { label: t('role.owner'), powerLevel: 100, color: '#c08b2e' },
+  { label: t('role.admin'), powerLevel: 75, color: '#b85c4a' },
+  { label: t('role.moderator'), powerLevel: 50, color: '#4a9882' },
+  { label: t('role.member'), powerLevel: 0, color: 'var(--color-muted-foreground)' },
+])
 
 function getRoleForPowerLevel(level: number): RoleOption {
   if (level >= 100)
-    return roleOptions[0]
+    return roleOptions.value[0]
   if (level >= 75)
-    return roleOptions[1]
+    return roleOptions.value[1]
   if (level >= 50)
-    return roleOptions[2]
-  return roleOptions[3]
+    return roleOptions.value[2]
+  return roleOptions.value[3]
 }
 
 // ── State ──
@@ -185,7 +185,7 @@ onMounted(loadMembers)
 <template>
   <div>
     <h2 class="mb-5 text-xl font-bold text-foreground">
-      Members
+      {{ t('server.settings_members') }}
     </h2>
 
     <!-- Search -->
@@ -196,14 +196,14 @@ onMounted(loadMembers)
       />
       <Input
         v-model="searchQuery"
-        placeholder="Search members"
+        :placeholder="t('member.search_members_placeholder')"
         class="pl-9"
       />
     </div>
 
     <!-- Member count -->
     <div class="mb-3 text-xs text-muted-foreground/50">
-      {{ filteredMembers.length }} member{{ filteredMembers.length !== 1 ? 's' : '' }}
+      {{ t('member.member_count', { count: filteredMembers.length }) }}
     </div>
 
     <!-- Member table -->
@@ -212,13 +212,13 @@ onMounted(loadMembers)
       <div class="mb-1 flex items-center gap-3 px-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground/40">
         <div class="w-10" />
         <div class="flex-1">
-          Name
+          {{ t('member.name_col') }}
         </div>
         <div class="w-28">
-          Role
+          {{ t('member.role_col') }}
         </div>
         <div class="w-28 text-right">
-          Actions
+          {{ t('member.actions_col') }}
         </div>
       </div>
 
@@ -281,7 +281,7 @@ onMounted(loadMembers)
             <button
               v-if="member.userId !== myUserId && member.powerLevel < myPowerLevel"
               class="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent/30 hover:text-foreground"
-              title="Kick"
+              :title="t('member.kick_title')"
               @click="confirmKick(member)"
             >
               <UserX :size="14" />
@@ -289,7 +289,7 @@ onMounted(loadMembers)
             <button
               v-if="member.userId !== myUserId && member.powerLevel < myPowerLevel"
               class="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/20 hover:text-destructive"
-              title="Ban"
+              :title="t('member.ban_title')"
               @click="confirmBan(member)"
             >
               <ShieldAlert :size="14" />
@@ -302,7 +302,7 @@ onMounted(loadMembers)
     <!-- Empty state -->
     <div v-else class="py-16 text-center">
       <p class="text-sm text-muted-foreground">
-        {{ searchQuery ? 'No matching members' : 'No members found' }}
+        {{ searchQuery ? t('member.no_match') : t('member.no_members_found') }}
       </p>
     </div>
 
@@ -310,23 +310,21 @@ onMounted(loadMembers)
     <Dialog v-model:open="showKickDialog">
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Kick Member</DialogTitle>
+          <DialogTitle>{{ t('member.kick_member') }}</DialogTitle>
           <DialogDescription>
-            Are you sure you want to kick
-            <strong class="text-foreground">{{ kickTarget?.displayName }}</strong>
-            from this server? They will be able to rejoin with an invite.
+            {{ t('member.kick_confirm_msg', { name: kickTarget?.displayName }) }}
           </DialogDescription>
         </DialogHeader>
         <div class="flex justify-end gap-2">
           <Button variant="ghost" @click="showKickDialog = false">
-            Cancel
+            {{ t('common.cancel') }}
           </Button>
           <Button
             variant="destructive"
             :disabled="isKicking"
             @click="handleKick"
           >
-            {{ isKicking ? 'Kicking...' : 'Kick' }}
+            {{ isKicking ? t('common.loading') : t('member.kick_title') }}
           </Button>
         </div>
       </DialogContent>
@@ -336,23 +334,21 @@ onMounted(loadMembers)
     <Dialog v-model:open="showBanDialog">
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Ban Member</DialogTitle>
+          <DialogTitle>{{ t('member.ban_member') }}</DialogTitle>
           <DialogDescription>
-            Are you sure you want to ban
-            <strong class="text-foreground">{{ banTarget?.displayName }}</strong>
-            from this server? They will not be able to rejoin unless unbanned.
+            {{ t('member.ban_confirm_msg', { name: banTarget?.displayName }) }}
           </DialogDescription>
         </DialogHeader>
         <div class="flex justify-end gap-2">
           <Button variant="ghost" @click="showBanDialog = false">
-            Cancel
+            {{ t('common.cancel') }}
           </Button>
           <Button
             variant="destructive"
             :disabled="isBanning"
             @click="handleBan"
           >
-            {{ isBanning ? 'Banning...' : 'Ban' }}
+            {{ isBanning ? t('common.loading') : t('member.ban_title') }}
           </Button>
         </div>
       </DialogContent>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { X } from 'lucide-vue-next'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useServerStore } from '@/features/server/stores/serverStore'
 import ChannelManager from './ChannelManager.vue'
 import MemberManager from './MemberManager.vue'
@@ -9,6 +10,7 @@ import ServerOverview from './ServerOverview.vue'
 
 const open = defineModel<boolean>('open', { default: false })
 
+const { t } = useI18n()
 const serverStore = useServerStore()
 
 const currentSection = ref<'overview' | 'roles' | 'channels' | 'members'>('overview')
@@ -19,12 +21,12 @@ const currentServer = computed(() => {
   return serverStore.servers.find(s => s.spaceId === serverStore.currentServerId) ?? null
 })
 
-const navSections = [
-  { key: 'overview' as const, label: 'Overview' },
-  { key: 'roles' as const, label: 'Roles' },
-  { key: 'channels' as const, label: 'Channels' },
-  { key: 'members' as const, label: 'Members' },
-]
+const navSections = computed(() => [
+  { key: 'overview' as const, label: t('server.settings_overview') },
+  { key: 'roles' as const, label: t('server.settings_roles') },
+  { key: 'channels' as const, label: t('server.settings_channels') },
+  { key: 'members' as const, label: t('server.settings_members') },
+])
 
 function close() {
   open.value = false

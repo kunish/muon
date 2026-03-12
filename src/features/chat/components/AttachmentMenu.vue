@@ -51,22 +51,27 @@ function toggle() {
 
 async function pickFile(filters: FileFilter[] | undefined, type: 'image' | 'video' | 'file') {
   open.value = false
-  const selected = await openDialog({ multiple: false, filters })
-  if (!selected)
-    return
-  const path = selected
-  const name = path.split('/').pop() || path.split('\\').pop() || 'file'
-  const bytes = await readFile(path)
-  const ext = name.split('.').pop()?.toLowerCase() || ''
-  const mime = guessMime(ext, type)
-  const file = new File([bytes], name, { type: mime })
+  try {
+    const selected = await openDialog({ multiple: false, filters })
+    if (!selected)
+      return
+    const path = selected
+    const name = path.split('/').pop() || path.split('\\').pop() || 'file'
+    const bytes = await readFile(path)
+    const ext = name.split('.').pop()?.toLowerCase() || ''
+    const mime = guessMime(ext, type)
+    const file = new File([bytes], name, { type: mime })
 
-  if (type === 'image')
-    emit('image', file)
-  else if (type === 'video')
-    emit('video', file)
-  else
-    emit('file', file)
+    if (type === 'image')
+      emit('image', file)
+    else if (type === 'video')
+      emit('video', file)
+    else
+      emit('file', file)
+  }
+  catch {
+    // File dialog cancelled or read failed — no user notification needed
+  }
 }
 
 function guessMime(ext: string, type: string): string {

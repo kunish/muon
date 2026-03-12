@@ -8,14 +8,16 @@
  * - 支持 text/image/video/audio/file 消息类型
  * - 引用消息在内容上方显示：竖线 + 小头像 + 用户名 + 截断文本
  */
+import type { MatrixEvent } from 'matrix-js-sdk'
 import { getClient } from '@matrix/client'
 import { getReactions, getThreadReplies } from '@matrix/index'
-import DOMPurify from 'dompurify'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useSettingsStore } from '@/features/settings/stores/settingsStore'
 import { Avatar } from '@/shared/components/ui/avatar'
 import { useAuthMedia } from '@/shared/composables/useAuthMedia'
+import { isFullEmojiText } from '@/shared/lib/emoji'
+import { sanitizeMatrixHtml } from '@/shared/lib/htmlSanitizer'
 import { useChatStore } from '../stores/chatStore'
 import LinkPreview from './LinkPreview.vue'
 import MessageActionBar from './MessageActionBar.vue'
@@ -26,7 +28,7 @@ import VideoMessage from './messages/VideoMessage.vue'
 import ReactionBar from './ReactionBar.vue'
 
 const props = defineProps<{
-  event: any
+  event: MatrixEvent
   isFirst: boolean
   roomId: string
   hideAvatarColumn?: boolean
@@ -36,7 +38,7 @@ const emit = defineEmits<{
   avatarClick: [userId: string, event: MouseEvent]
 }>()
 
-const { locale, t } = useI18n()
+const { t } = useI18n()
 const store = useChatStore()
 const settingsStore = useSettingsStore()
 const hovered = ref(false)
@@ -85,22 +87,10 @@ const imageStickerMxcUrl = computed(() => {
 const imageStickerSrc = useAuthMedia(imageStickerMxcUrl, 240, 240)
 
 // --- Full emoji text support (1-3 emojis) ---
-const emojiRegex = /^(?:\p{Emoji_Presentation}|\p{Emoji}\uFE0F)$/u
 const isFullEmoji = computed(() => {
   if (msgtype.value !== 'm.text' || !body.value)
     return false
-  const trimmed = body.value.trim()
-  const IntlAny = Intl as any
-  if (IntlAny.Segmenter) {
-    const segmenter = new IntlAny.Segmenter('en', { granularity: 'grapheme' })
-    const segments = [...segmenter.segment(trimmed)] as { segment: string }[]
-    if (segments.length < 1 || segments.length > 3)
-      return false
-    return segments.every((s) => {
-      return emojiRegex.test(s.segment) || /^\p{Emoji_Presentation}/u.test(s.segment)
-    })
-  }
-  return false
+  return isFullEmojiText(body.value)
 })
 
 // --- 发送者信息 ---
@@ -145,16 +135,15 @@ const fullTimestamp = computed(() => {
     && d.getMonth() === today.getMonth()
     && d.getFullYear() === today.getFullYear()
   const timeStr = `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`
-  const isZh = locale.value.startsWith('zh')
   if (isToday)
-    return isZh ? `今天 ${timeStr}` : `Today at ${timeStr}`
+    return t('chat.today_at', { time: timeStr })
   const yesterday = new Date(today)
   yesterday.setDate(yesterday.getDate() - 1)
   const isYesterday = d.getDate() === yesterday.getDate()
     && d.getMonth() === yesterday.getMonth()
     && d.getFullYear() === yesterday.getFullYear()
   if (isYesterday)
-    return isZh ? `昨天 ${timeStr}` : `Yesterday at ${timeStr}`
+    return t('chat.yesterday_at', { time: timeStr })
   return `${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getDate().toString().padStart(2, '0')}/${d.getFullYear()} ${timeStr}`
 })
 
@@ -218,34 +207,7 @@ const formattedBody = computed(() => {
 const sanitizedHtml = computed(() => {
   if (!formattedBody.value)
     return ''
-  return DOMPurify.sanitize(formattedBody.value, {
-    ALLOWED_TAGS: [
-      'b',
-      'i',
-      'em',
-      'strong',
-      'a',
-      'p',
-      'br',
-      'ul',
-      'ol',
-      'li',
-      'code',
-      'pre',
-      'blockquote',
-      'del',
-      's',
-      'u',
-      'span',
-      'h1',
-      'h2',
-      'h3',
-      'h4',
-      'h5',
-      'h6',
-    ],
-    ALLOWED_ATTR: ['href', 'target', 'rel', 'class'],
-  })
+  return sanitizeMatrixHtml(formattedBody.value)
 })
 
 // --- 编辑标记 ---

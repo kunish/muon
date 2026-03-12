@@ -1,5 +1,6 @@
 import { extractVideoMeta, sendAudioMessage, sendFileMessage, sendImageMessage, sendVideoMessage } from '@matrix/index'
 import { ref } from 'vue'
+import { toast } from 'vue-sonner'
 
 export function useMediaUpload(roomId: () => string | null) {
   const uploading = ref(false)
@@ -15,6 +16,9 @@ export function useMediaUpload(roomId: () => string | null) {
       progress.value = 50
       await sendImageMessage(id, file)
       progress.value = 100
+    }
+    catch {
+      toast.error('Upload failed')
     }
     finally {
       uploading.value = false
@@ -39,6 +43,9 @@ export function useMediaUpload(roomId: () => string | null) {
       await sendVideoMessage(id, file, meta)
       progress.value = 100
     }
+    catch {
+      toast.error('Upload failed')
+    }
     finally {
       uploading.value = false
     }
@@ -55,6 +62,9 @@ export function useMediaUpload(roomId: () => string | null) {
       await sendAudioMessage(id, blob, duration)
       progress.value = 100
     }
+    catch {
+      toast.error('Upload failed')
+    }
     finally {
       uploading.value = false
     }
@@ -70,6 +80,9 @@ export function useMediaUpload(roomId: () => string | null) {
       progress.value = 50
       await sendFileMessage(id, file)
       progress.value = 100
+    }
+    catch {
+      toast.error('Upload failed')
     }
     finally {
       uploading.value = false

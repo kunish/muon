@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { MatrixEvent } from 'matrix-js-sdk'
 import { getClient } from '@matrix/client'
 import {
   getReactions,
@@ -17,7 +18,6 @@ import {
   unstarMessage,
 } from '@matrix/rooms'
 import { ask } from '@tauri-apps/plugin-dialog'
-import DOMPurify from 'dompurify'
 import {
   CheckSquare,
   Copy,
@@ -41,6 +41,8 @@ import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import { useSettingsStore } from '@/features/settings/stores/settingsStore'
 import { useAuthMedia } from '@/shared/composables/useAuthMedia'
+import { isFullEmojiText } from '@/shared/lib/emoji'
+import { sanitizeMatrixHtml } from '@/shared/lib/htmlSanitizer'
 import { getSystemLanguage, translateText } from '@/shared/lib/translate'
 import { useChatStore } from '../stores/chatStore'
 import AnimatedEmoji from './AnimatedEmoji.vue'
@@ -54,7 +56,7 @@ import LocationMessage from './messages/LocationMessage.vue'
 import VideoMessage from './messages/VideoMessage.vue'
 
 const props = defineProps<{
-  event: any
+  event: MatrixEvent
   isMine: boolean
   showSender: boolean
   /** Position within a Telegram-style message group */
@@ -231,58 +233,13 @@ const formattedBody = computed(() => {
 const sanitizedHtml = computed(() => {
   if (!formattedBody.value)
     return ''
-  return DOMPurify.sanitize(formattedBody.value, {
-    ALLOWED_TAGS: [
-      'b',
-      'i',
-      'em',
-      'strong',
-      'a',
-      'p',
-      'br',
-      'ul',
-      'ol',
-      'li',
-      'code',
-      'pre',
-      'blockquote',
-      'del',
-      's',
-      'u',
-      'span',
-      'h1',
-      'h2',
-      'h3',
-      'h4',
-      'h5',
-      'h6',
-    ],
-    ALLOWED_ATTR: ['href', 'target', 'rel', 'class'],
-  })
+  return sanitizeMatrixHtml(formattedBody.value)
 })
-
-// --- 纯 Emoji 检测：1-3 个 emoji 时放大显示 ---
-const emojiRegex = /^(?:\p{Emoji_Presentation}|\p{Emoji}\uFE0F)$/u
-const fullEmojiRegex = /^(?:\p{Emoji_Presentation}|\p{Emoji}\uFE0F){1,3}$/u
 
 const isFullEmoji = computed(() => {
   if (msgtype.value !== 'm.text' || !body.value)
     return false
-  const trimmed = body.value.trim()
-  // 使用 Intl.Segmenter 精确分割 emoji
-  const IntlAny = Intl as any
-  if (IntlAny.Segmenter) {
-    const segmenter = new IntlAny.Segmenter('en', { granularity: 'grapheme' })
-    const segments = [...segmenter.segment(trimmed)] as { segment: string }[]
-    if (segments.length < 1 || segments.length > 3)
-      return false
-    return segments.every(
-      (s: { segment: string }) =>
-        emojiRegex.test(s.segment)
-        || /^\p{Emoji_Presentation}/u.test(s.segment),
-    )
-  }
-  return fullEmojiRegex.test(trimmed)
+  return isFullEmojiText(body.value)
 })
 
 const sender = computed(() => props.event.getSender() || '')
@@ -331,7 +288,16 @@ async function onRedact() {
   })
   if (!confirmed)
     return
-  redactMessage(props.event.getRoomId(), props.event.getId())
+  const roomId = props.event.getRoomId()
+  const eventId = props.event.getId()
+  if (!roomId || !eventId)
+    return
+  try {
+    await redactMessage(roomId, eventId)
+  }
+  catch {
+    toast.error(t('auth.error'))
+  }
 }
 function toggleMore() {
   showMore.value = !showMore.value
@@ -473,7 +439,12 @@ async function onReact(emoji: string) {
   const eventId = props.event.getId()
   if (!roomId || !eventId)
     return
-  await sendReaction(roomId, eventId, emoji)
+  try {
+    await sendReaction(roomId, eventId, emoji)
+  }
+  catch {
+    toast.error(t('auth.error'))
+  }
 }
 
 // --- 已读回执 ---

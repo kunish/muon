@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { getClient } from '@matrix/client'
 import { getRoomTopic } from '@matrix/rooms'
 import { AtSign, Bell, Hash, Lock, MessageSquareText, MoreHorizontal, Pin, Search, Star, Timer, Users } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { isDirectRoom } from '@/shared/lib/roomUtils'
 import { useCurrentRoom } from '../composables/useCurrentRoom'
 import { useChatStore } from '../stores/chatStore'
 import DisappearingMessageSettings from './DisappearingMessageSettings.vue'
@@ -14,17 +14,7 @@ const { t } = useI18n()
 const showDisappearing = ref(false)
 const showMore = ref(false)
 
-const isDirect = computed(() => {
-  const client = getClient()
-  const directEvent = client.getAccountData('m.direct' as any)
-  const directContent: Record<string, string[]> = directEvent?.getContent() ?? {}
-  for (const roomIds of Object.values(directContent)) {
-    if (Array.isArray(roomIds) && currentRoomId.value && roomIds.includes(currentRoomId.value)) {
-      return true
-    }
-  }
-  return false
-})
+const isDirect = computed(() => currentRoomId.value ? isDirectRoom(currentRoomId.value) : false)
 
 const _memberCount = computed(() => {
   if (!room.value)

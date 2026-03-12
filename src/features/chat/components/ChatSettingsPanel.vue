@@ -12,11 +12,12 @@ import {
   Shield,
   X,
 } from 'lucide-vue-next'
-import { computed, ref } from 'vue'
+import { computed, onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Avatar } from '@/shared/components/ui/avatar'
 import { Switch } from '@/shared/components/ui/switch'
 import { Textarea } from '@/shared/components/ui/textarea'
+import { isDirectRoom } from '@/shared/lib/roomUtils'
 import { useChatStore } from '../stores/chatStore'
 
 const { t } = useI18n()
@@ -45,17 +46,7 @@ const isEncrypted = computed(() => {
   return room.value.hasEncryptionStateEvent()
 })
 
-const isDirect = computed(() => {
-  const client = getClient()
-  const directEvent = client.getAccountData('m.direct' as any)
-  const directContent: Record<string, string[]> = directEvent?.getContent() ?? {}
-  for (const roomIds of Object.values(directContent)) {
-    if (Array.isArray(roomIds) && store.currentRoomId && roomIds.includes(store.currentRoomId)) {
-      return true
-    }
-  }
-  return false
-})
+const isDirect = computed(() => store.currentRoomId ? isDirectRoom(store.currentRoomId) : false)
 
 const memberCount = computed(() => room.value?.getJoinedMemberCount() || 0)
 
@@ -121,16 +112,23 @@ async function onLeaveRoom() {
 // ── Copy Room ID ────────────────────────────────────────────
 
 const copied = ref(false)
+let copyTimer: ReturnType<typeof setTimeout> | undefined
 
 async function copyRoomId() {
   if (!store.currentRoomId)
     return
   await navigator.clipboard.writeText(store.currentRoomId)
   copied.value = true
-  setTimeout(() => {
+  clearTimeout(copyTimer)
+  copyTimer = setTimeout(() => {
     copied.value = false
   }, 2000)
 }
+
+onUnmounted(() => {
+  if (copyTimer)
+    clearTimeout(copyTimer)
+})
 
 // ── Topic editing ───────────────────────────────────────────
 
@@ -305,7 +303,7 @@ function cancelEditTopic() {
       <!-- Room ID -->
       <div class="px-4 py-3">
         <div class="text-[11px] text-muted-foreground/40 mb-1">
-          Room ID
+          {{ t('chat.room_id_label') }}
         </div>
         <button
           class="flex items-center gap-2 group w-full"

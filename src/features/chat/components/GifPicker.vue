@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { GifResult } from '@/shared/lib/gifSearch'
 import { Search } from 'lucide-vue-next'
-import { onMounted, ref, watch } from 'vue'
+import { onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { getTrendingGifs, searchGifs } from '@/shared/lib/gifSearch'
 
@@ -56,6 +56,11 @@ watch(query, (val) => {
   if (debounceTimer)
     clearTimeout(debounceTimer)
   debounceTimer = setTimeout(() => doSearch(val), 300)
+})
+
+onUnmounted(() => {
+  if (debounceTimer)
+    clearTimeout(debounceTimer)
 })
 
 onMounted(() => loadTrending())
@@ -116,7 +121,7 @@ onMounted(() => loadTrending())
 
     <!-- 底部 Tenor 标识 -->
     <div class="flex items-center justify-center border-t border-border bg-muted/30 px-2 py-1">
-      <span class="text-[10px] text-muted-foreground/50">Powered by Tenor</span>
+      <span class="text-[10px] text-muted-foreground/50">{{ t('chat.gif_powered_by') }}</span>
     </div>
   </div>
 </template>

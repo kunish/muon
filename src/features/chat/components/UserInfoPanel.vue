@@ -190,20 +190,28 @@ async function onToggleBlock() {
     return
 
   if (blocked.value) {
-    // 解除屏蔽 — 无需确认
-    await unblockUser(uid)
-    blocked.value = false
+    try {
+      await unblockUser(uid)
+      blocked.value = false
+    }
+    catch {
+      toast.error(t('auth.error'))
+    }
   }
   else {
-    // 屏蔽前确认
     const confirmed = await ask(t('settings.block_confirm'), {
       title: t('settings.block_confirm_title'),
       kind: 'warning',
     })
     if (!confirmed)
       return
-    await blockUser(uid)
-    blocked.value = true
+    try {
+      await blockUser(uid)
+      blocked.value = true
+    }
+    catch {
+      toast.error(t('auth.error'))
+    }
   }
 }
 </script>

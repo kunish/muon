@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { ConnectionStatus } from '@/shared/composables/useNetworkStatus'
 import { ServerOff, Wifi, WifiOff } from 'lucide-vue-next'
-import { ref, watch } from 'vue'
+import { onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useNetworkStatus } from '@/shared/composables/useNetworkStatus'
 
@@ -29,6 +29,11 @@ watch(status, (current: ConnectionStatus, previous: ConnectionStatus) => {
     showRecovered.value = false
     visible.value = true
   }
+})
+
+onUnmounted(() => {
+  if (hideTimer)
+    clearTimeout(hideTimer)
 })
 </script>
 

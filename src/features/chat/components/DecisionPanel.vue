@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { loadInboxEventContext } from '@matrix/index'
 import { onMounted, reactive } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
+import { toast } from 'vue-sonner'
 import { Textarea } from '@/shared/components/ui/textarea'
 import { useDecisionStore } from '../stores/decisionStore'
 
 const decisionStore = useDecisionStore()
 const router = useRouter()
+const { t } = useI18n()
 
 const form = reactive({
   conclusion: '',
@@ -33,11 +36,21 @@ async function saveDecisionCard() {
 }
 
 async function acceptSuggestion(decisionId: string, suggestionId: string) {
-  await decisionStore.setSuggestionDisposition(decisionId, suggestionId, 'accepted')
+  try {
+    await decisionStore.setSuggestionDisposition(decisionId, suggestionId, 'accepted')
+  }
+  catch {
+    toast.error(t('auth.error'))
+  }
 }
 
 async function rejectSuggestion(decisionId: string, suggestionId: string) {
-  await decisionStore.setSuggestionDisposition(decisionId, suggestionId, 'rejected')
+  try {
+    await decisionStore.setSuggestionDisposition(decisionId, suggestionId, 'rejected')
+  }
+  catch {
+    toast.error(t('auth.error'))
+  }
 }
 
 async function openLinkedMessage(roomId: string, eventId: string) {
@@ -61,20 +74,20 @@ async function openLinkedMessage(roomId: string, eventId: string) {
   <section class="flex h-full flex-col" data-testid="decision-panel">
     <header class="border-b border-border px-4 py-3">
       <h3 class="text-sm font-semibold text-foreground">
-        Decision Capture
+        {{ t('chat.decision_capture') }}
       </h3>
     </header>
 
     <div class="space-y-3 border-b border-border px-4 py-3">
-      <input v-model="form.conclusion" data-testid="decision-conclusion-input" class="w-full rounded-md border border-border px-3 py-2 text-sm" placeholder="Conclusion">
-      <Textarea v-model="form.context" data-testid="decision-context-input" class="min-h-20 w-full rounded-md border border-border px-3 py-2 text-sm" placeholder="Context" />
-      <input v-model="form.owner" data-testid="decision-owner-input" class="w-full rounded-md border border-border px-3 py-2 text-sm" placeholder="Owner">
+      <input v-model="form.conclusion" data-testid="decision-conclusion-input" class="w-full rounded-md border border-border px-3 py-2 text-sm" :placeholder="t('chat.decision_conclusion')">
+      <Textarea v-model="form.context" data-testid="decision-context-input" class="min-h-20 w-full rounded-md border border-border px-3 py-2 text-sm" :placeholder="t('chat.decision_context')" />
+      <input v-model="form.owner" data-testid="decision-owner-input" class="w-full rounded-md border border-border px-3 py-2 text-sm" :placeholder="t('chat.decision_owner')">
       <div class="grid grid-cols-2 gap-3">
-        <input v-model="form.roomId" data-testid="decision-room-input" class="rounded-md border border-border px-3 py-2 text-sm" placeholder="Room ID">
-        <input v-model="form.eventId" data-testid="decision-event-input" class="rounded-md border border-border px-3 py-2 text-sm" placeholder="Event ID">
+        <input v-model="form.roomId" data-testid="decision-room-input" class="rounded-md border border-border px-3 py-2 text-sm" :placeholder="t('chat.decision_room_id')">
+        <input v-model="form.eventId" data-testid="decision-event-input" class="rounded-md border border-border px-3 py-2 text-sm" :placeholder="t('chat.decision_event_id')">
       </div>
       <button data-testid="decision-save-button" class="rounded-md border border-primary px-3 py-2 text-sm text-primary" @click="saveDecisionCard">
-        Save decision
+        {{ t('chat.decision_save') }}
       </button>
     </div>
 
@@ -97,7 +110,7 @@ async function openLinkedMessage(roomId: string, eventId: string) {
 
         <div v-if="card.citations.length" class="mt-3 space-y-2">
           <div class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Linked messages
+            {{ t('chat.decision_linked') }}
           </div>
           <button
             v-for="citation in card.citations"
@@ -107,7 +120,7 @@ async function openLinkedMessage(roomId: string, eventId: string) {
             @click="openLinkedMessage(citation.roomId, citation.eventId)"
           >
             <span>{{ citation.quote ?? citation.eventId }}</span>
-            <span class="text-muted-foreground">Open</span>
+            <span class="text-muted-foreground">{{ t('chat.decision_open') }}</span>
           </button>
         </div>
 
@@ -126,10 +139,10 @@ async function openLinkedMessage(roomId: string, eventId: string) {
             </div>
             <div class="mt-2 flex gap-2">
               <button class="rounded border border-border px-2 py-1 text-xs" :data-testid="`decision-accept-${suggestion.id}`" @click="acceptSuggestion(card.id, suggestion.id)">
-                Accept
+                {{ t('chat.decision_accept') }}
               </button>
               <button class="rounded border border-border px-2 py-1 text-xs" :data-testid="`decision-reject-${suggestion.id}`" @click="rejectSuggestion(card.id, suggestion.id)">
-                Reject
+                {{ t('chat.decision_reject') }}
               </button>
             </div>
           </div>

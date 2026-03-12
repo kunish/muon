@@ -5,6 +5,7 @@ import { forwardMessages } from '@matrix/messages'
 import { Layers, Search, X } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { toast } from 'vue-sonner'
 
 const props = defineProps<{
   event?: MatrixEvent
@@ -47,6 +48,9 @@ async function forwardTo(targetRoomId: string) {
       } as any)
     }
     emit('close')
+  }
+  catch {
+    toast.error(t('auth.error'))
   }
   finally {
     sending.value = null

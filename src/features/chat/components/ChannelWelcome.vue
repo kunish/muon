@@ -3,6 +3,7 @@ import { getClient } from '@matrix/client'
 import { Hash, Search, Settings, Users } from 'lucide-vue-next'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { isDirectRoom } from '@/shared/lib/roomUtils'
 import { useChatStore } from '../stores/chatStore'
 
 const props = defineProps<{
@@ -17,16 +18,7 @@ const roomName = computed(() => {
   return room?.name || props.roomId
 })
 
-const isDirect = computed(() => {
-  const client = getClient()
-  const directEvent = client.getAccountData('m.direct' as any)
-  const directContent: Record<string, string[]> = directEvent?.getContent() ?? {}
-  for (const roomIds of Object.values(directContent)) {
-    if (Array.isArray(roomIds) && roomIds.includes(props.roomId))
-      return true
-  }
-  return false
-})
+const isDirect = computed(() => isDirectRoom(props.roomId))
 
 function openMembers() {
   store.toggleSidePanel('members')

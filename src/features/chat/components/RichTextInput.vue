@@ -30,6 +30,7 @@ import {
 } from 'lucide-vue-next'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { toast } from 'vue-sonner'
 import { useCurrentRoom } from '../composables/useCurrentRoom'
 import { useEditor } from '../composables/useEditor'
 import { getFloatingPosition } from '../composables/useFloatingPosition'
@@ -92,7 +93,7 @@ function onMentionSelect(item: { id: string, label: string }) {
 
 const placeholderText = computed(() => {
   const name = room.value?.name
-  return name ? `Message #${name}` : t('chat.input_placeholder')
+  return name ? t('chat.input_placeholder_channel', { name }) : t('chat.input_placeholder')
 })
 
 const { editor, clear, insertEmoji } = useEditor({
@@ -153,7 +154,12 @@ async function handleGifSelect(gif: GifResult) {
   const roomId = store.currentRoomId
   if (!roomId)
     return
-  await sendGifMessage(roomId, gif.url, gif.width, gif.height)
+  try {
+    await sendGifMessage(roomId, gif.url, gif.width, gif.height)
+  }
+  catch {
+    toast.error(t('auth.error'))
+  }
 }
 
 function handleEmojiSelect(emoji: string) {
@@ -179,20 +185,25 @@ async function handleSend(html: string, text: string) {
   drafts.delete(roomId)
   stopTyping()
 
-  if (store.editingEvent) {
-    const eventId = store.editingEvent.getId()
-    store.clearCompose()
-    if (eventId)
-      await editMessage(roomId, eventId, text)
+  try {
+    if (store.editingEvent) {
+      const eventId = store.editingEvent.getId()
+      store.clearCompose()
+      if (eventId)
+        await editMessage(roomId, eventId, text)
+    }
+    else if (store.replyingTo) {
+      const eventId = store.replyingTo.getId()
+      store.clearCompose()
+      if (eventId)
+        await replyToMessage(roomId, eventId, text)
+    }
+    else {
+      await sendTextMessage(roomId, text, html)
+    }
   }
-  else if (store.replyingTo) {
-    const eventId = store.replyingTo.getId()
-    store.clearCompose()
-    if (eventId)
-      await replyToMessage(roomId, eventId, text)
-  }
-  else {
-    await sendTextMessage(roomId, text, html)
+  catch {
+    toast.error(t('auth.error'))
   }
 }
 
@@ -205,7 +216,12 @@ async function handleStickerSelect(emoji: string, name: string) {
   const roomId = store.currentRoomId
   if (!roomId)
     return
-  await sendStickerMessage(roomId, emoji, name)
+  try {
+    await sendStickerMessage(roomId, emoji, name)
+  }
+  catch {
+    toast.error(t('auth.error'))
+  }
 }
 
 async function handleImageStickerSelect(sticker: ImageSticker) {
@@ -213,12 +229,17 @@ async function handleImageStickerSelect(sticker: ImageSticker) {
   const roomId = store.currentRoomId
   if (!roomId)
     return
-  await sendImageStickerMessage(roomId, sticker.name, sticker.mxcUrl, {
-    w: sticker.width,
-    h: sticker.height,
-    mimetype: sticker.mimetype,
-    size: sticker.size,
-  })
+  try {
+    await sendImageStickerMessage(roomId, sticker.name, sticker.mxcUrl, {
+      w: sticker.width,
+      h: sticker.height,
+      mimetype: sticker.mimetype,
+      size: sticker.size,
+    })
+  }
+  catch {
+    toast.error(t('auth.error'))
+  }
 }
 
 const showStickerManager = ref(false)
@@ -248,12 +269,17 @@ async function handleContactCardSelect(contact: {
   const roomId = store.currentRoomId
   if (!roomId)
     return
-  await sendContactCard(
-    roomId,
-    contact.userId,
-    contact.displayName,
-    contact.avatarUrl,
-  )
+  try {
+    await sendContactCard(
+      roomId,
+      contact.userId,
+      contact.displayName,
+      contact.avatarUrl,
+    )
+  }
+  catch {
+    toast.error(t('auth.error'))
+  }
 }
 
 async function handleLocationSelect(payload: {
@@ -265,12 +291,17 @@ async function handleLocationSelect(payload: {
   const roomId = store.currentRoomId
   if (!roomId)
     return
-  await sendLocationMessage(
-    roomId,
-    payload.latitude,
-    payload.longitude,
-    payload.description || undefined,
-  )
+  try {
+    await sendLocationMessage(
+      roomId,
+      payload.latitude,
+      payload.longitude,
+      payload.description || undefined,
+    )
+  }
+  catch {
+    toast.error(t('auth.error'))
+  }
 }
 
 function onInput() {

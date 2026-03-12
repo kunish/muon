@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { MatrixEvent } from 'matrix-js-sdk'
 import { getClient } from '@matrix/client'
 import { getThreadReplies, sendThreadReply } from '@matrix/index'
 import { format } from 'date-fns'
@@ -44,13 +45,13 @@ const rootTime = computed(() => {
 // --- Thread replies ---
 const replies = computed(() => getThreadReplies(props.roomId, props.threadRootId))
 
-function getSenderName(event: any): string {
+function getSenderName(event: MatrixEvent): string {
   const room = client.getRoom(props.roomId)
   const member = room?.getMember(event.getSender()!)
   return member?.name || event.getSender() || ''
 }
 
-function getTime(event: any): string {
+function getTime(event: MatrixEvent): string {
   return format(event.getTs(), 'HH:mm')
 }
 

@@ -10,7 +10,7 @@ export interface GifResult {
 }
 
 const TENOR_BASE = 'https://tenor.googleapis.com/v2'
-const TENOR_KEY = import.meta.env.VITE_TENOR_API_KEY || 'AIzaSyAyimkuYQYF_FXVALexPuGQctUWRURdCYQ'
+const TENOR_KEY = import.meta.env.VITE_TENOR_API_KEY || ''
 
 function buildUrl(endpoint: string, params: Record<string, string>): string {
   const url = new URL(`${TENOR_BASE}/${endpoint}`)

@@ -56,7 +56,12 @@ async function saveName() {
     editingName.value = false
     return
   }
-  await setRoomName(props.roomId, name)
+  try {
+    await setRoomName(props.roomId, name)
+  }
+  catch {
+    toast.error(t('auth.error'))
+  }
   editingName.value = false
 }
 
@@ -75,7 +80,12 @@ async function saveTopic() {
     editingTopic.value = false
     return
   }
-  await setRoomTopic(props.roomId, topicInput.value.trim())
+  try {
+    await setRoomTopic(props.roomId, topicInput.value.trim())
+  }
+  catch {
+    toast.error(t('auth.error'))
+  }
   editingTopic.value = false
 }
 
@@ -94,7 +104,12 @@ async function saveAnnouncement() {
     editingAnnouncement.value = false
     return
   }
-  await setRoomAnnouncement(props.roomId, announcementInput.value.trim())
+  try {
+    await setRoomAnnouncement(props.roomId, announcementInput.value.trim())
+  }
+  catch {
+    toast.error(t('auth.error'))
+  }
   editingAnnouncement.value = false
 }
 
@@ -122,7 +137,12 @@ async function handleLeave() {
 async function handleInvite() {
   if (!inviteId.value.trim())
     return
-  await inviteUser(props.roomId, inviteId.value.trim())
+  try {
+    await inviteUser(props.roomId, inviteId.value.trim())
+  }
+  catch {
+    toast.error(t('auth.error'))
+  }
   inviteId.value = ''
   showInvite.value = false
 }

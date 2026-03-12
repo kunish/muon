@@ -1,11 +1,12 @@
 <script setup lang="ts">
+import type { MatrixEvent } from 'matrix-js-sdk'
 import { fetchMediaBlobUrl } from '@matrix/index'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useMediaViewer } from '../../composables/useMediaViewer'
 
 const props = defineProps<{
-  event: any
+  event: MatrixEvent
 }>()
 
 const { openImage } = useMediaViewer()
@@ -38,9 +39,9 @@ watch(() => content.value?.url, async (mxc) => {
       fullSrc.value = mxc
     }
   }
-  catch (e: any) {
-    error.value = e.message
-    console.error('[ImageMessage] load failed', mxc, e)
+  catch (e: unknown) {
+    error.value = e instanceof Error ? e.message : String(e)
+    console.error('[ImageMessage] load failed', mxc, e instanceof Error ? e.message : e)
   }
 }, { immediate: true })
 </script>

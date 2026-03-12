@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { findOrCreateDm } from '@matrix/rooms'
 import { Search, Users, X } from 'lucide-vue-next'
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
@@ -66,6 +66,11 @@ watch(query, (val) => {
       loading.value = false
     }
   }, 300)
+})
+
+onUnmounted(() => {
+  if (searchTimer)
+    clearTimeout(searchTimer)
 })
 
 // 合并已有联系人 + 搜索结果（去重）

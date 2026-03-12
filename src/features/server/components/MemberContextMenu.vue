@@ -141,17 +141,17 @@ function onMention() {
         <!-- 基础操作 -->
         <button class="ctx-item" @click="onProfile">
           <User :size="14" />
-          <span>Profile</span>
+          <span>{{ t('member.profile') }}</span>
         </button>
 
         <button v-if="!isSelf" class="ctx-item" @click="onMessage">
           <MessageCircle :size="14" />
-          <span>Message</span>
+          <span>{{ t('member.message') }}</span>
         </button>
 
         <button class="ctx-item" @click="onMention">
           <AtSign :size="14" />
-          <span>Mention</span>
+          <span>{{ t('member.mention') }}</span>
         </button>
 
         <!-- Admin 操作 -->
@@ -160,24 +160,24 @@ function onMention() {
 
           <button class="ctx-item ctx-disabled" disabled title="Not implemented yet">
             <Pencil :size="14" />
-            <span>Change Nickname</span>
+            <span>{{ t('member.change_nickname') }}</span>
           </button>
 
           <button class="ctx-item ctx-disabled" disabled title="Not implemented yet">
             <MicOff :size="14" />
-            <span>Mute</span>
+            <span>{{ t('member.mute') }}</span>
           </button>
 
           <div class="ctx-divider" />
 
           <button class="ctx-item ctx-danger ctx-disabled" disabled title="Not implemented yet">
             <UserX :size="14" />
-            <span>Kick</span>
+            <span>{{ t('member.kick_title') }}</span>
           </button>
 
           <button class="ctx-item ctx-danger ctx-disabled" disabled title="Not implemented yet">
             <Ban :size="14" />
-            <span>Ban</span>
+            <span>{{ t('member.ban_title') }}</span>
           </button>
         </template>
       </div>

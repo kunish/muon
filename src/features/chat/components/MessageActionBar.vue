@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { MatrixEvent } from 'matrix-js-sdk'
 import type { TaskStatus } from '../types/task'
 /**
  * 消息悬浮操作栏
@@ -31,7 +32,7 @@ import { useTaskStore } from '../stores/taskStore'
 import TaskComposerDialog from './TaskComposerDialog.vue'
 
 const props = defineProps<{
-  event: any
+  event: MatrixEvent
   roomId: string
 }>()
 
