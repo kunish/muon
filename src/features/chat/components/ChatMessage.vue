@@ -237,6 +237,8 @@ const threadReplyCount = computed(() => {
   return getThreadReplies(props.roomId, eventId.value).length
 })
 
+const MATRIX_TO_RE = /^https:\/\/matrix\.to\/#\/([@!#][^?]*)/
+
 /** Mention 链接点击：打开用户卡片 */
 function onRichContentClick(e: MouseEvent) {
   const target = e.target as HTMLElement
@@ -244,7 +246,7 @@ function onRichContentClick(e: MouseEvent) {
   if (!anchor)
     return
   const href = anchor.getAttribute('href') || ''
-  const match = href.match(/^https:\/\/matrix\.to\/#\/([@!#][^?]*)/)
+  const match = href.match(MATRIX_TO_RE)
   if (match) {
     e.preventDefault()
     e.stopPropagation()

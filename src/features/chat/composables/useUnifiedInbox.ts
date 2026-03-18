@@ -42,7 +42,7 @@ function handleSyncState({ state }: { state: string }) {
 function getLatestEventMeta(roomId: string): { eventId: string, ts: number, sender?: string, body?: string } {
   const room = getRoom(roomId)
   const events = room?.getLiveTimeline().getEvents() ?? []
-  const latest = events[events.length - 1]
+  const latest = events.at(-1)
   return {
     eventId: latest?.getId?.() || `${roomId}:latest`,
     ts: latest?.getTs?.() || 0,

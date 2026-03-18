@@ -1,6 +1,7 @@
 import { splitEmojis } from '@/shared/lib/emojiLottie'
 
 const emojiRegex = /^(?:\p{Emoji_Presentation}|\p{Emoji}\uFE0F)$/u
+const emojiPresentationRegex = /^\p{Emoji_Presentation}/u
 
 /**
  * Check if text consists of 1-3 emoji characters only.
@@ -12,6 +13,6 @@ export function isFullEmojiText(text: string): boolean {
   if (segments.length < 1 || segments.length > 3)
     return false
   return segments.every(
-    s => emojiRegex.test(s) || /^\p{Emoji_Presentation}/u.test(s),
+    s => emojiRegex.test(s) || emojiPresentationRegex.test(s),
   )
 }

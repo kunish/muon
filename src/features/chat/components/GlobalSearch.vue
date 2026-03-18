@@ -67,7 +67,7 @@ const messageHitTotalHeight = computed(() => {
 })
 
 function timeoutAfter(ms: number) {
-  return new Promise<'timeout'>(resolve => setTimeout(() => resolve('timeout'), ms))
+  return new Promise<'timeout'>(resolve => setTimeout(resolve, ms, 'timeout'))
 }
 
 function formatTime(ts: number): string {

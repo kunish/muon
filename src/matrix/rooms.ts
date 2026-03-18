@@ -16,19 +16,19 @@ function getLatestVisibleEvent(room: Room) {
   for (let i = liveEvents.length - 1; i >= 0; i--) {
     const event = liveEvents[i]
     if (VISIBLE_TYPES.has(event.getType()))
-      return { event, lastTimeEvent: liveEvents[liveEvents.length - 1] }
+      return { event, lastTimeEvent: liveEvents.at(-1) }
   }
 
   const fallbackEvents = room.timeline ?? []
   for (let i = fallbackEvents.length - 1; i >= 0; i--) {
     const event = fallbackEvents[i]
     if (VISIBLE_TYPES.has(event.getType()))
-      return { event, lastTimeEvent: liveEvents[liveEvents.length - 1] ?? fallbackEvents[fallbackEvents.length - 1] }
+      return { event, lastTimeEvent: liveEvents.at(-1) ?? fallbackEvents.at(-1) }
   }
 
   return {
     event: null,
-    lastTimeEvent: liveEvents[liveEvents.length - 1] ?? fallbackEvents[fallbackEvents.length - 1],
+    lastTimeEvent: liveEvents.at(-1) ?? fallbackEvents.at(-1),
   }
 }
 

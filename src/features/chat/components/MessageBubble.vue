@@ -55,6 +55,8 @@ import ImageMessage from './messages/ImageMessage.vue'
 import LocationMessage from './messages/LocationMessage.vue'
 import VideoMessage from './messages/VideoMessage.vue'
 
+const MATRIX_TO_RE = /^https:\/\/matrix\.to\/#\/([@!#][^?]*)/
+
 const props = defineProps<{
   event: MatrixEvent
   isMine: boolean
@@ -264,7 +266,7 @@ function onRichContentClick(e: MouseEvent) {
     return
   const href = anchor.getAttribute('href') || ''
   // 匹配 https://matrix.to/#/@user:server 格式
-  const match = href.match(/^https:\/\/matrix\.to\/#\/([@!#][^?]*)/)
+  const match = href.match(MATRIX_TO_RE)
   if (match) {
     e.preventDefault()
     e.stopPropagation()

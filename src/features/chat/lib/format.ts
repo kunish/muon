@@ -19,6 +19,7 @@ export function initials(name: string): string {
 
 const WEEKDAYS_ZH = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六']
 const WEEKDAYS_EN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+const BOT_NAME_RE = /^bot[_-]|[_-]bot$|^bot$/
 
 /** 获取今天 0 点的时间戳 */
 function todayStart(): number {
@@ -129,7 +130,7 @@ export function isLikelyBot(userId: string): boolean {
   if (localpart.startsWith('_'))
     return true
   // 用户名包含 bot 后缀或前缀
-  if (/^bot[_-]|[_-]bot$|^bot$/.test(localpart))
+  if (BOT_NAME_RE.test(localpart))
     return true
   return false
 }

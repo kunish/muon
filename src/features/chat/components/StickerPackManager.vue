@@ -9,6 +9,8 @@ import { toast } from 'vue-sonner'
 import { useAuthMedia } from '@/shared/composables/useAuthMedia'
 import { useStickerStore } from '../stores/stickerStore'
 
+const FILE_EXT_RE = /\.[^.]+$/
+
 const emit = defineEmits<{
   close: []
 }>()
@@ -86,7 +88,7 @@ async function addStickers() {
         const mxcUrl = await uploadMedia(file)
         const sticker: ImageSticker = {
           id: `sticker_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-          name: file.name.replace(/\.[^.]+$/, ''),
+          name: file.name.replace(FILE_EXT_RE, ''),
           mxcUrl,
           width,
           height,

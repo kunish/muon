@@ -58,7 +58,7 @@ export function useMessages() {
     const list = messages.value
     if (list.length === 0)
       return
-    const lastEvent = list[list.length - 1]
+    const lastEvent = list.at(-1)
     const eventId = lastEvent.getId()
     if (eventId) {
       sendReadReceipt(roomId, eventId).catch(() => { /* read receipt failures are non-critical, user experience unaffected */ })

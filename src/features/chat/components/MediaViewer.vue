@@ -33,7 +33,7 @@ async function download() {
   // Determine a default file name from the URL
   const urlPath = url.split('?')[0]
   const segments = urlPath.split('/')
-  const defaultName = segments[segments.length - 1] || (currentType.value === 'image' ? 'image.png' : 'video.mp4')
+  const defaultName = segments.at(-1) || (currentType.value === 'image' ? 'image.png' : 'video.mp4')
 
   const savePath = await save({
     defaultPath: defaultName,

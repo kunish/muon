@@ -7,8 +7,10 @@ const props = defineProps<{
   body: string
 }>()
 
+const GEO_URI_RE = /^geo:([-\d.]+),([-\d.]+)/
+
 const coords = computed(() => {
-  const match = props.geoUri.match(/^geo:([-\d.]+),([-\d.]+)/)
+  const match = props.geoUri.match(GEO_URI_RE)
   if (!match)
     return null
   return { lat: Number.parseFloat(match[1]), lng: Number.parseFloat(match[2]) }

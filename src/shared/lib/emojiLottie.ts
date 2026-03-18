@@ -30,7 +30,7 @@ export function splitEmojis(text: string): string[] {
   const IntlAny = Intl as any
   if (IntlAny.Segmenter) {
     const segmenter = new IntlAny.Segmenter('en', { granularity: 'grapheme' })
-    return [...segmenter.segment(text.trim())].map((s: { segment: string }) => s.segment)
+    return Array.from(segmenter.segment(text.trim()), (s: { segment: string }) => s.segment)
   }
   return [text.trim()]
 }

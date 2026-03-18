@@ -18,12 +18,14 @@ function clearSession(): void {
   localStorage.removeItem(STORAGE_KEY)
 }
 
+const LEADING_AT_RE = /^@/
+
 export async function login(serverUrl: string, credentials: LoginCredentials): Promise<StoredSession> {
   const client = createClient({ serverUrl })
 
   // Strip leading '@' and any ':server' suffix so both
   // "kunish", "@kunish" and "@kunish:example.com" work.
-  const localpart = credentials.username.replace(/^@/, '').split(':')[0]
+  const localpart = credentials.username.replace(LEADING_AT_RE, '').split(':')[0]
 
   const response = await client.login('m.login.password', {
     identifier: {
@@ -47,7 +49,7 @@ export async function login(serverUrl: string, credentials: LoginCredentials): P
 
 export async function register(serverUrl: string, params: RegisterParams): Promise<StoredSession> {
   const client = createClient({ serverUrl })
-  const localpart = params.username.replace(/^@/, '').split(':')[0]
+  const localpart = params.username.replace(LEADING_AT_RE, '').split(':')[0]
   const response = await client.register(
     localpart,
     params.password,

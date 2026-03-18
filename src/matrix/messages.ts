@@ -6,6 +6,8 @@ import { EventType, MsgType, RelationType } from 'matrix-js-sdk'
 import { getClient } from './client'
 import { uploadMedia } from './media'
 
+const MENTION_SPAN_RE = /<span[^>]*data-type="mention"[^>]*data-id="([^"]*)"[^>]*>@?([^<]*)<\/span>/g
+
 /**
  * 将 TipTap mention HTML 转换为 Matrix 格式
  * TipTap: <span data-type="mention" data-id="@user:server" class="mention">@DisplayName</span>
@@ -14,7 +16,7 @@ import { uploadMedia } from './media'
 function convertMentionsToMatrix(html: string): { html: string, userIds: string[] } {
   const userIds: string[] = []
   const converted = html.replace(
-    /<span[^>]*data-type="mention"[^>]*data-id="([^"]*)"[^>]*>@?([^<]*)<\/span>/g,
+    MENTION_SPAN_RE,
     (_match, userId: string, label: string) => {
       if (userId && !userIds.includes(userId)) {
         userIds.push(userId)

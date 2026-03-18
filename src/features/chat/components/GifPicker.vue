@@ -55,7 +55,7 @@ async function doSearch(q: string) {
 watch(query, (val) => {
   if (debounceTimer)
     clearTimeout(debounceTimer)
-  debounceTimer = setTimeout(() => doSearch(val), 300)
+  debounceTimer = setTimeout(doSearch, 300, val)
 })
 
 onUnmounted(() => {
