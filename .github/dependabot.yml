@@ -8,7 +8,7 @@ updates:
     groups:
       all-npm:
         patterns:
-          - "*"
+          - '*'
 
   - package-ecosystem: cargo
     directory: /src-tauri
@@ -17,7 +17,7 @@ updates:
     groups:
       all-cargo:
         patterns:
-          - "*"
+          - '*'
 
   - package-ecosystem: github-actions
     directory: /
@@ -26,4 +26,4 @@ updates:
     groups:
       all-actions:
         patterns:
-          - "*"
+          - '*'
