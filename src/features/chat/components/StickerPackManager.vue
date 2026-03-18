@@ -9,11 +9,11 @@ import { toast } from 'vue-sonner'
 import { useAuthMedia } from '@/shared/composables/useAuthMedia'
 import { useStickerStore } from '../stores/stickerStore'
 
-const FILE_EXT_RE = /\.[^.]+$/
-
 const emit = defineEmits<{
   close: []
 }>()
+
+const FILE_EXT_RE = /\.[^.]+$/
 
 const { t } = useI18n()
 

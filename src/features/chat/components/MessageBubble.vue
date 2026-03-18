@@ -55,8 +55,6 @@ import ImageMessage from './messages/ImageMessage.vue'
 import LocationMessage from './messages/LocationMessage.vue'
 import VideoMessage from './messages/VideoMessage.vue'
 
-const MATRIX_TO_RE = /^https:\/\/matrix\.to\/#\/([@!#][^?]*)/
-
 const props = defineProps<{
   event: MatrixEvent
   isMine: boolean
@@ -68,6 +66,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   avatarClick: [userId: string, event: MouseEvent]
 }>()
+
+const MATRIX_TO_RE = /^https:\/\/matrix\.to\/#\/([@!#][^?]*)/
 
 const store = useChatStore()
 const settingsStore = useSettingsStore()
