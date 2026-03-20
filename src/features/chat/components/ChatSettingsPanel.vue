@@ -273,7 +273,7 @@ function cancelEditTopic() {
       <div class="py-1">
         <!-- Mute notifications -->
         <button
-          class="settings-row"
+          class="flex w-full cursor-pointer items-center justify-between px-4 py-2 transition-colors duration-100 hover:bg-accent"
           @click="onToggleMute"
         >
           <span class="flex items-center gap-2.5">
@@ -286,7 +286,7 @@ function cancelEditTopic() {
 
         <!-- Pin to top -->
         <button
-          class="settings-row"
+          class="flex w-full cursor-pointer items-center justify-between px-4 py-2 transition-colors duration-100 hover:bg-accent"
           @click="onTogglePin"
         >
           <span class="flex items-center gap-2.5">
@@ -331,18 +331,3 @@ function cancelEditTopic() {
     </div>
   </div>
 </template>
-
-<style scoped>
-.settings-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  padding: 8px 16px;
-  cursor: pointer;
-  transition: background 0.1s;
-}
-.settings-row:hover {
-  background: var(--color-accent);
-}
-</style>

@@ -134,7 +134,12 @@ async function onMessage() {
 <template>
   <Teleport to="body">
     <!-- 遮罩 -->
-    <Transition name="popover-overlay">
+    <Transition
+      enter-active-class="transition-all duration-200 ease-out"
+      leave-active-class="transition-all duration-150 ease-in"
+      enter-from-class="opacity-0"
+      leave-to-class="opacity-0"
+    >
       <div
         v-if="isVisible"
         class="fixed inset-0 z-[99] bg-black/5 backdrop-blur-[1px]"
@@ -143,7 +148,12 @@ async function onMessage() {
     </Transition>
 
     <!-- Popover 面板 -->
-    <Transition name="popover-card">
+    <Transition
+      enter-active-class="transition-all duration-[250ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
+      leave-active-class="transition-all duration-150 ease-[cubic-bezier(0.4,0,1,1)]"
+      enter-from-class="scale-[0.92] opacity-0 -translate-y-1"
+      leave-to-class="scale-[0.96] opacity-0 -translate-y-0.5"
+    >
       <div
         v-if="isVisible && member"
         :style="panelStyle"
@@ -244,31 +254,3 @@ async function onMessage() {
     </Transition>
   </Teleport>
 </template>
-
-<style scoped>
-.popover-card-enter-active {
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.popover-card-leave-active {
-  transition: all 0.15s cubic-bezier(0.4, 0, 1, 1);
-}
-.popover-card-enter-from {
-  opacity: 0;
-  transform: scale(0.92) translateY(-4px);
-}
-.popover-card-leave-to {
-  opacity: 0;
-  transform: scale(0.96) translateY(-2px);
-}
-
-.popover-overlay-enter-active {
-  transition: all 0.2s ease-out;
-}
-.popover-overlay-leave-active {
-  transition: all 0.15s ease-in;
-}
-.popover-overlay-enter-from,
-.popover-overlay-leave-to {
-  opacity: 0;
-}
-</style>

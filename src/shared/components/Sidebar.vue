@@ -37,8 +37,8 @@ function isActive(name: string) {
     <button
       v-for="item in mainNavItems"
       :key="item.name"
-      class="sidebar-btn group relative"
-      :class="isActive(item.name) ? 'sidebar-btn-active' : 'sidebar-btn-inactive'"
+      class="group relative flex h-10 w-10 cursor-pointer items-center justify-center rounded-[10px] transition-all duration-200"
+      :class="isActive(item.name) ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-accent hover:text-foreground'"
       :title="t(item.labelKey)"
       @click="router.push(item.path)"
     >
@@ -49,7 +49,7 @@ function isActive(name: string) {
       >
         {{ totalUnreadCount > 99 ? '99+' : totalUnreadCount }}
       </span>
-      <span class="sidebar-tooltip">{{ t(item.labelKey) }}</span>
+      <span class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-popover px-2.5 py-1 text-xs text-popover-foreground shadow-[0_4px_12px_rgba(0,0,0,0.1)] group-hover:block">{{ t(item.labelKey) }}</span>
     </button>
 
     <!-- Divider -->
@@ -59,19 +59,19 @@ function isActive(name: string) {
     <button
       v-for="item in toolNavItems"
       :key="item.name"
-      class="sidebar-btn group relative"
-      :class="isActive(item.name) ? 'sidebar-btn-active' : 'sidebar-btn-inactive'"
+      class="group relative flex h-10 w-10 cursor-pointer items-center justify-center rounded-[10px] transition-all duration-200"
+      :class="isActive(item.name) ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-accent hover:text-foreground'"
       :title="t(item.labelKey)"
       @click="router.push(item.path)"
     >
       <component :is="item.icon" :size="20" />
-      <span class="sidebar-tooltip">{{ t(item.labelKey) }}</span>
+      <span class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-popover px-2.5 py-1 text-xs text-popover-foreground shadow-[0_4px_12px_rgba(0,0,0,0.1)] group-hover:block">{{ t(item.labelKey) }}</span>
     </button>
 
     <!-- Bottom tools -->
     <div class="mt-auto flex flex-col items-center gap-1.5">
       <button
-        class="sidebar-btn sidebar-btn-inactive relative"
+        class="relative flex h-10 w-10 cursor-pointer items-center justify-center rounded-[10px] text-muted-foreground transition-all duration-200 hover:bg-accent hover:text-foreground"
         :title="t('downloads.title')"
         @click="emit('toggleDownloads')"
       >
@@ -85,7 +85,7 @@ function isActive(name: string) {
       </button>
 
       <button
-        class="sidebar-btn sidebar-btn-inactive"
+        class="flex h-10 w-10 cursor-pointer items-center justify-center rounded-[10px] text-muted-foreground transition-all duration-200 hover:bg-accent hover:text-foreground"
         :title="t('sidebar.settings')"
         @click="router.push('/settings')"
       >
@@ -96,52 +96,3 @@ function isActive(name: string) {
     </div>
   </nav>
 </template>
-
-<style scoped>
-.sidebar-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  transition: all 0.2s ease;
-  cursor: pointer;
-}
-
-.sidebar-btn-active {
-  background: var(--color-primary);
-  color: var(--color-primary-foreground);
-}
-
-.sidebar-btn-inactive {
-  color: var(--color-muted-foreground);
-}
-.sidebar-btn-inactive:hover {
-  background: var(--color-accent);
-  color: var(--color-foreground);
-}
-
-.sidebar-tooltip {
-  display: none;
-  position: absolute;
-  left: 100%;
-  top: 50%;
-  transform: translateY(-50%);
-  margin-left: 8px;
-  padding: 4px 10px;
-  font-size: 12px;
-  white-space: nowrap;
-  background: var(--color-popover);
-  color: var(--color-popover-foreground);
-  border: 1px solid var(--color-border);
-  border-radius: 6px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  z-index: 50;
-  pointer-events: none;
-}
-
-.group:hover .sidebar-tooltip {
-  display: block;
-}
-</style>

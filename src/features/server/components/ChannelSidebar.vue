@@ -4,8 +4,9 @@ import { getMyAvatarUrl, getMyDisplayName, loadInboxEventContext } from '@matrix
 import { BookOpen, CalendarDays, ChevronDown, Gem, Headphones, ListChecks, Mic, MicOff, Search, Settings, Users, X } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import DeferQueuePanel from '@/features/chat/components/DeferQueuePanel.vue'
+import ConversationContextMenu from '@/features/chat/components/ConversationContextMenu.vue'
 import UnifiedInboxPanel from '@/features/chat/components/UnifiedInboxPanel.vue'
 import { useConversations } from '@/features/chat/composables/useConversations'
 import { useChatStore } from '@/features/chat/stores/chatStore'
@@ -32,6 +33,7 @@ const emit = defineEmits<{
 }>()
 
 const router = useRouter()
+const route = useRoute()
 const serverStore = useServerStore()
 const chatStore = useChatStore()
 const { t } = useI18n()
@@ -71,6 +73,25 @@ function openCreateChannel(categoryId?: string) {
 function navigateToDm(roomId: string) {
   router.push(`/dm/${encodeURIComponent(roomId)}`)
 }
+
+function openDmContextMenu(roomId: string, event: MouseEvent) {
+  chatStore.openContextMenu(roomId, event.clientX, event.clientY)
+}
+
+function normalizeRoomId(id: string | null | undefined) {
+  if (!id)
+    return null
+  try {
+    return decodeURIComponent(id)
+  }
+  catch {
+    return id
+  }
+}
+
+const activeDmRoomId = computed(() =>
+  normalizeRoomId((route.params.roomId || route.params.channelId) as string | undefined) ?? normalizeRoomId(chatStore.currentRoomId),
+)
 
 async function handleInboxJump(payload: { roomId: string, eventId: string }) {
   try {
@@ -200,9 +221,15 @@ function getPresenceColor(userId: string): string {
           <button
             v-for="dm in dmList"
             :key="dm.roomId"
-            class="group flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-accent/30"
+            class="group relative flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-accent/30"
+            :class="normalizeRoomId(dm.roomId) === activeDmRoomId && 'bg-primary/18 shadow-[0_0_0_1px_color-mix(in_srgb,var(--color-primary)_42%,transparent)]'"
             @click="navigateToDm(dm.roomId)"
+            @contextmenu.prevent="openDmContextMenu(dm.roomId, $event)"
           >
+            <span
+              v-if="normalizeRoomId(dm.roomId) === activeDmRoomId"
+              class="absolute left-0 top-1/2 -translate-y-1/2 h-7 w-[4px] rounded-r-full bg-primary"
+            />
             <div class="relative">
               <Avatar
                 :src="dm.dmUserAvatar"
@@ -213,7 +240,10 @@ function getPresenceColor(userId: string): string {
               <!-- Online indicator -->
               <div class="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-sidebar" :class="getPresenceColor(dm.dmUserId || '')" />
             </div>
-            <span class="truncate text-muted-foreground group-hover:text-foreground">{{ dm.name }}</span>
+            <span
+              class="truncate group-hover:text-foreground"
+              :class="normalizeRoomId(dm.roomId) === activeDmRoomId ? 'text-foreground font-medium' : 'text-muted-foreground'"
+            >{{ dm.name }}</span>
             <Badge
               v-if="dm.unreadCount > 0"
               variant="destructive"
@@ -227,6 +257,7 @@ function getPresenceColor(userId: string): string {
             {{ t('chat.no_conversations') }}
           </div>
         </div>
+        <ConversationContextMenu />
       </ScrollArea>
     </template>
 
@@ -347,8 +378,8 @@ function getPresenceColor(userId: string): string {
       <!-- Action buttons -->
       <div class="flex shrink-0 items-center gap-0.5">
         <button
-          class="user-panel-btn"
-          :class="{ 'user-panel-btn-active': isMuted }"
+          class="flex h-8 w-8 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-all duration-100 hover:bg-accent hover:text-foreground active:scale-95"
+          :class="isMuted ? 'text-destructive hover:bg-[color-mix(in_srgb,var(--color-destructive)_12%,transparent)] hover:text-destructive' : ''"
           :title="isMuted ? t('voice.unmute') : t('voice.mute')"
           @click="toggleMute"
         >
@@ -356,15 +387,15 @@ function getPresenceColor(userId: string): string {
           <Mic v-else :size="16" />
         </button>
         <button
-          class="user-panel-btn"
-          :class="{ 'user-panel-btn-active': isDeafened }"
+          class="flex h-8 w-8 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-all duration-100 hover:bg-accent hover:text-foreground active:scale-95"
+          :class="isDeafened ? 'text-destructive hover:bg-[color-mix(in_srgb,var(--color-destructive)_12%,transparent)] hover:text-destructive' : ''"
           :title="isDeafened ? t('voice.undeafen') : t('voice.deafen')"
           @click="toggleDeafen"
         >
           <Headphones :size="16" />
         </button>
         <button
-          class="user-panel-btn"
+          class="flex h-8 w-8 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-all duration-100 hover:bg-accent hover:text-foreground active:scale-95"
           :title="t('settings.settings')"
           @click="openSettings"
         >
@@ -380,35 +411,3 @@ function getPresenceColor(userId: string): string {
     />
   </aside>
 </template>
-
-<style scoped>
-.user-panel-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 32px;
-  width: 32px;
-  border-radius: 6px;
-  color: var(--color-muted-foreground);
-  transition: all 0.12s ease;
-  cursor: pointer;
-}
-
-.user-panel-btn:hover {
-  background: var(--color-accent);
-  color: var(--color-foreground);
-}
-
-.user-panel-btn:active {
-  transform: scale(0.95);
-}
-
-.user-panel-btn-active {
-  color: var(--color-destructive);
-}
-
-.user-panel-btn-active:hover {
-  background: color-mix(in srgb, var(--color-destructive) 12%, transparent);
-  color: var(--color-destructive);
-}
-</style>

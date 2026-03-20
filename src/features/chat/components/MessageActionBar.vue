@@ -193,7 +193,7 @@ async function onSubmitTask(payload: { title: string, assignee: string, dueAt: s
   >
     <!-- Add Reaction -->
     <button
-      class="action-btn"
+      class="flex size-8 cursor-pointer items-center justify-center text-muted-foreground transition-all duration-100 hover:bg-muted hover:text-foreground"
       :title="t('chat.add_reaction')"
       @click.stop="onReact"
     >
@@ -202,7 +202,7 @@ async function onSubmitTask(payload: { title: string, assignee: string, dueAt: s
 
     <!-- Reply -->
     <button
-      class="action-btn"
+      class="flex size-8 cursor-pointer items-center justify-center text-muted-foreground transition-all duration-100 hover:bg-muted hover:text-foreground"
       :title="t('common.reply')"
       @click.stop="onReply"
     >
@@ -212,7 +212,7 @@ async function onSubmitTask(payload: { title: string, assignee: string, dueAt: s
     <!-- More -->
     <div class="relative">
       <button
-        class="action-btn"
+        class="flex size-8 cursor-pointer items-center justify-center text-muted-foreground transition-all duration-100 hover:bg-muted hover:text-foreground"
         :title="t('chat.more_actions')"
         data-testid="message-more-trigger"
         @click.stop="showMore = !showMore"
@@ -221,16 +221,21 @@ async function onSubmitTask(payload: { title: string, assignee: string, dueAt: s
       </button>
 
       <!-- Dropdown -->
-      <Transition name="dropdown">
+      <Transition
+        enter-active-class="transition-all duration-[120ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
+        leave-active-class="transition-all duration-75 ease-in"
+        enter-from-class="opacity-0 -translate-y-1 scale-[0.96]"
+        leave-to-class="opacity-0 -translate-y-1 scale-[0.96]"
+      >
         <div
           v-if="showMore"
-          class="absolute top-full right-0 mt-1 min-w-[160px] bg-card border border-[var(--color-muted)]/30 rounded-md shadow-[0_8px_24px_rgba(0,0,0,0.5)] py-1 z-30"
+          class="absolute top-full right-0 z-30 mt-1 min-w-[160px] rounded-md border border-[var(--color-muted)]/30 bg-card py-1 shadow-[0_8px_24px_rgba(0,0,0,0.5)]"
           @click.stop
         >
           <!-- Edit (own msg) -->
           <button
             v-if="isMine"
-            class="dropdown-item"
+            class="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-[13px] text-muted-foreground transition-colors duration-100 hover:bg-primary hover:text-white"
             @click.stop="onEdit"
           >
             <Edit :size="14" />
@@ -239,7 +244,7 @@ async function onSubmitTask(payload: { title: string, assignee: string, dueAt: s
 
           <!-- Pin / Unpin -->
           <button
-            class="dropdown-item"
+            class="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-[13px] text-muted-foreground transition-colors duration-100 hover:bg-primary hover:text-white"
             @click.stop="onTogglePin"
           >
             <component :is="isPinned ? PinOff : Pin" :size="14" />
@@ -248,7 +253,7 @@ async function onSubmitTask(payload: { title: string, assignee: string, dueAt: s
 
           <!-- Open Thread -->
           <button
-            class="dropdown-item"
+            class="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-[13px] text-muted-foreground transition-colors duration-100 hover:bg-primary hover:text-white"
             @click.stop="onOpenThread"
           >
             <MessageSquareText :size="14" />
@@ -256,7 +261,7 @@ async function onSubmitTask(payload: { title: string, assignee: string, dueAt: s
           </button>
 
           <button
-            class="dropdown-item"
+            class="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-[13px] text-muted-foreground transition-colors duration-100 hover:bg-primary hover:text-white"
             data-testid="message-defer-trigger"
             @click.stop="onToggleDeferMenu"
           >
@@ -264,7 +269,7 @@ async function onSubmitTask(payload: { title: string, assignee: string, dueAt: s
           </button>
 
           <button
-            class="dropdown-item"
+            class="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-[13px] text-muted-foreground transition-colors duration-100 hover:bg-primary hover:text-white"
             data-testid="message-convert-task-trigger"
             @click.stop="onOpenTaskComposer"
           >
@@ -274,28 +279,28 @@ async function onSubmitTask(payload: { title: string, assignee: string, dueAt: s
           <div v-if="showDeferMenu" class="mx-2 my-1 rounded-md border border-[var(--color-muted)]/20 p-2">
             <div class="space-y-1">
               <button
-                class="dropdown-item"
+                class="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-[13px] text-muted-foreground transition-colors duration-100 hover:bg-primary hover:text-white"
                 data-testid="message-defer-preset-1h"
                 @click.stop="createDeferredFromMessage('in-1-hour', '1h')"
               >
                 <span>{{ t('chat.defer_preset_1h') }}</span>
               </button>
               <button
-                class="dropdown-item"
+                class="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-[13px] text-muted-foreground transition-colors duration-100 hover:bg-primary hover:text-white"
                 data-testid="message-defer-preset-tonight"
                 @click.stop="createDeferredFromMessage('tonight', 'tonight')"
               >
                 <span>{{ t('chat.defer_preset_tonight') }}</span>
               </button>
               <button
-                class="dropdown-item"
+                class="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-[13px] text-muted-foreground transition-colors duration-100 hover:bg-primary hover:text-white"
                 data-testid="message-defer-preset-tomorrow-morning"
                 @click.stop="createDeferredFromMessage('tomorrow-morning', 'tomorrow-morning')"
               >
                 <span>{{ t('chat.defer_preset_tomorrow_morning') }}</span>
               </button>
               <button
-                class="dropdown-item"
+                class="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-[13px] text-muted-foreground transition-colors duration-100 hover:bg-primary hover:text-white"
                 data-testid="message-defer-preset-tomorrow"
                 @click.stop="createDeferredFromMessage('tomorrow', 'tomorrow')"
               >
@@ -304,7 +309,7 @@ async function onSubmitTask(payload: { title: string, assignee: string, dueAt: s
             </div>
 
             <button
-              class="dropdown-item"
+              class="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-[13px] text-muted-foreground transition-colors duration-100 hover:bg-primary hover:text-white"
               data-testid="message-defer-custom-toggle"
               @click.stop
             >
@@ -328,7 +333,7 @@ async function onSubmitTask(payload: { title: string, assignee: string, dueAt: s
 
           <!-- Copy Text -->
           <button
-            class="dropdown-item"
+            class="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-[13px] text-muted-foreground transition-colors duration-100 hover:bg-primary hover:text-white"
             @click.stop="onCopyText"
           >
             <Copy :size="14" />
@@ -337,7 +342,7 @@ async function onSubmitTask(payload: { title: string, assignee: string, dueAt: s
 
           <!-- Copy Link -->
           <button
-            class="dropdown-item"
+            class="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-[13px] text-muted-foreground transition-colors duration-100 hover:bg-primary hover:text-white"
             @click.stop="onCopyLink"
           >
             <Link :size="14" />
@@ -350,7 +355,7 @@ async function onSubmitTask(payload: { title: string, assignee: string, dueAt: s
           <!-- Delete (own/admin) -->
           <button
             v-if="isMine"
-            class="dropdown-item text-destructive"
+            class="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-[13px] text-destructive transition-colors duration-100 hover:bg-destructive hover:text-white"
             @click.stop="onDelete"
           >
             <Trash2 :size="14" />
@@ -369,55 +374,3 @@ async function onSubmitTask(payload: { title: string, assignee: string, dueAt: s
     />
   </div>
 </template>
-
-<style scoped>
-.action-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  color: var(--color-muted-foreground);
-  cursor: pointer;
-  transition: all 0.1s ease;
-}
-
-.action-btn:hover {
-  background: var(--color-muted);
-  color: var(--color-foreground);
-}
-
-.dropdown-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 6px 12px;
-  font-size: 13px;
-  color: var(--color-muted-foreground);
-  cursor: pointer;
-  transition: background 0.1s ease;
-}
-
-.dropdown-item:hover {
-  background: var(--color-primary);
-  color: white;
-}
-
-.dropdown-item.text-destructive:hover {
-  background: var(--color-destructive);
-  color: white;
-}
-
-.dropdown-enter-active {
-  transition: all 0.12s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.dropdown-leave-active {
-  transition: all 0.08s ease-in;
-}
-.dropdown-enter-from,
-.dropdown-leave-to {
-  opacity: 0;
-  transform: translateY(-4px) scale(0.96);
-}
-</style>

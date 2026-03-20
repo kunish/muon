@@ -285,6 +285,7 @@
     "copy_text": "复制文本",
     "copy_message_link": "复制消息链接",
     "delete_message": "删除消息",
+    "delete_confirm": "确定要删除这条消息吗？",
     "star_message": "收藏消息",
     "unstar_message": "取消收藏",
     "search_files": "搜索文件...",
@@ -705,6 +706,7 @@
     "ban_confirm_msg": "确定要封禁 {name} 吗？",
     "kick_reason_label": "原因（可选）",
     "ban_reason_label": "原因（可选）",
-    "confirm": "确认"
+    "confirm": "确认",
+    "missing_server_id": "缺少服务器上下文"
   }
 }

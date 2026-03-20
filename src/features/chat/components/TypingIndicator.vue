@@ -24,33 +24,10 @@ const typingText = computed(() => {
   >
     <!-- Animated bouncing dots -->
     <span class="inline-flex items-center gap-[3px]">
-      <span class="typing-dot" />
-      <span class="typing-dot [animation-delay:160ms]" />
-      <span class="typing-dot [animation-delay:320ms]" />
+      <span class="h-1 w-1 rounded-full bg-muted-foreground animate-typing-bounce" />
+      <span class="h-1 w-1 rounded-full bg-muted-foreground animate-typing-bounce [animation-delay:160ms]" />
+      <span class="h-1 w-1 rounded-full bg-muted-foreground animate-typing-bounce [animation-delay:320ms]" />
     </span>
     <span class="font-medium truncate">{{ typingText }}</span>
   </div>
 </template>
-
-<style scoped>
-.typing-dot {
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: var(--color-muted-foreground);
-  animation: typing-bounce 1.4s infinite ease-in-out;
-}
-
-@keyframes typing-bounce {
-  0%,
-  60%,
-  100% {
-    transform: translateY(0);
-    opacity: 0.4;
-  }
-  30% {
-    transform: translateY(-4px);
-    opacity: 1;
-  }
-}
-</style>

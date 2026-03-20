@@ -124,7 +124,12 @@ async function handleLeave() {
 
 <template>
   <Teleport to="body">
-    <Transition name="ctx-menu">
+    <Transition
+      enter-active-class="transition-all duration-[180ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
+      leave-active-class="transition-all duration-[120ms] ease-in"
+      enter-from-class="translate-y-[-4px] scale-95 opacity-0"
+      leave-to-class="scale-95 opacity-0"
+    >
       <div
         v-if="isOpen"
         ref="menuRef"
@@ -133,27 +138,27 @@ async function handleLeave() {
         @contextmenu.prevent
       >
         <!-- 置顶 -->
-        <button class="ctx-item" @click="handlePin">
+        <button class="mx-1 flex w-[calc(100%-8px)] items-center gap-2.5 rounded-md px-3.5 py-[7px] text-[13px] text-foreground transition-all duration-100 hover:bg-accent active:scale-[0.98]" @click="handlePin">
           <component :is="pinned ? PinOff : Pin" :size="14" />
           <span>{{ pinned ? t('chat.ctx_unpin') : t('chat.ctx_pin') }}</span>
         </button>
 
         <!-- 免打扰 -->
-        <button class="ctx-item" @click="handleMute">
+        <button class="mx-1 flex w-[calc(100%-8px)] items-center gap-2.5 rounded-md px-3.5 py-[7px] text-[13px] text-foreground transition-all duration-100 hover:bg-accent active:scale-[0.98]" @click="handleMute">
           <component :is="muted ? Bell : BellOff" :size="14" />
           <span>{{ muted ? t('chat.ctx_unmute') : t('chat.ctx_mute') }}</span>
         </button>
 
         <!-- 标记未读/已读 -->
-        <button class="ctx-item" @click="handleMarkUnread">
+        <button class="mx-1 flex w-[calc(100%-8px)] items-center gap-2.5 rounded-md px-3.5 py-[7px] text-[13px] text-foreground transition-all duration-100 hover:bg-accent active:scale-[0.98]" @click="handleMarkUnread">
           <component :is="markedUnread ? Eye : EyeOff" :size="14" />
           <span>{{ markedUnread ? t('chat.ctx_mark_read') : t('chat.ctx_mark_unread') }}</span>
         </button>
 
-        <div class="ctx-divider" />
+        <div class="mx-3 my-1 h-px bg-border/50" />
 
         <!-- 退出会话 -->
-        <button class="ctx-item ctx-danger" @click="handleLeave">
+        <button class="mx-1 flex w-[calc(100%-8px)] items-center gap-2.5 rounded-md px-3.5 py-[7px] text-[13px] text-destructive transition-all duration-100 hover:bg-[color-mix(in_srgb,var(--color-destructive)_10%,transparent)] active:scale-[0.98]" @click="handleLeave">
           <LogOut :size="14" />
           <span>{{ t('chat.ctx_leave') }}</span>
         </button>
@@ -161,56 +166,3 @@ async function handleLeave() {
     </Transition>
   </Teleport>
 </template>
-
-<style scoped>
-.ctx-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 7px 14px;
-  font-size: 13px;
-  color: var(--color-foreground);
-  cursor: pointer;
-  transition: all 0.12s ease;
-  border-radius: 6px;
-  margin: 0 4px;
-  width: calc(100% - 8px);
-}
-.ctx-item:hover {
-  background: var(--color-accent);
-}
-.ctx-item:active {
-  transform: scale(0.98);
-}
-
-.ctx-danger {
-  color: var(--color-destructive);
-}
-.ctx-danger:hover {
-  background: color-mix(in srgb, var(--color-destructive) 10%, transparent);
-}
-
-.ctx-divider {
-  height: 1px;
-  margin: 4px 12px;
-  background: var(--color-border);
-  opacity: 0.5;
-}
-
-/* 入场/退场动画 */
-.ctx-menu-enter-active {
-  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.ctx-menu-leave-active {
-  transition: all 0.12s ease-in;
-}
-.ctx-menu-enter-from {
-  opacity: 0;
-  transform: scale(0.92) translateY(-4px);
-}
-.ctx-menu-leave-to {
-  opacity: 0;
-  transform: scale(0.95);
-}
-</style>

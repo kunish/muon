@@ -284,6 +284,7 @@
     "copy_text": "Copy Text",
     "copy_message_link": "Copy Message Link",
     "delete_message": "Delete Message",
+    "delete_confirm": "Are you sure you want to delete this message?",
     "star_message": "Star message",
     "unstar_message": "Unstar message",
     "search_files": "Search files...",
@@ -705,6 +706,7 @@
     "ban_confirm_msg": "Are you sure you want to ban {name}?",
     "kick_reason_label": "Reason (optional)",
     "ban_reason_label": "Reason (optional)",
-    "confirm": "Confirm"
+    "confirm": "Confirm",
+    "missing_server_id": "Missing server context"
   }
 }

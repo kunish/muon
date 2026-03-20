@@ -50,78 +50,40 @@ function openSearch() {
 
     <div class="space-y-2">
       <button
-        class="welcome-card"
+        class="flex w-full cursor-pointer items-center gap-3 rounded-[10px] border border-[color-mix(in_srgb,var(--color-border)_65%,transparent)] bg-[color-mix(in_srgb,var(--color-card)_88%,transparent)] px-4 py-3.5 text-left transition-all duration-150 hover:border-[color-mix(in_srgb,var(--color-border)_95%,transparent)] hover:bg-[color-mix(in_srgb,var(--color-card)_100%,var(--color-accent))]"
         @click="openMembers"
       >
-        <div class="welcome-card-icon bg-primary/20 text-primary">
+        <div class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/20 text-primary">
           <Users :size="16" />
         </div>
-        <div class="welcome-card-text">
+        <div class="text-[22px] font-bold leading-snug text-foreground">
           {{ t('chat.welcome_action_members') }}
         </div>
       </button>
 
       <button
-        class="welcome-card"
+        class="flex w-full cursor-pointer items-center gap-3 rounded-[10px] border border-[color-mix(in_srgb,var(--color-border)_65%,transparent)] bg-[color-mix(in_srgb,var(--color-card)_88%,transparent)] px-4 py-3.5 text-left transition-all duration-150 hover:border-[color-mix(in_srgb,var(--color-border)_95%,transparent)] hover:bg-[color-mix(in_srgb,var(--color-card)_100%,var(--color-accent))]"
         @click="openSettings"
       >
-        <div class="welcome-card-icon bg-warning/20 text-warning">
+        <div class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-warning/20 text-warning">
           <Settings :size="16" />
         </div>
-        <div class="welcome-card-text">
+        <div class="text-[22px] font-bold leading-snug text-foreground">
           {{ t('chat.welcome_action_settings') }}
         </div>
       </button>
 
       <button
-        class="welcome-card"
+        class="flex w-full cursor-pointer items-center gap-3 rounded-[10px] border border-[color-mix(in_srgb,var(--color-border)_65%,transparent)] bg-[color-mix(in_srgb,var(--color-card)_88%,transparent)] px-4 py-3.5 text-left transition-all duration-150 hover:border-[color-mix(in_srgb,var(--color-border)_95%,transparent)] hover:bg-[color-mix(in_srgb,var(--color-card)_100%,var(--color-accent))]"
         @click="openSearch"
       >
-        <div class="welcome-card-icon bg-success/20 text-success">
+        <div class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-success/20 text-success">
           <Search :size="16" />
         </div>
-        <div class="welcome-card-text">
+        <div class="text-[22px] font-bold leading-snug text-foreground">
           {{ t('chat.welcome_action_search') }}
         </div>
       </button>
     </div>
   </div>
 </template>
-
-<style scoped>
-.welcome-card {
-  display: flex;
-  width: 100%;
-  align-items: center;
-  gap: 12px;
-  border-radius: 10px;
-  border: 1px solid color-mix(in srgb, var(--color-border) 65%, transparent);
-  background: color-mix(in srgb, var(--color-card) 88%, transparent);
-  padding: 14px 16px;
-  text-align: left;
-  transition: all 0.15s ease;
-  cursor: pointer;
-}
-
-.welcome-card:hover {
-  border-color: color-mix(in srgb, var(--color-border) 95%, transparent);
-  background: color-mix(in srgb, var(--color-card) 100%, var(--color-accent));
-}
-
-.welcome-card-icon {
-  display: inline-flex;
-  height: 28px;
-  width: 28px;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  flex-shrink: 0;
-}
-
-.welcome-card-text {
-  font-size: 22px;
-  font-weight: 700;
-  line-height: 1.25;
-  color: var(--color-foreground);
-}
-</style>

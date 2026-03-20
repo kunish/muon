@@ -6,7 +6,7 @@ import { useVirtualizer } from '@tanstack/vue-virtual'
 import { MessageSquarePlus, Search } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { Avatar } from '@/shared/components/ui/avatar'
 import { useConversations } from '../composables/useConversations'
 import { useGlobalTyping } from '../composables/useGlobalTyping'
@@ -17,6 +17,7 @@ import NewChatDialog from './NewChatDialog.vue'
 import UserInfoPanel from './UserInfoPanel.vue'
 
 const router = useRouter()
+const route = useRoute()
 const store = useChatStore()
 const { t } = useI18n()
 const { conversations, pinnedCount, isLoading } = useConversations()
@@ -54,7 +55,7 @@ const searchFocused = ref(false)
 
 function selectRoom(roomId: string) {
   store.setCurrentRoom(roomId)
-  router.push(`/chat/${roomId}`)
+  router.push(`/dm/${encodeURIComponent(roomId)}`)
 }
 
 function onAvatarClick(room: RoomSummary, event: MouseEvent) {
@@ -94,14 +95,29 @@ const quickAccessContacts = computed(() => {
 
 function selectQuickContact(roomId: string) {
   store.setCurrentRoom(roomId)
-  router.push(`/chat/${roomId}`)
+  router.push(`/dm/${encodeURIComponent(roomId)}`)
 }
+
+function normalizeRoomId(id: string | null | undefined) {
+  if (!id)
+    return null
+  try {
+    return decodeURIComponent(id)
+  }
+  catch {
+    return id
+  }
+}
+
+const activeRoomId = computed(() =>
+  normalizeRoomId((route.params.roomId || route.params.channelId) as string | undefined) ?? normalizeRoomId(store.currentRoomId),
+)
 </script>
 
 <template>
   <div class="flex flex-col h-full bg-sidebar">
     <!-- 顶栏 -->
-    <div class="conv-header px-3 pt-3 pb-1.5 relative z-10">
+    <div class="relative z-10 px-3 pt-3 pb-1.5 after:absolute after:bottom-0 after:left-3 after:right-3 after:h-px after:bg-[linear-gradient(90deg,transparent,var(--color-border)_20%,var(--color-border)_80%,transparent)] after:opacity-50 after:content-['']">
       <div class="flex items-center justify-between mb-2">
         <div class="flex items-center gap-2.5">
           <Avatar
@@ -149,7 +165,7 @@ function selectQuickContact(roomId: string) {
     <!-- 快捷入口：最近联系人 — 飞书风格等分布局，永不溢出 -->
     <div
       v-if="quickAccessContacts.length > 0 && !store.searchQuery"
-      class="quick-access px-3 py-2 flex items-start"
+      class="flex items-start border-b border-[color-mix(in_srgb,var(--color-border)_40%,transparent)] px-3 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
       <button
         v-for="c in quickAccessContacts"
@@ -178,14 +194,14 @@ function selectQuickContact(roomId: string) {
     <!-- 虚拟滚动会话列表 - 带顶部渐隐遮罩 -->
     <div
       ref="scrollRef"
-      class="conv-scroll-area flex-1 overflow-y-auto px-1.5 pt-0.5 scroll-smooth"
+      class="flex-1 overflow-y-auto px-1.5 pt-0.5 scroll-smooth [mask-image:linear-gradient(to_bottom,transparent_0px,black_8px,black_calc(100%-8px),transparent_100%)] [-webkit-mask-image:linear-gradient(to_bottom,transparent_0px,black_8px,black_calc(100%-8px),transparent_100%)] [&::-webkit-scrollbar]:w-[3px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-[3px] [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:transition-colors [&::-webkit-scrollbar-thumb:hover]:bg-muted-foreground"
     >
       <!-- 筛选标签 -->
       <div class="flex items-center gap-1 px-2.5 mb-1">
         <button
           v-for="tab in filterTabs"
           :key="tab.key"
-          class="filter-tab px-2.5 py-[3px] text-[11px] rounded-md transition-all duration-150"
+          class="cursor-pointer select-none rounded-md px-2.5 py-[3px] text-[11px] transition-all duration-150 active:scale-95"
           :class="store.activeFilter === tab.key
             ? 'bg-primary/10 text-primary font-semibold'
             : 'text-muted-foreground/50 hover:text-muted-foreground/80 hover:bg-accent/50'"
@@ -203,10 +219,10 @@ function selectQuickContact(roomId: string) {
           class="flex items-center gap-3 px-2.5 py-[9px] rounded-xl"
           :style="{ animationDelay: `${i * 80}ms` }"
         >
-          <div class="w-10 h-10 rounded-[12px] shrink-0 conv-skeleton" />
+          <div class="h-10 w-10 shrink-0 animate-[skeleton-shimmer_1.8s_ease-in-out_infinite] rounded-[12px] bg-[linear-gradient(90deg,color-mix(in_srgb,var(--color-accent)_50%,transparent)_0%,color-mix(in_srgb,var(--color-accent)_90%,transparent)_40%,color-mix(in_srgb,var(--color-accent)_50%,transparent)_100%)] bg-[length:200%_100%]" />
           <div class="flex-1 space-y-2.5">
-            <div class="h-3 rounded-md conv-skeleton" :style="{ width: `${55 + i * 6}%` }" />
-            <div class="h-2.5 rounded-md conv-skeleton" :style="{ width: `${70 + i * 3}%` }" />
+            <div class="h-3 animate-[skeleton-shimmer_1.8s_ease-in-out_infinite] rounded-md bg-[linear-gradient(90deg,color-mix(in_srgb,var(--color-accent)_50%,transparent)_0%,color-mix(in_srgb,var(--color-accent)_90%,transparent)_40%,color-mix(in_srgb,var(--color-accent)_50%,transparent)_100%)] bg-[length:200%_100%]" :style="{ width: `${55 + i * 6}%` }" />
+            <div class="h-2.5 animate-[skeleton-shimmer_1.8s_ease-in-out_infinite] rounded-md bg-[linear-gradient(90deg,color-mix(in_srgb,var(--color-accent)_50%,transparent)_0%,color-mix(in_srgb,var(--color-accent)_90%,transparent)_40%,color-mix(in_srgb,var(--color-accent)_50%,transparent)_100%)] bg-[length:200%_100%]" :style="{ width: `${70 + i * 3}%` }" />
           </div>
         </div>
       </div>
@@ -230,7 +246,7 @@ function selectQuickContact(roomId: string) {
           v-for="vItem in virtualItems"
           :key="conversations[vItem.index].roomId"
           :room="conversations[vItem.index]"
-          :active="conversations[vItem.index].roomId === store.currentRoomId"
+          :active="normalizeRoomId(conversations[vItem.index].roomId) === activeRoomId"
           :typing-users="getTypingUsers(conversations[vItem.index].roomId)"
           class="absolute top-0 left-0 w-full"
           :style="{ transform: `translateY(${vItem.start}px)` }"
@@ -270,69 +286,3 @@ function selectQuickContact(roomId: string) {
     <NewChatDialog v-if="showNewChat" @close="showNewChat = false" />
   </div>
 </template>
-
-<style scoped>
-/* 滚动区域 - 顶部渐隐遮罩 */
-.conv-scroll-area {
-  mask-image: linear-gradient(to bottom, transparent 0px, black 8px, black calc(100% - 8px), transparent 100%);
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0px, black 8px, black calc(100% - 8px), transparent 100%);
-}
-
-/* 自定义滚动条 */
-.conv-scroll-area::-webkit-scrollbar {
-  width: 3px;
-}
-.conv-scroll-area::-webkit-scrollbar-track {
-  background: transparent;
-}
-.conv-scroll-area::-webkit-scrollbar-thumb {
-  background: var(--color-border);
-  border-radius: 3px;
-  transition: background 0.2s;
-}
-.conv-scroll-area::-webkit-scrollbar-thumb:hover {
-  background: var(--color-muted-foreground);
-}
-
-/* 骨架屏微光 */
-.conv-skeleton {
-  background: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--color-accent) 50%, transparent) 0%,
-    color-mix(in srgb, var(--color-accent) 90%, transparent) 40%,
-    color-mix(in srgb, var(--color-accent) 50%, transparent) 100%
-  );
-  background-size: 200% 100%;
-  animation: skeleton-shimmer 1.8s ease-in-out infinite;
-}
-
-/* 顶栏底部分隔线 */
-.conv-header::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 12px;
-  right: 12px;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--color-border) 20%, var(--color-border) 80%, transparent);
-  opacity: 0.5;
-}
-
-/* 筛选标签 */
-.filter-tab {
-  cursor: pointer;
-  user-select: none;
-}
-.filter-tab:active {
-  transform: scale(0.95);
-}
-
-/* 快捷入口区域 */
-.quick-access {
-  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 40%, transparent);
-  scrollbar-width: none;
-}
-.quick-access::-webkit-scrollbar {
-  display: none;
-}
-</style>

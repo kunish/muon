@@ -55,13 +55,13 @@ function onStickerSelect(emoji: string, name: string) {
 </script>
 
 <template>
-  <div class="expression-picker flex min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-popover shadow-2xl">
+  <div class="flex h-[min(460px,calc(100vh-24px))] min-h-0 w-[min(360px,calc(100vw-16px))] flex-col overflow-hidden rounded-xl border border-border bg-popover shadow-2xl">
     <div class="flex items-center gap-1 border-b border-border bg-muted/30 px-2 py-1.5">
       <button
         v-for="tab in tabs"
         :key="tab.id"
-        class="expr-tab"
-        :class="activeTab === tab.id && 'expr-tab-active'"
+        class="inline-flex cursor-pointer items-center gap-1.5 rounded-md px-2 py-1.5 text-muted-foreground transition-all duration-[120ms] hover:bg-accent hover:text-foreground"
+        :class="activeTab === tab.id && 'bg-accent text-foreground'"
         :title="tab.label"
         @click="activeTab = tab.id"
       >
@@ -72,7 +72,7 @@ function onStickerSelect(emoji: string, name: string) {
       </button>
     </div>
 
-    <div class="expression-content min-h-0 flex-1">
+    <div class="min-h-0 flex-1 [&_.emoji-picker]:size-full [&_.emoji-picker]:rounded-none [&_.emoji-picker]:border-0 [&_.emoji-picker]:bg-transparent [&_.emoji-picker]:shadow-none [&_.gif-picker]:size-full [&_.gif-picker]:rounded-none [&_.gif-picker]:border-0 [&_.gif-picker]:bg-transparent [&_.gif-picker]:shadow-none [&_.sticker-picker]:size-full [&_.sticker-picker]:rounded-none [&_.sticker-picker]:border-0 [&_.sticker-picker]:bg-transparent [&_.sticker-picker]:shadow-none">
       <EmojiPicker
         v-if="mountedTabs.emoji"
         v-show="activeTab === 'emoji'"
@@ -95,42 +95,3 @@ function onStickerSelect(emoji: string, name: string) {
     </div>
   </div>
 </template>
-
-<style scoped>
-.expression-picker {
-  width: min(360px, calc(100vw - 16px));
-  height: min(460px, calc(100vh - 24px));
-}
-
-.expr-tab {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  border-radius: 6px;
-  padding: 6px 8px;
-  color: var(--color-muted-foreground);
-  cursor: pointer;
-  transition: all 0.12s ease;
-}
-
-.expr-tab:hover {
-  background: var(--color-accent);
-  color: var(--color-foreground);
-}
-
-.expr-tab-active {
-  background: var(--color-accent);
-  color: var(--color-foreground);
-}
-
-.expression-content :deep(.emoji-picker),
-.expression-content :deep(.gif-picker),
-.expression-content :deep(.sticker-picker) {
-  width: 100%;
-  height: 100%;
-  border: 0;
-  border-radius: 0;
-  box-shadow: none;
-  background: transparent;
-}
-</style>

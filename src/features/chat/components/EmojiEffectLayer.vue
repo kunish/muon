@@ -558,12 +558,6 @@ defineExpose({ trigger })
 <template>
   <canvas
     ref="canvasRef"
-    class="emoji-effect-layer absolute inset-0 pointer-events-none z-50"
+    class="pointer-events-none absolute inset-0 z-50 contain-strict"
   />
 </template>
-
-<style scoped>
-.emoji-effect-layer {
-  contain: strict;
-}
-</style>

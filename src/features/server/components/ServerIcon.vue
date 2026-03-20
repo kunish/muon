@@ -39,7 +39,7 @@ const hasHighlight = computed(() => unreadInfo.value.highlightCount > 0)
 <template>
   <div class="relative">
     <div
-      class="server-icon transition-all duration-150"
+      class="flex size-9 items-center justify-center overflow-hidden bg-muted transition-all duration-150"
       :class="isSelected ? 'rounded-xl' : 'rounded-xl hover:rounded-lg'"
     >
       <img
@@ -50,7 +50,7 @@ const hasHighlight = computed(() => unreadInfo.value.highlightCount > 0)
       >
       <span
         v-else
-        class="text-white text-sm font-semibold"
+        class="flex size-full items-center justify-center text-sm font-semibold text-white"
         :style="{ backgroundColor: bgColor }"
       >
         {{ initial }}
@@ -72,23 +72,3 @@ const hasHighlight = computed(() => unreadInfo.value.highlightCount > 0)
     </div>
   </div>
 </template>
-
-<style scoped>
-.server-icon {
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  background-color: var(--color-muted);
-}
-
-.server-icon span {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-</style>

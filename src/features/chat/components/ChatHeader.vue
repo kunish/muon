@@ -68,44 +68,47 @@ function openDisappearing() {
       <!-- Right: action buttons -->
       <div class="flex items-center gap-1.5 shrink-0">
         <button
-          class="header-btn"
+          class="flex cursor-pointer items-center rounded-[var(--radius)] p-1.5 text-muted-foreground transition-all duration-150 hover:bg-accent hover:text-foreground"
           :title="t('chat.thread_inbox')"
-          :class="store.activeSidePanel === 'threads' && 'header-btn-active'"
+          :class="store.activeSidePanel === 'threads' && 'bg-accent text-foreground'"
           @click="store.toggleSidePanel('threads')"
         >
           <MessageSquareText :size="18" />
         </button>
         <button
-          class="header-btn"
+          class="flex cursor-pointer items-center rounded-[var(--radius)] p-1.5 text-muted-foreground transition-all duration-150 hover:bg-accent hover:text-foreground"
           :title="t('chat.notification_settings')"
-          :class="store.activeSidePanel === 'settings' && 'header-btn-active'"
+          :class="store.activeSidePanel === 'settings' && 'bg-accent text-foreground'"
           @click="store.toggleSidePanel('settings')"
         >
           <Bell :size="18" />
         </button>
         <button
-          class="header-btn"
+          class="flex cursor-pointer items-center rounded-[var(--radius)] p-1.5 text-muted-foreground transition-all duration-150 hover:bg-accent hover:text-foreground"
           :title="t('chat.pinned_messages')"
-          :class="store.activeSidePanel === 'pinned' && 'header-btn-active'"
+          :class="store.activeSidePanel === 'pinned' && 'bg-accent text-foreground'"
           @click="store.toggleSidePanel('pinned')"
         >
           <Pin :size="18" />
         </button>
         <button
-          class="header-btn"
+          class="flex cursor-pointer items-center rounded-[var(--radius)] p-1.5 text-muted-foreground transition-all duration-150 hover:bg-accent hover:text-foreground"
           :title="t('chat.member_list')"
-          :class="store.activeSidePanel === 'members' && 'header-btn-active'"
+          :class="store.activeSidePanel === 'members' && 'bg-accent text-foreground'"
           @click="store.toggleSidePanel('members')"
         >
           <Users :size="18" />
         </button>
         <button
-          class="header-search-btn"
+          type="button"
+          class="header-search-btn group flex cursor-pointer items-center rounded-[var(--radius)] text-muted-foreground transition-all duration-150"
           :title="t('chat.search_messages')"
-          :class="store.activeSidePanel === 'search' && 'header-btn-active'"
           @click="store.toggleSidePanel('search')"
         >
-          <div class="search-pill">
+          <div
+            class="flex w-[140px] items-center gap-1.5 rounded-[var(--radius)] bg-input px-2 py-1.5 text-xs text-muted-foreground transition-colors group-hover:bg-[color-mix(in_srgb,var(--color-input)_70%,var(--color-accent))] group-hover:text-foreground"
+            :class="store.activeSidePanel === 'search' && 'bg-accent text-foreground'"
+          >
             <Search :size="14" class="shrink-0" />
             <span class="truncate">{{ t('common.search') }}</span>
           </div>
@@ -113,7 +116,7 @@ function openDisappearing() {
 
         <div class="relative">
           <button
-            class="header-btn"
+            class="flex cursor-pointer items-center justify-center rounded-[var(--radius)] p-1.5 text-muted-foreground transition-all duration-150 hover:bg-accent hover:text-foreground"
             :title="t('chat.more_actions')"
             aria-haspopup="menu"
             :aria-expanded="showMore"
@@ -127,11 +130,11 @@ function openDisappearing() {
             role="menu"
             class="absolute right-0 top-full z-30 mt-1 min-w-[170px] rounded-md bg-popover p-1 shadow-[0_8px_24px_rgba(0,0,0,0.45)]"
           >
-            <button role="menuitem" class="header-menu-item" @click="toggleStarred">
+            <button role="menuitem" class="flex w-full cursor-pointer items-center gap-2 rounded-[var(--radius)] px-2 py-1.5 text-muted-foreground transition-all duration-[120ms] hover:bg-accent hover:text-accent-foreground" @click="toggleStarred">
               <Star :size="14" />
               <span>{{ t('chat.starred_messages') }}</span>
             </button>
-            <button role="menuitem" class="header-menu-item" @click="openDisappearing">
+            <button role="menuitem" class="flex w-full cursor-pointer items-center gap-2 rounded-[var(--radius)] px-2 py-1.5 text-muted-foreground transition-all duration-[120ms] hover:bg-accent hover:text-accent-foreground" @click="openDisappearing">
               <Timer :size="14" />
               <span>{{ t('chat.disappearing_messages') }}</span>
             </button>
@@ -149,72 +152,3 @@ function openDisappearing() {
     />
   </div>
 </template>
-
-<style scoped>
-.header-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 6px;
-  border-radius: var(--radius);
-  color: var(--color-muted-foreground);
-  transition: all 0.15s ease;
-  cursor: pointer;
-}
-.header-btn:hover {
-  background: var(--color-accent);
-  color: var(--color-foreground);
-}
-.header-btn-active {
-  color: var(--color-foreground);
-  background: var(--color-accent);
-}
-
-.header-search-btn {
-  display: flex;
-  align-items: center;
-  border-radius: var(--radius);
-  color: var(--color-muted-foreground);
-  transition: all 0.15s ease;
-  cursor: pointer;
-}
-
-.search-pill {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  width: 140px;
-  border-radius: var(--radius);
-  background: var(--color-input);
-  padding: 6px 8px;
-  font-size: 12px;
-  color: var(--color-muted-foreground);
-}
-
-.header-search-btn:hover .search-pill {
-  background: color-mix(in srgb, var(--color-input) 70%, var(--color-accent));
-  color: var(--color-foreground);
-}
-
-.header-btn-active .search-pill {
-  background: var(--color-accent);
-  color: var(--color-foreground);
-}
-
-.header-menu-item {
-  display: flex;
-  width: 100%;
-  align-items: center;
-  gap: 8px;
-  border-radius: var(--radius);
-  padding: 6px 8px;
-  color: var(--color-muted-foreground);
-  cursor: pointer;
-  transition: all 0.12s ease;
-}
-
-.header-menu-item:hover {
-  background: var(--color-accent);
-  color: var(--color-accent-foreground);
-}
-</style>

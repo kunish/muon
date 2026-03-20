@@ -29,7 +29,7 @@ async function disconnect() {
 <template>
   <div
     v-if="isConnected"
-    class="voice-bar shrink-0 border-t border-border"
+    class="shrink-0 border-t border-border bg-[color-mix(in_srgb,var(--color-sidebar)_85%,var(--color-background))]"
   >
     <!-- 连接状态信息 -->
     <div class="px-3 pt-2.5 pb-1.5">
@@ -53,8 +53,8 @@ async function disconnect() {
     <div class="flex items-center gap-1 px-2 pb-2">
       <!-- 麦克风 -->
       <button
-        class="voice-btn flex-1"
-        :class="{ 'voice-btn-active': isMuted }"
+        class="flex h-8 flex-1 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-all duration-[120ms] hover:bg-accent hover:text-foreground active:scale-95"
+        :class="isMuted && 'text-destructive hover:bg-[color-mix(in_srgb,var(--color-destructive)_12%,transparent)] hover:text-destructive'"
         :title="isMuted ? t('voice.unmute') : t('voice.mute')"
         @click="toggleMute"
       >
@@ -64,8 +64,8 @@ async function disconnect() {
 
       <!-- 耳机 -->
       <button
-        class="voice-btn flex-1"
-        :class="{ 'voice-btn-active': isDeafened }"
+        class="flex h-8 flex-1 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-all duration-[120ms] hover:bg-accent hover:text-foreground active:scale-95"
+        :class="isDeafened && 'text-destructive hover:bg-[color-mix(in_srgb,var(--color-destructive)_12%,transparent)] hover:text-destructive'"
         :title="isDeafened ? t('voice.undeafen') : t('voice.deafen')"
         @click="toggleDeafen"
       >
@@ -75,7 +75,7 @@ async function disconnect() {
 
       <!-- 挂断 -->
       <button
-        class="voice-btn voice-btn-danger flex-1"
+        class="flex h-8 flex-1 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-all duration-[120ms] hover:bg-[color-mix(in_srgb,var(--color-destructive)_12%,transparent)] hover:text-destructive active:scale-95"
         :title="t('voice.disconnect')"
         @click="disconnect"
       >
@@ -84,42 +84,3 @@ async function disconnect() {
     </div>
   </div>
 </template>
-
-<style scoped>
-.voice-bar {
-  background: color-mix(in srgb, var(--color-sidebar) 85%, var(--color-background));
-}
-
-.voice-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 32px;
-  border-radius: 6px;
-  color: var(--color-muted-foreground);
-  transition: all 0.12s ease;
-  cursor: pointer;
-}
-
-.voice-btn:hover {
-  background: var(--color-accent);
-  color: var(--color-foreground);
-}
-
-.voice-btn:active {
-  transform: scale(0.95);
-}
-
-.voice-btn-active {
-  color: var(--color-destructive);
-}
-.voice-btn-active:hover {
-  background: color-mix(in srgb, var(--color-destructive) 12%, transparent);
-  color: var(--color-destructive);
-}
-
-.voice-btn-danger:hover {
-  background: color-mix(in srgb, var(--color-destructive) 12%, transparent);
-  color: var(--color-destructive);
-}
-</style>

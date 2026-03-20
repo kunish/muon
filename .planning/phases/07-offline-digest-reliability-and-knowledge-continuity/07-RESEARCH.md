@@ -330,10 +330,10 @@ async function hydrateCards() {
 
 ### Wave 0 Gaps
 
-- [ ] `tests/unit/stores/digestStore.test.ts` — add test: initializeDigest preserves hydrated entries when sourceEvents is empty
-- [ ] `tests/unit/stores/digestStore.test.ts` — add test: buildDigestSession merges (not overwrites) when materialization is empty but hydrated entries exist
-- [ ] `tests/unit/stores/decisionStore.test.ts` — add test: hydrateCards only materializes suggestions from latest session digest entries
-- [ ] `tests/components/OfflineDigestPanel.test.ts` — add test: remounting panel shows previously hydrated entries (not empty state)
+- [x] `tests/unit/stores/digestStore.test.ts` — add test: initializeDigest preserves hydrated entries when sourceEvents is empty
+- [x] `tests/unit/stores/digestStore.test.ts` — add test: buildDigestSession merges (not overwrites) when materialization is empty but hydrated entries exist
+- [x] `tests/unit/stores/decisionStore.test.ts` — add test: hydrateCards only materializes suggestions from latest session digest entries
+- [x] `tests/components/OfflineDigestPanel.test.ts` — add test: remounting panel shows previously hydrated entries (not empty state)
 
 ## Sources
 

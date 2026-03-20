@@ -49,7 +49,12 @@ onUnmounted(() => {
 
 <template>
   <Teleport to="body">
-    <Transition name="settings-overlay">
+    <Transition
+      enter-active-class="transition-opacity duration-150 ease-out"
+      leave-active-class="transition-opacity duration-100 ease-in"
+      enter-from-class="opacity-0"
+      leave-to-class="opacity-0"
+    >
       <div
         v-if="open && currentServer"
         class="fixed inset-0 z-[100] flex bg-popover"
@@ -91,7 +96,7 @@ onUnmounted(() => {
           </div>
 
           <!-- Content -->
-          <div class="flex-1 overflow-y-auto py-[60px] pl-10 pr-20 scrollbar-thin">
+          <div class="flex-1 overflow-y-auto py-[60px] pl-10 pr-20 [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-[3px] [&::-webkit-scrollbar-thumb]:bg-muted-foreground/15">
             <div class="max-w-[660px]">
               <ServerOverview
                 v-if="currentSection === 'overview'"
@@ -119,28 +124,3 @@ onUnmounted(() => {
     </Transition>
   </Teleport>
 </template>
-
-<style scoped>
-.settings-overlay-enter-active {
-  transition: opacity 0.15s ease-out;
-}
-.settings-overlay-leave-active {
-  transition: opacity 0.1s ease-in;
-}
-.settings-overlay-enter-from,
-.settings-overlay-leave-to {
-  opacity: 0;
-}
-
-.scrollbar-thin::-webkit-scrollbar {
-  width: 6px;
-}
-.scrollbar-thin::-webkit-scrollbar-track {
-  background: transparent;
-}
-.scrollbar-thin::-webkit-scrollbar-thumb {
-  background: var(--color-muted-foreground);
-  opacity: 0.15;
-  border-radius: 3px;
-}
-</style>

@@ -113,7 +113,7 @@ function forward() {
 </script>
 
 <template>
-  <div class="file-card relative min-w-[260px] max-w-[360px]">
+  <div class="relative min-w-[260px] max-w-[360px] overflow-hidden rounded-lg border border-border bg-background transition-shadow duration-200 hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
     <!-- File info row -->
     <div class="flex items-start gap-3 p-3">
       <div
@@ -135,25 +135,30 @@ function forward() {
     <!-- Action buttons (Feishu style) -->
     <div class="flex items-center border-t border-border/40 divide-x divide-border/40">
       <button
-        class="file-action-btn flex-1"
+        class="flex flex-1 cursor-pointer items-center justify-center gap-1 py-[7px] text-xs text-muted-foreground transition-all duration-150 hover:bg-[color-mix(in_srgb,var(--color-primary)_5%,transparent)] hover:text-primary disabled:cursor-not-allowed disabled:opacity-50"
         :disabled="downloading"
         @click.stop="download"
       >
         <Download :size="14" />
         <span>{{ downloading ? t('chat.downloading') : t('chat.download') }}</span>
       </button>
-      <button class="file-action-btn flex-1" @click.stop="forward">
+      <button class="flex flex-1 cursor-pointer items-center justify-center gap-1 py-[7px] text-xs text-muted-foreground transition-all duration-150 hover:bg-[color-mix(in_srgb,var(--color-primary)_5%,transparent)] hover:text-primary" @click.stop="forward">
         <Forward :size="14" />
         <span>{{ t('chat.forward') }}</span>
       </button>
-      <button class="file-action-btn flex-1" @click.stop="saveAs">
+      <button class="flex flex-1 cursor-pointer items-center justify-center gap-1 py-[7px] text-xs text-muted-foreground transition-all duration-150 hover:bg-[color-mix(in_srgb,var(--color-primary)_5%,transparent)] hover:text-primary" @click.stop="saveAs">
         <Copy :size="14" />
         <span>{{ t('chat.save_as') }}</span>
       </button>
     </div>
 
     <!-- Toast -->
-    <Transition name="toast-fade">
+    <Transition
+      enter-active-class="transition-all duration-200 ease-out"
+      leave-active-class="transition-all duration-200 ease-out"
+      enter-from-class="opacity-0 -translate-x-1/2 translate-y-1"
+      leave-to-class="opacity-0 -translate-x-1/2 translate-y-1"
+    >
       <div
         v-if="toastMessage"
         class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 rounded-lg bg-foreground/90 text-background text-xs whitespace-nowrap shadow-lg"
@@ -163,46 +168,3 @@ function forward() {
     </Transition>
   </div>
 </template>
-
-<style scoped>
-.file-card {
-  border-radius: 8px;
-  background: var(--color-background);
-  border: 1px solid var(--color-border);
-  overflow: hidden;
-  transition: box-shadow 0.2s ease;
-}
-.file-card:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-}
-
-.file-action-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  padding: 7px 0;
-  font-size: 12px;
-  color: var(--color-muted-foreground);
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-.file-action-btn:hover {
-  color: var(--color-primary);
-  background: color-mix(in srgb, var(--color-primary) 5%, transparent);
-}
-.file-action-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.toast-fade-enter-active,
-.toast-fade-leave-active {
-  transition: all 0.2s ease;
-}
-.toast-fade-enter-from,
-.toast-fade-leave-to {
-  opacity: 0;
-  transform: translate(-50%, 4px);
-}
-</style>

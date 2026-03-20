@@ -126,7 +126,7 @@ const messageGroups = computed((): MessageGroup[] => {
 </script>
 
 <template>
-  <div class="message-groups">
+  <div>
     <template
       v-for="(group, gIdx) in messageGroups"
       :key="`g-${gIdx}-${group.messages[0].event.getId()}`"
@@ -163,9 +163,9 @@ const messageGroups = computed((): MessageGroup[] => {
           <!-- 左侧粘性头像（他人消息） -->
           <div
             v-if="!isRightAlignedGroup(group.senderId)"
-            class="group-avatar-rail col-start-1"
+            class="col-start-1 flex flex-col justify-end self-stretch overflow-visible"
           >
-            <div class="group-avatar-sticky">
+            <div class="sticky bottom-1 top-3 z-[1] self-end">
               <MessageGroupAvatar
                 :sender-id="group.senderId"
                 :room-id="roomId"
@@ -205,9 +205,9 @@ const messageGroups = computed((): MessageGroup[] => {
           <!-- 右侧粘性头像（自己消息） -->
           <div
             v-if="isRightAlignedGroup(group.senderId)"
-            class="group-avatar-rail col-start-2"
+            class="col-start-2 flex flex-col justify-end self-stretch overflow-visible"
           >
-            <div class="group-avatar-sticky">
+            <div class="sticky bottom-1 top-3 z-[1] self-end">
               <MessageGroupAvatar
                 :sender-id="group.senderId"
                 :room-id="roomId"
@@ -220,22 +220,3 @@ const messageGroups = computed((): MessageGroup[] => {
     </template>
   </div>
 </template>
-
-<style scoped>
-.group-avatar-rail {
-  display: flex;
-  flex-direction: column;
-  align-self: stretch;
-  justify-content: flex-end;
-  overflow: visible;
-}
-
-.group-avatar-sticky {
-  position: -webkit-sticky;
-  position: sticky;
-  top: 12px;
-  bottom: 4px;
-  z-index: 1;
-  align-self: flex-end;
-}
-</style>

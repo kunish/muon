@@ -77,6 +77,9 @@ vi.mock('vue-router', () => ({
   useRouter: () => ({
     push: routerPush,
   }),
+  useRoute: () => ({
+    params: {},
+  }),
 }))
 
 vi.mock('@matrix/client', () => ({

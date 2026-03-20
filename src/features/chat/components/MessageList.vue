@@ -72,6 +72,7 @@ const unreadEventId = computed(() => {
 
 let observer: IntersectionObserver | null = null
 const pendingFocusEventId = ref<string | null>(null)
+let focusFlashTimer = 0
 
 // ── 锚点数据结构 ─────────────────────────────────────────────
 
@@ -152,6 +153,47 @@ function scrollToPosition(eventId: string, offset: number) {
   return true
 }
 
+function scrollToCenteredEvent(eventId: string) {
+  const el = containerRef.value
+  if (!el)
+    return false
+  const target = el.querySelector<HTMLElement>(`[data-event-id="${CSS.escape(eventId)}"]`)
+  if (!target)
+    return false
+
+  const containerRect = el.getBoundingClientRect()
+  const targetRect = target.getBoundingClientRect()
+  const containerCenterY = containerRect.top + containerRect.height / 2
+  const targetCenterY = targetRect.top + targetRect.height / 2
+  const delta = targetCenterY - containerCenterY
+  const nextTop = el.scrollTop + delta
+  const maxTop = Math.max(0, el.scrollHeight - el.clientHeight)
+  el.scrollTop = Math.min(Math.max(0, nextTop), maxTop)
+
+  const anchorOffset = el.scrollTop - target.offsetTop
+  liveAnchorEventId = eventId
+  liveAnchorOffset = anchorOffset
+  isAtBottom.value = el.scrollHeight - el.scrollTop - el.clientHeight < 50
+  if (isAtBottom.value)
+    showNewMsg.value = false
+
+  return true
+}
+
+function flashFocusedEvent(eventId: string) {
+  const el = containerRef.value
+  if (!el)
+    return
+  const target = el.querySelector<HTMLElement>(`[data-event-id="${CSS.escape(eventId)}"]`)
+  if (!target)
+    return
+  target.classList.add('focused-event-flash')
+  clearTimeout(focusFlashTimer)
+  focusFlashTimer = window.setTimeout(() => {
+    target.classList.remove('focused-event-flash')
+  }, 1200)
+}
+
 function scrollToBottom() {
   const el = containerRef.value
   if (!el)
@@ -175,8 +217,9 @@ async function tryFocusEventFromQuery() {
     return
 
   await nextTick()
-  const focused = scrollToPosition(focusEventId, -48)
+  const focused = scrollToCenteredEvent(focusEventId)
   if (focused) {
+    flashFocusedEvent(focusEventId)
     pendingFocusEventId.value = null
     await clearFocusQuery()
     return
@@ -443,6 +486,7 @@ onUnmounted(() => {
   resizeObs?.disconnect()
   mutationObs?.disconnect()
   clearTimeout(userInteractingTimer)
+  clearTimeout(focusFlashTimer)
 
   const el = containerRef.value
   if (el) {

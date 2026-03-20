@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { bindClientEvents, restoreSession, startSync, syncState } from '@matrix/index'
-import { onMounted, ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { Toaster } from '@/shared/components/ui/sonner'
@@ -10,7 +10,13 @@ const router = useRouter()
 const { t } = useI18n()
 const initializing = ref(true)
 
+function blockNativeContextMenu(event: MouseEvent) {
+  event.preventDefault()
+}
+
 onMounted(async () => {
+  document.addEventListener('contextmenu', blockNativeContextMenu, { capture: true })
+
   try {
     const restored = await restoreSession()
     if (restored) {
@@ -27,6 +33,10 @@ onMounted(async () => {
   finally {
     initializing.value = false
   }
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('contextmenu', blockNativeContextMenu, { capture: true })
 })
 </script>
 

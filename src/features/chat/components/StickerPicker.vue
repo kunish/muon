@@ -95,14 +95,14 @@ const StickerThumb = defineComponent({
 </script>
 
 <template>
-  <div class="sticker-picker flex flex-col bg-popover/95 backdrop-blur-xl border border-border rounded-xl shadow-2xl overflow-hidden">
+  <div class="flex h-[min(380px,calc(100vh-24px))] w-[min(340px,calc(100vw-16px))] flex-col overflow-hidden rounded-xl border border-border bg-popover/95 shadow-2xl backdrop-blur-xl">
     <!-- Tab 栏 -->
-    <div class="flex items-center border-b border-border bg-muted/30 px-1 py-1 gap-0.5 overflow-x-auto scrollbar-none">
+    <div class="flex items-center gap-0.5 overflow-x-auto border-b border-border bg-muted/30 px-1 py-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
       <button
         v-for="tab in tabs"
         :key="tab.id"
-        class="pack-tab"
-        :class="{ 'pack-tab-active': activeTabId === tab.id }"
+        class="flex h-8 min-w-8 shrink-0 cursor-pointer items-center justify-center rounded-md text-[1.15rem] opacity-50 transition-[background,opacity] duration-150 hover:bg-accent hover:opacity-80"
+        :class="{ 'bg-accent opacity-100': activeTabId === tab.id }"
         :title="tab.label"
         @click="activeTabId = tab.id"
       >
@@ -110,7 +110,7 @@ const StickerThumb = defineComponent({
       </button>
       <!-- 管理按钮 -->
       <button
-        class="pack-tab ml-auto shrink-0 opacity-50 hover:opacity-80"
+        class="ml-auto flex h-8 min-w-8 shrink-0 cursor-pointer items-center justify-center rounded-md text-[1.15rem] opacity-50 transition-[background,opacity] duration-150 hover:bg-accent hover:opacity-80"
         :title="t('chat.sticker_manage')"
         @click="emit('manage')"
       >
@@ -130,7 +130,7 @@ const StickerThumb = defineComponent({
           <button
             v-for="(recent, idx) in stickerStore.recentStickers"
             :key="idx"
-            class="sticker-cell"
+            class="flex size-12 cursor-pointer items-center justify-center rounded-[10px] text-[2rem] transition-[background,transform] duration-150 hover:bg-accent hover:scale-[1.15] active:scale-[0.92]"
             :title="recent.name"
             @click="onRecentSelect(recent)"
           >
@@ -150,7 +150,7 @@ const StickerThumb = defineComponent({
           <button
             v-for="sticker in activeBuiltinPack.stickers"
             :key="sticker.emoji"
-            class="sticker-cell"
+            class="flex size-12 cursor-pointer items-center justify-center rounded-[10px] text-[2rem] transition-[background,transform] duration-150 hover:bg-accent hover:scale-[1.15] active:scale-[0.92]"
             :title="sticker.name"
             @click="onEmojiSelect(sticker.emoji, sticker.name)"
           >
@@ -165,7 +165,7 @@ const StickerThumb = defineComponent({
           <button
             v-for="sticker in activeCustomPack.stickers"
             :key="sticker.id"
-            class="img-sticker-cell"
+            class="flex aspect-square cursor-pointer items-center justify-center overflow-hidden rounded-[10px] p-1 transition-[background,transform] duration-150 hover:bg-accent hover:scale-[1.08] active:scale-[0.94]"
             :title="sticker.name"
             @click="onImageSelect(sticker)"
           >
@@ -188,84 +188,3 @@ const StickerThumb = defineComponent({
     </div>
   </div>
 </template>
-
-<style scoped>
-.sticker-picker {
-  width: min(340px, calc(100vw - 16px));
-  height: min(380px, calc(100vh - 24px));
-}
-
-.pack-tab {
-  flex: 0 0 auto;
-  min-width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.15rem;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 0.15s;
-  opacity: 0.5;
-}
-
-.pack-tab:hover {
-  background: var(--color-accent);
-  opacity: 0.8;
-}
-
-.pack-tab-active {
-  opacity: 1;
-  background: var(--color-accent);
-}
-
-.sticker-cell {
-  width: 48px;
-  height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 10px;
-  font-size: 2rem;
-  cursor: pointer;
-  transition:
-    background 0.15s,
-    transform 0.15s;
-}
-
-.sticker-cell:hover {
-  background: var(--color-accent);
-  transform: scale(1.15);
-}
-
-.sticker-cell:active {
-  transform: scale(0.92);
-}
-
-.img-sticker-cell {
-  aspect-ratio: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 10px;
-  cursor: pointer;
-  transition:
-    background 0.15s,
-    transform 0.15s;
-  padding: 4px;
-  overflow: hidden;
-}
-
-.img-sticker-cell:hover {
-  background: var(--color-accent);
-  transform: scale(1.08);
-}
-
-.img-sticker-cell:active {
-  transform: scale(0.94);
-}
-
-.scrollbar-none::-webkit-scrollbar {
-  display: none;
-}
-</style>

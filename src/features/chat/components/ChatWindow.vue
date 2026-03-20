@@ -49,7 +49,12 @@ provide('triggerEmojiEffect', triggerEmojiEffect)
     </div>
 
     <!-- Side panels -->
-    <Transition name="panel-slide">
+    <Transition
+      enter-active-class="transition-all duration-[250ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
+      leave-active-class="transition-all duration-200 ease-in"
+      enter-from-class="translate-x-full opacity-0"
+      leave-to-class="translate-x-full opacity-0"
+    >
       <div
         v-if="store.activeSidePanel"
         class="w-[320px] h-full border-l border-border bg-background shrink-0 overflow-hidden"
@@ -84,7 +89,12 @@ provide('triggerEmojiEffect', triggerEmojiEffect)
     </Transition>
 
     <!-- Thread panel -->
-    <Transition name="thread-slide">
+    <Transition
+      enter-active-class="transition-all duration-[250ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
+      leave-active-class="transition-all duration-200 ease-in"
+      enter-from-class="translate-x-full opacity-0"
+      leave-to-class="translate-x-full opacity-0"
+    >
       <ThreadPanel
         v-if="store.activeThreadId && store.currentRoomId"
         :room-id="store.currentRoomId"
@@ -93,29 +103,3 @@ provide('triggerEmojiEffect', triggerEmojiEffect)
     </Transition>
   </div>
 </template>
-
-<style scoped>
-.thread-slide-enter-active {
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.thread-slide-leave-active {
-  transition: all 0.2s ease-in;
-}
-.thread-slide-enter-from,
-.thread-slide-leave-to {
-  transform: translateX(100%);
-  opacity: 0;
-}
-
-.panel-slide-enter-active {
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.panel-slide-leave-active {
-  transition: all 0.2s ease-in;
-}
-.panel-slide-enter-from,
-.panel-slide-leave-to {
-  transform: translateX(100%);
-  opacity: 0;
-}
-</style>

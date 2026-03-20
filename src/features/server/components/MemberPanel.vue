@@ -6,6 +6,7 @@ import { useServerStore } from '@/features/server/stores/serverStore'
 import { matrixEvents } from '@/matrix/events'
 import { getUserPresenceInfo } from '@/matrix/profile'
 import { getSpaceMembers } from '@/matrix/spaces'
+import MemberContextMenu from './MemberContextMenu.vue'
 import MemberItem from './MemberItem.vue'
 
 const _props = defineProps<{
@@ -131,10 +132,38 @@ const groupedSections = computed<GroupedSection[]>(() => {
 const _totalOnline = computed(() =>
   groupedSections.value.reduce((sum, s) => sum + s.onlineMembers.length, 0),
 )
+
+const contextMenuMember = ref<SpaceMember | null>(null)
+const contextMenuPosition = ref({ x: 0, y: 0 })
+
+function handleOpenContextMenu(member: SpaceMember, event: MouseEvent) {
+  contextMenuMember.value = member
+  contextMenuPosition.value = { x: event.clientX, y: event.clientY }
+  emit('openContextMenu', member, event)
+}
+
+function closeContextMenu() {
+  contextMenuMember.value = null
+}
+
+function handleProfileFromContext(userId: string) {
+  const member = rawMembers.value.find(item => item.userId === userId)
+  if (!member)
+    return
+  emit('openPopover', member, new MouseEvent('click', {
+    clientX: contextMenuPosition.value.x,
+    clientY: contextMenuPosition.value.y,
+  }))
+}
 </script>
 
 <template>
-  <Transition name="member-panel">
+  <Transition
+    enter-active-class="transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]"
+    leave-active-class="transition-all duration-200 ease-[cubic-bezier(0.4,0,1,1)]"
+    enter-from-class="translate-x-5 opacity-0"
+    leave-to-class="translate-x-5 opacity-0"
+  >
     <aside
       v-if="visible"
       class="w-60 h-full flex flex-col border-l border-border bg-sidebar shrink-0 overflow-hidden"
@@ -169,7 +198,7 @@ const _totalOnline = computed(() =>
       </div>
 
       <!-- Member list -->
-      <div class="flex-1 overflow-y-auto px-1.5 pb-2 scrollbar-thin">
+      <div class="scrollbar-thin flex-1 overflow-y-auto px-1.5 pb-2 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20">
         <template v-for="section in groupedSections" :key="section.key">
           <!-- Role header -->
           <div class="px-2 pt-4 pb-1">
@@ -185,7 +214,7 @@ const _totalOnline = computed(() =>
             :member="member"
             :role-color="section.color"
             @click="emit('openPopover', member, $event)"
-            @contextmenu="emit('openContextMenu', member, $event)"
+            @contextmenu="handleOpenContextMenu(member, $event)"
           />
 
           <!-- Offline members -->
@@ -195,7 +224,7 @@ const _totalOnline = computed(() =>
             :member="member"
             :role-color="section.color"
             @click="emit('openPopover', member, $event)"
-            @contextmenu="emit('openContextMenu', member, $event)"
+            @contextmenu="handleOpenContextMenu(member, $event)"
           />
         </template>
 
@@ -207,36 +236,15 @@ const _totalOnline = computed(() =>
           <span class="text-xs">{{ searchQuery ? 'No matching members' : 'No members' }}</span>
         </div>
       </div>
+
+      <MemberContextMenu
+        :member="contextMenuMember"
+        :server-id="serverStore.currentServerId ?? undefined"
+        :position="contextMenuPosition"
+        @close="closeContextMenu"
+        @mention="closeContextMenu"
+        @profile="handleProfileFromContext"
+      />
     </aside>
   </Transition>
 </template>
-
-<style scoped>
-.member-panel-enter-active {
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.member-panel-leave-active {
-  transition: all 0.2s cubic-bezier(0.4, 0, 1, 1);
-}
-.member-panel-enter-from {
-  opacity: 0;
-  transform: translateX(20px);
-}
-.member-panel-leave-to {
-  opacity: 0;
-  transform: translateX(20px);
-}
-
-/* 自定义窄滚动条 */
-.scrollbar-thin::-webkit-scrollbar {
-  width: 4px;
-}
-.scrollbar-thin::-webkit-scrollbar-track {
-  background: transparent;
-}
-.scrollbar-thin::-webkit-scrollbar-thumb {
-  background: var(--color-muted-foreground);
-  opacity: 0.2;
-  border-radius: 4px;
-}
-</style>

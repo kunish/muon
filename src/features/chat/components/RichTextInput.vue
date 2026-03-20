@@ -4,6 +4,7 @@ import type { ImageSticker } from '@/shared/data/stickerPacks'
 import type { GifResult } from '@/shared/lib/gifSearch'
 import {
   editMessage,
+  getClient,
   replyToMessage,
   sendContactCard,
   sendGifMessage,
@@ -30,6 +31,7 @@ import {
 } from 'lucide-vue-next'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRoute, useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 import { useCurrentRoom } from '../composables/useCurrentRoom'
 import { useEditor } from '../composables/useEditor'
@@ -52,6 +54,8 @@ import UploadProgress from './UploadProgress.vue'
 
 const store = useChatStore()
 const { t } = useI18n()
+const route = useRoute()
+const router = useRouter()
 const { startTyping, stopTyping } = useTyping()
 const { room } = useCurrentRoom()
 const {
@@ -170,10 +174,55 @@ function handleEmojiSelect(emoji: string) {
 const composeLabel = computed(() => {
   if (store.editingEvent)
     return t('chat.edit_label')
-  if (store.replyingTo)
-    return t('chat.reply_label', { sender: store.replyingTo.getSender() })
   return ''
 })
+
+const replyingToSenderName = computed(() => {
+  const replyEvent = store.replyingTo
+  if (!replyEvent)
+    return ''
+  const senderId = replyEvent.getSender() || ''
+  const roomId = store.currentRoomId
+  if (!roomId)
+    return senderId
+  const room = getClient().getRoom(roomId)
+  const member = room?.getMember(senderId)
+  return member?.name || senderId
+})
+
+const replyingToPreview = computed(() => {
+  const replyEvent = store.replyingTo
+  if (!replyEvent)
+    return ''
+  const content = replyEvent.getContent() || {}
+  const eventType = replyEvent.getType()
+  const messageType = content.msgtype as string | undefined
+
+  if (eventType === 'm.sticker')
+    return t('chat.sticker_btn')
+  if (messageType === 'm.image')
+    return t('chat.image')
+  if (messageType === 'm.video')
+    return t('chat.video')
+  if (messageType === 'm.audio')
+    return t('chat.voice_message')
+  if (messageType === 'm.file')
+    return t('chat.file')
+
+  return content.body || t('chat.reply_label', { sender: replyingToSenderName.value })
+})
+
+async function jumpToReplyTarget() {
+  const eventId = store.replyingTo?.getId()
+  if (!eventId)
+    return
+  await router.replace({
+    query: {
+      ...route.query,
+      focusEventId: eventId,
+    },
+  })
+}
 
 const editorExpanded = ref(false)
 
@@ -382,20 +431,44 @@ onUnmounted(() => {
   <div class="px-4 pb-4">
     <UploadProgress :progress="progress" :visible="uploading" />
     <!-- 回复/编辑 指示栏 -->
-    <div
-      v-if="composeLabel"
-      class="flex items-center justify-between pt-2 text-xs text-muted-foreground"
-    >
-      <span>{{ composeLabel }}</span>
-      <button
-        class="p-0.5 rounded hover:bg-accent"
-        @click="
-          store.clearCompose();
-          clear();
-        "
+    <div v-if="store.replyingTo || composeLabel" class="pt-2">
+      <div
+        v-if="store.replyingTo"
+        class="flex items-start justify-between gap-2 rounded-md border border-primary/20 bg-primary/5 px-2.5 py-2"
       >
-        <X :size="14" />
-      </button>
+        <button class="min-w-0 text-left" @click="jumpToReplyTarget">
+          <div class="text-xs font-medium text-primary">
+            {{ t('chat.reply_label', { sender: replyingToSenderName }) }}
+          </div>
+          <div class="truncate text-xs text-muted-foreground">
+            {{ replyingToPreview }}
+          </div>
+        </button>
+        <button
+          class="shrink-0 rounded p-0.5 text-muted-foreground hover:bg-accent"
+          @click="
+            store.clearCompose();
+            clear();
+          "
+        >
+          <X :size="14" />
+        </button>
+      </div>
+      <div
+        v-else-if="composeLabel"
+        class="flex items-center justify-between text-xs text-muted-foreground"
+      >
+        <span>{{ composeLabel }}</span>
+        <button
+          class="p-0.5 rounded hover:bg-accent"
+          @click="
+            store.clearCompose();
+            clear();
+          "
+        >
+          <X :size="14" />
+        </button>
+      </div>
     </div>
 
     <!-- 主输入容器 -->
@@ -416,38 +489,45 @@ onUnmounted(() => {
       <!-- 中间: 编辑区 (flex-1) -->
       <div class="flex-1 min-w-0">
         <!-- 可折叠格式工具栏 — 聚焦 / 点击 Aa 时显示在输入区上方 -->
-        <Transition name="fmt-slide">
+        <Transition
+          enter-active-class="overflow-hidden transition-all duration-200 ease-out"
+          leave-active-class="overflow-hidden transition-all duration-200 ease-out"
+          enter-from-class="max-h-0 opacity-0"
+          enter-to-class="max-h-10 opacity-100"
+          leave-from-class="max-h-10 opacity-100"
+          leave-to-class="max-h-0 opacity-0"
+        >
           <div
             v-if="editor && showFormatBar"
-            class="flex items-center gap-0.5 px-2 pt-1.5 pb-1 border-b border-border/30"
+            class="flex items-center gap-0.5 border-b border-border/30 px-2 pb-1 pt-1.5"
           >
             <button
-              class="fmt-btn"
-              :class="{ 'fmt-active': editor.isActive('bold') }"
+              class="cursor-pointer rounded p-1 text-muted-foreground transition-all duration-[120ms] hover:bg-accent hover:text-foreground"
+              :class="editor.isActive('bold') && 'bg-primary text-primary-foreground hover:opacity-90'"
               :title="t('chat.format_bold')"
               @click="editor.chain().focus().toggleBold().run()"
             >
               <Bold :size="14" />
             </button>
             <button
-              class="fmt-btn"
-              :class="{ 'fmt-active': editor.isActive('italic') }"
+              class="cursor-pointer rounded p-1 text-muted-foreground transition-all duration-[120ms] hover:bg-accent hover:text-foreground"
+              :class="editor.isActive('italic') && 'bg-primary text-primary-foreground hover:opacity-90'"
               :title="t('chat.format_italic')"
               @click="editor.chain().focus().toggleItalic().run()"
             >
               <Italic :size="14" />
             </button>
             <button
-              class="fmt-btn"
-              :class="{ 'fmt-active': editor.isActive('strike') }"
+              class="cursor-pointer rounded p-1 text-muted-foreground transition-all duration-[120ms] hover:bg-accent hover:text-foreground"
+              :class="editor.isActive('strike') && 'bg-primary text-primary-foreground hover:opacity-90'"
               :title="t('chat.format_strike')"
               @click="editor.chain().focus().toggleStrike().run()"
             >
               <Strikethrough :size="14" />
             </button>
             <button
-              class="fmt-btn"
-              :class="{ 'fmt-active': editor.isActive('code') }"
+              class="cursor-pointer rounded p-1 text-muted-foreground transition-all duration-[120ms] hover:bg-accent hover:text-foreground"
+              :class="editor.isActive('code') && 'bg-primary text-primary-foreground hover:opacity-90'"
               :title="t('chat.format_code')"
               @click="editor.chain().focus().toggleCode().run()"
             >
@@ -455,24 +535,24 @@ onUnmounted(() => {
             </button>
             <div class="w-px h-4 bg-border/60 mx-0.5" />
             <button
-              class="fmt-btn"
-              :class="{ 'fmt-active': editor.isActive('bulletList') }"
+              class="cursor-pointer rounded p-1 text-muted-foreground transition-all duration-[120ms] hover:bg-accent hover:text-foreground"
+              :class="editor.isActive('bulletList') && 'bg-primary text-primary-foreground hover:opacity-90'"
               :title="t('chat.format_ul')"
               @click="editor.chain().focus().toggleBulletList().run()"
             >
               <List :size="14" />
             </button>
             <button
-              class="fmt-btn"
-              :class="{ 'fmt-active': editor.isActive('orderedList') }"
+              class="cursor-pointer rounded p-1 text-muted-foreground transition-all duration-[120ms] hover:bg-accent hover:text-foreground"
+              :class="editor.isActive('orderedList') && 'bg-primary text-primary-foreground hover:opacity-90'"
               :title="t('chat.format_ol')"
               @click="editor.chain().focus().toggleOrderedList().run()"
             >
               <ListOrdered :size="14" />
             </button>
             <button
-              class="fmt-btn"
-              :class="{ 'fmt-active': editor.isActive('blockquote') }"
+              class="cursor-pointer rounded p-1 text-muted-foreground transition-all duration-[120ms] hover:bg-accent hover:text-foreground"
+              :class="editor.isActive('blockquote') && 'bg-primary text-primary-foreground hover:opacity-90'"
               :title="t('chat.format_quote')"
               @click="editor.chain().focus().toggleBlockquote().run()"
             >
@@ -484,7 +564,7 @@ onUnmounted(() => {
         <EditorContent
           v-if="editor"
           :editor="editor"
-          class="rich-editor min-h-[40px] overflow-y-auto px-2 py-2 text-sm outline-none transition-[max-height] duration-200"
+          class="rich-editor min-h-[40px] overflow-y-auto px-2 py-2 text-sm outline-none transition-[max-height] duration-200 [&_.mention]:font-medium [&_.mention]:text-primary [&_.tiptap]:outline-none [&_.tiptap_p.is-editor-empty:first-child]:before:pointer-events-none [&_.tiptap_p.is-editor-empty:first-child]:before:float-left [&_.tiptap_p.is-editor-empty:first-child]:before:h-0 [&_.tiptap_p.is-editor-empty:first-child]:before:text-muted-foreground [&_.tiptap_p.is-editor-empty:first-child]:before:content-[attr(data-placeholder)]"
           :class="editorExpanded ? 'max-h-[400px]' : 'max-h-[150px]'"
         />
       </div>
@@ -606,59 +686,3 @@ onUnmounted(() => {
     />
   </div>
 </template>
-
-<style scoped>
-.rich-editor :deep(.tiptap) {
-  outline: none;
-}
-.rich-editor :deep(.tiptap p.is-editor-empty:first-child::before) {
-  content: attr(data-placeholder);
-  float: left;
-  color: var(--muted-foreground, #999);
-  pointer-events: none;
-  height: 0;
-}
-.rich-editor :deep(.mention) {
-  color: var(--primary, #3b82f6);
-  font-weight: 500;
-}
-.fmt-btn {
-  padding: 4px;
-  border-radius: 4px;
-  color: var(--color-muted-foreground);
-  cursor: pointer;
-  transition: all 0.12s ease;
-}
-.fmt-btn:hover {
-  background: var(--color-accent);
-  color: var(--color-foreground);
-}
-.fmt-active {
-  background: var(--color-primary);
-  color: var(--color-primary-foreground);
-}
-.fmt-active:hover {
-  background: var(--color-primary);
-  color: var(--color-primary-foreground);
-  opacity: 0.9;
-}
-
-/* 格式栏折叠展开动画 */
-.fmt-slide-enter-active,
-.fmt-slide-leave-active {
-  transition: all 0.2s ease;
-  overflow: hidden;
-}
-.fmt-slide-enter-from,
-.fmt-slide-leave-to {
-  max-height: 0;
-  opacity: 0;
-  padding-top: 0;
-  padding-bottom: 0;
-}
-.fmt-slide-enter-to,
-.fmt-slide-leave-from {
-  max-height: 40px;
-  opacity: 1;
-}
-</style>

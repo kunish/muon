@@ -78,17 +78,23 @@ const sender = computed(() => {
 
 <template>
   <div
-    class="conv-item group flex items-center gap-3 px-2.5 py-[9px] cursor-pointer rounded-xl relative select-none"
+    class="group relative flex cursor-pointer select-none items-center gap-3 rounded-xl px-2.5 py-[9px] transition-[background-color,box-shadow,transform] duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)] active:scale-[0.985] active:duration-75"
     :class="[
       active
-        ? 'conv-active bg-accent/90 shadow-[0_1px_6px_rgba(0,0,0,0.06),0_0_0_1px_rgba(0,0,0,0.03)]'
+        ? 'bg-primary/18 shadow-[0_2px_10px_rgba(0,0,0,0.08),0_0_0_1px_color-mix(in_srgb,var(--color-primary)_45%,transparent)] backdrop-blur-[8px] before:pointer-events-none before:absolute before:inset-0 before:rounded-[inherit] before:shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] before:content-[\'\']'
         : pinned
           ? 'conv-pinned bg-accent/30 hover:bg-accent/60'
           : 'hover:bg-accent/50 hover:shadow-[0_1px_4px_rgba(0,0,0,0.02)]',
     ]"
+    :aria-current="active ? 'true' : undefined"
     @click="$emit('select', room.roomId)"
     @contextmenu.prevent="$emit('contextmenu', room.roomId, $event)"
   >
+    <span
+      v-if="active"
+      class="absolute left-0 top-1/2 -translate-y-1/2 w-[5px] h-8 rounded-r-full bg-primary"
+    />
+
     <!-- 未读指示条 - 带脉冲动画 -->
     <span
       v-if="room.unreadCount > 0 && !active"
@@ -98,7 +104,7 @@ const sender = computed(() => {
 
     <!-- 头像 - 增强悬停效果 -->
     <div
-      class="relative shrink-0 conv-avatar-wrap"
+      class="relative shrink-0 transition-transform duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:scale-[1.04]"
       @click.stop="$emit('avatarClick', room, $event)"
     >
       <Avatar
@@ -123,7 +129,7 @@ const sender = computed(() => {
       <div class="flex items-center justify-between gap-2">
         <span
           class="text-[13px] font-semibold truncate leading-tight transition-colors duration-150"
-          :class="room.unreadCount > 0 || markedUnread ? 'text-foreground' : 'text-foreground/80 group-hover:text-foreground/95'"
+          :class="active || room.unreadCount > 0 || markedUnread ? 'text-foreground' : 'text-foreground/80 group-hover:text-foreground/95'"
         >
           {{ room.name }}
           <span
@@ -141,7 +147,7 @@ const sender = computed(() => {
           <BellOff v-if="muted" :size="10" class="text-muted-foreground/40" />
           <span
             class="text-[10px] tabular-nums tracking-tight transition-colors duration-150"
-            :class="room.unreadCount > 0 ? 'text-primary font-semibold' : 'text-muted-foreground/50 group-hover:text-muted-foreground/70'"
+            :class="active || room.unreadCount > 0 ? 'text-primary font-semibold' : 'text-muted-foreground/50 group-hover:text-muted-foreground/70'"
           >
             {{ timeLabel }}
           </span>
@@ -151,7 +157,7 @@ const sender = computed(() => {
       <div class="flex items-center justify-between gap-2 mt-[3px]">
         <div
           class="flex items-center gap-1 min-w-0 text-[11.5px] leading-tight transition-colors duration-150"
-          :class="room.unreadCount > 0 || markedUnread ? 'text-muted-foreground/90' : 'text-muted-foreground/55 group-hover:text-muted-foreground/70'"
+          :class="active || room.unreadCount > 0 || markedUnread ? 'text-muted-foreground/90' : 'text-muted-foreground/55 group-hover:text-muted-foreground/70'"
         >
           <!-- 正在输入 > 草稿 > 正常预览 -->
           <template v-if="typingUsers && typingUsers.length > 0">
@@ -208,39 +214,3 @@ const sender = computed(() => {
     </div>
   </div>
 </template>
-
-<style scoped>
-.conv-item {
-  transition:
-    background-color 0.18s ease,
-    box-shadow 0.22s ease,
-    transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.conv-item:active {
-  transform: scale(0.985);
-  transition-duration: 0.08s;
-}
-
-.conv-active {
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-}
-
-.conv-active::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
-}
-
-.conv-avatar-wrap {
-  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.conv-item:hover .conv-avatar-wrap {
-  transform: scale(1.04);
-}
-</style>

@@ -67,7 +67,7 @@ onMounted(() => loadTrending())
 </script>
 
 <template>
-  <div class="gif-picker flex flex-col bg-background border border-border rounded-xl shadow-xl overflow-hidden">
+  <div class="flex h-[min(400px,calc(100vh-24px))] w-[min(360px,calc(100vw-16px))] flex-col overflow-hidden rounded-xl border border-border bg-background shadow-xl">
     <!-- 搜索栏 -->
     <div class="px-2.5 pt-2.5 pb-1.5">
       <div class="relative">
@@ -85,7 +85,7 @@ onMounted(() => loadTrending())
     </div>
 
     <!-- 内容区 -->
-    <div class="gif-grid-scroll flex-1 overflow-y-auto px-2.5 pb-2">
+    <div class="flex-1 overflow-y-auto px-2.5 pb-2 [scrollbar-color:var(--color-border)_transparent] [scrollbar-width:thin]">
       <!-- 加载中 -->
       <div v-if="loading && gifs.length === 0" class="py-8 text-center text-xs text-muted-foreground">
         {{ t('chat.gif_loading') }}
@@ -106,7 +106,7 @@ onMounted(() => loadTrending())
         <button
           v-for="gif in gifs"
           :key="gif.id"
-          class="gif-cell rounded-lg overflow-hidden hover:ring-2 hover:ring-primary/50 transition-all"
+          class="aspect-[4/3] cursor-pointer overflow-hidden rounded-lg bg-muted transition-[transform,box-shadow] duration-150 hover:scale-[1.02] hover:ring-2 hover:ring-primary/50 active:scale-[0.98]"
           @click="emit('select', gif)"
         >
           <img
@@ -125,32 +125,3 @@ onMounted(() => loadTrending())
     </div>
   </div>
 </template>
-
-<style scoped>
-.gif-picker {
-  width: min(360px, calc(100vw - 16px));
-  height: min(400px, calc(100vh - 24px));
-}
-
-.gif-grid-scroll {
-  scrollbar-width: thin;
-  scrollbar-color: var(--color-border) transparent;
-}
-
-.gif-cell {
-  aspect-ratio: 4 / 3;
-  cursor: pointer;
-  background: var(--color-muted);
-  transition:
-    transform 0.15s,
-    box-shadow 0.15s;
-}
-
-.gif-cell:hover {
-  transform: scale(1.02);
-}
-
-.gif-cell:active {
-  transform: scale(0.98);
-}
-</style>

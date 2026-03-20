@@ -6,9 +6,9 @@ const { t } = useI18n()
 </script>
 
 <template>
-  <div class="empty-state flex-1 flex flex-col items-center justify-center text-muted-foreground/60 gap-5 relative overflow-hidden select-none">
+  <div class="flex-1 flex flex-col items-center justify-center text-muted-foreground/60 gap-5 relative overflow-hidden select-none animate-[panel-slide-in_0.5s_cubic-bezier(0.22,1,0.36,1)_both] [animation-delay:150ms]">
     <!-- 背景氛围光晕 -->
-    <div class="empty-glow absolute w-[280px] h-[280px] rounded-full opacity-[0.035] pointer-events-none" />
+    <div class="absolute w-[280px] h-[280px] rounded-full opacity-[0.035] pointer-events-none bg-[radial-gradient(circle,var(--color-primary)_0%,transparent_70%)]" />
 
     <!-- 图标容器 - 浮动呼吸动画 -->
     <div
@@ -26,7 +26,7 @@ const { t } = useI18n()
     </div>
 
     <!-- 文案 -->
-    <div class="flex flex-col items-center gap-1.5 empty-text">
+    <div class="flex flex-col items-center gap-1.5 animate-[panel-slide-in_0.5s_cubic-bezier(0.22,1,0.36,1)_both] [animation-delay:300ms]">
       <p class="text-[15px] font-medium text-foreground/50 tracking-tight">
         {{ t('chat.empty_title') }}
       </p>
@@ -37,19 +37,3 @@ const { t } = useI18n()
     </div>
   </div>
 </template>
-
-<style scoped>
-.empty-state {
-  animation: panel-slide-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
-  animation-delay: 0.15s;
-}
-
-.empty-glow {
-  background: radial-gradient(circle, var(--color-primary) 0%, transparent 70%);
-}
-
-.empty-text {
-  animation: panel-slide-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
-  animation-delay: 0.3s;
-}
-</style>

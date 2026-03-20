@@ -51,12 +51,12 @@ _Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky_
 
 ## Wave 0 Requirements
 
-- [ ] `tests/unit/stores/digestStore.test.ts` — add test: `initializeDigest` preserves hydrated entries when `sourceEvents` is empty and `lastOfflineAt` is set
-- [ ] `tests/unit/stores/digestStore.test.ts` — add test: `buildDigestSession` does not overwrite hydrated entries with empty materialization
-- [ ] `tests/unit/stores/decisionStore.test.ts` — add test: `hydrateCards` only materializes digest-backed suggestions from the latest session
-- [ ] `tests/unit/stores/decisionStore.test.ts` — add test: stale digest entries from older sessions do not generate new suggestion cards
-- [ ] `tests/components/OfflineDigestPanel.test.ts` — add test: remounting panel after unmount shows previously persisted entries (not empty state)
-- [ ] `tests/components/DecisionPanel.test.ts` — add test: digest-backed suggestions are visible when digest entries exist in persistence
+- [x] `tests/unit/stores/digestStore.test.ts` — add test: `initializeDigest` preserves hydrated entries when `sourceEvents` is empty and `lastOfflineAt` is set
+- [x] `tests/unit/stores/digestStore.test.ts` — add test: `buildDigestSession` does not overwrite hydrated entries with empty materialization
+- [x] `tests/unit/stores/decisionStore.test.ts` — add test: `hydrateCards` only materializes digest-backed suggestions from the latest session
+- [x] `tests/unit/stores/decisionStore.test.ts` — add test: stale digest entries from older sessions do not generate new suggestion cards
+- [x] `tests/components/OfflineDigestPanel.test.ts` — add test: remounting panel after unmount shows previously persisted entries (not empty state)
+- [x] `tests/components/DecisionPanel.test.ts` — add test: digest-backed suggestions are visible when digest entries exist in persistence
 
 ---
 

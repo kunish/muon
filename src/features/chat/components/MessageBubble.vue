@@ -479,7 +479,7 @@ function onOpenThread() {
 <template>
   <div
     v-if="!isSenderBlocked"
-    class="message-row group transition-colors relative"
+    class="group/message-row group relative transition-colors"
     :class="[
       store.multiSelectMode && isSelected
         ? 'bg-accent/30'
@@ -606,7 +606,7 @@ function onOpenThread() {
           />
           <div
             v-else-if="sanitizedHtml"
-            class="rich-content"
+            class="[&_blockquote]:my-[0.3em] [&_blockquote]:border-l-2 [&_blockquote]:border-current [&_blockquote]:pl-[0.6em] [&_blockquote]:opacity-80 [&_code]:rounded [&_code]:bg-[color-mix(in_srgb,var(--color-foreground)_8%,transparent)] [&_code]:px-[0.3em] [&_code]:py-[0.1em] [&_code]:text-[0.85em] [&_li+li]:mt-[0.1em] [&_ol]:my-[0.2em] [&_ol]:pl-[1.4em] [&_p+p]:mt-1 [&_p]:m-0 [&_pre]:my-[0.4em] [&_pre]:overflow-x-auto [&_pre]:rounded-md [&_pre]:bg-[color-mix(in_srgb,var(--color-foreground)_8%,transparent)] [&_pre]:p-2 [&_pre]:text-[0.85em] [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_strong]:font-semibold [&_ul]:my-[0.2em] [&_ul]:pl-[1.4em] [&_a]:underline [&_a]:underline-offset-2 [&_a[href^='https://matrix.to']]:cursor-pointer [&_a[href^='https://matrix.to']]:font-medium [&_a[href^='https://matrix.to']]:text-primary [&_a[href^='https://matrix.to']]:no-underline hover:[&_a[href^='https://matrix.to']]:underline"
             @click="onRichContentClick"
             v-html="sanitizedHtml"
           />
@@ -621,28 +621,28 @@ function onOpenThread() {
         <!-- Inline actions (floating toolbar, absolutely positioned to not affect layout) -->
         <div
           v-if="!isRedacted"
-          class="message-actions absolute top-0 z-10"
+          class="absolute top-0 z-10 opacity-0 transition-opacity duration-150 group-hover/message-row:opacity-100"
           :class="isRightAligned ? 'right-full mr-1' : 'left-full ml-1'"
         >
           <div
             class="flex items-center gap-0.5 p-1 bg-popover/95 backdrop-blur-xl border border-border/50 rounded-xl shadow-[0_2px_12px_rgba(0,0,0,0.1)]"
           >
             <button
-              class="act-btn"
+              class="cursor-pointer rounded-lg p-[5px] text-muted-foreground transition-all duration-150 hover:bg-accent hover:text-foreground"
               :title="t('chat.action_reply')"
               @click.stop="onReply"
             >
               <Reply :size="14" />
             </button>
             <button
-              class="act-btn"
+              class="cursor-pointer rounded-lg p-[5px] text-muted-foreground transition-all duration-150 hover:bg-accent hover:text-foreground"
               :title="t('chat.action_copy')"
               @click.stop="copyText"
             >
               <Copy :size="14" />
             </button>
             <button
-              class="act-btn"
+              class="cursor-pointer rounded-lg p-[5px] text-muted-foreground transition-all duration-150 hover:bg-accent hover:text-foreground"
               :title="t('chat.thread')"
               @click.stop="onOpenThread"
             >
@@ -657,7 +657,7 @@ function onOpenThread() {
               </span>
             </button>
             <button
-              class="act-btn"
+              class="cursor-pointer rounded-lg p-[5px] text-muted-foreground transition-all duration-150 hover:bg-accent hover:text-foreground"
               :title="t('chat.action_forward')"
               @click.stop="onForward"
             >
@@ -666,13 +666,18 @@ function onOpenThread() {
             <div class="w-px h-4 bg-border/40 mx-0.5" />
             <div class="relative">
               <button
-                class="act-btn"
+                class="cursor-pointer rounded-lg p-[5px] text-muted-foreground transition-all duration-150 hover:bg-accent hover:text-foreground"
                 :title="t('chat.action_emoji')"
                 @click.stop="showEmojiPicker = !showEmojiPicker"
               >
                 <SmilePlus :size="14" />
               </button>
-              <Transition name="more-menu">
+              <Transition
+                enter-active-class="transition-all duration-150 ease-[cubic-bezier(0.16,1,0.3,1)]"
+                leave-active-class="transition-all duration-100 ease-in"
+                enter-from-class="opacity-0 -translate-y-1 scale-95"
+                leave-to-class="opacity-0 -translate-y-1 scale-95"
+              >
                 <div
                   v-if="showEmojiPicker"
                   class="absolute bottom-full right-0 mb-1 bg-popover/95 backdrop-blur-xl border border-border/50 rounded-xl shadow-[0_8px_30px_rgba(0,0,0,0.15)] z-20 w-[280px]"
@@ -707,13 +712,18 @@ function onOpenThread() {
             </div>
             <div class="relative">
               <button
-                class="act-btn"
+                class="cursor-pointer rounded-lg p-[5px] text-muted-foreground transition-all duration-150 hover:bg-accent hover:text-foreground"
                 :title="t('chat.action_more')"
                 @click.stop="toggleMore"
               >
                 <MoreHorizontal :size="14" />
               </button>
-              <Transition name="more-menu">
+              <Transition
+                enter-active-class="transition-all duration-150 ease-[cubic-bezier(0.16,1,0.3,1)]"
+                leave-active-class="transition-all duration-100 ease-in"
+                enter-from-class="opacity-0 -translate-y-1 scale-95"
+                leave-to-class="opacity-0 -translate-y-1 scale-95"
+              >
                 <div
                   v-if="showMore"
                   class="absolute top-full right-0 mt-1 bg-popover/95 backdrop-blur-xl border border-border/50 rounded-xl shadow-[0_8px_30px_rgba(0,0,0,0.15)] py-1 z-20 min-w-[140px]"
@@ -721,7 +731,7 @@ function onOpenThread() {
                   <!-- Group 1: Edit / Delete (own messages) -->
                   <template v-if="isMine">
                     <button
-                      class="menu-item"
+                      class="flex w-full cursor-pointer items-center gap-2 whitespace-nowrap px-3 py-[7px] text-xs transition-colors duration-100 hover:bg-accent"
                       @click.stop="
                         onEdit();
                         showMore = false;
@@ -730,7 +740,7 @@ function onOpenThread() {
                       <Edit :size="13" /> {{ t("chat.edit_message") }}
                     </button>
                     <button
-                      class="menu-item text-destructive"
+                      class="flex w-full cursor-pointer items-center gap-2 whitespace-nowrap px-3 py-[7px] text-xs text-destructive transition-colors duration-100 hover:bg-accent"
                       @click.stop="
                         onRedact();
                         showMore = false;
@@ -742,13 +752,13 @@ function onOpenThread() {
                   </template>
 
                   <!-- Group 2: Pin / Star -->
-                  <button class="menu-item" @click.stop="onTogglePin">
+                  <button class="flex w-full cursor-pointer items-center gap-2 whitespace-nowrap px-3 py-[7px] text-xs transition-colors duration-100 hover:bg-accent" @click.stop="onTogglePin">
                     <component :is="isPinned ? PinOff : Pin" :size="13" />
                     {{
                       isPinned ? t("chat.unpin_message") : t("chat.pin_message")
                     }}
                   </button>
-                  <button class="menu-item" @click.stop="onToggleStar">
+                  <button class="flex w-full cursor-pointer items-center gap-2 whitespace-nowrap px-3 py-[7px] text-xs transition-colors duration-100 hover:bg-accent" @click.stop="onToggleStar">
                     <component :is="isStarred ? StarOff : Star" :size="13" />
                     {{
                       isStarred
@@ -761,7 +771,7 @@ function onOpenThread() {
                   <template v-if="isTextMessage">
                     <div class="h-px bg-border/40 my-1 mx-2" />
                     <button
-                      class="menu-item"
+                      class="flex w-full cursor-pointer items-center gap-2 whitespace-nowrap px-3 py-[7px] text-xs transition-colors duration-100 hover:bg-accent"
                       @click.stop="onTranslate"
                     >
                       <Languages :size="13" />
@@ -776,12 +786,12 @@ function onOpenThread() {
                   <!-- Group 4: Hide / Multi-select -->
                   <div class="h-px bg-border/40 my-1 mx-2" />
                   <button
-                    class="menu-item text-muted-foreground"
+                    class="flex w-full cursor-pointer items-center gap-2 whitespace-nowrap px-3 py-[7px] text-xs text-muted-foreground transition-colors duration-100 hover:bg-accent"
                     @click.stop="onHideForMe"
                   >
                     <EyeOff :size="13" /> {{ t("chat.hide_for_me") }}
                   </button>
-                  <button class="menu-item" @click.stop="onMultiSelect">
+                  <button class="flex w-full cursor-pointer items-center gap-2 whitespace-nowrap px-3 py-[7px] text-xs transition-colors duration-100 hover:bg-accent" @click.stop="onMultiSelect">
                     <CheckSquare :size="13" /> {{ t("chat.multi_select") }}
                   </button>
                 </div>
@@ -899,107 +909,3 @@ function onOpenThread() {
     />
   </div>
 </template>
-
-<style scoped>
-.message-actions {
-  opacity: 0;
-  transition: opacity 0.15s ease;
-}
-.message-row:hover .message-actions {
-  opacity: 1;
-}
-
-.act-btn {
-  padding: 5px;
-  border-radius: 8px;
-  color: var(--color-muted-foreground);
-  transition: all 0.15s ease;
-  cursor: pointer;
-}
-.act-btn:hover {
-  background: var(--color-accent);
-  color: var(--color-foreground);
-}
-
-.menu-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 7px 12px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: background 0.1s;
-  white-space: nowrap;
-}
-.menu-item:hover {
-  background: var(--color-accent);
-}
-
-.more-menu-enter-active {
-  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.more-menu-leave-active {
-  transition: all 0.1s ease-in;
-}
-.more-menu-enter-from,
-.more-menu-leave-to {
-  opacity: 0;
-  transform: translateY(-4px) scale(0.95);
-}
-
-.rich-content :deep(p) {
-  margin: 0;
-}
-.rich-content :deep(p + p) {
-  margin-top: 0.25em;
-}
-.rich-content :deep(a) {
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-.rich-content :deep(a[href^='https://matrix.to']) {
-  color: var(--color-primary);
-  font-weight: 500;
-  text-decoration: none;
-  cursor: pointer;
-}
-.rich-content :deep(a[href^='https://matrix.to']):hover {
-  text-decoration: underline;
-}
-.rich-content :deep(strong) {
-  font-weight: 600;
-}
-.rich-content :deep(code) {
-  font-size: 0.85em;
-  padding: 0.1em 0.3em;
-  border-radius: 3px;
-  background: color-mix(in srgb, var(--color-foreground) 8%, transparent);
-}
-.rich-content :deep(pre) {
-  margin: 0.4em 0;
-  padding: 0.5em;
-  border-radius: 6px;
-  background: color-mix(in srgb, var(--color-foreground) 8%, transparent);
-  overflow-x: auto;
-  font-size: 0.85em;
-}
-.rich-content :deep(pre code) {
-  padding: 0;
-  background: none;
-}
-.rich-content :deep(blockquote) {
-  margin: 0.3em 0;
-  padding-left: 0.6em;
-  border-left: 2px solid currentColor;
-  opacity: 0.8;
-}
-.rich-content :deep(ul),
-.rich-content :deep(ol) {
-  margin: 0.2em 0;
-  padding-left: 1.4em;
-}
-.rich-content :deep(li + li) {
-  margin-top: 0.1em;
-}
-</style>

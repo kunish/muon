@@ -139,7 +139,7 @@ function onSelect(emoji: string) {
 </script>
 
 <template>
-  <div class="emoji-picker flex flex-col bg-background border border-border rounded-xl shadow-xl overflow-hidden">
+  <div class="emoji-picker flex h-[420px] w-[340px] flex-col overflow-hidden rounded-xl border border-border bg-background shadow-xl">
     <!-- 搜索栏 -->
     <div class="px-2.5 pt-2.5 pb-1.5">
       <div class="relative">
@@ -159,7 +159,7 @@ function onSelect(emoji: string) {
     <!-- 搜索结果 -->
     <div
       v-if="searchResults"
-      class="emoji-grid-scroll flex-1 overflow-y-auto px-2.5 pb-2"
+      class="flex-1 overflow-y-auto px-2.5 pb-2 [scrollbar-color:var(--color-border)_transparent] [scrollbar-width:thin]"
     >
       <div v-if="searchResults.length === 0" class="py-8 text-center text-xs text-muted-foreground">
         {{ t('chat.emoji_not_found') }}
@@ -168,7 +168,7 @@ function onSelect(emoji: string) {
         <button
           v-for="emoji in searchResults"
           :key="emoji"
-          class="emoji-cell"
+          class="flex size-9 cursor-pointer items-center justify-center rounded-lg text-[1.35rem] transition-[background,transform] duration-150 hover:bg-accent hover:scale-[1.2] active:scale-95"
           @click="onSelect(emoji)"
         >
           {{ emoji }}
@@ -179,7 +179,7 @@ function onSelect(emoji: string) {
     <!-- 分类内容 -->
     <div
       v-else
-      class="emoji-grid-scroll flex-1 overflow-y-auto px-2.5 pb-2"
+      class="flex-1 overflow-y-auto px-2.5 pb-2 [scrollbar-color:var(--color-border)_transparent] [scrollbar-width:thin]"
     >
       <div v-if="activeCategory">
         <div class="sticky top-0 bg-background/95 backdrop-blur-sm text-[11px] text-muted-foreground/70 font-medium py-1.5 z-10">
@@ -189,7 +189,7 @@ function onSelect(emoji: string) {
           <button
             v-for="emoji in activeCategory.emojis"
             :key="emoji"
-            class="emoji-cell"
+            class="flex size-9 cursor-pointer items-center justify-center rounded-lg text-[1.35rem] transition-[background,transform] duration-150 hover:bg-accent hover:scale-[1.2] active:scale-95"
             @click="onSelect(emoji)"
           >
             {{ emoji }}
@@ -203,8 +203,8 @@ function onSelect(emoji: string) {
       <button
         v-for="cat in allCategories"
         :key="cat.id"
-        class="cat-tab"
-        :class="{ 'cat-tab-active': activeCatId === cat.id }"
+        class="flex h-8 flex-1 cursor-pointer items-center justify-center rounded-md text-[1.1rem] opacity-50 transition-[background,opacity] duration-150 hover:bg-accent hover:opacity-80"
+        :class="{ 'bg-accent opacity-100': activeCatId === cat.id }"
         :title="cat.label"
         @click="scrollToCategory(cat.id)"
       >
@@ -213,61 +213,3 @@ function onSelect(emoji: string) {
     </div>
   </div>
 </template>
-
-<style scoped>
-.emoji-picker {
-  width: 340px;
-  height: 420px;
-}
-
-.emoji-grid-scroll {
-  scrollbar-width: thin;
-  scrollbar-color: var(--color-border) transparent;
-}
-
-.emoji-cell {
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  font-size: 1.35rem;
-  cursor: pointer;
-  transition:
-    background 0.15s,
-    transform 0.15s;
-}
-
-.emoji-cell:hover {
-  background: var(--color-accent);
-  transform: scale(1.2);
-}
-
-.emoji-cell:active {
-  transform: scale(0.95);
-}
-
-.cat-tab {
-  flex: 1;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.1rem;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 0.15s;
-  opacity: 0.5;
-}
-
-.cat-tab:hover {
-  background: var(--color-accent);
-  opacity: 0.8;
-}
-
-.cat-tab-active {
-  opacity: 1;
-  background: var(--color-accent);
-}
-</style>

@@ -201,7 +201,12 @@ const resolvedAvatar = computed(() => {
     </p>
 
     <!-- Save bar (only when dirty) -->
-    <Transition name="save-bar">
+    <Transition
+      enter-active-class="transition-all duration-200 ease-out"
+      leave-active-class="transition-all duration-150 ease-in"
+      enter-from-class="translate-y-2 opacity-0"
+      leave-to-class="translate-y-2 opacity-0"
+    >
       <div
         v-if="isDirty"
         class="mt-6 flex items-center justify-between rounded-md bg-popover p-3"
@@ -221,17 +226,3 @@ const resolvedAvatar = computed(() => {
     </Transition>
   </div>
 </template>
-
-<style scoped>
-.save-bar-enter-active {
-  transition: all 0.2s ease-out;
-}
-.save-bar-leave-active {
-  transition: all 0.15s ease-in;
-}
-.save-bar-enter-from,
-.save-bar-leave-to {
-  opacity: 0;
-  transform: translateY(8px);
-}
-</style>

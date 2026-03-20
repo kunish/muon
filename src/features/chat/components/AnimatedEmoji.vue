@@ -112,142 +112,30 @@ onBeforeUnmount(() => {
 <template>
   <span
     ref="containerRef"
-    class="animated-emoji-container"
-    :class="{ 'is-entered': entered, 'is-bouncing': bouncing }"
+    class="inline-flex cursor-pointer items-center gap-0.5 transition-[transform,opacity] duration-[400ms] ease-[cubic-bezier(0.34,1.56,0.64,1)]"
+    :class="[
+      entered ? 'scale-100 opacity-100' : 'scale-[0.3] opacity-0',
+      bouncing && 'animate-emoji-bounce',
+    ]"
     @click="onTap"
     @animationend="bouncing = false"
   >
     <span
       v-for="(e, i) in emojis"
       :key="i"
-      class="animated-emoji-slot"
+      class="relative inline-flex size-[120px] shrink-0 items-center justify-center [&_svg]:[shape-rendering:auto] [&_svg]:[text-rendering:geometricPrecision]"
     >
       <!-- Lottie 容器 -->
       <span
         :ref="(el: any) => { if (el) slotRefs[i] = el as HTMLElement }"
-        class="lottie-host"
-        :class="{ 'is-loaded': loaded[i] }"
+        class="size-full opacity-0 transition-opacity duration-[250ms] ease-out [&_svg]:!h-full [&_svg]:!w-full"
+        :class="{ 'opacity-100': loaded[i] }"
       />
       <!-- 回退：静态 emoji -->
       <span
         v-if="failed[i]"
-        class="fallback-emoji"
+        class="text-[5rem] leading-none"
       >{{ e }}</span>
     </span>
   </span>
 </template>
-
-<style scoped>
-.animated-emoji-container {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  cursor: pointer;
-  transform: scale(0.3);
-  opacity: 0;
-  transition:
-    transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
-    opacity 0.3s ease;
-}
-
-.animated-emoji-container.is-entered {
-  transform: scale(1);
-  opacity: 1;
-}
-
-/* 点击弹跳 */
-.animated-emoji-container.is-bouncing {
-  animation: emoji-bounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.animated-emoji-container :deep(svg) {
-  shape-rendering: auto;
-  text-rendering: geometricPrecision;
-}
-
-:global(.emoji-shake) {
-  animation: emoji-shake 360ms ease-out;
-}
-
-@keyframes emoji-shake {
-  0% {
-    transform: translate(0, 0);
-  }
-  12% {
-    transform: translate(-4px, 3px);
-  }
-  24% {
-    transform: translate(5px, -2px);
-  }
-  36% {
-    transform: translate(-3px, -4px);
-  }
-  48% {
-    transform: translate(4px, 2px);
-  }
-  60% {
-    transform: translate(-2px, 3px);
-  }
-  72% {
-    transform: translate(3px, -1px);
-  }
-  84% {
-    transform: translate(-1px, 2px);
-  }
-  100% {
-    transform: translate(0, 0);
-  }
-}
-
-@keyframes emoji-bounce {
-  0% {
-    transform: scale(1);
-  }
-  20% {
-    transform: scale(1.35);
-  }
-  40% {
-    transform: scale(0.85);
-  }
-  60% {
-    transform: scale(1.15);
-  }
-  80% {
-    transform: scale(0.95);
-  }
-  100% {
-    transform: scale(1);
-  }
-}
-
-.animated-emoji-slot {
-  position: relative;
-  width: 120px;
-  height: 120px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.lottie-host {
-  width: 100%;
-  height: 100%;
-  opacity: 0;
-  transition: opacity 0.25s ease;
-}
-
-.lottie-host.is-loaded {
-  opacity: 1;
-}
-
-.lottie-host :deep(svg) {
-  width: 100% !important;
-  height: 100% !important;
-}
-
-.fallback-emoji {
-  font-size: 5rem;
-  line-height: 1;
-}
-</style>

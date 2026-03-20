@@ -65,7 +65,7 @@ function onUserClick(userId: string | undefined, e: MouseEvent) {
 </script>
 
 <template>
-  <div class="system-msg flex items-center py-0.5 px-4 pl-14 min-h-[1.375rem] hover:bg-[var(--color-background)]/[0.06] group">
+  <div class="flex items-center py-0.5 px-4 pl-14 min-h-[1.375rem] hover:bg-background/[0.06] group animate-sys-fade-in">
     <!-- 图标列 -->
     <component
       :is="icon"
@@ -98,18 +98,3 @@ function onUserClick(userId: string | undefined, e: MouseEvent) {
     </span>
   </div>
 </template>
-
-<style scoped>
-.system-msg {
-  animation: sys-fade-in 0.2s ease both;
-}
-
-@keyframes sys-fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-</style>

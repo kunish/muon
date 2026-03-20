@@ -57,7 +57,7 @@ async function toggleReaction(emoji: string) {
     <button
       v-for="r in reactions"
       :key="r.key"
-      class="reaction-pill inline-flex items-center gap-1 h-[22px] px-1.5 rounded-md text-[11px] border cursor-pointer transition-all duration-150"
+      class="reaction-pill inline-flex items-center gap-1 h-[22px] px-1.5 rounded-md text-[11px] border cursor-pointer transition-all duration-150 active:scale-95"
       :class="
         r.myReaction
           ? 'bg-primary/15 border-primary/40 text-foreground'
@@ -81,7 +81,12 @@ async function toggleReaction(emoji: string) {
 
       <!-- 快速 Emoji 弹窗 -->
       <Teleport to="body">
-        <Transition name="picker-pop">
+        <Transition
+          enter-active-class="transition-all duration-150 ease-[cubic-bezier(0.16,1,0.3,1)]"
+          leave-active-class="transition-all duration-100 ease-in"
+          enter-from-class="opacity-0 translate-y-1 scale-95"
+          leave-to-class="opacity-0 translate-y-1 scale-95"
+        >
           <div
             v-if="showPicker"
             ref="pickerRef"
@@ -105,24 +110,3 @@ async function toggleReaction(emoji: string) {
     </div>
   </div>
 </template>
-
-<style scoped>
-.reaction-pill:active {
-  transform: scale(0.95);
-}
-</style>
-
-<style>
-/* Teleport 到 body 的弹窗动画不能 scoped */
-.picker-pop-enter-active {
-  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.picker-pop-leave-active {
-  transition: all 0.1s ease-in;
-}
-.picker-pop-enter-from,
-.picker-pop-leave-to {
-  opacity: 0;
-  transform: translateY(4px) scale(0.95);
-}
-</style>

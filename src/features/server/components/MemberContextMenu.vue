@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { SpaceMember } from '@/matrix/spaces'
+import { EventType } from 'matrix-js-sdk'
 import {
   AtSign,
   Ban,
@@ -12,17 +13,20 @@ import {
 import { computed, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
+import { blockUser } from '@/matrix/blocking'
 import { getClient } from '@/matrix/client'
 import { findOrCreateDm } from '@/matrix/rooms'
 
 const props = defineProps<{
   member: SpaceMember | null
+  serverId?: string
   position: { x: number, y: number }
 }>()
 
 const emit = defineEmits<{
   close: []
   mention: [userId: string]
+  profile: [userId: string]
 }>()
 
 const menuRef = ref<HTMLElement | null>(null)
@@ -101,7 +105,9 @@ onUnmounted(() => {
 // ── 操作 ──
 
 function onProfile() {
-  // TODO: 打开用户完整资料面板
+  if (!props.member)
+    return
+  emit('profile', props.member.userId)
   emit('close')
 }
 
@@ -125,12 +131,92 @@ function onMention() {
   emit('close')
 }
 
-// TODO: onChangeNickname, onMute, onKick, onBan — not yet implemented, buttons are disabled in template
+async function onChangeNickname() {
+  if (!props.member || !props.serverId)
+    return
+
+  const nextNickname = window.prompt(t('member.change_nickname'), props.member.displayName)?.trim()
+  if (!nextNickname || nextNickname === props.member.displayName)
+    return
+
+  try {
+    const client = getClient()
+    const room = client.getRoom(props.serverId)
+    const memberState = room?.currentState.getStateEvents('m.room.member', props.member.userId)
+    const currentContent = memberState?.getContent?.() ?? {}
+
+    await client.sendStateEvent(
+      props.serverId,
+      EventType.RoomMember,
+      {
+        ...currentContent,
+        membership: 'join',
+        displayname: nextNickname,
+      },
+      props.member.userId,
+    )
+    emit('close')
+  }
+  catch (err) {
+    console.error('Failed to change nickname:', err)
+    toast.error(t('auth.error'))
+  }
+}
+
+async function onMute() {
+  if (!props.member)
+    return
+  try {
+    await blockUser(props.member.userId)
+    emit('close')
+  }
+  catch (err) {
+    console.error('Failed to mute user:', err)
+    toast.error(t('auth.error'))
+  }
+}
+
+async function onKick() {
+  if (!props.member || !props.serverId)
+    return
+  if (!window.confirm(t('member.kick_confirm_msg', { name: props.member.displayName })))
+    return
+
+  try {
+    await getClient().kick(props.serverId, props.member.userId, 'Kicked by admin')
+    emit('close')
+  }
+  catch (err) {
+    console.error('Failed to kick member:', err)
+    toast.error(t('auth.error'))
+  }
+}
+
+async function onBan() {
+  if (!props.member || !props.serverId)
+    return
+  if (!window.confirm(t('member.ban_confirm_msg', { name: props.member.displayName })))
+    return
+
+  try {
+    await getClient().ban(props.serverId, props.member.userId, 'Banned by admin')
+    emit('close')
+  }
+  catch (err) {
+    console.error('Failed to ban member:', err)
+    toast.error(t('auth.error'))
+  }
+}
 </script>
 
 <template>
   <Teleport to="body">
-    <Transition name="ctx-menu">
+    <Transition
+      enter-active-class="transition-all duration-[180ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
+      leave-active-class="transition-all duration-[120ms] ease-in"
+      enter-from-class="translate-y-[-4px] scale-95 opacity-0"
+      leave-to-class="scale-95 opacity-0"
+    >
       <div
         v-if="isOpen && member"
         ref="menuRef"
@@ -139,43 +225,43 @@ function onMention() {
         @contextmenu.prevent
       >
         <!-- 基础操作 -->
-        <button class="ctx-item" @click="onProfile">
+        <button class="mx-1 flex w-[calc(100%-8px)] items-center gap-2.5 rounded-md px-3.5 py-[7px] text-[13px] text-foreground transition-all duration-100 hover:bg-accent active:scale-[0.98]" @click="onProfile">
           <User :size="14" />
           <span>{{ t('member.profile') }}</span>
         </button>
 
-        <button v-if="!isSelf" class="ctx-item" @click="onMessage">
+        <button v-if="!isSelf" class="mx-1 flex w-[calc(100%-8px)] items-center gap-2.5 rounded-md px-3.5 py-[7px] text-[13px] text-foreground transition-all duration-100 hover:bg-accent active:scale-[0.98]" @click="onMessage">
           <MessageCircle :size="14" />
           <span>{{ t('member.message') }}</span>
         </button>
 
-        <button class="ctx-item" @click="onMention">
+        <button class="mx-1 flex w-[calc(100%-8px)] items-center gap-2.5 rounded-md px-3.5 py-[7px] text-[13px] text-foreground transition-all duration-100 hover:bg-accent active:scale-[0.98]" @click="onMention">
           <AtSign :size="14" />
           <span>{{ t('member.mention') }}</span>
         </button>
 
         <!-- Admin 操作 -->
         <template v-if="isAdmin && !isSelf">
-          <div class="ctx-divider" />
+          <div class="mx-3 my-1 h-px bg-border/50" />
 
-          <button class="ctx-item ctx-disabled" disabled title="Not implemented yet">
+          <button class="mx-1 flex w-[calc(100%-8px)] items-center gap-2.5 rounded-md px-3.5 py-[7px] text-[13px] text-foreground transition-all duration-100 hover:bg-accent active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent" :disabled="!serverId" :title="!serverId ? t('member.missing_server_id') : undefined" @click="onChangeNickname">
             <Pencil :size="14" />
             <span>{{ t('member.change_nickname') }}</span>
           </button>
 
-          <button class="ctx-item ctx-disabled" disabled title="Not implemented yet">
+          <button class="mx-1 flex w-[calc(100%-8px)] items-center gap-2.5 rounded-md px-3.5 py-[7px] text-[13px] text-foreground transition-all duration-100 hover:bg-accent active:scale-[0.98]" @click="onMute">
             <MicOff :size="14" />
             <span>{{ t('member.mute') }}</span>
           </button>
 
-          <div class="ctx-divider" />
+          <div class="mx-3 my-1 h-px bg-border/50" />
 
-          <button class="ctx-item ctx-danger ctx-disabled" disabled title="Not implemented yet">
+          <button class="mx-1 flex w-[calc(100%-8px)] items-center gap-2.5 rounded-md px-3.5 py-[7px] text-[13px] text-destructive transition-all duration-100 hover:bg-[color-mix(in_srgb,var(--color-destructive)_10%,transparent)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent" :disabled="!serverId" :title="!serverId ? t('member.missing_server_id') : undefined" @click="onKick">
             <UserX :size="14" />
             <span>{{ t('member.kick_title') }}</span>
           </button>
 
-          <button class="ctx-item ctx-danger ctx-disabled" disabled title="Not implemented yet">
+          <button class="mx-1 flex w-[calc(100%-8px)] items-center gap-2.5 rounded-md px-3.5 py-[7px] text-[13px] text-destructive transition-all duration-100 hover:bg-[color-mix(in_srgb,var(--color-destructive)_10%,transparent)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent" :disabled="!serverId" :title="!serverId ? t('member.missing_server_id') : undefined" @click="onBan">
             <Ban :size="14" />
             <span>{{ t('member.ban_title') }}</span>
           </button>
@@ -184,63 +270,3 @@ function onMention() {
     </Transition>
   </Teleport>
 </template>
-
-<style scoped>
-.ctx-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: calc(100% - 8px);
-  padding: 7px 14px;
-  font-size: 13px;
-  color: var(--color-foreground);
-  cursor: pointer;
-  transition: all 0.12s ease;
-  border-radius: 6px;
-  margin: 0 4px;
-}
-.ctx-item:hover {
-  background: var(--color-accent);
-}
-.ctx-item:active {
-  transform: scale(0.98);
-}
-
-.ctx-danger {
-  color: var(--color-destructive);
-}
-.ctx-danger:hover {
-  background: color-mix(in srgb, var(--color-destructive) 10%, transparent);
-}
-
-.ctx-disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-.ctx-disabled:hover {
-  background: transparent;
-}
-
-.ctx-divider {
-  height: 1px;
-  margin: 4px 12px;
-  background: var(--color-border);
-  opacity: 0.5;
-}
-
-/* 动画 */
-.ctx-menu-enter-active {
-  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.ctx-menu-leave-active {
-  transition: all 0.12s ease-in;
-}
-.ctx-menu-enter-from {
-  opacity: 0;
-  transform: scale(0.92) translateY(-4px);
-}
-.ctx-menu-leave-to {
-  opacity: 0;
-  transform: scale(0.95);
-}
-</style>

@@ -219,7 +219,12 @@ async function onToggleBlock() {
 <template>
   <Teleport to="body">
     <!-- 背景遮罩 - 微妙模糊 -->
-    <Transition name="info-overlay">
+    <Transition
+      enter-active-class="transition-all duration-[250ms] ease-out"
+      leave-active-class="transition-all duration-200 ease-in"
+      enter-from-class="opacity-0 backdrop-blur-none"
+      leave-to-class="opacity-0 backdrop-blur-none"
+    >
       <div
         v-if="isVisible && memberInfo"
         class="fixed inset-0 z-[99] bg-black/5 backdrop-blur-[2px]"
@@ -227,11 +232,16 @@ async function onToggleBlock() {
       />
     </Transition>
 
-    <Transition name="info-panel">
+    <Transition
+      enter-active-class="transition-all duration-[280ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
+      leave-active-class="transition-all duration-[180ms] ease-[cubic-bezier(0.4,0,1,1)]"
+      enter-from-class="scale-[0.92] opacity-0 -translate-y-1.5"
+      leave-to-class="scale-[0.96] opacity-0 -translate-y-0.5"
+    >
       <div
         v-if="isVisible && memberInfo"
         :style="panelStyle"
-        class="info-card w-[272px] bg-popover/95 text-popover-foreground rounded-2xl shadow-[0_8px_40px_rgba(0,0,0,0.12),0_0_0_1px_rgba(0,0,0,0.06)] overflow-hidden backdrop-blur-xl"
+        class="w-[272px] overflow-hidden rounded-2xl bg-popover/95 text-popover-foreground shadow-[0_8px_40px_rgba(0,0,0,0.12),0_0_0_1px_rgba(0,0,0,0.06)] backdrop-blur-xl"
       >
         <!-- 顶部装饰渐变条 -->
         <div
@@ -249,7 +259,7 @@ async function onToggleBlock() {
         </div>
 
         <!-- 头像 - 浮出渐变条 -->
-        <div class="flex flex-col items-center -mt-8 px-5 pb-1 info-avatar-section">
+        <div class="-mt-8 flex flex-col items-center px-5 pb-1 animate-[panel-slide-in_0.32s_cubic-bezier(0.22,1,0.36,1)_both] [animation-delay:60ms]">
           <div class="relative">
             <img
               v-if="resolvedAvatar"
@@ -292,7 +302,7 @@ async function onToggleBlock() {
         </div>
 
         <!-- 信息行 - 卡片式 -->
-        <div class="px-3.5 pt-2.5 pb-2 space-y-1 info-details">
+        <div class="space-y-1 px-3.5 pb-2 pt-2.5 animate-[panel-slide-in_0.32s_cubic-bezier(0.22,1,0.36,1)_both] [animation-delay:120ms]">
           <div
             v-if="room && !room.isDirect"
             class="flex items-center gap-2.5 px-2.5 py-2 rounded-xl bg-accent/40 text-[11.5px] text-muted-foreground transition-colors hover:bg-accent/60"
@@ -325,7 +335,7 @@ async function onToggleBlock() {
         </div>
 
         <!-- 操作按钮 -->
-        <div class="px-3.5 pb-3.5 pt-1 space-y-1.5 info-action">
+        <div class="space-y-1.5 px-3.5 pb-3.5 pt-1 animate-[panel-slide-in_0.32s_cubic-bezier(0.22,1,0.36,1)_both] [animation-delay:180ms]">
           <button
             class="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-primary text-primary-foreground text-[12px] font-semibold hover:brightness-110 active:scale-[0.98] transition-all duration-150 shadow-[0_2px_8px_rgba(0,0,0,0.1)]"
             @click="onSendMessage()"
@@ -350,48 +360,3 @@ async function onToggleBlock() {
     </Transition>
   </Teleport>
 </template>
-
-<style scoped>
-/* 卡片入场 */
-.info-panel-enter-active {
-  transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.info-panel-leave-active {
-  transition: all 0.18s cubic-bezier(0.4, 0, 1, 1);
-}
-.info-panel-enter-from {
-  opacity: 0;
-  transform: scale(0.92) translateY(-6px);
-}
-.info-panel-leave-to {
-  opacity: 0;
-  transform: scale(0.96) translateY(-3px);
-}
-
-/* 遮罩层 */
-.info-overlay-enter-active {
-  transition: all 0.25s ease-out;
-}
-.info-overlay-leave-active {
-  transition: all 0.2s ease-in;
-}
-.info-overlay-enter-from,
-.info-overlay-leave-to {
-  opacity: 0;
-  backdrop-filter: blur(0);
-}
-
-/* 交错入场动画 */
-.info-card .info-avatar-section {
-  animation: panel-slide-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
-  animation-delay: 0.06s;
-}
-.info-card .info-details {
-  animation: panel-slide-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
-  animation-delay: 0.12s;
-}
-.info-card .info-action {
-  animation: panel-slide-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
-  animation-delay: 0.18s;
-}
-</style>

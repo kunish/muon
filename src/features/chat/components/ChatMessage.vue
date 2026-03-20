@@ -10,8 +10,10 @@
  */
 import type { MatrixEvent } from 'matrix-js-sdk'
 import { getClient } from '@matrix/client'
-import { getReactions, getThreadReplies } from '@matrix/index'
-import { computed, ref } from 'vue'
+import { redactMessage, getReactions, getThreadReplies } from '@matrix/index'
+import { ask } from '@tauri-apps/plugin-dialog'
+import { Copy, MessageSquare, Reply, Trash2 } from 'lucide-vue-next'
+import { computed, onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useSettingsStore } from '@/features/settings/stores/settingsStore'
 import { Avatar } from '@/shared/components/ui/avatar'
@@ -43,6 +45,9 @@ const store = useChatStore()
 const settingsStore = useSettingsStore()
 const hovered = ref(false)
 const showEmojiPicker = ref(false)
+const showContextMenu = ref(false)
+const contextMenuRef = ref<HTMLElement | null>(null)
+const contextMenuPos = ref({ x: 0, y: 0 })
 
 // --- 基础信息 ---
 const eventId = computed(() => props.event.getId() || '')
@@ -59,6 +64,11 @@ const isRightAligned = computed(() =>
 )
 
 const avatarColumnHidden = computed(() => props.hideAvatarColumn === true)
+
+const contextMenuStyle = computed(() => ({
+  left: `${contextMenuPos.value.x}px`,
+  top: `${contextMenuPos.value.y}px`,
+}))
 
 // --- Sticker support (m.sticker) ---
 const isSticker = computed(() => eventType.value === 'm.sticker')
@@ -266,6 +276,63 @@ function openThread() {
     return
   store.openThread(eventId.value)
 }
+
+function closeContextMenu() {
+  showContextMenu.value = false
+}
+
+function onMessageContextMenu(event: MouseEvent) {
+  event.preventDefault()
+  event.stopPropagation()
+  contextMenuPos.value = { x: event.clientX, y: event.clientY }
+  showContextMenu.value = true
+}
+
+function onReplyFromContextMenu() {
+  store.setReplyingTo(props.event)
+  closeContextMenu()
+}
+
+function onCopyFromContextMenu() {
+  navigator.clipboard.writeText(body.value)
+  closeContextMenu()
+}
+
+function onOpenThreadFromContextMenu() {
+  openThread()
+  closeContextMenu()
+}
+
+async function onDeleteFromContextMenu() {
+  if (!eventId.value)
+    return
+  const confirmed = await ask(t('chat.delete_confirm'), {
+    title: t('chat.delete_message'),
+    kind: 'warning',
+  })
+  if (!confirmed)
+    return
+  await redactMessage(props.roomId, eventId.value)
+  closeContextMenu()
+}
+
+function onDocumentPointerDown(event: MouseEvent) {
+  if (!showContextMenu.value)
+    return
+  if (contextMenuRef.value?.contains(event.target as Node))
+    return
+  closeContextMenu()
+}
+
+if (typeof document !== 'undefined') {
+  document.addEventListener('mousedown', onDocumentPointerDown)
+}
+
+onUnmounted(() => {
+  if (typeof document !== 'undefined') {
+    document.removeEventListener('mousedown', onDocumentPointerDown)
+  }
+})
 </script>
 
 <template>
@@ -282,6 +349,7 @@ function openThread() {
     ]"
     @mouseenter="hovered = true"
     @mouseleave="hovered = false; showEmojiPicker = false"
+    @contextmenu="onMessageContextMenu"
   >
     <!-- 头像列 (32px 宽) -->
     <div
@@ -394,7 +462,7 @@ function openThread() {
         <FileMessage v-else-if="msgtype === 'm.file'" :event="event" />
         <div
           v-else-if="sanitizedHtml"
-          class="rich-content text-[15px] leading-relaxed text-foreground/90"
+          class="text-[15px] leading-relaxed text-foreground/90 [&_blockquote]:my-[0.3em] [&_blockquote]:border-l-[3px] [&_blockquote]:border-muted-foreground [&_blockquote]:pl-3 [&_blockquote]:text-muted-foreground [&_code]:rounded [&_code]:border [&_code]:border-border [&_code]:bg-muted [&_code]:px-[0.35em] [&_code]:py-[0.15em] [&_code]:font-['Consolas','Monaco',monospace] [&_code]:text-[0.85em] [&_del]:opacity-70 [&_del]:line-through [&_em]:italic [&_li+li]:mt-[0.1em] [&_ol]:my-[0.2em] [&_ol]:pl-6 [&_p+p]:mt-1 [&_p]:m-0 [&_pre]:my-2 [&_pre]:overflow-x-auto [&_pre]:rounded [&_pre]:border [&_pre]:border-border [&_pre]:bg-card [&_pre]:p-3 [&_pre]:text-[0.85em] [&_pre_code]:border-0 [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_s]:opacity-70 [&_s]:line-through [&_strong]:font-bold [&_strong]:text-foreground [&_ul]:my-[0.2em] [&_ul]:pl-6 [&_a]:text-primary [&_a]:no-underline hover:[&_a]:underline [&_a[href^='https://matrix.to']]:cursor-pointer [&_a[href^='https://matrix.to']]:rounded [&_a[href^='https://matrix.to']]:bg-[color-mix(in_srgb,var(--color-primary)_15%,transparent)] [&_a[href^='https://matrix.to']]:px-0.5 [&_a[href^='https://matrix.to']]:font-medium [&_a[href^='https://matrix.to']]:text-primary hover:[&_a[href^='https://matrix.to']]:bg-[color-mix(in_srgb,var(--color-primary)_25%,transparent)] hover:[&_a[href^='https://matrix.to']]:underline"
           :class="isRightAligned ? 'rounded-2xl bg-primary/10 px-3 py-2' : ''"
           :style="isRightAligned ? { width: 'fit-content', maxWidth: '100%', marginLeft: 'auto' } : {}"
           @click="onRichContentClick"
@@ -451,82 +519,43 @@ function openThread() {
         @react="onActionReact"
       />
     </div>
+
+    <Teleport to="body">
+      <Transition
+        enter-active-class="transition-all duration-[180ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
+        leave-active-class="transition-all duration-100 ease-in"
+        enter-from-class="scale-[0.92] opacity-0 -translate-y-1"
+        leave-to-class="scale-95 opacity-0"
+      >
+        <div
+          v-if="showContextMenu"
+          ref="contextMenuRef"
+          class="fixed z-[120] min-w-[180px] rounded-xl border border-border/60 bg-popover/95 py-1.5 shadow-[0_8px_30px_rgba(0,0,0,0.12),0_2px_8px_rgba(0,0,0,0.06)] backdrop-blur-xl"
+          :style="contextMenuStyle"
+          @contextmenu.prevent
+        >
+          <button class="mx-1 flex w-[calc(100%-8px)] items-center gap-2.5 rounded-md px-3.5 py-[7px] text-[13px] text-foreground transition-all duration-[120ms] hover:bg-accent" @click="onReplyFromContextMenu">
+            <Reply :size="14" />
+            <span>{{ t('chat.action_reply') }}</span>
+          </button>
+          <button class="mx-1 flex w-[calc(100%-8px)] items-center gap-2.5 rounded-md px-3.5 py-[7px] text-[13px] text-foreground transition-all duration-[120ms] hover:bg-accent" @click="onCopyFromContextMenu">
+            <Copy :size="14" />
+            <span>{{ t('chat.action_copy') }}</span>
+          </button>
+          <button class="mx-1 flex w-[calc(100%-8px)] items-center gap-2.5 rounded-md px-3.5 py-[7px] text-[13px] text-foreground transition-all duration-[120ms] hover:bg-accent" @click="onOpenThreadFromContextMenu">
+            <MessageSquare :size="14" />
+            <span>{{ t('chat.thread') }}</span>
+          </button>
+          <button
+            v-if="isMine"
+            class="mx-1 flex w-[calc(100%-8px)] items-center gap-2.5 rounded-md px-3.5 py-[7px] text-[13px] text-destructive transition-all duration-[120ms] hover:bg-[color-mix(in_srgb,var(--color-destructive)_10%,transparent)]"
+            @click="onDeleteFromContextMenu"
+          >
+            <Trash2 :size="14" />
+            <span>{{ t('chat.delete_message') }}</span>
+          </button>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
-
-<style scoped>
-.rich-content :deep(p) {
-  margin: 0;
-}
-.rich-content :deep(p + p) {
-  margin-top: 0.25em;
-}
-.rich-content :deep(a) {
-  color: var(--color-primary);
-  text-decoration: none;
-}
-.rich-content :deep(a:hover) {
-  text-decoration: underline;
-}
-.rich-content :deep(a[href^='https://matrix.to']) {
-  color: var(--color-primary);
-  font-weight: 500;
-  cursor: pointer;
-  background: var(--color-primary);
-  background: color-mix(in srgb, var(--color-primary) 15%, transparent);
-  padding: 0 2px;
-  border-radius: 3px;
-}
-.rich-content :deep(a[href^='https://matrix.to']):hover {
-  background: color-mix(in srgb, var(--color-primary) 25%, transparent);
-  text-decoration: underline;
-}
-.rich-content :deep(strong) {
-  font-weight: 700;
-  color: var(--color-foreground);
-}
-.rich-content :deep(em) {
-  font-style: italic;
-}
-.rich-content :deep(code) {
-  font-size: 0.85em;
-  padding: 0.15em 0.35em;
-  border-radius: 3px;
-  background: var(--color-muted);
-  border: 1px solid var(--color-border);
-  font-family: 'Consolas', 'Monaco', monospace;
-}
-.rich-content :deep(pre) {
-  margin: 0.5em 0;
-  padding: 0.75em;
-  border-radius: 4px;
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
-  overflow-x: auto;
-  font-size: 0.85em;
-}
-.rich-content :deep(pre code) {
-  padding: 0;
-  background: none;
-  border: none;
-}
-.rich-content :deep(blockquote) {
-  margin: 0.3em 0;
-  padding-left: 0.75em;
-  border-left: 3px solid var(--color-muted-foreground);
-  color: var(--color-muted-foreground);
-}
-.rich-content :deep(ul),
-.rich-content :deep(ol) {
-  margin: 0.2em 0;
-  padding-left: 1.5em;
-}
-.rich-content :deep(li + li) {
-  margin-top: 0.1em;
-}
-.rich-content :deep(del),
-.rich-content :deep(s) {
-  text-decoration: line-through;
-  opacity: 0.7;
-}
-</style>
