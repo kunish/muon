@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { SpaceMember } from '@/matrix/spaces'
-import { EventType } from 'matrix-js-sdk'
+import { ask } from '@tauri-apps/plugin-dialog'
 import {
   AtSign,
   Ban,
@@ -10,6 +10,7 @@ import {
   User,
   UserX,
 } from 'lucide-vue-next'
+import { EventType } from 'matrix-js-sdk'
 import { computed, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
@@ -42,8 +43,16 @@ watch(() => props.member, () => {
   const myId = client.getUserId()
   if (!myId)
     return
-  // 简单取当前用户的 power level（需要房间上下文，这里近似）
-  myPowerLevel.value = 0
+
+  try {
+    const room = client.getRoom(props.serverId)
+    const powerLevelsEvent = room?.currentState.getStateEvents('m.room.power_levels', '')
+    const powerLevels = powerLevelsEvent?.getContent()
+    myPowerLevel.value = powerLevels?.users?.[myId] ?? powerLevels?.users_default ?? 0
+  }
+  catch {
+    myPowerLevel.value = 0
+  }
 })
 
 const isAdmin = computed(() => myPowerLevel.value >= 50)
@@ -135,6 +144,7 @@ async function onChangeNickname() {
   if (!props.member || !props.serverId)
     return
 
+  // eslint-disable-next-line no-alert -- Tauri has no input prompt dialog; window.prompt is the simplest option
   const nextNickname = window.prompt(t('member.change_nickname'), props.member.displayName)?.trim()
   if (!nextNickname || nextNickname === props.member.displayName)
     return
@@ -179,7 +189,11 @@ async function onMute() {
 async function onKick() {
   if (!props.member || !props.serverId)
     return
-  if (!window.confirm(t('member.kick_confirm_msg', { name: props.member.displayName })))
+  const confirmKick = await ask(t('member.kick_confirm_msg', { name: props.member.displayName }), {
+    title: t('member.kick'),
+    kind: 'warning',
+  })
+  if (!confirmKick)
     return
 
   try {
@@ -195,7 +209,11 @@ async function onKick() {
 async function onBan() {
   if (!props.member || !props.serverId)
     return
-  if (!window.confirm(t('member.ban_confirm_msg', { name: props.member.displayName })))
+  const confirmBan = await ask(t('member.ban_confirm_msg', { name: props.member.displayName }), {
+    title: t('member.ban'),
+    kind: 'warning',
+  })
+  if (!confirmBan)
     return
 
   try {

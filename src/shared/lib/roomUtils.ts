@@ -12,3 +12,14 @@ export function isDirectRoom(roomId: string): boolean {
     ids => Array.isArray(ids) && ids.includes(roomId),
   )
 }
+
+export function normalizeRoomId(id: string | null | undefined): string | null {
+  if (!id)
+    return null
+  try {
+    return decodeURIComponent(id)
+  }
+  catch {
+    return id
+  }
+}

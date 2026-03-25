@@ -10,10 +10,10 @@
  */
 import type { MatrixEvent } from 'matrix-js-sdk'
 import { getClient } from '@matrix/client'
-import { redactMessage, getReactions, getThreadReplies } from '@matrix/index'
+import { getReactions, getThreadReplies, redactMessage } from '@matrix/index'
 import { ask } from '@tauri-apps/plugin-dialog'
 import { Copy, MessageSquare, Reply, Trash2 } from 'lucide-vue-next'
-import { computed, onUnmounted, ref } from 'vue'
+import { computed, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useSettingsStore } from '@/features/settings/stores/settingsStore'
 import { Avatar } from '@/shared/components/ui/avatar'
@@ -324,14 +324,17 @@ function onDocumentPointerDown(event: MouseEvent) {
   closeContextMenu()
 }
 
-if (typeof document !== 'undefined') {
-  document.addEventListener('mousedown', onDocumentPointerDown)
-}
-
-onUnmounted(() => {
-  if (typeof document !== 'undefined') {
+watch(showContextMenu, (open) => {
+  if (open) {
+    setTimeout(() => document.addEventListener('mousedown', onDocumentPointerDown), 0)
+  }
+  else {
     document.removeEventListener('mousedown', onDocumentPointerDown)
   }
+})
+
+onUnmounted(() => {
+  document.removeEventListener('mousedown', onDocumentPointerDown)
 })
 </script>
 
@@ -462,7 +465,7 @@ onUnmounted(() => {
         <FileMessage v-else-if="msgtype === 'm.file'" :event="event" />
         <div
           v-else-if="sanitizedHtml"
-          class="text-[15px] leading-relaxed text-foreground/90 [&_blockquote]:my-[0.3em] [&_blockquote]:border-l-[3px] [&_blockquote]:border-muted-foreground [&_blockquote]:pl-3 [&_blockquote]:text-muted-foreground [&_code]:rounded [&_code]:border [&_code]:border-border [&_code]:bg-muted [&_code]:px-[0.35em] [&_code]:py-[0.15em] [&_code]:font-['Consolas','Monaco',monospace] [&_code]:text-[0.85em] [&_del]:opacity-70 [&_del]:line-through [&_em]:italic [&_li+li]:mt-[0.1em] [&_ol]:my-[0.2em] [&_ol]:pl-6 [&_p+p]:mt-1 [&_p]:m-0 [&_pre]:my-2 [&_pre]:overflow-x-auto [&_pre]:rounded [&_pre]:border [&_pre]:border-border [&_pre]:bg-card [&_pre]:p-3 [&_pre]:text-[0.85em] [&_pre_code]:border-0 [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_s]:opacity-70 [&_s]:line-through [&_strong]:font-bold [&_strong]:text-foreground [&_ul]:my-[0.2em] [&_ul]:pl-6 [&_a]:text-primary [&_a]:no-underline hover:[&_a]:underline [&_a[href^='https://matrix.to']]:cursor-pointer [&_a[href^='https://matrix.to']]:rounded [&_a[href^='https://matrix.to']]:bg-[color-mix(in_srgb,var(--color-primary)_15%,transparent)] [&_a[href^='https://matrix.to']]:px-0.5 [&_a[href^='https://matrix.to']]:font-medium [&_a[href^='https://matrix.to']]:text-primary hover:[&_a[href^='https://matrix.to']]:bg-[color-mix(in_srgb,var(--color-primary)_25%,transparent)] hover:[&_a[href^='https://matrix.to']]:underline"
+          class="rich-message-content text-[15px] leading-relaxed text-foreground/90 [&_blockquote]:border-l-[3px] [&_blockquote]:border-muted-foreground [&_blockquote]:pl-3 [&_blockquote]:text-muted-foreground [&_code]:border [&_code]:border-border [&_code]:bg-muted [&_code]:px-[0.35em] [&_code]:py-[0.15em] [&_code]:font-['Consolas','Monaco',monospace] [&_del]:opacity-70 [&_del]:line-through [&_em]:italic [&_ol]:pl-6 [&_pre]:my-2 [&_pre]:rounded [&_pre]:border [&_pre]:border-border [&_pre]:bg-card [&_pre]:p-3 [&_pre_code]:border-0 [&_s]:opacity-70 [&_s]:line-through [&_strong]:font-bold [&_strong]:text-foreground [&_ul]:pl-6 [&_a]:text-primary [&_a]:no-underline hover:[&_a]:underline [&_a[href^='https://matrix.to']]:rounded [&_a[href^='https://matrix.to']]:bg-[color-mix(in_srgb,var(--color-primary)_15%,transparent)] [&_a[href^='https://matrix.to']]:px-0.5 hover:[&_a[href^='https://matrix.to']]:bg-[color-mix(in_srgb,var(--color-primary)_25%,transparent)]"
           :class="isRightAligned ? 'rounded-2xl bg-primary/10 px-3 py-2' : ''"
           :style="isRightAligned ? { width: 'fit-content', maxWidth: '100%', marginLeft: 'auto' } : {}"
           @click="onRichContentClick"

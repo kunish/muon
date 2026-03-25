@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { RoomSummary } from '@matrix/types'
-import type { ConversationFilter } from '../stores/chatStore'
 import { getClient } from '@matrix/client'
 import { useVirtualizer } from '@tanstack/vue-virtual'
 import { MessageSquarePlus, Search } from 'lucide-vue-next'
@@ -8,6 +7,7 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { Avatar } from '@/shared/components/ui/avatar'
+import { normalizeRoomId } from '@/shared/lib/roomUtils'
 import { useConversations } from '../composables/useConversations'
 import { useGlobalTyping } from '../composables/useGlobalTyping'
 import { useChatStore } from '../stores/chatStore'
@@ -65,12 +65,12 @@ function onAvatarClick(room: RoomSummary, event: MouseEvent) {
 }
 
 // --- 筛选标签 ---
-const filterTabs: { key: ConversationFilter, label: string }[] = [
-  { key: 'all', label: t('chat.filter_all') },
-  { key: 'unread', label: t('chat.filter_unread') },
-  { key: 'dm', label: t('chat.filter_dm') },
-  { key: 'group', label: t('chat.filter_group') },
-]
+const filterTabs = computed(() => [
+  { key: 'all' as const, label: t('chat.filter_all') },
+  { key: 'unread' as const, label: t('chat.filter_unread') },
+  { key: 'dm' as const, label: t('chat.filter_dm') },
+  { key: 'group' as const, label: t('chat.filter_group') },
+])
 
 // --- 新建会话 ---
 const showNewChat = ref(false)
@@ -96,17 +96,6 @@ const quickAccessContacts = computed(() => {
 function selectQuickContact(roomId: string) {
   store.setCurrentRoom(roomId)
   router.push(`/dm/${encodeURIComponent(roomId)}`)
-}
-
-function normalizeRoomId(id: string | null | undefined) {
-  if (!id)
-    return null
-  try {
-    return decodeURIComponent(id)
-  }
-  catch {
-    return id
-  }
 }
 
 const activeRoomId = computed(() =>

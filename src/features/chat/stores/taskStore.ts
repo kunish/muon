@@ -123,7 +123,8 @@ function persistState(items: TaskItem[]) {
   try {
     localStorage.setItem(TASK_STORAGE_KEY, JSON.stringify(payload))
   }
-  catch {
+  catch (err) {
+    console.warn('[taskStore] Failed to persist tasks:', err)
   }
 }
 

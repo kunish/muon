@@ -4,6 +4,7 @@ import { openUrl } from '@tauri-apps/plugin-opener'
 import { ExternalLink, Link2 } from 'lucide-vue-next'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { toast } from 'vue-sonner'
 
 const props = defineProps<{
   url: string
@@ -179,9 +180,14 @@ onUnmounted(() => {
   unmounted = true
 })
 
-function openInBrowser() {
+async function openInBrowser() {
   if (!loading.value) {
-    openUrl(props.url)
+    try {
+      await openUrl(props.url)
+    }
+    catch {
+      toast.error('Could not open link')
+    }
   }
 }
 

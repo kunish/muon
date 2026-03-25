@@ -5,8 +5,8 @@ import { BookOpen, CalendarDays, ChevronDown, Gem, Headphones, ListChecks, Mic, 
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
-import DeferQueuePanel from '@/features/chat/components/DeferQueuePanel.vue'
 import ConversationContextMenu from '@/features/chat/components/ConversationContextMenu.vue'
+import DeferQueuePanel from '@/features/chat/components/DeferQueuePanel.vue'
 import UnifiedInboxPanel from '@/features/chat/components/UnifiedInboxPanel.vue'
 import { useConversations } from '@/features/chat/composables/useConversations'
 import { useChatStore } from '@/features/chat/stores/chatStore'
@@ -16,6 +16,7 @@ import { Avatar } from '@/shared/components/ui/avatar'
 import { Badge } from '@/shared/components/ui/badge'
 import { Input } from '@/shared/components/ui/input'
 import { ScrollArea } from '@/shared/components/ui/scroll-area'
+import { normalizeRoomId } from '@/shared/lib/roomUtils'
 import ChannelCategory from './ChannelCategory.vue'
 import ChannelContextMenu from './ChannelContextMenu.vue'
 import CreateChannelDialog from './CreateChannelDialog.vue'
@@ -76,17 +77,6 @@ function navigateToDm(roomId: string) {
 
 function openDmContextMenu(roomId: string, event: MouseEvent) {
   chatStore.openContextMenu(roomId, event.clientX, event.clientY)
-}
-
-function normalizeRoomId(id: string | null | undefined) {
-  if (!id)
-    return null
-  try {
-    return decodeURIComponent(id)
-  }
-  catch {
-    return id
-  }
 }
 
 const activeDmRoomId = computed(() =>

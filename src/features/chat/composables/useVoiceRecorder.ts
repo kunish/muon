@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+import { toast } from 'vue-sonner'
 
 export function useVoiceRecorder() {
   const isRecording = ref(false)
@@ -10,31 +11,37 @@ export function useVoiceRecorder() {
   let timer: ReturnType<typeof setInterval> | null = null
 
   async function start() {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-    recorder = new MediaRecorder(stream)
-    chunks = []
-    duration.value = 0
-    audioBlob.value = null
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      recorder = new MediaRecorder(stream)
+      chunks = []
+      duration.value = 0
+      audioBlob.value = null
 
-    recorder.ondataavailable = (e) => {
-      if (e.data.size > 0)
-        chunks.push(e.data)
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0)
+          chunks.push(e.data)
+      }
+
+      recorder.onstop = () => {
+        audioBlob.value = new Blob(chunks, { type: 'audio/webm' })
+        stream.getTracks().forEach((t) => {
+          t.stop()
+        })
+        if (timer)
+          clearInterval(timer)
+      }
+
+      recorder.start()
+      isRecording.value = true
+      timer = setInterval(() => {
+        duration.value++
+      }, 1000)
     }
-
-    recorder.onstop = () => {
-      audioBlob.value = new Blob(chunks, { type: 'audio/webm' })
-      stream.getTracks().forEach((t) => {
-        t.stop()
-      })
-      if (timer)
-        clearInterval(timer)
+    catch (err) {
+      console.error('[useVoiceRecorder] Microphone access failed:', err)
+      toast.error('Microphone access denied')
     }
-
-    recorder.start()
-    isRecording.value = true
-    timer = setInterval(() => {
-      duration.value++
-    }, 1000)
   }
 
   function stop(): Promise<Blob | null> {

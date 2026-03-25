@@ -1,3 +1,4 @@
+import type { MatrixEvent } from 'matrix-js-sdk'
 import { getClient } from '@matrix/client'
 import { matrixEvents } from '@matrix/index'
 import { onMounted, onUnmounted } from 'vue'
@@ -10,7 +11,7 @@ import { useChatStore } from '../stores/chatStore'
 export function useNotificationSound() {
   const store = useChatStore()
 
-  function onNewMessage(payload: { roomId: string, event: any }) {
+  function onNewMessage(payload: { roomId: string, event: MatrixEvent }) {
     const client = getClient()
     const myUserId = client.getUserId()
 

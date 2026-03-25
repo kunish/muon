@@ -1,3 +1,4 @@
+import type { MatrixEvent } from 'matrix-js-sdk'
 import type { DigestFilter, DigestSession, DigestSourceEvent } from '../types/digest'
 import type { DigestEntry } from '../types/knowledge'
 import { defineStore } from 'pinia'
@@ -18,7 +19,7 @@ export const useDigestStore = defineStore('digest', () => {
   const session = ref<DigestSession | null>(null)
   const activeFilter = ref<DigestFilter>('all')
   const loading = ref(false)
-  let runtimeHandler: ((payload: { roomId: string, event: any }) => void) | null = null
+  let runtimeHandler: ((payload: { roomId: string, event: MatrixEvent }) => void) | null = null
 
   const visibleEntries = computed(() => {
     const filtered = activeFilter.value === 'all'

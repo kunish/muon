@@ -3,6 +3,7 @@ import { bindClientEvents, restoreSession, startSync, syncState } from '@matrix/
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
+import { toast } from 'vue-sonner'
 import { Toaster } from '@/shared/components/ui/sonner'
 import ErrorBoundary from './components/ErrorBoundary.vue'
 
@@ -27,8 +28,14 @@ onMounted(async () => {
       router.replace('/login')
     }
   }
-  catch {
-    router.replace('/login')
+  catch (err) {
+    if (err instanceof Error && (err.message?.includes('fetch') || err.message?.includes('network') || err.message?.includes('ECONNREFUSED') || err.name === 'TypeError')) {
+      console.error('[App] Network error during session restore:', err)
+      toast.error('Network error. Please check your connection.')
+    }
+    else {
+      router.replace('/login')
+    }
   }
   finally {
     initializing.value = false

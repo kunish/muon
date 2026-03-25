@@ -13,6 +13,7 @@ import {
 } from 'lucide-vue-next'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { toast } from 'vue-sonner'
 import { Progress } from '@/shared/components/ui/progress'
 import { useDownloadStore } from '../stores/downloadStore'
 
@@ -55,13 +56,23 @@ const statusColor: Record<DownloadItem['status'], string> = {
 
 async function openFile(item: DownloadItem) {
   if (item.savePath) {
-    await openPath(item.savePath).catch(console.error)
+    try {
+      await openPath(item.savePath)
+    }
+    catch {
+      toast.error('Could not open file — it may have been moved or deleted')
+    }
   }
 }
 
 async function openFolder(item: DownloadItem) {
   if (item.savePath) {
-    await revealItemInDir(item.savePath).catch(console.error)
+    try {
+      await revealItemInDir(item.savePath)
+    }
+    catch {
+      toast.error('Could not open folder')
+    }
   }
 }
 </script>

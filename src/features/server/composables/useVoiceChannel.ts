@@ -1,5 +1,7 @@
+import type { Room } from 'livekit-client'
 import type { VoiceConnection } from '../stores/serverStore'
 import { computed, ref, shallowRef } from 'vue'
+import { toast } from 'vue-sonner'
 import { getClient } from '@/matrix/client'
 import { useServerStore } from '../stores/serverStore'
 
@@ -18,7 +20,7 @@ export interface VoiceChannelUser {
 // ── Module-level singleton state ──
 // Shared across all component instances that call useVoiceChannel()
 
-const room = shallowRef<any>(null)
+const room = shallowRef<Room | null>(null)
 const isConnected = ref(false)
 const isConnecting = ref(false)
 const isMuted = ref(false)
@@ -114,7 +116,9 @@ export function useVoiceChannel() {
       // Add self to mock participant list
       addSelfToUsers()
     }
-    catch {
+    catch (err) {
+      console.error('[useVoiceChannel] Failed to join:', err)
+      toast.error('Could not join voice channel')
       resetState()
     }
   }
@@ -150,8 +154,8 @@ export function useVoiceChannel() {
         await room.value.localParticipant.setMicrophoneEnabled(!isMuted.value)
       }
       catch {
-        // Revert on failure
         isMuted.value = !isMuted.value
+        toast.error('Microphone toggle failed')
       }
     }
 
@@ -170,7 +174,7 @@ export function useVoiceChannel() {
           await room.value.localParticipant.setMicrophoneEnabled(false)
         }
         catch {
-          // Ignore
+          toast.error('Microphone toggle failed')
         }
       }
     }
@@ -183,7 +187,7 @@ export function useVoiceChannel() {
           await room.value.localParticipant.setMicrophoneEnabled(true)
         }
         catch {
-          // Ignore
+          toast.error('Microphone toggle failed')
         }
       }
     }

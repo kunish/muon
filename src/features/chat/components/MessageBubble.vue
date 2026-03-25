@@ -606,7 +606,7 @@ function onOpenThread() {
           />
           <div
             v-else-if="sanitizedHtml"
-            class="[&_blockquote]:my-[0.3em] [&_blockquote]:border-l-2 [&_blockquote]:border-current [&_blockquote]:pl-[0.6em] [&_blockquote]:opacity-80 [&_code]:rounded [&_code]:bg-[color-mix(in_srgb,var(--color-foreground)_8%,transparent)] [&_code]:px-[0.3em] [&_code]:py-[0.1em] [&_code]:text-[0.85em] [&_li+li]:mt-[0.1em] [&_ol]:my-[0.2em] [&_ol]:pl-[1.4em] [&_p+p]:mt-1 [&_p]:m-0 [&_pre]:my-[0.4em] [&_pre]:overflow-x-auto [&_pre]:rounded-md [&_pre]:bg-[color-mix(in_srgb,var(--color-foreground)_8%,transparent)] [&_pre]:p-2 [&_pre]:text-[0.85em] [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_strong]:font-semibold [&_ul]:my-[0.2em] [&_ul]:pl-[1.4em] [&_a]:underline [&_a]:underline-offset-2 [&_a[href^='https://matrix.to']]:cursor-pointer [&_a[href^='https://matrix.to']]:font-medium [&_a[href^='https://matrix.to']]:text-primary [&_a[href^='https://matrix.to']]:no-underline hover:[&_a[href^='https://matrix.to']]:underline"
+            class="rich-message-content [&_blockquote]:border-l-2 [&_blockquote]:border-current [&_blockquote]:pl-[0.6em] [&_blockquote]:opacity-80 [&_code]:bg-[color-mix(in_srgb,var(--color-foreground)_8%,transparent)] [&_code]:px-[0.3em] [&_code]:py-[0.1em] [&_ol]:pl-[1.4em] [&_pre]:my-[0.4em] [&_pre]:rounded-md [&_pre]:bg-[color-mix(in_srgb,var(--color-foreground)_8%,transparent)] [&_pre]:p-2 [&_strong]:font-semibold [&_ul]:pl-[1.4em] [&_a]:underline [&_a]:underline-offset-2 [&_a[href^='https://matrix.to']]:no-underline"
             @click="onRichContentClick"
             v-html="sanitizedHtml"
           />

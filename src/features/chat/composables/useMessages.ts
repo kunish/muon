@@ -45,6 +45,9 @@ export function useMessages() {
         attempts++
       }
     }
+    catch (err) {
+      console.error('[useMessages] Failed to load more messages:', err)
+    }
     finally {
       isLoading.value = false
     }
@@ -95,12 +98,18 @@ export function useMessages() {
         isLoading.value = true
         try {
           await paginateBack(roomId, 30)
+          if (store.currentRoomId !== roomId)
+            return
           messages.value = getTimeline(roomId, displayLimit.value)
         }
         finally {
-          isLoading.value = false
+          if (store.currentRoomId === roomId) {
+            isLoading.value = false
+          }
         }
       }
+      if (store.currentRoomId !== roomId)
+        return
       markAsRead()
     }
     else {

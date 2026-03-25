@@ -16,12 +16,6 @@ const showMore = ref(false)
 
 const isDirect = computed(() => currentRoomId.value ? isDirectRoom(currentRoomId.value) : false)
 
-const _memberCount = computed(() => {
-  if (!room.value)
-    return 0
-  return room.value.getJoinedMemberCount()
-})
-
 const isEncrypted = computed(() => {
   if (!room.value)
     return false

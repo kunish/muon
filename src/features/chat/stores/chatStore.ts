@@ -4,6 +4,7 @@ import { defineStore } from 'pinia'
 import { reactive, ref } from 'vue'
 
 export type ConversationFilter = 'all' | 'unread' | 'dm' | 'group'
+export type SidePanelType = 'threads' | 'search' | 'pinned' | 'starred' | 'members' | 'settings' | 'tasks' | 'knowledge'
 
 export const useChatStore = defineStore('chat', () => {
   const currentRoomId = ref<string | null>(null)
@@ -40,13 +41,13 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   // --- Side panel ---
-  const activeSidePanel = ref<'threads' | 'search' | 'pinned' | 'starred' | 'members' | 'settings' | 'tasks' | 'knowledge' | null>(null)
+  const activeSidePanel = ref<SidePanelType | null>(null)
 
   function setActiveTab(_tab: string) {
     // No-op: tabs removed, kept for API compat
   }
 
-  function toggleSidePanel(panel: 'threads' | 'search' | 'pinned' | 'starred' | 'members' | 'settings' | 'tasks' | 'knowledge') {
+  function toggleSidePanel(panel: SidePanelType) {
     if (activeSidePanel.value === panel) {
       activeSidePanel.value = null
     }

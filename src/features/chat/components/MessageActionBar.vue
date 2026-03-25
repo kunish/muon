@@ -12,6 +12,7 @@ import {
   pinMessage,
   unpinMessage,
 } from '@matrix/rooms'
+import { ask } from '@tauri-apps/plugin-dialog'
 import {
   Copy,
   Edit,
@@ -26,6 +27,7 @@ import {
 } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { toast } from 'vue-sonner'
 import { useChatStore } from '../stores/chatStore'
 import { useDeferStore } from '../stores/deferStore'
 import { useTaskStore } from '../stores/taskStore'
@@ -74,18 +76,34 @@ function onEdit() {
 
 async function onDelete() {
   showMore.value = false
-  await redactMessage(props.roomId, eventId.value)
+  const confirmed = await ask(t('chat.delete_confirm'), {
+    title: t('chat.delete_message'),
+    kind: 'warning',
+  })
+  if (!confirmed)
+    return
+  try {
+    await redactMessage(props.roomId, eventId.value)
+  }
+  catch {
+    toast.error(t('auth.error'))
+  }
 }
 
 async function onTogglePin() {
   showMore.value = false
   if (!props.roomId || !eventId.value)
     return
-  if (isPinned.value) {
-    await unpinMessage(props.roomId, eventId.value)
+  try {
+    if (isPinned.value) {
+      await unpinMessage(props.roomId, eventId.value)
+    }
+    else {
+      await pinMessage(props.roomId, eventId.value)
+    }
   }
-  else {
-    await pinMessage(props.roomId, eventId.value)
+  catch {
+    toast.error(t('auth.error'))
   }
 }
 
