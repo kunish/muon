@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1](https://github.com/kunish/muon/compare/muon-v1.0.0...muon-v1.0.1) (2026-03-26)
+
+
+### Bug Fixes
+
+* improve error handling, type safety, and code quality across codebase ([f787124](https://github.com/kunish/muon/commit/f7871241f69c75136ebc6e75988e405b7b5304b0))
+* **lint:** move regex constants after defineProps/defineEmits to satisfy vue/define-macros-order ([d3f5d92](https://github.com/kunish/muon/commit/d3f5d92077d906ab2bc4a25cade4391f03d47b1f))
+* **lint:** resolve e18e lint errors for prefer-static-regex, prefer-array-at, prefer-timer-args, prefer-array-from-map ([b29e075](https://github.com/kunish/muon/commit/b29e0750bbc1be6d68df155ae9ea50f1ad75c521))
+* **ts:** upgrade target and lib to ES2022 for Array.at() support ([173dda8](https://github.com/kunish/muon/commit/173dda8d0adca288a46031faaf8b0eb3c1e50ae1))
+
 ## [1.0.0](https://github.com/kunish/muon/compare/muon-v1.0.0...muon-v1.0.0) (2026-03-18)
 
 
