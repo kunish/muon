@@ -1,6 +1,6 @@
 [package]
 name = "muon"
-version = "1.0.0"
+version = "1.0.1"
 description = "A modern, fast Matrix chat client built with Tauri and Vue 3"
 authors = [ "Muon Contributors" ]
 license = "MIT"
