@@ -10,14 +10,27 @@
     "opener:default",
     "dialog:default",
     "fs:default",
-    "fs:allow-read-file",
+    {
+      "identifier": "fs:allow-read-file",
+      "allow": [
+        { "path": "$DOWNLOAD/**" },
+        { "path": "$DOCUMENT/**" },
+        { "path": "$PICTURE/**" },
+        { "path": "$VIDEO/**" },
+        { "path": "$AUDIO/**" },
+        { "path": "$APPDATA/**" }
+      ]
+    },
     {
       "identifier": "http:default",
       "allow": [
-        { "url": "http://*:*" },
-        { "url": "https://*:*" },
-        { "url": "http://*" },
-        { "url": "https://*" }
+        { "url": "https://*" },
+        { "url": "http://localhost:*" },
+        { "url": "http://127.0.0.1:*" }
+      ],
+      "deny": [
+        { "url": "http://169.254.169.254" },
+        { "url": "http://metadata.google.internal" }
       ]
     }
   ]

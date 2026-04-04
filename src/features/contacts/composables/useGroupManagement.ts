@@ -1,4 +1,5 @@
 import { getClient } from '@matrix/client'
+import { Preset } from 'matrix-js-sdk'
 
 export function useGroupManagement() {
   async function createGroup(opts: {
@@ -16,7 +17,7 @@ export function useGroupManagement() {
       topic: opts.topic,
       invite: opts.userIds,
       initial_state: initialState,
-      preset: 'private_chat' as any,
+      preset: Preset.PrivateChat,
     })
     return room_id
   }
@@ -37,7 +38,7 @@ export function useGroupManagement() {
     const plEvent = room.currentState.getStateEvents('m.room.power_levels', '')
     const content = plEvent?.getContent() || {}
     const users = { ...content.users, [userId]: level }
-    await client.sendStateEvent(roomId, 'm.room.power_levels' as any, { ...content, users })
+    await client.sendStateEvent(roomId, 'm.room.power_levels', { ...content, users })
   }
 
   return { createGroup, inviteUser, kickUser, setUserPowerLevel }

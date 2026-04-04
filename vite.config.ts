@@ -37,5 +37,15 @@ export default defineConfig({
     target: ['es2021', 'chrome100', 'safari13'],
     minify: !process.env.TAURI_DEBUG ? 'esbuild' : false,
     sourcemap: !!process.env.TAURI_DEBUG,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'matrix-sdk': ['matrix-js-sdk'],
+          'editor': ['@tiptap/starter-kit', '@tiptap/vue-3', '@tiptap/pm', '@tiptap/extension-image', '@tiptap/extension-mention', '@tiptap/extension-placeholder'],
+          'lottie': ['lottie-web'],
+          'media': ['plyr', 'viewerjs'],
+        },
+      },
+    },
   },
 })

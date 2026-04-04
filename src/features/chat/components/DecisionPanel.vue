@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { loadInboxEventContext } from '@matrix/index'
 import { onMounted, reactive } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 import { Textarea } from '@/shared/components/ui/textarea'
+import { preloadAndNavigate } from '@/shared/lib/contextPreload'
 import { useDecisionStore } from '../stores/decisionStore'
 
 const decisionStore = useDecisionStore()
@@ -54,19 +54,7 @@ async function rejectSuggestion(decisionId: string, suggestionId: string) {
 }
 
 async function openLinkedMessage(roomId: string, eventId: string) {
-  try {
-    await loadInboxEventContext(roomId, eventId)
-  }
-  catch (error) {
-    console.warn('[DecisionPanel] context preload failed, fallback to direct navigation', error)
-  }
-
-  await router.push({
-    path: `/dm/${encodeURIComponent(roomId)}`,
-    query: {
-      focusEventId: eventId,
-    },
-  })
+  await preloadAndNavigate(router, roomId, eventId, 'DecisionPanel')
 }
 </script>
 

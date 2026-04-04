@@ -87,9 +87,21 @@ const router = createRouter({
   ],
 })
 
+function isAuthenticated(): boolean {
+  try {
+    const stored = localStorage.getItem('muon_auth')
+    if (!stored)
+      return false
+    const data = JSON.parse(stored)
+    return !!(data.accessToken && data.serverUrl && data.userId)
+  }
+  catch {
+    return false
+  }
+}
+
 router.beforeEach((to) => {
-  const hasToken = !!localStorage.getItem('muon_auth')
-  if (to.meta.requiresAuth && !hasToken)
+  if (to.meta.requiresAuth && !isAuthenticated())
     return '/login'
 })
 

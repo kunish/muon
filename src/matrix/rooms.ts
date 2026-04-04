@@ -36,7 +36,21 @@ export function getRoom(roomId: string): Room | null {
   return getClient().getRoom(roomId)
 }
 
+let cachedSummaries: RoomSummary[] | null = null
+let cacheTimestamp = 0
+const CACHE_TTL = 200 // ms
+
+export function invalidateRoomSummariesCache() {
+  cachedSummaries = null
+  cacheTimestamp = 0
+}
+
 export function getRoomSummaries(): RoomSummary[] {
+  const now = Date.now()
+  if (cachedSummaries && now - cacheTimestamp < CACHE_TTL) {
+    return cachedSummaries
+  }
+
   const client = getClient()
   const rooms = client.getRooms().filter(room => room.getMyMembership() === 'join')
 
@@ -52,7 +66,7 @@ export function getRoomSummaries(): RoomSummary[] {
     }
   }
 
-  return rooms
+  const result = rooms
     .map((room): RoomSummary => {
       const { event: lastEvent, lastTimeEvent } = getLatestVisibleEvent(room)
 
@@ -103,6 +117,10 @@ export function getRoomSummaries(): RoomSummary[] {
       }
     })
     .sort((a, b) => (b.lastMessageTs || 0) - (a.lastMessageTs || 0))
+
+  cachedSummaries = result
+  cacheTimestamp = now
+  return result
 }
 
 /** 切换置顶 (m.favourite tag) */

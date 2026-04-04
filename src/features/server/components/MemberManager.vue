@@ -11,12 +11,14 @@ import { Button } from '@/shared/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog'
 import { Input } from '@/shared/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select'
+import { useMemberActions } from '@/shared/composables/useMemberActions'
 
 const props = defineProps<{
   serverId: string
 }>()
 
 const { t } = useI18n()
+const { kickMember, banMember } = useMemberActions()
 
 // ── Role definitions (matching MemberPanel) ──
 
@@ -116,7 +118,7 @@ async function changeRole(member: SpaceMember, newLevel: number) {
   }
   catch (err) {
     console.error('Failed to change role:', err)
-    toast.error(t('auth.error'))
+    toast.error(t('server.role_failed'))
   }
   finally {
     isChangingRole.value = null
@@ -136,15 +138,13 @@ async function handleKick() {
   isKicking.value = true
 
   try {
-    const client = getClient()
-    await client.kick(props.serverId, kickTarget.value.userId, 'Kicked by admin')
+    await kickMember(props.serverId, kickTarget.value.userId, 'Kicked by admin')
     loadMembers()
     showKickDialog.value = false
     kickTarget.value = null
   }
-  catch (err) {
-    console.error('Failed to kick member:', err)
-    toast.error(t('auth.error'))
+  catch {
+    // error already handled by useMemberActions
   }
   finally {
     isKicking.value = false
@@ -164,15 +164,13 @@ async function handleBan() {
   isBanning.value = true
 
   try {
-    const client = getClient()
-    await client.ban(props.serverId, banTarget.value.userId, 'Banned by admin')
+    await banMember(props.serverId, banTarget.value.userId, 'Banned by admin')
     loadMembers()
     showBanDialog.value = false
     banTarget.value = null
   }
-  catch (err) {
-    console.error('Failed to ban member:', err)
-    toast.error(t('auth.error'))
+  catch {
+    // error already handled by useMemberActions
   }
   finally {
     isBanning.value = false

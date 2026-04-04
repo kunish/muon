@@ -6,7 +6,7 @@ import { getClient } from '@/matrix/client'
  */
 export function isDirectRoom(roomId: string): boolean {
   const client = getClient()
-  const directEvent = client.getAccountData('m.direct' as any)
+  const directEvent = client.getAccountData('m.direct')
   const directContent: Record<string, string[]> = directEvent?.getContent() ?? {}
   return Object.values(directContent).some(
     ids => Array.isArray(ids) && ids.includes(roomId),

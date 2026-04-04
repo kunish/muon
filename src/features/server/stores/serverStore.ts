@@ -268,6 +268,20 @@ export const useServerStore = defineStore('server', () => {
     eventsListening = false
   }
 
+  /** Full cleanup for logout — stop listeners and reset all state */
+  function resetStore() {
+    stopListening()
+    servers.value = []
+    currentServerId.value = null
+    channelTree.value = []
+    currentChannelId.value = null
+    collapsedCategories.clear()
+    lastVisitedChannel.clear()
+    voiceConnection.value = null
+    isDmMode.value = false
+    orphanChannels.value = []
+  }
+
   return {
     // State
     servers,
@@ -296,5 +310,6 @@ export const useServerStore = defineStore('server', () => {
     isRoomVoiceChannel,
     startListening,
     stopListening,
+    resetStore,
   }
 })

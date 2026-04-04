@@ -1,17 +1,18 @@
+import type { MatrixClient } from 'matrix-js-sdk'
 import type { MatrixConfig } from './types'
 import { fetch } from '@tauri-apps/plugin-http'
-import * as sdk from 'matrix-js-sdk'
+import { createClient as sdkCreateClient } from 'matrix-js-sdk'
 
-let client: sdk.MatrixClient | null = null
+let client: MatrixClient | null = null
 
-export function getClient(): sdk.MatrixClient {
+export function getClient(): MatrixClient {
   if (!client)
     throw new Error('Matrix client not initialized')
   return client
 }
 
-export function createClient(config: MatrixConfig): sdk.MatrixClient {
-  client = sdk.createClient({
+export function createClient(config: MatrixConfig): MatrixClient {
+  client = sdkCreateClient({
     baseUrl: config.serverUrl,
     accessToken: config.accessToken,
     userId: config.userId,

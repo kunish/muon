@@ -6,6 +6,15 @@ import { EventType, MsgType, RelationType } from 'matrix-js-sdk'
 import { getClient } from './client'
 import { uploadMedia } from './media'
 
+const RE_AMP = /&/g
+const RE_LT = /</g
+const RE_GT = />/g
+const RE_QUOT = /"/g
+
+function escapeHtml(text: string): string {
+  return text.replace(RE_AMP, '&amp;').replace(RE_LT, '&lt;').replace(RE_GT, '&gt;').replace(RE_QUOT, '&quot;')
+}
+
 const MENTION_SPAN_RE = /<span[^>]*data-type="mention"[^>]*data-id="([^"]*)"[^>]*>@?([^<]*)<\/span>/g
 
 /**
@@ -209,6 +218,7 @@ export interface SystemEventInfo {
 }
 
 /** 获取系统事件的结构化描述（用于丰富渲染） */
+// TODO: migrate hardcoded Chinese strings to i18n
 export function getSystemEventInfo(ev: MatrixEvent): SystemEventInfo {
   const evType = ev.getType()
   const sender = ev.getSender() || ''
@@ -542,7 +552,7 @@ export async function forwardMessages(
   const htmlBodies = events.map((e) => {
     const sender = e!.getSender() || 'Unknown'
     const body = e!.getContent().body || ''
-    return `<p><strong>${sender}</strong>: ${body}</p>`
+    return `<p><strong>${escapeHtml(sender)}</strong>: ${escapeHtml(body)}</p>`
   })
 
   const { event_id } = await getClient().sendMessage(targetRoomId, {

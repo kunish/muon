@@ -35,7 +35,7 @@ declare module 'matrix-js-sdk' {
     'im.muon.announcement': MuonAnnouncementContent
     'im.muon.message_retention': MuonMessageRetentionContent
     'im.muon.voice_channel': MuonVoiceChannelContent
-    'im.muon.roles': { roles: { name: string, level: number }[] }
+    'im.muon.roles': { roles: { id: string, name: string, color: string, powerLevel: number, isDefault: boolean }[] }
     'm.room.avatar': { url: string }
     'm.room.power_levels': {
       users?: Record<string, number>
@@ -45,6 +45,7 @@ declare module 'matrix-js-sdk' {
       users_default?: number
       ban?: number
       kick?: number
+      invite?: number
       redact?: number
     }
   }

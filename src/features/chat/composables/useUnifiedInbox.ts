@@ -1,7 +1,7 @@
 import type { RoomSummary } from '@matrix/types'
 import type { UnifiedInboxItem } from '../types/unifiedInbox'
 import { getClient } from '@matrix/client'
-import { getRoom, getRoomSummaries, matrixEvents } from '@matrix/index'
+import { getRoom, getRoomSummaries, invalidateRoomSummariesCache, matrixEvents } from '@matrix/index'
 import { computed, getCurrentInstance, onMounted, ref, shallowRef } from 'vue'
 import { useInboxStore } from '../stores/inboxStore'
 
@@ -33,6 +33,7 @@ function refreshNow() {
 
 function handleSyncState({ state }: { state: string }) {
   if (RECOVERY_SYNC_STATES.has(state)) {
+    invalidateRoomSummariesCache()
     refreshNow()
     return
   }
@@ -158,10 +159,12 @@ export function useUnifiedInbox() {
   }
 }
 
-export function __resetUnifiedInboxForTests() {
+/** Unbind module-level mitt listeners and reset state. Call on logout. */
+export function resetUnifiedInboxListeners() {
   for (const evt of LISTENED_EVENTS)
     matrixEvents.off(evt, scheduleRefresh)
   matrixEvents.off('sync.state', handleSyncState)
+  invalidateRoomSummariesCache()
   summaries.value = []
   isLoading.value = true
   listenersBound = false
@@ -170,3 +173,5 @@ export function __resetUnifiedInboxForTests() {
     debounceTimer = null
   }
 }
+
+export const __resetUnifiedInboxForTests = resetUnifiedInboxListeners

@@ -1,5 +1,13 @@
 import type { LoginCredentials, RegisterParams } from './types'
+import { z } from 'zod'
 import { createClient, destroyClient, getClient } from './client'
+
+const sessionSchema = z.object({
+  serverUrl: z.string().url(),
+  accessToken: z.string().min(1),
+  userId: z.string().regex(/^@[^:]+:.+$/),
+  deviceId: z.string().min(1),
+})
 
 const STORAGE_KEY = 'muon_auth'
 
@@ -91,8 +99,13 @@ export function restoreSession(): boolean {
     return false
 
   try {
-    const session: StoredSession = JSON.parse(raw)
-    createClient(session)
+    const parsed = JSON.parse(raw)
+    const result = sessionSchema.safeParse(parsed)
+    if (!result.success) {
+      clearSession()
+      return false
+    }
+    createClient(result.data)
     return true
   }
   catch {

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { SpaceMember } from '@/matrix/spaces'
 import { ask } from '@tauri-apps/plugin-dialog'
+import { onClickOutside } from '@vueuse/core'
 import {
   AtSign,
   Ban,
@@ -11,12 +12,14 @@ import {
   UserX,
 } from 'lucide-vue-next'
 import { EventType } from 'matrix-js-sdk'
-import { computed, onUnmounted, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import { blockUser } from '@/matrix/blocking'
 import { getClient } from '@/matrix/client'
 import { findOrCreateDm } from '@/matrix/rooms'
+import { useMemberActions } from '@/shared/composables/useMemberActions'
+import { useRoomPermissions } from '@/shared/composables/useRoomPermissions'
 
 const props = defineProps<{
   member: SpaceMember | null
@@ -33,29 +36,11 @@ const emit = defineEmits<{
 const menuRef = ref<HTMLElement | null>(null)
 const isOpen = computed(() => !!props.member)
 const { t } = useI18n()
+const { kickMember, banMember } = useMemberActions()
 
 // ── 权限判断 ──
 
-const myPowerLevel = ref(0)
-
-watch(() => props.member, () => {
-  const client = getClient()
-  const myId = client.getUserId()
-  if (!myId)
-    return
-
-  try {
-    const room = client.getRoom(props.serverId)
-    const powerLevelsEvent = room?.currentState.getStateEvents('m.room.power_levels', '')
-    const powerLevels = powerLevelsEvent?.getContent()
-    myPowerLevel.value = powerLevels?.users?.[myId] ?? powerLevels?.users_default ?? 0
-  }
-  catch {
-    myPowerLevel.value = 0
-  }
-})
-
-const isAdmin = computed(() => myPowerLevel.value >= 50)
+const { isModerator: isAdmin } = useRoomPermissions(computed(() => props.serverId ?? null))
 const isSelf = computed(() => {
   if (!props.member)
     return false
@@ -92,23 +77,9 @@ const style = computed(() => {
 
 // ── 点击外部关闭 ──
 
-function onClickOutside(e: MouseEvent) {
-  if (menuRef.value && !menuRef.value.contains(e.target as Node)) {
+onClickOutside(menuRef, () => {
+  if (isOpen.value)
     emit('close')
-  }
-}
-
-watch(isOpen, (open) => {
-  if (open) {
-    setTimeout(() => document.addEventListener('mousedown', onClickOutside), 0)
-  }
-  else {
-    document.removeEventListener('mousedown', onClickOutside)
-  }
-})
-
-onUnmounted(() => {
-  document.removeEventListener('mousedown', onClickOutside)
 })
 
 // ── 操作 ──
@@ -129,7 +100,7 @@ async function onMessage() {
   }
   catch (err) {
     console.error('Failed to open DM:', err)
-    toast.error(t('auth.error'))
+    toast.error(t('server.dm_failed'))
   }
 }
 
@@ -169,7 +140,7 @@ async function onChangeNickname() {
   }
   catch (err) {
     console.error('Failed to change nickname:', err)
-    toast.error(t('auth.error'))
+    toast.error(t('server.update_failed'))
   }
 }
 
@@ -182,7 +153,7 @@ async function onMute() {
   }
   catch (err) {
     console.error('Failed to mute user:', err)
-    toast.error(t('auth.error'))
+    toast.error(t('server.mute_failed'))
   }
 }
 
@@ -197,12 +168,11 @@ async function onKick() {
     return
 
   try {
-    await getClient().kick(props.serverId, props.member.userId, 'Kicked by admin')
+    await kickMember(props.serverId, props.member.userId, 'Kicked by admin')
     emit('close')
   }
-  catch (err) {
-    console.error('Failed to kick member:', err)
-    toast.error(t('auth.error'))
+  catch {
+    // error already handled by useMemberActions
   }
 }
 
@@ -217,12 +187,11 @@ async function onBan() {
     return
 
   try {
-    await getClient().ban(props.serverId, props.member.userId, 'Banned by admin')
+    await banMember(props.serverId, props.member.userId, 'Banned by admin')
     emit('close')
   }
-  catch (err) {
-    console.error('Failed to ban member:', err)
-    toast.error(t('auth.error'))
+  catch {
+    // error already handled by useMemberActions
   }
 }
 </script>

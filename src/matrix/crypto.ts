@@ -1,16 +1,13 @@
 import { Preset } from 'matrix-js-sdk'
 import { getClient } from './client'
 
-/** initCrypto and setCryptoTrustCrossSignedDevices are not on typed MatrixClient */
-interface CryptoClient {
-  initCrypto: () => Promise<void>
-  setCryptoTrustCrossSignedDevices: (trust: boolean) => void
-}
-
 export async function initCrypto(): Promise<void> {
-  const client = getClient() as unknown as CryptoClient
-  await client.initCrypto()
-  client.setCryptoTrustCrossSignedDevices(true)
+  const client = getClient()
+  await client.initRustCrypto()
+  const crypto = client.getCrypto()
+  if (crypto) {
+    await crypto.setTrustCrossSignedDevices(true)
+  }
 }
 
 export async function createEncryptedRoom(

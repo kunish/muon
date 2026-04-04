@@ -186,7 +186,7 @@ async function openInBrowser() {
       await openUrl(props.url)
     }
     catch {
-      toast.error('Could not open link')
+      toast.error(t('chat.link_open_failed'))
     }
   }
 }

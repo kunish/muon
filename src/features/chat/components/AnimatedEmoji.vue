@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { AnimationItem } from 'lottie-web'
-import lottie from 'lottie-web'
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { fetchEmojiLottie, splitEmojis } from '@/shared/lib/emojiLottie'
 
@@ -23,6 +22,9 @@ const failed = ref<boolean[]>(emojis.map(() => false))
 const entered = ref(false)
 
 onMounted(async () => {
+  const lottieModule = await import('lottie-web')
+  const lottie = lottieModule.default
+
   for (let i = 0; i < emojis.length; i++) {
     const el = slotRefs.value[i]
     if (!el) {

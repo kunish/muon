@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import type { DigestFilter } from '../types/digest'
-import { loadInboxEventContext } from '@matrix/index'
 import { computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { preloadAndNavigate } from '@/shared/lib/contextPreload'
 import { useDigestStore } from '../stores/digestStore'
 
 const router = useRouter()
@@ -26,19 +26,7 @@ onUnmounted(() => {
 })
 
 async function openCitation(roomId: string, eventId: string) {
-  try {
-    await loadInboxEventContext(roomId, eventId)
-  }
-  catch (error) {
-    console.warn('[OfflineDigestPanel] context preload failed, fallback to direct navigation', error)
-  }
-
-  await router.push({
-    path: `/dm/${encodeURIComponent(roomId)}`,
-    query: {
-      focusEventId: eventId,
-    },
-  })
+  await preloadAndNavigate(router, roomId, eventId, 'OfflineDigestPanel')
 }
 </script>
 

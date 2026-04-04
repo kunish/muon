@@ -33,6 +33,7 @@ const MATRIX_HTML_CONFIG = {
     'rel',
     'class',
   ],
+  ALLOWED_URI_REGEXP: /^(?:https?|mailto|matrix|mxc):/i,
 }
 
 /** Sanitize Matrix HTML content for safe rendering with v-html */

@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import type { TaskItem } from '../types/task'
-import { loadInboxEventContext } from '@matrix/index'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
+import { preloadAndNavigate } from '@/shared/lib/contextPreload'
 import { useTaskStore } from '../stores/taskStore'
 
 const { t } = useI18n()
@@ -24,20 +24,7 @@ function transitionTask(task: TaskItem, to: 'todo' | 'doing' | 'done') {
 
 async function jumpToSourceMessage(task: TaskItem) {
   const { roomId, eventId } = task.sourceRef
-
-  try {
-    await loadInboxEventContext(roomId, eventId)
-  }
-  catch (error) {
-    console.warn('[TaskPanel] context preload failed, fallback to direct navigation', error)
-  }
-
-  await router.push({
-    path: `/dm/${encodeURIComponent(roomId)}`,
-    query: {
-      focusEventId: eventId,
-    },
-  })
+  await preloadAndNavigate(router, roomId, eventId, 'TaskPanel')
 }
 </script>
 

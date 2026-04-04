@@ -3,6 +3,7 @@ import { bindClientEvents, login, register, startSync } from '@matrix/index'
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
+import { toast } from 'vue-sonner'
 import { Input } from '@/shared/components/ui/input'
 import { Label } from '@/shared/components/ui/label'
 import { Tabs, TabsList, TabsTrigger } from '@/shared/components/ui/tabs'
@@ -17,8 +18,28 @@ const displayName = ref('')
 const error = ref('')
 const loading = ref(false)
 
+function validateServerUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url)
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      error.value = t('auth.invalid_url')
+      return false
+    }
+    if (import.meta.env.PROD && parsed.protocol !== 'https:') {
+      toast.warning(t('auth.insecure_connection'))
+    }
+    return true
+  }
+  catch {
+    error.value = t('auth.invalid_url')
+    return false
+  }
+}
+
 async function handleSubmit() {
   error.value = ''
+  if (!validateServerUrl(serverUrl.value))
+    return
   loading.value = true
   try {
     if (tab.value === 'login') {

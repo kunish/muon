@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { leaveRoom, toggleRoomMute, toggleRoomPin } from '@matrix/index'
 import { ask } from '@tauri-apps/plugin-dialog'
+import { onClickOutside } from '@vueuse/core'
 import {
   Bell,
   BellOff,
@@ -10,7 +11,7 @@ import {
   Pin,
   PinOff,
 } from 'lucide-vue-next'
-import { computed, onUnmounted, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import { isDirectRoom } from '@/shared/lib/roomUtils'
@@ -40,23 +41,9 @@ const style = computed(() => {
 })
 
 // 点击外部关闭
-function onClickOutside(e: MouseEvent) {
-  if (menuRef.value && !menuRef.value.contains(e.target as Node)) {
+onClickOutside(menuRef, () => {
+  if (isOpen.value)
     store.closeContextMenu()
-  }
-}
-
-watch(isOpen, (open) => {
-  if (open) {
-    setTimeout(() => document.addEventListener('mousedown', onClickOutside), 0)
-  }
-  else {
-    document.removeEventListener('mousedown', onClickOutside)
-  }
-})
-
-onUnmounted(() => {
-  document.removeEventListener('mousedown', onClickOutside)
 })
 
 // --- 操作 ---

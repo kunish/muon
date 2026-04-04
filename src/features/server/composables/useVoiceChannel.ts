@@ -126,6 +126,7 @@ export function useVoiceChannel() {
   /** Disconnect from the current voice channel */
   async function leaveVoiceChannel() {
     if (room.value) {
+      room.value.removeAllListeners()
       try {
         await room.value.disconnect()
       }

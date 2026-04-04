@@ -2,7 +2,7 @@ import type { MatrixEvent } from 'matrix-js-sdk'
 import type { DigestFilter, DigestSession, DigestSourceEvent } from '../types/digest'
 import type { DigestEntry } from '../types/knowledge'
 import { defineStore } from 'pinia'
-import { computed, ref } from 'vue'
+import { computed, ref, shallowRef } from 'vue'
 import { materializeOfflineDigest } from '@/matrix/digest'
 import { matrixEvents } from '@/matrix/events'
 import { useNetworkStatus } from '@/shared/composables/useNetworkStatus'
@@ -14,7 +14,7 @@ const repository = createKnowledgeRepository()
 export const useDigestStore = defineStore('digest', () => {
   const { lastOfflineAt } = useNetworkStatus()
 
-  const sourceEvents = ref<DigestSourceEvent[]>([])
+  const sourceEvents = shallowRef<DigestSourceEvent[]>([])
   const entries = ref<DigestEntry[]>([])
   const session = ref<DigestSession | null>(null)
   const activeFilter = ref<DigestFilter>('all')
@@ -36,13 +36,16 @@ export const useDigestStore = defineStore('digest', () => {
   })
 
   function ingestEvent(event: DigestSourceEvent) {
-    const existingIndex = sourceEvents.value.findIndex(sourceEvent => sourceEvent.eventId === event.eventId)
+    const current = sourceEvents.value
+    const existingIndex = current.findIndex(sourceEvent => sourceEvent.eventId === event.eventId)
     if (existingIndex >= 0) {
-      sourceEvents.value.splice(existingIndex, 1, event)
+      const next = [...current]
+      next[existingIndex] = event
+      sourceEvents.value = next
       return
     }
 
-    sourceEvents.value.push(event)
+    sourceEvents.value = [...current, event]
   }
 
   function setFilter(nextFilter: DigestFilter) {

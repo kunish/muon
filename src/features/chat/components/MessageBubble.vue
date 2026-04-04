@@ -43,6 +43,7 @@ import { useSettingsStore } from '@/features/settings/stores/settingsStore'
 import { useAuthMedia } from '@/shared/composables/useAuthMedia'
 import { isFullEmojiText } from '@/shared/lib/emoji'
 import { sanitizeMatrixHtml } from '@/shared/lib/htmlSanitizer'
+import { handleMatrixLinkClick } from '@/shared/lib/matrixLinks'
 import { getSystemLanguage, translateText } from '@/shared/lib/translate'
 import { useChatStore } from '../stores/chatStore'
 import AnimatedEmoji from './AnimatedEmoji.vue'
@@ -66,8 +67,6 @@ const props = defineProps<{
 const emit = defineEmits<{
   avatarClick: [userId: string, event: MouseEvent]
 }>()
-
-const MATRIX_TO_RE = /^https:\/\/matrix\.to\/#\/([@!#][^?]*)/
 
 const store = useChatStore()
 const settingsStore = useSettingsStore()
@@ -260,22 +259,7 @@ function copyText() {
 
 /** 拦截 rich-content 中的 matrix.to mention 链接点击，打开用户卡片 */
 function onRichContentClick(e: MouseEvent) {
-  const target = e.target as HTMLElement
-  const anchor = target.closest('a[href]') as HTMLAnchorElement | null
-  if (!anchor)
-    return
-  const href = anchor.getAttribute('href') || ''
-  // 匹配 https://matrix.to/#/@user:server 格式
-  const match = href.match(MATRIX_TO_RE)
-  if (match) {
-    e.preventDefault()
-    e.stopPropagation()
-    const userId = decodeURIComponent(match[1])
-    // 以 @ 开头的是用户 mention，打开用户卡片
-    if (userId.startsWith('@')) {
-      emit('avatarClick', userId, e)
-    }
-  }
+  handleMatrixLinkClick(e, (userId, event) => emit('avatarClick', userId, event))
 }
 function onReply() {
   store.setReplyingTo(props.event)

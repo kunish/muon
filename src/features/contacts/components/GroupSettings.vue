@@ -12,10 +12,11 @@ import {
   UserPlus,
   X,
 } from 'lucide-vue-next'
-import { computed, ref } from 'vue'
+import { computed, ref, toRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import { Textarea } from '@/shared/components/ui/textarea'
+import { useRoomPermissions } from '@/shared/composables/useRoomPermissions'
 import { useConversations } from '../../chat/composables/useConversations'
 import { useChatStore } from '../../chat/stores/chatStore'
 import { useGroupManagement } from '../composables/useGroupManagement'
@@ -60,7 +61,7 @@ async function saveName() {
     await setRoomName(props.roomId, name)
   }
   catch {
-    toast.error(t('auth.error'))
+    toast.error(t('contacts.update_failed'))
   }
   editingName.value = false
 }
@@ -84,7 +85,7 @@ async function saveTopic() {
     await setRoomTopic(props.roomId, topicInput.value.trim())
   }
   catch {
-    toast.error(t('auth.error'))
+    toast.error(t('contacts.update_failed'))
   }
   editingTopic.value = false
 }
@@ -108,7 +109,7 @@ async function saveAnnouncement() {
     await setRoomAnnouncement(props.roomId, announcementInput.value.trim())
   }
   catch {
-    toast.error(t('auth.error'))
+    toast.error(t('contacts.update_failed'))
   }
   editingAnnouncement.value = false
 }
@@ -130,7 +131,7 @@ async function handleLeave() {
     emit('leave')
   }
   catch {
-    toast.error(t('auth.error'))
+    toast.error(t('contacts.update_failed'))
   }
 }
 
@@ -141,7 +142,7 @@ async function handleInvite() {
     await inviteUser(props.roomId, inviteId.value.trim())
   }
   catch {
-    toast.error(t('auth.error'))
+    toast.error(t('server.invite_failed'))
   }
   inviteId.value = ''
   showInvite.value = false
@@ -160,7 +161,7 @@ function getRoleLabel(level: number): string {
   return t('contacts.role_member')
 }
 
-const isAdmin = computed(() => getPowerLevel(myUserId) >= 50)
+const { isModerator: isAdmin } = useRoomPermissions(toRef(props, 'roomId'))
 </script>
 
 <template>

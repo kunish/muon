@@ -1,6 +1,6 @@
 import type { CustomStickerPack, ImageSticker } from '@/shared/data/stickerPacks'
 import { defineStore } from 'pinia'
-import { ref, watch } from 'vue'
+import { ref } from 'vue'
 
 const STORAGE_KEY = 'muon_custom_sticker_packs'
 const RECENT_KEY = 'muon_recent_stickers'
@@ -54,10 +54,6 @@ export const useStickerStore = defineStore('stickers', () => {
     localStorage.setItem(RECENT_KEY, JSON.stringify(recentStickers.value))
   }
 
-  // 自动持久化
-  watch(customPacks, savePacks, { deep: true })
-  watch(recentStickers, saveRecent, { deep: true })
-
   // ─── 包管理 ─────────────────────────────────────────
   function createPack(name: string): CustomStickerPack {
     const pack: CustomStickerPack = {
@@ -68,13 +64,16 @@ export const useStickerStore = defineStore('stickers', () => {
       createdAt: Date.now(),
     }
     customPacks.value.push(pack)
+    savePacks()
     return pack
   }
 
   function deletePack(packId: string) {
     const idx = customPacks.value.findIndex(p => p.id === packId)
-    if (idx >= 0)
+    if (idx >= 0) {
       customPacks.value.splice(idx, 1)
+      savePacks()
+    }
   }
 
   function getPackById(packId: string) {
@@ -94,6 +93,7 @@ export const useStickerStore = defineStore('stickers', () => {
     if (pack.stickers.length === 1) {
       pack.icon = sticker.mxcUrl
     }
+    savePacks()
   }
 
   function removeSticker(packId: string, stickerId: string) {
@@ -110,11 +110,13 @@ export const useStickerStore = defineStore('stickers', () => {
     else if (pack.stickers.length === 0) {
       pack.icon = ''
     }
+    savePacks()
   }
 
   // ─── 最近使用 ───────────────────────────────────────
   function pushRecent(entry: RecentSticker, isDuplicate: (r: RecentSticker) => boolean) {
     recentStickers.value = [entry, ...recentStickers.value.filter(r => !isDuplicate(r))].slice(0, MAX_RECENT)
+    saveRecent()
   }
 
   function addRecentEmoji(emoji: string, name: string) {

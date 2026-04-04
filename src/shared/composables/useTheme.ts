@@ -1,15 +1,15 @@
-import { ref, watchEffect } from 'vue'
-
-type Theme = 'light' | 'dark' | 'system'
-
-const theme = ref<Theme>((localStorage.getItem('muon_theme') as Theme) || 'dark')
+import { storeToRefs } from 'pinia'
+import { watchEffect } from 'vue'
+import { useSettingsStore } from '@/features/settings/stores/settingsStore'
 
 export function useTheme() {
+  const settingsStore = useSettingsStore()
+  const { theme } = storeToRefs(settingsStore)
+
   watchEffect(() => {
     const isDark = theme.value === 'dark'
       || (theme.value === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
     document.documentElement.classList.toggle('dark', isDark)
-    localStorage.setItem('muon_theme', theme.value)
   })
 
   return { theme }

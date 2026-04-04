@@ -50,7 +50,7 @@ async function forwardTo(targetRoomId: string) {
     emit('close')
   }
   catch {
-    toast.error(t('auth.error'))
+    toast.error(t('chat.forward_failed'))
   }
   finally {
     sending.value = null

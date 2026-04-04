@@ -1,11 +1,12 @@
 import type { MatrixEvent } from 'matrix-js-sdk'
 import { getTimeline, matrixEvents, paginateBack, sendReadReceipt } from '@matrix/index'
-import { onMounted, onUnmounted, ref, watch } from 'vue'
+import { useDebounceFn } from '@vueuse/core'
+import { onMounted, onUnmounted, ref, shallowRef, watch } from 'vue'
 import { useChatStore } from '../stores/chatStore'
 
 export function useMessages() {
   const store = useChatStore()
-  const messages = ref<MatrixEvent[]>([])
+  const messages = shallowRef<MatrixEvent[]>([])
   const isLoading = ref(false)
   const hasMore = ref(true)
   const displayLimit = ref(50)
@@ -70,9 +71,11 @@ export function useMessages() {
     }
   }
 
+  const debouncedLoadTimeline = useDebounceFn(() => loadTimeline(), 80)
+
   function onTimelineUpdate(payload: { roomId: string }) {
     if (payload.roomId === store.currentRoomId)
-      loadTimeline()
+      debouncedLoadTimeline()
   }
 
   /** 当前房间收到新消息时自动标记已读 */

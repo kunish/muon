@@ -10,7 +10,6 @@ import {
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useServerStore } from '@/features/server/stores/serverStore'
-import { getClient } from '@/matrix/client'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,6 +17,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/shared/components/ui/dropdown-menu'
+import { useRoomPermissions } from '@/shared/composables/useRoomPermissions'
 
 const emit = defineEmits<{
   createChannel: []
@@ -31,23 +31,7 @@ const emit = defineEmits<{
 const serverStore = useServerStore()
 const open = ref(false)
 const { t } = useI18n()
-
-const isAdmin = computed(() => {
-  const serverId = serverStore.currentServerId
-  if (!serverId)
-    return false
-  const client = getClient()
-  const room = client.getRoom(serverId)
-  if (!room)
-    return false
-  const userId = client.getUserId()
-  if (!userId)
-    return false
-  const plEvent = room.currentState.getStateEvents('m.room.power_levels', '')
-  const content = plEvent?.getContent() || {}
-  const userLevel = (content.users as Record<string, number>)?.[userId] ?? (content.users_default ?? 0)
-  return userLevel >= 50
-})
+const { isModerator: isAdmin } = useRoomPermissions(computed(() => serverStore.currentServerId))
 </script>
 
 <template>

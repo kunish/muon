@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { getClient } from '@matrix/client'
-import { getMyAvatarUrl, getMyDisplayName, loadInboxEventContext } from '@matrix/index'
+import { getMyAvatarUrl, getMyDisplayName } from '@matrix/index'
 import { BookOpen, CalendarDays, ChevronDown, Gem, Headphones, ListChecks, Mic, MicOff, Search, Settings, Users, X } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -16,6 +16,7 @@ import { Avatar } from '@/shared/components/ui/avatar'
 import { Badge } from '@/shared/components/ui/badge'
 import { Input } from '@/shared/components/ui/input'
 import { ScrollArea } from '@/shared/components/ui/scroll-area'
+import { preloadAndNavigate } from '@/shared/lib/contextPreload'
 import { normalizeRoomId } from '@/shared/lib/roomUtils'
 import ChannelCategory from './ChannelCategory.vue'
 import ChannelContextMenu from './ChannelContextMenu.vue'
@@ -84,19 +85,7 @@ const activeDmRoomId = computed(() =>
 )
 
 async function handleInboxJump(payload: { roomId: string, eventId: string }) {
-  try {
-    await loadInboxEventContext(payload.roomId, payload.eventId)
-  }
-  catch (error) {
-    console.warn('[UnifiedInbox] context preload failed, fallback to direct navigation', error)
-  }
-
-  await router.push({
-    path: `/dm/${encodeURIComponent(payload.roomId)}`,
-    query: {
-      focusEventId: payload.eventId,
-    },
-  })
+  await preloadAndNavigate(router, payload.roomId, payload.eventId, 'UnifiedInbox')
 }
 
 function navigateToFriends() {

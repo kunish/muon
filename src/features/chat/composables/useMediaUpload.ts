@@ -3,6 +3,8 @@ import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 
+const MAX_FILE_SIZE = 100 * 1024 * 1024
+
 export function useMediaUpload(roomId: () => string | null) {
   const { t } = useI18n()
   const uploading = ref(false)
@@ -28,10 +30,22 @@ export function useMediaUpload(roomId: () => string | null) {
   }
 
   async function uploadImage(file: File) {
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error(t('chat.file_too_large'))
+      return
+    }
+    if (!file.type.startsWith('image/')) {
+      toast.error(t('chat.invalid_file_type'))
+      return
+    }
     await withUpload(id => sendImageMessage(id, file))
   }
 
   async function uploadVideo(file: File) {
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error(t('chat.file_too_large'))
+      return
+    }
     await withUpload(async (id) => {
       let meta
       try {
@@ -50,6 +64,10 @@ export function useMediaUpload(roomId: () => string | null) {
   }
 
   async function uploadFile(file: File) {
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error(t('chat.file_too_large'))
+      return
+    }
     await withUpload(id => sendFileMessage(id, file))
   }
 

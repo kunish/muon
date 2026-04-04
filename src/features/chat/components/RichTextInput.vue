@@ -162,7 +162,7 @@ async function handleGifSelect(gif: GifResult) {
     await sendGifMessage(roomId, gif.url, gif.width, gif.height)
   }
   catch {
-    toast.error(t('auth.error'))
+    toast.error(t('chat.send_failed'))
   }
 }
 
@@ -252,7 +252,7 @@ async function handleSend(html: string, text: string) {
     }
   }
   catch {
-    toast.error(t('auth.error'))
+    toast.error(t('chat.send_failed'))
   }
 }
 
@@ -269,7 +269,7 @@ async function handleStickerSelect(emoji: string, name: string) {
     await sendStickerMessage(roomId, emoji, name)
   }
   catch {
-    toast.error(t('auth.error'))
+    toast.error(t('chat.send_failed'))
   }
 }
 
@@ -287,7 +287,7 @@ async function handleImageStickerSelect(sticker: ImageSticker) {
     })
   }
   catch {
-    toast.error(t('auth.error'))
+    toast.error(t('chat.send_failed'))
   }
 }
 
@@ -327,7 +327,7 @@ async function handleContactCardSelect(contact: {
     )
   }
   catch {
-    toast.error(t('auth.error'))
+    toast.error(t('chat.send_failed'))
   }
 }
 
@@ -349,7 +349,7 @@ async function handleLocationSelect(payload: {
     )
   }
   catch {
-    toast.error(t('auth.error'))
+    toast.error(t('chat.send_failed'))
   }
 }
 

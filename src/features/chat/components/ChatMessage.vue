@@ -12,14 +12,16 @@ import type { MatrixEvent } from 'matrix-js-sdk'
 import { getClient } from '@matrix/client'
 import { getReactions, getThreadReplies, redactMessage } from '@matrix/index'
 import { ask } from '@tauri-apps/plugin-dialog'
+import { onClickOutside } from '@vueuse/core'
 import { Copy, MessageSquare, Reply, Trash2 } from 'lucide-vue-next'
-import { computed, onUnmounted, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useSettingsStore } from '@/features/settings/stores/settingsStore'
 import { Avatar } from '@/shared/components/ui/avatar'
 import { useAuthMedia } from '@/shared/composables/useAuthMedia'
 import { isFullEmojiText } from '@/shared/lib/emoji'
 import { sanitizeMatrixHtml } from '@/shared/lib/htmlSanitizer'
+import { handleMatrixLinkClick } from '@/shared/lib/matrixLinks'
 import { useChatStore } from '../stores/chatStore'
 import LinkPreview from './LinkPreview.vue'
 import MessageActionBar from './MessageActionBar.vue'
@@ -247,24 +249,9 @@ const threadReplyCount = computed(() => {
   return getThreadReplies(props.roomId, eventId.value).length
 })
 
-const MATRIX_TO_RE = /^https:\/\/matrix\.to\/#\/([@!#][^?]*)/
-
 /** Mention 链接点击：打开用户卡片 */
 function onRichContentClick(e: MouseEvent) {
-  const target = e.target as HTMLElement
-  const anchor = target.closest('a[href]') as HTMLAnchorElement | null
-  if (!anchor)
-    return
-  const href = anchor.getAttribute('href') || ''
-  const match = href.match(MATRIX_TO_RE)
-  if (match) {
-    e.preventDefault()
-    e.stopPropagation()
-    const userId = decodeURIComponent(match[1])
-    if (userId.startsWith('@')) {
-      emit('avatarClick', userId, e)
-    }
-  }
+  handleMatrixLinkClick(e, (userId, event) => emit('avatarClick', userId, event))
 }
 
 function onActionReact() {
@@ -316,25 +303,9 @@ async function onDeleteFromContextMenu() {
   closeContextMenu()
 }
 
-function onDocumentPointerDown(event: MouseEvent) {
-  if (!showContextMenu.value)
-    return
-  if (contextMenuRef.value?.contains(event.target as Node))
-    return
-  closeContextMenu()
-}
-
-watch(showContextMenu, (open) => {
-  if (open) {
-    setTimeout(() => document.addEventListener('mousedown', onDocumentPointerDown), 0)
-  }
-  else {
-    document.removeEventListener('mousedown', onDocumentPointerDown)
-  }
-})
-
-onUnmounted(() => {
-  document.removeEventListener('mousedown', onDocumentPointerDown)
+onClickOutside(contextMenuRef, () => {
+  if (showContextMenu.value)
+    closeContextMenu()
 })
 </script>
 

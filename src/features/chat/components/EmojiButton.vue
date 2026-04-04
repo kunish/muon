@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Smile } from 'lucide-vue-next'
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { onBeforeUnmount, ref, watch } from 'vue'
 import EmojiPicker from './EmojiPicker.vue'
 
 const emit = defineEmits<{
@@ -57,7 +57,15 @@ function onClickOutside(e: MouseEvent) {
   open.value = false
 }
 
-onMounted(() => document.addEventListener('pointerdown', onClickOutside))
+watch(open, (isOpen) => {
+  if (isOpen) {
+    document.addEventListener('pointerdown', onClickOutside)
+  }
+  else {
+    document.removeEventListener('pointerdown', onClickOutside)
+  }
+})
+
 onBeforeUnmount(() => document.removeEventListener('pointerdown', onClickOutside))
 </script>
 

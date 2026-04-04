@@ -162,3 +162,19 @@ export function useConversations() {
 
   return { conversations, pinnedCount, isLoading, totalUnreadCount, refresh: refreshNow, removeRoom, archiveDm, restoreRoom }
 }
+
+/** Unbind module-level mitt listeners and reset state. Call on logout. */
+export function resetConversationsListeners() {
+  if (listenersBound) {
+    for (const evt of LISTENED_EVENTS)
+      matrixEvents.off(evt, scheduleRefresh)
+    listenersBound = false
+  }
+  if (debounceTimer) {
+    clearTimeout(debounceTimer)
+    debounceTimer = null
+  }
+  rooms.value = []
+  isLoading.value = true
+  excludedRoomIds.clear()
+}

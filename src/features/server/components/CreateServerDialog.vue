@@ -33,7 +33,7 @@ async function handleCreate() {
   }
   catch (error) {
     console.error('Failed to create server:', error)
-    toast.error(t('auth.error'))
+    toast.error(t('server.create_failed'))
   }
   finally {
     isCreating.value = false
@@ -48,25 +48,25 @@ async function handleCreate() {
     </span>
     <DialogContent>
       <DialogHeader>
-        <DialogTitle>Create a Server</DialogTitle>
-        <DialogDescription>Your server is where you and your friends hang out. Make yours and start talking.</DialogDescription>
+        <DialogTitle>{{ t('server.create_server') }}</DialogTitle>
+        <DialogDescription>{{ t('server.create_server_desc') }}</DialogDescription>
       </DialogHeader>
       <div class="space-y-2">
         <Label class="text-xs font-bold text-muted-foreground uppercase tracking-wide">
-          Server Name
+          {{ t('server.server_name') }}
         </Label>
         <Input
           v-model="serverName"
-          placeholder="Enter server name"
+          :placeholder="t('server.server_name_placeholder')"
           @keydown.enter="handleCreate"
         />
       </div>
       <div class="flex justify-end gap-2">
         <Button variant="ghost" @click="open = false">
-          Cancel
+          {{ t('common.cancel') }}
         </Button>
         <Button :disabled="!serverName.trim() || isCreating" @click="handleCreate">
-          {{ isCreating ? 'Creating...' : 'Create' }}
+          {{ isCreating ? t('common.loading') : t('server.create_server') }}
         </Button>
       </div>
     </DialogContent>

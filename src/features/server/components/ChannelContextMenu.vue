@@ -8,8 +8,8 @@ import {
   Trash2,
 } from 'lucide-vue-next'
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useServerStore } from '@/features/server/stores/serverStore'
-import { getClient } from '@/matrix/client'
 import {
   ContextMenu,
   ContextMenuContent,
@@ -17,6 +17,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from '@/shared/components/ui/context-menu'
+import { useRoomPermissions } from '@/shared/composables/useRoomPermissions'
 
 const props = defineProps<{
   channel: ChannelInfo
@@ -30,24 +31,9 @@ const emit = defineEmits<{
   copyLink: [roomId: string]
 }>()
 
+const { t } = useI18n()
 const serverStore = useServerStore()
-
-const isAdmin = computed(() => {
-  const serverId = serverStore.currentServerId
-  if (!serverId)
-    return false
-  const client = getClient()
-  const room = client.getRoom(serverId)
-  if (!room)
-    return false
-  const userId = client.getUserId()
-  if (!userId)
-    return false
-  const plEvent = room.currentState.getStateEvents('m.room.power_levels', '')
-  const content = plEvent?.getContent() || {}
-  const userLevel = (content.users as Record<string, number>)?.[userId] ?? (content.users_default ?? 0)
-  return userLevel >= 50
-})
+const { isModerator: isAdmin } = useRoomPermissions(computed(() => serverStore.currentServerId))
 
 function handleCopyLink() {
   const link = `${window.location.origin}/server/${encodeURIComponent(serverStore.currentServerId!)}/channel/${encodeURIComponent(props.channel.roomId)}`
@@ -69,7 +55,7 @@ function handleCopyLink() {
         @select="emit('markAsRead', channel.roomId)"
       >
         <CheckCheck :size="16" />
-        Mark as Read
+        {{ t('channel.mark_as_read') }}
       </ContextMenuItem>
 
       <ContextMenuItem
@@ -77,7 +63,7 @@ function handleCopyLink() {
         @select="emit('muteChannel', channel.roomId)"
       >
         <BellOff :size="16" />
-        Mute Channel
+        {{ t('channel.mute_channel') }}
       </ContextMenuItem>
 
       <ContextMenuSeparator class="mx-1 my-1 h-px bg-border" />
@@ -89,7 +75,7 @@ function handleCopyLink() {
         @select="emit('editChannel', channel.roomId)"
       >
         <Pencil :size="16" />
-        Edit Channel
+        {{ t('channel.edit_channel') }}
       </ContextMenuItem>
 
       <ContextMenuItem
@@ -98,7 +84,7 @@ function handleCopyLink() {
         @select="emit('deleteChannel', channel.roomId)"
       >
         <Trash2 :size="16" />
-        Delete Channel
+        {{ t('channel.delete_channel') }}
       </ContextMenuItem>
 
       <ContextMenuSeparator v-if="isAdmin" class="mx-1 my-1 h-px bg-border" />
@@ -108,7 +94,7 @@ function handleCopyLink() {
         @select="handleCopyLink"
       >
         <Copy :size="16" />
-        Copy Link
+        {{ t('channel.copy_link') }}
       </ContextMenuItem>
     </ContextMenuContent>
   </ContextMenu>

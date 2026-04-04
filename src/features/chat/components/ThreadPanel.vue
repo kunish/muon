@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import type { MatrixEvent } from 'matrix-js-sdk'
 import { getClient } from '@matrix/client'
+import { matrixEvents } from '@matrix/events'
 import { getThreadReplies, sendThreadReply } from '@matrix/index'
 import { format } from 'date-fns'
 import { MessageSquare, Send, X } from 'lucide-vue-next'
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import { useChatStore } from '../stores/chatStore'
@@ -43,7 +44,22 @@ const rootTime = computed(() => {
 })
 
 // --- Thread replies ---
-const replies = computed(() => getThreadReplies(props.roomId, props.threadRootId))
+const replies = shallowRef<MatrixEvent[]>(getThreadReplies(props.roomId, props.threadRootId))
+
+function refreshReplies(payload: { roomId: string }) {
+  if (payload.roomId === props.roomId)
+    replies.value = getThreadReplies(props.roomId, props.threadRootId)
+}
+
+onMounted(() => {
+  matrixEvents.on('room.timeline', refreshReplies)
+  matrixEvents.on('room.localEchoUpdated', refreshReplies)
+})
+
+onBeforeUnmount(() => {
+  matrixEvents.off('room.timeline', refreshReplies)
+  matrixEvents.off('room.localEchoUpdated', refreshReplies)
+})
 
 function getSenderName(event: MatrixEvent): string {
   const room = client.getRoom(props.roomId)

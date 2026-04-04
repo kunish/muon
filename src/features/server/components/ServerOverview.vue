@@ -65,7 +65,7 @@ async function saveChanges() {
     }
   }
   catch (err: unknown) {
-    saveError.value = err instanceof Error ? err.message : 'Failed to save changes'
+    saveError.value = err instanceof Error ? err.message : t('server.update_failed')
   }
   finally {
     isSaving.value = false
@@ -93,14 +93,14 @@ async function handleAvatarChange(event: Event) {
 
     // Upload to Matrix
     const client = getClient()
-    const { content_uri } = await client.uploadContent(file) as any
-    await client.sendStateEvent(props.serverId, 'm.room.avatar' as any, { url: content_uri })
+    const { content_uri } = await client.uploadContent(file)
+    await client.sendStateEvent(props.serverId, 'm.room.avatar', { url: content_uri })
 
     serverStore.loadServers()
   }
   catch (err) {
     console.error('Failed to upload avatar:', err)
-    toast.error(t('auth.error'))
+    toast.error(t('server.update_failed'))
     avatarPreview.value = null
   }
   finally {
@@ -127,7 +127,7 @@ const resolvedAvatar = computed(() => {
 <template>
   <div>
     <h2 class="mb-5 text-xl font-bold text-foreground">
-      Server Overview
+      {{ t('server.settings_overview') }}
     </h2>
 
     <div class="flex gap-8">
@@ -152,11 +152,11 @@ const resolvedAvatar = computed(() => {
           <!-- Overlay on hover -->
           <div class="absolute inset-0 flex flex-col items-center justify-center bg-black/60 opacity-0 transition-opacity group-hover:opacity-100">
             <Camera :size="20" class="text-white" />
-            <span class="mt-1 text-[10px] font-bold uppercase text-white">Change</span>
+            <span class="mt-1 text-[10px] font-bold uppercase text-white">{{ t('server.change_avatar') }}</span>
           </div>
         </button>
         <span class="text-[11px] text-muted-foreground">
-          {{ isUploadingAvatar ? 'Uploading...' : 'Min 128x128' }}
+          {{ isUploadingAvatar ? t('server.uploading') : t('server.min_size') }}
         </span>
         <input
           ref="avatarInput"
@@ -172,7 +172,7 @@ const resolvedAvatar = computed(() => {
         <!-- Server Name -->
         <div class="space-y-2">
           <Label class="text-xs font-bold uppercase tracking-wide text-muted-foreground">
-            Server Name
+            {{ t('server.server_name') }}
           </Label>
           <Input
             v-model="name"
@@ -183,7 +183,7 @@ const resolvedAvatar = computed(() => {
         <!-- Description / Topic -->
         <div class="space-y-2">
           <Label class="text-xs font-bold uppercase tracking-wide text-muted-foreground">
-            Server Description
+            {{ t('server.server_description') }}
           </Label>
           <Textarea
             v-model="topic"
@@ -212,14 +212,14 @@ const resolvedAvatar = computed(() => {
         class="mt-6 flex items-center justify-between rounded-md bg-popover p-3"
       >
         <span class="text-sm text-muted-foreground">
-          Careful — you have unsaved changes!
+          {{ t('server.unsaved_changes') }}
         </span>
         <div class="flex gap-2">
           <Button variant="ghost" size="sm" @click="resetChanges">
-            Reset
+            {{ t('server.reset') }}
           </Button>
           <Button size="sm" :disabled="isSaving || !name.trim()" @click="saveChanges">
-            {{ isSaving ? 'Saving...' : 'Save Changes' }}
+            {{ isSaving ? t('server.saving') : t('server.save_changes') }}
           </Button>
         </div>
       </div>

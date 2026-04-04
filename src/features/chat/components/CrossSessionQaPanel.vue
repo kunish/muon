@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { loadInboxEventContext } from '@matrix/index'
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { Textarea } from '@/shared/components/ui/textarea'
+import { preloadAndNavigate } from '@/shared/lib/contextPreload'
 import { useQaStore } from '../stores/qaStore'
 
 const { t } = useI18n()
@@ -40,19 +40,7 @@ async function submitQuestion() {
 }
 
 async function openCitation(roomId: string, eventId: string) {
-  try {
-    await loadInboxEventContext(roomId, eventId)
-  }
-  catch (err) {
-    console.warn('[CrossSessionQaPanel] context preload failed, fallback to direct navigation', err)
-  }
-
-  await router.push({
-    path: `/dm/${encodeURIComponent(roomId)}`,
-    query: {
-      focusEventId: eventId,
-    },
-  })
+  await preloadAndNavigate(router, roomId, eventId, 'CrossSessionQaPanel')
 }
 
 function openHistoryAnswer(answerId: string) {

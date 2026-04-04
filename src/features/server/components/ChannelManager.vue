@@ -40,7 +40,7 @@ function loadChannels() {
   if (uncategorizedChannels.length > 0) {
     groups.push({
       categoryId: null,
-      categoryName: 'Uncategorized',
+      categoryName: t('channel.uncategorized'),
       channels: uncategorizedChannels,
     })
   }
@@ -93,7 +93,7 @@ async function handleDelete() {
   }
   catch (err) {
     console.error('Failed to delete channel:', err)
-    toast.error(t('auth.error'))
+    toast.error(t('server.channel_failed'))
   }
   finally {
     isDeleting.value = false
@@ -106,12 +106,12 @@ onMounted(loadChannels)
 <template>
   <div>
     <h2 class="mb-5 text-xl font-bold text-foreground">
-      Channels
+      {{ t('channel.channels') }}
     </h2>
 
     <div v-if="channelGroups.length === 0" class="py-16 text-center">
       <p class="text-sm text-muted-foreground">
-        No channels in this server yet.
+        {{ t('server.no_channels') }}
       </p>
     </div>
 
@@ -167,20 +167,20 @@ onMounted(loadChannels)
 
             <!-- Member count -->
             <span class="text-xs text-muted-foreground/40">
-              {{ channel.memberCount }} members
+              {{ t('member.member_count', { count: channel.memberCount }) }}
             </span>
 
             <!-- Actions -->
             <div class="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
               <button
                 class="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent/30 hover:text-foreground"
-                title="Edit channel"
+                :title="t('channel.edit_channel')"
               >
                 <Pencil :size="14" />
               </button>
               <button
                 class="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/20 hover:text-destructive"
-                title="Delete channel"
+                :title="t('channel.delete_channel')"
                 @click="confirmDelete(channel, group.categoryId)"
               >
                 <Trash2 :size="14" />
@@ -195,23 +195,21 @@ onMounted(loadChannels)
     <Dialog v-model:open="showDeleteDialog">
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Delete Channel</DialogTitle>
+          <DialogTitle>{{ t('channel.delete_channel') }}</DialogTitle>
           <DialogDescription>
-            Are you sure you want to delete
-            <strong class="text-foreground">#{{ deleteTarget?.channel.name }}</strong>?
-            This action cannot be undone.
+            {{ t('channel.delete_channel_confirm', { name: deleteTarget?.channel.name }) }}
           </DialogDescription>
         </DialogHeader>
         <div class="flex justify-end gap-2">
           <Button variant="ghost" @click="showDeleteDialog = false">
-            Cancel
+            {{ t('common.cancel') }}
           </Button>
           <Button
             variant="destructive"
             :disabled="isDeleting"
             @click="handleDelete"
           >
-            {{ isDeleting ? 'Deleting...' : 'Delete Channel' }}
+            {{ isDeleting ? t('server.deleting') : t('channel.delete_channel') }}
           </Button>
         </div>
       </DialogContent>

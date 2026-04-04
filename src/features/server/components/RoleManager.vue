@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { Plus, Save, Trash2 } from 'lucide-vue-next'
 import { onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { toast } from 'vue-sonner'
 import { getClient } from '@/matrix/client'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
@@ -10,6 +12,8 @@ import { Separator } from '@/shared/components/ui/separator'
 const props = defineProps<{
   serverId: string
 }>()
+
+const { t } = useI18n()
 
 // ── Types ──
 
@@ -68,7 +72,7 @@ function loadRoles() {
   if (!room)
     return
 
-  const rolesEvent = room.currentState.getStateEvents('im.muon.roles' as any, '')
+  const rolesEvent = room.currentState.getStateEvents('im.muon.roles', '')
   const content = rolesEvent?.getContent()
 
   if (content?.roles && Array.isArray(content.roles)) {
@@ -132,7 +136,7 @@ async function saveRole() {
 
     // Persist to Matrix custom state event
     const client = getClient()
-    await client.sendStateEvent(props.serverId, 'im.muon.roles' as any, {
+    await client.sendStateEvent(props.serverId, 'im.muon.roles', {
       roles: roles.value.map(r => ({
         id: r.id,
         name: r.name,
@@ -143,7 +147,8 @@ async function saveRole() {
     })
   }
   catch (err: unknown) {
-    saveError.value = err instanceof Error ? err.message : 'Failed to save role'
+    saveError.value = err instanceof Error ? err.message : t('server.role_failed')
+    toast.error(t('server.role_failed'))
   }
   finally {
     isSaving.value = false
@@ -162,7 +167,7 @@ async function deleteRole() {
     roles.value = roles.value.filter(r => r.id !== selectedRoleId.value)
 
     const client = getClient()
-    await client.sendStateEvent(props.serverId, 'im.muon.roles' as any, {
+    await client.sendStateEvent(props.serverId, 'im.muon.roles', {
       roles: roles.value.map(r => ({
         id: r.id,
         name: r.name,
@@ -181,7 +186,8 @@ async function deleteRole() {
     }
   }
   catch (err: unknown) {
-    saveError.value = err instanceof Error ? err.message : 'Failed to delete role'
+    saveError.value = err instanceof Error ? err.message : t('server.role_failed')
+    toast.error(t('server.role_failed'))
   }
   finally {
     isDeleting.value = false
@@ -195,11 +201,11 @@ onMounted(loadRoles)
   <div>
     <div class="mb-5 flex items-center justify-between">
       <h2 class="text-xl font-bold text-foreground">
-        Roles
+        {{ t('role.roles') }}
       </h2>
       <Button size="sm" @click="addRole">
         <Plus :size="16" class="mr-1.5" />
-        Create Role
+        {{ t('role.create_role') }}
       </Button>
     </div>
 
@@ -237,7 +243,7 @@ onMounted(loadRoles)
           <!-- Role Name -->
           <div class="space-y-2">
             <Label class="text-xs font-bold uppercase tracking-wide text-muted-foreground">
-              Role Name
+              {{ t('role.role_name') }}
             </Label>
             <Input
               v-model="editName"
@@ -248,7 +254,7 @@ onMounted(loadRoles)
           <!-- Role Color -->
           <div class="space-y-2">
             <Label class="text-xs font-bold uppercase tracking-wide text-muted-foreground">
-              Role Color
+              {{ t('role.role_color') }}
             </Label>
             <div class="flex flex-wrap gap-2">
               <button
@@ -283,7 +289,7 @@ onMounted(loadRoles)
           <!-- Power Level -->
           <div class="space-y-2">
             <Label class="text-xs font-bold uppercase tracking-wide text-muted-foreground">
-              Power Level — {{ editPowerLevel }}
+              {{ t('role.power_level') }} — {{ editPowerLevel }}
             </Label>
             <div class="flex items-center gap-3">
               <span class="text-xs text-muted-foreground/50">0</span>
@@ -312,7 +318,7 @@ onMounted(loadRoles)
           <div class="flex gap-2">
             <Button size="sm" :disabled="isSaving || !editName.trim()" @click="saveRole">
               <Save :size="14" class="mr-1.5" />
-              {{ isSaving ? 'Saving...' : 'Save' }}
+              {{ isSaving ? t('server.saving') : t('common.save') }}
             </Button>
             <Button
               v-if="!roles.find(r => r.id === selectedRoleId)?.isDefault"
@@ -322,7 +328,7 @@ onMounted(loadRoles)
               @click="deleteRole"
             >
               <Trash2 :size="14" class="mr-1.5" />
-              {{ isDeleting ? 'Deleting...' : 'Delete' }}
+              {{ isDeleting ? t('server.deleting') : t('common.delete') }}
             </Button>
           </div>
         </div>
@@ -331,7 +337,7 @@ onMounted(loadRoles)
       <!-- No selection state -->
       <div v-else class="flex flex-1 items-center justify-center py-16">
         <p class="text-sm text-muted-foreground">
-          Select a role to edit
+          {{ t('server.select_role') }}
         </p>
       </div>
     </div>
