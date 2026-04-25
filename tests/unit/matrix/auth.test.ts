@@ -6,6 +6,9 @@ const mockLogin = vi.fn().mockResolvedValue({
   device_id: 'MOCK_DEVICE',
 })
 const mockLogout = vi.fn().mockResolvedValue(undefined)
+const mockStopSync = vi.fn()
+const mockUnbindClientEvents = vi.fn()
+const mockDestroyClient = vi.fn()
 const mockRegister = vi.fn().mockResolvedValue({
   user_id: '@test:localhost',
   access_token: 'mock_token',
@@ -24,7 +27,15 @@ vi.mock('@matrix/client', () => ({
     logout: mockLogout,
     setDisplayName: mockSetDisplayName,
   })),
-  destroyClient: vi.fn(),
+  destroyClient: mockDestroyClient,
+}))
+
+vi.mock('@/matrix/sync', () => ({
+  stopSync: mockStopSync,
+}))
+
+vi.mock('@/matrix/events', () => ({
+  unbindClientEvents: mockUnbindClientEvents,
 }))
 
 describe('auth', () => {
@@ -67,6 +78,24 @@ describe('auth', () => {
     await logout()
 
     expect(mockLogout).toHaveBeenCalled()
+    expect(localStorage.getItem('muon_auth')).toBeNull()
+  })
+
+  it('should stop sync, unbind client events, and destroy the client on logout', async () => {
+    localStorage.setItem('muon_auth', JSON.stringify({
+      serverUrl: 'https://matrix.localhost',
+      userId: '@test:localhost',
+      accessToken: 'mock_token',
+      deviceId: 'MOCK_DEVICE',
+    }))
+
+    const { logout } = await import('@/matrix/auth')
+    await logout()
+
+    expect(mockStopSync).toHaveBeenCalledOnce()
+    expect(mockLogout).toHaveBeenCalledWith(true)
+    expect(mockUnbindClientEvents).toHaveBeenCalledOnce()
+    expect(mockDestroyClient).toHaveBeenCalledOnce()
     expect(localStorage.getItem('muon_auth')).toBeNull()
   })
 

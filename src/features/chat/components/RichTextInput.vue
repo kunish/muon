@@ -225,34 +225,69 @@ async function jumpToReplyTarget() {
 }
 
 const editorExpanded = ref(false)
+const composeVersion = ref(0)
+const sendInFlight = ref(false)
+
+function markComposeChanged() {
+  composeVersion.value += 1
+}
 
 async function handleSend(html: string, text: string) {
   const roomId = store.currentRoomId
   if (!roomId || !text.trim())
     return
-  clear()
-  drafts.delete(roomId)
-  stopTyping()
+  if (sendInFlight.value)
+    return
+  sendInFlight.value = true
+  const editingEvent = store.editingEvent
+  const replyingTo = store.replyingTo
+  const submittedHtml = html
+  const submittedText = text.trim()
+  const submittedComposeVersion = composeVersion.value
+  let sentPlainText = false
 
   try {
-    if (store.editingEvent) {
-      const eventId = store.editingEvent.getId()
-      store.clearCompose()
-      if (eventId)
-        await editMessage(roomId, eventId, text)
+    if (editingEvent) {
+      const eventId = editingEvent.getId()
+      if (!eventId) {
+        toast.error(t('chat.send_failed'))
+        return
+      }
+      await editMessage(roomId, eventId, text)
     }
-    else if (store.replyingTo) {
-      const eventId = store.replyingTo.getId()
-      store.clearCompose()
-      if (eventId)
-        await replyToMessage(roomId, eventId, text)
+    else if (replyingTo) {
+      const eventId = replyingTo.getId()
+      if (!eventId) {
+        toast.error(t('chat.send_failed'))
+        return
+      }
+      await replyToMessage(roomId, eventId, text)
     }
     else {
       await sendTextMessage(roomId, text, html)
+      sentPlainText = true
     }
   }
   catch {
     toast.error(t('chat.send_failed'))
+    return
+  }
+  finally {
+    sendInFlight.value = false
+  }
+
+  const editorTextUnchanged = editor.value?.getText().trim() === submittedText
+  const editorHtmlUnchanged = editor.value?.getHTML() === submittedHtml
+  const roomUnchanged = store.currentRoomId === roomId
+  const composeUnchanged = store.editingEvent === editingEvent && store.replyingTo === replyingTo
+  const composeVersionUnchanged = composeVersion.value === submittedComposeVersion
+  const canCleanSubmittedState = roomUnchanged && composeUnchanged && composeVersionUnchanged && editorTextUnchanged && editorHtmlUnchanged
+  if (sentPlainText && drafts.get(roomId) === submittedHtml)
+    drafts.delete(roomId)
+  if (canCleanSubmittedState) {
+    clear()
+    stopTyping()
+    store.clearCompose()
   }
 }
 
@@ -354,6 +389,7 @@ async function handleLocationSelect(payload: {
 }
 
 function onInput() {
+  markComposeChanged()
   startTyping()
 }
 
@@ -370,6 +406,7 @@ function insertMention() {
 watch(
   () => store.currentRoomId,
   (newId, oldId) => {
+    markComposeChanged()
     // 保存当前房间草稿
     if (oldId && editor.value) {
       const text = editor.value.getText().trim()
@@ -395,6 +432,11 @@ watch(
     showLocationPicker.value = false
     showContactCardPicker.value = false
   },
+)
+
+watch(
+  () => [store.replyingTo, store.editingEvent],
+  markComposeChanged,
 )
 
 watch(

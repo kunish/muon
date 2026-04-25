@@ -26,7 +26,7 @@ A modern, fast [Matrix](https://matrix.org) chat client built with [Tauri](https
 
 | Layer      | Technology                             |
 | ---------- | -------------------------------------- |
-| Framework  | Tauri 2 (Rust) + Vite 7                |
+| Framework  | Tauri 2 (Rust) + Vite 8                |
 | Frontend   | Vue 3 (Composition API) + TypeScript   |
 | Styling    | Tailwind CSS v4 + shadcn-vue (reka-ui) |
 | State      | Pinia + TanStack Query                 |
@@ -37,7 +37,7 @@ A modern, fast [Matrix](https://matrix.org) chat client built with [Tauri](https
 
 ## Download
 
-> Muon is in early development (v0.1.0). Pre-built binaries are not yet available.
+> Muon is under active development. Version-tagged builds are published through the build workflow.
 
 To try it out, follow the [Development](#development) instructions below to build from source.
 
@@ -98,6 +98,8 @@ pnpm services:down
 | `pnpm test:e2e`           | Run end-to-end tests (Playwright)   |
 | `pnpm test`               | Run all tests                       |
 
+`pnpm test:e2e` runs browser-compatible Playwright tests by default. Tauri-specific settings tests require `TAURI_E2E=1`, Tauri runtime access, Matrix homeserver services, and session env vars: `E2E_MATRIX_SERVER_URL`, `E2E_MATRIX_USER_ID`, `E2E_MATRIX_ACCESS_TOKEN`, and `E2E_MATRIX_DEVICE_ID`.
+
 ### Project Structure
 
 ```text
@@ -119,8 +121,9 @@ muon/
 
 ## CI/CD
 
-- **CI** (`ci.yml`): Runs ESLint, TypeScript type checking, Vitest unit tests, and Playwright e2e tests on every push and PR.
-- **Release** (`release.yml`): Triggered by `v*` tags. Builds cross-platform binaries (Linux, macOS x86_64/ARM, Windows) and creates a GitHub Release.
+- **CI** (`ci.yml`): Runs Rust/Tauri formatting, linting, checking, and tests alongside ESLint, TypeScript type checking, Vitest unit tests, and Playwright e2e tests on pushes to `main`/`develop` and PRs targeting `main`.
+- **Build** (`build.yml`): Triggered by `v*` tags. Builds cross-platform Tauri binaries (Linux, macOS x86_64/ARM, Windows) and creates a GitHub Release.
+- **Release** (`release.yml`): Runs Release Please on `main` to prepare version bumps and release PRs.
 
 ## Contributing
 

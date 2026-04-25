@@ -5,6 +5,7 @@ import { ExternalLink, Link2 } from 'lucide-vue-next'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
+import { getPreviewRequestUrl, isHtmlPreviewResponse, readLimitedText } from '../lib/linkPreview'
 
 const props = defineProps<{
   url: string
@@ -21,9 +22,6 @@ const failed = ref(false)
 
 // 组件卸载标志：仅控制是否写入 ref，不中断共享 fetch
 let unmounted = false
-// favicon 加载失败时的回退标记，防止无限循环
-let faviconFallbackUsed = false
-
 // ── 模块级 OG 缓存 ──────────────────────────────────────────────
 interface OgCacheEntry {
   title: string
@@ -52,15 +50,6 @@ const domain = computed(() => {
   }
 })
 
-const origin = computed(() => {
-  try {
-    return new URL(props.url).origin
-  }
-  catch {
-    return ''
-  }
-})
-
 function applyResult(entry: OgCacheEntry) {
   title.value = entry.title
   description.value = entry.description
@@ -70,50 +59,27 @@ function applyResult(entry: OgCacheEntry) {
   loading.value = false
 }
 
-function resolveFavicon(doc: Document, baseUrl: string, originUrl: string): string {
-  // 按优先级尝试多种 favicon 声明方式
-  const selectors = [
-    'link[rel="icon"][type="image/svg+xml"]',
-    'link[rel="icon"][sizes="32x32"]',
-    'link[rel="icon"][sizes="16x16"]',
-    'link[rel="icon"]',
-    'link[rel="shortcut icon"]',
-    'link[rel="apple-touch-icon"]',
-    'link[rel="apple-touch-icon-precomposed"]',
-  ]
-  for (const sel of selectors) {
-    const href = doc.querySelector(sel)?.getAttribute('href')
-    if (href) {
-      try {
-        return new URL(href, baseUrl).href
-      }
-      catch {
-        return href
-      }
-    }
-  }
-  return originUrl ? `${originUrl}/favicon.ico` : ''
-}
-
 // 独立于组件生命周期的 fetch，使用自己的 AbortController（仅超时）
-async function fetchOgData(url: string, domainVal: string, originVal: string): Promise<OgCacheEntry | null> {
+async function fetchOgData(url: string, domainVal: string): Promise<OgCacheEntry | null> {
+  const previewUrl = getPreviewRequestUrl(url)
+  if (!previewUrl)
+    return null
+
   const ac = new AbortController()
   const timeoutId = setTimeout(() => ac.abort(), 5000)
 
   try {
-    const resp = await fetch(url, { signal: ac.signal }).catch(() => null)
-    if (!resp || !resp.ok) {
-      clearTimeout(timeoutId)
-      return {
-        title: domainVal,
-        description: '',
-        favicon: originVal ? `${originVal}/favicon.ico` : '',
-        ogImage: '',
-      }
-    }
+    const resp = await fetch(previewUrl.href, {
+      headers: { accept: 'text/html,application/xhtml+xml' },
+      redirect: 'manual',
+      signal: ac.signal,
+    }).catch(() => null)
+    if (!resp || !isHtmlPreviewResponse(resp))
+      return null
 
-    const html = await resp.text()
-    clearTimeout(timeoutId)
+    const html = await readLimitedText(resp)
+    if (html === null)
+      return null
 
     const doc = new DOMParser().parseFromString(html, 'text/html')
 
@@ -124,14 +90,16 @@ async function fetchOgData(url: string, domainVal: string, originVal: string): P
       description: doc.querySelector('meta[property="og:description"]')?.getAttribute('content')
         || doc.querySelector('meta[name="description"]')?.getAttribute('content')
         || '',
-      ogImage: doc.querySelector('meta[property="og:image"]')?.getAttribute('content') || '',
-      favicon: resolveFavicon(doc, url, originVal),
+      ogImage: '',
+      favicon: '',
     }
   }
   catch {
-    clearTimeout(timeoutId)
     // 超时或网络错误 → 返回 null 表示失败，不写入缓存以便后续重试
     return null
+  }
+  finally {
+    clearTimeout(timeoutId)
   }
 }
 
@@ -147,7 +115,7 @@ onMounted(async () => {
   let promise = OG_INFLIGHT.get(props.url)
   if (!promise) {
     // 快照当前值，避免闭包引用响应式 computed
-    promise = fetchOgData(props.url, domain.value, origin.value)
+    promise = fetchOgData(props.url, domain.value)
     OG_INFLIGHT.set(props.url, promise)
   }
 
@@ -169,9 +137,8 @@ onMounted(async () => {
     applyResult(entry)
   }
   else {
-    // 失败：不缓存，允许后续重试；当前组件显示降级
-    title.value = domain.value
-    favicon.value = origin.value ? `${origin.value}/favicon.ico` : ''
+    // 失败：不缓存，允许后续重试；当前组件隐藏预览
+    failed.value = true
     loading.value = false
   }
 })
@@ -188,18 +155,6 @@ async function openInBrowser() {
     catch {
       toast.error(t('chat.link_open_failed'))
     }
-  }
-}
-
-function onFaviconError() {
-  if (!faviconFallbackUsed && domain.value) {
-    // 二次回退：使用 Google favicon 服务
-    faviconFallbackUsed = true
-    favicon.value = `https://www.google.com/s2/favicons?sz=32&domain=${domain.value}`
-  }
-  else {
-    // Google 服务也失败，彻底放弃
-    favicon.value = ''
   }
 }
 </script>
@@ -233,7 +188,6 @@ function onFaviconError() {
               v-if="favicon"
               :src="favicon"
               class="w-4 h-4 rounded-sm shrink-0"
-              @error="onFaviconError"
             >
             <Link2 v-else :size="12" class="text-muted-foreground/50 shrink-0" />
             <span class="text-[11px] text-muted-foreground truncate">{{ domain }}</span>

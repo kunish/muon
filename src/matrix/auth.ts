@@ -1,6 +1,8 @@
 import type { LoginCredentials, RegisterParams } from './types'
 import { z } from 'zod'
 import { createClient, destroyClient, getClient } from './client'
+import { unbindClientEvents } from './events'
+import { stopSync } from './sync'
 
 const sessionSchema = z.object({
   serverUrl: z.string().url(),
@@ -84,13 +86,29 @@ export async function register(serverUrl: string, params: RegisterParams): Promi
 
 export async function logout(): Promise<void> {
   try {
+    try {
+      stopSync()
+    }
+    catch {
+      // continue logout even if local sync cleanup fails
+    }
+
     await getClient().logout(true)
   }
   catch {
     // ignore logout errors
   }
-  clearSession()
-  destroyClient()
+  finally {
+    try {
+      unbindClientEvents()
+    }
+    catch {
+      // continue clearing local session even if event cleanup fails
+    }
+
+    clearSession()
+    destroyClient()
+  }
 }
 
 export function restoreSession(): boolean {

@@ -95,6 +95,31 @@ const scrollStateMap = new Map<string, ScrollAnchor | null>()
 let pendingRestore = false
 let pendingRestoreRoomId: string | null = null
 
+function finishPendingRestore(resetBottomState = false) {
+  if (resetBottomState) {
+    liveAnchorEventId = null
+    liveAnchorOffset = 0
+    isAtBottom.value = true
+    showNewMsg.value = false
+  }
+  pendingRestore = false
+  pendingRestoreRoomId = null
+  isRestoring.value = false
+}
+
+async function finishEmptyPendingRestoreIfReady() {
+  if (!pendingRestore || isLoading.value || visibleMessages.value.length > 0)
+    return false
+
+  await nextTick()
+
+  if (!pendingRestore || isLoading.value || visibleMessages.value.length > 0)
+    return false
+
+  finishPendingRestore(true)
+  return true
+}
+
 // ── 用户输入检测 ──────────────────────────────────────────────
 //
 //  核心思路：不通过 scroll 事件判断"用户是否离开底部"，
@@ -335,6 +360,8 @@ watch(
     // 隐藏消息列表内容，防止滚动恢复前的视觉跳动
     // visibility:hidden 保留布局占位，不会触发重排
     isRestoring.value = true
+
+    void finishEmptyPendingRestoreIfReady()
   },
 )
 
@@ -368,11 +395,12 @@ watch(visibleMessages, async (newArr, oldArr) => {
     }
 
     // 解锁滚动处理 & 显示内容（滚动位置已就绪）
-    pendingRestore = false
-    pendingRestoreRoomId = null
-    isRestoring.value = false
+    finishPendingRestore()
     return
   }
+
+  if (await finishEmptyPendingRestoreIfReady())
+    return
 
   // pendingRestore 期间忽略其他变化
   if (pendingRestore)
@@ -392,6 +420,10 @@ watch(visibleMessages, async (newArr, oldArr) => {
   if (pendingFocusEventId.value) {
     await tryFocusEventFromQuery()
   }
+})
+
+watch(isLoading, () => {
+  void finishEmptyPendingRestoreIfReady()
 })
 
 watch(
