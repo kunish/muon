@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { findOrCreateDm } from '@matrix/index'
 import { Plus } from 'lucide-vue-next'
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
+import WorkspaceResizablePane from '@/app/components/workspace/WorkspaceResizablePane.vue'
 import { useConversations } from '../../chat/composables/useConversations'
 import { useChatStore } from '../../chat/stores/chatStore'
 import { useContactStore } from '../stores/contactStore'
@@ -21,6 +22,12 @@ const { restoreRoom } = useConversations()
 
 const showCreateGroup = ref(false)
 const selectedGroupId = ref<string | null>(null)
+
+const CONTACTS_WIDTH_STORAGE_KEY = 'muon_contacts_sidebar_width'
+const DEFAULT_CONTACTS_WIDTH = 308
+const MIN_CONTACTS_WIDTH = 260
+const MAX_CONTACTS_WIDTH = 430
+const contactsResizeLabel = computed(() => t('sidebar.resize_contacts'))
 
 onMounted(() => {
   void store.loadContacts()
@@ -67,7 +74,17 @@ async function handleOpenMessage(userId: string): Promise<void> {
 
 <template>
   <div class="flex h-full min-w-0 flex-1 bg-background">
-    <div class="workspace-panel flex w-[308px] shrink-0 flex-col rounded-none border-y-0 border-l-0 bg-sidebar/95 backdrop-blur-xl">
+    <WorkspaceResizablePane
+      as="aside"
+      pane-test-id="contacts-sidebar"
+      content-test-id="contacts-sidebar-content"
+      handle-test-id="contacts-sidebar-resize-handle"
+      :width-storage-key="CONTACTS_WIDTH_STORAGE_KEY"
+      :default-width="DEFAULT_CONTACTS_WIDTH"
+      :min-width="MIN_CONTACTS_WIDTH"
+      :max-width="MAX_CONTACTS_WIDTH"
+      :resize-label="contactsResizeLabel"
+    >
       <div class="flex items-center justify-between border-b border-sidebar-border/80 p-3.5">
         <span class="text-sm font-medium">{{ t('contacts.title') }}</span>
         <button
@@ -86,7 +103,7 @@ async function handleOpenMessage(userId: string): Promise<void> {
         @open="handleSelectContact"
         @select-group="handleSelectGroup"
       />
-    </div>
+    </WorkspaceResizablePane>
 
     <div class="flex min-w-0 flex-1 bg-background">
       <GroupSettings

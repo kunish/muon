@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { Bell, Info, Keyboard, Monitor, Settings, Shield, User } from 'lucide-vue-next'
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
+import WorkspaceResizablePane from '@/app/components/workspace/WorkspaceResizablePane.vue'
 import AboutPage from './AboutPage.vue'
 import AppearanceSettings from './AppearanceSettings.vue'
 import GeneralSettings from './GeneralSettings.vue'
@@ -14,6 +15,11 @@ import ShortcutSettings from './ShortcutSettings.vue'
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
+
+const SETTINGS_WIDTH_STORAGE_KEY = 'muon_settings_sidebar_width'
+const DEFAULT_SETTINGS_WIDTH = 260
+const MIN_SETTINGS_WIDTH = 220
+const MAX_SETTINGS_WIDTH = 380
 
 const tabs = [
   { id: 'profile', label: () => t('settings.profile'), icon: User },
@@ -28,6 +34,7 @@ const tabs = [
 type TabId = typeof tabs[number]['id']
 
 const activeTab = ref<TabId>('profile')
+const settingsResizeLabel = computed(() => t('sidebar.resize_settings'))
 
 function isTabId(tab: unknown): tab is TabId {
   return typeof tab === 'string' && tabs.some(item => item.id === tab)
@@ -52,7 +59,18 @@ watch(activeTab, (tab) => {
 
 <template>
   <div class="flex h-full min-w-0 flex-1 bg-background">
-    <nav class="workspace-panel w-[260px] shrink-0 rounded-none border-y-0 border-l-0 p-3">
+    <WorkspaceResizablePane
+      as="nav"
+      pane-test-id="settings-sidebar"
+      content-test-id="settings-sidebar-content"
+      handle-test-id="settings-sidebar-resize-handle"
+      content-class="flex h-full min-h-0 flex-col overflow-hidden p-3"
+      :width-storage-key="SETTINGS_WIDTH_STORAGE_KEY"
+      :default-width="DEFAULT_SETTINGS_WIDTH"
+      :min-width="MIN_SETTINGS_WIDTH"
+      :max-width="MAX_SETTINGS_WIDTH"
+      :resize-label="settingsResizeLabel"
+    >
       <div class="mb-4 flex h-11 items-center gap-2 px-2">
         <Settings :size="20" class="text-primary" />
         <h1 class="text-base font-semibold">
@@ -70,7 +88,7 @@ watch(activeTab, (tab) => {
         <component :is="tab.icon" :size="16" />
         {{ tab.label() }}
       </button>
-    </nav>
+    </WorkspaceResizablePane>
 
     <div class="min-w-0 flex-1 overflow-y-auto p-6">
       <div class="workspace-surface mx-auto w-full max-w-[860px] rounded-3xl p-6">

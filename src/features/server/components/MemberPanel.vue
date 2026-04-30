@@ -198,7 +198,7 @@ function handleProfileFromContext(userId: string) {
       </div>
 
       <!-- Member list -->
-      <div class="scrollbar-thin flex-1 overflow-y-auto px-1.5 pb-2 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20">
+      <div class="muon-scrollbar muon-scrollbar-compact flex-1 overflow-y-auto px-1.5 pb-2">
         <template v-for="section in groupedSections" :key="section.key">
           <!-- Role header -->
           <div class="px-2 pt-4 pb-1">

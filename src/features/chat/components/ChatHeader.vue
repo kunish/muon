@@ -189,7 +189,7 @@ function toggleSidePanelFromMenu(panel: SidePanelType) {
       <div v-if="showMore" class="fixed inset-0 z-20" @click="showMore = false" />
     </div>
 
-    <div class="flex h-8 items-center gap-1 overflow-x-auto border-t border-border/35 px-3 [scrollbar-width:none] [-ms-overflow-style:none] sm:px-4 [&::-webkit-scrollbar]:hidden">
+    <div class="muon-scrollbar-hidden flex h-8 items-center gap-1 overflow-x-auto border-t border-border/35 px-3 sm:px-4">
       <button
         v-for="tab in contentTabs"
         :key="tab.id"

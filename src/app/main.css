@@ -87,8 +87,57 @@
 }
 
 @layer base {
+  :root {
+    --muon-scrollbar-size: 10px;
+    --muon-scrollbar-radius: 999px;
+    --muon-scrollbar-track: transparent;
+    --muon-scrollbar-thumb: color-mix(in srgb, var(--color-muted-foreground) 28%, transparent);
+    --muon-scrollbar-thumb-hover: color-mix(in srgb, var(--color-muted-foreground) 46%, transparent);
+    --muon-scrollbar-thumb-active: color-mix(in srgb, var(--color-primary) 62%, var(--color-muted-foreground) 22%);
+  }
+
+  .dark {
+    --muon-scrollbar-thumb: color-mix(in srgb, var(--color-muted-foreground) 34%, transparent);
+    --muon-scrollbar-thumb-hover: color-mix(in srgb, var(--color-muted-foreground) 56%, transparent);
+    --muon-scrollbar-thumb-active: color-mix(in srgb, var(--color-primary) 66%, var(--color-muted-foreground) 18%);
+  }
+
   * {
     @apply border-border;
+    scrollbar-color: var(--muon-scrollbar-thumb) var(--muon-scrollbar-track);
+    scrollbar-width: thin;
+  }
+
+  *::-webkit-scrollbar {
+    width: var(--muon-scrollbar-size);
+    height: var(--muon-scrollbar-size);
+  }
+
+  *::-webkit-scrollbar-track {
+    background: var(--muon-scrollbar-track);
+  }
+
+  *::-webkit-scrollbar-thumb {
+    min-width: 40px;
+    min-height: 40px;
+    border: 3px solid transparent;
+    border-radius: var(--muon-scrollbar-radius);
+    background: var(--muon-scrollbar-thumb);
+    background-clip: content-box;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: var(--muon-scrollbar-thumb-hover);
+    background-clip: content-box;
+  }
+
+  *::-webkit-scrollbar-thumb:active {
+    background: var(--muon-scrollbar-thumb-active);
+    background-clip: content-box;
+  }
+
+  *::-webkit-scrollbar-corner {
+    background: transparent;
   }
 
   html,
@@ -204,6 +253,45 @@
 
   .workspace-empty-state {
     @apply flex flex-col items-center justify-center rounded-3xl border border-border/70 bg-card/70 text-muted-foreground;
+  }
+
+  .muon-scrollbar {
+    scrollbar-color: var(--muon-scrollbar-thumb) var(--muon-scrollbar-track);
+    scrollbar-width: thin;
+  }
+
+  .muon-scrollbar-compact::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .muon-scrollbar-compact::-webkit-scrollbar-thumb {
+    border-width: 2px;
+  }
+
+  .muon-scrollbar-hidden {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .muon-scrollbar-hidden::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+
+  .muon-scrollbar-track {
+    background: transparent;
+  }
+
+  .muon-scrollbar-thumb {
+    background: var(--muon-scrollbar-thumb);
+    transition: background-color 120ms ease;
+  }
+
+  .muon-scrollbar-track:hover .muon-scrollbar-thumb,
+  .muon-scrollbar-thumb:hover {
+    background: var(--muon-scrollbar-thumb-hover);
   }
 }
 

@@ -42,7 +42,8 @@
     "server": "服务器地址",
     "display_name": "显示名称",
     "optional": "可选",
-    "processing": "处理中..."
+    "processing": "处理中...",
+    "user_id_taken": "该用户 ID 已存在。请切换到登录并使用已有密码，或换一个用户名注册。"
   },
   "chat": {
     "send": "发送",
@@ -534,6 +535,8 @@
     "collapse_messages": "收起消息侧边栏",
     "expand_messages": "展开消息侧边栏",
     "resize_messages": "调整消息侧边栏宽度",
+    "resize_contacts": "调整联系人侧边栏宽度",
+    "resize_settings": "调整设置侧边栏宽度",
     "collapse_workspace_rail": "收起应用栏",
     "expand_workspace_rail": "展开应用栏",
     "resize_workspace_rail": "调整应用栏宽度"

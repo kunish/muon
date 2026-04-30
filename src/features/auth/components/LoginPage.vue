@@ -18,6 +18,35 @@ const displayName = ref('')
 const error = ref('')
 const loading = ref(false)
 
+const USER_ID_TAKEN_RE = /M_USER_IN_USE|desired user id is already taken/i
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
+function isUserIdTakenError(value: unknown): boolean {
+  if (value instanceof Error && USER_ID_TAKEN_RE.test(value.message))
+    return true
+
+  if (typeof value === 'string')
+    return USER_ID_TAKEN_RE.test(value)
+
+  if (!isRecord(value))
+    return false
+
+  if (value.errcode === 'M_USER_IN_USE')
+    return true
+
+  return isUserIdTakenError(value.data) || isUserIdTakenError(value.response) || isUserIdTakenError(value.body)
+}
+
+function getAuthErrorMessage(value: unknown): string {
+  if (isUserIdTakenError(value))
+    return t('auth.user_id_taken')
+
+  return value instanceof Error ? value.message : t('auth.error')
+}
+
 function validateServerUrl(url: string): boolean {
   try {
     const parsed = new URL(url)
@@ -60,7 +89,7 @@ async function handleSubmit() {
     router.push('/dm')
   }
   catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : t('auth.error')
+    error.value = getAuthErrorMessage(e)
   }
   finally {
     loading.value = false

@@ -97,7 +97,7 @@ const StickerThumb = defineComponent({
 <template>
   <div class="flex h-[min(380px,calc(100vh-24px))] w-[min(340px,calc(100vw-16px))] flex-col overflow-hidden rounded-xl border border-border bg-popover/95 shadow-2xl backdrop-blur-xl">
     <!-- Tab 栏 -->
-    <div class="flex items-center gap-0.5 overflow-x-auto border-b border-border bg-muted/30 px-1 py-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+    <div class="muon-scrollbar-hidden flex items-center gap-0.5 overflow-x-auto border-b border-border bg-muted/30 px-1 py-1">
       <button
         v-for="tab in tabs"
         :key="tab.id"

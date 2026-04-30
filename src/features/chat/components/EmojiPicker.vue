@@ -159,7 +159,7 @@ function onSelect(emoji: string) {
     <!-- 搜索结果 -->
     <div
       v-if="searchResults"
-      class="flex-1 overflow-y-auto px-2.5 pb-2 [scrollbar-color:var(--color-border)_transparent] [scrollbar-width:thin]"
+      class="muon-scrollbar muon-scrollbar-compact flex-1 overflow-y-auto px-2.5 pb-2"
     >
       <div v-if="searchResults.length === 0" class="py-8 text-center text-xs text-muted-foreground">
         {{ t('chat.emoji_not_found') }}
@@ -179,7 +179,7 @@ function onSelect(emoji: string) {
     <!-- 分类内容 -->
     <div
       v-else
-      class="flex-1 overflow-y-auto px-2.5 pb-2 [scrollbar-color:var(--color-border)_transparent] [scrollbar-width:thin]"
+      class="muon-scrollbar muon-scrollbar-compact flex-1 overflow-y-auto px-2.5 pb-2"
     >
       <div v-if="activeCategory">
         <div class="sticky top-0 bg-background/95 backdrop-blur-sm text-[11px] text-muted-foreground/70 font-medium py-1.5 z-10">

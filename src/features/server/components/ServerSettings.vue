@@ -96,7 +96,7 @@ onUnmounted(() => {
           </div>
 
           <!-- Content -->
-          <div class="flex-1 overflow-y-auto py-[60px] pl-10 pr-20 [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-[3px] [&::-webkit-scrollbar-thumb]:bg-muted-foreground/15">
+          <div class="muon-scrollbar muon-scrollbar-compact flex-1 overflow-y-auto py-[60px] pl-10 pr-20">
             <div class="max-w-[660px]">
               <ServerOverview
                 v-if="currentSection === 'overview'"

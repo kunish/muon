@@ -85,7 +85,7 @@ onMounted(() => loadTrending())
     </div>
 
     <!-- 内容区 -->
-    <div class="flex-1 overflow-y-auto px-2.5 pb-2 [scrollbar-color:var(--color-border)_transparent] [scrollbar-width:thin]">
+    <div class="muon-scrollbar muon-scrollbar-compact flex-1 overflow-y-auto px-2.5 pb-2">
       <!-- 加载中 -->
       <div v-if="loading && gifs.length === 0" class="py-8 text-center text-xs text-muted-foreground">
         {{ t('chat.gif_loading') }}

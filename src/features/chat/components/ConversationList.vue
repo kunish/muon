@@ -140,7 +140,7 @@ function isConversationContextMenuOpen(roomId: string): boolean {
     <!-- 快捷入口：置顶联系人 — 从左侧开始排列 -->
     <div
       v-if="quickAccessContacts.length > 0 && !store.searchQuery"
-      class="flex items-start justify-start gap-2 overflow-x-auto border-b border-[color-mix(in_srgb,var(--color-border)_40%,transparent)] px-3 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      class="muon-scrollbar-hidden flex items-start justify-start gap-2 overflow-x-auto border-b border-[color-mix(in_srgb,var(--color-border)_40%,transparent)] px-3 py-2"
     >
       <button
         v-for="c in quickAccessContacts"
@@ -167,7 +167,7 @@ function isConversationContextMenuOpen(roomId: string): boolean {
 
     <!-- 虚拟滚动会话列表 - 带顶部渐隐遮罩 -->
     <div
-      class="flex-1 overflow-y-auto px-1.5 pt-0.5 scroll-smooth [mask-image:linear-gradient(to_bottom,transparent_0px,black_8px,black_calc(100%-8px),transparent_100%)] [-webkit-mask-image:linear-gradient(to_bottom,transparent_0px,black_8px,black_calc(100%-8px),transparent_100%)] [&::-webkit-scrollbar]:w-[3px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-[3px] [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:transition-colors [&::-webkit-scrollbar-thumb:hover]:bg-muted-foreground"
+      class="muon-scrollbar muon-scrollbar-compact flex-1 overflow-y-auto px-1.5 pt-0.5 scroll-smooth [mask-image:linear-gradient(to_bottom,transparent_0px,black_8px,black_calc(100%-8px),transparent_100%)] [-webkit-mask-image:linear-gradient(to_bottom,transparent_0px,black_8px,black_calc(100%-8px),transparent_100%)]"
     >
       <!-- 筛选标签 -->
       <div class="flex items-center gap-1 px-2.5 mb-1">

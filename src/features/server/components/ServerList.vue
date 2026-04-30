@@ -85,7 +85,7 @@ function onDrop(targetIndex: number) {
 
 <template>
   <TooltipProvider>
-    <nav class="flex shrink-0 flex-col items-center gap-1.5 overflow-y-auto bg-server-bar py-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden w-[52px]">
+    <nav class="muon-scrollbar-hidden flex shrink-0 flex-col items-center gap-1.5 overflow-y-auto bg-server-bar py-2 w-[52px]">
       <!-- Home / DM Button -->
       <Tooltip>
         <TooltipTrigger as-child>

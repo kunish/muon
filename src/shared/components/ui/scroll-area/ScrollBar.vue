@@ -17,12 +17,12 @@ const props = withDefaults(defineProps<Props>(), {
   <ScrollAreaScrollbar
     v-bind="{ ...props, class: undefined }"
     :class="cn(
-      'flex touch-none select-none transition-colors',
-      orientation === 'vertical' && 'h-full w-2.5 border-l border-l-transparent p-px',
-      orientation === 'horizontal' && 'h-2.5 flex-col border-t border-t-transparent p-px',
+      'muon-scrollbar-track flex touch-none select-none transition-colors',
+      orientation === 'vertical' && 'h-full w-2.5 p-px',
+      orientation === 'horizontal' && 'h-2.5 flex-col p-px',
       props.class,
     )"
   >
-    <ScrollAreaThumb class="relative flex-1 rounded-full bg-border" />
+    <ScrollAreaThumb class="muon-scrollbar-thumb relative flex-1 rounded-full" />
   </ScrollAreaScrollbar>
 </template>
