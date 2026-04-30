@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { getClient } from '@matrix/client'
+import { isDirectRoom } from '@matrix/roomUtils'
 import { Hash, Search, Settings, Users } from 'lucide-vue-next'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { isDirectRoom } from '@matrix/roomUtils'
 import { useChatStore } from '../stores/chatStore'
 
 const props = defineProps<{

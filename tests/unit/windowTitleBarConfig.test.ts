@@ -29,7 +29,7 @@ describe('custom window title bar configuration', () => {
     expect(config.app.windows[0]?.transparent).toBe(true)
     expect(config.app.windows[0]?.shadow).toBe(true)
     expect(config.app.windows[0]?.backgroundColor).toBe('#00000000')
-    expect(readSource('src-tauri/Cargo.toml')).toContain('features = ["macos-private-api"]')
+    expect(readSource('src-tauri/Cargo.toml')).toMatch(/tauri = \{.*features = \[\s*"macos-private-api"\s*\].*\}/)
   })
 
   it('allows the frontend title bar to control the current window', () => {

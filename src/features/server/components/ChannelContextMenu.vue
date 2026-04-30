@@ -31,13 +31,12 @@ const emit = defineEmits<{
   copyLink: [roomId: string]
 }>()
 
-const { t } = useI18n()
-const serverStore = useServerStore()
-const open = shallowRef(false)
-
 defineSlots<{
   default?: (props: { open: boolean }) => unknown
 }>()
+const { t } = useI18n()
+const serverStore = useServerStore()
+const open = shallowRef(false)
 
 const { isModerator: isAdmin } = useRoomPermissions(computed(() => serverStore.currentServerId))
 

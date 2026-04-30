@@ -1,7 +1,7 @@
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { computed, defineComponent, h, reactive, ref } from 'vue'
+import { computed, defineComponent, h, nextTick, reactive, ref } from 'vue'
 
 import ChatWindow from '../../src/features/chat/components/ChatWindow.vue'
 import KnowledgeCapturePanel from '../../src/features/chat/components/KnowledgeCapturePanel.vue'
@@ -116,6 +116,8 @@ vi.mock('lucide-vue-next', () => {
     ListChecks: icon,
     Mic: icon,
     MicOff: icon,
+    PanelLeftClose: icon,
+    PanelLeftOpen: icon,
     Search: icon,
     Settings: icon,
     Users: icon,
@@ -216,6 +218,7 @@ describe('knowledgeCapturePanel integration', () => {
     chatStore.activeThreadId = null
     serverStore.isDmMode = true
     mockConversationState.items = []
+    localStorage.clear()
     routerPush.mockReset()
     loadInboxEventContext.mockReset()
   })
@@ -293,5 +296,64 @@ describe('knowledgeCapturePanel integration', () => {
 
     expect(wrapper.text()).toContain('Alice')
     expect(wrapper.text()).toContain('Launch Group')
+  })
+
+  it('supports Feishu-style message sidebar resizing with the mouse', async () => {
+    const wrapper = mount(ChannelSidebar, { global: { plugins: [pinia] } })
+    const sidebar = wrapper.get('[data-testid="channel-sidebar"]')
+    const handle = wrapper.get('[data-testid="channel-sidebar-resize-handle"]')
+
+    expect(sidebar.attributes('style')).toContain('width: 308px')
+
+    handle.element.dispatchEvent(new MouseEvent('pointerdown', {
+      bubbles: true,
+      cancelable: true,
+      button: 0,
+      clientX: 308,
+    }))
+    await nextTick()
+
+    expect(document.body.style.cursor).toBe('col-resize')
+
+    window.dispatchEvent(new MouseEvent('pointermove', {
+      bubbles: true,
+      clientX: 368,
+    }))
+    await nextTick()
+
+    expect(sidebar.attributes('style')).toContain('width: 368px')
+    expect(handle.attributes('aria-valuenow')).toBe('368')
+    expect(localStorage.getItem('muon_message_sidebar_width')).toBe('368')
+
+    window.dispatchEvent(new MouseEvent('pointerup', { bubbles: true }))
+    await nextTick()
+
+    expect(document.body.style.cursor).toBe('')
+
+    await handle.trigger('dblclick')
+
+    expect(sidebar.attributes('style')).toContain('width: 308px')
+    expect(sidebar.attributes('aria-expanded')).toBe('true')
+    expect(localStorage.getItem('muon_message_sidebar_width')).toBe('308')
+  })
+
+  it('collapses and restores the message sidebar from an edge control', async () => {
+    const wrapper = mount(ChannelSidebar, { global: { plugins: [pinia] } })
+    const sidebar = wrapper.get('[data-testid="channel-sidebar"]')
+
+    await wrapper.get('[data-testid="channel-sidebar-toggle"]').trigger('click')
+
+    expect(sidebar.attributes('style')).toContain('width: 0px')
+    expect(sidebar.attributes('aria-expanded')).toBe('false')
+    expect(wrapper.get('[data-testid="channel-sidebar-content"]').attributes('style')).toContain('display: none')
+    expect(wrapper.find('[data-testid="channel-sidebar-resize-handle"]').exists()).toBe(false)
+    expect(localStorage.getItem('muon_message_sidebar_collapsed')).toBe('true')
+
+    await wrapper.get('[data-testid="channel-sidebar-toggle"]').trigger('click')
+
+    expect(sidebar.attributes('style')).toContain('width: 308px')
+    expect(sidebar.attributes('aria-expanded')).toBe('true')
+    expect(wrapper.find('[data-testid="channel-sidebar-resize-handle"]').exists()).toBe(true)
+    expect(localStorage.getItem('muon_message_sidebar_collapsed')).toBe('false')
   })
 })

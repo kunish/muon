@@ -54,6 +54,23 @@ function isRightAlignedGroup(senderId: string): boolean {
   return settingsStore.messageAlignment === 'leftright' && senderId === currentUserId.value
 }
 
+function messageHasRichMediaEmbed(event: MatrixEvent): boolean {
+  const content = event.getContent()
+  if (content?.msgtype !== 'm.text' || content?.format !== 'org.matrix.custom.html')
+    return false
+
+  const formattedBody = content.formatted_body
+  if (typeof formattedBody !== 'string' || !formattedBody)
+    return false
+
+  if (typeof document === 'undefined')
+    return /<img[\s>]/i.test(formattedBody)
+
+  const template = document.createElement('template')
+  template.innerHTML = formattedBody
+  return template.content.querySelector('img') !== null
+}
+
 /**
  * 分组策略：同一发送者的连续消息合并为一组。
  *
@@ -83,6 +100,7 @@ function shouldShowTimeDivider(idx: number): boolean {
 interface MessageGroup {
   type: 'user' | 'system'
   senderId: string
+  hasRichMediaEmbeds: boolean
   messages: { event: MatrixEvent, idx: number, isFirst: boolean }[]
 }
 
@@ -109,6 +127,7 @@ const messageGroups = computed((): MessageGroup[] => {
       groups.push({
         type: 'system',
         senderId: '__system__',
+        hasRichMediaEmbeds: false,
         messages: [{ event: ev, idx: i, isFirst: true }],
       })
       continue
@@ -127,11 +146,13 @@ const messageGroups = computed((): MessageGroup[] => {
       currentGroup = {
         type: 'user',
         senderId: sender,
+        hasRichMediaEmbeds: messageHasRichMediaEmbed(ev),
         messages: [{ event: ev, idx: i, isFirst: true }],
       }
     }
     else {
       currentGroup!.messages.push({ event: ev, idx: i, isFirst: false })
+      currentGroup!.hasRichMediaEmbeds ||= messageHasRichMediaEmbed(ev)
     }
   }
 
@@ -179,9 +200,10 @@ const messageGroups = computed((): MessageGroup[] => {
           <!-- 左侧粘性头像（他人消息） -->
           <div
             v-if="!isRightAlignedGroup(group.senderId)"
-            class="col-start-1 flex flex-col justify-end self-stretch overflow-visible"
+            class="col-start-1 flex flex-col overflow-visible"
+            :class="group.hasRichMediaEmbeds ? 'justify-start self-start pt-0.5' : 'justify-end self-stretch'"
           >
-            <div class="sticky bottom-1 top-3 z-[1] self-end">
+            <div :class="group.hasRichMediaEmbeds ? 'z-[1] self-end' : 'sticky bottom-1 top-3 z-[1] self-end'">
               <MessageGroupAvatar
                 :sender-id="group.senderId"
                 :room-id="roomId"
@@ -224,9 +246,10 @@ const messageGroups = computed((): MessageGroup[] => {
           <!-- 右侧粘性头像（自己消息） -->
           <div
             v-if="isRightAlignedGroup(group.senderId)"
-            class="col-start-2 flex flex-col justify-end self-stretch overflow-visible"
+            class="col-start-2 flex flex-col overflow-visible"
+            :class="group.hasRichMediaEmbeds ? 'justify-start self-start pt-0.5' : 'justify-end self-stretch'"
           >
-            <div class="sticky bottom-1 top-3 z-[1] self-end">
+            <div :class="group.hasRichMediaEmbeds ? 'z-[1] self-end' : 'sticky bottom-1 top-3 z-[1] self-end'">
               <MessageGroupAvatar
                 :sender-id="group.senderId"
                 :room-id="roomId"

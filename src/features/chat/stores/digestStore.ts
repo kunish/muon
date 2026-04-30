@@ -1,12 +1,12 @@
 import type { MatrixEvent } from 'matrix-js-sdk'
 import type { DigestFilter, DigestSession, DigestSourceEvent } from '../types/digest'
 import type { DigestEntry } from '../types/knowledge'
+import { createKnowledgeRepository } from '@features/chat/lib/knowledgeDb'
 import { defineStore } from 'pinia'
 import { computed, ref, shallowRef } from 'vue'
 import { materializeOfflineDigest } from '@/matrix/digest'
 import { matrixEvents } from '@/matrix/events'
 import { useNetworkStatus } from '@/shared/composables/useNetworkStatus'
-import { createKnowledgeRepository } from '@features/chat/lib/knowledgeDb'
 import { compareDigestEntries } from '../types/digest'
 
 const repository = createKnowledgeRepository()

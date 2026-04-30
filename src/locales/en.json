@@ -530,7 +530,13 @@
   "sidebar": {
     "messages": "Messages",
     "contacts": "Contacts",
-    "settings": "Settings"
+    "settings": "Settings",
+    "collapse_messages": "Collapse message sidebar",
+    "expand_messages": "Expand message sidebar",
+    "resize_messages": "Resize message sidebar",
+    "collapse_workspace_rail": "Collapse app rail",
+    "expand_workspace_rail": "Expand app rail",
+    "resize_workspace_rail": "Resize app rail"
   },
   "server": {
     "server": "Server",

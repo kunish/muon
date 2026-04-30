@@ -530,7 +530,13 @@
   "sidebar": {
     "messages": "消息",
     "contacts": "联系人",
-    "settings": "设置"
+    "settings": "设置",
+    "collapse_messages": "收起消息侧边栏",
+    "expand_messages": "展开消息侧边栏",
+    "resize_messages": "调整消息侧边栏宽度",
+    "collapse_workspace_rail": "收起应用栏",
+    "expand_workspace_rail": "展开应用栏",
+    "resize_workspace_rail": "调整应用栏宽度"
   },
   "server": {
     "server": "服务器",

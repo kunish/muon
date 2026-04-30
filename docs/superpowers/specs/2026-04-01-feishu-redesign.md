@@ -500,7 +500,7 @@ Layout: Full width, centered content
 | File                                                | Changes                                                                                            |
 | --------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
 | `src/app/main.css`                                  | Replace all color tokens (amber → blue), add chat-bg tokens, update radius                         |
-| `src/app/components/AppLayout.vue`               | Replace ServerList with NavRail, ChannelSidebar with ConversationSidebar, update conditional logic |
+| `src/app/components/AppLayout.vue`                  | Replace ServerList with NavRail, ChannelSidebar with ConversationSidebar, update conditional logic |
 | `src/features/chat/components/ChatPage.vue`         | Chat area background, message layout changes                                                       |
 | `src/features/chat/components/MessageBubble.vue`    | Bubble styling: left/right alignment, blue own bubbles, rounded-xl, shadow                         |
 | `src/features/chat/components/RichTextInput.vue`    | Input styling updates                                                                              |

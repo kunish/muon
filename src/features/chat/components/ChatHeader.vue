@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import type { SidePanelType } from '../stores/chatStore'
 import { getRoomTopic } from '@matrix/rooms'
+import { isDirectRoom } from '@matrix/roomUtils'
 import { AtSign, Bell, FileText, FolderOpen, Hash, Lock, MessageSquareText, MoreHorizontal, Pin, Plus, Search, Star, Timer, Users } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { isDirectRoom } from '@matrix/roomUtils'
 import { useCurrentRoom } from '../composables/useCurrentRoom'
 import { useChatStore } from '../stores/chatStore'
 import DisappearingMessageSettings from './DisappearingMessageSettings.vue'

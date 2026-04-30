@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { getClient } from '@matrix/client'
 import { getRoomTopic, leaveRoom, setRoomTopic, toggleRoomMute, toggleRoomPin } from '@matrix/rooms'
+import { isDirectRoom } from '@matrix/roomUtils'
 import { ask } from '@tauri-apps/plugin-dialog'
 import {
   Bell,
@@ -17,7 +18,6 @@ import { useI18n } from 'vue-i18n'
 import { Avatar } from '@/shared/components/ui/avatar'
 import { Switch } from '@/shared/components/ui/switch'
 import { Textarea } from '@/shared/components/ui/textarea'
-import { isDirectRoom } from '@matrix/roomUtils'
 import { useChatStore } from '../stores/chatStore'
 
 const { t } = useI18n()

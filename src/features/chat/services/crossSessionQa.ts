@@ -1,5 +1,5 @@
-import { searchRoomEvents } from '@/matrix/retrieval'
 import { createKnowledgeRepository } from '@features/chat/lib/knowledgeDb'
+import { searchRoomEvents } from '@/matrix/retrieval'
 import { crossSessionQaAnswerSchema, toCitationEventIds } from '../types/knowledge'
 
 const repository = createKnowledgeRepository()
