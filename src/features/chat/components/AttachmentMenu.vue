@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { open as openDialog } from '@tauri-apps/plugin-dialog'
-import { readFile } from '@tauri-apps/plugin-fs'
 import { Camera, FileUp, Image, ImagePlus, MapPin, Plus, Sticker, UserCircle, Video } from 'lucide-vue-next'
 import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { open as openDialog } from '@/electron/dialog'
+import { readFile } from '@/electron/fs'
 import { getFloatingPosition } from '../composables/useFloatingPosition'
 
 withDefaults(defineProps<{

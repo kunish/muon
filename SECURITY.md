@@ -35,6 +35,6 @@ The following are in scope for security reports:
 - Matrix protocol implementation
 - End-to-end encryption
 - Local data storage
-- Tauri IPC and permissions
+- Electron IPC and preload bridge permissions
 - Cross-site scripting (XSS) in rendered messages
 - Dependency vulnerabilities with exploitable impact

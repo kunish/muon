@@ -4,7 +4,7 @@
 
 # Muon
 
-A modern, fast [Matrix](https://matrix.org) chat client built with [Tauri](https://tauri.app) + [Vue 3](https://vuejs.org).
+A modern [Matrix](https://matrix.org) chat client built with [Electron](https://www.electronjs.org), [electron-vite](https://electron-vite.org), and [Vue 3](https://vuejs.org).
 
 [![CI](https://github.com/kunish/muon/actions/workflows/ci.yml/badge.svg)](https://github.com/kunish/muon/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -15,7 +15,7 @@ A modern, fast [Matrix](https://matrix.org) chat client built with [Tauri](https
 
 ## Features
 
-- Native desktop performance via Tauri (Rust backend)
+- Native desktop shell via Electron with an isolated preload bridge
 - Feishu-style workspace shell with Messages, Contacts, and Settings apps
 - Matrix direct messages, groups, and server/channel conversations
 - End-to-end encryption support (via Matrix protocol)
@@ -30,7 +30,7 @@ A modern, fast [Matrix](https://matrix.org) chat client built with [Tauri](https
 
 | Layer      | Technology                             |
 | ---------- | -------------------------------------- |
-| Framework  | Tauri 2 (Rust) + Vite 8                |
+| Framework  | Electron + electron-vite + Vite 8      |
 | Frontend   | Vue 3 (Composition API) + TypeScript   |
 | Styling    | Tailwind CSS v4 + shadcn-vue (reka-ui) |
 | State      | Pinia + TanStack Query                 |
@@ -45,8 +45,7 @@ A modern, fast [Matrix](https://matrix.org) chat client built with [Tauri](https
 - Web favicon: `index.html` points to the primary SVG logo
 - Workspace rail brand mark: `src/app/components/workspace/WorkspaceAppRail.vue`
 - Window title bar brand mark: `src/app/components/window/WindowTitleBar.vue`
-- Tauri platform icon source: `src-tauri/icons/muon-icon.svg` includes a transparent safe area for macOS
-- Tauri platform icons: generated under `src-tauri/icons/` with `pnpm tauri icon src-tauri/icons/muon-icon.svg --output src-tauri/icons`
+- Electron platform icons: `build/icons/`
 
 ## Download
 
@@ -60,8 +59,6 @@ To try it out, follow the [Development](#development) instructions below to buil
 
 - [Node.js](https://nodejs.org) >= 22
 - [pnpm](https://pnpm.io) >= 10
-- [Rust](https://www.rust-lang.org/tools/install) (latest stable)
-- Tauri [system dependencies](https://v2.tauri.app/start/prerequisites/)
 
 ### Quick Start
 
@@ -73,11 +70,11 @@ cd muon
 # Install dependencies
 pnpm install
 
-# Start the web dev server (without Tauri shell)
+# Start the Electron desktop app in development mode
 pnpm dev
 
-# Or start the full Tauri desktop app
-pnpm tauri dev
+# Or start only the web renderer
+pnpm dev:web
 ```
 
 ### Local Matrix Homeserver
@@ -108,39 +105,43 @@ a fresh data set for the current seed version, run
 
 ### Available Scripts
 
-| Command                   | Description                         |
-| ------------------------- | ----------------------------------- |
-| `pnpm dev`                | Start Vite dev server               |
-| `pnpm tauri dev`          | Start Tauri desktop app (dev mode)  |
-| `pnpm build`              | Type-check and build for production |
-| `pnpm preview`            | Preview production build locally    |
-| `pnpm lint`               | Run ESLint                          |
-| `pnpm services:up`        | Start local services and seed data  |
-| `pnpm services:seed`      | Seed local Conduit mock data        |
-| `pnpm services:logs`      | Tail local service logs             |
-| `pnpm services:down`      | Stop local services                 |
-| `pnpm type-check`         | Run TypeScript type checking        |
-| `pnpm test:unit`          | Run unit tests (Vitest)             |
-| `pnpm test:unit:watch`    | Run unit tests in watch mode        |
-| `pnpm test:unit:coverage` | Run unit tests with coverage report |
-| `pnpm test:e2e`           | Run end-to-end tests (Playwright)   |
-| `pnpm test`               | Run all tests                       |
+| Command                   | Description                               |
+| ------------------------- | ----------------------------------------- |
+| `pnpm dev`                | Start Electron desktop app in dev mode    |
+| `pnpm dev:web`            | Start Vite dev server for renderer only   |
+| `pnpm build`              | Type-check and build Electron app         |
+| `pnpm build:web`          | Type-check and build renderer only        |
+| `pnpm preview`            | Preview Electron production build locally |
+| `pnpm package`            | Build unpacked Electron package           |
+| `pnpm dist`               | Build distributable Electron package      |
+| `pnpm lint`               | Run ESLint                                |
+| `pnpm services:up`        | Start local services and seed data        |
+| `pnpm services:seed`      | Seed local Conduit mock data              |
+| `pnpm services:logs`      | Tail local service logs                   |
+| `pnpm services:down`      | Stop local services                       |
+| `pnpm type-check`         | Run TypeScript type checking              |
+| `pnpm test:unit`          | Run unit tests (Vitest)                   |
+| `pnpm test:unit:watch`    | Run unit tests in watch mode              |
+| `pnpm test:unit:coverage` | Run unit tests with coverage report       |
+| `pnpm test:e2e`           | Run end-to-end tests (Playwright)         |
+| `pnpm test`               | Run all tests                             |
 
-`pnpm test:e2e` runs browser-compatible Playwright tests by default. Tauri-specific settings tests require `TAURI_E2E=1`, Tauri runtime access, Matrix homeserver services, and session env vars: `E2E_MATRIX_SERVER_URL`, `E2E_MATRIX_USER_ID`, `E2E_MATRIX_ACCESS_TOKEN`, and `E2E_MATRIX_DEVICE_ID`.
+`pnpm test:e2e` runs browser-compatible Playwright tests by default. Runtime-backed settings tests require `ELECTRON_E2E=1`, Electron runtime access, Matrix homeserver services, and session env vars: `E2E_MATRIX_SERVER_URL`, `E2E_MATRIX_USER_ID`, `E2E_MATRIX_ACCESS_TOKEN`, and `E2E_MATRIX_DEVICE_ID`.
 
 ### Project Structure
 
 ```text
 muon/
 ├── public/              # Static web assets, including the Muon logo
+├── electron/            # Electron main and preload sources
+├── build/icons/         # Electron package icons
 ├── src/                  # Vue frontend source
 │   ├── app/              # App shell, router, layouts
 │   ├── features/         # Feature modules (chat, auth, etc.)
 │   ├── matrix/           # Matrix SDK integration layer
 │   ├── shared/           # Shared components, utils, composables
-│   ├── locales/          # i18n translation files
-│   └── tauri/            # Tauri API wrappers
-├── src-tauri/            # Rust backend (Tauri)
+│   ├── electron/         # Renderer-side desktop bridge adapters
+│   └── locales/          # i18n translation files
 ├── tests/
 │   ├── unit/             # Vitest unit tests
 │   └── e2e/              # Playwright e2e tests
@@ -150,8 +151,8 @@ muon/
 
 ## CI/CD
 
-- **CI** (`ci.yml`): Runs Rust/Tauri formatting, linting, checking, and tests alongside ESLint, TypeScript type checking, Vitest unit tests, and Playwright e2e tests on pushes to `main`/`develop` and PRs targeting `main`.
-- **Build** (`build.yml`): Triggered by `v*` tags. Builds cross-platform Tauri binaries (Linux, macOS x86_64/ARM, Windows) and creates a GitHub Release.
+- **CI** (`ci.yml`): Runs ESLint, TypeScript type checking, Vitest unit tests, Playwright e2e tests, and an Electron production build on pushes to `main`/`develop` and PRs targeting `main`.
+- **Build** (`build.yml`): Triggered by `v*` tags. Builds cross-platform Electron packages (Linux, macOS x86_64/ARM, Windows) and publishes GitHub Release assets.
 - **Release** (`release.yml`): Runs Release Please on `main` to prepare version bumps and release PRs.
 
 ## Contributing

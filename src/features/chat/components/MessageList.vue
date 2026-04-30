@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { MatrixEvent } from 'matrix-js-sdk'
-import { getReadMarkerEventId } from '@matrix/index'
+import { getClient } from '@matrix/client'
+import { getReadMarkerEventId, syncState } from '@matrix/index'
 import { ChevronDown, Undo2 } from 'lucide-vue-next'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -54,6 +55,15 @@ const visibleMessages = computed(() =>
   messages.value.filter(ev => !store.isHidden(ev.getId() || '')) as MatrixEvent[],
 )
 
+const currentUserId = computed(() => getClient().getUserId() || '')
+
+function isCurrentUserEvent(event: MatrixEvent): boolean {
+  const sender = event.getSender?.()
+  if (sender)
+    return sender === currentUserId.value
+  return event.isSending?.() === true
+}
+
 const unreadEventId = computed(() => {
   const roomId = store.currentRoomId
   if (!roomId)
@@ -66,8 +76,11 @@ const unreadEventId = computed(() => {
   )
   if (markerIdx < 0 || markerIdx >= visibleMessages.value.length - 1)
     return null
-  // 未读分割线插在 marker 之后的第一条消息前
-  return visibleMessages.value[markerIdx + 1]?.getId() ?? null
+  const firstIncoming = visibleMessages.value
+    .slice(markerIdx + 1)
+    .find(event => !isCurrentUserEvent(event))
+  // 未读分割线插在 marker 之后的第一条非自己消息前
+  return firstIncoming?.getId() ?? null
 })
 
 let observer: IntersectionObserver | null = null
@@ -102,6 +115,13 @@ const showJumpToPrevious = computed(() => !isRestoring.value && returnPosition.v
 const jumpToBottomLabel = computed(() =>
   showNewMsg.value ? t('chat.new_msg_btn') : t('chat.jump_to_bottom'),
 )
+const currentRoomIdForWelcome = computed(() => {
+  if (!store.currentRoomId || isLoading.value)
+    return null
+  if (syncState.value !== 'PREPARED' && syncState.value !== 'SYNCING')
+    return null
+  return store.currentRoomId
+})
 
 // 切换房间后等消息到达再恢复
 // 此标志为 true 期间，onScroll / ResizeObserver 全部挂起
@@ -123,12 +143,12 @@ function finishPendingRestore(resetBottomState = false) {
 }
 
 async function finishEmptyPendingRestoreIfReady() {
-  if (!pendingRestore || isLoading.value || visibleMessages.value.length > 0)
+  if (!pendingRestore || visibleMessages.value.length > 0)
     return false
 
   await nextTick()
 
-  if (!pendingRestore || isLoading.value || visibleMessages.value.length > 0)
+  if (!pendingRestore || visibleMessages.value.length > 0)
     return false
 
   finishPendingRestore(true)
@@ -371,9 +391,6 @@ async function restorePendingScrollIfReady() {
   if (!pendingRestore)
     return false
 
-  if (visibleMessages.value.length === 0 && isLoading.value)
-    return true
-
   const roomId = pendingRestoreRoomId
   const sessionVersion = restoreSessionVersion
   await nextTick()
@@ -564,7 +581,7 @@ watch(
     // visibility:hidden 保留布局占位，不会触发重排
     isRestoring.value = true
 
-    void finishEmptyPendingRestoreIfReady()
+    void nextTick().then(() => finishEmptyPendingRestoreIfReady())
   },
   { flush: 'sync' },
 )
@@ -738,8 +755,8 @@ onUnmounted(() => {
       />
 
       <ChannelWelcome
-        v-else-if="!isLoading && store.currentRoomId"
-        :room-id="store.currentRoomId"
+        v-else-if="currentRoomIdForWelcome"
+        :room-id="currentRoomIdForWelcome"
       />
 
       <UserInfoPanel

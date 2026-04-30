@@ -1,6 +1,7 @@
 node_modules/
 dist/
-src-tauri/target/
+out/
+release/
 docker/conduit_data/
 docker/minio_data/
 *.log

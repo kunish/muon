@@ -1,4 +1,4 @@
-import { editMessage, replyToMessage, sendTextMessage } from '@matrix/index'
+import { downloadMedia, editMessage, replyToMessage, sendTextMessage } from '@matrix/index'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -24,11 +24,13 @@ const mocks = vi.hoisted(() => ({
   editorHtml: '',
   onSubmit: undefined as undefined | ((html: string, text: string) => unknown),
   onPasteFiles: undefined as undefined | ((files: File[]) => unknown),
+  onPasteMediaSources: undefined as undefined | ((sources: Array<{ index: number, src: string, name: string, kind: 'image' | 'video' | 'file' }>) => unknown),
   insertPendingMediaAttachment: vi.fn(),
   uploadFile: vi.fn(),
   uploadImage: vi.fn(),
   uploadVideo: vi.fn(),
   uploadMedia: vi.fn((file: File) => Promise.resolve(`mxc://server/${file.name}`)),
+  downloadMedia: vi.fn(() => Promise.resolve(new Blob(['image'], { type: 'image/png' }))),
   extractImageMeta: vi.fn(() => Promise.resolve({ width: 640, height: 360 })),
   createObjectURL: vi.fn((file: File) => `blob:${file.name}`),
   revokeObjectURL: vi.fn(),
@@ -49,9 +51,11 @@ vi.mock('@/features/chat/composables/useEditor', () => ({
   useEditor: (options: {
     onSubmit: (html: string, text: string) => unknown
     onPasteFiles?: (files: File[]) => unknown
+    onPasteMediaSources?: (sources: Array<{ index: number, src: string, name: string, kind: 'image' | 'video' | 'file' }>) => unknown
   }) => {
     mocks.onSubmit = options.onSubmit
     mocks.onPasteFiles = options.onPasteFiles
+    mocks.onPasteMediaSources = options.onPasteMediaSources
     return {
       editor: ref({
         getText: vi.fn(() => mocks.editorText),
@@ -124,6 +128,7 @@ vi.mock('vue-sonner', () => ({
 
 vi.mock('@matrix/index', () => ({
   editMessage: mocks.editMessage,
+  downloadMedia: mocks.downloadMedia,
   extractImageMeta: mocks.extractImageMeta,
   getClient: mocks.getClient,
   replyToMessage: mocks.replyToMessage,
@@ -190,6 +195,7 @@ describe('richTextInput send recovery', () => {
     mocks.editorHtml = ''
     mocks.onSubmit = undefined
     mocks.onPasteFiles = undefined
+    mocks.onPasteMediaSources = undefined
   })
 
   it('stages pasted media files and only uploads them when the composer is submitted', async () => {
@@ -251,6 +257,27 @@ describe('richTextInput send recovery', () => {
       'Bold caption\n[mixed.png]',
       '<p><strong>Bold caption</strong></p><p><img src="mxc://server/mixed.png" alt="mixed.png" title="mixed.png" data-width="640" data-height="360"></p>',
     )
+  })
+
+  it('stages rich text pasted Matrix images as pending media previews', async () => {
+    const store = useChatStore()
+    store.setCurrentRoom('!room:localhost')
+    mountInput()
+    mocks.downloadMedia.mockResolvedValueOnce(new Blob(['image'], { type: 'application/octet-stream' }))
+
+    expect(mocks.onPasteMediaSources).toBeTypeOf('function')
+    const ids = await mocks.onPasteMediaSources?.([
+      { index: 0, src: 'mxc://server/media', name: 'image.png', kind: 'image' },
+    ])
+    await nextTick()
+
+    expect(ids).toHaveLength(1)
+    expect(downloadMedia).toHaveBeenCalledWith('mxc://server/media')
+    expect(mocks.createObjectURL).toHaveBeenCalledWith(expect.objectContaining({
+      name: 'image.png',
+      type: 'image/png',
+    }))
+    expect(mocks.insertPendingMediaAttachment).not.toHaveBeenCalled()
   })
 
   it('keeps editor and typing state when text send fails', async () => {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ChevronDown, PanelLeftClose, PanelLeftOpen, X } from 'lucide-vue-next'
+import { ChevronDown, X } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ConversationList from '@/features/chat/components/ConversationList.vue'
@@ -28,7 +28,6 @@ const serverStore = useServerStore()
 const { t } = useI18n()
 
 const SIDEBAR_WIDTH_STORAGE_KEY = 'muon_message_sidebar_width'
-const SIDEBAR_COLLAPSED_STORAGE_KEY = 'muon_message_sidebar_collapsed'
 const DEFAULT_SIDEBAR_WIDTH = 308
 const MIN_SIDEBAR_WIDTH = 260
 const MAX_SIDEBAR_WIDTH = 430
@@ -46,22 +45,16 @@ const createChannelCategoryId = ref<string | undefined>(undefined)
 const {
   paneWidth: sidebarWidth,
   paneStyle: sidebarStyle,
-  isCollapsed: isSidebarCollapsed,
   isResizing: isResizingSidebar,
   startResize: startSidebarResize,
-  toggleCollapse: toggleSidebarCollapse,
   restorePane: restoreSidebar,
   onResizeHandleKeydown,
 } = useResizablePane({
   widthStorageKey: SIDEBAR_WIDTH_STORAGE_KEY,
-  collapsedStorageKey: SIDEBAR_COLLAPSED_STORAGE_KEY,
   defaultWidth: DEFAULT_SIDEBAR_WIDTH,
   minWidth: MIN_SIDEBAR_WIDTH,
   maxWidth: MAX_SIDEBAR_WIDTH,
 })
-const sidebarToggleLabel = computed(() =>
-  isSidebarCollapsed.value ? t('sidebar.expand_messages') : t('sidebar.collapse_messages'),
-)
 const resizeHandleLabel = computed(() => t('sidebar.resize_messages'))
 
 function openCreateChannel(categoryId?: string): void {
@@ -73,16 +66,13 @@ function openCreateChannel(categoryId?: string): void {
 <template>
   <aside
     data-testid="channel-sidebar"
-    class="workspace-panel relative flex h-full min-h-0 shrink-0 flex-col overflow-visible rounded-none border-y-0 border-l-0 transition-[width] duration-150 ease-out"
+    class="workspace-panel relative flex h-full min-h-0 shrink-0 flex-col overflow-visible rounded-none border-y-0 border-l-0 bg-sidebar/95 backdrop-blur-xl transition-[width] duration-150 ease-out"
     :class="[
       isResizingSidebar && 'transition-none',
-      isSidebarCollapsed ? 'border-transparent !bg-transparent shadow-none backdrop-blur-0' : 'bg-sidebar/95 backdrop-blur-xl',
     ]"
     :style="sidebarStyle"
-    :aria-expanded="!isSidebarCollapsed"
   >
     <div
-      v-show="!isSidebarCollapsed"
       data-testid="channel-sidebar-content"
       class="flex h-full min-h-0 flex-col overflow-hidden"
     >
@@ -169,22 +159,7 @@ function openCreateChannel(categoryId?: string): void {
       <UserPanel />
     </div>
 
-    <button
-      type="button"
-      data-testid="channel-sidebar-toggle"
-      class="absolute top-3 z-30 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full border border-sidebar-border/80 bg-sidebar text-muted-foreground shadow-[0_4px_14px_color-mix(in_srgb,var(--color-foreground)_12%,transparent)] transition-all duration-150 hover:bg-sidebar-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-95"
-      :class="isSidebarCollapsed ? 'right-[-30px]' : 'right-[-13px]'"
-      :aria-label="sidebarToggleLabel"
-      :title="sidebarToggleLabel"
-      @click="toggleSidebarCollapse"
-      @dblclick.stop.prevent="restoreSidebar"
-    >
-      <PanelLeftOpen v-if="isSidebarCollapsed" :size="14" />
-      <PanelLeftClose v-else :size="14" />
-    </button>
-
     <div
-      v-if="!isSidebarCollapsed"
       data-testid="channel-sidebar-resize-handle"
       role="separator"
       tabindex="0"

@@ -1,4 +1,4 @@
-export const MAX_LINK_PREVIEW_BYTES = 256 * 1024
+export const MAX_LINK_PREVIEW_BYTES = 2 * 1024 * 1024
 
 const BLOCKED_HOSTS = new Set([
   'localhost',

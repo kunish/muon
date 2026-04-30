@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { redactMessage } from '@matrix/index'
-import { ask } from '@tauri-apps/plugin-dialog'
 import { Forward, Trash2, X } from 'lucide-vue-next'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
+import { ask } from '@/electron/dialog'
 import { useChatStore } from '../stores/chatStore'
 
 const emit = defineEmits<{

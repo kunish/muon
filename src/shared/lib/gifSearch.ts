@@ -1,4 +1,4 @@
-import { fetch as tauriFetch } from '@tauri-apps/plugin-http'
+import { fetch as desktopFetch } from '@/electron/http'
 
 export interface GifResult {
   id: string
@@ -39,7 +39,7 @@ function mapResults(data: any): GifResult[] {
 
 export async function searchGifs(query: string, limit = 20): Promise<GifResult[]> {
   const url = buildUrl('search', { q: query, limit: String(limit), media_filter: 'gif,tinygif' })
-  const res = await tauriFetch(url)
+  const res = await desktopFetch(url)
   if (!res.ok)
     throw new Error(`Tenor search failed: ${res.status}`)
   const data = await res.json()
@@ -48,7 +48,7 @@ export async function searchGifs(query: string, limit = 20): Promise<GifResult[]
 
 export async function getTrendingGifs(limit = 20): Promise<GifResult[]> {
   const url = buildUrl('featured', { limit: String(limit), media_filter: 'gif,tinygif' })
-  const res = await tauriFetch(url)
+  const res = await desktopFetch(url)
   if (!res.ok)
     throw new Error(`Tenor trending failed: ${res.status}`)
   const data = await res.json()

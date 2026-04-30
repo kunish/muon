@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { getMyAvatarUrl, getMyDisplayName, getMyStatus, setMyAvatar, setMyDisplayName } from '@matrix/index'
-import { open } from '@tauri-apps/plugin-dialog'
-import { readFile } from '@tauri-apps/plugin-fs'
 import { Camera, Check, Pencil, SmilePlus, X } from 'lucide-vue-next'
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { open } from '@/electron/dialog'
+import { readFile } from '@/electron/fs'
 import { Label } from '@/shared/components/ui/label'
 import { useAuthMedia } from '@/shared/composables/useAuthMedia'
 import StatusPicker from './StatusPicker.vue'

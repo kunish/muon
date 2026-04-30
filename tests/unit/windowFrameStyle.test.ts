@@ -18,5 +18,6 @@ describe('window frame style', () => {
     expect(css).toContain('overflow: hidden')
     expect(css).toContain('box-shadow: 0 18px 48px')
     expect(css).toContain('.muon-window-maximized .app-window-frame')
+    expect(css).toContain('.muon-window-flush-frame .app-window-frame')
   })
 })

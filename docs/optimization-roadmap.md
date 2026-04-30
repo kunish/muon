@@ -21,20 +21,20 @@ These issues create a chain: **disabled CSP + plaintext token = single XSS → f
 
 ### 0.1 Enable Content Security Policy
 
-- **File:** `src-tauri/tauri.conf.json:27`
-- **Issue:** `"csp": null` — CSP is completely disabled
-- **Fix:** Set strict CSP: `"csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https:; connect-src 'self' https: wss:; font-src 'self'"`
+- **File:** `electron/main.ts`
+- **Issue:** Electron windows need an explicit CSP for production content.
+- **Fix:** Set strict CSP through response headers or renderer HTML metadata: `"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https:; connect-src 'self' https: wss:; font-src 'self'"`
 
 ### 0.2 Move Access Token to Secure Storage
 
 - **File:** `src/matrix/auth.ts:13-14`
 - **Issue:** `accessToken` stored in plaintext `localStorage`
-- **Fix:** Use `tauri-plugin-store` with encryption or OS keychain. Never store tokens in browser-accessible storage.
+- **Fix:** Use OS keychain storage through a constrained Electron main-process IPC API. Never store tokens in browser-accessible storage.
 
-### 0.3 Restrict HTTP Plugin Scope
+### 0.3 Restrict Desktop HTTP Bridge Scope
 
-- **File:** `src-tauri/capabilities/default.json:14-19`
-- **Issue:** Wildcard `http://*:*`, `https://*:*` allows requests to any URL (SSRF risk)
+- **File:** `electron/main.ts`
+- **Issue:** Main-process HTTP bridging can allow requests to arbitrary URLs if not constrained.
 - **Fix:** Restrict to Matrix homeserver patterns. Block private IP ranges and cloud metadata endpoints (`169.254.169.254`).
 
 ### 0.4 Fix XSS in Message Forwarding
@@ -45,9 +45,9 @@ These issues create a chain: **disabled CSP + plaintext token = single XSS → f
 
 ### 0.5 Restrict File System Access Scope
 
-- **File:** `src-tauri/capabilities/default.json:13`
-- **Issue:** `fs:allow-read-file` without scope restriction — can read any file
-- **Fix:** Add scope: `{ "allow": [{ "path": "$DOWNLOAD/*" }, { "path": "$DOCUMENT/*" }] }`
+- **File:** `electron/main.ts`
+- **Issue:** File picker results should be the only paths accepted by the preload file bridge.
+- **Fix:** Track picker-approved paths in the main process and reject direct renderer requests outside that allowlist.
 
 ---
 
@@ -238,7 +238,7 @@ Existing store tests are shallow:
 
 - Current E2E tests are unusable in CI (`test.skip(!!process.env.CI)`)
 - Missing: full login cycle, message send/receive, room creation, encryption setup
-- Consider Tauri's E2E testing approach or WebDriver-based testing
+- Consider Electron E2E testing approach or WebDriver-based testing
 
 ### 4.6 Raise Coverage Thresholds
 

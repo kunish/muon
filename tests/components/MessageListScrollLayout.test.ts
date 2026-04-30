@@ -4,6 +4,7 @@ import { nextTick, ref } from 'vue'
 
 vi.mock('@matrix/index', () => ({
   getReadMarkerEventId: vi.fn().mockReturnValue(null),
+  syncState: { value: 'PREPARED' },
 }))
 
 vi.mock('vue-router', () => ({

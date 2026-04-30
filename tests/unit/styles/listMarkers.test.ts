@@ -15,6 +15,16 @@ describe('rich text list markers', () => {
     expect(css).toContain('@apply my-[0.2em] list-disc')
   })
 
+  it('keeps compact composer list markers vertically centered with the input line', () => {
+    const input = readFileSync(resolve(root, 'src/features/chat/components/RichTextInput.vue'), 'utf8')
+
+    expect(input).toContain('[&_.tiptap_ul]:my-0')
+    expect(input).toContain('[&_.tiptap_ol]:my-0')
+    expect(input).toContain('[&_.tiptap_li]:leading-6')
+    expect(input).not.toContain('[&_.tiptap_ul]:my-1')
+    expect(input).not.toContain('[&_.tiptap_ol]:my-1')
+  })
+
   it('keeps the composer caret and placeholder vertically centered', () => {
     const input = readFileSync(resolve(root, 'src/features/chat/components/RichTextInput.vue'), 'utf8')
 

@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "private": true,
   "packageManager": "pnpm@10.33.2+sha512.a90faf6feeab71ad6c6e57f94e0fe1a12f5dcc22cd754db40ae9593eb6a3e0b6b12e3540218bb37ae083404b1f2ce6db2a4121e979829b4aff94b99f49da1cf8",
-  "description": "A modern, fast Matrix chat client built with Tauri and Vue 3",
+  "description": "A modern Matrix chat client built with Electron, electron-vite, and Vue 3",
   "author": "Muon Contributors",
   "license": "MIT",
   "homepage": "https://github.com/kunish/muon#readme",
@@ -18,19 +18,24 @@
   "keywords": [
     "matrix",
     "chat",
-    "tauri",
+    "electron",
+    "electron-vite",
     "vue",
     "desktop",
     "encrypted",
     "messenger"
   ],
+  "main": "out/main/main.cjs",
   "scripts": {
-    "dev": "vite",
-    "build": "vue-tsc --noEmit && vite build",
-    "preview": "vite preview",
-    "tauri": "tauri",
+    "dev": "electron-vite dev",
+    "dev:web": "vite",
+    "build": "vue-tsc --noEmit && tsc -p tsconfig.electron.json --noEmit && electron-vite build",
+    "build:web": "vue-tsc --noEmit && vite build",
+    "preview": "electron-vite preview",
+    "package": "pnpm build && electron-builder --dir",
+    "dist": "pnpm build && electron-builder",
     "lint": "eslint .",
-    "type-check": "vue-tsc --noEmit",
+    "type-check": "vue-tsc --noEmit && tsc -p tsconfig.electron.json --noEmit",
     "services:up": "bash docker/start.sh",
     "services:seed": "npx --yes tsx scripts/seed-conduit.ts",
     "services:down": "docker compose -f docker/docker-compose.yml down",
@@ -41,19 +46,42 @@
     "test:e2e": "playwright test",
     "test": "pnpm test:unit && pnpm test:e2e"
   },
+  "build": {
+    "appId": "com.muon.im",
+    "productName": "Muon",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "out/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "icon": "build/icons/icon.icns",
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    },
+    "win": {
+      "icon": "build/icons/icon.ico",
+      "target": [
+        "nsis"
+      ]
+    },
+    "linux": {
+      "icon": "build/icons/png-set",
+      "target": [
+        "AppImage"
+      ]
+    }
+  },
   "dependencies": {
     "@floating-ui/vue": "^1.1.11",
     "@intlify/unplugin-vue-i18n": "^11.1.2",
     "@tailwindcss/vite": "^4.2.4",
     "@tanstack/vue-query": "^5.100.6",
     "@tanstack/vue-virtual": "^3.13.24",
-    "@tauri-apps/api": "^2.10.1",
-    "@tauri-apps/plugin-dialog": "^2.7.0",
-    "@tauri-apps/plugin-fs": "^2.5.0",
-    "@tauri-apps/plugin-http": "^2.5.8",
-    "@tauri-apps/plugin-notification": "^2.3.3",
-    "@tauri-apps/plugin-opener": "^2.5.3",
-    "@tauri-apps/plugin-updater": "^2.10.1",
     "@tiptap/core": "^3.22.5",
     "@tiptap/extension-image": "^3.22.5",
     "@tiptap/extension-link": "^3.22.5",
@@ -72,8 +100,9 @@
     "date-fns": "^4.1.0",
     "dexie": "^4.4.2",
     "dompurify": "^3.4.1",
+    "electron-updater": "^6.8.3",
     "ky": "^2.0.2",
-    "livekit-client": "^2.18.7",
+    "livekit-client": "^2.18.8",
     "lottie-web": "^5.13.0",
     "lucide-vue-next": "^1.0.0",
     "marked": "^18.0.2",
@@ -91,21 +120,23 @@
     "vue-i18n": "^11.4.0",
     "vue-router": "^5.0.6",
     "vue-sonner": "^2.0.9",
-    "zod": "^4.3.6"
+    "zod": "^4.4.1"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^8.2.0",
     "@playwright/test": "^1.59.1",
-    "@tauri-apps/cli": "^2.10.1",
     "@types/node": "^25.6.0",
     "@typescript-eslint/rule-tester": "^8.59.1",
     "@vitejs/plugin-vue": "^6.0.6",
     "@vitest/coverage-v8": "^4.1.5",
     "@vue/test-utils": "^2.4.9",
+    "electron": "^41.3.0",
+    "electron-builder": "^26.8.1",
+    "electron-vite": "^5.0.0",
     "eslint": "^10.2.1",
     "eslint-plugin-format": "^2.0.1",
-    "jsdom": "^29.1.0",
-    "msw": "^2.13.6",
+    "jsdom": "^29.1.1",
+    "msw": "^2.14.2",
     "typescript": "^6.0.3",
     "vite": "^8.0.10",
     "vitest": "^4.1.5",
@@ -113,6 +144,8 @@
   },
   "pnpm": {
     "onlyBuiltDependencies": [
+      "electron",
+      "electron-winstaller",
       "esbuild",
       "msw"
     ]

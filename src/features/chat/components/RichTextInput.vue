@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import type { MentionPopupState } from '../composables/useEditor'
+import type { MentionPopupState, PastedMediaSource } from '../composables/useEditor'
 import type { ImageSticker } from '@/shared/data/stickerPacks'
 import type { GifResult } from '@/shared/lib/gifSearch'
 import {
+  downloadMedia,
   editMessage,
   extractImageMeta,
   getClient,
@@ -138,6 +139,7 @@ const { editor, clear, insertEmoji, insertPendingMediaAttachment } = useEditor({
   placeholder: placeholderText,
   onSubmit: submitComposer,
   onPasteFiles: handlePasteFiles,
+  onPasteMediaSources: handlePasteMediaSources,
   canSubmit: hasPendingPasteAttachments,
   pendingMedia: {
     getAttachment: (id: string) => pendingPasteAttachments.value.find(attachment => attachment.id === id),
@@ -570,8 +572,12 @@ async function handleVoiceSend(blob: Blob, duration: number) {
 }
 
 function handlePasteFiles(files: File[]) {
+  stagePasteFiles(files, { insert: true })
+}
+
+function stagePasteFiles(files: File[], options: { insert: boolean }): string[] {
   if (!files.length)
-    return
+    return []
 
   const attachments = files.map(file => ({
     id: `paste-${Date.now()}-${pendingPasteAttachmentId++}`,
@@ -584,9 +590,74 @@ function handlePasteFiles(files: File[]) {
     ...pendingPasteAttachments.value,
     ...attachments,
   ]
-  for (const attachment of attachments)
-    insertPendingMediaAttachment(attachment.id)
+  if (options.insert) {
+    for (const attachment of attachments)
+      insertPendingMediaAttachment(attachment.id)
+  }
   markComposeChanged()
+  return attachments.map(attachment => attachment.id)
+}
+
+async function handlePasteMediaSources(sources: PastedMediaSource[]): Promise<string[]> {
+  if (!sources.length)
+    return []
+
+  const files = await Promise.all(sources.map(source => createFileFromPastedMediaSource(source)))
+  return stagePasteFiles(files.filter((file): file is File => Boolean(file)), { insert: false })
+}
+
+async function createFileFromPastedMediaSource(source: PastedMediaSource): Promise<File | null> {
+  try {
+    const blob = await getPastedMediaBlob(source.src)
+    const type = getPastedMediaFileType(source, blob)
+    return new File([blob], source.name, { type })
+  }
+  catch {
+    return null
+  }
+}
+
+async function getPastedMediaBlob(src: string): Promise<Blob> {
+  if (src.startsWith('mxc://'))
+    return downloadMedia(src)
+
+  const response = await fetch(src)
+  if (!response.ok)
+    throw new Error('Failed to fetch pasted media')
+  return response.blob()
+}
+
+function getPastedMediaFileType(source: PastedMediaSource, blob: Blob): string {
+  if (source.kind === 'image')
+    return blob.type.startsWith('image/') ? blob.type : getMimeTypeFromFileName(source.name) || 'image/png'
+  if (source.kind === 'video')
+    return blob.type.startsWith('video/') ? blob.type : getMimeTypeFromFileName(source.name) || 'video/mp4'
+  return blob.type || getMimeTypeFromFileName(source.name) || 'application/octet-stream'
+}
+
+function getMimeTypeFromFileName(name: string): string {
+  const extension = name.split('.').pop()?.toLowerCase()
+  switch (extension) {
+    case 'avif':
+      return 'image/avif'
+    case 'gif':
+      return 'image/gif'
+    case 'jpg':
+    case 'jpeg':
+      return 'image/jpeg'
+    case 'png':
+      return 'image/png'
+    case 'webp':
+      return 'image/webp'
+    case 'mp4':
+      return 'video/mp4'
+    case 'mov':
+      return 'video/quicktime'
+    case 'webm':
+      return 'video/webm'
+    default:
+      return ''
+  }
 }
 
 function removePendingPasteAttachment(id: string) {
@@ -1047,7 +1118,7 @@ onUnmounted(() => {
         <EditorContent
           v-if="editor"
           :editor="editor"
-          class="rich-editor px-2 py-2 text-sm leading-6 outline-none transition-[max-height,min-height] duration-200 [&_.mention]:font-medium [&_.mention]:text-primary [&_.tiptap]:leading-6 [&_.tiptap]:outline-none [&_.tiptap_ol]:my-1 [&_.tiptap_ol]:list-decimal [&_.tiptap_ol]:pl-5 [&_.tiptap_ul]:my-1 [&_.tiptap_ul]:list-disc [&_.tiptap_ul]:pl-5 [&_.tiptap_li]:pl-1 [&_.tiptap_p]:m-0 [&_.tiptap_p]:leading-6 [&_.tiptap_p.is-editor-empty:first-child]:before:pointer-events-none [&_.tiptap_p.is-editor-empty:first-child]:before:float-left [&_.tiptap_p.is-editor-empty:first-child]:before:h-0 [&_.tiptap_p.is-editor-empty:first-child]:before:text-muted-foreground [&_.tiptap_p.is-editor-empty:first-child]:before:content-[attr(data-placeholder)]"
+          class="rich-editor px-2 py-2 text-sm leading-6 outline-none transition-[max-height,min-height] duration-200 [&_.mention]:font-medium [&_.mention]:text-primary [&_.tiptap]:leading-6 [&_.tiptap]:outline-none [&_.tiptap_ol]:my-0 [&_.tiptap_ol]:list-decimal [&_.tiptap_ol]:pl-5 [&_.tiptap_ul]:my-0 [&_.tiptap_ul]:list-disc [&_.tiptap_ul]:pl-5 [&_.tiptap_li]:leading-6 [&_.tiptap_li]:pl-1 [&_.tiptap_p]:m-0 [&_.tiptap_p]:leading-6 [&_.tiptap_p.is-editor-empty:first-child]:before:pointer-events-none [&_.tiptap_p.is-editor-empty:first-child]:before:float-left [&_.tiptap_p.is-editor-empty:first-child]:before:h-0 [&_.tiptap_p.is-editor-empty:first-child]:before:text-muted-foreground [&_.tiptap_p.is-editor-empty:first-child]:before:content-[attr(data-placeholder)]"
           :class="editorHeightClass"
         />
       </div>
@@ -1227,7 +1298,7 @@ onUnmounted(() => {
           v-if="editor"
           :editor="editor"
           data-testid="rich-editor"
-          class="rich-editor px-2 py-2 text-sm leading-6 outline-none transition-[max-height,min-height] duration-200 [&_.mention]:font-medium [&_.mention]:text-primary [&_.tiptap]:leading-6 [&_.tiptap]:outline-none [&_.tiptap_ol]:my-1 [&_.tiptap_ol]:list-decimal [&_.tiptap_ol]:pl-5 [&_.tiptap_ul]:my-1 [&_.tiptap_ul]:list-disc [&_.tiptap_ul]:pl-5 [&_.tiptap_li]:pl-1 [&_.tiptap_p]:m-0 [&_.tiptap_p]:leading-6 [&_.tiptap_p.is-editor-empty:first-child]:before:pointer-events-none [&_.tiptap_p.is-editor-empty:first-child]:before:float-left [&_.tiptap_p.is-editor-empty:first-child]:before:h-0 [&_.tiptap_p.is-editor-empty:first-child]:before:text-muted-foreground [&_.tiptap_p.is-editor-empty:first-child]:before:content-[attr(data-placeholder)]"
+          class="rich-editor px-2 py-2 text-sm leading-6 outline-none transition-[max-height,min-height] duration-200 [&_.mention]:font-medium [&_.mention]:text-primary [&_.tiptap]:leading-6 [&_.tiptap]:outline-none [&_.tiptap_ol]:my-0 [&_.tiptap_ol]:list-decimal [&_.tiptap_ol]:pl-5 [&_.tiptap_ul]:my-0 [&_.tiptap_ul]:list-disc [&_.tiptap_ul]:pl-5 [&_.tiptap_li]:leading-6 [&_.tiptap_li]:pl-1 [&_.tiptap_p]:m-0 [&_.tiptap_p]:leading-6 [&_.tiptap_p.is-editor-empty:first-child]:before:pointer-events-none [&_.tiptap_p.is-editor-empty:first-child]:before:float-left [&_.tiptap_p.is-editor-empty:first-child]:before:h-0 [&_.tiptap_p.is-editor-empty:first-child]:before:text-muted-foreground [&_.tiptap_p.is-editor-empty:first-child]:before:content-[attr(data-placeholder)]"
           :class="editorHeightClass"
         />
       </div>

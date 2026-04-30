@@ -50,7 +50,7 @@ vi.mock('@matrix/rooms', () => ({
   unstarMessage: vi.fn(),
 }))
 
-vi.mock('@tauri-apps/plugin-dialog', () => ({
+vi.mock('@/electron/dialog', () => ({
   ask: vi.fn(),
 }))
 

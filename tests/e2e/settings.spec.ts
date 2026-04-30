@@ -9,13 +9,12 @@ const matrixSession = {
 const hasMatrixSession = Object.values(matrixSession).every(Boolean)
 const matrixSessionJson = JSON.stringify(matrixSession)
 
-// Settings pages require an authenticated Matrix session, which depends on
-// @tauri-apps/plugin-http (only available inside the Tauri runtime) and a
-// live Matrix homeserver. Browser-only Playwright runs skip these by default.
+// Settings pages require an authenticated Matrix session and a live Matrix
+// homeserver. Browser-only Playwright runs skip these by default.
 test.describe('Settings', () => {
   test.skip(
-    process.env.TAURI_E2E !== '1' || !hasMatrixSession,
-    'set TAURI_E2E=1 plus E2E_MATRIX_SERVER_URL, E2E_MATRIX_USER_ID, E2E_MATRIX_ACCESS_TOKEN, and E2E_MATRIX_DEVICE_ID; requires Tauri runtime and Matrix homeserver',
+    process.env.ELECTRON_E2E !== '1' || !hasMatrixSession,
+    'set ELECTRON_E2E=1 plus E2E_MATRIX_SERVER_URL, E2E_MATRIX_USER_ID, E2E_MATRIX_ACCESS_TOKEN, and E2E_MATRIX_DEVICE_ID; requires Electron runtime and Matrix homeserver',
   )
 
   test.beforeEach(async ({ page }) => {

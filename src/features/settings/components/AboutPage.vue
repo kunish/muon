@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { checkForUpdates, installUpdate, updateAvailable, updateVersion, updating } from '@/tauri/updater'
+import { checkForUpdates, installUpdate, updateAvailable, updateVersion, updating } from '@/electron/updater'
 
 const { t } = useI18n()
 const APP_VERSION = __APP_VERSION__ as string
@@ -70,7 +70,7 @@ async function handleCheck() {
     </div>
 
     <div class="text-xs text-muted-foreground space-y-1">
-      <div>Tauri 2.x + Vue 3.5 + Matrix</div>
+      <div>Electron + Vue 3.5 + Matrix</div>
       <div>MIT License</div>
     </div>
   </div>

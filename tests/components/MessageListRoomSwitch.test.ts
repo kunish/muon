@@ -1,6 +1,6 @@
 import type { MatrixEvent } from 'matrix-js-sdk'
 import { flushPromises, mount } from '@vue/test-utils'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h, nextTick } from 'vue'
 import { useChatStore } from '@/features/chat/stores/chatStore'
 
@@ -11,6 +11,7 @@ const {
   paginateBackMock,
   relationSummariesMock,
   sendReadReceiptMock,
+  syncStateMock,
   timelines,
 } = vi.hoisted(() => {
   const timelines = new Map<string, MatrixEvent[]>()
@@ -28,6 +29,7 @@ const {
       threadReplyCountsByEventId: new Map(),
     })),
     sendReadReceiptMock: vi.fn().mockResolvedValue(undefined),
+    syncStateMock: { value: 'PREPARED' },
   }
 })
 
@@ -38,6 +40,7 @@ vi.mock('@matrix/index', () => ({
   matrixEvents: matrixEventsMock,
   paginateBack: paginateBackMock,
   sendReadReceipt: sendReadReceiptMock,
+  syncState: syncStateMock,
 }))
 
 vi.mock('vue-router', () => ({
@@ -64,6 +67,13 @@ class MockResizeObserver {
 function createEvent(id: string): MatrixEvent {
   return {
     getId: () => id,
+  } as unknown as MatrixEvent
+}
+
+function createMessageEvent(id: string, sender: string): MatrixEvent {
+  return {
+    getId: () => id,
+    getSender: () => sender,
   } as unknown as MatrixEvent
 }
 
@@ -134,7 +144,107 @@ const MessageGroupStub = defineComponent({
   },
 })
 
+const MessageGroupUnreadStub = defineComponent({
+  name: 'MessageGroup',
+  props: {
+    events: {
+      type: Array,
+      required: true,
+    },
+    unreadEventId: {
+      type: String,
+      default: null,
+    },
+  },
+  setup(props) {
+    return () => h('div', {}, (props.events as MatrixEvent[]).flatMap((event) => {
+      const nodes = []
+      if (props.unreadEventId === event.getId())
+        nodes.push(h('span', { 'data-testid': 'new-message-separator' }, 'NEW'))
+      nodes.push(h('div', { 'data-event-id': event.getId() }, event.getId()))
+      return nodes
+    }))
+  },
+})
+
 describe('message list room switching', () => {
+  beforeEach(() => {
+    getReadMarkerEventIdMock.mockReturnValue(null)
+    syncStateMock.value = 'PREPARED'
+  })
+
+  it('does not show the channel welcome while startup sync has not prepared the room', async () => {
+    vi.stubGlobal('IntersectionObserver', MockIntersectionObserver)
+    vi.stubGlobal('ResizeObserver', MockResizeObserver)
+    syncStateMock.value = 'STOPPED'
+    timelines.clear()
+    getTimelineMock.mockClear()
+    paginateBackMock.mockClear()
+
+    timelines.set('!room-loading:localhost', [])
+
+    const store = useChatStore()
+    store.setCurrentRoom('!room-loading:localhost')
+
+    const MessageList = (await import('@/features/chat/components/MessageList.vue')).default
+    const wrapper = mount(MessageList, {
+      global: {
+        stubs: {
+          ChannelWelcome: true,
+          MessageGroup: true,
+          UserInfoPanel: true,
+        },
+      },
+    })
+
+    await nextTick()
+    await flushPromises()
+    await nextTick()
+
+    expect(wrapper.findComponent({ name: 'ChannelWelcome' }).exists()).toBe(false)
+
+    wrapper.unmount()
+    vi.unstubAllGlobals()
+  })
+
+  it('does not place the NEW marker before the current user message after the read marker', async () => {
+    vi.stubGlobal('IntersectionObserver', MockIntersectionObserver)
+    vi.stubGlobal('ResizeObserver', MockResizeObserver)
+    timelines.clear()
+    getTimelineMock.mockClear()
+    paginateBackMock.mockClear()
+    getReadMarkerEventIdMock.mockReturnValue('$read')
+
+    timelines.set('!room-own-message:localhost', [
+      createMessageEvent('$read', '@alice:localhost'),
+      createMessageEvent('$own-local-echo', '@test:localhost'),
+    ])
+
+    const store = useChatStore()
+    store.setCurrentRoom('!room-own-message:localhost')
+
+    const MessageList = (await import('@/features/chat/components/MessageList.vue')).default
+    const wrapper = mount(MessageList, {
+      global: {
+        stubs: {
+          ChannelWelcome: true,
+          MessageGroup: MessageGroupUnreadStub,
+          UserInfoPanel: true,
+        },
+      },
+    })
+
+    await nextTick()
+    await flushPromises()
+    await nextTick()
+
+    expect(wrapper.find('[data-testid="new-message-separator"]').exists()).toBe(false)
+    expect(wrapper.text()).toContain('$own-local-echo')
+
+    wrapper.unmount()
+    vi.unstubAllGlobals()
+  })
+
   it('finishes scroll restoration when the next room has an empty timeline', async () => {
     vi.stubGlobal('IntersectionObserver', MockIntersectionObserver)
     vi.stubGlobal('ResizeObserver', MockResizeObserver)
@@ -333,6 +443,59 @@ describe('message list room switching', () => {
     expect(wrapper.text()).toContain('$b-new')
 
     wrapper.unmount()
+    vi.unstubAllGlobals()
+  })
+
+  it('reveals the loading state immediately when switching to an uncached room', async () => {
+    vi.stubGlobal('IntersectionObserver', MockIntersectionObserver)
+    vi.stubGlobal('ResizeObserver', MockResizeObserver)
+    timelines.clear()
+    getTimelineMock.mockClear()
+    paginateBackMock.mockClear()
+    let resolvePaginate: ((loaded: boolean) => void) | null = null
+    paginateBackMock.mockImplementationOnce(() => new Promise<boolean>((resolve) => {
+      resolvePaginate = resolve
+    }))
+
+    timelines.set('!room-a:localhost', [createEvent('$a-new')])
+    timelines.set('!room-uncached:localhost', [])
+
+    const store = useChatStore()
+    store.setCurrentRoom('!room-a:localhost')
+
+    const MessageList = (await import('@/features/chat/components/MessageList.vue')).default
+    const wrapper = mount(MessageList, {
+      global: {
+        stubs: {
+          ChannelWelcome: true,
+          MessageGroup: MessageGroupStub,
+          UserInfoPanel: true,
+        },
+      },
+    })
+
+    await nextTick()
+    await flushPromises()
+
+    const scrollerWrapper = wrapper.get('[data-testid="message-list-scroller"]')
+    expect((scrollerWrapper.element as HTMLElement).style.visibility).toBe('visible')
+
+    store.setCurrentRoom('!room-uncached:localhost')
+    await nextTick()
+    await flushPromises()
+    await nextTick()
+
+    expect(paginateBackMock).toHaveBeenCalledWith('!room-uncached:localhost', 30)
+    expect((scrollerWrapper.element as HTMLElement).style.visibility).toBe('visible')
+    expect(wrapper.text()).not.toContain('$a-new')
+
+    resolvePaginate?.(false)
+    await flushPromises()
+    await nextTick()
+
+    wrapper.unmount()
+    paginateBackMock.mockReset()
+    paginateBackMock.mockResolvedValue(false)
     vi.unstubAllGlobals()
   })
 

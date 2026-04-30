@@ -6,15 +6,7 @@
       "component": "muon",
       "changelog-path": "CHANGELOG.md",
       "bump-minor-pre-major": true,
-      "bump-patch-for-minor-pre-major": true,
-      "extra-files": [
-        "src-tauri/tauri.conf.json",
-        {
-          "type": "toml",
-          "path": "src-tauri/Cargo.toml",
-          "jsonpath": "$.package.version"
-        }
-      ]
+      "bump-patch-for-minor-pre-major": true
     }
   }
 }

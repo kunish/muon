@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { getClient } from '@matrix/client'
 import { getRoomAnnouncement, getRoomTopic, leaveRoom, setRoomAnnouncement, setRoomName, setRoomTopic } from '@matrix/index'
-import { ask } from '@tauri-apps/plugin-dialog'
 import {
   Check,
   LogOut,
@@ -15,6 +14,7 @@ import {
 import { computed, ref, toRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
+import { ask } from '@/electron/dialog'
 import { Textarea } from '@/shared/components/ui/textarea'
 import { useRoomPermissions } from '@/shared/composables/useRoomPermissions'
 import { useConversations } from '../../chat/composables/useConversations'

@@ -17,5 +17,5 @@
 - [ ] `pnpm lint` passes
 - [ ] `pnpm type-check` passes
 - [ ] Unit tests added/updated (`pnpm test:unit`)
-- [ ] Tested manually in Tauri desktop app
+- [ ] Tested manually in Electron desktop app
 - [ ] i18n strings added to both `en.json` and `zh.json` (if applicable)

@@ -1,5 +1,5 @@
-import { fetch } from '@tauri-apps/plugin-http'
 import { onUnmounted, ref } from 'vue'
+import { fetch } from '@/electron/http'
 
 // --- 网络状态类型 ---
 export type ConnectionStatus = 'online' | 'offline' | 'server-unreachable'

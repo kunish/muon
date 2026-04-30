@@ -1,4 +1,4 @@
-import { fetch as tauriFetch } from '@tauri-apps/plugin-http'
+import { fetch as desktopFetch } from '@/electron/http'
 
 const cache = new Map<string, string>()
 
@@ -14,7 +14,7 @@ export async function translateText(text: string, targetLang: string): Promise<s
   url.searchParams.set('dt', 't')
   url.searchParams.set('q', text)
 
-  const res = await tauriFetch(url.toString())
+  const res = await desktopFetch(url.toString())
   if (!res.ok)
     throw new Error(`Translation failed: ${res.status}`)
 

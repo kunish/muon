@@ -12,7 +12,6 @@ import {
   pinMessage,
   unpinMessage,
 } from '@matrix/rooms'
-import { ask } from '@tauri-apps/plugin-dialog'
 import {
   Copy,
   Edit,
@@ -28,7 +27,9 @@ import {
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
+import { ask } from '@/electron/dialog'
 import { getFloatingPosition } from '../composables/useFloatingPosition'
+import { copyMessageContentToClipboard } from '../lib/messageClipboard'
 import { useChatStore } from '../stores/chatStore'
 import { useDeferStore } from '../stores/deferStore'
 import { useTaskStore } from '../stores/taskStore'
@@ -62,6 +63,7 @@ const moreMenuPositioned = ref(false)
 const myUserId = computed(() => getClient().getUserId())
 const isMine = computed(() => props.event.getSender() === myUserId.value)
 const eventId = computed(() => props.event.getId() || '')
+const content = computed(() => props.event.getContent() ?? {})
 const body = computed(() => props.event.getContent()?.body || '')
 
 const isPinned = computed(() => {
@@ -81,7 +83,11 @@ function updateMoreMenuPosition() {
 function closeMoreMenu() {
   showMore.value = false
   showDeferMenu.value = false
-  moreMenuPositioned.value = false
+}
+
+function onMoreMenuAfterLeave() {
+  if (!showMore.value)
+    moreMenuPositioned.value = false
 }
 
 function toggleMore() {
@@ -137,7 +143,7 @@ async function onTogglePin() {
 }
 
 function onCopyText() {
-  navigator.clipboard.writeText(body.value)
+  void copyMessageContentToClipboard(content.value)
   showMore.value = false
 }
 
@@ -250,10 +256,9 @@ function onViewportChange() {
 
 watch(showMore, async (open) => {
   emit('menuOpenChange', open)
-  if (!open) {
-    moreMenuPositioned.value = false
+  if (!open)
     return
-  }
+
   await nextTick()
   updateMoreMenuPosition()
   moreMenuPositioned.value = true
@@ -317,10 +322,11 @@ onBeforeUnmount(() => {
 
     <Teleport to="body">
       <Transition
-        enter-active-class="transition-all duration-[120ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
-        leave-active-class="transition-all duration-75 ease-in"
+        enter-active-class="transition-[opacity,transform] duration-[120ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
+        leave-active-class="transition-opacity duration-75 ease-in"
         enter-from-class="opacity-0 -translate-y-1 scale-[0.96]"
-        leave-to-class="opacity-0 -translate-y-1 scale-[0.96]"
+        leave-to-class="opacity-0"
+        @after-leave="onMoreMenuAfterLeave"
       >
         <div
           v-if="showMore"

@@ -10,15 +10,6 @@ updates:
         patterns:
           - '*'
 
-  - package-ecosystem: cargo
-    directory: /src-tauri
-    schedule:
-      interval: weekly
-    groups:
-      all-cargo:
-        patterns:
-          - '*'
-
   - package-ecosystem: github-actions
     directory: /
     schedule:

@@ -71,11 +71,11 @@ Use the [Feature Request](https://github.com/kunish/muon/issues/new?template=fea
 ```text
 src/
 ├── app/          # App shell: router, layouts, global providers
+├── electron/     # Renderer-side Electron bridge adapters
 ├── features/     # Feature modules (each with its own components, composables, stores)
 ├── matrix/       # Matrix SDK integration: client, sync, auth, room operations
 ├── shared/       # Shared UI components (shadcn-vue based), utils, composables
-├── locales/      # i18n JSON files (en.json, zh.json)
-└── tauri/        # Tauri plugin wrappers (HTTP, filesystem, notifications)
+└── locales/      # i18n JSON files (en.json, zh.json)
 ```
 
 The Matrix integration layer (`src/matrix/`) is the bridge between the Vue frontend and `matrix-js-sdk`. It handles authentication, sync state, room management, and event processing.

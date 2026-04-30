@@ -6,7 +6,7 @@
 
 **Architecture:** Add a focused workspace layer under `src/app/components/workspace/` that owns the app rail, route-to-app mapping, page framing, and common workspace surfaces. Keep Matrix data stores and existing feature components as business logic sources, then move the visible shell from server-first navigation to app-first navigation.
 
-**Tech Stack:** Vue 3, Vue Router, Pinia, Tailwind CSS v4 theme tokens, Vitest, Vue Test Utils, Tauri dev runtime.
+**Tech Stack:** Vue 3, Vue Router, Pinia, Tailwind CSS v4 theme tokens, Vitest, Vue Test Utils, Electron dev runtime.
 
 ---
 
@@ -946,7 +946,7 @@ Expected: PASS, or fix only errors introduced by this implementation.
 Run:
 
 ```bash
-pnpm tauri dev
+pnpm dev
 ```
 
 Expected: Vite starts on `http://localhost:1420/`, Cargo runs `target/debug/muon`, and the desktop client opens.

@@ -370,7 +370,7 @@ export const LOCAL_SERVICE_MOCK_DATA: LocalServiceMockData = {
             {
               key: 'channel-frontend',
               name: '前端',
-              topic: 'Vue / Tauri 前端协作',
+              topic: 'Vue / Electron 前端协作',
               order: 'a',
               members: PROJECT_MEMBERS,
               messages: [
@@ -390,11 +390,11 @@ export const LOCAL_SERVICE_MOCK_DATA: LocalServiceMockData = {
             {
               key: 'channel-client',
               name: '客户端',
-              topic: 'Tauri 桌面端集成',
+              topic: 'Electron 桌面端集成',
               order: 'b',
               members: PROJECT_MEMBERS,
               messages: [
-                text('xiaoming', 'Tauri 窗口和通知权限本地要再测一次'),
+                text('xiaoming', 'Electron 窗口和通知权限本地要再测一次'),
                 file('kunish', 'desktop-release-notes.pdf', 'local_desktop_release_notes', 'application/pdf', 82_000),
               ],
             },

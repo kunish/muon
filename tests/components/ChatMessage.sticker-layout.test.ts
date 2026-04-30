@@ -24,7 +24,7 @@ vi.mock('@/shared/composables/useAuthMedia', () => ({
   useAuthMedia: () => ref(undefined),
 }))
 
-vi.mock('@tauri-apps/plugin-dialog', () => ({
+vi.mock('@/electron/dialog', () => ({
   ask: vi.fn(),
 }))
 

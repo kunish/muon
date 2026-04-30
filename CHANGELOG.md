@@ -114,7 +114,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### CI/CD
 
 * configure release-please for automated versioning and releases ([118bfd7](https://github.com/kunish/muon/commit/118bfd7))
-* Tauri build matrix: Linux (x86_64), macOS (aarch64 + x86_64), Windows (x86_64)
+* Electron build matrix: Linux (x86_64), macOS (aarch64 + x86_64), Windows (x86_64)
 * unit test suite: 33 suites, 122 tests with Vitest + MSW
 
 ## [0.1.0] (2025-06-01)
@@ -140,7 +140,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Infrastructure
 
-- Tauri 2 (Rust) + Vite 7 build system
+- Electron + electron-vite build system
 - Vue 3 Composition API + TypeScript strict mode
 - Pinia + TanStack Query state management
 - Playwright e2e test suite

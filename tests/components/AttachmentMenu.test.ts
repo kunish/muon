@@ -3,11 +3,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { nextTick } from 'vue'
 import AttachmentMenu from '@/features/chat/components/AttachmentMenu.vue'
 
-vi.mock('@tauri-apps/plugin-dialog', () => ({
+vi.mock('@/electron/dialog', () => ({
   open: vi.fn(),
 }))
 
-vi.mock('@tauri-apps/plugin-fs', () => ({
+vi.mock('@/electron/fs', () => ({
   readFile: vi.fn(),
 }))
 

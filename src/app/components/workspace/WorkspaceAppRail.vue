@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { PanelLeftClose, PanelLeftOpen, Search } from 'lucide-vue-next'
+import { Search } from 'lucide-vue-next'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
@@ -33,7 +33,6 @@ const {
   isCollapsed: isRailCollapsed,
   isResizing: isRailResizing,
   startResize: startRailResize,
-  toggleCollapse: toggleRailCollapse,
   restorePane: restoreRail,
   onResizeHandleKeydown,
 } = useResizablePane({
@@ -46,9 +45,6 @@ const {
   resizeFromCollapsed: true,
   collapseThreshold: RAIL_COLLAPSE_THRESHOLD,
 })
-const railToggleLabel = computed(() =>
-  isRailCollapsed.value ? t('sidebar.expand_workspace_rail') : t('sidebar.collapse_workspace_rail'),
-)
 const railResizeLabel = computed(() => t('sidebar.resize_workspace_rail'))
 
 function openApp(path: string): void {
@@ -64,15 +60,13 @@ function openApp(path: string): void {
       isRailResizing && 'transition-none',
     ]"
     :style="railStyle"
-    :aria-expanded="!isRailCollapsed"
   >
     <div
       data-testid="workspace-app-rail-content"
       class="flex h-full w-full flex-col items-center overflow-hidden"
     >
       <div
-        class="mb-3 flex h-11 items-center rounded-[18px]"
-        :class="isRailCollapsed ? 'w-11 justify-center shadow-[0_12px_28px_color-mix(in_srgb,var(--color-primary)_30%,transparent)]' : 'w-full justify-start gap-2 px-1'"
+        class="mb-3 flex h-11 w-full items-center justify-start gap-2 overflow-hidden rounded-[18px] pl-1.5 pr-1"
         title="Muon"
       >
         <div class="flex size-11 shrink-0 items-center justify-center rounded-[18px] shadow-[0_12px_28px_color-mix(in_srgb,var(--color-primary)_30%,transparent)]">
@@ -85,8 +79,7 @@ function openApp(path: string): void {
           >
         </div>
         <span
-          v-if="!isRailCollapsed"
-          class="min-w-0 truncate text-[13px] font-semibold text-foreground/90"
+          :class="isRailCollapsed ? 'sr-only' : 'min-w-0 truncate text-[13px] font-semibold text-foreground/90'"
           data-testid="workspace-brand-label"
         >
           Muon
@@ -94,8 +87,7 @@ function openApp(path: string): void {
       </div>
 
       <button
-        class="mb-2 flex h-12 items-center rounded-[18px] text-muted-foreground transition-all duration-150 hover:bg-sidebar-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        :class="isRailCollapsed ? 'w-12 justify-center' : 'w-full justify-start gap-3 px-3'"
+        class="mb-2 flex h-12 w-full items-center justify-start gap-3 overflow-hidden rounded-[18px] px-[18px] text-muted-foreground transition-all duration-150 hover:bg-sidebar-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         data-testid="workspace-global-search"
         :aria-label="t('settings.shortcut_search')"
         :title="`${t('settings.shortcut_search')} (Ctrl/Cmd + K)`"
@@ -114,11 +106,8 @@ function openApp(path: string): void {
         <button
           v-for="app in workspaceApps"
           :key="app.id"
-          class="group relative flex h-12 items-center rounded-[18px] text-[11px] font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          :class="[
-            isRailCollapsed ? 'w-12 justify-center' : 'w-full justify-start gap-3 px-3',
-            activeApp.id === app.id ? 'bg-primary/12 text-primary shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-primary)_20%,transparent)]' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground',
-          ]"
+          class="group relative flex h-12 w-full items-center justify-start gap-3 overflow-hidden rounded-[18px] px-[18px] text-[11px] font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          :class="activeApp.id === app.id ? 'bg-primary/12 text-primary shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-primary)_20%,transparent)]' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground'"
           :data-testid="`workspace-app-${app.id}`"
           :aria-current="activeApp.id === app.id ? 'page' : undefined"
           :aria-label="t(app.labelKey)"
@@ -141,19 +130,6 @@ function openApp(path: string): void {
         </button>
       </div>
     </div>
-
-    <button
-      type="button"
-      data-testid="workspace-rail-toggle"
-      class="absolute right-[-13px] top-3 z-30 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full border border-sidebar-border/80 bg-server-bar text-muted-foreground shadow-[0_4px_14px_color-mix(in_srgb,var(--color-foreground)_12%,transparent)] transition-all duration-150 hover:bg-sidebar-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-95"
-      :aria-label="railToggleLabel"
-      :title="railToggleLabel"
-      @click="toggleRailCollapse"
-      @dblclick.stop.prevent="restoreRail"
-    >
-      <PanelLeftOpen v-if="isRailCollapsed" :size="14" />
-      <PanelLeftClose v-else :size="14" />
-    </button>
 
     <div
       data-testid="workspace-rail-resize-handle"

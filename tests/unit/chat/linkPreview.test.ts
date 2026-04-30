@@ -56,9 +56,22 @@ describe('link preview request hardening', () => {
       },
     })
 
-    expect(MAX_LINK_PREVIEW_BYTES).toBe(256 * 1024)
+    expect(MAX_LINK_PREVIEW_BYTES).toBe(2 * 1024 * 1024)
     expect(isHtmlPreviewResponse(resp)).toBe(true)
     await expect(readLimitedText(resp)).resolves.toBe('<html><title>ok</title></html>')
+  })
+
+  it('accepts modern landing pages whose metadata appears after the old 256KB cap', async () => {
+    const html = `<html><head>${' '.repeat((256 * 1024) + 1)}<meta property="og:title" content="Late metadata"></head></html>`
+    const resp = new Response(html, {
+      headers: {
+        'content-length': String(new TextEncoder().encode(html).byteLength),
+        'content-type': 'text/html; charset=utf-8',
+      },
+    })
+
+    expect(isHtmlPreviewResponse(resp)).toBe(true)
+    await expect(readLimitedText(resp)).resolves.toBe(html)
   })
 
   it('rejects JSON and oversized responses', async () => {

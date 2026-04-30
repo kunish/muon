@@ -25,8 +25,16 @@ vi.mock('@matrix/index', () => ({
   redactMessage: vi.fn(),
 }))
 
-vi.mock('@tauri-apps/plugin-dialog', () => ({
+vi.mock('@/electron/dialog', () => ({
   ask: vi.fn(),
+}))
+
+vi.mock('@/features/chat/composables/useConversations', () => ({
+  useConversations: () => ({
+    archiveDm: vi.fn(),
+    refresh: vi.fn(),
+    removeRoom: vi.fn(),
+  }),
 }))
 
 function createRoom(overrides: Partial<RoomSummary> = {}): RoomSummary {
@@ -142,6 +150,95 @@ describe('context menu hover state', () => {
 
     expect(wrapper.classes()).toContain('bg-accent/30')
     expect(document.body.querySelector('[data-testid="chat-message-action-bar"]')).toBeNull()
+  })
+
+  it('keeps the chat message context menu away from the viewport edge', async () => {
+    const ChatMessage = (
+      await import('@/features/chat/components/ChatMessage.vue')
+    ).default
+
+    const event = {
+      getId: () => '$event1',
+      getType: () => 'm.room.message',
+      getSender: () => '@alice:localhost',
+      getContent: () => ({ msgtype: 'm.text', body: 'Hello' }),
+      getTs: () => 1767225600000,
+      isRedacted: () => false,
+    }
+
+    const originalInnerHeight = window.innerHeight
+    const originalInnerWidth = window.innerWidth
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 240 })
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 320 })
+
+    const rectSpy = vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function () {
+      const el = this as HTMLElement
+      if (el.classList.contains('z-[220]')) {
+        return {
+          x: 0,
+          y: 0,
+          left: 0,
+          top: 0,
+          right: 180,
+          bottom: 152,
+          width: 180,
+          height: 152,
+          toJSON: () => ({}),
+        } as DOMRect
+      }
+      return {
+        x: 0,
+        y: 0,
+        left: 0,
+        top: 0,
+        right: 0,
+        bottom: 0,
+        width: 0,
+        height: 0,
+        toJSON: () => ({}),
+      } as DOMRect
+    })
+
+    const wrapper = mount(ChatMessage, {
+      props: {
+        event: event as any,
+        isFirst: false,
+        roomId: '!room:localhost',
+      },
+      attachTo: document.body,
+      global: {
+        stubs: {
+          Avatar: true,
+          LinkPreview: true,
+          MessageActionBar: true,
+          ReactionBar: true,
+          AudioMessage: true,
+          FileMessage: true,
+          ImageMessage: true,
+          VideoMessage: true,
+        },
+      },
+    })
+
+    try {
+      await wrapper.trigger('contextmenu', { clientX: 310, clientY: 230 })
+      await nextTick()
+      await nextTick()
+
+      const menu = Array.from(document.body.querySelectorAll<HTMLElement>('div.fixed'))
+        .find(el => el.textContent?.includes('回复')) ?? null
+
+      expect(menu).not.toBeNull()
+      expect(menu?.style.left).toBe('124px')
+      expect(menu?.style.top).toBe('72px')
+    }
+    finally {
+      rectSpy.mockRestore()
+      Object.defineProperty(window, 'innerHeight', { configurable: true, value: originalInnerHeight })
+      Object.defineProperty(window, 'innerWidth', { configurable: true, value: originalInnerWidth })
+      wrapper.unmount()
+      document.body.innerHTML = ''
+    }
   })
 
   it('hides action bars from adjacent messages while a context menu is open', async () => {
@@ -423,6 +520,71 @@ describe('context menu hover state', () => {
 
     expect(wrapper.classes()).toContain('bg-accent/50')
     expect(wrapper.classes()).toContain('shadow-[0_1px_4px_rgba(0,0,0,0.02)]')
+  })
+
+  it('keeps the conversation context menu away from the viewport edge', async () => {
+    const ConversationContextMenu = (
+      await import('@/features/chat/components/ConversationContextMenu.vue')
+    ).default
+    const { useChatStore } = await import('@/features/chat/stores/chatStore')
+    const store = useChatStore()
+
+    const originalInnerHeight = window.innerHeight
+    const originalInnerWidth = window.innerWidth
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 240 })
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 320 })
+
+    const rectSpy = vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function () {
+      const el = this as HTMLElement
+      if (el.classList.contains('ctx-menu')) {
+        return {
+          x: 0,
+          y: 0,
+          left: 0,
+          top: 0,
+          right: 180,
+          bottom: 176,
+          width: 180,
+          height: 176,
+          toJSON: () => ({}),
+        } as DOMRect
+      }
+      return {
+        x: 0,
+        y: 0,
+        left: 0,
+        top: 0,
+        right: 0,
+        bottom: 0,
+        width: 0,
+        height: 0,
+        toJSON: () => ({}),
+      } as DOMRect
+    })
+
+    store.openContextMenu('!dm:localhost', 310, 230)
+    const wrapper = mount(ConversationContextMenu, {
+      attachTo: document.body,
+    })
+
+    try {
+      await nextTick()
+      await nextTick()
+
+      const menu = document.body.querySelector<HTMLElement>('.ctx-menu')
+
+      expect(menu).not.toBeNull()
+      expect(menu?.style.left).toBe('124px')
+      expect(menu?.style.top).toBe('48px')
+    }
+    finally {
+      rectSpy.mockRestore()
+      Object.defineProperty(window, 'innerHeight', { configurable: true, value: originalInnerHeight })
+      Object.defineProperty(window, 'innerWidth', { configurable: true, value: originalInnerWidth })
+      store.closeContextMenu()
+      wrapper.unmount()
+      document.body.innerHTML = ''
+    }
   })
 
   it('keeps a text channel row visually hovered while its context menu is open', async () => {

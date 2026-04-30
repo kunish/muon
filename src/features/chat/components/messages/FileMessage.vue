@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import type { MatrixEvent } from 'matrix-js-sdk'
 import { downloadMedia } from '@matrix/index'
-import { save } from '@tauri-apps/plugin-dialog'
-import { writeFile } from '@tauri-apps/plugin-fs'
 import { Copy, Download, FileText, Forward } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { save } from '@/electron/dialog'
+import { writeFile } from '@/electron/fs'
 import ForwardDialog from '@/features/chat/components/ForwardDialog.vue'
 import { triggerBlobDownload } from '@/shared/lib/download'
 

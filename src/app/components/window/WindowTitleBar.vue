@@ -1,23 +1,62 @@
 <script setup lang="ts">
-import type { UnlistenFn } from '@tauri-apps/api/event'
-import { getCurrentWindow } from '@tauri-apps/api/window'
+import type { UnlistenFn } from '@/electron/window'
 import { Maximize2, Minimize2, Minus, X } from 'lucide-vue-next'
 import { computed, onMounted, onUnmounted, shallowRef } from 'vue'
 import { useI18n } from 'vue-i18n'
+import {
+  currentMonitor,
+  getCurrentWindow,
+  getDesktopPlatform,
+  PhysicalPosition,
+  PhysicalSize,
+} from '@/electron/window'
 
 type AppWindow = ReturnType<typeof getCurrentWindow>
+interface WindowFrameBounds {
+  position: { x: number, y: number }
+  size: { height: number, width: number }
+}
+
+interface WindowWorkAreaState {
+  fillsWorkArea: boolean
+  verticallyFlush: boolean
+}
+
+const SCREEN_EDGE_TOLERANCE_PX = 8
+const WINDOW_FRAME_SETTLE_DELAY_MS = 180
 
 const { t } = useI18n()
 const isMaximized = shallowRef(false)
+const isCustomWorkAreaExpanded = shallowRef(false)
+const isVerticallyFlushWithScreen = shallowRef(false)
+const isWindowFocused = shallowRef(true)
 
-const isMac = typeof navigator !== 'undefined'
+const desktopPlatform = getDesktopPlatform()
+const isMac = isMacPlatform(desktopPlatform) || (!desktopPlatform && typeof navigator !== 'undefined'
   && /Mac|iPhone|iPad|iPod/.test(`${navigator.platform} ${navigator.userAgent}`)
+)
 
+let unlistenBlurred: UnlistenFn | undefined
+let unlistenFocused: UnlistenFn | undefined
 let unlistenResized: UnlistenFn | undefined
+let unlistenMoved: UnlistenFn | undefined
+let windowFrameRefreshId = 0
+let windowFrameRefreshTimer: number | undefined
+let restoreWindowFrameBounds: WindowFrameBounds | undefined
 
 const maximizeLabel = computed(() => {
-  return isMaximized.value ? t('common.restore_window') : t('common.maximize_window')
+  return isMaximized.value || isCustomWorkAreaExpanded.value
+    ? t('common.restore_window')
+    : t('common.maximize_window')
 })
+
+function isMacPlatform(platform: string | undefined): boolean {
+  const normalizedPlatform = platform?.toLowerCase()
+  return normalizedPlatform === 'darwin'
+    || normalizedPlatform === 'mac'
+    || normalizedPlatform === 'macos'
+    || normalizedPlatform === 'osx'
+}
 
 function resolveWindow(): AppWindow | null {
   try {
@@ -29,7 +68,51 @@ function resolveWindow(): AppWindow | null {
 }
 
 function syncWindowFrameClass(): void {
-  document.documentElement.classList.toggle('muon-window-maximized', isMaximized.value)
+  document.documentElement.classList.toggle(
+    'muon-window-maximized',
+    isCustomWorkAreaExpanded.value || (isMaximized.value && isVerticallyFlushWithScreen.value),
+  )
+  document.documentElement.classList.toggle(
+    'muon-window-flush-frame',
+    isVerticallyFlushWithScreen.value,
+  )
+}
+
+function nearlyEqual(a: number, b: number): boolean {
+  return Math.abs(a - b) <= SCREEN_EDGE_TOLERANCE_PX
+}
+
+async function readWindowWorkAreaState(appWindow: AppWindow): Promise<WindowWorkAreaState> {
+  try {
+    const [monitor, position, size] = await Promise.all([
+      currentMonitor(),
+      appWindow.outerPosition(),
+      appWindow.outerSize(),
+    ])
+
+    if (!monitor)
+      return { fillsWorkArea: false, verticallyFlush: false }
+
+    const workAreaTop = monitor.workArea.position.y
+    const workAreaBottom = workAreaTop + monitor.workArea.size.height
+    const workAreaLeft = monitor.workArea.position.x
+    const workAreaRight = workAreaLeft + monitor.workArea.size.width
+    const windowTop = position.y
+    const windowBottom = position.y + size.height
+    const windowLeft = position.x
+    const windowRight = position.x + size.width
+
+    const verticallyFlush = nearlyEqual(windowTop, workAreaTop) && nearlyEqual(windowBottom, workAreaBottom)
+    const horizontallyFlush = nearlyEqual(windowLeft, workAreaLeft) && nearlyEqual(windowRight, workAreaRight)
+
+    return {
+      fillsWorkArea: verticallyFlush && horizontallyFlush,
+      verticallyFlush,
+    }
+  }
+  catch {
+    return { fillsWorkArea: false, verticallyFlush: false }
+  }
 }
 
 async function runWindowAction(action: (appWindow: AppWindow) => Promise<void>): Promise<void> {
@@ -45,13 +128,44 @@ async function runWindowAction(action: (appWindow: AppWindow) => Promise<void>):
   }
 }
 
+function clearScheduledWindowFrameRefresh(): void {
+  if (windowFrameRefreshTimer == null)
+    return
+
+  window.clearTimeout(windowFrameRefreshTimer)
+  windowFrameRefreshTimer = undefined
+}
+
+function scheduleWindowFrameRefresh(): void {
+  if (typeof window === 'undefined') {
+    void refreshMaximizedState()
+    return
+  }
+
+  clearScheduledWindowFrameRefresh()
+  windowFrameRefreshTimer = window.setTimeout(() => {
+    windowFrameRefreshTimer = undefined
+    void refreshMaximizedState()
+  }, WINDOW_FRAME_SETTLE_DELAY_MS)
+}
+
 async function refreshMaximizedState(): Promise<void> {
   const appWindow = resolveWindow()
   if (!appWindow)
     return
 
+  const refreshId = ++windowFrameRefreshId
+
   try {
-    isMaximized.value = await appWindow.isMaximized()
+    const maximized = await appWindow.isMaximized()
+    const workAreaState = await readWindowWorkAreaState(appWindow)
+    if (refreshId !== windowFrameRefreshId)
+      return
+
+    isMaximized.value = maximized
+    isVerticallyFlushWithScreen.value = workAreaState.verticallyFlush
+    if (isCustomWorkAreaExpanded.value && !workAreaState.fillsWorkArea)
+      isCustomWorkAreaExpanded.value = false
     syncWindowFrameClass()
   }
   catch (err) {
@@ -59,13 +173,73 @@ async function refreshMaximizedState(): Promise<void> {
   }
 }
 
+async function refreshWindowFocusState(): Promise<void> {
+  const appWindow = resolveWindow()
+  if (!appWindow)
+    return
+
+  try {
+    isWindowFocused.value = await appWindow.isFocused()
+  }
+  catch (err) {
+    console.warn('[WindowTitleBar] failed to read window focus state:', err)
+  }
+}
+
 async function minimizeWindow(): Promise<void> {
   await runWindowAction(appWindow => appWindow.minimize())
 }
 
-async function toggleMaximizedWindow(): Promise<void> {
-  await runWindowAction(appWindow => appWindow.toggleMaximize())
+async function expandWindowToWorkArea(appWindow: AppWindow): Promise<void> {
+  const [monitor, position, size] = await Promise.all([
+    currentMonitor(),
+    appWindow.outerPosition(),
+    appWindow.outerSize(),
+  ])
+
+  if (!monitor) {
+    await appWindow.maximize()
+    await refreshMaximizedState()
+    return
+  }
+
+  restoreWindowFrameBounds = {
+    position: { x: position.x, y: position.y },
+    size: { height: size.height, width: size.width },
+  }
+
+  const { position: workAreaPosition, size: workAreaSize } = monitor.workArea
+  await appWindow.setPosition(new PhysicalPosition(workAreaPosition.x, workAreaPosition.y))
+  await appWindow.setSize(new PhysicalSize(workAreaSize.width, workAreaSize.height))
+  isCustomWorkAreaExpanded.value = true
+  isMaximized.value = false
+  isVerticallyFlushWithScreen.value = true
+  syncWindowFrameClass()
+}
+
+async function restoreWindowFrame(appWindow: AppWindow): Promise<void> {
+  if (restoreWindowFrameBounds) {
+    const { position, size } = restoreWindowFrameBounds
+    restoreWindowFrameBounds = undefined
+    await appWindow.setPosition(new PhysicalPosition(position.x, position.y))
+    await appWindow.setSize(new PhysicalSize(size.width, size.height))
+  }
+  else if (await appWindow.isMaximized()) {
+    await appWindow.unmaximize()
+  }
+
+  isCustomWorkAreaExpanded.value = false
   await refreshMaximizedState()
+}
+
+async function toggleMaximizedWindow(): Promise<void> {
+  clearScheduledWindowFrameRefresh()
+  await runWindowAction(async (appWindow) => {
+    if (isCustomWorkAreaExpanded.value || await appWindow.isMaximized())
+      await restoreWindowFrame(appWindow)
+    else
+      await expandWindowToWorkArea(appWindow)
+  })
 }
 
 async function closeWindow(): Promise<void> {
@@ -77,32 +251,53 @@ function handleTitlebarDoubleClick(): void {
 }
 
 onMounted(async () => {
-  await refreshMaximizedState()
+  await Promise.all([
+    refreshMaximizedState(),
+    refreshWindowFocusState(),
+  ])
 
   const appWindow = resolveWindow()
   if (!appWindow)
     return
 
   try {
+    unlistenFocused = await appWindow.onFocused(() => {
+      isWindowFocused.value = true
+    })
+    unlistenBlurred = await appWindow.onBlurred(() => {
+      isWindowFocused.value = false
+    })
     unlistenResized = await appWindow.onResized(() => {
-      void refreshMaximizedState()
+      scheduleWindowFrameRefresh()
+    })
+    unlistenMoved = await appWindow.onMoved(() => {
+      scheduleWindowFrameRefresh()
     })
   }
   catch (err) {
-    console.warn('[WindowTitleBar] failed to bind resize listener:', err)
+    console.warn('[WindowTitleBar] failed to bind window frame listeners:', err)
   }
 })
 
 onUnmounted(() => {
+  windowFrameRefreshId += 1
+  clearScheduledWindowFrameRefresh()
+  unlistenFocused?.()
+  unlistenBlurred?.()
   unlistenResized?.()
+  unlistenMoved?.()
   document.documentElement.classList.remove('muon-window-maximized')
+  document.documentElement.classList.remove('muon-window-flush-frame')
 })
 </script>
 
 <template>
   <header
     class="window-titlebar"
-    :class="{ 'window-titlebar--mac': isMac }"
+    :class="{
+      'window-titlebar--inactive': !isWindowFocused,
+      'window-titlebar--mac': isMac,
+    }"
     data-testid="window-titlebar"
   >
     <div v-if="isMac" class="window-titlebar__controls window-titlebar__controls--mac">
@@ -145,20 +340,20 @@ onUnmounted(() => {
 
     <div
       class="window-titlebar__drag-region"
-      data-tauri-drag-region
+      data-electron-drag-region
       data-testid="window-titlebar-drag-region"
       @dblclick="handleTitlebarDoubleClick"
     >
-      <div class="window-titlebar__brand" data-tauri-drag-region>
+      <div class="window-titlebar__brand" data-electron-drag-region>
         <img
           class="window-titlebar__logo"
           data-testid="window-titlebar-logo"
-          data-tauri-drag-region
+          data-electron-drag-region
           src="/muon-logo.svg"
           alt="Muon"
           draggable="false"
         >
-        <span class="window-titlebar__name" data-tauri-drag-region>Muon</span>
+        <span class="window-titlebar__name" data-electron-drag-region>Muon</span>
       </div>
     </div>
 
@@ -199,6 +394,9 @@ onUnmounted(() => {
 
 <style scoped>
 .window-titlebar {
+  --window-titlebar-default-controls-width: 138px;
+  --window-titlebar-mac-controls-width: 92px;
+
   position: relative;
   z-index: 30;
   display: flex;
@@ -227,12 +425,14 @@ onUnmounted(() => {
   min-width: 0;
   align-items: center;
   justify-content: center;
-  padding: 0 132px;
+  margin-right: var(--window-titlebar-default-controls-width);
+  padding: 0 24px;
+  -webkit-app-region: drag;
 }
 
 .window-titlebar--mac .window-titlebar__drag-region {
-  padding-right: 132px;
-  padding-left: 132px;
+  margin-right: var(--window-titlebar-mac-controls-width);
+  margin-left: var(--window-titlebar-mac-controls-width);
 }
 
 .window-titlebar__brand {
@@ -246,6 +446,10 @@ onUnmounted(() => {
   font-weight: 650;
   letter-spacing: 0;
   line-height: 1;
+}
+
+.window-titlebar--inactive .window-titlebar__brand {
+  color: color-mix(in srgb, var(--color-muted-foreground) 68%, transparent);
 }
 
 .window-titlebar__logo {
@@ -269,6 +473,7 @@ onUnmounted(() => {
   display: flex;
   height: 100%;
   align-items: center;
+  -webkit-app-region: no-drag;
 }
 
 .window-titlebar__controls--mac {
@@ -304,6 +509,10 @@ onUnmounted(() => {
     color 120ms ease;
 }
 
+.window-titlebar--inactive .window-titlebar__control--button {
+  color: color-mix(in srgb, var(--color-muted-foreground) 62%, transparent);
+}
+
 .window-titlebar__control--button:hover {
   color: var(--color-foreground);
   background: color-mix(in srgb, var(--color-accent) 72%, transparent);
@@ -324,6 +533,19 @@ onUnmounted(() => {
   padding: 0;
   border-radius: 999px;
   color: rgb(70 54 54 / 72%);
+  transition:
+    box-shadow 100ms ease,
+    filter 100ms ease,
+    transform 100ms ease;
+}
+
+.window-titlebar__control--dot:hover {
+  box-shadow: inset 0 0 0 0.5px rgb(0 0 0 / 14%);
+  filter: brightness(1.04);
+}
+
+.window-titlebar__control--dot:active {
+  transform: scale(0.92);
 }
 
 .window-titlebar__control--close-dot {
@@ -344,6 +566,7 @@ onUnmounted(() => {
 }
 
 .window-titlebar__controls--mac:hover .window-titlebar__dot-icon,
+.window-titlebar__control--dot:hover .window-titlebar__dot-icon,
 .window-titlebar__control--dot:focus-visible .window-titlebar__dot-icon {
   opacity: 1;
 }

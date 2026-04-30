@@ -11,6 +11,7 @@ vi.mock('vue-router', () => ({
 
 vi.mock('@matrix/index', () => ({
   getReadMarkerEventId: vi.fn(() => null),
+  syncState: { value: 'PREPARED' },
 }))
 
 const loadMore = vi.fn()

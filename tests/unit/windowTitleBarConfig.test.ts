@@ -11,37 +11,43 @@ function readSource(path: string): string {
 }
 
 describe('custom window title bar configuration', () => {
-  it('uses a transparent frameless main Tauri window with an explicit clear background', () => {
-    const config = readJson('src-tauri/tauri.conf.json') as {
-      app: {
-        macOSPrivateApi?: boolean
-        windows: Array<{
-          backgroundColor?: string
-          decorations?: boolean
-          shadow?: boolean
-          transparent?: boolean
-        }>
-      }
-    }
+  it('uses a transparent frameless Electron BrowserWindow with a preload bridge', () => {
+    const source = readSource('electron/main.ts')
 
-    expect(config.app.macOSPrivateApi).toBe(true)
-    expect(config.app.windows[0]?.decorations).toBe(false)
-    expect(config.app.windows[0]?.transparent).toBe(true)
-    expect(config.app.windows[0]?.shadow).toBe(true)
-    expect(config.app.windows[0]?.backgroundColor).toBe('#00000000')
-    expect(readSource('src-tauri/Cargo.toml')).toMatch(/tauri = \{.*features = \[\s*"macos-private-api"\s*\].*\}/)
+    expect(source).toContain('frame: false')
+    expect(source).toContain('backgroundColor: \'#00000000\'')
+    expect(source).toContain('transparent: true')
+    expect(source).toContain('contextIsolation: true')
+    expect(source).toContain('nodeIntegration: false')
+    expect(source).toContain('preload: getPreloadEntry()')
   })
 
-  it('allows the frontend title bar to control the current window', () => {
-    const capability = readJson('src-tauri/capabilities/default.json') as {
-      permissions: Array<string | { identifier: string }>
-    }
+  it('routes window controls through the Electron preload bridge', () => {
+    const preloadSource = readSource('electron/preload.ts')
+    const rendererSource = readSource('src/electron/window.ts')
 
-    expect(capability.permissions).toEqual(expect.arrayContaining([
-      'core:window:allow-close',
-      'core:window:allow-minimize',
-      'core:window:allow-start-dragging',
-      'core:window:allow-toggle-maximize',
-    ]))
+    expect(preloadSource).toContain('ipcRenderer.invoke(\'muon:window:minimize\')')
+    expect(preloadSource).toContain('ipcRenderer.invoke(\'muon:window:close\')')
+    expect(preloadSource).toContain('ipcRenderer.invoke(\'muon:window:is-focused\')')
+    expect(preloadSource).toContain('ipcRenderer.invoke(\'muon:window:current-monitor\')')
+    expect(preloadSource).toContain('subscribe(\'muon:window:focused\'')
+    expect(preloadSource).toContain('subscribe(\'muon:window:blurred\'')
+    expect(preloadSource).toContain('subscribe(\'muon:window:moved\'')
+    expect(rendererSource).toContain('getDesktopBridge()?.window')
+    expect(rendererSource).toContain('getDesktopBridge()?.platform')
+  })
+
+  it('uses electron-vite as the desktop build chain', () => {
+    const pkg = readJson('package.json') as {
+      main?: string
+      scripts?: Record<string, string>
+    }
+    const config = readSource('electron.vite.config.ts')
+
+    expect(pkg.main).toBe('out/main/main.cjs')
+    expect(pkg.scripts?.dev).toBe('electron-vite dev')
+    expect(pkg.scripts?.build).toContain('electron-vite build')
+    expect(config).toContain('entry: resolve(__dirname, \'electron/main.ts\')')
+    expect(config).toContain('entry: resolve(__dirname, \'electron/preload.ts\')')
   })
 })

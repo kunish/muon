@@ -6,7 +6,7 @@
 
 ## 1. Overview
 
-Muon is a Tauri 2 + Vue 3 + Matrix desktop messaging application. This spec describes a full redesign from a Discord-style dark/gaming aesthetic to a Feishu (Lark)-style professional workspace aesthetic. The redesign covers navigation paradigm, color system, shape language, chat area, density, and all module pages.
+Muon is a Electron + Vue 3 + Matrix desktop messaging application. This spec describes a full redesign from a Discord-style dark/gaming aesthetic to a Feishu (Lark)-style professional workspace aesthetic. The redesign covers navigation paradigm, color system, shape language, chat area, density, and all module pages.
 
 ### 1.1 Goals
 
@@ -20,7 +20,7 @@ Muon is a Tauri 2 + Vue 3 + Matrix desktop messaging application. This spec desc
 
 - No changes to Matrix protocol integration or business logic
 - No new features (calendar backend, docs backend, etc.)
-- No changes to auth flow or Tauri native layer
+- No changes to auth flow or Electron native layer
 
 ## 2. Design Decisions (User-Approved)
 

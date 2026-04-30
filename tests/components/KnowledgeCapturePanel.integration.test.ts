@@ -116,8 +116,6 @@ vi.mock('lucide-vue-next', () => {
     ListChecks: icon,
     Mic: icon,
     MicOff: icon,
-    PanelLeftClose: icon,
-    PanelLeftOpen: icon,
     Search: icon,
     Settings: icon,
     Users: icon,
@@ -333,27 +331,22 @@ describe('knowledgeCapturePanel integration', () => {
     await handle.trigger('dblclick')
 
     expect(sidebar.attributes('style')).toContain('width: 308px')
-    expect(sidebar.attributes('aria-expanded')).toBe('true')
+    expect(sidebar.attributes('aria-expanded')).toBeUndefined()
     expect(localStorage.getItem('muon_message_sidebar_width')).toBe('308')
   })
 
-  it('collapses and restores the message sidebar from an edge control', async () => {
+  it('does not render the message sidebar collapse toggle and ignores legacy collapsed state', async () => {
+    localStorage.setItem('muon_message_sidebar_collapsed', 'true')
+
     const wrapper = mount(ChannelSidebar, { global: { plugins: [pinia] } })
     const sidebar = wrapper.get('[data-testid="channel-sidebar"]')
 
-    await wrapper.get('[data-testid="channel-sidebar-toggle"]').trigger('click')
+    await nextTick()
 
-    expect(sidebar.attributes('style')).toContain('width: 0px')
-    expect(sidebar.attributes('aria-expanded')).toBe('false')
-    expect(wrapper.get('[data-testid="channel-sidebar-content"]').attributes('style')).toContain('display: none')
-    expect(wrapper.find('[data-testid="channel-sidebar-resize-handle"]').exists()).toBe(false)
-    expect(localStorage.getItem('muon_message_sidebar_collapsed')).toBe('true')
-
-    await wrapper.get('[data-testid="channel-sidebar-toggle"]').trigger('click')
-
+    expect(sidebar.attributes('aria-expanded')).toBeUndefined()
     expect(sidebar.attributes('style')).toContain('width: 308px')
-    expect(sidebar.attributes('aria-expanded')).toBe('true')
+    expect(wrapper.get('[data-testid="channel-sidebar-content"]').isVisible()).toBe(true)
+    expect(wrapper.find('[data-testid="channel-sidebar-toggle"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="channel-sidebar-resize-handle"]').exists()).toBe(true)
-    expect(localStorage.getItem('muon_message_sidebar_collapsed')).toBe('false')
   })
 })

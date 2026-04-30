@@ -136,6 +136,82 @@ describe('useEditor', () => {
     wrapper.unmount()
   })
 
+  it('restores rich pasted image sources at their original position', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const onPasteMediaSources = vi.fn(async () => ['attachment-1'])
+    const imageFile = new File(['image'], 'image.png', { type: 'image/png' })
+    const attachment = {
+      id: 'attachment-1',
+      file: imageFile,
+      kind: 'image' as const,
+      previewUrl: 'blob:image.png',
+    }
+    let editorApi: ReturnType<typeof useEditor>
+    const TestEditor = defineComponent({
+      setup() {
+        const api = useEditor({
+          onSubmit: vi.fn(),
+          onPasteMediaSources,
+          pendingMedia: {
+            getAttachment: id => id === attachment.id ? attachment : undefined,
+          },
+        })
+        editorApi = api
+
+        return () => api.editor.value
+          ? h(EditorContent, { editor: api.editor.value })
+          : null
+      },
+    })
+
+    const wrapper = mount(TestEditor)
+    await nextTick()
+
+    const editor = editorApi!.editor.value
+    expect(editor).toBeTruthy()
+
+    const event = new Event('paste', { bubbles: true, cancelable: true }) as ClipboardEvent
+    Object.defineProperty(event, 'clipboardData', {
+      value: {
+        files: [],
+        items: [],
+        getData: (type: string) => {
+          if (type === 'text/html')
+            return '<p>Before</p><p><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==" data-rich-media-mxc-src="mxc://server/media" alt="image.png" title="image.png"></p><p>After</p>'
+          if (type === 'text/plain')
+            return 'Before\n[image.png]\nAfter'
+          return ''
+        },
+      },
+    })
+
+    try {
+      editor!.view.dom.dispatchEvent(event)
+      await vi.waitFor(() => {
+        expect(onPasteMediaSources).toHaveBeenCalled()
+      })
+      await vi.waitFor(() => {
+        expect(editor!.getHTML()).toContain('<p>Before</p><div data-pending-media-id="attachment-1"></div><p>After</p>')
+      })
+
+      expect(editor!.getText().trim().replace(/\n{2,}/g, '\n\n')).toBe('Before\n\nAfter')
+      expect(editor!.getText()).not.toContain('[image.png]')
+      expect(onPasteMediaSources).toHaveBeenCalledWith([
+        {
+          index: 0,
+          src: 'mxc://server/media',
+          name: 'image.png',
+          kind: 'image',
+        },
+      ])
+      expect(warnSpy).not.toHaveBeenCalledWith(expect.stringContaining('Duplicate extension names found'))
+    }
+    finally {
+      warnSpy.mockRestore()
+      wrapper.unmount()
+    }
+  })
+
   it('inserts pasted media at the current cursor position and opens the local preview', async () => {
     const onPreview = vi.fn()
     const imageFile = new File(['image'], 'cursor.png', { type: 'image/png' })

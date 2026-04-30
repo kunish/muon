@@ -41,6 +41,7 @@ const MATRIX_HTML_CONFIG = {
     'data-width',
     'data-height',
   ],
+  ADD_URI_SAFE_ATTR: ['target', 'rel'],
   ALLOWED_URI_REGEXP: /^(?:https?|mailto|matrix|mxc):/i,
   ALLOW_DATA_ATTR: true,
 }

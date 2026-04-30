@@ -112,7 +112,7 @@ Minimum verification before completion:
 
 - Run type checking.
 - Run linting or relevant static checks if available.
-- Start the Tauri desktop client.
+- Start the Electron desktop client.
 - Visually inspect the core routes in the desktop client or browser fallback:
   - Message app with no selected room.
   - Message app with a DM/channel selected if test data is available.

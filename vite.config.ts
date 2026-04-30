@@ -32,11 +32,11 @@ export default defineConfig({
     port: 1420,
     strictPort: true,
   },
-  envPrefix: ['VITE_', 'TAURI_'],
+  envPrefix: ['VITE_', 'ELECTRON_'],
   build: {
     target: ['es2021', 'chrome100', 'safari13'],
-    minify: !process.env.TAURI_DEBUG ? 'esbuild' : false,
-    sourcemap: !!process.env.TAURI_DEBUG,
+    minify: !process.env.ELECTRON_DEBUG ? 'esbuild' : false,
+    sourcemap: !!process.env.ELECTRON_DEBUG,
     rollupOptions: {
       output: {
         manualChunks(id) {

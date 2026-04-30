@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { SpaceMember } from '@/matrix/spaces'
-import { ask } from '@tauri-apps/plugin-dialog'
 import { onClickOutside } from '@vueuse/core'
 import {
   AtSign,
@@ -15,12 +14,14 @@ import { EventType } from 'matrix-js-sdk'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
+import { ask } from '@/electron/dialog'
 import { blockUser } from '@/matrix/blocking'
 import { getClient } from '@/matrix/client'
 import { findOrCreateDm } from '@/matrix/rooms'
 import { useContextMenuScrollLock } from '@/shared/composables/useContextMenuScrollLock'
 import { useMemberActions } from '@/shared/composables/useMemberActions'
 import { useRoomPermissions } from '@/shared/composables/useRoomPermissions'
+import { useViewportClampedFloating } from '@/shared/composables/useViewportClampedFloating'
 
 const props = defineProps<{
   member: SpaceMember | null
@@ -52,30 +53,12 @@ const isSelf = computed(() => {
 
 // ── 定位 ──
 
-const style = computed(() => {
-  if (!isOpen.value)
-    return { display: 'none' }
-  const menuW = 200
-  const menuH = 280
-  const margin = 4
-  let x = props.position.x
-  let y = props.position.y
-
-  if (x + menuW > window.innerWidth - margin) {
-    x = window.innerWidth - menuW - margin
-  }
-  if (x < margin)
-    x = margin
-  if (y + menuH > window.innerHeight - margin) {
-    y = window.innerHeight - menuH - margin
-  }
-  if (y < margin)
-    y = margin
-
-  return {
-    left: `${x}px`,
-    top: `${y}px`,
-  }
+const menuPosition = computed(() => props.position)
+const { style } = useViewportClampedFloating({
+  open: isOpen,
+  position: menuPosition,
+  element: menuRef,
+  fallbackSize: { width: 200, height: 280 },
 })
 
 // ── 点击外部关闭 ──
@@ -118,7 +101,7 @@ async function onChangeNickname() {
   if (!props.member || !props.serverId)
     return
 
-  // eslint-disable-next-line no-alert -- Tauri has no input prompt dialog; window.prompt is the simplest option
+  // eslint-disable-next-line no-alert -- Electron has no native input prompt dialog; window.prompt is the simplest option
   const nextNickname = window.prompt(t('member.change_nickname'), props.member.displayName)?.trim()
   if (!nextNickname || nextNickname === props.member.displayName)
     return

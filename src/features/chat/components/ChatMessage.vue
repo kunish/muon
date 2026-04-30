@@ -4,14 +4,15 @@ import type { MatrixEvent } from 'matrix-js-sdk'
 import { getClient } from '@matrix/client'
 import { getReactions, getThreadReplies, redactMessage } from '@matrix/index'
 import { fetchMediaBlobUrl } from '@matrix/media'
-import { ask } from '@tauri-apps/plugin-dialog'
 import { Copy, MessageSquare, Reply, Trash2 } from 'lucide-vue-next'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { ask } from '@/electron/dialog'
 import { useSettingsStore } from '@/features/settings/stores/settingsStore'
 import { Avatar } from '@/shared/components/ui/avatar'
 import { useAuthMedia } from '@/shared/composables/useAuthMedia'
 import { useContextMenuScrollLock } from '@/shared/composables/useContextMenuScrollLock'
+import { useViewportClampedFloating } from '@/shared/composables/useViewportClampedFloating'
 import { isFullEmojiText } from '@/shared/lib/emoji'
 import { sanitizeMatrixHtml } from '@/shared/lib/htmlSanitizer'
 import { handleMatrixLinkClick } from '@/shared/lib/matrixLinks'
@@ -19,6 +20,7 @@ import { getFloatingPosition } from '../composables/useFloatingPosition'
 import { useMediaViewer } from '../composables/useMediaViewer'
 import { useMessageContextMenuState } from '../composables/useMessageContextMenuState'
 import { getMediaFrameStyle } from '../lib/mediaFrame'
+import { copyMessageContentToClipboard } from '../lib/messageClipboard'
 import { useChatStore } from '../stores/chatStore'
 import LinkPreview from './LinkPreview.vue'
 import MessageActionBar from './MessageActionBar.vue'
@@ -74,6 +76,12 @@ const actionBarStyle = ref({ left: '0px', top: '0px' })
 const actionBarPositioned = ref(false)
 const contextMenuRef = ref<HTMLElement | null>(null)
 const contextMenuPos = ref({ x: 0, y: 0 })
+const { style: contextMenuStyle } = useViewportClampedFloating({
+  open: showContextMenu,
+  position: contextMenuPos,
+  element: contextMenuRef,
+  fallbackSize: { width: 180, height: 152 },
+})
 const { isAnyMessageContextMenuOpen } = useMessageContextMenuState(showContextMenu)
 const isVisuallyHovered = computed(() => hovered.value || showContextMenu.value || actionMenuOpen.value || actionBarHovered.value)
 const shouldShowActionBar = computed(() => !isAnyMessageContextMenuOpen.value && (hovered.value || actionMenuOpen.value || actionBarHovered.value))
@@ -98,13 +106,12 @@ const isMine = computed(() => !!sender.value && sender.value === myUserId.value)
 const isRightAligned = computed(() =>
   settingsStore.messageAlignment === 'leftright' && isMine.value,
 )
+const textBubbleClass = computed(() => [
+  'w-fit max-w-full rounded-2xl px-3 py-2',
+  isRightAligned.value ? 'self-end bg-primary/10' : 'bg-muted/60',
+])
 
 const avatarColumnHidden = computed(() => props.hideAvatarColumn === true)
-
-const contextMenuStyle = computed(() => ({
-  left: `${contextMenuPos.value.x}px`,
-  top: `${contextMenuPos.value.y}px`,
-}))
 
 function clearHoverCloseTimer() {
   if (!hoverCloseTimer)
@@ -342,6 +349,9 @@ const currentRoomMemberIds = computed(() => {
   return new Set(room.getJoinedMembers().map(member => member.userId))
 })
 
+const urlRegex = /https?:\/\/[^\s<>"]+/gi
+const hasUrlRegex = /https?:\/\/[^\s<>"]+/i
+
 function getMatrixToUserId(href: string): string {
   try {
     const url = new URL(href, 'https://matrix.to')
@@ -373,10 +383,59 @@ function markOutOfContextMentions(html: string): string {
   return template.innerHTML
 }
 
-const sanitizedHtml = computed(() => {
-  if (!formattedBody.value)
+function escapeHtmlText(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
+function escapeHtmlAttribute(value: string): string {
+  return escapeHtmlText(value).replace(/'/g, '&#39;')
+}
+
+function stripTrailingUrlPunctuation(url: string): { href: string, trailing: string } {
+  const match = url.match(/[),.;:!?]+$/)
+  if (!match)
+    return { href: url, trailing: '' }
+  return {
+    href: url.slice(0, -match[0].length),
+    trailing: match[0],
+  }
+}
+
+function linkifyPlainText(text: string): string {
+  let html = ''
+  let lastIndex = 0
+  for (const match of text.matchAll(urlRegex)) {
+    const rawUrl = match[0]
+    const index = match.index ?? 0
+    const { href, trailing } = stripTrailingUrlPunctuation(rawUrl)
+    if (!href)
+      continue
+
+    html += escapeHtmlText(text.slice(lastIndex, index))
+    html += `<a href="${escapeHtmlAttribute(href)}" target="_blank" rel="noopener noreferrer">${escapeHtmlText(href)}</a>${escapeHtmlText(trailing)}`
+    lastIndex = index + rawUrl.length
+  }
+  html += escapeHtmlText(text.slice(lastIndex))
+  return html
+}
+
+const linkifiedPlainBodyHtml = computed(() => {
+  if (formattedBody.value || (msgtype.value !== 'm.text' && msgtype.value !== 'm.notice') || !body.value)
     return ''
-  return prepareRichMediaHtml(sanitizeMatrixHtml(markOutOfContextMentions(formattedBody.value)))
+  if (!hasUrlRegex.test(body.value))
+    return ''
+  return linkifyPlainText(body.value)
+})
+
+const sanitizedHtml = computed(() => {
+  const html = formattedBody.value || linkifiedPlainBodyHtml.value
+  if (!html)
+    return ''
+  return prepareRichMediaHtml(sanitizeMatrixHtml(markOutOfContextMentions(html)))
 })
 
 function prepareRichMediaHtml(html: string): string {
@@ -438,7 +497,6 @@ const messageReactions = computed(() => {
   return getReactions(props.roomId, eventId.value)
 })
 
-const urlRegex = /https?:\/\/[^\s<>"]+/gi
 const extractedUrls = computed((): string[] => {
   if (msgtype.value !== 'm.text' || !body.value)
     return []
@@ -525,7 +583,7 @@ function onReplyFromContextMenu() {
 }
 
 function onCopyFromContextMenu() {
-  navigator.clipboard.writeText(body.value)
+  void copyMessageContentToClipboard(props.event.getContent() ?? {})
   closeContextMenu()
 }
 
@@ -735,9 +793,8 @@ onUnmounted(() => {
         <div
           v-else-if="sanitizedHtml"
           ref="richContentRef"
-          class="rich-message-content text-[15px] leading-relaxed text-foreground/90 [&_blockquote]:border-l-[3px] [&_blockquote]:border-muted-foreground [&_blockquote]:pl-3 [&_blockquote]:text-muted-foreground [&_code]:border [&_code]:border-border [&_code]:bg-muted [&_code]:px-[0.35em] [&_code]:py-[0.15em] [&_code]:font-['Consolas','Monaco',monospace] [&_del]:opacity-70 [&_del]:line-through [&_em]:italic [&_img]:my-1 [&_img]:block [&_img]:max-h-[400px] [&_img]:max-w-[300px] [&_img]:cursor-pointer [&_img]:rounded-lg [&_img]:bg-muted [&_img]:object-contain [&_ol]:pl-6 [&_p]:my-1 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_pre]:my-2 [&_pre]:rounded [&_pre]:border [&_pre]:border-border [&_pre]:bg-card [&_pre]:p-3 [&_pre_code]:border-0 [&_s]:opacity-70 [&_s]:line-through [&_strong]:font-bold [&_strong]:text-foreground [&_ul]:pl-6 [&_a]:text-primary [&_a]:no-underline hover:[&_a]:underline [&_a[href^='https://matrix.to']]:rounded [&_a[href^='https://matrix.to']]:bg-[color-mix(in_srgb,var(--color-primary)_15%,transparent)] [&_a[href^='https://matrix.to']]:px-0.5 hover:[&_a[href^='https://matrix.to']]:bg-[color-mix(in_srgb,var(--color-primary)_25%,transparent)]"
-          :class="isRightAligned ? 'rounded-2xl bg-primary/10 px-3 py-2' : ''"
-          :style="isRightAligned ? { width: 'fit-content', maxWidth: '100%', marginLeft: 'auto' } : {}"
+          class="rich-message-content text-[15px] leading-relaxed text-foreground/90 whitespace-pre-wrap break-words [&_blockquote]:border-l-[3px] [&_blockquote]:border-muted-foreground [&_blockquote]:pl-3 [&_blockquote]:text-muted-foreground [&_code]:border [&_code]:border-border [&_code]:bg-muted [&_code]:px-[0.35em] [&_code]:py-[0.15em] [&_code]:font-['Consolas','Monaco',monospace] [&_del]:opacity-70 [&_del]:line-through [&_em]:italic [&_img]:my-1 [&_img]:block [&_img]:max-h-[400px] [&_img]:max-w-[300px] [&_img]:cursor-pointer [&_img]:rounded-lg [&_img]:bg-muted [&_img]:object-contain [&_ol]:pl-6 [&_p]:my-1 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_pre]:my-2 [&_pre]:rounded [&_pre]:border [&_pre]:border-border [&_pre]:bg-card [&_pre]:p-3 [&_pre_code]:border-0 [&_s]:opacity-70 [&_s]:line-through [&_strong]:font-bold [&_strong]:text-foreground [&_ul]:pl-6 [&_a]:text-primary [&_a]:no-underline hover:[&_a]:underline [&_a[href^='https://matrix.to']]:rounded [&_a[href^='https://matrix.to']]:bg-[color-mix(in_srgb,var(--color-primary)_15%,transparent)] [&_a[href^='https://matrix.to']]:px-0.5 hover:[&_a[href^='https://matrix.to']]:bg-[color-mix(in_srgb,var(--color-primary)_25%,transparent)]"
+          :class="textBubbleClass"
           @click="onRichContentClick"
           v-html="sanitizedHtml"
         />
@@ -751,8 +808,7 @@ onUnmounted(() => {
         <p
           v-else
           class="message-selectable-text text-[15px] leading-relaxed text-foreground/90 whitespace-pre-wrap break-words"
-          :class="isRightAligned ? 'rounded-2xl bg-primary/10 px-3 py-2' : ''"
-          :style="isRightAligned ? { width: 'fit-content', maxWidth: '100%', marginLeft: 'auto' } : {}"
+          :class="textBubbleClass"
         >
           {{ body }}<span v-if="isEdited" class="text-[10px] text-muted-foreground/30 ml-1">({{ t('chat.edited') }})</span>
         </p>

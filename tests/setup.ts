@@ -74,35 +74,35 @@ const i18n = createI18n({
 
 config.global.plugins = [i18n]
 
-vi.mock('@tauri-apps/api/tray', () => ({
-  TrayIcon: { new: vi.fn() },
-}))
+vi.mock('@/electron/window', () => ({
+  PhysicalPosition: class PhysicalPosition {
+    readonly type = 'Physical'
 
-vi.mock('@tauri-apps/api/menu', () => ({
-  Menu: { new: vi.fn() },
-  MenuItem: { new: vi.fn() },
-}))
+    constructor(public x: number, public y: number) {}
+  },
+  PhysicalSize: class PhysicalSize {
+    readonly type = 'Physical'
 
-vi.mock('@tauri-apps/api/window', () => ({
+    constructor(public width: number, public height: number) {}
+  },
+  currentMonitor: vi.fn().mockResolvedValue(null),
+  getDesktopPlatform: vi.fn(() => undefined),
   getCurrentWindow: vi.fn(() => ({
     close: vi.fn(),
     isMaximized: vi.fn().mockResolvedValue(false),
+    isFocused: vi.fn().mockResolvedValue(true),
+    maximize: vi.fn(),
     minimize: vi.fn(),
+    onBlurred: vi.fn().mockResolvedValue(vi.fn()),
+    onFocused: vi.fn().mockResolvedValue(vi.fn()),
+    onMoved: vi.fn().mockResolvedValue(vi.fn()),
     onResized: vi.fn().mockResolvedValue(vi.fn()),
+    outerPosition: vi.fn().mockResolvedValue({ x: 0, y: 0 }),
+    outerSize: vi.fn().mockResolvedValue({ height: 768, width: 1024 }),
+    setPosition: vi.fn(),
+    setSize: vi.fn(),
     show: vi.fn(),
     setFocus: vi.fn(),
-    startDragging: vi.fn(),
-    toggleMaximize: vi.fn(),
-    destroy: vi.fn(),
+    unmaximize: vi.fn(),
   })),
-}))
-
-vi.mock('@tauri-apps/plugin-notification', () => ({
-  sendNotification: vi.fn(),
-  isPermissionGranted: vi.fn().mockResolvedValue(true),
-  requestPermission: vi.fn(),
-}))
-
-vi.mock('@tauri-apps/plugin-updater', () => ({
-  check: vi.fn().mockResolvedValue(null),
 }))

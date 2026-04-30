@@ -348,27 +348,27 @@ const groupFamilyEvents: MockEvent[] = [
 
 // ---- 群聊: 技术交流群 ----
 const groupTechEvents: MockEvent[] = [
-  textMsg('@bob:localhost', '有人用过 Tauri 2.0 吗？', 100),
+  textMsg('@bob:localhost', '有人用过 Electron 41 吗？', 100),
   textMsg('@test:localhost', '我正在用，有什么问题？', 101),
   textMsg('@edward:localhost', '我也在研究', 102),
   textMsg('@bob:localhost', '跨平台打包的时候遇到点问题', 103),
   textMsg('@test:localhost', '什么问题？贴一下错误日志', 104),
-  textMsg('@bob:localhost', '```\nerror[E0433]: failed to resolve: use of undeclared crate\n```', 105),
-  textMsg('@test:localhost', '这个是 Rust 依赖没装好，检查一下 Cargo.toml', 106),
+  textMsg('@bob:localhost', '```\nError: Cannot find module electron-updater\n```', 105),
+  textMsg('@test:localhost', '这个是 Electron 依赖没装好，检查一下 package.json', 106),
   textMsg('@bob:localhost', '果然，少了一个 dependency，加上就好了', 120),
-  textMsg('@edward:localhost', 'Tauri 2 比 Electron 快多了，二进制文件才 8MB', 121),
-  textMsg('@test:localhost', '是的，而且内存占用也小很多', 122),
-  textMsg('@charlie:localhost', '有没有人测过 Tauri 的 IPC 性能？', 600),
-  textMsg('@test:localhost', '我测过，JSON 序列化大概 0.1ms，比 Electron 的 IPC 快 3 倍左右', 601),
+  textMsg('@edward:localhost', 'electron-vite 的冷启动比以前快多了', 121),
+  textMsg('@test:localhost', '是的，main/preload/renderer 分开构建后清晰很多', 122),
+  textMsg('@charlie:localhost', '有没有人测过 Electron 的 IPC 性能？', 600),
+  textMsg('@test:localhost', '我测过，预加载桥接的 JSON 序列化开销很低', 601),
   textMsg('@charlie:localhost', '这么快？有 benchmark 数据吗？', 602),
   textMsg('@test:localhost', '有的，我整理一下发出来', 603),
-  fileMsg('@test:localhost', 'tauri_benchmark.pdf', 'mxc://localhost/benchmark_pdf', 85000, 604),
+  fileMsg('@test:localhost', 'electron_benchmark.pdf', 'mxc://localhost/benchmark_pdf', 85000, 604),
   textMsg('@charlie:localhost', '太棒了，这个数据正好写技术报告用', 605),
-  textMsg('@fiona:localhost', '推荐一个好用的 VS Code 插件：Tauri 官方的那个', 610),
+  textMsg('@fiona:localhost', '推荐一个好用的 VS Code 插件：Electron 官方的那个', 610),
   textMsg('@edward:localhost', '已经装了，自动补全确实方便', 611),
   textMsg('@bob:localhost', '感谢推荐，装上了 👍', 612),
   textMsg('@george:localhost', '大家有没有研究过 WebView2 的限制？', 620),
-  textMsg('@test:localhost', '主要是 Windows 上的 WebView2 版本问题，但 Tauri 2 做了很好的兼容', 621),
+  textMsg('@test:localhost', '主要是 Windows 上的 WebView2 版本问题，但 Electron 做了很好的兼容', 621),
 ]
 
 // ---------------------------------------------------------------------------

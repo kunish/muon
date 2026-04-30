@@ -1,8 +1,8 @@
 import type { MatrixEvent, Room } from 'matrix-js-sdk'
 import type { RoomMessageEventContent, StickerEventContent } from 'matrix-js-sdk/lib/@types/events'
 import type { VideoInfo } from 'matrix-js-sdk/lib/@types/media'
-import { fetch as tauriFetch } from '@tauri-apps/plugin-http'
 import { EventTimeline, EventType, MsgType, RelationType } from 'matrix-js-sdk'
+import { fetch as desktopFetch } from '@/electron/http'
 import { sanitizeMatrixHtml } from '@/shared/lib/htmlSanitizer'
 import { htmlToPlainText } from '@/shared/lib/markdown'
 import { getClient } from './client'
@@ -464,7 +464,7 @@ export async function sendGifMessage(
   let gifBlob: Blob
 
   try {
-    const res = await tauriFetch(url)
+    const res = await desktopFetch(url)
     if (!res.ok) {
       throw new Error(`GIF fetch failed: ${res.status}`)
     }

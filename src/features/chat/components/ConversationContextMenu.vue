@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { leaveRoom, toggleRoomMute, toggleRoomPin } from '@matrix/index'
 import { isDirectRoom } from '@matrix/roomUtils'
-import { ask } from '@tauri-apps/plugin-dialog'
 import { onClickOutside } from '@vueuse/core'
 import {
   Bell,
@@ -15,7 +14,9 @@ import {
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
+import { ask } from '@/electron/dialog'
 import { useContextMenuScrollLock } from '@/shared/composables/useContextMenuScrollLock'
+import { useViewportClampedFloating } from '@/shared/composables/useViewportClampedFloating'
 import { useConversations } from '../composables/useConversations'
 import { useChatStore } from '../stores/chatStore'
 
@@ -30,18 +31,18 @@ const roomId = computed(() => store.contextMenu?.roomId || '')
 const pinned = computed(() => store.isPinned(roomId.value))
 const muted = computed(() => store.isMuted(roomId.value))
 const markedUnread = computed(() => store.isMarkedUnread(roomId.value))
+const menuPosition = computed(() => ({
+  x: store.contextMenu?.x ?? 0,
+  y: store.contextMenu?.y ?? 0,
+}))
+const { style } = useViewportClampedFloating({
+  open: isOpen,
+  position: menuPosition,
+  element: menuRef,
+  fallbackSize: { width: 180, height: 176 },
+})
 
 useContextMenuScrollLock(isOpen)
-
-// 菜单定位
-const style = computed(() => {
-  if (!store.contextMenu)
-    return {}
-  return {
-    left: `${store.contextMenu.x}px`,
-    top: `${store.contextMenu.y}px`,
-  }
-})
 
 // 点击外部关闭
 onClickOutside(menuRef, () => {

@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { save } from '@tauri-apps/plugin-dialog'
-import { writeFile } from '@tauri-apps/plugin-fs'
-import { fetch as tauriFetch } from '@tauri-apps/plugin-http'
 import { Download, RotateCw, X, ZoomIn, ZoomOut } from 'lucide-vue-next'
 import { computed, onMounted, onUnmounted, shallowRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
+import { save } from '@/electron/dialog'
+import { writeFile } from '@/electron/fs'
+import { fetch as desktopFetch } from '@/electron/http'
 import { useMediaViewer } from '../composables/useMediaViewer'
 
 const { visible, currentUrl, currentType, close } = useMediaViewer()
@@ -89,7 +89,7 @@ async function download() {
     return
 
   try {
-    const res = await tauriFetch(url)
+    const res = await desktopFetch(url)
     const buf = await res.arrayBuffer()
     await writeFile(savePath, new Uint8Array(buf))
   }

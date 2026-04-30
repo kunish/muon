@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ChevronDown, Loader2, Scissors } from 'lucide-vue-next'
 import { ref } from 'vue'
-import { captureScreen } from '@/tauri/screenshot'
+import { captureScreen } from '@/electron/screenshot'
 
 const emit = defineEmits<{
   capture: [file: File]

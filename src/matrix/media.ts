@@ -1,9 +1,9 @@
-import { fetch as tauriFetch } from '@tauri-apps/plugin-http'
+import { fetch as desktopFetch } from '@/electron/http'
 import { getClient } from './client'
 
 async function fetchMediaResponse(url: string, headers: Record<string, string>): Promise<Response> {
   try {
-    return await tauriFetch(url, { headers }) as Response
+    return await desktopFetch(url, { headers }) as Response
   }
   catch {
     return fetch(url, { headers })
@@ -28,22 +28,27 @@ function _getThumbnailUrl(mxcUrl: string, width: number, height: number): string
 }
 
 /**
- * Fetch media via Tauri HTTP plugin (bypasses webview CORS/auth issues)
+ * Fetch media through the desktop HTTP bridge to bypass webview CORS/auth issues
  * and return a blob: URL usable in <img>/<video> src.
  */
 export async function fetchMediaBlobUrl(mxcUrl: string, width?: number, height?: number): Promise<string> {
+  const blob = await fetchMediaBlob(mxcUrl, width, height)
+  return blob ? URL.createObjectURL(blob) : ''
+}
+
+async function fetchMediaBlob(mxcUrl: string, width?: number, height?: number): Promise<Blob | null> {
   const client = getClient()
   const token = client.getAccessToken()
   const baseUrl = client.baseUrl
 
   // Parse mxc://server/mediaId
   if (!mxcUrl.startsWith('mxc://'))
-    return ''
+    return null
   const parts = mxcUrl.slice(6).split('/')
   const serverName = parts[0]
   const mediaId = parts[1]
   if (!serverName || !mediaId)
-    return ''
+    return null
 
   const thumbParams = (width && height) ? `?width=${width}&height=${height}&method=crop` : ''
   const isThumbnail = !!(width && height)
@@ -74,13 +79,13 @@ export async function fetchMediaBlobUrl(mxcUrl: string, width?: number, height?:
       if (import.meta.env.DEV)
         // eslint-disable-next-line no-console
         console.debug(`[media] OK ${url} blob size=${blob.size} type=${blob.type}`)
-      return URL.createObjectURL(blob)
+      return blob
     }
     catch {
       continue
     }
   }
-  return ''
+  return null
 }
 
 interface VideoMeta {
@@ -164,11 +169,8 @@ export function extractVideoMeta(file: File | Blob): Promise<VideoMeta> {
 }
 
 export async function downloadMedia(mxcUrl: string): Promise<Blob> {
-  const client = getClient()
-  const httpUrl = client.mxcUrlToHttp(mxcUrl) || ''
-  const token = client.getAccessToken()
-  const res = await tauriFetch(httpUrl, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-  })
-  return res.blob()
+  const blob = await fetchMediaBlob(mxcUrl)
+  if (!blob)
+    throw new Error('Failed to download Matrix media')
+  return blob
 }

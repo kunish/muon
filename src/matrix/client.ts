@@ -1,20 +1,13 @@
 import type { MatrixClient } from 'matrix-js-sdk'
 import type { MatrixConfig } from './types'
-import { fetch as tauriFetch } from '@tauri-apps/plugin-http'
 import { createClient as sdkCreateClient } from 'matrix-js-sdk'
+import { fetch as desktopFetch } from '@/electron/http'
+import { matrixClientLogger } from './logger'
 
 let client: MatrixClient | null = null
 
-function canUseTauriFetch(): boolean {
-  return typeof window !== 'undefined'
-    && typeof (window as Window & { __TAURI_INTERNALS__?: { invoke?: unknown } }).__TAURI_INTERNALS__?.invoke === 'function'
-}
-
 export function matrixFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-  if (!canUseTauriFetch())
-    return globalThis.fetch(input, init)
-
-  return tauriFetch(input as URL | Request | string, init)
+  return desktopFetch(input, init)
 }
 
 export function getClient(): MatrixClient {
@@ -31,6 +24,7 @@ export function createClient(config: MatrixConfig): MatrixClient {
     deviceId: config.deviceId,
     timelineSupport: true,
     fetchFn: matrixFetch as typeof globalThis.fetch,
+    logger: matrixClientLogger,
     // muon 使用 LiveKit 进行通话，禁用 matrix-js-sdk 内置 VoIP 以避免无意义的 TURN 请求
     disableVoip: true,
     fallbackICEServerAllowed: false,

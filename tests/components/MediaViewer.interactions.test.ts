@@ -4,15 +4,15 @@ import { nextTick } from 'vue'
 import MediaViewer from '@/features/chat/components/MediaViewer.vue'
 import { useMediaViewer } from '@/features/chat/composables/useMediaViewer'
 
-vi.mock('@tauri-apps/plugin-dialog', () => ({
+vi.mock('@/electron/dialog', () => ({
   save: vi.fn(),
 }))
 
-vi.mock('@tauri-apps/plugin-fs', () => ({
+vi.mock('@/electron/fs', () => ({
   writeFile: vi.fn(),
 }))
 
-vi.mock('@tauri-apps/plugin-http', () => ({
+vi.mock('@/electron/http', () => ({
   fetch: vi.fn(),
 }))
 

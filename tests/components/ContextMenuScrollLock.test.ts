@@ -19,7 +19,7 @@ vi.mock('@matrix/index', () => ({
   toggleRoomPin: vi.fn().mockResolvedValue(undefined),
 }))
 
-vi.mock('@tauri-apps/plugin-dialog', () => ({
+vi.mock('@/electron/dialog', () => ({
   ask: vi.fn(),
 }))
 

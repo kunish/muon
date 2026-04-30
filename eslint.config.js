@@ -11,6 +11,7 @@ export default antfu({
     '.github/skills/**',
     '.planning/**',
     'openspec/**',
-    'src-tauri/gen/schemas/**',
+    'out/**',
+    'release/**',
   ],
 })

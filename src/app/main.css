@@ -153,7 +153,8 @@
     box-shadow: 0 18px 48px color-mix(in srgb, var(--color-foreground) 10%, transparent);
   }
 
-  .muon-window-maximized .app-window-frame {
+  .muon-window-maximized .app-window-frame,
+  .muon-window-flush-frame .app-window-frame {
     border-color: transparent;
     border-radius: 0;
     box-shadow: none;

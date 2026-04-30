@@ -6,11 +6,11 @@ vi.mock('@matrix/index', () => ({
   downloadMedia: vi.fn(),
 }))
 
-vi.mock('@tauri-apps/plugin-dialog', () => ({
+vi.mock('@/electron/dialog', () => ({
   save: vi.fn(),
 }))
 
-vi.mock('@tauri-apps/plugin-fs', () => ({
+vi.mock('@/electron/fs', () => ({
   writeFile: vi.fn(),
 }))
 

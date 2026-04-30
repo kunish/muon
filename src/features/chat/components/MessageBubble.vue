@@ -17,7 +17,6 @@ import {
   unpinMessage,
   unstarMessage,
 } from '@matrix/rooms'
-import { ask } from '@tauri-apps/plugin-dialog'
 import {
   CheckSquare,
   Copy,
@@ -39,12 +38,14 @@ import {
 import { computed, inject, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
+import { ask } from '@/electron/dialog'
 import { useSettingsStore } from '@/features/settings/stores/settingsStore'
 import { useAuthMedia } from '@/shared/composables/useAuthMedia'
 import { isFullEmojiText } from '@/shared/lib/emoji'
 import { sanitizeMatrixHtml } from '@/shared/lib/htmlSanitizer'
 import { handleMatrixLinkClick } from '@/shared/lib/matrixLinks'
 import { getSystemLanguage, translateText } from '@/shared/lib/translate'
+import { copyMessageContentToClipboard } from '../lib/messageClipboard'
 import { useChatStore } from '../stores/chatStore'
 import AnimatedEmoji from './AnimatedEmoji.vue'
 import ForwardDialog from './ForwardDialog.vue'
@@ -254,7 +255,7 @@ const isSenderBlocked = computed(() => {
 })
 
 function copyText() {
-  navigator.clipboard.writeText(body.value)
+  void copyMessageContentToClipboard(props.event.getContent() ?? {})
 }
 
 /** 拦截 rich-content 中的 matrix.to mention 链接点击，打开用户卡片 */
