@@ -1,10 +1,21 @@
 import type { RoomSummary } from '@matrix/types'
-import { getRoomSummaries, matrixEvents } from '@matrix/index'
+import { getRoomSummaries, invalidateRoomSummariesCache, matrixEvents, paginateBack } from '@matrix/index'
 import { computed, onMounted, ref, shallowRef } from 'vue'
-import { normalizeRoomId } from '@matrix/roomUtils'
 import { useChatStore } from '../stores/chatStore'
 
-const LISTENED_EVENTS = ['room.message', 'room.member', 'sync.state', 'room.receipt'] as const
+const LISTENED_EVENTS = ['room.message', 'room.timeline', 'room.decrypted', 'room.member', 'sync.state', 'room.receipt'] as const
+const PREVIEW_HYDRATION_LIMIT = 30
+const PREVIEW_HYDRATION_MAX_CONCURRENT = 3
+const PREVIEW_HYDRATION_MAX_ATTEMPTS = 5
+type RefreshMode = 'resort' | 'preserve-order'
+const REFRESH_EVENT_MODES: Record<typeof LISTENED_EVENTS[number], RefreshMode> = {
+  'room.message': 'resort',
+  'room.timeline': 'preserve-order',
+  'room.decrypted': 'preserve-order',
+  'room.member': 'preserve-order',
+  'sync.state': 'preserve-order',
+  'room.receipt': 'preserve-order',
+}
 
 // --- 持久化归档的 DM 房间 ---
 const ARCHIVED_KEY = 'muon_archived_dms'
@@ -30,21 +41,92 @@ const excludedRoomIds = new Set<string>()
 const archivedDmIds = loadArchivedDms()
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
 let listenersBound = false
+let pendingRefreshMode: RefreshMode | null = null
+let historicalRoomOrder: string[] = []
+let activePreviewHydrations = 0
+let previewHydrationGeneration = 0
+const pendingPreviewHydrationRoomIds = new Set<string>()
+const hydratingPreviewRoomIds = new Set<string>()
+const exhaustedPreviewHydrationRoomIds = new Set<string>()
+const previewHydrationAttemptsByRoomId = new Map<string, number>()
 
-function scheduleRefresh() {
+function mergeRefreshMode(current: RefreshMode | null, next: RefreshMode): RefreshMode {
+  return current === 'resort' || next === 'resort' ? 'resort' : 'preserve-order'
+}
+
+function appendUnknownRoomsToHistory(next: RoomSummary[]) {
+  const knownRoomIds = new Set(historicalRoomOrder)
+  for (const room of next) {
+    if (!knownRoomIds.has(room.roomId)) {
+      historicalRoomOrder.push(room.roomId)
+      knownRoomIds.add(room.roomId)
+    }
+  }
+}
+
+function updateHistoricalRoomOrder(next: RoomSummary[], mode: RefreshMode) {
+  if (historicalRoomOrder.length === 0 || mode === 'resort') {
+    const nextRoomIds = next.map(room => room.roomId)
+    const nextRoomIdSet = new Set(nextRoomIds)
+    historicalRoomOrder = [
+      ...nextRoomIds,
+      ...historicalRoomOrder.filter(roomId => !nextRoomIdSet.has(roomId)),
+    ]
+    return
+  }
+
+  appendUnknownRoomsToHistory(next)
+}
+
+function preserveSummaryOrder(next: RoomSummary[]): RoomSummary[] {
+  if (historicalRoomOrder.length === 0)
+    return next
+
+  const historicalIndexByRoomId = new Map(historicalRoomOrder.map((roomId, index) => [roomId, index]))
+  const nextIndexByRoomId = new Map(next.map((room, index) => [room.roomId, index]))
+  return [...next].sort((a, b) => {
+    const previousA = historicalIndexByRoomId.get(a.roomId)
+    const previousB = historicalIndexByRoomId.get(b.roomId)
+
+    if (previousA !== undefined && previousB !== undefined)
+      return previousA - previousB
+    if (previousA !== undefined)
+      return -1
+    if (previousB !== undefined)
+      return 1
+
+    return (nextIndexByRoomId.get(a.roomId) ?? 0) - (nextIndexByRoomId.get(b.roomId) ?? 0)
+  })
+}
+
+function scheduleRefresh(mode: RefreshMode = 'resort') {
+  pendingRefreshMode = mergeRefreshMode(pendingRefreshMode, mode)
   if (debounceTimer)
     return
   debounceTimer = setTimeout(() => {
     debounceTimer = null
-    refreshNow()
+    const refreshMode = pendingRefreshMode ?? 'resort'
+    pendingRefreshMode = null
+    refreshNow(refreshMode)
   }, 80)
 }
 
-function refreshNow() {
+const refreshEventHandlers: Record<typeof LISTENED_EVENTS[number], () => void> = {
+  'room.message': () => scheduleRefresh(REFRESH_EVENT_MODES['room.message']),
+  'room.timeline': () => scheduleRefresh(REFRESH_EVENT_MODES['room.timeline']),
+  'room.decrypted': () => scheduleRefresh(REFRESH_EVENT_MODES['room.decrypted']),
+  'room.member': () => scheduleRefresh(REFRESH_EVENT_MODES['room.member']),
+  'sync.state': () => scheduleRefresh(REFRESH_EVENT_MODES['sync.state']),
+  'room.receipt': () => scheduleRefresh(REFRESH_EVENT_MODES['room.receipt']),
+}
+
+function refreshNow(mode: RefreshMode = 'resort') {
   if (debounceTimer) {
     clearTimeout(debounceTimer)
     debounceTimer = null
   }
+  pendingRefreshMode = null
+  invalidateRoomSummariesCache()
   let summaries = getRoomSummaries()
   // 过滤掉已退出但 sync 尚未确认的房间
   if (excludedRoomIds.size > 0) {
@@ -60,6 +142,9 @@ function refreshNow() {
   if (archivedDmIds.size > 0) {
     summaries = summaries.filter(r => !archivedDmIds.has(r.roomId))
   }
+  updateHistoricalRoomOrder(summaries, mode)
+  if (mode === 'preserve-order')
+    summaries = preserveSummaryOrder(summaries)
   rooms.value = summaries
   isLoading.value = false
   // 将服务端 pin/mute 状态同步到 chatStore
@@ -68,6 +153,70 @@ function refreshNow() {
     store.syncServerState(summaries)
   }
   catch { /* store 尚未初始化时忽略 */ }
+  hydrateMissingPreviews(summaries)
+}
+
+function shouldHydratePreview(room: RoomSummary): boolean {
+  return !room.lastMessage
+    && !room.lastMessageType
+    && (room.lastMessageTs !== undefined || room.unreadCount > 0)
+    && (previewHydrationAttemptsByRoomId.get(room.roomId) ?? 0) < PREVIEW_HYDRATION_MAX_ATTEMPTS
+    && !pendingPreviewHydrationRoomIds.has(room.roomId)
+    && !hydratingPreviewRoomIds.has(room.roomId)
+    && !exhaustedPreviewHydrationRoomIds.has(room.roomId)
+}
+
+function hydrateMissingPreviews(summaries: RoomSummary[]) {
+  for (const room of summaries) {
+    if (shouldHydratePreview(room))
+      pendingPreviewHydrationRoomIds.add(room.roomId)
+  }
+  drainPreviewHydrationQueue()
+}
+
+function drainPreviewHydrationQueue() {
+  while (activePreviewHydrations < PREVIEW_HYDRATION_MAX_CONCURRENT && pendingPreviewHydrationRoomIds.size > 0) {
+    const roomId = pendingPreviewHydrationRoomIds.values().next().value
+    if (!roomId)
+      return
+    pendingPreviewHydrationRoomIds.delete(roomId)
+    void hydrateRoomPreview(roomId)
+  }
+}
+
+async function hydrateRoomPreview(roomId: string) {
+  const generation = previewHydrationGeneration
+  activePreviewHydrations++
+  hydratingPreviewRoomIds.add(roomId)
+  let loaded = false
+  try {
+    previewHydrationAttemptsByRoomId.set(
+      roomId,
+      (previewHydrationAttemptsByRoomId.get(roomId) ?? 0) + 1,
+    )
+    const result = await paginateBack(roomId, PREVIEW_HYDRATION_LIMIT)
+    if (generation !== previewHydrationGeneration)
+      return
+    loaded = result
+    if (!loaded)
+      exhaustedPreviewHydrationRoomIds.add(roomId)
+  }
+  catch (error) {
+    console.warn('[useConversations] Failed to hydrate conversation preview:', error)
+  }
+  finally {
+    if (generation === previewHydrationGeneration) {
+      hydratingPreviewRoomIds.delete(roomId)
+      activePreviewHydrations--
+      drainPreviewHydrationQueue()
+    }
+  }
+
+  if (generation !== previewHydrationGeneration)
+    return
+
+  if (loaded)
+    refreshNow('preserve-order')
 }
 
 /** 立即从列表中移除指定房间（不等待 sync 确认） */
@@ -102,7 +251,7 @@ function restoreRoom(roomId: string) {
 
 /**
  * 会话列表数据源 composable
- * - 置顶排序：pinned 优先
+ * - 置顶排序：pinned 优先；普通会话保持 getRoomSummaries 的历史顺序
  * - 筛选：all / unread / dm / group
  * - 搜索同时匹配房间名和最近消息
  */
@@ -115,7 +264,7 @@ export function useConversations() {
       listenersBound = true
       refreshNow()
       for (const evt of LISTENED_EVENTS)
-        matrixEvents.on(evt, scheduleRefresh)
+        matrixEvents.on(evt, refreshEventHandlers[evt])
     }
   })
 
@@ -145,34 +294,14 @@ export function useConversations() {
       )
     }
 
-    const promotedRoomId = normalizeRoomId(store.sidebarPromotedRoomId)
-    const promotedRoom = promotedRoomId
-      ? list.find(r => normalizeRoomId(r.roomId) === promotedRoomId)
-      : undefined
-    const remaining = promotedRoom
-      ? list.filter(r => normalizeRoomId(r.roomId) !== promotedRoomId)
-      : list
-
-    // 显式从右侧/外部打开的聊天优先展示；侧边栏历史点击只更新高亮，不触发重排。
-    const pinned = remaining.filter(r => store.isPinned(r.roomId))
-    const normal = remaining.filter(r => !store.isPinned(r.roomId))
-    return promotedRoom ? [promotedRoom, ...pinned, ...normal] : [...pinned, ...normal]
+    const pinned = list.filter(r => store.isPinned(r.roomId))
+    const normal = list.filter(r => !store.isPinned(r.roomId))
+    return [...pinned, ...normal]
   })
 
-  // 顶部特殊区域数量（用于列表分隔线定位）：显式提升会话 + 置顶会话。
+  // 顶部特殊区域数量（用于列表分隔线定位）：置顶会话。
   const pinnedCount = computed(() => {
-    if (!conversations.value.some(r => store.isPinned(r.roomId)))
-      return 0
-
-    const promotedRoomId = normalizeRoomId(store.sidebarPromotedRoomId)
-    let count = 0
-    for (const room of conversations.value) {
-      const isPromoted = !!promotedRoomId && normalizeRoomId(room.roomId) === promotedRoomId
-      if (!isPromoted && !store.isPinned(room.roomId))
-        break
-      count += 1
-    }
-    return count
+    return conversations.value.filter(r => store.isPinned(r.roomId)).length
   })
 
   // --- 总未读数（不受筛选/搜索影响，用于侧边栏角标） ---
@@ -187,13 +316,21 @@ export function useConversations() {
 export function resetConversationsListeners() {
   if (listenersBound) {
     for (const evt of LISTENED_EVENTS)
-      matrixEvents.off(evt, scheduleRefresh)
+      matrixEvents.off(evt, refreshEventHandlers[evt])
     listenersBound = false
   }
   if (debounceTimer) {
     clearTimeout(debounceTimer)
     debounceTimer = null
   }
+  pendingRefreshMode = null
+  historicalRoomOrder = []
+  activePreviewHydrations = 0
+  previewHydrationGeneration++
+  pendingPreviewHydrationRoomIds.clear()
+  hydratingPreviewRoomIds.clear()
+  exhaustedPreviewHydrationRoomIds.clear()
+  previewHydrationAttemptsByRoomId.clear()
   rooms.value = []
   isLoading.value = true
   excludedRoomIds.clear()

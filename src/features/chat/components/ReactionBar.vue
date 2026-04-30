@@ -5,18 +5,20 @@
  * 当前用户的 reaction 高亮 Blurple 边框
  * 末尾 "+" 按钮打开 emoji 选择器
  */
+import type { ReactionSummary } from '@matrix/index'
 import { getReactions, sendReaction } from '@matrix/index'
 import { Smile } from 'lucide-vue-next'
 import { computed, nextTick, ref, watch } from 'vue'
 
 const props = defineProps<{
   eventId: string
+  reactions?: ReactionSummary[]
   roomId: string
 }>()
 
 const QUICK_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🎉', '🔥', '👏']
 
-const reactions = computed(() => getReactions(props.roomId, props.eventId))
+const reactions = computed(() => props.reactions ?? getReactions(props.roomId, props.eventId))
 
 const showPicker = ref(false)
 const triggerRef = ref<HTMLElement | null>(null)

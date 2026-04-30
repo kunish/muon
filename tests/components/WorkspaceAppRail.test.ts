@@ -1,6 +1,7 @@
 import { mount } from '@vue/test-utils'
 import { describe, expect, it, vi } from 'vitest'
 import WorkspaceAppRail from '@/app/components/workspace/WorkspaceAppRail.vue'
+import { useGlobalUiStore } from '@/app/stores/globalUiStore'
 
 const push = vi.hoisted(() => vi.fn())
 
@@ -10,6 +11,14 @@ vi.mock('vue-router', () => ({
 }))
 
 describe('workspaceAppRail', () => {
+  it('renders the Muon brand logo in the rail header', () => {
+    const wrapper = mount(WorkspaceAppRail)
+    const logo = wrapper.get('[data-testid="workspace-brand-logo"]')
+
+    expect(logo.attributes('alt')).toBe('Muon')
+    expect(logo.attributes('src')).toContain('muon-logo')
+  })
+
   it('renders app-first navigation and marks the active app', () => {
     const wrapper = mount(WorkspaceAppRail)
     expect(wrapper.text()).toContain('消息')
@@ -44,5 +53,14 @@ describe('workspaceAppRail', () => {
     const wrapper = mount(WorkspaceAppRail)
     await wrapper.find('[data-testid="workspace-app-messages"]').trigger('click')
     expect(push).toHaveBeenCalledWith('/dm')
+  })
+
+  it('opens global search from the rail action', async () => {
+    const wrapper = mount(WorkspaceAppRail)
+    const globalUi = useGlobalUiStore()
+
+    await wrapper.find('[data-testid="workspace-global-search"]').trigger('click')
+
+    expect(globalUi.globalSearchOpen).toBe(true)
   })
 })

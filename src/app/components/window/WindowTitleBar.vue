@@ -150,7 +150,14 @@ onUnmounted(() => {
       @dblclick="handleTitlebarDoubleClick"
     >
       <div class="window-titlebar__brand" data-tauri-drag-region>
-        <span class="window-titlebar__logo" data-tauri-drag-region>M</span>
+        <img
+          class="window-titlebar__logo"
+          data-testid="window-titlebar-logo"
+          data-tauri-drag-region
+          src="/muon-logo.svg"
+          alt="Muon"
+          draggable="false"
+        >
         <span class="window-titlebar__name" data-tauri-drag-region>Muon</span>
       </div>
     </div>
@@ -242,18 +249,11 @@ onUnmounted(() => {
 }
 
 .window-titlebar__logo {
-  display: inline-flex;
   width: 18px;
   height: 18px;
   flex: 0 0 18px;
-  align-items: center;
-  justify-content: center;
   border-radius: 6px;
-  background: var(--color-primary);
-  color: var(--color-primary-foreground);
-  font-size: 11px;
-  font-weight: 800;
-  line-height: 1;
+  user-select: none;
 }
 
 .window-titlebar__name {

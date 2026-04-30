@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { leaveRoom, toggleRoomMute, toggleRoomPin } from '@matrix/index'
+import { isDirectRoom } from '@matrix/roomUtils'
 import { ask } from '@tauri-apps/plugin-dialog'
 import { onClickOutside } from '@vueuse/core'
 import {
@@ -14,7 +15,7 @@ import {
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
-import { isDirectRoom } from '@matrix/roomUtils'
+import { useContextMenuScrollLock } from '@/shared/composables/useContextMenuScrollLock'
 import { useConversations } from '../composables/useConversations'
 import { useChatStore } from '../stores/chatStore'
 
@@ -29,6 +30,8 @@ const roomId = computed(() => store.contextMenu?.roomId || '')
 const pinned = computed(() => store.isPinned(roomId.value))
 const muted = computed(() => store.isMuted(roomId.value))
 const markedUnread = computed(() => store.isMarkedUnread(roomId.value))
+
+useContextMenuScrollLock(isOpen)
 
 // 菜单定位
 const style = computed(() => {

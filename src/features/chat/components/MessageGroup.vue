@@ -1,13 +1,5 @@
 <script setup lang="ts">
-/**
- * 消息分组组件
- *
- * 将来自同一用户、5 分钟窗口内的连续消息分为一组：
- * - 组内首条消息显示头像 + 用户名(彩色) + 时间戳
- * - 续接消息不显示头像/用户名，悬浮时在头像列显示 HH:MM
- * - 系统事件（加入、退出等）独立渲染
- * - 未读分割线在适当位置插入
- */
+import type { ReactionSummary } from '@matrix/index'
 import type { MatrixEvent } from 'matrix-js-sdk'
 import { getClient } from '@matrix/client'
 import { isSystemEvent } from '@matrix/index'
@@ -19,9 +11,20 @@ import NewMessageSeparator from './NewMessageSeparator.vue'
 import SystemMessage from './SystemMessage.vue'
 import TimeStamp from './TimeStamp.vue'
 
+/**
+ * 消息分组组件
+ *
+ * 将来自同一用户、5 分钟窗口内的连续消息分为一组：
+ * - 组内首条消息显示头像 + 用户名(彩色) + 时间戳
+ * - 续接消息不显示头像/用户名，悬浮时在头像列显示 HH:MM
+ * - 系统事件（加入、退出等）独立渲染
+ * - 未读分割线在适当位置插入
+ */
 const props = defineProps<{
   events: MatrixEvent[]
   roomId: string
+  reactionsByEventId?: Map<string, ReactionSummary[]>
+  threadReplyCountsByEventId?: Map<string, number>
   timelineVersion?: number
   /** 未读分割线应插入在该 eventId 之前（由父组件提供），为空则不显示 */
   unreadEventId?: string | null
@@ -34,6 +37,18 @@ const emit = defineEmits<{
 
 const settingsStore = useSettingsStore()
 const currentUserId = computed(() => getClient().getUserId() || '')
+
+function eventId(event: MatrixEvent): string {
+  return event.getId() || ''
+}
+
+function eventReactions(event: MatrixEvent): ReactionSummary[] {
+  return props.reactionsByEventId?.get(eventId(event)) ?? []
+}
+
+function eventThreadReplyCount(event: MatrixEvent): number {
+  return props.threadReplyCountsByEventId?.get(eventId(event)) ?? 0
+}
 
 function isRightAlignedGroup(senderId: string): boolean {
   return settingsStore.messageAlignment === 'leftright' && senderId === currentUserId.value
@@ -196,6 +211,8 @@ const messageGroups = computed((): MessageGroup[] => {
                   :event="item.event"
                   :is-first="item.isFirst"
                   :room-id="roomId"
+                  :reactions="eventReactions(item.event)"
+                  :thread-reply-count="eventThreadReplyCount(item.event)"
                   :hide-avatar-column="true"
                   :timeline-version="timelineVersion"
                   @avatar-click="(userId, e) => emit('avatarClick', userId, e)"

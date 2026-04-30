@@ -5,6 +5,7 @@ import { reactive, ref } from 'vue'
 
 export type ConversationFilter = 'all' | 'unread' | 'dm' | 'group'
 export type SidePanelType = 'threads' | 'search' | 'pinned' | 'starred' | 'members' | 'settings' | 'tasks' | 'knowledge'
+// Kept so callers can express where navigation came from; history order is owned by useConversations.
 export type SidebarPlacement = 'promote' | 'history' | 'preserve'
 
 interface SetCurrentRoomOptions {
@@ -13,8 +14,6 @@ interface SetCurrentRoomOptions {
 
 export const useChatStore = defineStore('chat', () => {
   const currentRoomId = ref<string | null>(null)
-  const sidebarPromotedRoomId = ref<string | null>(null)
-  const routeSelectionWithoutPromotionRoomId = ref<string | null>(null)
   const searchQuery = ref('')
   const replyingTo = ref<MatrixEvent | null>(null)
   const editingEvent = ref<MatrixEvent | null>(null)
@@ -85,16 +84,8 @@ export const useChatStore = defineStore('chat', () => {
   } | null>(null)
 
   // --- 基础操作 ---
-  function setCurrentRoom(roomId: string | null, options: SetCurrentRoomOptions = {}) {
+  function setCurrentRoom(roomId: string | null, _options: SetCurrentRoomOptions = {}) {
     currentRoomId.value = roomId
-    if (!roomId) {
-      sidebarPromotedRoomId.value = null
-      routeSelectionWithoutPromotionRoomId.value = null
-    }
-    else if (options.sidebarPlacement === 'promote') {
-      sidebarPromotedRoomId.value = roomId
-      routeSelectionWithoutPromotionRoomId.value = null
-    }
     replyingTo.value = null
     editingEvent.value = null
     activeSidePanel.value = null
@@ -106,25 +97,11 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   function setCurrentRoomFromRoute(roomId: string | null) {
-    if (!roomId) {
-      setCurrentRoom(null)
-      return
-    }
-
-    if (routeSelectionWithoutPromotionRoomId.value === roomId) {
-      routeSelectionWithoutPromotionRoomId.value = null
-      setCurrentRoom(roomId, { sidebarPlacement: 'history' })
-      return
-    }
-
-    setCurrentRoom(roomId, { sidebarPlacement: 'promote' })
+    setCurrentRoom(roomId)
   }
 
   function selectRoomFromHistory(roomId: string) {
-    const shouldSuppressNextRoutePromotion = currentRoomId.value !== roomId
     setCurrentRoom(roomId, { sidebarPlacement: 'history' })
-    if (shouldSuppressNextRoutePromotion)
-      routeSelectionWithoutPromotionRoomId.value = roomId
   }
 
   function setSearchQuery(query: string) {
@@ -235,7 +212,6 @@ export const useChatStore = defineStore('chat', () => {
   return {
     // 基础状态
     currentRoomId,
-    sidebarPromotedRoomId,
     searchQuery,
     replyingTo,
     editingEvent,

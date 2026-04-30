@@ -57,22 +57,20 @@ describe('chatStore', () => {
     expect(store.isPinned('!room:localhost')).toBe(true)
   })
 
-  it('does not promote a route sync that came from a history list selection', () => {
+  it('keeps route synchronization focused on the current room', () => {
     const store = useChatStore()
 
     store.selectRoomFromHistory('!bob:localhost')
     store.setCurrentRoomFromRoute('!bob:localhost')
 
     expect(store.currentRoomId).toBe('!bob:localhost')
-    expect(store.sidebarPromotedRoomId).toBeNull()
 
     store.setCurrentRoomFromRoute('!alice:localhost')
 
     expect(store.currentRoomId).toBe('!alice:localhost')
-    expect(store.sidebarPromotedRoomId).toBe('!alice:localhost')
   })
 
-  it('keeps an existing promoted room when selecting another room from history', () => {
+  it('accepts placement hints without changing current room semantics', () => {
     const store = useChatStore()
 
     store.setCurrentRoom('!bob:localhost', { sidebarPlacement: 'promote' })
@@ -80,6 +78,5 @@ describe('chatStore', () => {
     store.setCurrentRoomFromRoute('!alice:localhost')
 
     expect(store.currentRoomId).toBe('!alice:localhost')
-    expect(store.sidebarPromotedRoomId).toBe('!bob:localhost')
   })
 })

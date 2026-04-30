@@ -1,16 +1,9 @@
 <script setup lang="ts">
-/**
- * 单条消息组件
- *
- * - isFirst=true: 显示 40px 头像 + 用户名(彩色) + 时间戳，然后是消息内容
- * - isFirst=false: 头像列留空，仅显示内容；悬浮时在头像列显示 HH:MM 时间
- * - 悬浮时右上角显示 MessageActionBar
- * - 支持 text/image/video/audio/file 消息类型
- * - 引用消息在内容上方显示：竖线 + 小头像 + 用户名 + 截断文本
- */
+import type { ReactionSummary } from '@matrix/index'
 import type { MatrixEvent } from 'matrix-js-sdk'
 import { getClient } from '@matrix/client'
 import { getReactions, getThreadReplies, redactMessage } from '@matrix/index'
+import { fetchMediaBlobUrl } from '@matrix/media'
 import { ask } from '@tauri-apps/plugin-dialog'
 import { Copy, MessageSquare, Reply, Trash2 } from 'lucide-vue-next'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
@@ -18,10 +11,13 @@ import { useI18n } from 'vue-i18n'
 import { useSettingsStore } from '@/features/settings/stores/settingsStore'
 import { Avatar } from '@/shared/components/ui/avatar'
 import { useAuthMedia } from '@/shared/composables/useAuthMedia'
+import { useContextMenuScrollLock } from '@/shared/composables/useContextMenuScrollLock'
 import { isFullEmojiText } from '@/shared/lib/emoji'
 import { sanitizeMatrixHtml } from '@/shared/lib/htmlSanitizer'
 import { handleMatrixLinkClick } from '@/shared/lib/matrixLinks'
 import { getFloatingPosition } from '../composables/useFloatingPosition'
+import { useMediaViewer } from '../composables/useMediaViewer'
+import { useMessageContextMenuState } from '../composables/useMessageContextMenuState'
 import { getMediaFrameStyle } from '../lib/mediaFrame'
 import { useChatStore } from '../stores/chatStore'
 import LinkPreview from './LinkPreview.vue'
@@ -33,11 +29,22 @@ import ImageMessage from './messages/ImageMessage.vue'
 import VideoMessage from './messages/VideoMessage.vue'
 import ReactionBar from './ReactionBar.vue'
 
+/**
+ * 单条消息组件
+ *
+ * - isFirst=true: 显示 40px 头像 + 用户名(彩色) + 时间戳，然后是消息内容
+ * - isFirst=false: 头像列留空，仅显示内容；悬浮时在头像列显示 HH:MM 时间
+ * - 悬浮时右上角显示 MessageActionBar
+ * - 支持 text/image/video/audio/file 消息类型
+ * - 引用消息在内容上方显示：竖线 + 小头像 + 用户名 + 截断文本
+ */
 const props = defineProps<{
   event: MatrixEvent
   isFirst: boolean
   roomId: string
   hideAvatarColumn?: boolean
+  reactions?: ReactionSummary[]
+  threadReplyCount?: number
   timelineVersion?: number
 }>()
 
@@ -45,22 +52,35 @@ const emit = defineEmits<{
   avatarClick: [userId: string, event: MouseEvent]
 }>()
 
+const RICH_MEDIA_PLACEHOLDER_SRC = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw=='
+const RICH_MEDIA_MAX_WIDTH = 300
+const RICH_MEDIA_MAX_HEIGHT = 400
+const RICH_MEDIA_FALLBACK_WIDTH = 300
+const RICH_MEDIA_FALLBACK_HEIGHT = 180
+
 const { t } = useI18n()
 const store = useChatStore()
 const settingsStore = useSettingsStore()
+const { openImage } = useMediaViewer()
 const hovered = ref(false)
 const showEmojiPicker = ref(false)
 const showContextMenu = ref(false)
 const actionMenuOpen = ref(false)
 const actionBarHovered = ref(false)
 const messageRef = ref<HTMLElement | null>(null)
+const richContentRef = ref<HTMLElement | null>(null)
 const actionBarRef = ref<HTMLElement | null>(null)
 const actionBarStyle = ref({ left: '0px', top: '0px' })
 const actionBarPositioned = ref(false)
 const contextMenuRef = ref<HTMLElement | null>(null)
 const contextMenuPos = ref({ x: 0, y: 0 })
+const { isAnyMessageContextMenuOpen } = useMessageContextMenuState(showContextMenu)
 const isVisuallyHovered = computed(() => hovered.value || showContextMenu.value || actionMenuOpen.value || actionBarHovered.value)
+const shouldShowActionBar = computed(() => !isAnyMessageContextMenuOpen.value && (hovered.value || actionMenuOpen.value || actionBarHovered.value))
 let hoverCloseTimer: ReturnType<typeof setTimeout> | null = null
+let richMediaHydrationRun = 0
+
+useContextMenuScrollLock(showContextMenu)
 
 // --- 基础信息 ---
 const eventId = computed(() => props.event.getId() || '')
@@ -140,17 +160,17 @@ function updateActionBarPosition() {
 async function positionActionBarAfterRender() {
   actionBarPositioned.value = false
   await nextTick()
-  if (isVisuallyHovered.value && !isRedacted.value)
+  if (shouldShowActionBar.value && !isRedacted.value)
     updateActionBarPosition()
 }
 
 function onViewportChange() {
-  if (isVisuallyHovered.value && !isRedacted.value)
+  if (shouldShowActionBar.value && !isRedacted.value)
     updateActionBarPosition()
 }
 
 function onDocumentActionBarPointerDown(event: PointerEvent) {
-  if (!isVisuallyHovered.value || isRedacted.value)
+  if (!shouldShowActionBar.value || isRedacted.value)
     return
   if (
     targetIsInside(messageRef.value, event.target)
@@ -356,8 +376,44 @@ function markOutOfContextMentions(html: string): string {
 const sanitizedHtml = computed(() => {
   if (!formattedBody.value)
     return ''
-  return sanitizeMatrixHtml(markOutOfContextMentions(formattedBody.value))
+  return prepareRichMediaHtml(sanitizeMatrixHtml(markOutOfContextMentions(formattedBody.value)))
 })
+
+function prepareRichMediaHtml(html: string): string {
+  if (typeof document === 'undefined')
+    return html
+
+  const template = document.createElement('template')
+  template.innerHTML = html
+  for (const image of template.content.querySelectorAll<HTMLImageElement>('img[src^="mxc://"]')) {
+    const mxcUrl = image.getAttribute('src') || ''
+    image.dataset.richMediaMxcSrc = mxcUrl
+    image.dataset.richMediaPending = 'true'
+    image.loading = 'lazy'
+    image.decoding = 'async'
+    image.src = RICH_MEDIA_PLACEHOLDER_SRC
+    image.setAttribute('style', getRichMediaImageStyle(image))
+  }
+
+  return template.innerHTML
+}
+
+function getRichMediaImageStyle(image: HTMLImageElement): string {
+  const sourceWidth = Number(image.dataset.width)
+  const sourceHeight = Number(image.dataset.height)
+  if (!Number.isFinite(sourceWidth) || sourceWidth <= 0 || !Number.isFinite(sourceHeight) || sourceHeight <= 0) {
+    return `width: ${RICH_MEDIA_FALLBACK_WIDTH}px; height: ${RICH_MEDIA_FALLBACK_HEIGHT}px;`
+  }
+
+  const scale = Math.min(
+    RICH_MEDIA_MAX_WIDTH / sourceWidth,
+    RICH_MEDIA_MAX_HEIGHT / sourceHeight,
+    1,
+  )
+  const width = Math.max(1, Math.round(sourceWidth * scale))
+  const height = Math.max(1, Math.round(sourceHeight * scale))
+  return `width: ${width}px; height: ${height}px; aspect-ratio: ${sourceWidth} / ${sourceHeight};`
+}
 
 // --- Contact card support ---
 const isContactCard = computed(() => msgtype.value === 'im.muon.contact_card')
@@ -374,7 +430,9 @@ const isEdited = computed(() => {
 })
 
 // --- Reactions ---
-const reactions = computed(() => {
+const messageReactions = computed(() => {
+  if (props.reactions)
+    return props.reactions
   if (!props.roomId || !eventId.value)
     return []
   return getReactions(props.roomId, eventId.value)
@@ -389,6 +447,8 @@ const extractedUrls = computed((): string[] => {
 })
 
 const threadReplyCount = computed(() => {
+  if (typeof props.threadReplyCount === 'number')
+    return props.threadReplyCount
   if (!props.roomId || !eventId.value)
     return 0
   return getThreadReplies(props.roomId, eventId.value).length
@@ -396,7 +456,46 @@ const threadReplyCount = computed(() => {
 
 /** Mention 链接点击：打开用户卡片 */
 function onRichContentClick(e: MouseEvent) {
+  const target = e.target instanceof HTMLElement ? e.target : null
+  const image = target?.closest('img[data-rich-media-full-src]') as HTMLImageElement | null
+  const fullSrc = image?.dataset.richMediaFullSrc
+  if (fullSrc) {
+    e.preventDefault()
+    e.stopPropagation()
+    openImage(fullSrc)
+    return
+  }
+
   handleMatrixLinkClick(e, (userId, event) => emit('avatarClick', userId, event))
+}
+
+async function hydrateRichMediaImages() {
+  const run = ++richMediaHydrationRun
+  await nextTick()
+  const root = richContentRef.value
+  if (!root)
+    return
+
+  const images = [...root.querySelectorAll<HTMLImageElement>('img[data-rich-media-mxc-src]')]
+  await Promise.all(images.map(async (image) => {
+    if (image.dataset.richMediaFullSrc)
+      return
+    const mxcUrl = image.dataset.richMediaMxcSrc
+    if (!mxcUrl)
+      return
+
+    image.loading = 'lazy'
+    const thumbSrc = await fetchMediaBlobUrl(mxcUrl, 300, 300)
+    const fullSrc = await fetchMediaBlobUrl(mxcUrl)
+    if (run !== richMediaHydrationRun)
+      return
+    if (thumbSrc)
+      image.src = thumbSrc
+    if (fullSrc) {
+      image.dataset.richMediaFullSrc = fullSrc
+      delete image.dataset.richMediaPending
+    }
+  }))
 }
 
 function onActionReact() {
@@ -465,7 +564,7 @@ watch(showContextMenu, (open) => {
   }
 })
 
-watch(isVisuallyHovered, (visible) => {
+watch(shouldShowActionBar, (visible) => {
   if (!visible || isRedacted.value) {
     actionBarPositioned.value = false
     return
@@ -473,7 +572,12 @@ watch(isVisuallyHovered, (visible) => {
   void positionActionBarAfterRender()
 })
 
+watch(sanitizedHtml, () => {
+  void hydrateRichMediaImages()
+})
+
 onMounted(() => {
+  void hydrateRichMediaImages()
   document.addEventListener('pointerdown', onDocumentActionBarPointerDown, true)
   window.addEventListener('resize', onViewportChange)
   document.addEventListener('scroll', onViewportChange, true)
@@ -630,7 +734,8 @@ onUnmounted(() => {
         />
         <div
           v-else-if="sanitizedHtml"
-          class="rich-message-content text-[15px] leading-relaxed text-foreground/90 [&_blockquote]:border-l-[3px] [&_blockquote]:border-muted-foreground [&_blockquote]:pl-3 [&_blockquote]:text-muted-foreground [&_code]:border [&_code]:border-border [&_code]:bg-muted [&_code]:px-[0.35em] [&_code]:py-[0.15em] [&_code]:font-['Consolas','Monaco',monospace] [&_del]:opacity-70 [&_del]:line-through [&_em]:italic [&_ol]:pl-6 [&_pre]:my-2 [&_pre]:rounded [&_pre]:border [&_pre]:border-border [&_pre]:bg-card [&_pre]:p-3 [&_pre_code]:border-0 [&_s]:opacity-70 [&_s]:line-through [&_strong]:font-bold [&_strong]:text-foreground [&_ul]:pl-6 [&_a]:text-primary [&_a]:no-underline hover:[&_a]:underline [&_a[href^='https://matrix.to']]:rounded [&_a[href^='https://matrix.to']]:bg-[color-mix(in_srgb,var(--color-primary)_15%,transparent)] [&_a[href^='https://matrix.to']]:px-0.5 hover:[&_a[href^='https://matrix.to']]:bg-[color-mix(in_srgb,var(--color-primary)_25%,transparent)]"
+          ref="richContentRef"
+          class="rich-message-content text-[15px] leading-relaxed text-foreground/90 [&_blockquote]:border-l-[3px] [&_blockquote]:border-muted-foreground [&_blockquote]:pl-3 [&_blockquote]:text-muted-foreground [&_code]:border [&_code]:border-border [&_code]:bg-muted [&_code]:px-[0.35em] [&_code]:py-[0.15em] [&_code]:font-['Consolas','Monaco',monospace] [&_del]:opacity-70 [&_del]:line-through [&_em]:italic [&_img]:my-1 [&_img]:block [&_img]:max-h-[400px] [&_img]:max-w-[300px] [&_img]:cursor-pointer [&_img]:rounded-lg [&_img]:bg-muted [&_img]:object-contain [&_ol]:pl-6 [&_p]:my-1 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_pre]:my-2 [&_pre]:rounded [&_pre]:border [&_pre]:border-border [&_pre]:bg-card [&_pre]:p-3 [&_pre_code]:border-0 [&_s]:opacity-70 [&_s]:line-through [&_strong]:font-bold [&_strong]:text-foreground [&_ul]:pl-6 [&_a]:text-primary [&_a]:no-underline hover:[&_a]:underline [&_a[href^='https://matrix.to']]:rounded [&_a[href^='https://matrix.to']]:bg-[color-mix(in_srgb,var(--color-primary)_15%,transparent)] [&_a[href^='https://matrix.to']]:px-0.5 hover:[&_a[href^='https://matrix.to']]:bg-[color-mix(in_srgb,var(--color-primary)_25%,transparent)]"
           :class="isRightAligned ? 'rounded-2xl bg-primary/10 px-3 py-2' : ''"
           :style="isRightAligned ? { width: 'fit-content', maxWidth: '100%', marginLeft: 'auto' } : {}"
           @click="onRichContentClick"
@@ -662,8 +767,9 @@ onUnmounted(() => {
 
       <!-- Reactions -->
       <ReactionBar
-        v-if="reactions.length > 0"
+        v-if="messageReactions.length > 0"
         :event-id="eventId"
+        :reactions="messageReactions"
         :room-id="roomId"
       />
 
@@ -679,7 +785,7 @@ onUnmounted(() => {
     <Teleport to="body">
       <!-- 悬浮操作栏 -->
       <div
-        v-if="isVisuallyHovered && !isRedacted"
+        v-if="shouldShowActionBar && !isRedacted"
         ref="actionBarRef"
         class="fixed z-[190] transition-opacity duration-75"
         :class="actionBarPositioned ? 'opacity-100' : 'opacity-0'"
@@ -707,7 +813,7 @@ onUnmounted(() => {
         <div
           v-if="showContextMenu"
           ref="contextMenuRef"
-          class="fixed z-[120] min-w-[180px] rounded-xl border border-border/60 bg-popover/95 py-1.5 shadow-[0_8px_30px_rgba(0,0,0,0.12),0_2px_8px_rgba(0,0,0,0.06)] backdrop-blur-xl"
+          class="fixed z-[220] min-w-[180px] rounded-xl border border-border/60 bg-popover/95 py-1.5 shadow-[0_8px_30px_rgba(0,0,0,0.12),0_2px_8px_rgba(0,0,0,0.06)] backdrop-blur-xl"
           :style="contextMenuStyle"
           @contextmenu.prevent
         >

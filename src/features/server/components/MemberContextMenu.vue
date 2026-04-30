@@ -18,6 +18,7 @@ import { toast } from 'vue-sonner'
 import { blockUser } from '@/matrix/blocking'
 import { getClient } from '@/matrix/client'
 import { findOrCreateDm } from '@/matrix/rooms'
+import { useContextMenuScrollLock } from '@/shared/composables/useContextMenuScrollLock'
 import { useMemberActions } from '@/shared/composables/useMemberActions'
 import { useRoomPermissions } from '@/shared/composables/useRoomPermissions'
 
@@ -37,6 +38,8 @@ const menuRef = ref<HTMLElement | null>(null)
 const isOpen = computed(() => !!props.member)
 const { t } = useI18n()
 const { kickMember, banMember } = useMemberActions()
+
+useContextMenuScrollLock(isOpen)
 
 // ── 权限判断 ──
 

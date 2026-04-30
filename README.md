@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="public/muon-logo.svg" alt="Muon logo" width="96" height="96" />
+
 # Muon
 
 A modern, fast [Matrix](https://matrix.org) chat client built with [Tauri](https://tauri.app) + [Vue 3](https://vuejs.org).
@@ -14,9 +16,11 @@ A modern, fast [Matrix](https://matrix.org) chat client built with [Tauri](https
 ## Features
 
 - Native desktop performance via Tauri (Rust backend)
+- Feishu-style workspace shell with Messages, Contacts, and Settings apps
+- Matrix direct messages, groups, and server/channel conversations
 - End-to-end encryption support (via Matrix protocol)
 - Rich text editor with mentions, images, and code blocks (Tiptap)
-- Voice/video calls via LiveKit integration
+- Voice channel support via LiveKit integration
 - Internationalization (English & Chinese)
 - Modern UI with dark/light theme support
 - Local message caching with IndexedDB (Dexie)
@@ -34,6 +38,15 @@ A modern, fast [Matrix](https://matrix.org) chat client built with [Tauri](https
 | Editor     | Tiptap 3                               |
 | Testing    | Vitest + Playwright                    |
 | i18n       | vue-i18n                               |
+
+## Brand Assets
+
+- Primary logo source: `public/muon-logo.svg`
+- Web favicon: `index.html` points to the primary SVG logo
+- Workspace rail brand mark: `src/app/components/workspace/WorkspaceAppRail.vue`
+- Window title bar brand mark: `src/app/components/window/WindowTitleBar.vue`
+- Tauri platform icon source: `src-tauri/icons/muon-icon.svg` includes a transparent safe area for macOS
+- Tauri platform icons: generated under `src-tauri/icons/` with `pnpm tauri icon src-tauri/icons/muon-icon.svg --output src-tauri/icons`
 
 ## Download
 
@@ -119,6 +132,7 @@ a fresh data set for the current seed version, run
 
 ```text
 muon/
+├── public/              # Static web assets, including the Muon logo
 ├── src/                  # Vue frontend source
 │   ├── app/              # App shell, router, layouts
 │   ├── features/         # Feature modules (chat, auth, etc.)

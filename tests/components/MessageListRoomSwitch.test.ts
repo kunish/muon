@@ -9,6 +9,7 @@ const {
   getTimelineMock,
   matrixEventsMock,
   paginateBackMock,
+  relationSummariesMock,
   sendReadReceiptMock,
   timelines,
 } = vi.hoisted(() => {
@@ -22,6 +23,10 @@ const {
       off: vi.fn(),
     },
     paginateBackMock: vi.fn().mockResolvedValue(false),
+    relationSummariesMock: vi.fn(() => ({
+      reactionsByEventId: new Map(),
+      threadReplyCountsByEventId: new Map(),
+    })),
     sendReadReceiptMock: vi.fn().mockResolvedValue(undefined),
   }
 })
@@ -29,6 +34,7 @@ const {
 vi.mock('@matrix/index', () => ({
   getReadMarkerEventId: getReadMarkerEventIdMock,
   getTimeline: getTimelineMock,
+  getTimelineRelationSummaries: relationSummariesMock,
   matrixEvents: matrixEventsMock,
   paginateBack: paginateBackMock,
   sendReadReceipt: sendReadReceiptMock,
@@ -514,6 +520,11 @@ describe('message list room switching', () => {
     await wrapper.get('[data-testid="timeline-jump-to-previous"]').trigger('click')
 
     expect(scroller.scrollTop).toBe(130)
+    expect(wrapper.find('[data-testid="timeline-jump-to-previous"]').exists()).toBe(false)
+
+    await wrapper.get('[data-testid="timeline-jump-to-bottom"]').trigger('click')
+
+    expect(scroller.scrollTop).toBe(metrics.maxScrollTop)
     expect(wrapper.find('[data-testid="timeline-jump-to-previous"]').exists()).toBe(false)
 
     wrapper.unmount()

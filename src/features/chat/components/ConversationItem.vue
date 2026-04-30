@@ -89,6 +89,7 @@ const MESSAGE_TYPE_ICONS: Record<string, any> = {
   'm.video': Film,
   'm.audio': Mic,
   'm.file': FileText,
+  'm.room.encrypted': Lock,
 }
 
 const typeIcon = computed(() => {
@@ -102,10 +103,10 @@ const typeLabel = computed(() => {
 })
 
 const preview = computed(() => {
-  if (!props.room.lastMessage)
-    return t('chat.no_messages')
   if (typeLabel.value)
     return `[${typeLabel.value}]`
+  if (!props.room.lastMessage)
+    return t('chat.no_messages')
   return props.room.lastMessage
 })
 

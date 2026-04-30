@@ -6,18 +6,19 @@ import { MessageSquarePlus, Search } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
+import { useGlobalUiStore } from '@/app/stores/globalUiStore'
 import { Avatar } from '@/shared/components/ui/avatar'
 import { useConversations } from '../composables/useConversations'
 import { useGlobalTyping } from '../composables/useGlobalTyping'
 import { useChatStore } from '../stores/chatStore'
 import ConversationContextMenu from './ConversationContextMenu.vue'
 import ConversationItem from './ConversationItem.vue'
-import NewChatDialog from './NewChatDialog.vue'
 import UserInfoPanel from './UserInfoPanel.vue'
 
 const router = useRouter()
 const route = useRoute()
 const store = useChatStore()
+const globalUi = useGlobalUiStore()
 const { t } = useI18n()
 const { conversations, pinnedCount, isLoading } = useConversations()
 const { getTypingUsers } = useGlobalTyping()
@@ -56,9 +57,6 @@ const filterTabs = computed(() => [
   { key: 'dm' as const, label: t('chat.filter_dm') },
   { key: 'group' as const, label: t('chat.filter_group') },
 ])
-
-// --- 新建会话 ---
-const showNewChat = ref(false)
 
 // --- 右键菜单 ---
 function onContextMenu(roomId: string, event: MouseEvent) {
@@ -114,7 +112,7 @@ function isConversationContextMenuOpen(roomId: string): boolean {
         <button
           class="conv-new-btn p-1.5 rounded-lg hover:bg-accent text-muted-foreground/60 hover:text-muted-foreground transition-all duration-200 hover:scale-110 active:scale-95"
           :title="t('chat.new_conversation')"
-          @click="showNewChat = true"
+          @click="globalUi.openNewChat"
         >
           <MessageSquarePlus :size="15" />
         </button>
@@ -256,8 +254,5 @@ function isConversationContextMenuOpen(roomId: string): boolean {
 
     <!-- 右键菜单 -->
     <ConversationContextMenu />
-
-    <!-- 新建会话对话框 -->
-    <NewChatDialog v-if="showNewChat" @close="showNewChat = false" />
   </div>
 </template>

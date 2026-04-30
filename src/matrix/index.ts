@@ -5,7 +5,7 @@ export { createEncryptedRoom, initCrypto } from './crypto'
 export { bindClientEvents, matrixEvents, unbindClientEvents } from './events'
 export { loadInboxEventContext } from './inbox'
 export type { InboxEventContext } from './inbox'
-export { downloadMedia, extractVideoMeta, fetchMediaBlobUrl, uploadMedia } from './media'
+export { downloadMedia, extractImageMeta, extractVideoMeta, fetchMediaBlobUrl, uploadMedia } from './media'
 export {
   editMessage,
   forwardMessages,
@@ -13,6 +13,7 @@ export {
   getSystemEventInfo,
   getThreadReplies,
   getTimeline,
+  getTimelineRelationSummaries,
   isSystemEvent,
   paginateBack,
   redactMessage,
@@ -30,7 +31,7 @@ export {
   sendThreadReply,
   sendVideoMessage,
 } from './messages'
-export type { SystemEventInfo } from './messages'
+export type { ReactionSummary, SystemEventInfo, TimelineRelationSummaries } from './messages'
 export { clearMyStatus, getMyAvatarUrl, getMyDisplayName, getMyStatus, getUserPresenceInfo, setMyAvatar, setMyDisplayName, setMyStatus } from './profile'
 export { getReadMarkerEventId, getReadUsers, sendReadReceipt } from './receipts'
 export { backPaginateRoomEventsSearch, searchRoomEvents } from './retrieval'

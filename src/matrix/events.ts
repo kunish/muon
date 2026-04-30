@@ -1,12 +1,13 @@
 import type { MatrixEvent, Room, RoomMember } from 'matrix-js-sdk'
 import type { SyncState } from './types'
-import { RoomEvent, RoomMemberEvent, RoomStateEvent } from 'matrix-js-sdk'
+import { MatrixEventEvent, RoomEvent, RoomMemberEvent, RoomStateEvent } from 'matrix-js-sdk'
 import mitt from 'mitt'
 import { getClient } from './client'
 
 // eslint-disable-next-line ts/consistent-type-definitions
 type MatrixEvents = {
   'room.message': { roomId: string, event: MatrixEvent }
+  'room.decrypted': { roomId: string, event: MatrixEvent }
   'room.redaction': { roomId: string, eventId: string }
   'room.timeline': { roomId: string }
   'room.localEchoUpdated': { roomId: string }
@@ -27,16 +28,30 @@ export function bindClientEvents(): void {
     return
   const client = getClient()
 
-  client.on(RoomEvent.Timeline, (event: MatrixEvent, room: Room | undefined) => {
+  client.on(RoomEvent.Timeline, (
+    event: MatrixEvent,
+    room: Room | undefined,
+    _toStartOfTimeline?: boolean,
+    _removed?: boolean,
+    data?: { liveEvent?: boolean },
+  ) => {
     if (!room)
       return
     matrixEvents.emit('room.timeline', { roomId: room.roomId })
-    if (event.getType() === 'm.room.message') {
+    if (data?.liveEvent === true && event.getType() === 'm.room.message') {
       matrixEvents.emit('room.message', {
         roomId: room.roomId,
         event,
       })
     }
+  })
+
+  client.on(MatrixEventEvent.Decrypted, (event: MatrixEvent) => {
+    const roomId = event.getRoomId()
+    if (!roomId)
+      return
+    matrixEvents.emit('room.decrypted', { roomId, event })
+    matrixEvents.emit('room.timeline', { roomId })
   })
 
   client.on(RoomEvent.Redaction, (event: MatrixEvent, room: Room) => {

@@ -14,6 +14,8 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
+import { useGlobalShortcuts } from '../composables/useGlobalShortcuts'
+import GlobalOverlayHost from './GlobalOverlayHost.vue'
 import NetworkStatusBar from './NetworkStatusBar.vue'
 import WatermarkOverlay from './WatermarkOverlay.vue'
 import { getWorkspaceAppForPath } from './workspace/navigation'
@@ -27,6 +29,7 @@ const router = useRouter()
 const { t } = useI18n()
 
 useTheme()
+useGlobalShortcuts()
 
 const showChannelSidebar = computed(() => {
   return getWorkspaceAppForPath(route.path).id === 'messages'
@@ -154,6 +157,7 @@ onUnmounted(() => {
           </div>
         </DialogContent>
       </Dialog>
+      <GlobalOverlayHost />
     </template>
   </WorkspaceLayout>
 </template>

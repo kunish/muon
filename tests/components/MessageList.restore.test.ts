@@ -21,6 +21,11 @@ vi.mock('@/features/chat/composables/useMessages', () => ({
     isLoading: ref(false),
     hasMore: ref(false),
     loadMore,
+    relationSummaries: ref({
+      reactionsByEventId: new Map(),
+      threadReplyCountsByEventId: new Map(),
+    }),
+    timelineVersion: ref(0),
   }),
 }))
 

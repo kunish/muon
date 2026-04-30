@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { SystemEventInfo } from '@matrix/messages'
 /**
- * 系统事件消息（入群、退群、改名等）
+ * 系统事件消息（入群、退群、群信息变更等）
  * 居中、淡色文字、箭头图标前缀
  */
 import type { MatrixEvent } from 'matrix-js-sdk'
@@ -11,10 +11,7 @@ import {
   ArrowRight,
   Ban,
   HelpCircle,
-  ImageIcon,
-  ImagePlus,
   MessageSquareText,
-  PenLine,
   Plus,
   Type,
   UserMinus,
@@ -38,11 +35,8 @@ const ICON_MAP: Record<string, any> = {
   kick: UserMinus,
   ban: Ban,
   invite: UserPlus,
-  rename: PenLine,
-  avatar: ImageIcon,
   room_name: Type,
   room_topic: MessageSquareText,
-  room_avatar: ImagePlus,
   room_create: Plus,
   unknown: HelpCircle,
 }

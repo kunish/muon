@@ -4,6 +4,7 @@ import type { ImageSticker } from '@/shared/data/stickerPacks'
 import type { GifResult } from '@/shared/lib/gifSearch'
 import {
   editMessage,
+  extractImageMeta,
   getClient,
   replyToMessage,
   sendAudioMessage,
@@ -13,6 +14,7 @@ import {
   sendLocationMessage,
   sendStickerMessage,
   sendTextMessage,
+  uploadMedia,
 } from '@matrix/index'
 import { EditorContent } from '@tiptap/vue-3'
 import {
@@ -38,10 +40,12 @@ import { computed, nextTick, onMounted, onUnmounted, ref, shallowRef, watch } fr
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
+import { htmlToPlainText } from '@/shared/lib/markdown'
 import { useCurrentRoom } from '../composables/useCurrentRoom'
 import { useEditor } from '../composables/useEditor'
 import { getFloatingPosition } from '../composables/useFloatingPosition'
 import { useMediaUpload } from '../composables/useMediaUpload'
+import { useMediaViewer } from '../composables/useMediaViewer'
 import { useMention } from '../composables/useMention'
 import { useTyping } from '../composables/useTyping'
 import { useChatStore } from '../stores/chatStore'
@@ -60,6 +64,7 @@ const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const { startTyping, stopTyping } = useTyping()
+const { openImage, openVideo } = useMediaViewer()
 const { room } = useCurrentRoom()
 const {
   uploading,
@@ -105,15 +110,40 @@ const placeholderText = computed(() => {
 
 const editorExpanded = shallowRef(false)
 const postTitle = shallowRef('')
-const editorHeightClass = computed(() =>
-  editorExpanded.value
-    ? 'overflow-y-auto min-h-[320px] max-h-[60vh] [&_.tiptap]:min-h-[304px]'
-    : 'overflow-hidden min-h-[40px] max-h-[40px] [&_.tiptap]:min-h-[24px] [&_.tiptap]:overflow-hidden [&_.tiptap]:whitespace-nowrap [&_.tiptap_p]:truncate',
-)
 
-const { editor, clear, insertEmoji } = useEditor({
+interface PendingPasteAttachment {
+  id: string
+  file: File
+  kind: 'image' | 'video' | 'file'
+  previewUrl: string | null
+}
+
+const PENDING_MEDIA_NODE_PATTERN
+  = /<(?:div|span)(?:\s[^>]*)?data-pending-media-id="([^"]+)"[^>]*>\s*<\/(?:div|span)>/g
+let pendingPasteAttachmentId = 0
+const pendingPasteAttachments = shallowRef<PendingPasteAttachment[]>([])
+const pendingPasteAttachmentDrafts = new Map<string, PendingPasteAttachment[]>()
+const hasPendingPasteAttachments = computed(() => pendingPasteAttachments.value.length > 0)
+const editorHeightClass = computed(() => {
+  if (editorExpanded.value)
+    return 'overflow-y-auto min-h-[320px] max-h-[60vh] [&_.tiptap]:min-h-[304px]'
+
+  if (hasPendingPasteAttachments.value)
+    return 'overflow-y-auto min-h-[80px] max-h-[180px] [&_.tiptap]:min-h-[64px] [&_.tiptap]:overflow-visible [&_.tiptap]:whitespace-normal'
+
+  return 'overflow-hidden min-h-[40px] max-h-[40px] [&_.tiptap]:min-h-[24px] [&_.tiptap]:overflow-hidden [&_.tiptap]:whitespace-nowrap [&_.tiptap_p]:truncate'
+})
+
+const { editor, clear, insertEmoji, insertPendingMediaAttachment } = useEditor({
   placeholder: placeholderText,
-  onSubmit: handleSend,
+  onSubmit: submitComposer,
+  onPasteFiles: handlePasteFiles,
+  canSubmit: hasPendingPasteAttachments,
+  pendingMedia: {
+    getAttachment: (id: string) => pendingPasteAttachments.value.find(attachment => attachment.id === id),
+    onPreview: openPendingPasteAttachmentPreview,
+    onRemove: removePendingPasteAttachment,
+  },
   submitOnEnter: computed(() => !editorExpanded.value),
   mentionSearch: (query: string) => filterMembers(query),
   onMentionState: (state: MentionPopupState) => {
@@ -247,12 +277,79 @@ function markComposeChanged() {
   composeVersion.value += 1
 }
 
-async function handleSend(html: string, text: string) {
+async function submitComposer(html: string, text: string): Promise<boolean> {
+  const hasText = text.trim().length > 0
+  if (!hasText && !hasPendingPasteAttachments.value)
+    return false
+
+  if (!hasPendingPasteAttachments.value)
+    return handleSend(html, text)
+
+  if (sendInFlight.value)
+    return false
+
+  const roomId = store.currentRoomId
+  if (!roomId)
+    return false
+
+  sendInFlight.value = true
+  const editingEvent = store.editingEvent
+  const replyingTo = store.replyingTo
+  const submittedHtml = html
+  const submittedText = text.trim()
+  const submittedComposeVersion = composeVersion.value
+  let richPayload: RichMediaSubmitPayload
+
+  try {
+    richPayload = await createRichMediaSubmitPayload(html)
+    if (!richPayload.html)
+      return false
+    const result = await sendTextContent(roomId, richPayload.html, richPayload.text, editingEvent, replyingTo)
+    if (!result.ok)
+      return false
+  }
+  catch {
+    toast.error(t('chat.upload_failed'))
+    return false
+  }
+  finally {
+    sendInFlight.value = false
+    uploading.value = false
+  }
+
+  const editorTextUnchanged = editor.value?.getText().trim() === submittedText
+  const editorHtmlUnchanged = editor.value?.getHTML() === submittedHtml
+  const roomUnchanged = store.currentRoomId === roomId
+  const composeUnchanged = store.editingEvent === editingEvent && store.replyingTo === replyingTo
+  const composeVersionUnchanged = composeVersion.value === submittedComposeVersion
+  const canCleanSubmittedState = roomUnchanged && composeUnchanged && composeVersionUnchanged && editorTextUnchanged && editorHtmlUnchanged
+
+  const submittedAttachmentIds = new Set(richPayload.submittedAttachmentIds)
+  const submittedAttachments = pendingPasteAttachments.value.filter(attachment => submittedAttachmentIds.has(attachment.id))
+  pendingPasteAttachments.value = pendingPasteAttachments.value.filter(
+    attachment => !submittedAttachmentIds.has(attachment.id),
+  )
+  revokePendingPasteAttachmentUrls(submittedAttachments)
+  if (drafts.get(roomId) === submittedHtml)
+    drafts.delete(roomId)
+  if (roomId)
+    pendingPasteAttachmentDrafts.delete(roomId)
+  if (canCleanSubmittedState) {
+    clear()
+    stopTyping()
+    store.clearCompose()
+  }
+  markComposeChanged()
+
+  return true
+}
+
+async function handleSend(html: string, text: string): Promise<boolean> {
   const roomId = store.currentRoomId
   if (!roomId || !text.trim())
-    return
+    return false
   if (sendInFlight.value)
-    return
+    return false
   sendInFlight.value = true
   const editingEvent = store.editingEvent
   const replyingTo = store.replyingTo
@@ -262,30 +359,14 @@ async function handleSend(html: string, text: string) {
   let sentPlainText = false
 
   try {
-    if (editingEvent) {
-      const eventId = editingEvent.getId()
-      if (!eventId) {
-        toast.error(t('chat.send_failed'))
-        return
-      }
-      await editMessage(roomId, eventId, text, html)
-    }
-    else if (replyingTo) {
-      const eventId = replyingTo.getId()
-      if (!eventId) {
-        toast.error(t('chat.send_failed'))
-        return
-      }
-      await replyToMessage(roomId, eventId, text, html)
-    }
-    else {
-      await sendTextMessage(roomId, text, html)
-      sentPlainText = true
-    }
+    const result = await sendTextContent(roomId, html, text, editingEvent, replyingTo)
+    if (!result.ok)
+      return false
+    sentPlainText = result.sentPlainText
   }
   catch {
     toast.error(t('chat.send_failed'))
-    return
+    return false
   }
   finally {
     sendInFlight.value = false
@@ -303,6 +384,45 @@ async function handleSend(html: string, text: string) {
     clear()
     stopTyping()
     store.clearCompose()
+  }
+
+  return true
+}
+
+async function sendTextContent(
+  roomId: string,
+  html: string,
+  text: string,
+  editingEvent: typeof store.editingEvent,
+  replyingTo: typeof store.replyingTo,
+): Promise<{ ok: boolean, sentPlainText: boolean }> {
+  try {
+    if (editingEvent) {
+      const eventId = editingEvent.getId()
+      if (!eventId) {
+        toast.error(t('chat.send_failed'))
+        return { ok: false, sentPlainText: false }
+      }
+      await editMessage(roomId, eventId, text, html)
+      return { ok: true, sentPlainText: false }
+    }
+
+    if (replyingTo) {
+      const eventId = replyingTo.getId()
+      if (!eventId) {
+        toast.error(t('chat.send_failed'))
+        return { ok: false, sentPlainText: false }
+      }
+      await replyToMessage(roomId, eventId, text, html)
+      return { ok: true, sentPlainText: false }
+    }
+
+    await sendTextMessage(roomId, text, html)
+    return { ok: true, sentPlainText: true }
+  }
+  catch {
+    toast.error(t('chat.send_failed'))
+    return { ok: false, sentPlainText: false }
   }
 }
 
@@ -333,10 +453,11 @@ async function submitEditor() {
   const html = editor.value?.getHTML() || ''
   const text = editor.value?.getText() || ''
   const payload = createSubmitPayload(html, text)
-  if (!store.currentRoomId || !payload.text.trim())
+  if (!store.currentRoomId || (!payload.text.trim() && !hasPendingPasteAttachments.value))
     return
-  await handleSend(payload.html, payload.text)
-  postTitle.value = ''
+  const submitted = await submitComposer(payload.html, payload.text)
+  if (submitted)
+    postTitle.value = ''
 }
 
 function toggleStickerPicker() {
@@ -448,6 +569,185 @@ async function handleVoiceSend(blob: Blob, duration: number) {
   }
 }
 
+function handlePasteFiles(files: File[]) {
+  if (!files.length)
+    return
+
+  const attachments = files.map(file => ({
+    id: `paste-${Date.now()}-${pendingPasteAttachmentId++}`,
+    file,
+    kind: getPendingPasteAttachmentKind(file),
+    previewUrl: createPendingPastePreviewUrl(file),
+  }))
+
+  pendingPasteAttachments.value = [
+    ...pendingPasteAttachments.value,
+    ...attachments,
+  ]
+  for (const attachment of attachments)
+    insertPendingMediaAttachment(attachment.id)
+  markComposeChanged()
+}
+
+function removePendingPasteAttachment(id: string) {
+  const removedAttachment = pendingPasteAttachments.value.find(attachment => attachment.id === id)
+  pendingPasteAttachments.value = pendingPasteAttachments.value.filter(attachment => attachment.id !== id)
+  if (removedAttachment)
+    revokePendingPasteAttachmentUrls([removedAttachment])
+  markComposeChanged()
+}
+
+function openPendingPasteAttachmentPreview(attachment: PendingPasteAttachment) {
+  if (!attachment.previewUrl)
+    return
+  if (attachment.kind === 'image') {
+    openImage(attachment.previewUrl)
+    return
+  }
+  if (attachment.kind === 'video')
+    openVideo(attachment.previewUrl)
+}
+
+function getPendingPasteAttachmentKind(file: File): 'image' | 'video' | 'file' {
+  if (file.type.startsWith('image/'))
+    return 'image'
+  if (file.type.startsWith('video/'))
+    return 'video'
+  return 'file'
+}
+
+function createPendingPastePreviewUrl(file: File): string | null {
+  const kind = getPendingPasteAttachmentKind(file)
+  if (kind === 'file' || typeof URL.createObjectURL !== 'function')
+    return null
+  return URL.createObjectURL(file)
+}
+
+interface RichMediaUpload {
+  attachment: PendingPasteAttachment
+  mxcUrl: string
+  width?: number
+  height?: number
+}
+
+interface RichMediaSubmitPayload {
+  html: string
+  text: string
+  submittedAttachmentIds: string[]
+}
+
+async function createRichMediaSubmitPayload(html: string): Promise<RichMediaSubmitPayload> {
+  const attachmentsById = new Map(pendingPasteAttachments.value.map(attachment => [attachment.id, attachment]))
+  const mediaIds = getPendingMediaIds(html).filter(id => attachmentsById.has(id))
+  if (!mediaIds.length) {
+    return {
+      html,
+      text: htmlToPlainText(html),
+      submittedAttachmentIds: [],
+    }
+  }
+
+  uploading.value = true
+  progress.value = 0
+  const uploads = new Map<string, RichMediaUpload>()
+  for (const [index, id] of mediaIds.entries()) {
+    const attachment = attachmentsById.get(id)
+    if (!attachment)
+      continue
+    uploads.set(id, await uploadPendingRichMediaAttachment(attachment))
+    progress.value = Math.round(((index + 1) / mediaIds.length) * 90)
+  }
+
+  const richHtml = replacePendingMediaNodes(html, id => renderRichMediaUpload(uploads.get(id)))
+  const plainTextHtml = replacePendingMediaNodes(html, (id) => {
+    const attachment = uploads.get(id)?.attachment
+    return attachment ? `<p>[${escapeHtml(attachment.file.name || 'file')}]</p>` : ''
+  })
+  const richText = htmlToPlainText(plainTextHtml)
+  progress.value = 100
+
+  return {
+    html: richHtml,
+    text: richText,
+    submittedAttachmentIds: [...uploads.keys()],
+  }
+}
+
+function getPendingMediaIds(html: string): string[] {
+  const ids: string[] = []
+  for (const match of html.matchAll(PENDING_MEDIA_NODE_PATTERN)) {
+    const id = match[1]
+    if (id && !ids.includes(id))
+      ids.push(id)
+  }
+  return ids
+}
+
+async function uploadPendingRichMediaAttachment(attachment: PendingPasteAttachment): Promise<RichMediaUpload> {
+  let width: number | undefined
+  let height: number | undefined
+  if (attachment.kind === 'image') {
+    try {
+      const meta = await extractImageMeta(attachment.file)
+      width = meta.width
+      height = meta.height
+    }
+    catch {
+      // Image dimensions only stabilize the rich-text frame; upload can continue without them.
+    }
+  }
+
+  return {
+    attachment,
+    mxcUrl: await uploadMedia(attachment.file),
+    width,
+    height,
+  }
+}
+
+function replacePendingMediaNodes(html: string, render: (id: string) => string): string {
+  return html.replace(PENDING_MEDIA_NODE_PATTERN, (_match, id: string) => render(id))
+}
+
+function renderRichMediaUpload(upload: RichMediaUpload | undefined): string {
+  if (!upload)
+    return ''
+
+  const name = escapeHtml(upload.attachment.file.name || 'file')
+  const src = escapeHtml(upload.mxcUrl)
+  if (upload.attachment.kind === 'image') {
+    const width = upload.width ? ` data-width="${upload.width}"` : ''
+    const height = upload.height ? ` data-height="${upload.height}"` : ''
+    return `<p><img src="${src}" alt="${name}" title="${name}"${width}${height}></p>`
+  }
+
+  return `<p><a href="${src}">${name}</a></p>`
+}
+
+function revokePendingPasteAttachmentUrls(attachments: PendingPasteAttachment[]) {
+  for (const attachment of attachments) {
+    if (attachment.previewUrl)
+      URL.revokeObjectURL(attachment.previewUrl)
+  }
+}
+
+function revokeAllPendingPasteAttachmentUrls() {
+  const urls = new Set<string>()
+  for (const attachment of pendingPasteAttachments.value) {
+    if (attachment.previewUrl)
+      urls.add(attachment.previewUrl)
+  }
+  for (const attachments of pendingPasteAttachmentDrafts.values()) {
+    for (const attachment of attachments) {
+      if (attachment.previewUrl)
+        urls.add(attachment.previewUrl)
+    }
+  }
+  for (const url of urls)
+    URL.revokeObjectURL(url)
+  pendingPasteAttachmentDrafts.clear()
+}
+
 function onInput() {
   markComposeChanged()
   startTyping()
@@ -511,6 +811,13 @@ watch(
       else {
         drafts.delete(oldId)
       }
+
+      if (pendingPasteAttachments.value.length) {
+        pendingPasteAttachmentDrafts.set(oldId, pendingPasteAttachments.value)
+      }
+      else {
+        pendingPasteAttachmentDrafts.delete(oldId)
+      }
     }
 
     // 恢复目标房间草稿或清空
@@ -522,6 +829,9 @@ watch(
       clear()
     }
 
+    pendingPasteAttachments.value = newId
+      ? pendingPasteAttachmentDrafts.get(newId) ?? []
+      : []
     store.clearCompose()
     showExpressionPicker.value = false
     showLocationPicker.value = false
@@ -562,6 +872,7 @@ onMounted(() => {
 onUnmounted(() => {
   clearTimeout(prewarmExpressionTimer)
   window.removeEventListener('resize', onWindowResize)
+  revokeAllPendingPasteAttachmentUrls()
 })
 </script>
 

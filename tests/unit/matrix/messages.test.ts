@@ -12,6 +12,7 @@ vi.mock('@matrix/client', () => ({
     sendMessage: mockSendMessage,
     redactEvent: mockRedactEvent,
     getRoom: mockGetRoom,
+    getUserId: vi.fn().mockReturnValue('@me:localhost'),
     paginateEventTimeline: mockPaginateEventTimeline,
   })),
 }))
@@ -58,6 +59,23 @@ describe('messages', () => {
       body: 'Bold and Muon',
       format: 'org.matrix.custom.html',
       formatted_body: '<p><strong>Bold</strong> and <a href="https://example.com">Muon</a></p>',
+    })
+  })
+
+  it('should keep rich-text image embeds in Matrix HTML', async () => {
+    const { sendTextMessage } = await import('@/matrix/messages')
+
+    await sendTextMessage(
+      '!room:localhost',
+      'Caption\n[pasted.png]',
+      '<p>Caption</p><p><img src="mxc://server/media" alt="pasted.png" title="pasted.png" data-width="640" data-height="360"></p>',
+    )
+
+    expect(mockSendMessage).toHaveBeenCalledWith('!room:localhost', {
+      msgtype: 'm.text',
+      body: 'Caption\n[pasted.png]',
+      format: 'org.matrix.custom.html',
+      formatted_body: '<p>Caption</p><p><img src="mxc://server/media" alt="pasted.png" title="pasted.png" data-width="640" data-height="360"></p>',
     })
   })
 
@@ -187,6 +205,147 @@ describe('messages', () => {
     const events = getTimeline('!room:localhost', 50)
 
     expect(events.map(event => event.getId())).toEqual(['$old', '$new'])
+  })
+
+  it('filters member avatar profile updates from the chat timeline', async () => {
+    const avatarUpdate = {
+      getId: () => '$avatar-update',
+      getType: () => 'm.room.member',
+      getContent: () => ({
+        membership: 'join',
+        displayname: 'Alice',
+        avatar_url: 'mxc://localhost/alice-new',
+      }),
+      getPrevContent: () => ({
+        membership: 'join',
+        displayname: 'Alice',
+        avatar_url: 'mxc://localhost/alice-old',
+      }),
+      isRedacted: () => false,
+    }
+    const messageEvent = {
+      getId: () => '$message',
+      getType: () => 'm.room.message',
+      getContent: () => ({ msgtype: 'm.text', body: 'hello' }),
+      isRedacted: () => false,
+    }
+    mockGetRoom.mockReturnValue({
+      getLiveTimeline: () => ({
+        getEvents: () => [avatarUpdate, messageEvent],
+      }),
+    })
+
+    const { getTimeline } = await import('@/matrix/messages')
+    const events = getTimeline('!room:localhost', 50)
+
+    expect(events.map(event => event.getId())).toEqual(['$message'])
+  })
+
+  it('filters room avatar state events from the chat timeline', async () => {
+    const roomAvatarEvent = {
+      getId: () => '$room-avatar',
+      getType: () => 'm.room.avatar',
+      getContent: () => ({ url: 'mxc://localhost/room-avatar-new' }),
+      isRedacted: () => false,
+    }
+    const messageEvent = {
+      getId: () => '$message',
+      getType: () => 'm.room.message',
+      getContent: () => ({ msgtype: 'm.text', body: 'hello' }),
+      isRedacted: () => false,
+    }
+    mockGetRoom.mockReturnValue({
+      getLiveTimeline: () => ({
+        getEvents: () => [roomAvatarEvent, messageEvent],
+      }),
+    })
+
+    const { getTimeline } = await import('@/matrix/messages')
+    const events = getTimeline('!room:localhost', 50)
+
+    expect(events.map(event => event.getId())).toEqual(['$message'])
+  })
+
+  it('keeps membership transitions as timeline system notices', async () => {
+    const joinEvent = {
+      getId: () => '$join',
+      getType: () => 'm.room.member',
+      getContent: () => ({ membership: 'join', displayname: 'Alice' }),
+      getPrevContent: () => ({ membership: 'invite', displayname: 'Alice' }),
+      isRedacted: () => false,
+    }
+    mockGetRoom.mockReturnValue({
+      getLiveTimeline: () => ({
+        getEvents: () => [joinEvent],
+      }),
+    })
+
+    const { getTimeline } = await import('@/matrix/messages')
+    const events = getTimeline('!room:localhost', 50)
+
+    expect(events.map(event => event.getId())).toEqual(['$join'])
+  })
+
+  it('summarizes timeline reactions and thread counts in one linked timeline pass', async () => {
+    const { EventTimeline } = await import('matrix-js-sdk')
+    const rootEvent = {
+      getId: () => '$root',
+      getType: () => 'm.room.message',
+      getContent: () => ({ msgtype: 'm.text', body: 'root' }),
+      getSender: () => '@alice:localhost',
+      isRedacted: () => false,
+    }
+    const threadReply = {
+      getId: () => '$reply',
+      getType: () => 'm.room.message',
+      getContent: () => ({
+        'msgtype': 'm.text',
+        'body': 'reply',
+        'm.relates_to': { rel_type: 'm.thread', event_id: '$root' },
+      }),
+      getSender: () => '@bob:localhost',
+      isRedacted: () => false,
+    }
+    const myReaction = {
+      getId: () => '$reaction-1',
+      getType: () => 'm.reaction',
+      getContent: () => ({
+        'm.relates_to': { rel_type: 'm.annotation', event_id: '$root', key: '👍' },
+      }),
+      getSender: () => '@me:localhost',
+      isRedacted: () => false,
+    }
+    const otherReaction = {
+      getId: () => '$reaction-2',
+      getType: () => 'm.reaction',
+      getContent: () => ({
+        'm.relates_to': { rel_type: 'm.annotation', event_id: '$root', key: '👍' },
+      }),
+      getSender: () => '@bob:localhost',
+      isRedacted: () => false,
+    }
+    let liveTimeline: { getEvents: () => unknown[], getNeighbouringTimeline: (direction: string) => unknown }
+    const olderTimeline = {
+      getEvents: () => [rootEvent],
+      getNeighbouringTimeline: (direction: string) =>
+        direction === EventTimeline.FORWARDS ? liveTimeline : null,
+    }
+    liveTimeline = {
+      getEvents: () => [threadReply, myReaction, otherReaction],
+      getNeighbouringTimeline: (direction: string) =>
+        direction === EventTimeline.BACKWARDS ? olderTimeline : null,
+    }
+    mockGetRoom.mockReturnValue({
+      getLiveTimeline: () => liveTimeline,
+    })
+
+    const { getTimelineRelationSummaries } = await import('@/matrix/messages')
+    const summaries = getTimelineRelationSummaries('!room:localhost')
+
+    expect(summaries.threadReplyCountsByEventId.get('$root')).toBe(1)
+    expect(summaries.reactionsByEventId.get('$root')).toEqual([
+      { key: '👍', count: 2, myReaction: true },
+    ])
   })
 
   it('should return empty array for unknown room', async () => {

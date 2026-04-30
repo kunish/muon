@@ -1,13 +1,41 @@
 import type { IPushRule, MatrixEvent, Room } from 'matrix-js-sdk'
 import type {} from './matrix-sdk.d'
 import type { RoomSummary } from './types'
-import { ConditionKind, EventType, NotificationCountType, Preset, PushRuleActionName, PushRuleKind } from 'matrix-js-sdk'
+import { ConditionKind, EventTimeline, EventType, NotificationCountType, Preset, PushRuleActionName, PushRuleKind } from 'matrix-js-sdk'
 import { getClient } from './client'
 
 const VISIBLE_TYPES = new Set(['m.room.message', 'm.sticker', 'm.room.encrypted'])
 
 function getTimelineEvents(room: Room): MatrixEvent[] {
-  return room.getLiveTimeline?.().getEvents?.() ?? room.timeline ?? []
+  const liveTimeline = room.getLiveTimeline?.()
+  if (!liveTimeline)
+    return room.timeline ?? []
+
+  const timelines: EventTimeline[] = []
+  const seenTimelines = new Set<EventTimeline>()
+
+  let timeline: EventTimeline | null = liveTimeline
+  while (timeline && !seenTimelines.has(timeline)) {
+    seenTimelines.add(timeline)
+    timelines.unshift(timeline)
+    timeline = timeline.getNeighbouringTimeline?.(EventTimeline.BACKWARDS) ?? null
+  }
+
+  const events: MatrixEvent[] = []
+  const seenEventIds = new Set<string>()
+  for (const item of timelines) {
+    for (const event of item.getEvents()) {
+      const eventId = event.getId()
+      if (eventId) {
+        if (seenEventIds.has(eventId))
+          continue
+        seenEventIds.add(eventId)
+      }
+      events.push(event)
+    }
+  }
+
+  return events.length > 0 ? events : room.timeline ?? []
 }
 
 function getLatestVisibleEvent(room: Room) {
@@ -103,7 +131,7 @@ export function getRoomSummaries(): RoomSummary[] {
         lastMessage: lastEvent?.getContent()?.body,
         lastMessageTs: lastEvent?.getTs() ?? lastTimeEvent?.getTs(),
         lastMessageSender: senderName,
-        lastMessageType: lastEvent?.getContent()?.msgtype,
+        lastMessageType: lastEvent?.getContent()?.msgtype ?? lastEvent?.getType(),
         unreadCount: room.getUnreadNotificationCount(NotificationCountType.Total) || 0,
         isDirect: !!dmUserId,
         isEncrypted: client.isRoomEncrypted(room.roomId),

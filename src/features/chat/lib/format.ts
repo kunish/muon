@@ -109,6 +109,7 @@ const MESSAGE_TYPE_KEYS: Record<string, string> = {
   'm.video': 'chat.video',
   'm.audio': 'chat.voice_message',
   'm.file': 'chat.file',
+  'm.room.encrypted': 'chat.encrypted_message',
 }
 
 export function messageTypeLabel(type?: string): string | null {

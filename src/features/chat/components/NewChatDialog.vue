@@ -40,8 +40,14 @@ const groupTopic = ref('')
 const groupInvites = ref('')
 const creatingGroup = ref(false)
 
+function onKeydown(event: KeyboardEvent): void {
+  if (event.key === 'Escape')
+    emit('close')
+}
+
 onMounted(() => {
   contactStore.loadContacts()
+  document.addEventListener('keydown', onKeydown)
 })
 
 // --- 搜索逻辑（私聊模式） ---
@@ -71,6 +77,7 @@ watch(query, (val) => {
 onUnmounted(() => {
   if (searchTimer)
     clearTimeout(searchTimer)
+  document.removeEventListener('keydown', onKeydown)
 })
 
 // 合并已有联系人 + 搜索结果（去重）

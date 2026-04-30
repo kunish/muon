@@ -99,6 +99,112 @@ describe('context menu hover state', () => {
     expect(wrapper.classes()).toContain('bg-accent/30')
   })
 
+  it('hides the chat message action bar while its context menu is open', async () => {
+    const ChatMessage = (
+      await import('@/features/chat/components/ChatMessage.vue')
+    ).default
+
+    const event = {
+      getId: () => '$event1',
+      getType: () => 'm.room.message',
+      getSender: () => '@alice:localhost',
+      getContent: () => ({ msgtype: 'm.text', body: 'Hello' }),
+      getTs: () => 1767225600000,
+      isRedacted: () => false,
+    }
+
+    const wrapper = mount(ChatMessage, {
+      props: {
+        event: event as any,
+        isFirst: false,
+        roomId: '!room:localhost',
+      },
+      global: {
+        stubs: {
+          Avatar: true,
+          LinkPreview: true,
+          MessageActionBar: { template: '<div data-testid="message-action-bar-stub" />' },
+          ReactionBar: true,
+          AudioMessage: true,
+          FileMessage: true,
+          ImageMessage: true,
+          VideoMessage: true,
+        },
+      },
+    })
+
+    await wrapper.trigger('mouseenter')
+    await nextTick()
+    expect(document.body.querySelector('[data-testid="chat-message-action-bar"]')).not.toBeNull()
+
+    await wrapper.trigger('contextmenu')
+    await nextTick()
+
+    expect(wrapper.classes()).toContain('bg-accent/30')
+    expect(document.body.querySelector('[data-testid="chat-message-action-bar"]')).toBeNull()
+  })
+
+  it('hides action bars from adjacent messages while a context menu is open', async () => {
+    const ChatMessage = (
+      await import('@/features/chat/components/ChatMessage.vue')
+    ).default
+
+    const firstEvent = {
+      getId: () => '$event1',
+      getType: () => 'm.room.message',
+      getSender: () => '@alice:localhost',
+      getContent: () => ({ msgtype: 'm.text', body: 'First' }),
+      getTs: () => 1767225600000,
+      isRedacted: () => false,
+    }
+    const secondEvent = {
+      getId: () => '$event2',
+      getType: () => 'm.room.message',
+      getSender: () => '@bob:localhost',
+      getContent: () => ({ msgtype: 'm.text', body: 'Second' }),
+      getTs: () => 1767225660000,
+      isRedacted: () => false,
+    }
+
+    const stubs = {
+      Avatar: true,
+      LinkPreview: true,
+      MessageActionBar: { template: '<div data-testid="message-action-bar-stub" />' },
+      ReactionBar: true,
+      AudioMessage: true,
+      FileMessage: true,
+      ImageMessage: true,
+      VideoMessage: true,
+    }
+
+    const firstWrapper = mount(ChatMessage, {
+      props: {
+        event: firstEvent as any,
+        isFirst: false,
+        roomId: '!room:localhost',
+      },
+      global: { stubs },
+    })
+    const secondWrapper = mount(ChatMessage, {
+      props: {
+        event: secondEvent as any,
+        isFirst: false,
+        roomId: '!room:localhost',
+      },
+      global: { stubs },
+    })
+
+    await secondWrapper.trigger('mouseenter')
+    await nextTick()
+    expect(document.body.querySelector('[data-testid="chat-message-action-bar"]')).not.toBeNull()
+
+    await firstWrapper.trigger('contextmenu')
+    await nextTick()
+
+    expect(firstWrapper.classes()).toContain('bg-accent/30')
+    expect(document.body.querySelector('[data-testid="chat-message-action-bar"]')).toBeNull()
+  })
+
   it('renders the chat message action bar as a fixed body-level overlay', async () => {
     const ChatMessage = (
       await import('@/features/chat/components/ChatMessage.vue')

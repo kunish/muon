@@ -224,4 +224,24 @@ describe('conversation list spacing', () => {
     expect(oldRow?.props('active')).toBe(false)
     expect(currentRow?.props('active')).toBe(true)
   })
+
+  it('shows an encrypted-message preview instead of no-messages for undecrypted latest events', () => {
+    rooms.splice(
+      0,
+      rooms.length,
+      createRoom({
+        roomId: '!encrypted:localhost',
+        name: 'Encrypted Room',
+        isEncrypted: true,
+        lastMessage: undefined,
+        lastMessageType: 'm.room.encrypted',
+        unreadCount: 3,
+      }),
+    )
+
+    const wrapper = mountConversationList()
+
+    expect(wrapper.text()).toContain('加密消息')
+    expect(wrapper.text()).not.toContain('暂无消息')
+  })
 })

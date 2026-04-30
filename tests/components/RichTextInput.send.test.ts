@@ -23,6 +23,17 @@ const mocks = vi.hoisted(() => ({
   editorText: '',
   editorHtml: '',
   onSubmit: undefined as undefined | ((html: string, text: string) => unknown),
+  onPasteFiles: undefined as undefined | ((files: File[]) => unknown),
+  insertPendingMediaAttachment: vi.fn(),
+  uploadFile: vi.fn(),
+  uploadImage: vi.fn(),
+  uploadVideo: vi.fn(),
+  uploadMedia: vi.fn((file: File) => Promise.resolve(`mxc://server/${file.name}`)),
+  extractImageMeta: vi.fn(() => Promise.resolve({ width: 640, height: 360 })),
+  createObjectURL: vi.fn((file: File) => `blob:${file.name}`),
+  revokeObjectURL: vi.fn(),
+  openImage: vi.fn(),
+  openVideo: vi.fn(),
 }))
 
 vi.mock('@tiptap/vue-3', () => ({
@@ -35,8 +46,12 @@ vi.mock('@tiptap/vue-3', () => ({
 }))
 
 vi.mock('@/features/chat/composables/useEditor', () => ({
-  useEditor: (options: { onSubmit: (html: string, text: string) => unknown }) => {
+  useEditor: (options: {
+    onSubmit: (html: string, text: string) => unknown
+    onPasteFiles?: (files: File[]) => unknown
+  }) => {
     mocks.onSubmit = options.onSubmit
+    mocks.onPasteFiles = options.onPasteFiles
     return {
       editor: ref({
         getText: vi.fn(() => mocks.editorText),
@@ -61,6 +76,7 @@ vi.mock('@/features/chat/composables/useEditor', () => ({
       }),
       clear: mocks.clear,
       insertEmoji: vi.fn(),
+      insertPendingMediaAttachment: mocks.insertPendingMediaAttachment,
     }
   },
 }))
@@ -80,9 +96,16 @@ vi.mock('@/features/chat/composables/useMediaUpload', () => ({
   useMediaUpload: () => ({
     uploading: ref(false),
     progress: ref(0),
-    uploadImage: vi.fn(),
-    uploadVideo: vi.fn(),
-    uploadFile: vi.fn(),
+    uploadImage: mocks.uploadImage,
+    uploadVideo: mocks.uploadVideo,
+    uploadFile: mocks.uploadFile,
+  }),
+}))
+
+vi.mock('@/features/chat/composables/useMediaViewer', () => ({
+  useMediaViewer: () => ({
+    openImage: mocks.openImage,
+    openVideo: mocks.openVideo,
   }),
 }))
 
@@ -101,14 +124,17 @@ vi.mock('vue-sonner', () => ({
 
 vi.mock('@matrix/index', () => ({
   editMessage: mocks.editMessage,
+  extractImageMeta: mocks.extractImageMeta,
   getClient: mocks.getClient,
   replyToMessage: mocks.replyToMessage,
   sendContactCard: vi.fn(),
   sendGifMessage: vi.fn(),
   sendImageStickerMessage: vi.fn(),
   sendLocationMessage: vi.fn(),
+  sendAudioMessage: vi.fn(),
   sendStickerMessage: vi.fn(),
   sendTextMessage: mocks.sendTextMessage,
+  uploadMedia: mocks.uploadMedia,
 }))
 
 function createEvent(eventId: string | undefined) {
@@ -152,9 +178,79 @@ describe('richTextInput send recovery', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.clearAllMocks()
+    Object.defineProperty(URL, 'createObjectURL', {
+      configurable: true,
+      value: mocks.createObjectURL,
+    })
+    Object.defineProperty(URL, 'revokeObjectURL', {
+      configurable: true,
+      value: mocks.revokeObjectURL,
+    })
     mocks.editorText = ''
     mocks.editorHtml = ''
     mocks.onSubmit = undefined
+    mocks.onPasteFiles = undefined
+  })
+
+  it('stages pasted media files and only uploads them when the composer is submitted', async () => {
+    const store = useChatStore()
+    store.setCurrentRoom('!room:localhost')
+    const wrapper = mountInput()
+    const imageFile = new File(['image'], 'pasted.png', { type: 'image/png' })
+    const videoFile = new File(['video'], 'pasted.mp4', { type: 'video/mp4' })
+    const otherFile = new File(['pdf'], 'pasted.pdf', { type: 'application/pdf' })
+
+    expect(mocks.onPasteFiles).toBeTypeOf('function')
+    await mocks.onPasteFiles?.([imageFile, videoFile, otherFile])
+    await nextTick()
+
+    expect(mocks.uploadImage).not.toHaveBeenCalled()
+    expect(mocks.uploadVideo).not.toHaveBeenCalled()
+    expect(mocks.uploadFile).not.toHaveBeenCalled()
+    expect(mocks.insertPendingMediaAttachment).toHaveBeenCalledTimes(3)
+    expect(mocks.createObjectURL).toHaveBeenCalledWith(imageFile)
+    expect(mocks.createObjectURL).toHaveBeenCalledWith(videoFile)
+    const editorContent = wrapper.get('[data-testid="editor-content"]')
+    expect(editorContent.classes()).toContain('min-h-[80px]')
+    expect(editorContent.classes()).toContain('[&_.tiptap]:whitespace-normal')
+    expect(editorContent.classes()).not.toContain('max-h-[40px]')
+
+    const pendingMediaHtml = mocks.insertPendingMediaAttachment.mock.calls
+      .map(([id]) => `<div data-pending-media-id="${id}"></div>`)
+      .join('')
+    await mocks.onSubmit?.(pendingMediaHtml, '')
+
+    expect(mocks.uploadMedia).toHaveBeenCalledWith(imageFile)
+    expect(mocks.uploadMedia).toHaveBeenCalledWith(videoFile)
+    expect(mocks.uploadMedia).toHaveBeenCalledWith(otherFile)
+    expect(mocks.uploadImage).not.toHaveBeenCalled()
+    expect(mocks.uploadVideo).not.toHaveBeenCalled()
+    expect(mocks.uploadFile).not.toHaveBeenCalled()
+    expect(mocks.revokeObjectURL).toHaveBeenCalledWith('blob:pasted.png')
+    expect(mocks.revokeObjectURL).toHaveBeenCalledWith('blob:pasted.mp4')
+  })
+
+  it('sends rich text and staged media together from one composer submission', async () => {
+    mocks.sendTextMessage.mockResolvedValueOnce('$text')
+    const store = useChatStore()
+    store.setCurrentRoom('!room:localhost')
+    mountInput()
+    const imageFile = new File(['image'], 'mixed.png', { type: 'image/png' })
+    mocks.editorText = 'Bold caption'
+    mocks.editorHtml = '<p><strong>Bold caption</strong></p>'
+
+    await mocks.onPasteFiles?.([imageFile])
+    const insertedId = mocks.insertPendingMediaAttachment.mock.calls[0]?.[0] as string
+    await mocks.onSubmit?.(`<p><strong>Bold caption</strong></p><div data-pending-media-id="${insertedId}"></div>`, 'Bold caption')
+
+    expect(mocks.uploadMedia).toHaveBeenCalledWith(imageFile)
+    expect(mocks.extractImageMeta).toHaveBeenCalledWith(imageFile)
+    expect(mocks.uploadImage).not.toHaveBeenCalled()
+    expect(sendTextMessage).toHaveBeenCalledWith(
+      '!room:localhost',
+      'Bold caption\n[mixed.png]',
+      '<p><strong>Bold caption</strong></p><p><img src="mxc://server/mixed.png" alt="mixed.png" title="mixed.png" data-width="640" data-height="360"></p>',
+    )
   })
 
   it('keeps editor and typing state when text send fails', async () => {

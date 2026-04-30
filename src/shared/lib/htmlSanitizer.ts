@@ -26,14 +26,23 @@ const MATRIX_HTML_CONFIG = {
     'h4',
     'h5',
     'h6',
+    'img',
   ],
   ALLOWED_ATTR: [
     'href',
+    'src',
     'target',
     'rel',
     'class',
+    'alt',
+    'title',
+    'width',
+    'height',
+    'data-width',
+    'data-height',
   ],
   ALLOWED_URI_REGEXP: /^(?:https?|mailto|matrix|mxc):/i,
+  ALLOW_DATA_ATTR: true,
 }
 
 /** Sanitize Matrix HTML content for safe rendering with v-html */

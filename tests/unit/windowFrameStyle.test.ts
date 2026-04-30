@@ -7,7 +7,7 @@ function readSource(path: string): string {
 }
 
 describe('window frame style', () => {
-  it('keeps the native transparent window clipped by the app frame', () => {
+  it('keeps the transparent native window clipped by the rounded app frame', () => {
     const app = readSource('src/app/App.vue')
     const css = readSource('src/app/main.css')
 
@@ -16,7 +16,7 @@ describe('window frame style', () => {
     expect(css).toContain('.app-window-frame')
     expect(css).toContain('border-radius: 14px')
     expect(css).toContain('overflow: hidden')
+    expect(css).toContain('box-shadow: 0 18px 48px')
     expect(css).toContain('.muon-window-maximized .app-window-frame')
-    expect(css).toContain('border-radius: 0')
   })
 })

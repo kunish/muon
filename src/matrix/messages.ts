@@ -18,7 +18,7 @@ function escapeHtml(text: string): string {
 }
 
 const MENTION_SPAN_RE = /<span[^>]*data-type="mention"[^>]*data-id="([^"]*)"[^>]*>@?([^<]*)<\/span>/g
-const NON_PLAIN_HTML_RE = /<(?:[abisu]|blockquote|code|del|em|h[1-6]|li|ol|pre|span|strong|ul)[\s>/]/i
+const NON_PLAIN_HTML_RE = /<(?:[abisu]|blockquote|code|del|em|h[1-6]|img|li|ol|pre|span|strong|ul)[\s>/]/i
 const MATRIX_HTML_FORMAT = 'org.matrix.custom.html' as const
 
 interface MatrixTextContent {
@@ -196,56 +196,20 @@ const CONTENT_TYPES = new Set([
 
 /** 飞书风格：需要在聊天中展示的系统事件类型 */
 const SYSTEM_EVENT_TYPES = new Set([
-  'm.room.member', // 入群/退群/被踢/改名/改头像
+  'm.room.member', // 入群/退群/被踢/邀请/封禁
   'm.room.name', // 群名变更
   'm.room.topic', // 群话题变更
-  'm.room.avatar', // 群头像变更
   'm.room.create', // 房间创建
 ])
+
+const DISPLAYABLE_MEMBER_MEMBERSHIPS = new Set(['join', 'leave', 'ban', 'invite'])
 
 export function getTimeline(roomId: string, limit = 50): MatrixEvent[] {
   const room = getClient().getRoom(roomId)
   if (!room)
     return []
 
-  return getLinkedTimelineEvents(room).filter((ev) => {
-    const evType = ev.getType()
-
-    // 内容类事件
-    if (CONTENT_TYPES.has(evType)) {
-      // Hide edit replacement events (aggregated into original)
-      const relType = ev.getContent()?.['m.relates_to']?.rel_type
-      if (relType === RelationType.Replace)
-        return false
-      // Hide redaction events themselves
-      if (evType === 'm.room.redaction')
-        return false
-      return true
-    }
-
-    // 系统事件（飞书风格：入群/退群/改名等展示为系统提示）
-    if (SYSTEM_EVENT_TYPES.has(evType)) {
-      // m.room.member: 仅保留 join/leave/ban/invite 等有意义的变更
-      if (evType === 'm.room.member') {
-        const membership = ev.getContent()?.membership
-        const prevMembership = ev.getPrevContent()?.membership
-        // 过滤无实际变更的事件（如仅更新 display name）
-        if (membership === prevMembership) {
-          // 但如果改了名字或头像，仍需显示
-          const prevName = ev.getPrevContent()?.displayname
-          const newName = ev.getContent()?.displayname
-          const prevAvatar = ev.getPrevContent()?.avatar_url
-          const newAvatar = ev.getContent()?.avatar_url
-          if (prevName === newName && prevAvatar === newAvatar)
-            return false
-        }
-        return true
-      }
-      return true
-    }
-
-    return false
-  }).slice(-limit)
+  return getLinkedTimelineEvents(room).filter(isDisplayableTimelineEvent).slice(-limit)
 }
 
 function getLinkedTimelineEvents(room: Room): MatrixEvent[] {
@@ -277,9 +241,42 @@ function getLinkedTimelineEvents(room: Room): MatrixEvent[] {
   return events
 }
 
+function isDisplayableTimelineEvent(ev: MatrixEvent): boolean {
+  const evType = ev.getType()
+
+  // 内容类事件
+  if (CONTENT_TYPES.has(evType)) {
+    // Hide edit replacement events (aggregated into original)
+    const relType = ev.getContent()?.['m.relates_to']?.rel_type
+    if (relType === RelationType.Replace)
+      return false
+    // Hide redaction events themselves
+    if (evType === 'm.room.redaction')
+      return false
+    return true
+  }
+
+  if (SYSTEM_EVENT_TYPES.has(evType))
+    return isDisplayableSystemEvent(ev)
+
+  return false
+}
+
+function isDisplayableSystemEvent(ev: MatrixEvent): boolean {
+  if (ev.getType() !== 'm.room.member')
+    return true
+
+  const membership = ev.getContent()?.membership
+  const prevMembership = ev.getPrevContent()?.membership
+  if (membership === prevMembership)
+    return false
+
+  return typeof membership === 'string' && DISPLAYABLE_MEMBER_MEMBERSHIPS.has(membership)
+}
+
 /** 判断事件是否为系统事件（用于 UI 渲染区分） */
 export function isSystemEvent(ev: MatrixEvent): boolean {
-  return SYSTEM_EVENT_TYPES.has(ev.getType())
+  return SYSTEM_EVENT_TYPES.has(ev.getType()) && isDisplayableSystemEvent(ev)
 }
 
 /** 系统事件描述的结构化片段 */
@@ -293,9 +290,20 @@ export interface SystemEventPart {
 /** 系统事件的结构化描述 */
 export interface SystemEventInfo {
   /** 事件类型标识，用于选择图标 */
-  kind: 'join' | 'leave' | 'kick' | 'ban' | 'invite' | 'rename' | 'avatar' | 'room_name' | 'room_topic' | 'room_avatar' | 'room_create' | 'unknown'
+  kind: 'join' | 'leave' | 'kick' | 'ban' | 'invite' | 'room_name' | 'room_topic' | 'room_create' | 'unknown'
   /** 结构化描述片段列表 */
   parts: SystemEventPart[]
+}
+
+export interface ReactionSummary {
+  key: string
+  count: number
+  myReaction: boolean
+}
+
+export interface TimelineRelationSummaries {
+  reactionsByEventId: Map<string, ReactionSummary[]>
+  threadReplyCountsByEventId: Map<string, number>
 }
 
 /** 获取系统事件的结构化描述（用于丰富渲染） */
@@ -314,29 +322,6 @@ export function getSystemEventInfo(ev: MatrixEvent): SystemEventInfo {
     const targetId = ev.getStateKey() || ''
     const targetMember = room?.getMember(targetId)
     const targetName = targetMember?.name || ev.getContent()?.displayname || targetId.split(':')[0]?.slice(1) || targetId
-
-    // 改名（membership 未变）
-    if (membership === prevMembership) {
-      const prevName = ev.getPrevContent()?.displayname
-      const newName = ev.getContent()?.displayname
-      if (prevName !== newName && prevName && newName) {
-        return {
-          kind: 'rename',
-          parts: [
-            { type: 'user', text: prevName, userId: targetId },
-            { type: 'text', text: ' 更名为 ' },
-            { type: 'highlight', text: newName },
-          ],
-        }
-      }
-      return {
-        kind: 'avatar',
-        parts: [
-          { type: 'user', text: targetName, userId: targetId },
-          { type: 'text', text: ' 更换了头像' },
-        ],
-      }
-    }
 
     // 加入
     if (membership === 'join' && prevMembership !== 'join') {
@@ -439,16 +424,6 @@ export function getSystemEventInfo(ev: MatrixEvent): SystemEventInfo {
         { type: 'user', text: senderName, userId: sender },
         { type: 'text', text: ' 将群话题改为 ' },
         { type: 'highlight', text: `"${newTopic}"` },
-      ],
-    }
-  }
-
-  if (evType === 'm.room.avatar') {
-    return {
-      kind: 'room_avatar',
-      parts: [
-        { type: 'user', text: senderName, userId: sender },
-        { type: 'text', text: ' 更换了群头像' },
       ],
     }
   }
@@ -587,11 +562,71 @@ export async function sendLocationMessage(
 
 /** 获取某条消息的 thread 回复列表 */
 export function getThreadReplies(roomId: string, threadRootId: string): MatrixEvent[] {
-  const timeline = getTimeline(roomId)
-  return timeline.filter((e) => {
+  const room = getClient().getRoom(roomId)
+  if (!room)
+    return []
+
+  return getLinkedTimelineEvents(room).filter((e) => {
     const rel = e.getContent()?.['m.relates_to']
-    return rel?.rel_type === 'm.thread' && rel?.event_id === threadRootId
+    return !e.isRedacted()
+      && rel?.rel_type === 'm.thread'
+      && rel?.event_id === threadRootId
+      && isDisplayableTimelineEvent(e)
   })
+}
+
+export function getTimelineRelationSummaries(roomId: string): TimelineRelationSummaries {
+  const client = getClient()
+  const room = client.getRoom(roomId)
+  const reactionsByEventId = new Map<string, ReactionSummary[]>()
+  const threadReplyCountsByEventId = new Map<string, number>()
+  if (!room)
+    return { reactionsByEventId, threadReplyCountsByEventId }
+
+  const userId = client.getUserId()
+  const reactionBuckets = new Map<string, Map<string, ReactionSummary>>()
+
+  for (const ev of getLinkedTimelineEvents(room)) {
+    if (ev.isRedacted())
+      continue
+
+    const rel = ev.getContent()?.['m.relates_to']
+    const relatedEventId = rel?.event_id
+    if (!relatedEventId)
+      continue
+
+    if (ev.getType() === 'm.reaction' && rel.rel_type === RelationType.Annotation) {
+      const key = rel.key
+      if (!key)
+        continue
+
+      let eventReactions = reactionBuckets.get(relatedEventId)
+      if (!eventReactions) {
+        eventReactions = new Map()
+        reactionBuckets.set(relatedEventId, eventReactions)
+      }
+
+      const existing = eventReactions.get(key) ?? { key, count: 0, myReaction: false }
+      existing.count++
+      if (ev.getSender() === userId)
+        existing.myReaction = true
+      eventReactions.set(key, existing)
+      continue
+    }
+
+    if (rel.rel_type === 'm.thread' && isDisplayableTimelineEvent(ev)) {
+      threadReplyCountsByEventId.set(
+        relatedEventId,
+        (threadReplyCountsByEventId.get(relatedEventId) ?? 0) + 1,
+      )
+    }
+  }
+
+  for (const [eventId, reactions] of reactionBuckets) {
+    reactionsByEventId.set(eventId, [...reactions.values()])
+  }
+
+  return { reactionsByEventId, threadReplyCountsByEventId }
 }
 
 /** 在 thread 中发送回复 */
@@ -665,38 +700,6 @@ export async function sendContactCard(
 }
 
 /** 获取事件的 reactions 汇总 */
-export function getReactions(roomId: string, eventId: string): { key: string, count: number, myReaction: boolean }[] {
-  const client = getClient()
-  const room = client.getRoom(roomId)
-  if (!room)
-    return []
-
-  const userId = client.getUserId()
-  const reactionMap = new Map<string, { count: number, myReaction: boolean }>()
-
-  // 遍历 timeline 找到所有 reaction 事件
-  const events = room.getLiveTimeline().getEvents()
-  for (const ev of events) {
-    if (ev.getType() !== 'm.reaction')
-      continue
-    if (ev.isRedacted())
-      continue
-    const rel = ev.getContent()?.['m.relates_to']
-    if (rel?.event_id !== eventId || rel?.rel_type !== RelationType.Annotation)
-      continue
-    const key = rel.key
-    if (!key)
-      continue
-    const existing = reactionMap.get(key) || { count: 0, myReaction: false }
-    existing.count++
-    if (ev.getSender() === userId)
-      existing.myReaction = true
-    reactionMap.set(key, existing)
-  }
-
-  return Array.from(reactionMap.entries()).map(([key, val]) => ({
-    key,
-    count: val.count,
-    myReaction: val.myReaction,
-  }))
+export function getReactions(roomId: string, eventId: string): ReactionSummary[] {
+  return getTimelineRelationSummaries(roomId).reactionsByEventId.get(eventId) ?? []
 }

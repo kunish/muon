@@ -30,6 +30,14 @@ describe('windowTitleBar', () => {
     expect(wrapper.get('[data-testid="window-close"]').attributes('aria-label')).toBe('关闭窗口')
   })
 
+  it('renders the Muon logo in the custom title bar brand', () => {
+    const wrapper = mount(WindowTitleBar)
+    const logo = wrapper.get('[data-testid="window-titlebar-logo"]')
+
+    expect(logo.attributes('alt')).toBe('Muon')
+    expect(logo.attributes('src')).toContain('muon-logo')
+  })
+
   it('delegates control button clicks to the current Tauri window', async () => {
     const wrapper = mount(WindowTitleBar)
 

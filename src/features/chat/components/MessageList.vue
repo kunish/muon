@@ -22,7 +22,7 @@ import UserInfoPanel from './UserInfoPanel.vue'
 //
 // ──────────────────────────────────────────────────────────────
 
-const { messages, isLoading, hasMore, loadMore, timelineVersion } = useMessages()
+const { messages, isLoading, hasMore, loadMore, relationSummaries, timelineVersion } = useMessages()
 const store = useChatStore()
 const { t } = useI18n()
 const route = useRoute()
@@ -87,6 +87,7 @@ type ReturnPosition
     | { type: 'bottom' }
 
 const returnPosition = ref<ReturnPosition | null>(null)
+let skipReturnCaptureOnNextBottomJump = false
 
 // 实时锚点（每次用户滚动时更新）
 let liveAnchorEventId: string | null = null
@@ -146,6 +147,7 @@ let userInteracting = false
 let userInteractingTimer = 0
 
 function onUserScrollIntent() {
+  skipReturnCaptureOnNextBottomJump = false
   userInteracting = true
   // 150ms 无输入后重置——覆盖惯性滚动拖尾
   clearTimeout(userInteractingTimer)
@@ -332,23 +334,35 @@ function scrollToBottom(options: { rememberPrevious?: boolean } = {}) {
 }
 
 function jumpToBottom() {
-  scrollToBottom({ rememberPrevious: true })
+  const el = containerRef.value
+  if (el && isScrollerAtBottom(el)) {
+    skipReturnCaptureOnNextBottomJump = false
+    returnPosition.value = null
+    scrollToBottom()
+    return
+  }
+
+  const rememberPrevious = !skipReturnCaptureOnNextBottomJump
+  skipReturnCaptureOnNextBottomJump = false
+  if (!rememberPrevious)
+    returnPosition.value = null
+  scrollToBottom({ rememberPrevious })
 }
 
 function jumpToPreviousPosition() {
   const position = returnPosition.value
   if (!position)
     return
+  returnPosition.value = null
   clearUserScrollIntent()
 
   if (position.type === 'bottom') {
     scrollToBottom()
-    returnPosition.value = null
     return
   }
 
+  skipReturnCaptureOnNextBottomJump = true
   if (scrollToPosition(position.anchor.eventId, position.anchor.offset)) {
-    returnPosition.value = null
     showNewMsg.value = false
   }
 }
@@ -542,6 +556,7 @@ watch(
     liveAnchorEventId = null
     liveAnchorOffset = 0
     returnPosition.value = null
+    skipReturnCaptureOnNextBottomJump = false
     showNewMsg.value = false
     isPaginating.value = false
 
@@ -714,6 +729,8 @@ onUnmounted(() => {
         v-if="visibleMessages.length"
         :events="visibleMessages"
         :room-id="store.currentRoomId || ''"
+        :reactions-by-event-id="relationSummaries.reactionsByEventId"
+        :thread-reply-counts-by-event-id="relationSummaries.threadReplyCountsByEventId"
         :timeline-version="timelineVersion"
         :unread-event-id="unreadEventId"
         @avatar-click="onAvatarClick"

@@ -1,8 +1,11 @@
+import type { TimelineRelationSummaries } from '@matrix/index'
 import type { MatrixEvent } from 'matrix-js-sdk'
-import { getTimeline, matrixEvents, paginateBack, sendReadReceipt } from '@matrix/index'
+import { getTimeline, getTimelineRelationSummaries, matrixEvents, paginateBack, sendReadReceipt } from '@matrix/index'
 import { useDebounceFn } from '@vueuse/core'
 import { onMounted, onUnmounted, ref, shallowRef, watch } from 'vue'
 import { useChatStore } from '../stores/chatStore'
+
+const TIMELINE_REFRESH_SYNC_STATES = new Set(['CATCHUP', 'PREPARED', 'SYNCING'])
 
 export function useMessages() {
   const store = useChatStore()
@@ -11,6 +14,10 @@ export function useMessages() {
   const hasMore = ref(true)
   const displayLimit = ref(50)
   const timelineVersion = ref(0)
+  const relationSummaries = shallowRef<TimelineRelationSummaries>({
+    reactionsByEventId: new Map(),
+    threadReplyCountsByEventId: new Map(),
+  })
   let roomSessionVersion = 0
 
   function isActiveRoomRequest(roomId: string, version: number) {
@@ -22,6 +29,7 @@ export function useMessages() {
     if (!roomId)
       return
     messages.value = getTimeline(roomId, displayLimit.value)
+    relationSummaries.value = getTimelineRelationSummaries(roomId)
     timelineVersion.value++
   }
 
@@ -45,10 +53,12 @@ export function useMessages() {
           // （例如初始同步一次性加载了全部历史）。移除 limit 限制以显示全部本地事件。
           displayLimit.value = Infinity
           messages.value = getTimeline(roomId, displayLimit.value)
+          relationSummaries.value = getTimelineRelationSummaries(roomId)
           break
         }
         displayLimit.value += 30
         messages.value = getTimeline(roomId, displayLimit.value)
+        relationSummaries.value = getTimelineRelationSummaries(roomId)
         if (messages.value.length > prevCount)
           break
         attempts++
@@ -93,6 +103,11 @@ export function useMessages() {
       markAsRead()
   }
 
+  function onSyncState(payload: { state: string }) {
+    if (TIMELINE_REFRESH_SYNC_STATES.has(payload.state))
+      loadTimeline()
+  }
+
   watch(() => store.currentRoomId, async () => {
     roomSessionVersion++
     const requestVersion = roomSessionVersion
@@ -104,6 +119,7 @@ export function useMessages() {
     const roomId = store.currentRoomId
     if (roomId) {
       const timeline = getTimeline(roomId, displayLimit.value)
+      relationSummaries.value = getTimelineRelationSummaries(roomId)
       // 直接替换，不经过空数组中间态
       messages.value = timeline
       timelineVersion.value++
@@ -115,6 +131,7 @@ export function useMessages() {
           if (!isActiveRoomRequest(roomId, requestVersion))
             return
           messages.value = getTimeline(roomId, displayLimit.value)
+          relationSummaries.value = getTimelineRelationSummaries(roomId)
         }
         finally {
           if (isActiveRoomRequest(roomId, requestVersion)) {
@@ -128,6 +145,10 @@ export function useMessages() {
     }
     else {
       messages.value = []
+      relationSummaries.value = {
+        reactionsByEventId: new Map(),
+        threadReplyCountsByEventId: new Map(),
+      }
     }
   }, { immediate: true })
 
@@ -136,6 +157,7 @@ export function useMessages() {
     matrixEvents.on('room.redaction', onTimelineUpdate)
     matrixEvents.on('room.localEchoUpdated', onTimelineUpdate)
     matrixEvents.on('room.message', onNewMessage)
+    matrixEvents.on('sync.state', onSyncState)
   })
 
   onUnmounted(() => {
@@ -143,7 +165,8 @@ export function useMessages() {
     matrixEvents.off('room.redaction', onTimelineUpdate)
     matrixEvents.off('room.localEchoUpdated', onTimelineUpdate)
     matrixEvents.off('room.message', onNewMessage)
+    matrixEvents.off('sync.state', onSyncState)
   })
 
-  return { messages, isLoading, hasMore, loadMore, refresh: loadTimeline, timelineVersion }
+  return { messages, isLoading, hasMore, loadMore, refresh: loadTimeline, relationSummaries, timelineVersion }
 }
