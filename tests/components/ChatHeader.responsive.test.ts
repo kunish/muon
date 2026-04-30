@@ -80,4 +80,20 @@ describe('chatHeader responsive layout', () => {
     await wrapper.get('[data-testid="chat-header-more-button"]').trigger('click')
     expect(wrapper.get('[data-testid="chat-header-menu-members"]').classes()).not.toContain('sm:hidden')
   })
+
+  it('renders a promoted room title while the Matrix room is still unavailable', () => {
+    const store = useChatStore()
+    store.setCurrentRoom('!pending-group:localhost', {
+      sidebarPlacement: 'promote',
+      sidebarPreview: {
+        name: '设计评审',
+        isDirect: false,
+      },
+    })
+    store.setCurrentRoomFromRoute('!pending-group:localhost')
+
+    const wrapper = mount(ChatHeader)
+
+    expect(wrapper.get('[data-testid="chat-header-room-name"]').text()).toBe('设计评审')
+  })
 })

@@ -5,6 +5,7 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
+import GroupMemberPicker from '@/features/contacts/components/GroupMemberPicker.vue'
 import { useContacts } from '@/features/contacts/composables/useContacts'
 import { useGroupManagement } from '@/features/contacts/composables/useGroupManagement'
 import { useContactStore } from '@/features/contacts/stores/contactStore'
@@ -37,7 +38,7 @@ const directoryResults = ref<{ user_id: string, display_name?: string, avatar_ur
 const { createGroup } = useGroupManagement()
 const groupName = ref('')
 const groupTopic = ref('')
-const groupInvites = ref('')
+const groupMemberIds = ref<string[]>([])
 const creatingGroup = ref(false)
 
 function onKeydown(event: KeyboardEvent): void {
@@ -155,17 +156,19 @@ async function handleCreateGroup() {
     return
   creatingGroup.value = true
   try {
-    const userIds = groupInvites.value
-      .split(',')
-      .map(s => s.trim())
-      .filter(Boolean)
     const roomId = await createGroup({
-      name: groupName.value,
-      topic: groupTopic.value || undefined,
-      userIds,
+      name: groupName.value.trim(),
+      topic: groupTopic.value.trim() || undefined,
+      userIds: groupMemberIds.value,
       isEncrypted: false,
     })
-    store.setCurrentRoom(roomId, { sidebarPlacement: 'promote' })
+    store.setCurrentRoom(roomId, {
+      sidebarPlacement: 'promote',
+      sidebarPreview: {
+        name: groupName.value.trim(),
+        isDirect: false,
+      },
+    })
     router.push(`/dm/${encodeURIComponent(roomId)}`)
     emit('close')
   }
@@ -181,7 +184,10 @@ async function handleCreateGroup() {
 <template>
   <Teleport to="body">
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40" @pointerdown.self="emit('close')">
-      <div class="bg-background border border-border rounded-xl shadow-xl w-[400px] max-h-[520px] flex flex-col overflow-hidden">
+      <div
+        data-testid="new-chat-dialog-panel"
+        class="flex min-h-0 max-h-[calc(100vh-32px)] w-[400px] flex-col overflow-hidden rounded-xl border border-border bg-background shadow-xl sm:max-h-[640px]"
+      >
         <!-- 标题栏 -->
         <div class="flex items-center justify-between px-4 pt-4 pb-2">
           <h3 class="text-sm font-semibold">
@@ -193,7 +199,11 @@ async function handleCreateGroup() {
         </div>
 
         <!-- 标签切换 + 内容 -->
-        <Tabs v-model="activeTab" class="flex-1 flex flex-col overflow-hidden">
+        <Tabs
+          v-model="activeTab"
+          data-testid="new-chat-tabs"
+          class="min-h-0 flex-1 flex flex-col overflow-hidden"
+        >
           <div class="px-4 pb-2">
             <TabsList class="grid w-full grid-cols-2">
               <TabsTrigger value="dm">
@@ -265,8 +275,15 @@ async function handleCreateGroup() {
           </TabsContent>
 
           <!-- 创建群组模式 -->
-          <TabsContent value="group" class="flex-1 overflow-hidden mt-0">
-            <div class="flex-1 overflow-y-auto px-4 pb-4 space-y-3">
+          <TabsContent
+            value="group"
+            data-testid="new-chat-group-tab-content"
+            class="mt-0 flex min-h-0 flex-1 flex-col overflow-hidden"
+          >
+            <div
+              data-testid="new-chat-group-form-scroll"
+              class="min-h-0 flex-1 overflow-y-auto px-4 pb-4 space-y-3"
+            >
               <div>
                 <Label class="text-[12px] text-muted-foreground mb-1 block">{{ t('chat.group_name') }}</Label>
                 <input
@@ -288,15 +305,7 @@ async function handleCreateGroup() {
                 >
               </div>
 
-              <div>
-                <Label class="text-[12px] text-muted-foreground mb-1 block">{{ t('chat.invite_members') }}</Label>
-                <input
-                  v-model="groupInvites"
-                  type="text"
-                  placeholder="@user1:server, @user2:server"
-                  class="w-full h-9 px-3 text-sm rounded-lg border border-border bg-background outline-none focus:ring-1 focus:ring-primary/40"
-                >
-              </div>
+              <GroupMemberPicker v-model="groupMemberIds" />
 
               <div class="pt-1 flex justify-end">
                 <button

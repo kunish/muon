@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 import { Label } from '@/shared/components/ui/label'
 import { Switch } from '@/shared/components/ui/switch'
 import { useGroupManagement } from '../composables/useGroupManagement'
+import GroupMemberPicker from './GroupMemberPicker.vue'
 
 const emit = defineEmits<{
   close: []
@@ -17,7 +18,7 @@ const { createGroup } = useGroupManagement()
 const name = ref('')
 const topic = ref('')
 const encrypted = ref(true)
-const inviteIds = ref('')
+const selectedMemberIds = ref<string[]>([])
 const creating = ref(false)
 
 async function handleCreate() {
@@ -25,14 +26,10 @@ async function handleCreate() {
     return
   creating.value = true
   try {
-    const userIds = inviteIds.value
-      .split(',')
-      .map(s => s.trim())
-      .filter(Boolean)
     const roomId = await createGroup({
-      name: name.value,
-      topic: topic.value || undefined,
-      userIds,
+      name: name.value.trim(),
+      topic: topic.value.trim() || undefined,
+      userIds: selectedMemberIds.value,
       isEncrypted: encrypted.value,
     })
     emit('created', roomId)
@@ -44,18 +41,18 @@ async function handleCreate() {
 </script>
 
 <template>
-  <div class="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
-    <div class="bg-background rounded-xl shadow-2xl w-[400px] max-h-[80vh] overflow-y-auto">
-      <div class="flex items-center justify-between p-4 border-b border-border">
-        <h3 class="font-medium">
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+    <div class="flex max-h-[84vh] w-[520px] max-w-full flex-col overflow-hidden rounded-xl border border-border bg-background shadow-2xl">
+      <div class="flex items-center justify-between border-b border-border px-4 py-3">
+        <h3 class="text-sm font-semibold">
           {{ t('contacts.create_group') }}
         </h3>
-        <button class="p-1 rounded hover:bg-accent" @click="emit('close')">
+        <button class="rounded-lg p-1 text-muted-foreground hover:bg-accent" @click="emit('close')">
           <X :size="16" />
         </button>
       </div>
 
-      <div class="p-4 space-y-4">
+      <div class="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
         <div>
           <Label class="text-sm text-muted-foreground mb-1 block">{{ t('contacts.group_name') }}</Label>
           <input
@@ -76,15 +73,7 @@ async function handleCreate() {
           >
         </div>
 
-        <div>
-          <Label class="text-sm text-muted-foreground mb-1 block">{{ t('contacts.invite_members') }}</Label>
-          <input
-            v-model="inviteIds"
-            type="text"
-            placeholder="@user1:server, @user2:server"
-            class="w-full h-9 px-3 text-sm rounded-lg border border-border bg-background outline-none focus:ring-1 focus:ring-primary"
-          >
-        </div>
+        <GroupMemberPicker v-model="selectedMemberIds" />
 
         <Label class="flex items-center gap-2 cursor-pointer">
           <Switch :checked="encrypted" @update:checked="val => encrypted = val" />
@@ -93,7 +82,7 @@ async function handleCreate() {
         </Label>
       </div>
 
-      <div class="p-4 border-t border-border flex justify-end gap-2">
+      <div class="flex justify-end gap-2 border-t border-border p-4">
         <button
           class="px-4 py-2 text-sm rounded-lg hover:bg-accent"
           @click="emit('close')"
@@ -101,6 +90,7 @@ async function handleCreate() {
           {{ t('common.cancel') }}
         </button>
         <button
+          data-testid="create-group-submit"
           class="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground disabled:opacity-50"
           :disabled="!name.trim() || creating"
           @click="handleCreate"

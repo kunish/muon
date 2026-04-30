@@ -27,17 +27,27 @@ const { t } = useI18n()
 const showDisappearing = ref(false)
 const showMore = ref(false)
 
-const isDirect = computed(() => currentRoomId.value ? isDirectRoom(currentRoomId.value) : false)
+const roomPreview = computed(() =>
+  currentRoomId.value ? store.getSidebarPromotionPreview(currentRoomId.value) : undefined,
+)
+
+const hasHeaderInfo = computed(() => !!room.value || !!roomPreview.value)
+
+const roomName = computed(() => room.value?.name || roomPreview.value?.name || '')
+
+const isDirect = computed(() => {
+  if (room.value && currentRoomId.value)
+    return isDirectRoom(currentRoomId.value)
+  return roomPreview.value?.isDirect ?? false
+})
 
 const isEncrypted = computed(() => {
-  if (!room.value)
-    return false
-  return room.value.hasEncryptionStateEvent()
+  return room.value?.hasEncryptionStateEvent() ?? roomPreview.value?.isEncrypted ?? false
 })
 
 /** 频道话题，截断显示在频道名后方 */
 const roomTopic = computed(() => {
-  if (!currentRoomId.value)
+  if (!currentRoomId.value || !room.value)
     return ''
   return getRoomTopic(currentRoomId.value)
 })
@@ -78,7 +88,7 @@ function toggleSidePanelFromMenu(panel: SidePanelType) {
 </script>
 
 <template>
-  <div v-if="room" class="shrink-0 border-b border-border bg-background/95 backdrop-blur-xl">
+  <div v-if="hasHeaderInfo" class="shrink-0 border-b border-border bg-background/95 backdrop-blur-xl">
     <!-- Header row -->
     <div class="flex h-12 min-w-0 items-center gap-2 px-3 sm:px-4">
       <!-- Left: channel icon + name + topic -->
@@ -86,7 +96,7 @@ function toggleSidePanelFromMenu(panel: SidePanelType) {
         <AtSign v-if="isDirect" :size="20" class="text-muted-foreground shrink-0" />
         <Lock v-else-if="isEncrypted" :size="20" class="text-success shrink-0" />
         <Hash v-else :size="20" class="text-muted-foreground shrink-0" />
-        <span data-testid="chat-header-room-name" class="min-w-0 truncate font-semibold text-[15px] text-foreground">{{ room.name }}</span>
+        <span data-testid="chat-header-room-name" class="min-w-0 truncate font-semibold text-[15px] text-foreground">{{ roomName }}</span>
         <template v-if="roomTopic">
           <div
             class="mx-1.5 hidden h-4 w-px shrink-0 bg-border/60"
