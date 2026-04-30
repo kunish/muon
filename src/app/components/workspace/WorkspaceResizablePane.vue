@@ -41,7 +41,7 @@ const {
   <component
     :is="as"
     :data-testid="paneTestId"
-    class="workspace-panel relative flex h-full min-h-0 shrink-0 flex-col overflow-visible rounded-none border-y-0 border-l-0 bg-sidebar/95 backdrop-blur-xl transition-[width] duration-150 ease-out"
+    class="workspace-panel relative flex h-full min-h-0 shrink-0 flex-col overflow-visible rounded-none border-y-0 border-l-0 transition-[width] duration-150 ease-out"
     :class="isResizing && 'transition-none'"
     :style="paneStyle"
   >
@@ -61,7 +61,7 @@ const {
       :aria-valuemin="minWidth"
       :aria-valuemax="maxWidth"
       :aria-valuenow="paneWidth"
-      class="absolute right-[-3px] top-0 z-20 h-full w-1.5 cursor-col-resize rounded-full transition-colors duration-150 hover:bg-primary/22 focus-visible:bg-primary/25 focus-visible:outline-none"
+      class="absolute right-[-3px] top-0 z-20 h-full w-1.5 cursor-col-resize transition-colors duration-150 hover:bg-primary/30 focus-visible:bg-primary/30 focus-visible:outline-none"
       :class="isResizing && 'bg-primary/28'"
       @pointerdown="startResize"
       @dblclick.stop.prevent="restorePane"

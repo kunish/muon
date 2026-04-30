@@ -33,25 +33,25 @@ describe('workspace resizable pane usage', () => {
     const pane = wrapper.get('[data-testid="contacts-sidebar"]')
     const handle = wrapper.get('[data-testid="contacts-sidebar-resize-handle"]')
 
-    expect(pane.attributes('style')).toContain('width: 308px')
+    expect(pane.attributes('style')).toContain('width: 240px')
 
     handle.element.dispatchEvent(new MouseEvent('pointerdown', {
       bubbles: true,
       cancelable: true,
       button: 0,
-      clientX: 308,
+      clientX: 240,
     }))
     await nextTick()
 
     window.dispatchEvent(new MouseEvent('pointermove', {
       bubbles: true,
-      clientX: 356,
+      clientX: 300,
     }))
     await nextTick()
 
-    expect(pane.attributes('style')).toContain('width: 356px')
-    expect(handle.attributes('aria-valuenow')).toBe('356')
-    expect(localStorage.getItem('muon_contacts_sidebar_width')).toBe('356')
+    expect(pane.attributes('style')).toContain('width: 300px')
+    expect(handle.attributes('aria-valuenow')).toBe('300')
+    expect(localStorage.getItem('muon_contacts_sidebar_width')).toBe('300')
 
     window.dispatchEvent(new MouseEvent('pointerup', { bubbles: true }))
   })
@@ -73,25 +73,25 @@ describe('workspace resizable pane usage', () => {
     const pane = wrapper.get('[data-testid="settings-sidebar"]')
     const handle = wrapper.get('[data-testid="settings-sidebar-resize-handle"]')
 
-    expect(pane.attributes('style')).toContain('width: 260px')
+    expect(pane.attributes('style')).toContain('width: 240px')
 
     handle.element.dispatchEvent(new MouseEvent('pointerdown', {
       bubbles: true,
       cancelable: true,
       button: 0,
-      clientX: 260,
+      clientX: 240,
     }))
     await nextTick()
 
     window.dispatchEvent(new MouseEvent('pointermove', {
       bubbles: true,
-      clientX: 324,
+      clientX: 304,
     }))
     await nextTick()
 
-    expect(pane.attributes('style')).toContain('width: 324px')
-    expect(handle.attributes('aria-valuenow')).toBe('324')
-    expect(localStorage.getItem('muon_settings_sidebar_width')).toBe('324')
+    expect(pane.attributes('style')).toContain('width: 304px')
+    expect(handle.attributes('aria-valuenow')).toBe('304')
+    expect(localStorage.getItem('muon_settings_sidebar_width')).toBe('304')
 
     window.dispatchEvent(new MouseEvent('pointerup', { bubbles: true }))
   })

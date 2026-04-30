@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Desktop Cloud Docs Center</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-container": "#1d2024",
+                    "error": "#ffb4ab",
+                    "on-secondary": "#003543",
+                    "primary-fixed": "#dde1ff",
+                    "inverse-on-surface": "#2e3135",
+                    "inverse-surface": "#e1e2e8",
+                    "surface-dim": "#111417",
+                    "surface-container-highest": "#323539",
+                    "tertiary-container": "#bd4100",
+                    "on-secondary-fixed": "#001f28",
+                    "surface-bright": "#36393e",
+                    "background": "#111417",
+                    "on-error-container": "#ffdad6",
+                    "outline-variant": "#434656",
+                    "on-primary-fixed-variant": "#0036bc",
+                    "on-error": "#690005",
+                    "on-tertiary": "#5b1b00",
+                    "primary": "#b8c4ff",
+                    "error-container": "#93000a",
+                    "tertiary-fixed": "#ffdbcf",
+                    "on-secondary-fixed-variant": "#004e60",
+                    "on-primary-fixed": "#001355",
+                    "on-primary-container": "#eaebff",
+                    "secondary-container": "#14d1ff",
+                    "inverse-primary": "#174cea",
+                    "secondary-fixed-dim": "#4cd6ff",
+                    "secondary-fixed": "#b7eaff",
+                    "on-primary": "#002486",
+                    "surface-tint": "#b8c4ff",
+                    "primary-fixed-dim": "#b8c4ff",
+                    "surface-container-lowest": "#0b0e12",
+                    "on-tertiary-container": "#ffe8e0",
+                    "on-tertiary-fixed": "#380d00",
+                    "outline": "#8e90a1",
+                    "secondary": "#a6e6ff",
+                    "surface-container-high": "#272a2e",
+                    "surface-container-low": "#191c20",
+                    "tertiary": "#ffb59a",
+                    "surface": "#111417",
+                    "on-tertiary-fixed-variant": "#802a00",
+                    "tertiary-fixed-dim": "#ffb59a",
+                    "on-background": "#e1e2e8",
+                    "primary-container": "#2d5af7",
+                    "on-secondary-container": "#00566b",
+                    "surface-variant": "#323539",
+                    "on-surface": "#e1e2e8",
+                    "on-surface-variant": "#c4c5d8"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "padding-lg": "24px",
+                    "content_min": "480px",
+                    "padding-sm": "8px",
+                    "unit": "4px",
+                    "padding-xs": "4px",
+                    "gutter": "1px",
+                    "padding-md": "16px",
+                    "nav_width": "240px",
+                    "sidebar_width": "64px"
+            },
+            "fontFamily": {
+                    "h2": [
+                            "Inter"
+                    ],
+                    "body-sm": [
+                            "Inter"
+                    ],
+                    "h1": [
+                            "Inter"
+                    ],
+                    "label-caps": [
+                            "Inter"
+                    ],
+                    "code": [
+                            "JetBrains Mono"
+                    ],
+                    "body-lg": [
+                            "Inter"
+                    ],
+                    "body-md": [
+                            "Inter"
+                    ]
+            },
+            "fontSize": {
+                    "h2": [
+                            "18px",
+                            {
+                                    "lineHeight": "24px",
+                                    "letterSpacing": "-0.01em",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "body-sm": [
+                            "13px",
+                            {
+                                    "lineHeight": "18px",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "h1": [
+                            "24px",
+                            {
+                                    "lineHeight": "32px",
+                                    "letterSpacing": "-0.02em",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "label-caps": [
+                            "11px",
+                            {
+                                    "lineHeight": "16px",
+                                    "letterSpacing": "0.05em",
+                                    "fontWeight": "700"
+                            }
+                    ],
+                    "code": [
+                            "13px",
+                            {
+                                    "lineHeight": "18px",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "body-lg": [
+                            "15px",
+                            {
+                                    "lineHeight": "22px",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "body-md": [
+                            "14px",
+                            {
+                                    "lineHeight": "20px",
+                                    "fontWeight": "400"
+                            }
+                    ]
+            }
+    },
+        },
+      }
+    </script>
+</head>
+<body class="bg-background text-on-surface h-screen w-full overflow-hidden flex font-body-md">
+<!-- Global App Rail -->
+<aside class="fixed left-0 top-0 h-full w-[64px] border-r border-[#1A1D21] bg-[#0F1113] dark:bg-[#0F1113] flex flex-col items-center py-4 gap-6 z-50">
+<div class="mb-4">
+<span class="text-white font-bold text-lg font-h2 text-h2">L</span>
+</div>
+<div class="flex flex-col gap-4 w-full items-center">
+<button aria-label="Chat" class="w-10 h-10 rounded-DEFAULT flex items-center justify-center text-gray-500 hover:text-gray-300 transition-colors hover:bg-[#24292E] scale-95 active:scale-90">
+<span class="material-symbols-outlined" data-icon="chat">chat</span>
+</button>
+<button aria-label="Docs" class="w-10 h-10 rounded-DEFAULT flex items-center justify-center relative text-[#2D5AF7] before:absolute before:left-0 before:top-1/4 before:h-1/2 before:w-[2px] before:bg-[#2D5AF7] bg-[#24292E]/30 scale-95 active:scale-90 transition-all">
+<span class="material-symbols-outlined" data-icon="description">description</span>
+</button>
+<button aria-label="Calendar" class="w-10 h-10 rounded-DEFAULT flex items-center justify-center text-gray-500 hover:text-gray-300 transition-colors hover:bg-[#24292E] scale-95 active:scale-90">
+<span class="material-symbols-outlined" data-icon="calendar_month">calendar_month</span>
+</button>
+<button aria-label="Workplace" class="w-10 h-10 rounded-DEFAULT flex items-center justify-center text-gray-500 hover:text-gray-300 transition-colors hover:bg-[#24292E] scale-95 active:scale-90">
+<span class="material-symbols-outlined" data-icon="grid_view">grid_view</span>
+</button>
+<button aria-label="Contacts" class="w-10 h-10 rounded-DEFAULT flex items-center justify-center text-gray-500 hover:text-gray-300 transition-colors hover:bg-[#24292E] scale-95 active:scale-90">
+<span class="material-symbols-outlined" data-icon="contacts">contacts</span>
+</button>
+</div>
+<div class="mt-auto flex flex-col gap-4 w-full items-center">
+<button aria-label="Settings" class="w-10 h-10 rounded-DEFAULT flex items-center justify-center text-gray-500 hover:text-gray-300 transition-colors hover:bg-[#24292E] scale-95 active:scale-90">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+<button aria-label="Help" class="w-10 h-10 rounded-DEFAULT flex items-center justify-center text-gray-500 hover:text-gray-300 transition-colors hover:bg-[#24292E] scale-95 active:scale-90">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+</button>
+<div class="w-8 h-8 rounded-full overflow-hidden mt-2 border border-outline-variant">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="A small, circular avatar portrait of a professional looking individual, head and shoulders, neutral background, sharp focus, professional lighting, corporate modern aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDunpObCFOCar4Kpm4QeSOhlHYdxMBUijbyvGsg4Xka1UpPLPmjY3m8ir7lf33Kjh1IgMKXAKBz9TIc4BEPl87lbTSwJfSl0fWUqNYWLcatpxbEN5lirI4E2YyJTl3upfcTRzo1tkWrrwo70YX30NXa_-VkMXRK1mscS-k8Kr94jkN63b1BPle36PAhimENkQhjhy3o7p2aL-GRUVa6Rq7AOheGfhiHX_J5M9uEJbimfsuoXNJv52ZO0T7ulc9ANQL64Hgs3cdjJfo"/>
+</div>
+</div>
+</aside>
+<!-- Navigation/List Pane -->
+<nav class="fixed left-[64px] top-0 h-full w-[240px] border-r border-[#24292E] bg-[#1A1D21] dark:bg-[#1A1D21] flex flex-col pt-6 px-2 z-40">
+<div class="px-3 mb-6">
+<h2 class="font-h2 text-h2 text-on-surface">Docs</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Workspace files</p>
+</div>
+<button class="mb-4 mx-2 bg-primary-container text-white rounded-DEFAULT py-2 px-4 flex items-center justify-center gap-2 font-body-sm text-body-sm hover:opacity-90 transition-opacity">
+<span class="material-symbols-outlined text-[18px]">add</span>
+            New Document
+        </button>
+<div class="flex flex-col gap-1 overflow-y-auto">
+<button class="flex items-center gap-3 w-full text-left bg-[#24292E] text-white rounded-md mx-2 px-3 py-2 transition-colors duration-150">
+<span class="material-symbols-outlined text-[18px]" data-icon="schedule">schedule</span>
+<span class="font-body-sm text-body-sm font-semibold">Recent</span>
+</button>
+<button class="flex items-center gap-3 w-full text-left text-gray-400 px-3 py-2 hover:text-gray-200 hover:bg-[#24292E]/50 transition-colors duration-150 mx-2 rounded-md">
+<span class="material-symbols-outlined text-[18px]" data-icon="star">star</span>
+<span class="font-body-sm text-body-sm font-semibold">Starred</span>
+</button>
+<button class="flex items-center gap-3 w-full text-left text-gray-400 px-3 py-2 hover:text-gray-200 hover:bg-[#24292E]/50 transition-colors duration-150 mx-2 rounded-md">
+<span class="material-symbols-outlined text-[18px]" data-icon="folder_shared">folder_shared</span>
+<span class="font-body-sm text-body-sm font-semibold">Shared</span>
+</button>
+<div class="mt-6 mb-2 px-3">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">Folders</span>
+</div>
+<button class="flex items-center gap-3 w-full text-left text-gray-400 px-3 py-2 hover:text-gray-200 hover:bg-[#24292E]/50 transition-colors duration-150 mx-2 rounded-md">
+<span class="material-symbols-outlined text-[18px]" data-icon="folder">folder</span>
+<span class="font-body-sm text-body-sm">Q3 Planning</span>
+</button>
+<button class="flex items-center gap-3 w-full text-left text-gray-400 px-3 py-2 hover:text-gray-200 hover:bg-[#24292E]/50 transition-colors duration-150 mx-2 rounded-md">
+<span class="material-symbols-outlined text-[18px]" data-icon="folder">folder</span>
+<span class="font-body-sm text-body-sm">Design Assets</span>
+</button>
+<button class="flex items-center gap-3 w-full text-left text-gray-400 px-3 py-2 hover:text-gray-200 hover:bg-[#24292E]/50 transition-colors duration-150 mx-2 rounded-md">
+<span class="material-symbols-outlined text-[18px]" data-icon="folder">folder</span>
+<span class="font-body-sm text-body-sm">Engineering Specs</span>
+</button>
+</div>
+</nav>
+<!-- Workspace/Content Area -->
+<main class="ml-[304px] w-[calc(100%-304px)] h-full flex flex-col bg-surface relative">
+<!-- TopAppBar -->
+<header class="fixed top-0 right-0 left-[304px] h-14 border-b border-[#24292E] bg-[#1A1D21] dark:bg-[#1A1D21] flex justify-between items-center px-4 z-30">
+<div class="flex-1 flex items-center">
+<div class="relative w-full max-w-md">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-[18px]">search</span>
+<input class="w-full bg-[#0F1113] border border-outline-variant rounded-DEFAULT pl-10 pr-4 py-1.5 text-on-surface font-body-sm text-body-sm focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-all outline-none placeholder:text-gray-500" placeholder="Search documents..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="w-8 h-8 flex items-center justify-center text-gray-400 hover:bg-[#24292E] rounded-md transition-colors cursor-pointer active:opacity-80">
+<span class="material-symbols-outlined" data-icon="grid_view">grid_view</span>
+</button>
+<button class="w-8 h-8 flex items-center justify-center text-gray-400 hover:bg-[#24292E] rounded-md transition-colors cursor-pointer active:opacity-80">
+<span class="material-symbols-outlined" data-icon="filter_list">filter_list</span>
+</button>
+<button class="w-8 h-8 flex items-center justify-center text-gray-400 hover:bg-[#24292E] rounded-md transition-colors cursor-pointer active:opacity-80">
+<span class="material-symbols-outlined" data-icon="more_horiz">more_horiz</span>
+</button>
+</div>
+</header>
+<!-- Content Canvas -->
+<div class="mt-14 p-6 overflow-y-auto h-[calc(100vh-56px)]">
+<div class="mb-6 flex justify-between items-end">
+<div>
+<h1 class="font-h1 text-h1 text-on-surface">Recent Documents</h1>
+</div>
+<div class="flex gap-2">
+<span class="bg-surface-container-highest border border-outline-variant text-on-surface-variant font-label-caps text-label-caps px-2 py-1 rounded-DEFAULT">12 ITEMS</span>
+</div>
+</div>
+<!-- Data Table -->
+<div class="w-full bg-surface-container border border-outline-variant rounded-lg overflow-hidden">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="border-b border-outline-variant bg-surface-container-highest">
+<th class="px-4 py-3 font-label-caps text-label-caps text-on-surface-variant uppercase w-1/2">Name</th>
+<th class="px-4 py-3 font-label-caps text-label-caps text-on-surface-variant uppercase w-1/6">Owner</th>
+<th class="px-4 py-3 font-label-caps text-label-caps text-on-surface-variant uppercase w-1/6">Last Modified</th>
+<th class="px-4 py-3 font-label-caps text-label-caps text-on-surface-variant uppercase w-1/6">Size</th>
+</tr>
+</thead>
+<tbody class="font-body-sm text-body-sm divide-y divide-outline-variant/50">
+<!-- Row 1 -->
+<tr class="hover:bg-surface-container-highest/50 transition-colors group cursor-pointer">
+<td class="px-4 py-3 flex items-center gap-3">
+<span class="material-symbols-outlined text-primary-container" data-icon="description">description</span>
+<span class="text-on-surface font-medium group-hover:text-primary transition-colors">Q3 Marketing Strategy.docx</span>
+</td>
+<td class="px-4 py-3 text-on-surface-variant flex items-center gap-2">
+<div class="w-5 h-5 rounded-full bg-tertiary-container flex items-center justify-center text-[10px] text-white font-bold">JD</div>
+                                John Doe
+                            </td>
+<td class="px-4 py-3 text-on-surface-variant">Today, 10:42 AM</td>
+<td class="px-4 py-3 text-on-surface-variant">2.4 MB</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-surface-container-highest/50 transition-colors group cursor-pointer">
+<td class="px-4 py-3 flex items-center gap-3">
+<span class="material-symbols-outlined text-[#107C41]" data-icon="table">table</span>
+<span class="text-on-surface font-medium group-hover:text-primary transition-colors">Financial Projections FY24.xlsx</span>
+</td>
+<td class="px-4 py-3 text-on-surface-variant flex items-center gap-2">
+<div class="w-5 h-5 rounded-full bg-secondary-container flex items-center justify-center text-[10px] text-on-secondary-container font-bold">AS</div>
+                                Alice Smith
+                            </td>
+<td class="px-4 py-3 text-on-surface-variant">Yesterday, 4:15 PM</td>
+<td class="px-4 py-3 text-on-surface-variant">1.1 MB</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-surface-container-highest/50 transition-colors group cursor-pointer">
+<td class="px-4 py-3 flex items-center gap-3">
+<span class="material-symbols-outlined text-[#D83B01]" data-icon="slideshow">slideshow</span>
+<span class="text-on-surface font-medium group-hover:text-primary transition-colors">Product Launch Deck.pptx</span>
+</td>
+<td class="px-4 py-3 text-on-surface-variant flex items-center gap-2">
+<div class="w-5 h-5 rounded-full overflow-hidden border border-outline-variant">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="A small, circular avatar portrait of a professional looking individual, head and shoulders, neutral background, sharp focus, professional lighting, corporate modern aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCe7l84Ta58Ie2XwPJa5q3JzMqZ61V-uwiAAuI1OyZbrvSeWEbAkeXhoB2lzZdlVy-7C7KrCciZYX51mdFQZlFjYhGg32jsWyUW0VqB8X8a4uonoQ3flWxru51cfKzBunUIfTAyxXHIOpw-wnIh1KXijJTywpmLOGgwQWVWhjO9zUuuyQodVobDUdm_1XX-hXp8OlCnuBRMnl9hkUepF2_Oi8KY3u6GbUrSnXGYguCDcQKPd4rJkTHP_IiaI2UeM30EXEdi3n7ImYw"/>
+</div>
+                                Me
+                            </td>
+<td class="px-4 py-3 text-on-surface-variant">Oct 12, 2023</td>
+<td class="px-4 py-3 text-on-surface-variant">15.8 MB</td>
+</tr>
+<!-- Row 4 -->
+<tr class="hover:bg-surface-container-highest/50 transition-colors group cursor-pointer">
+<td class="px-4 py-3 flex items-center gap-3">
+<span class="material-symbols-outlined text-error" data-icon="picture_as_pdf">picture_as_pdf</span>
+<span class="text-on-surface font-medium group-hover:text-primary transition-colors">Vendor Contract_Signed.pdf</span>
+</td>
+<td class="px-4 py-3 text-on-surface-variant flex items-center gap-2">
+<div class="w-5 h-5 rounded-full bg-surface-bright flex items-center justify-center text-[10px] text-on-surface font-bold">EJ</div>
+                                Emily Jones
+                            </td>
+<td class="px-4 py-3 text-on-surface-variant">Oct 10, 2023</td>
+<td class="px-4 py-3 text-on-surface-variant">450 KB</td>
+</tr>
+<!-- Row 5 -->
+<tr class="hover:bg-surface-container-highest/50 transition-colors group cursor-pointer">
+<td class="px-4 py-3 flex items-center gap-3">
+<span class="material-symbols-outlined text-gray-400" data-icon="folder">folder</span>
+<span class="text-on-surface font-medium group-hover:text-primary transition-colors">Design Assets</span>
+</td>
+<td class="px-4 py-3 text-on-surface-variant flex items-center gap-2">
+                                --
+                            </td>
+<td class="px-4 py-3 text-on-surface-variant">Oct 05, 2023</td>
+<td class="px-4 py-3 text-on-surface-variant">--</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</main>
+</body></html>

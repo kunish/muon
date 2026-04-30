@@ -78,7 +78,7 @@ describe('contactItem', () => {
         selected: true,
       },
     })
-    expect(wrapper.find('.bg-accent').exists()).toBe(true)
+    expect(wrapper.classes()).toContain('workspace-row-active')
   })
 
   it('should emit click event', async () => {
@@ -131,7 +131,7 @@ describe('contactList layout', () => {
     const wrapper = mount(ContactList)
 
     expect(wrapper.get('[data-testid="contacts-search-control"]').classes()).toEqual(
-      expect.arrayContaining(['h-9', 'items-center']),
+      expect.arrayContaining(['h-8', 'items-center']),
     )
     expect(wrapper.get('[data-testid="contacts-search-icon"]').classes()).toEqual(
       expect.arrayContaining(['size-4', 'shrink-0']),

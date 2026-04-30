@@ -301,13 +301,13 @@ describe('knowledgeCapturePanel integration', () => {
     const sidebar = wrapper.get('[data-testid="channel-sidebar"]')
     const handle = wrapper.get('[data-testid="channel-sidebar-resize-handle"]')
 
-    expect(sidebar.attributes('style')).toContain('width: 308px')
+    expect(sidebar.attributes('style')).toContain('width: 240px')
 
     handle.element.dispatchEvent(new MouseEvent('pointerdown', {
       bubbles: true,
       cancelable: true,
       button: 0,
-      clientX: 308,
+      clientX: 240,
     }))
     await nextTick()
 
@@ -315,13 +315,13 @@ describe('knowledgeCapturePanel integration', () => {
 
     window.dispatchEvent(new MouseEvent('pointermove', {
       bubbles: true,
-      clientX: 368,
+      clientX: 300,
     }))
     await nextTick()
 
-    expect(sidebar.attributes('style')).toContain('width: 368px')
-    expect(handle.attributes('aria-valuenow')).toBe('368')
-    expect(localStorage.getItem('muon_message_sidebar_width')).toBe('368')
+    expect(sidebar.attributes('style')).toContain('width: 300px')
+    expect(handle.attributes('aria-valuenow')).toBe('300')
+    expect(localStorage.getItem('muon_message_sidebar_width')).toBe('300')
 
     window.dispatchEvent(new MouseEvent('pointerup', { bubbles: true }))
     await nextTick()
@@ -330,9 +330,9 @@ describe('knowledgeCapturePanel integration', () => {
 
     await handle.trigger('dblclick')
 
-    expect(sidebar.attributes('style')).toContain('width: 308px')
+    expect(sidebar.attributes('style')).toContain('width: 240px')
     expect(sidebar.attributes('aria-expanded')).toBeUndefined()
-    expect(localStorage.getItem('muon_message_sidebar_width')).toBe('308')
+    expect(localStorage.getItem('muon_message_sidebar_width')).toBe('240')
   })
 
   it('does not render the message sidebar collapse toggle and ignores legacy collapsed state', async () => {
@@ -344,7 +344,7 @@ describe('knowledgeCapturePanel integration', () => {
     await nextTick()
 
     expect(sidebar.attributes('aria-expanded')).toBeUndefined()
-    expect(sidebar.attributes('style')).toContain('width: 308px')
+    expect(sidebar.attributes('style')).toContain('width: 240px')
     expect(wrapper.get('[data-testid="channel-sidebar-content"]').isVisible()).toBe(true)
     expect(wrapper.find('[data-testid="channel-sidebar-toggle"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="channel-sidebar-resize-handle"]').exists()).toBe(true)

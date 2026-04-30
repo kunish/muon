@@ -41,18 +41,18 @@ const isContextMenuOpen = computed(() => props.contextMenuOpen === true)
 const isUnreadOrMarked = computed(() => props.room.unreadCount > 0 || markedUnread.value)
 const rowStateClass = computed(() => {
   if (props.active) {
-    return 'bg-primary/18 shadow-[0_2px_10px_rgba(0,0,0,0.08),0_0_0_1px_color-mix(in_srgb,var(--color-primary)_45%,transparent)] backdrop-blur-[8px] before:pointer-events-none before:absolute before:inset-0 before:rounded-[inherit] before:shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] before:content-[\'\']'
+    return 'bg-accent text-foreground'
   }
 
   if (pinned.value) {
     return isContextMenuOpen.value
-      ? 'conv-pinned bg-accent/60'
-      : 'conv-pinned bg-accent/30 hover:bg-accent/60'
+      ? 'conv-pinned bg-accent'
+      : 'conv-pinned bg-muted hover:bg-accent'
   }
 
   return isContextMenuOpen.value
-    ? 'bg-accent/50 shadow-[0_1px_4px_rgba(0,0,0,0.02)]'
-    : 'hover:bg-accent/50 hover:shadow-[0_1px_4px_rgba(0,0,0,0.02)]'
+    ? 'bg-accent'
+    : 'hover:bg-accent'
 })
 const avatarStateClass = computed(() => isContextMenuOpen.value ? 'scale-[1.04]' : '')
 const nameTextClass = computed(() => {
@@ -119,7 +119,7 @@ const sender = computed(() => {
 
 <template>
   <div
-    class="group relative flex min-h-[52px] cursor-pointer select-none items-center gap-2.5 rounded-xl px-2.5 py-1.5 transition-[background-color,box-shadow,transform] duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)] active:scale-[0.985] active:duration-75"
+    class="group relative flex min-h-[54px] cursor-pointer select-none items-center gap-2.5 rounded-md px-2.5 py-2 transition-colors duration-150 active:scale-[0.985] active:duration-75"
     :class="[
       rowStateClass,
     ]"
@@ -129,19 +129,19 @@ const sender = computed(() => {
   >
     <span
       v-if="active"
-      class="absolute left-0 top-1/2 -translate-y-1/2 w-[5px] h-8 rounded-r-full bg-primary"
+      class="absolute left-0 top-1/2 h-8 w-0.5 -translate-y-1/2 bg-primary"
     />
 
     <!-- 未读指示条 - 带脉冲动画 -->
     <span
       v-if="room.unreadCount > 0 && !active"
-      class="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-primary/80"
+      class="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 bg-primary"
       style="animation: indicator-ping 2.5s ease-in-out infinite"
     />
 
     <!-- 头像 - 增强悬停效果 -->
     <div
-      class="relative shrink-0 transition-transform duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:scale-[1.04]"
+      class="relative shrink-0 transition-transform duration-150 group-hover:scale-[1.03]"
       :class="avatarStateClass"
       @click.stop="$emit('avatarClick', room, $event)"
     >
@@ -156,7 +156,7 @@ const sender = computed(() => {
       <!-- 加密徽标 -->
       <div
         v-if="room.isEncrypted"
-        class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-success flex items-center justify-center ring-[1.5px] ring-sidebar shadow-sm"
+        class="absolute -bottom-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-success ring-[1.5px] ring-sidebar"
       >
         <Lock :size="7" class="text-white" />
       </div>
@@ -166,18 +166,18 @@ const sender = computed(() => {
     <div class="flex-1 min-w-0">
       <div class="flex items-center justify-between gap-2">
         <span
-          class="text-[13px] font-semibold truncate leading-tight transition-colors duration-150"
+          class="truncate text-[13px] font-semibold leading-tight transition-colors duration-150"
           :class="nameTextClass"
         >
           {{ room.name }}
           <span
             v-if="isBot"
-            class="inline-flex items-center ml-1 px-1 py-px text-[9px] font-bold leading-none rounded bg-primary/15 text-primary"
+            class="ml-1 inline-flex items-center rounded bg-primary/15 px-1 py-px text-[9px] font-bold leading-none text-primary"
           >{{ t('chat.bot_badge') }}</span>
           <!-- 群聊成员数 -->
           <span
             v-if="groupMemberCount > 0"
-            class="inline-flex items-center ml-1 text-[10px] text-muted-foreground/45 font-normal"
+            class="ml-1 inline-flex items-center text-[10px] font-normal text-muted-foreground"
           >({{ groupMemberCount }})</span>
         </span>
         <div class="flex items-center gap-1 shrink-0">
@@ -192,9 +192,9 @@ const sender = computed(() => {
         </div>
       </div>
 
-      <div class="flex items-center justify-between gap-2 mt-[3px]">
+      <div class="mt-[3px] flex items-center justify-between gap-2">
         <div
-          class="flex items-center gap-1 min-w-0 text-[11.5px] leading-tight transition-colors duration-150"
+          class="flex min-w-0 items-center gap-1 text-[12px] leading-tight transition-colors duration-150"
           :class="previewTextClass"
         >
           <!-- 正在输入 > 草稿 > 正常预览 -->
@@ -235,7 +235,7 @@ const sender = computed(() => {
         <!-- 未读徽标 / 标记未读圆点 / 免打扰灰点 -->
         <span
           v-if="room.unreadCount > 0 && !muted"
-          class="shrink-0 min-w-[17px] h-[17px] rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center px-1.5 leading-none shadow-[0_1px_4px_rgba(0,0,0,0.1)]"
+          class="flex h-[17px] min-w-[17px] shrink-0 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold leading-none text-primary-foreground"
           style="animation: badge-pop 0.35s cubic-bezier(0.34,1.56,0.64,1) both"
         >
           {{ room.unreadCount > 99 ? '99+' : room.unreadCount }}

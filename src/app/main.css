@@ -2,43 +2,43 @@
 @import 'tw-animate-css';
 
 @theme {
-  /* ── Muon Light — Modern Feishu Pro ── */
-  --color-background: oklch(98.6% 0.006 255);
-  --color-foreground: oklch(23% 0.018 255);
-  --color-muted: oklch(95.7% 0.008 255);
-  --color-muted-foreground: oklch(54% 0.026 255);
-  --color-primary: oklch(58.5% 0.215 263);
-  --color-primary-foreground: oklch(100% 0 0);
-  --color-accent: oklch(94.8% 0.018 255);
-  --color-accent-foreground: oklch(25% 0.025 255);
-  --color-destructive: oklch(58% 0.23 27);
-  --color-destructive-foreground: oklch(99% 0 0);
-  --color-border: oklch(90.8% 0.012 255);
-  --color-input: oklch(92.5% 0.012 255);
-  --color-ring: oklch(58.5% 0.215 263);
-  --color-card: oklch(100% 0 0);
-  --color-card-foreground: oklch(23% 0.018 255);
-  --color-secondary: oklch(42% 0.055 255);
-  --color-secondary-foreground: oklch(100% 0 0);
-  --color-popover: oklch(100% 0 0);
-  --color-popover-foreground: oklch(23% 0.018 255);
-  --color-sidebar: oklch(97.4% 0.009 255);
-  --color-sidebar-foreground: oklch(25% 0.02 255);
-  --color-sidebar-border: oklch(89.8% 0.013 255);
-  --color-sidebar-accent: oklch(93.5% 0.02 255);
-  --color-sidebar-accent-foreground: oklch(24% 0.025 255);
-  --color-sidebar-primary: oklch(58.5% 0.215 263);
-  --color-sidebar-primary-foreground: oklch(100% 0 0);
-  --color-sidebar-ring: oklch(58.5% 0.215 263);
-  --color-server-bar: oklch(96.2% 0.018 255);
-  --color-success: oklch(63% 0.17 155);
-  --color-warning: oklch(75% 0.16 78);
-  --color-chart-1: oklch(58.5% 0.215 263);
-  --color-chart-2: oklch(63% 0.17 155);
-  --color-chart-3: oklch(58% 0.23 27);
-  --color-chart-4: oklch(68% 0.12 235);
-  --color-chart-5: oklch(54% 0.026 255);
-  --radius: 0.875rem;
+  /* ── Muon Light — Nexus Terminal ── */
+  --color-background: #ffffff;
+  --color-foreground: #111827;
+  --color-muted: #f3f4f6;
+  --color-muted-foreground: #5f6673;
+  --color-primary: #2d5af7;
+  --color-primary-foreground: #ffffff;
+  --color-accent: #e5e7eb;
+  --color-accent-foreground: #111827;
+  --color-destructive: #dc2626;
+  --color-destructive-foreground: #ffffff;
+  --color-border: #e5e7eb;
+  --color-input: #f3f4f6;
+  --color-ring: #2d5af7;
+  --color-card: #ffffff;
+  --color-card-foreground: #111827;
+  --color-secondary: #0ea5e9;
+  --color-secondary-foreground: #ffffff;
+  --color-popover: #ffffff;
+  --color-popover-foreground: #111827;
+  --color-sidebar: #f9fafb;
+  --color-sidebar-foreground: #111827;
+  --color-sidebar-border: #e5e7eb;
+  --color-sidebar-accent: #e5e7eb;
+  --color-sidebar-accent-foreground: #111827;
+  --color-sidebar-primary: #2d5af7;
+  --color-sidebar-primary-foreground: #ffffff;
+  --color-sidebar-ring: #2d5af7;
+  --color-server-bar: #f3f4f6;
+  --color-success: #059669;
+  --color-warning: #d97706;
+  --color-chart-1: #2d5af7;
+  --color-chart-2: #0ea5e9;
+  --color-chart-3: #059669;
+  --color-chart-4: #d97706;
+  --color-chart-5: #5f6673;
+  --radius: 0.25rem;
 
   --animate-separator-fade-in: separator-fade-in 0.3s ease both;
   --animate-sys-fade-in: sys-fade-in 0.2s ease both;
@@ -48,42 +48,42 @@
 }
 
 .dark {
-  /* ── Muon Dark — Modern Feishu Pro ── */
-  --color-background: oklch(17% 0.018 260);
-  --color-foreground: oklch(92% 0.01 255);
-  --color-muted: oklch(22% 0.018 260);
-  --color-muted-foreground: oklch(66% 0.025 255);
-  --color-primary: oklch(67% 0.2 263);
-  --color-primary-foreground: oklch(100% 0 0);
-  --color-accent: oklch(26% 0.024 260);
-  --color-accent-foreground: oklch(92% 0.01 255);
-  --color-destructive: oklch(62% 0.2 25);
-  --color-destructive-foreground: oklch(99% 0 0);
-  --color-border: oklch(30% 0.02 260);
-  --color-input: oklch(27% 0.02 260);
-  --color-ring: oklch(67% 0.2 263);
-  --color-card: oklch(20% 0.018 260);
-  --color-card-foreground: oklch(92% 0.01 255);
-  --color-secondary: oklch(74% 0.04 255);
-  --color-secondary-foreground: oklch(16% 0.018 260);
-  --color-popover: oklch(21% 0.02 260);
-  --color-popover-foreground: oklch(92% 0.01 255);
-  --color-sidebar: oklch(19% 0.018 260);
-  --color-sidebar-foreground: oklch(90% 0.012 255);
-  --color-sidebar-border: oklch(29% 0.02 260);
-  --color-sidebar-accent: oklch(25% 0.025 260);
-  --color-sidebar-accent-foreground: oklch(92% 0.01 255);
-  --color-sidebar-primary: oklch(67% 0.2 263);
-  --color-sidebar-primary-foreground: oklch(100% 0 0);
-  --color-sidebar-ring: oklch(67% 0.2 263);
-  --color-server-bar: oklch(15% 0.018 260);
-  --color-success: oklch(66% 0.16 155);
-  --color-warning: oklch(78% 0.15 78);
-  --color-chart-1: oklch(67% 0.2 263);
-  --color-chart-2: oklch(66% 0.16 155);
-  --color-chart-3: oklch(62% 0.2 25);
-  --color-chart-4: oklch(70% 0.11 235);
-  --color-chart-5: oklch(66% 0.025 255);
+  /* ── Muon Dark — Nexus Terminal ── */
+  --color-background: #111417;
+  --color-foreground: #e1e2e8;
+  --color-muted: #191c20;
+  --color-muted-foreground: #c4c5d8;
+  --color-primary: #2d5af7;
+  --color-primary-foreground: #ffffff;
+  --color-accent: #24292e;
+  --color-accent-foreground: #e1e2e8;
+  --color-destructive: #ff5c63;
+  --color-destructive-foreground: #ffffff;
+  --color-border: #24292e;
+  --color-input: #0f1113;
+  --color-ring: #2d5af7;
+  --color-card: #1d2024;
+  --color-card-foreground: #e1e2e8;
+  --color-secondary: #14d1ff;
+  --color-secondary-foreground: #003543;
+  --color-popover: #1a1d21;
+  --color-popover-foreground: #e1e2e8;
+  --color-sidebar: #1a1d21;
+  --color-sidebar-foreground: #e1e2e8;
+  --color-sidebar-border: #24292e;
+  --color-sidebar-accent: #24292e;
+  --color-sidebar-accent-foreground: #e1e2e8;
+  --color-sidebar-primary: #2d5af7;
+  --color-sidebar-primary-foreground: #ffffff;
+  --color-sidebar-ring: #2d5af7;
+  --color-server-bar: #0f1113;
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+  --color-chart-1: #2d5af7;
+  --color-chart-2: #14d1ff;
+  --color-chart-3: #22c55e;
+  --color-chart-4: #f59e0b;
+  --color-chart-5: #8e90a1;
 }
 
 @layer base {
@@ -162,7 +162,7 @@
       sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    letter-spacing: -0.011em;
+    letter-spacing: 0;
   }
 
   input,
@@ -196,10 +196,10 @@
 @layer components {
   .app-window-frame {
     border: 1px solid color-mix(in srgb, var(--color-border) 72%, transparent);
-    border-radius: 14px;
+    border-radius: 8px;
     overflow: hidden;
     background: var(--color-background);
-    box-shadow: 0 18px 48px color-mix(in srgb, var(--color-foreground) 10%, transparent);
+    box-shadow: 0 14px 36px color-mix(in srgb, #000000 28%, transparent);
   }
 
   .muon-window-maximized .app-window-frame,
@@ -210,36 +210,36 @@
   }
 
   .workspace-surface {
-    @apply border border-border/70 bg-card/95;
-    box-shadow: 0 18px 45px color-mix(in srgb, var(--color-foreground) 8%, transparent);
+    @apply border border-border bg-card;
+    box-shadow: none;
   }
 
   .workspace-panel {
-    @apply border border-sidebar-border/80 bg-sidebar/95;
-    box-shadow: 0 10px 30px color-mix(in srgb, var(--color-foreground) 6%, transparent);
+    @apply border border-sidebar-border bg-sidebar;
+    box-shadow: none;
   }
 
   .workspace-row-selected {
-    @apply bg-primary/12 text-foreground;
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-primary) 24%, transparent);
+    @apply bg-accent text-foreground;
+    box-shadow: inset 2px 0 0 var(--color-primary);
   }
 
   .workspace-row {
-    @apply flex w-full select-none items-center rounded-2xl text-sm transition-all duration-150 hover:bg-sidebar-accent hover:text-foreground;
+    @apply flex w-full select-none items-center rounded-md text-sm transition-colors duration-150 hover:bg-sidebar-accent hover:text-foreground;
   }
 
   .workspace-row-active {
-    @apply bg-primary/12 text-foreground;
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-primary) 24%, transparent);
+    @apply bg-accent text-foreground;
+    box-shadow: inset 2px 0 0 var(--color-primary);
   }
 
   .workspace-menu {
-    @apply z-50 min-w-44 select-none overflow-hidden rounded-2xl border border-border/70 bg-popover/95 p-1.5 text-popover-foreground backdrop-blur-xl;
-    box-shadow: 0 18px 45px color-mix(in srgb, var(--color-foreground) 14%, transparent);
+    @apply z-50 min-w-44 select-none overflow-hidden rounded-lg border border-border bg-popover/95 p-1.5 text-popover-foreground backdrop-blur-xl;
+    box-shadow: 0 18px 45px color-mix(in srgb, #000000 28%, transparent);
   }
 
   .workspace-menu-item {
-    @apply relative flex cursor-default select-none items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] outline-none transition-all duration-100 hover:bg-accent focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&>svg]:size-4 [&>svg]:shrink-0;
+    @apply relative flex cursor-default select-none items-center gap-2.5 rounded-md px-3 py-2 text-[13px] outline-none transition-colors duration-100 hover:bg-accent focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&>svg]:size-4 [&>svg]:shrink-0;
   }
 
   .workspace-menu-item-destructive {
@@ -252,7 +252,7 @@
   }
 
   .workspace-empty-state {
-    @apply flex flex-col items-center justify-center rounded-3xl border border-border/70 bg-card/70 text-muted-foreground;
+    @apply flex flex-col items-center justify-center rounded-lg border border-border bg-card text-muted-foreground;
   }
 
   .muon-scrollbar {

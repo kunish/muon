@@ -28,9 +28,9 @@ const serverStore = useServerStore()
 const { t } = useI18n()
 
 const SIDEBAR_WIDTH_STORAGE_KEY = 'muon_message_sidebar_width'
-const DEFAULT_SIDEBAR_WIDTH = 308
-const MIN_SIDEBAR_WIDTH = 260
-const MAX_SIDEBAR_WIDTH = 430
+const DEFAULT_SIDEBAR_WIDTH = 240
+const MIN_SIDEBAR_WIDTH = 220
+const MAX_SIDEBAR_WIDTH = 360
 
 const channelTree = computed(() => serverStore.channelTree)
 const isDmMode = computed(() => serverStore.isDmMode)
@@ -77,7 +77,7 @@ function openCreateChannel(categoryId?: string): void {
       >
         <template #trigger="{ open }">
           <button
-            class="flex w-full items-center justify-between border-b border-sidebar-border/80 px-4 py-3.5 font-semibold text-foreground transition-all hover:bg-sidebar-accent"
+            class="flex w-full items-center justify-between border-b border-sidebar-border px-4 py-3.5 font-semibold text-foreground transition-colors hover:bg-sidebar-accent"
             :class="open && 'bg-sidebar-accent'"
           >
             <span class="truncate">{{ currentServer.name }}</span>
@@ -88,9 +88,9 @@ function openCreateChannel(categoryId?: string): void {
 
       <div
         v-if="channelTree.length <= 2"
-        class="border-b border-sidebar-border/80 px-3 py-3"
+        class="border-b border-sidebar-border px-3 py-3"
       >
-        <div class="rounded-2xl border border-sidebar-border/70 bg-sidebar-accent/60 p-3">
+        <div class="rounded-lg border border-sidebar-border bg-sidebar-accent p-3">
           <div class="mb-2 flex items-center justify-center">
             <Avatar
               :src="currentServer.avatar"
@@ -103,7 +103,7 @@ function openCreateChannel(categoryId?: string): void {
             {{ t('server.welcome_intro') }}
           </p>
           <button
-            class="mt-3 w-full rounded-xl bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground shadow-[0_8px_20px_color-mix(in_srgb,var(--color-primary)_20%,transparent)] transition-all hover:bg-primary/90 active:scale-[0.98]"
+            class="mt-3 w-full rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 active:scale-[0.98]"
             @click="$emit('invitePeople')"
           >
             {{ t('server.invite_people') }}

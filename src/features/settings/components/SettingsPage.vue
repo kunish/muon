@@ -17,9 +17,9 @@ const route = useRoute()
 const router = useRouter()
 
 const SETTINGS_WIDTH_STORAGE_KEY = 'muon_settings_sidebar_width'
-const DEFAULT_SETTINGS_WIDTH = 260
+const DEFAULT_SETTINGS_WIDTH = 240
 const MIN_SETTINGS_WIDTH = 220
-const MAX_SETTINGS_WIDTH = 380
+const MAX_SETTINGS_WIDTH = 360
 
 const tabs = [
   { id: 'profile', label: () => t('settings.profile'), icon: User },
@@ -64,16 +64,16 @@ watch(activeTab, (tab) => {
       pane-test-id="settings-sidebar"
       content-test-id="settings-sidebar-content"
       handle-test-id="settings-sidebar-resize-handle"
-      content-class="flex h-full min-h-0 flex-col overflow-hidden p-3"
+      content-class="flex h-full min-h-0 flex-col overflow-hidden px-2 py-6"
       :width-storage-key="SETTINGS_WIDTH_STORAGE_KEY"
       :default-width="DEFAULT_SETTINGS_WIDTH"
       :min-width="MIN_SETTINGS_WIDTH"
       :max-width="MAX_SETTINGS_WIDTH"
       :resize-label="settingsResizeLabel"
     >
-      <div class="mb-4 flex h-11 items-center gap-2 px-2">
+      <div class="mb-6 flex h-11 items-center gap-2 px-3">
         <Settings :size="20" class="text-primary" />
-        <h1 class="text-base font-semibold">
+        <h1 class="text-[18px] font-semibold leading-6">
           {{ t('settings.settings') }}
         </h1>
       </div>
@@ -91,7 +91,7 @@ watch(activeTab, (tab) => {
     </WorkspaceResizablePane>
 
     <div class="min-w-0 flex-1 overflow-y-auto p-6">
-      <div class="workspace-surface mx-auto w-full max-w-[860px] rounded-3xl p-6">
+      <div class="workspace-surface mx-auto w-full max-w-[860px] rounded-lg p-6">
         <ProfileSettings v-if="activeTab === 'profile'" />
         <GeneralSettings v-else-if="activeTab === 'general'" />
         <NotificationSettings v-else-if="activeTab === 'notifications'" />

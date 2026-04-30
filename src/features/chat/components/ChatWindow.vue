@@ -67,7 +67,7 @@ watch(
     <!-- Side panels -->
     <aside
       data-testid="chat-side-panel-shell"
-      class="h-full shrink-0 overflow-hidden border-l bg-background transition-[width,border-color] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none"
+      class="h-full shrink-0 overflow-hidden border-l bg-sidebar transition-[width,border-color] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none"
       :class="store.activeSidePanel ? 'w-[320px] border-border' : 'w-0 border-transparent'"
       :aria-hidden="!store.activeSidePanel"
     >
@@ -117,7 +117,7 @@ watch(
     <!-- Thread panel -->
     <aside
       data-testid="thread-panel-shell"
-      class="h-full shrink-0 overflow-hidden border-l bg-background transition-[width,border-color] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none"
+      class="h-full shrink-0 overflow-hidden border-l bg-sidebar transition-[width,border-color] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none"
       :class="store.activeThreadId && store.currentRoomId ? 'w-[360px] border-border' : 'w-0 border-transparent'"
       :aria-hidden="!(store.activeThreadId && store.currentRoomId)"
     >

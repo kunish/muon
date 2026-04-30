@@ -1,6 +1,5 @@
 import { mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { nextTick } from 'vue'
 import WorkspaceAppRail from '@/app/components/workspace/WorkspaceAppRail.vue'
 import { useGlobalUiStore } from '@/app/stores/globalUiStore'
 
@@ -25,42 +24,48 @@ describe('workspaceAppRail', () => {
     expect(logo.attributes('src')).toContain('muon-logo')
   })
 
-  it('renders app-first navigation and marks the active app', () => {
+  it('renders the Nexus-style icon rail and marks the active app', () => {
     const wrapper = mount(WorkspaceAppRail)
-    expect(wrapper.text()).toContain('消息')
-    expect(wrapper.text()).toContain('联系人')
-    expect(wrapper.find('[aria-current="page"]').text()).toContain('联系人')
+
+    expect(wrapper.get('[data-testid="workspace-app-messages"]').attributes('aria-label')).toBe('消息')
+    expect(wrapper.get('[data-testid="workspace-app-docs"]').attributes('aria-label')).toBe('文档')
+    expect(wrapper.get('[data-testid="workspace-app-workplace"]').attributes('aria-label')).toBe('工作台')
+    expect(wrapper.get('[data-testid="workspace-app-contacts"]').attributes('aria-current')).toBe('page')
+    expect(wrapper.get('[data-testid="workspace-app-contacts"]').attributes('aria-label')).toBe('联系人')
   })
 
-  it('shows app labels and does not render a collapse toggle', () => {
+  it('uses a fixed 64px rail with no resize or label controls', () => {
     const wrapper = mount(WorkspaceAppRail)
 
-    expect(wrapper.get('[data-testid="workspace-app-label-messages"]').classes()).not.toContain('sr-only')
-    expect(wrapper.get('[data-testid="workspace-app-label-contacts"]').classes()).not.toContain('sr-only')
-    expect(wrapper.get('[data-testid="workspace-app-label-settings"]').classes()).not.toContain('sr-only')
+    expect(wrapper.get('[data-testid="workspace-app-rail"]').classes()).toEqual(expect.arrayContaining(['w-16']))
     expect(wrapper.find('[data-testid="workspace-rail-toggle"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="workspace-rail-resize-handle"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid^="workspace-app-label-"]').exists()).toBe(false)
   })
 
-  it('does not render retired secondary app entries', () => {
+  it('does not render unimplemented secondary app entries', () => {
     const wrapper = mount(WorkspaceAppRail)
-    expect(wrapper.text()).not.toContain('日历')
-    expect(wrapper.text()).not.toContain('文档')
-    expect(wrapper.text()).not.toContain('审批')
-    expect(wrapper.text()).not.toContain('邮件')
-    expect(wrapper.text()).not.toContain('视频会议')
+
+    expect(wrapper.find('[data-testid="workspace-app-calendar"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="workspace-app-approvals"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="workspace-app-email"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="workspace-app-calls"]').exists()).toBe(false)
   })
 
   it('renders injected message unread count', () => {
     const wrapper = mount(WorkspaceAppRail, {
       props: { messageUnreadCount: 3 },
     })
+
     expect(wrapper.find('[data-testid="workspace-app-messages"]').text()).toContain('3')
   })
 
   it('navigates when an app entry is clicked', async () => {
     const wrapper = mount(WorkspaceAppRail)
-    await wrapper.find('[data-testid="workspace-app-messages"]').trigger('click')
-    expect(push).toHaveBeenCalledWith('/dm')
+
+    await wrapper.find('[data-testid="workspace-app-docs"]').trigger('click')
+
+    expect(push).toHaveBeenCalledWith('/docs')
   })
 
   it('opens global search from the rail action', async () => {
@@ -70,131 +75,5 @@ describe('workspaceAppRail', () => {
     await wrapper.find('[data-testid="workspace-global-search"]').trigger('click')
 
     expect(globalUi.globalSearchOpen).toBe(true)
-  })
-
-  it('supports resizing the app rail with the mouse', async () => {
-    const wrapper = mount(WorkspaceAppRail)
-    const rail = wrapper.get('[data-testid="workspace-app-rail"]')
-    const handle = wrapper.get('[data-testid="workspace-rail-resize-handle"]')
-
-    expect(rail.attributes('style')).toContain('width: 148px')
-
-    handle.element.dispatchEvent(new MouseEvent('pointerdown', {
-      bubbles: true,
-      cancelable: true,
-      button: 0,
-      clientX: 148,
-    }))
-    await nextTick()
-
-    expect(document.body.style.cursor).toBe('col-resize')
-
-    window.dispatchEvent(new MouseEvent('pointermove', {
-      bubbles: true,
-      clientX: 170,
-    }))
-    await nextTick()
-
-    expect(rail.attributes('style')).toContain('width: 170px')
-    expect(handle.attributes('aria-valuenow')).toBe('170')
-    expect(localStorage.getItem('muon_workspace_rail_width')).toBe('170')
-
-    window.dispatchEvent(new MouseEvent('pointerup', { bubbles: true }))
-    await nextTick()
-
-    expect(document.body.style.cursor).toBe('')
-  })
-
-  it('restores the app rail collapsed state on the initial render while keeping the toggle removed', () => {
-    localStorage.setItem('muon_workspace_rail_collapsed', 'true')
-
-    const wrapper = mount(WorkspaceAppRail)
-    const rail = wrapper.get('[data-testid="workspace-app-rail"]')
-
-    expect(rail.attributes('style')).toContain('width: 72px')
-    expect(wrapper.get('[data-testid="workspace-app-rail-content"]').isVisible()).toBe(true)
-    expect(wrapper.get('[data-testid="workspace-app-label-messages"]').classes()).toContain('sr-only')
-    expect(wrapper.get('[data-testid="workspace-global-search"]').classes()).toEqual(expect.arrayContaining(['w-full', 'justify-start', 'px-[18px]', 'overflow-hidden']))
-    expect(wrapper.get('[data-testid="workspace-global-search"]').classes()).not.toContain('justify-center')
-    expect(wrapper.get('[data-testid="workspace-app-messages"]').classes()).toEqual(expect.arrayContaining(['w-full', 'justify-start', 'px-[18px]', 'overflow-hidden']))
-    expect(wrapper.get('[data-testid="workspace-app-messages"]').classes()).not.toContain('justify-center')
-    expect(wrapper.find('[data-testid="workspace-rail-toggle"]').exists()).toBe(false)
-    expect(wrapper.find('[data-testid="workspace-rail-resize-handle"]').exists()).toBe(true)
-  })
-
-  it('collapses to icon-only mode by dragging below the rail threshold', async () => {
-    const wrapper = mount(WorkspaceAppRail)
-    const rail = wrapper.get('[data-testid="workspace-app-rail"]')
-    const handle = wrapper.get('[data-testid="workspace-rail-resize-handle"]')
-
-    handle.element.dispatchEvent(new MouseEvent('pointerdown', {
-      bubbles: true,
-      cancelable: true,
-      button: 0,
-      clientX: 148,
-    }))
-    await nextTick()
-
-    window.dispatchEvent(new MouseEvent('pointermove', {
-      bubbles: true,
-      clientX: 92,
-    }))
-    await nextTick()
-
-    expect(rail.attributes('style')).toContain('width: 72px')
-    expect(wrapper.get('[data-testid="workspace-app-label-messages"]').classes()).toContain('sr-only')
-    expect(wrapper.get('[data-testid="workspace-app-messages"]').classes()).toEqual(expect.arrayContaining(['w-full', 'justify-start', 'px-[18px]', 'overflow-hidden']))
-    expect(wrapper.get('[data-testid="workspace-app-messages"]').classes()).not.toContain('justify-center')
-    expect(localStorage.getItem('muon_workspace_rail_collapsed')).toBe('true')
-
-    window.dispatchEvent(new MouseEvent('pointerup', { bubbles: true }))
-  })
-
-  it('expands from icon-only mode by dragging the app rail edge', async () => {
-    localStorage.setItem('muon_workspace_rail_collapsed', 'true')
-
-    const wrapper = mount(WorkspaceAppRail)
-    const rail = wrapper.get('[data-testid="workspace-app-rail"]')
-
-    await nextTick()
-
-    expect(rail.attributes('style')).toContain('width: 72px')
-
-    const handle = wrapper.get('[data-testid="workspace-rail-resize-handle"]')
-    handle.element.dispatchEvent(new MouseEvent('pointerdown', {
-      bubbles: true,
-      cancelable: true,
-      button: 0,
-      clientX: 72,
-    }))
-    await nextTick()
-
-    window.dispatchEvent(new MouseEvent('pointermove', {
-      bubbles: true,
-      clientX: 158,
-    }))
-    await nextTick()
-
-    expect(rail.attributes('style')).toContain('width: 158px')
-    expect(wrapper.get('[data-testid="workspace-app-label-messages"]').classes()).not.toContain('sr-only')
-    expect(localStorage.getItem('muon_workspace_rail_collapsed')).toBe('false')
-
-    window.dispatchEvent(new MouseEvent('pointerup', { bubbles: true }))
-  })
-
-  it('restores the app rail default width on double click', async () => {
-    const wrapper = mount(WorkspaceAppRail)
-    const rail = wrapper.get('[data-testid="workspace-app-rail"]')
-    const handle = wrapper.get('[data-testid="workspace-rail-resize-handle"]')
-
-    await handle.trigger('keydown', { key: 'End' })
-    expect(rail.attributes('style')).toContain('width: 188px')
-
-    await handle.trigger('dblclick')
-
-    expect(rail.attributes('style')).toContain('width: 148px')
-    expect(rail.attributes('aria-expanded')).toBeUndefined()
-    expect(wrapper.get('[data-testid="workspace-app-label-messages"]').classes()).not.toContain('sr-only')
-    expect(localStorage.getItem('muon_workspace_rail_width')).toBe('148')
   })
 })

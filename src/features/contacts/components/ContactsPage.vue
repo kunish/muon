@@ -24,9 +24,9 @@ const showCreateGroup = ref(false)
 const selectedGroupId = ref<string | null>(null)
 
 const CONTACTS_WIDTH_STORAGE_KEY = 'muon_contacts_sidebar_width'
-const DEFAULT_CONTACTS_WIDTH = 308
-const MIN_CONTACTS_WIDTH = 260
-const MAX_CONTACTS_WIDTH = 430
+const DEFAULT_CONTACTS_WIDTH = 240
+const MIN_CONTACTS_WIDTH = 220
+const MAX_CONTACTS_WIDTH = 360
 const contactsResizeLabel = computed(() => t('sidebar.resize_contacts'))
 
 onMounted(() => {
@@ -85,15 +85,24 @@ async function handleOpenMessage(userId: string): Promise<void> {
       :max-width="MAX_CONTACTS_WIDTH"
       :resize-label="contactsResizeLabel"
     >
-      <div class="flex items-center justify-between border-b border-sidebar-border/80 p-3.5">
-        <span class="text-sm font-medium">{{ t('contacts.title') }}</span>
-        <button
-          class="rounded-xl p-1.5 text-primary transition-all hover:bg-sidebar-accent"
-          :title="t('contacts.create_group')"
-          @click="showCreateGroup = true"
-        >
-          <Plus :size="14" />
-        </button>
+      <div class="border-b border-sidebar-border px-4 pb-4 pt-6">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <h1 class="text-[18px] font-semibold leading-6">
+              {{ t('contacts.title') }}
+            </h1>
+            <p class="mt-1 text-[13px] text-muted-foreground">
+              Directory &amp; Organization
+            </p>
+          </div>
+          <button
+            class="rounded-md p-1.5 text-primary transition-colors hover:bg-sidebar-accent"
+            :title="t('contacts.create_group')"
+            @click="showCreateGroup = true"
+          >
+            <Plus :size="16" />
+          </button>
+        </div>
       </div>
 
       <ContactList
@@ -105,17 +114,29 @@ async function handleOpenMessage(userId: string): Promise<void> {
       />
     </WorkspaceResizablePane>
 
-    <div class="flex min-w-0 flex-1 bg-background">
-      <GroupSettings
-        v-if="selectedGroupId"
-        :room-id="selectedGroupId"
-        @leave="selectedGroupId = null"
-      />
-      <UserProfile
-        v-else
-        @message="handleOpenMessage"
-      />
-    </div>
+    <section class="flex min-w-0 flex-1 flex-col bg-background">
+      <header class="flex h-14 shrink-0 items-center justify-between border-b border-border bg-sidebar px-4">
+        <div class="flex min-w-0 items-center gap-3">
+          <span class="text-[13px] font-semibold text-foreground">Muon Workspace</span>
+          <span class="text-muted-foreground">/</span>
+          <span class="truncate text-[13px] text-muted-foreground">
+            {{ selectedGroupId ? t('contacts.groups') : t('contacts.contacts') }}
+          </span>
+        </div>
+      </header>
+
+      <div class="flex min-h-0 min-w-0 flex-1">
+        <GroupSettings
+          v-if="selectedGroupId"
+          :room-id="selectedGroupId"
+          @leave="selectedGroupId = null"
+        />
+        <UserProfile
+          v-else
+          @message="handleOpenMessage"
+        />
+      </div>
+    </section>
 
     <CreateGroupDialog
       v-if="showCreateGroup"

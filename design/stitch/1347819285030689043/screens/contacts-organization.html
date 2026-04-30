@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Contacts - Lark Workspace</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .icon-fill {
+            font-variation-settings: 'FILL' 1;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "surface-container": "#1d2024",
+                        "error": "#ffb4ab",
+                        "on-secondary": "#003543",
+                        "primary-fixed": "#dde1ff",
+                        "inverse-on-surface": "#2e3135",
+                        "inverse-surface": "#e1e2e8",
+                        "surface-dim": "#111417",
+                        "surface-container-highest": "#323539",
+                        "tertiary-container": "#bd4100",
+                        "on-secondary-fixed": "#001f28",
+                        "surface-bright": "#36393e",
+                        "background": "#111417",
+                        "on-error-container": "#ffdad6",
+                        "outline-variant": "#434656",
+                        "on-primary-fixed-variant": "#0036bc",
+                        "on-error": "#690005",
+                        "on-tertiary": "#5b1b00",
+                        "primary": "#b8c4ff",
+                        "error-container": "#93000a",
+                        "tertiary-fixed": "#ffdbcf",
+                        "on-secondary-fixed-variant": "#004e60",
+                        "on-primary-fixed": "#001355",
+                        "on-primary-container": "#eaebff",
+                        "secondary-container": "#14d1ff",
+                        "inverse-primary": "#174cea",
+                        "secondary-fixed-dim": "#4cd6ff",
+                        "secondary-fixed": "#b7eaff",
+                        "on-primary": "#002486",
+                        "surface-tint": "#b8c4ff",
+                        "primary-fixed-dim": "#b8c4ff",
+                        "surface-container-lowest": "#0b0e12",
+                        "on-tertiary-container": "#ffe8e0",
+                        "on-tertiary-fixed": "#380d00",
+                        "outline": "#8e90a1",
+                        "secondary": "#a6e6ff",
+                        "surface-container-high": "#272a2e",
+                        "surface-container-low": "#191c20",
+                        "tertiary": "#ffb59a",
+                        "surface": "#111417",
+                        "on-tertiary-fixed-variant": "#802a00",
+                        "tertiary-fixed-dim": "#ffb59a",
+                        "on-background": "#e1e2e8",
+                        "primary-container": "#2d5af7",
+                        "on-secondary-container": "#00566b",
+                        "surface-variant": "#323539",
+                        "on-surface": "#e1e2e8",
+                        "on-surface-variant": "#c4c5d8"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    spacing: {
+                        "padding-lg": "24px",
+                        "content_min": "480px",
+                        "padding-sm": "8px",
+                        "unit": "4px",
+                        "padding-xs": "4px",
+                        "gutter": "1px",
+                        "padding-md": "16px",
+                        "nav_width": "240px",
+                        "sidebar_width": "64px"
+                    },
+                    fontFamily: {
+                        "h2": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "h1": ["Inter"],
+                        "label-caps": ["Inter"],
+                        "code": ["JetBrains Mono"],
+                        "body-lg": ["Inter"],
+                        "body-md": ["Inter"]
+                    },
+                    fontSize: {
+                        "h2": ["18px", { lineHeight: "24px", letterSpacing: "-0.01em", fontWeight: "600" }],
+                        "body-sm": ["13px", { lineHeight: "18px", fontWeight: "400" }],
+                        "h1": ["24px", { lineHeight: "32px", letterSpacing: "-0.02em", fontWeight: "600" }],
+                        "label-caps": ["11px", { lineHeight: "16px", letterSpacing: "0.05em", fontWeight: "700" }],
+                        "code": ["13px", { lineHeight: "18px", fontWeight: "400" }],
+                        "body-lg": ["15px", { lineHeight: "22px", fontWeight: "400" }],
+                        "body-md": ["14px", { lineHeight: "20px", fontWeight: "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-background text-on-surface font-body-md h-screen overflow-hidden flex">
+<!-- Global App Rail (SideNavBar - Rail) -->
+<aside class="fixed left-0 top-0 h-full w-[64px] border-r border-[#1A1D21] bg-[#0F1113] z-50 flex flex-col justify-between py-4">
+<!-- Top Icons -->
+<div class="flex flex-col items-center gap-6 w-full">
+<!-- Brand Avatar / Placeholder -->
+<div class="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center text-white font-bold text-lg mb-2">
+                L
+            </div>
+<!-- Tabs -->
+<button class="w-full flex justify-center py-2 text-gray-500 hover:text-gray-300 transition-colors scale-95 active:scale-90" title="Chat">
+<span class="material-symbols-outlined text-[24px]">chat</span>
+</button>
+<button class="w-full flex justify-center py-2 text-gray-500 hover:text-gray-300 transition-colors scale-95 active:scale-90" title="Docs">
+<span class="material-symbols-outlined text-[24px]">description</span>
+</button>
+<button class="w-full flex justify-center py-2 text-gray-500 hover:text-gray-300 transition-colors scale-95 active:scale-90" title="Calendar">
+<span class="material-symbols-outlined text-[24px]">calendar_month</span>
+</button>
+<button class="w-full flex justify-center py-2 text-gray-500 hover:text-gray-300 transition-colors scale-95 active:scale-90" title="Workplace">
+<span class="material-symbols-outlined text-[24px]">grid_view</span>
+</button>
+<!-- Active Tab: Contacts -->
+<button class="w-full flex justify-center py-2 relative text-[#2D5AF7] before:absolute before:left-0 before:top-1/4 before:h-1/2 before:w-[2px] before:bg-[#2D5AF7] bg-[#24292E]/30 scale-95 active:scale-90 transition-all" title="Contacts">
+<span class="material-symbols-outlined icon-fill text-[24px]">contacts</span>
+</button>
+</div>
+<!-- Footer Icons -->
+<div class="flex flex-col items-center gap-6 w-full">
+<button class="w-full flex justify-center py-2 text-gray-500 hover:text-gray-300 transition-colors scale-95 active:scale-90" title="Settings">
+<span class="material-symbols-outlined text-[24px]">settings</span>
+</button>
+<button class="w-full flex justify-center py-2 text-gray-500 hover:text-gray-300 transition-colors scale-95 active:scale-90" title="Help">
+<span class="material-symbols-outlined text-[24px]">help</span>
+</button>
+</div>
+</aside>
+<!-- Navigation Pane (Organization Tree & Lists) - Adapted from Pane JSON structure -->
+<nav class="fixed left-[64px] top-0 h-full w-[240px] border-r border-[#24292E] bg-[#1A1D21] z-40 flex flex-col">
+<!-- Header -->
+<div class="pt-6 px-4 pb-4">
+<h2 class="font-h2 text-h2 text-white">Contacts</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Directory &amp; Organization</p>
+</div>
+<!-- Search Input inside pane -->
+<div class="px-4 pb-4 border-b border-[#24292E]">
+<div class="relative flex items-center w-full h-8 bg-surface-container-high rounded border border-transparent focus-within:border-[#2D5AF7] transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant text-[16px] ml-2 absolute">search</span>
+<input class="w-full h-full bg-transparent border-none focus:ring-0 text-sm text-on-surface pl-8 pr-2 placeholder-on-surface-variant outline-none font-body-sm" placeholder="Find contact..." type="text"/>
+</div>
+</div>
+<!-- Directory List -->
+<div class="flex-1 overflow-y-auto px-2 py-4 flex flex-col gap-1 font-inter text-sm font-semibold">
+<!-- Group 1 -->
+<div class="px-2 pb-1 pt-2">
+<span class="font-label-caps text-label-caps text-on-surface-variant">MY CONTACTS</span>
+</div>
+<button class="flex items-center gap-3 px-3 py-2 text-gray-400 hover:text-gray-200 hover:bg-[#24292E]/50 rounded-md transition-colors duration-150 w-full text-left">
+<span class="material-symbols-outlined text-[18px]">group</span>
+<span>My Team</span>
+</button>
+<button class="flex items-center gap-3 px-3 py-2 text-gray-400 hover:text-gray-200 hover:bg-[#24292E]/50 rounded-md transition-colors duration-150 w-full text-left">
+<span class="material-symbols-outlined text-[18px]">star</span>
+<span>Favorites</span>
+</button>
+<!-- Group 2: Organization -->
+<div class="px-2 pb-1 pt-4">
+<span class="font-label-caps text-label-caps text-on-surface-variant">ORGANIZATION</span>
+</div>
+<!-- Active state in list -->
+<button class="flex items-center gap-3 bg-[#24292E] text-white rounded-md px-3 py-2 w-full text-left transition-colors duration-150">
+<span class="material-symbols-outlined text-[18px] text-[#2D5AF7]">folder</span>
+<span>Engineering</span>
+</button>
+<button class="flex items-center gap-3 px-3 py-2 text-gray-400 hover:text-gray-200 hover:bg-[#24292E]/50 rounded-md transition-colors duration-150 w-full text-left">
+<span class="material-symbols-outlined text-[18px]">folder</span>
+<span>Design</span>
+</button>
+<button class="flex items-center gap-3 px-3 py-2 text-gray-400 hover:text-gray-200 hover:bg-[#24292E]/50 rounded-md transition-colors duration-150 w-full text-left">
+<span class="material-symbols-outlined text-[18px]">folder</span>
+<span>Product</span>
+</button>
+<button class="flex items-center gap-3 px-3 py-2 text-gray-400 hover:text-gray-200 hover:bg-[#24292E]/50 rounded-md transition-colors duration-150 w-full text-left">
+<span class="material-symbols-outlined text-[18px]">folder</span>
+<span>Marketing</span>
+</button>
+</div>
+<!-- CTA -->
+<div class="p-4 border-t border-[#24292E]">
+<button class="w-full py-2 bg-surface-container-high hover:bg-[#24292E] text-white rounded border border-outline-variant font-body-sm text-body-sm transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[16px]">person_add</span>
+                Add Contact
+            </button>
+</div>
+</nav>
+<!-- Top App Bar -->
+<header class="fixed top-0 right-0 left-[304px] h-14 border-b border-[#24292E] bg-[#1A1D21] z-30 flex justify-between items-center px-4">
+<!-- Brand / Context -->
+<div class="flex items-center gap-4">
+<span class="text-white font-semibold font-inter text-sm">Lark Workspace</span>
+<span class="text-outline-variant">/</span>
+<span class="text-on-surface-variant font-body-sm text-body-sm">Engineering</span>
+</div>
+<!-- Trailing Actions -->
+<div class="flex items-center gap-2 text-gray-400">
+<button class="p-1.5 hover:bg-[#24292E] rounded-md cursor-pointer active:opacity-80 transition-colors flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">videocam</span>
+</button>
+<button class="p-1.5 hover:bg-[#24292E] rounded-md cursor-pointer active:opacity-80 transition-colors flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">call</span>
+</button>
+<button class="p-1.5 hover:bg-[#24292E] rounded-md cursor-pointer active:opacity-80 transition-colors flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">person_add</span>
+</button>
+<div class="w-px h-4 bg-outline-variant mx-1"></div>
+<button class="p-1.5 hover:bg-[#24292E] rounded-md cursor-pointer active:opacity-80 transition-colors flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">more_horiz</span>
+</button>
+</div>
+</header>
+<!-- Main Workspace Area -->
+<main class="ml-[304px] mt-14 w-full h-[calc(100vh-56px)] overflow-y-auto bg-background p-padding-lg flex justify-center items-start">
+<!-- Detailed Contact Card (Bento/Minimalist Corporate Style) -->
+<div class="w-full max-w-3xl bg-surface-container rounded-xl border border-outline-variant mt-8 flex flex-col overflow-hidden shadow-2xl shadow-black/50">
+<!-- Header Section (Glassy/Tonal shift) -->
+<div class="bg-surface-container-highest p-padding-lg flex flex-col sm:flex-row items-start sm:items-center gap-padding-lg border-b border-outline-variant">
+<!-- Profile Photo -->
+<div class="w-24 h-24 rounded-full overflow-hidden border-2 border-outline-variant flex-shrink-0 bg-surface-dim">
+<img alt="Profile Photo" class="w-full h-full object-cover" data-alt="A professional headshot of a mature businessman in a modern corporate setting. He is wearing a sharp, dark gray suit with a crisp white shirt. The lighting is studio-quality, emphasizing a composed and authoritative demeanor. The background is slightly blurred, showing a sleek, minimalist office environment with dark tonal colors." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA9Jhfxt1y_geyUm7o3j8b07FZtjdLYvGYRjZwwky3x5qD1uLURHPRtWe4htIgHTwT8R5n-oErYdvAnxjLTKBZOqIBBxKPbi4TVn38ek6WrJEs_AwinKtmaTRhEH4a7KwIePvM8iNxf7_7rAtLYNljFX-2WoB67nISUtkI7iKzvlto1g_S0Z783Xod63Ix6wkZPw8vMvQ0bYLPMN5uaNIRjoz3PuCMBIBnbx8OKfNiwvBWsb7yqkpLb5wyr9IiE-93SdzCm8-SOhmo"/>
+</div>
+<!-- Core Info -->
+<div class="flex-1">
+<div class="flex items-center gap-3 mb-1">
+<h1 class="font-h1 text-h1 text-white">Alexander Chen</h1>
+<span class="bg-[#2D5AF7]/20 text-[#2D5AF7] border border-[#2D5AF7]/30 px-2 py-0.5 rounded font-label-caps text-label-caps flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-[#2D5AF7]"></span>
+                            ONLINE
+                        </span>
+</div>
+<p class="font-body-lg text-body-lg text-on-surface-variant mb-3">Senior Staff Engineer, Platform Infrastructure</p>
+<div class="flex flex-wrap gap-2">
+<span class="bg-surface-variant text-on-surface-variant px-2.5 py-1 rounded font-label-caps text-label-caps">ENGINEERING</span>
+<span class="bg-surface-variant text-on-surface-variant px-2.5 py-1 rounded font-label-caps text-label-caps">SAN FRANCISCO HQ</span>
+</div>
+</div>
+<!-- Primary Action -->
+<div class="w-full sm:w-auto mt-4 sm:mt-0 flex flex-col gap-2">
+<button class="w-full sm:w-auto bg-[#2D5AF7] hover:bg-[#2D5AF7]/90 text-white px-6 py-2.5 rounded border border-transparent font-body-sm text-body-sm font-medium transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[18px]">chat</span>
+                        Send Message
+                    </button>
+</div>
+</div>
+<!-- Details Section (Bento Grid Style) -->
+<div class="p-padding-lg grid grid-cols-1 md:grid-cols-2 gap-padding-lg bg-surface">
+<!-- Contact Info Block -->
+<div class="flex flex-col gap-4">
+<h3 class="font-label-caps text-label-caps text-on-surface-variant uppercase tracking-wider mb-2 border-b border-outline-variant pb-2">Contact Information</h3>
+<div class="flex items-start gap-3">
+<span class="material-symbols-outlined text-outline-variant mt-0.5">mail</span>
+<div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-0.5">Email Address</p>
+<a class="font-body-md text-body-md text-[#2D5AF7] hover:underline" href="#">alexander.chen@lark.inc</a>
+</div>
+</div>
+<div class="flex items-start gap-3">
+<span class="material-symbols-outlined text-outline-variant mt-0.5">phone</span>
+<div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-0.5">Office Phone</p>
+<p class="font-body-md text-body-md text-on-surface">+1 (415) 555-0198</p>
+</div>
+</div>
+<div class="flex items-start gap-3">
+<span class="material-symbols-outlined text-outline-variant mt-0.5">smartphone</span>
+<div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-0.5">Mobile Phone</p>
+<p class="font-body-md text-body-md text-on-surface">+1 (650) 555-8832</p>
+</div>
+</div>
+</div>
+<!-- Organization Info Block -->
+<div class="flex flex-col gap-4">
+<h3 class="font-label-caps text-label-caps text-on-surface-variant uppercase tracking-wider mb-2 border-b border-outline-variant pb-2">Organization</h3>
+<div class="flex items-start gap-3">
+<span class="material-symbols-outlined text-outline-variant mt-0.5">badge</span>
+<div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-0.5">Employee ID</p>
+<p class="font-code text-code text-on-surface">EMP-2048-XC</p>
+</div>
+</div>
+<div class="flex items-start gap-3">
+<span class="material-symbols-outlined text-outline-variant mt-0.5">account_tree</span>
+<div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-0.5">Direct Manager</p>
+<div class="flex items-center gap-2 mt-1 bg-surface-container-high p-1.5 rounded-md w-fit border border-outline-variant cursor-pointer hover:bg-surface-variant transition-colors">
+<div class="w-6 h-6 rounded-full bg-surface-dim overflow-hidden">
+<img alt="Manager Photo" class="w-full h-full object-cover" data-alt="A small professional headshot of a confident businesswoman. She has dark hair and is wearing a business suit. The background is a plain, dark corporate gray." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCRV0Q9SLULYmOcodxlC5jR9rLf3R5ZQ18_AMCKLJEAzdT0eOmccyzybYN8caW5T2Z3hkaYc9ZbjIg0-YHixAvp3oHh5sPs4WvpB6AR3mZ506SAwTn9tLolGAhhwwi2e_-LJe5sI0ratDmWcNNR-ZVmlrcSa4m5a9FOUEGe_iV_wwq2F4Cyz3J6RAICS_k-G6zQP8v-ACJx9AN4UWnoRP2QSvs1tEwK1A81P6NHPKYXaPLbpZ23Q_fKYUuWTxAxtlxYBMA5k-OVEXk"/>
+</div>
+<span class="font-body-sm text-body-sm text-white pr-2">Sarah Jenkins</span>
+</div>
+</div>
+</div>
+<div class="flex items-start gap-3">
+<span class="material-symbols-outlined text-outline-variant mt-0.5">schedule</span>
+<div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-0.5">Local Time</p>
+<p class="font-body-md text-body-md text-on-surface">10:42 AM (PST)</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Footer Actions -->
+<div class="bg-surface-container p-4 border-t border-outline-variant flex justify-end gap-3">
+<button class="px-4 py-2 text-on-surface-variant hover:text-white font-body-sm text-body-sm transition-colors rounded hover:bg-surface-variant border border-transparent">
+                    View Full Profile
+                </button>
+<button class="px-4 py-2 bg-surface-container-high hover:bg-surface-variant text-white font-body-sm text-body-sm rounded border border-outline-variant transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px]">calendar_add_on</span>
+                    Schedule Meeting
+                </button>
+</div>
+</div>
+</main>
+</body></html>

@@ -113,7 +113,7 @@ describe('conversation list spacing', () => {
     const wrapper = mountConversationList()
     const headerAvatar = wrapper.findComponent({ name: 'Avatar' })
 
-    expect(headerAvatar.classes()).toEqual(expect.arrayContaining(['h-7', 'w-7']))
+    expect(headerAvatar.classes()).toEqual(expect.arrayContaining(['h-8', 'w-8']))
     expect(headerAvatar.classes()).not.toContain('ring-1')
     expect(headerAvatar.classes()).not.toContain('ring-border/30')
   })

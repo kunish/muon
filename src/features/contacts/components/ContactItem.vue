@@ -21,8 +21,8 @@ const statusMsg = computed(() => {
 
 <template>
   <div
-    class="flex items-center gap-3 px-3 py-2 cursor-pointer transition-colors"
-    :class="selected ? 'bg-accent' : 'hover:bg-accent/50'"
+    class="workspace-row relative flex cursor-pointer items-center gap-3 px-3 py-2 text-muted-foreground"
+    :class="selected ? 'workspace-row-active' : ''"
     @click="$emit('click')"
     @dblclick="$emit('dblclick')"
   >
@@ -35,18 +35,18 @@ const statusMsg = computed(() => {
         size="sm"
       />
       <div
-        class="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-background"
+        class="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-sidebar"
         :class="contact.presence === 'online' ? 'bg-success' : 'bg-muted-foreground/30'"
       />
     </div>
-    <div class="flex-1 min-w-0">
-      <div class="text-sm truncate">
+    <div class="min-w-0 flex-1">
+      <div class="truncate text-[13px] font-semibold text-foreground">
         {{ contact.displayName }}
       </div>
-      <div v-if="statusMsg" class="text-xs text-muted-foreground/70 truncate">
+      <div v-if="statusMsg" class="truncate text-[12px] text-muted-foreground">
         {{ statusMsg }}
       </div>
-      <div v-else class="text-xs text-muted-foreground truncate">
+      <div v-else class="truncate text-[12px] text-muted-foreground">
         {{ contact.userId }}
       </div>
     </div>

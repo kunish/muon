@@ -518,8 +518,8 @@ describe('context menu hover state', () => {
       },
     })
 
-    expect(wrapper.classes()).toContain('bg-accent/50')
-    expect(wrapper.classes()).toContain('shadow-[0_1px_4px_rgba(0,0,0,0.02)]')
+    expect(wrapper.classes()).toContain('bg-accent')
+    expect(wrapper.classes()).not.toContain('shadow-[0_1px_4px_rgba(0,0,0,0.02)]')
   })
 
   it('keeps the conversation context menu away from the viewport edge', async () => {

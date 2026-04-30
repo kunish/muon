@@ -88,15 +88,13 @@ function toggleSidePanelFromMenu(panel: SidePanelType) {
 </script>
 
 <template>
-  <div v-if="hasHeaderInfo" class="shrink-0 border-b border-border bg-background/95 backdrop-blur-xl">
-    <!-- Header row -->
-    <div class="flex h-12 min-w-0 items-center gap-2 px-3 sm:px-4">
-      <!-- Left: channel icon + name + topic -->
+  <div v-if="hasHeaderInfo" class="shrink-0 border-b border-border bg-sidebar">
+    <div class="flex h-14 min-w-0 items-center gap-2 px-4">
       <div data-testid="chat-header-title" class="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden">
         <AtSign v-if="isDirect" :size="20" class="text-muted-foreground shrink-0" />
         <Lock v-else-if="isEncrypted" :size="20" class="text-success shrink-0" />
         <Hash v-else :size="20" class="text-muted-foreground shrink-0" />
-        <span data-testid="chat-header-room-name" class="min-w-0 truncate font-semibold text-[15px] text-foreground">{{ roomName }}</span>
+        <span data-testid="chat-header-room-name" class="min-w-0 truncate text-[15px] font-semibold text-foreground">{{ roomName }}</span>
         <template v-if="roomTopic">
           <div
             class="mx-1.5 hidden h-4 w-px shrink-0 bg-border/60"
@@ -110,12 +108,11 @@ function toggleSidePanelFromMenu(panel: SidePanelType) {
         </template>
       </div>
 
-      <!-- Right: action buttons -->
       <div class="flex shrink-0 items-center gap-1 sm:gap-1.5">
         <button
           v-for="action in sidePanelActions"
           :key="action.id"
-          class="cursor-pointer items-center justify-center rounded-[var(--radius)] p-1.5 text-muted-foreground transition-all duration-150 hover:bg-accent hover:text-foreground"
+          class="cursor-pointer items-center justify-center rounded-md p-1.5 text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-foreground"
           :title="action.label"
           :data-testid="`chat-header-action-${action.id}`"
           :class="[
@@ -128,13 +125,13 @@ function toggleSidePanelFromMenu(panel: SidePanelType) {
         </button>
         <button
           type="button"
-          class="header-search-btn group flex cursor-pointer items-center rounded-[var(--radius)] text-muted-foreground transition-all duration-150"
+          class="header-search-btn group flex cursor-pointer items-center rounded-md text-muted-foreground transition-colors duration-150"
           :title="t('chat.search_messages')"
           @click="store.toggleSidePanel('search')"
         >
           <div
             data-testid="chat-header-search-control"
-            class="flex items-center gap-1.5 rounded-[var(--radius)] bg-input text-xs text-muted-foreground transition-colors group-hover:bg-[color-mix(in_srgb,var(--color-input)_70%,var(--color-accent))] group-hover:text-foreground"
+            class="flex items-center gap-1.5 rounded-md border border-border bg-input text-xs text-muted-foreground transition-colors group-hover:bg-accent group-hover:text-foreground"
             :class="[
               isCompactHeader ? 'size-8 justify-center' : 'size-8 justify-center sm:w-[140px] sm:justify-start sm:px-2 sm:py-1.5',
               store.activeSidePanel === 'search' && 'bg-accent text-foreground',
@@ -150,7 +147,7 @@ function toggleSidePanelFromMenu(panel: SidePanelType) {
 
         <div class="relative">
           <button
-            class="flex cursor-pointer items-center justify-center rounded-[var(--radius)] p-1.5 text-muted-foreground transition-all duration-150 hover:bg-accent hover:text-foreground"
+            class="flex cursor-pointer items-center justify-center rounded-md p-1.5 text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-foreground"
             :title="t('chat.more_actions')"
             data-testid="chat-header-more-button"
             aria-haspopup="menu"
@@ -163,13 +160,13 @@ function toggleSidePanelFromMenu(panel: SidePanelType) {
           <div
             v-if="showMore"
             role="menu"
-            class="absolute right-0 top-full z-30 mt-1 min-w-[170px] rounded-md bg-popover p-1 shadow-[0_8px_24px_rgba(0,0,0,0.45)]"
+            class="workspace-menu absolute right-0 top-full z-30 mt-1 min-w-[170px]"
           >
             <button
               v-for="action in sidePanelActions"
               :key="`compact-${action.id}`"
               role="menuitem"
-              class="flex w-full cursor-pointer items-center gap-2 rounded-[var(--radius)] px-2 py-1.5 text-muted-foreground transition-all duration-[120ms] hover:bg-accent hover:text-accent-foreground"
+              class="flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-muted-foreground transition-colors duration-[120ms] hover:bg-accent hover:text-accent-foreground"
               :data-testid="`chat-header-menu-${action.id}`"
               :class="[
                 !isCompactHeader && 'sm:hidden',
@@ -184,11 +181,11 @@ function toggleSidePanelFromMenu(panel: SidePanelType) {
               class="my-1 h-px bg-border/60"
               :class="!isCompactHeader && 'sm:hidden'"
             />
-            <button role="menuitem" class="flex w-full cursor-pointer items-center gap-2 rounded-[var(--radius)] px-2 py-1.5 text-muted-foreground transition-all duration-[120ms] hover:bg-accent hover:text-accent-foreground" @click="toggleStarred">
+            <button role="menuitem" class="flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-muted-foreground transition-colors duration-[120ms] hover:bg-accent hover:text-accent-foreground" @click="toggleStarred">
               <Star :size="14" />
               <span>{{ t('chat.starred_messages') }}</span>
             </button>
-            <button role="menuitem" class="flex w-full cursor-pointer items-center gap-2 rounded-[var(--radius)] px-2 py-1.5 text-muted-foreground transition-all duration-[120ms] hover:bg-accent hover:text-accent-foreground" @click="openDisappearing">
+            <button role="menuitem" class="flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-muted-foreground transition-colors duration-[120ms] hover:bg-accent hover:text-accent-foreground" @click="openDisappearing">
               <Timer :size="14" />
               <span>{{ t('chat.disappearing_messages') }}</span>
             </button>
@@ -199,14 +196,14 @@ function toggleSidePanelFromMenu(panel: SidePanelType) {
       <div v-if="showMore" class="fixed inset-0 z-20" @click="showMore = false" />
     </div>
 
-    <div class="muon-scrollbar-hidden flex h-8 items-center gap-1 overflow-x-auto border-t border-border/35 px-3 sm:px-4">
+    <div class="muon-scrollbar-hidden flex h-9 items-center gap-1 overflow-x-auto border-t border-border px-4">
       <button
         v-for="tab in contentTabs"
         :key="tab.id"
         type="button"
-        class="flex h-7 shrink-0 select-none items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        class="flex h-7 shrink-0 select-none items-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         :class="props.activeTab === tab.id
-          ? 'bg-primary/12 text-primary shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-primary)_24%,transparent)]'
+          ? 'bg-accent text-primary shadow-[inset_2px_0_0_var(--color-primary)]'
           : 'text-muted-foreground hover:bg-accent hover:text-foreground'"
         :data-testid="`chat-tab-${tab.id}`"
         :aria-pressed="props.activeTab === tab.id"
@@ -217,7 +214,7 @@ function toggleSidePanelFromMenu(panel: SidePanelType) {
       </button>
       <button
         type="button"
-        class="ml-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-all duration-150 hover:bg-accent hover:text-foreground"
+        class="ml-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-foreground"
         :title="t('chat.tab_add')"
       >
         <Plus :size="14" />

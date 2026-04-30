@@ -41,6 +41,16 @@ const router = createRouter({
           component: () => import('@features/contacts/components/ContactsPage.vue'),
         },
         {
+          path: 'docs',
+          name: 'docs',
+          component: () => import('@features/docs/components/DocsPage.vue'),
+        },
+        {
+          path: 'workplace',
+          name: 'workplace',
+          component: () => import('@features/workplace/components/WorkplacePage.vue'),
+        },
+        {
           path: 'settings',
           name: 'settings',
           component: () => import('@features/settings/components/SettingsPage.vue'),

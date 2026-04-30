@@ -92,9 +92,8 @@ function isConversationContextMenuOpen(roomId: string): boolean {
 
 <template>
   <div class="flex flex-col h-full bg-sidebar">
-    <!-- 顶栏 -->
-    <div class="relative z-10 px-3 pt-3 pb-1.5 after:absolute after:bottom-0 after:left-3 after:right-3 after:h-px after:bg-[linear-gradient(90deg,transparent,var(--color-border)_20%,var(--color-border)_80%,transparent)] after:opacity-50 after:content-['']">
-      <div class="flex items-center justify-between mb-2">
+    <div class="relative z-10 border-b border-sidebar-border px-3 pb-4 pt-6">
+      <div class="mb-4 flex items-center justify-between">
         <div class="flex items-center gap-2.5">
           <Avatar
             :src="currentUser.mxcAvatar"
@@ -102,15 +101,15 @@ function isConversationContextMenuOpen(roomId: string): boolean {
             :color-id="currentUser.userId"
             size="xs"
             shape="circle"
-            class="w-7 h-7 cursor-pointer"
+            class="h-8 w-8 cursor-pointer"
             @click="router.push('/settings')"
           />
-          <h2 class="text-[14px] font-semibold tracking-tight text-foreground/90">
+          <h2 class="text-[18px] font-semibold leading-6 text-foreground">
             {{ t('chat.messages_title') }}
           </h2>
         </div>
         <button
-          class="conv-new-btn p-1.5 rounded-lg hover:bg-accent text-muted-foreground/60 hover:text-muted-foreground transition-all duration-200 hover:scale-110 active:scale-95"
+          class="conv-new-btn rounded-md p-1.5 text-primary transition-colors hover:bg-accent"
           :title="t('chat.new_conversation')"
           @click="globalUi.openNewChat"
         >
@@ -118,18 +117,17 @@ function isConversationContextMenuOpen(roomId: string): boolean {
         </button>
       </div>
 
-      <!-- 搜索 - 增强聚焦态 -->
       <div class="relative conv-search-wrap">
         <Search
-          class="absolute left-2.5 top-1/2 -translate-y-1/2 transition-all duration-200"
-          :class="searchFocused ? 'text-primary/70 scale-110' : 'text-muted-foreground/40'"
-          :size="13"
+          class="absolute left-3 top-1/2 -translate-y-1/2 transition-colors duration-150"
+          :class="searchFocused ? 'text-primary' : 'text-muted-foreground'"
+          :size="15"
         />
         <input
           :value="store.searchQuery"
           type="text"
           :placeholder="t('chat.search_conversation')"
-          class="conv-search w-full h-[30px] pl-7.5 pr-3 text-[12px] rounded-lg bg-accent/40 border border-transparent outline-none placeholder:text-muted-foreground/35 transition-all duration-200 focus:bg-accent/70 focus:border-ring/20 focus:shadow-[0_0_0_3px_rgba(var(--color-ring-rgb,0,0,0),0.06)]"
+          class="conv-search h-8 w-full rounded-md border border-transparent bg-input pl-8 pr-3 text-[13px] text-foreground outline-none transition-colors duration-150 placeholder:text-muted-foreground focus:border-primary"
           @input="store.setSearchQuery(($event.target as HTMLInputElement).value)"
           @focus="searchFocused = true"
           @blur="searchFocused = false"
@@ -140,12 +138,12 @@ function isConversationContextMenuOpen(roomId: string): boolean {
     <!-- 快捷入口：置顶联系人 — 从左侧开始排列 -->
     <div
       v-if="quickAccessContacts.length > 0 && !store.searchQuery"
-      class="muon-scrollbar-hidden flex items-start justify-start gap-2 overflow-x-auto border-b border-[color-mix(in_srgb,var(--color-border)_40%,transparent)] px-3 py-2"
+      class="muon-scrollbar-hidden flex items-start justify-start gap-2 overflow-x-auto border-b border-sidebar-border px-3 py-2"
     >
       <button
         v-for="c in quickAccessContacts"
         :key="c.roomId"
-        class="flex w-12 shrink-0 flex-col items-center gap-1 min-w-0 group cursor-pointer"
+        class="group flex w-12 min-w-0 shrink-0 cursor-pointer flex-col items-center gap-1"
         :title="c.name"
         @click="selectQuickContact(c.roomId)"
       >
@@ -156,10 +154,10 @@ function isConversationContextMenuOpen(roomId: string): boolean {
             :color-id="c.roomId"
             size="sm"
             shape="circle"
-            class="w-9 h-9 cursor-pointer transition-all duration-200 group-hover:scale-110"
+            class="h-9 w-9 cursor-pointer transition-transform duration-150 group-hover:scale-105"
           />
         </div>
-        <span class="text-[10px] text-muted-foreground/60 w-full text-center truncate leading-tight group-hover:text-foreground/80 transition-colors">
+        <span class="w-full truncate text-center text-[10px] leading-tight text-muted-foreground transition-colors group-hover:text-foreground">
           {{ c.name }}
         </span>
       </button>
@@ -167,17 +165,16 @@ function isConversationContextMenuOpen(roomId: string): boolean {
 
     <!-- 虚拟滚动会话列表 - 带顶部渐隐遮罩 -->
     <div
-      class="muon-scrollbar muon-scrollbar-compact flex-1 overflow-y-auto px-1.5 pt-0.5 scroll-smooth [mask-image:linear-gradient(to_bottom,transparent_0px,black_8px,black_calc(100%-8px),transparent_100%)] [-webkit-mask-image:linear-gradient(to_bottom,transparent_0px,black_8px,black_calc(100%-8px),transparent_100%)]"
+      class="muon-scrollbar muon-scrollbar-compact flex-1 overflow-y-auto px-2 pt-3 scroll-smooth"
     >
-      <!-- 筛选标签 -->
-      <div class="flex items-center gap-1 px-2.5 mb-1">
+      <div class="mb-3 flex items-center gap-1 px-1">
         <button
           v-for="tab in filterTabs"
           :key="tab.key"
-          class="cursor-pointer select-none rounded-md px-2.5 py-[3px] text-[11px] transition-all duration-150 active:scale-95"
+          class="cursor-pointer select-none rounded-md px-2.5 py-[3px] text-[11px] font-semibold transition-colors duration-150 active:scale-95"
           :class="store.activeFilter === tab.key
-            ? 'bg-primary/10 text-primary font-semibold'
-            : 'text-muted-foreground/50 hover:text-muted-foreground/80 hover:bg-accent/50'"
+            ? 'bg-accent text-foreground shadow-[inset_2px_0_0_var(--color-primary)]'
+            : 'text-muted-foreground hover:bg-accent hover:text-foreground'"
           @click="store.setFilter(tab.key)"
         >
           {{ tab.label }}
@@ -189,10 +186,10 @@ function isConversationContextMenuOpen(roomId: string): boolean {
         <div
           v-for="i in 6"
           :key="i"
-          class="flex items-center gap-3 px-2.5 py-[9px] rounded-xl"
+          class="flex items-center gap-3 rounded-md px-2.5 py-[9px]"
           :style="{ animationDelay: `${i * 80}ms` }"
         >
-          <div class="h-10 w-10 shrink-0 animate-[skeleton-shimmer_1.8s_ease-in-out_infinite] rounded-[12px] bg-[linear-gradient(90deg,color-mix(in_srgb,var(--color-accent)_50%,transparent)_0%,color-mix(in_srgb,var(--color-accent)_90%,transparent)_40%,color-mix(in_srgb,var(--color-accent)_50%,transparent)_100%)] bg-[length:200%_100%]" />
+          <div class="h-10 w-10 shrink-0 animate-[skeleton-shimmer_1.8s_ease-in-out_infinite] rounded-md bg-[linear-gradient(90deg,color-mix(in_srgb,var(--color-accent)_50%,transparent)_0%,color-mix(in_srgb,var(--color-accent)_90%,transparent)_40%,color-mix(in_srgb,var(--color-accent)_50%,transparent)_100%)] bg-[length:200%_100%]" />
           <div class="flex-1 space-y-2.5">
             <div class="h-3 animate-[skeleton-shimmer_1.8s_ease-in-out_infinite] rounded-md bg-[linear-gradient(90deg,color-mix(in_srgb,var(--color-accent)_50%,transparent)_0%,color-mix(in_srgb,var(--color-accent)_90%,transparent)_40%,color-mix(in_srgb,var(--color-accent)_50%,transparent)_100%)] bg-[length:200%_100%]" :style="{ width: `${55 + i * 6}%` }" />
             <div class="h-2.5 animate-[skeleton-shimmer_1.8s_ease-in-out_infinite] rounded-md bg-[linear-gradient(90deg,color-mix(in_srgb,var(--color-accent)_50%,transparent)_0%,color-mix(in_srgb,var(--color-accent)_90%,transparent)_40%,color-mix(in_srgb,var(--color-accent)_50%,transparent)_100%)] bg-[length:200%_100%]" :style="{ width: `${70 + i * 3}%` }" />
@@ -232,16 +229,16 @@ function isConversationContextMenuOpen(roomId: string): boolean {
       <!-- 空状态 - 增强氛围 -->
       <div
         v-else
-        class="flex flex-col items-center justify-center py-16 text-muted-foreground/50"
+        class="flex flex-col items-center justify-center py-16 text-muted-foreground"
       >
         <div
-          class="w-11 h-11 rounded-xl bg-accent/50 flex items-center justify-center mb-3 shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
+          class="mb-3 flex h-11 w-11 items-center justify-center rounded-lg border border-border bg-accent"
           style="animation: breathe 3s ease-in-out infinite"
         >
-          <MessageSquarePlus :size="18" class="opacity-35" />
+          <MessageSquarePlus :size="18" class="opacity-60" />
         </div>
         <span class="text-[12px] font-medium">{{ store.searchQuery ? t('chat.no_match') : t('chat.no_conversations') }}</span>
-        <span v-if="!store.searchQuery" class="text-[11px] mt-1 text-muted-foreground/30">{{ t('chat.start_new') }}</span>
+        <span v-if="!store.searchQuery" class="mt-1 text-[11px] text-muted-foreground">{{ t('chat.start_new') }}</span>
       </div>
     </div>
 

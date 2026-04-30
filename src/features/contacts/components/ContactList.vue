@@ -29,7 +29,7 @@ function handleSelectContact(userId: string): void {
     <div class="shrink-0 p-3">
       <label
         data-testid="contacts-search-control"
-        class="flex h-9 items-center gap-2 rounded-xl bg-muted/80 px-3 text-muted-foreground"
+        class="flex h-8 items-center gap-2 rounded-md border border-transparent bg-input px-3 text-muted-foreground focus-within:border-primary"
       >
         <Search
           :size="16"
@@ -41,7 +41,7 @@ function handleSelectContact(userId: string): void {
           data-testid="contacts-search-input"
           type="text"
           :placeholder="t('contacts.search')"
-          class="h-full min-w-0 flex-1 bg-transparent text-sm leading-5 text-foreground outline-none placeholder:text-muted-foreground/70"
+          class="h-full min-w-0 flex-1 bg-transparent text-[13px] leading-5 text-foreground outline-none placeholder:text-muted-foreground"
         >
       </label>
     </div>
@@ -50,7 +50,7 @@ function handleSelectContact(userId: string): void {
       class="min-h-0 flex-1 overflow-y-auto px-2 pb-3"
     >
       <section v-if="store.filteredContacts.length > 0" class="space-y-0.5">
-        <div class="px-2 pb-1 pt-1 text-xs font-medium text-muted-foreground">
+        <div class="px-2 pb-1 pt-1 text-[11px] font-bold uppercase leading-4 tracking-[0.05em] text-muted-foreground">
           {{ t('contacts.contacts') }}
         </div>
         <ContactItem
@@ -67,7 +67,7 @@ function handleSelectContact(userId: string): void {
         class="space-y-0.5"
         :class="store.filteredContacts.length > 0 ? 'pt-3' : 'pt-1'"
       >
-        <div class="px-2 pb-1 text-xs font-medium text-muted-foreground">
+        <div class="px-2 pb-1 text-[11px] font-bold uppercase leading-4 tracking-[0.05em] text-muted-foreground">
           {{ t('contacts.groups') }}
         </div>
         <button
@@ -81,10 +81,10 @@ function handleSelectContact(userId: string): void {
         >
           <Avatar :alt="group.name" :color-id="group.roomId || group.name" size="sm" />
           <div class="min-w-0 flex-1">
-            <div class="truncate text-sm">
+            <div class="truncate text-[13px] font-semibold">
               {{ group.name }}
             </div>
-            <div class="truncate text-xs text-muted-foreground">
+            <div class="truncate text-[12px] text-muted-foreground">
               {{ t('contacts.member_count', { count: group.memberCount }) }}
             </div>
           </div>
