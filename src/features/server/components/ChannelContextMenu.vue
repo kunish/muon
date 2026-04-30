@@ -7,7 +7,7 @@ import {
   Pencil,
   Trash2,
 } from 'lucide-vue-next'
-import { computed } from 'vue'
+import { computed, shallowRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useServerStore } from '@/features/server/stores/serverStore'
 import {
@@ -33,6 +33,12 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const serverStore = useServerStore()
+const open = shallowRef(false)
+
+defineSlots<{
+  default?: (props: { open: boolean }) => unknown
+}>()
+
 const { isModerator: isAdmin } = useRoomPermissions(computed(() => serverStore.currentServerId))
 
 function handleCopyLink() {
@@ -43,15 +49,15 @@ function handleCopyLink() {
 </script>
 
 <template>
-  <ContextMenu>
+  <ContextMenu v-model:open="open">
     <ContextMenuTrigger as-child>
-      <slot />
+      <slot :open="open" />
     </ContextMenuTrigger>
     <ContextMenuContent
       class="min-w-48 p-1.5 shadow-xl"
     >
       <ContextMenuItem
-        class="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+        class="cursor-pointer"
         @select="emit('markAsRead', channel.roomId)"
       >
         <CheckCheck :size="16" />
@@ -59,7 +65,7 @@ function handleCopyLink() {
       </ContextMenuItem>
 
       <ContextMenuItem
-        class="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+        class="cursor-pointer"
         @select="emit('muteChannel', channel.roomId)"
       >
         <BellOff :size="16" />
@@ -71,7 +77,7 @@ function handleCopyLink() {
       <!-- Admin-only actions -->
       <ContextMenuItem
         v-if="isAdmin"
-        class="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+        class="cursor-pointer"
         @select="emit('editChannel', channel.roomId)"
       >
         <Pencil :size="16" />
@@ -80,7 +86,7 @@ function handleCopyLink() {
 
       <ContextMenuItem
         v-if="isAdmin"
-        class="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-destructive outline-none transition-colors hover:bg-destructive hover:text-destructive-foreground focus:bg-destructive focus:text-destructive-foreground"
+        class="workspace-menu-item-destructive cursor-pointer"
         @select="emit('deleteChannel', channel.roomId)"
       >
         <Trash2 :size="16" />
@@ -90,7 +96,7 @@ function handleCopyLink() {
       <ContextMenuSeparator v-if="isAdmin" class="mx-1 my-1 h-px bg-border" />
 
       <ContextMenuItem
-        class="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+        class="cursor-pointer"
         @select="handleCopyLink"
       >
         <Copy :size="16" />

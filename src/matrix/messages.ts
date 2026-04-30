@@ -1,10 +1,12 @@
-import type { MatrixEvent } from 'matrix-js-sdk'
+import type { MatrixEvent, Room } from 'matrix-js-sdk'
 import type { RoomMessageEventContent, StickerEventContent } from 'matrix-js-sdk/lib/@types/events'
 import type { VideoInfo } from 'matrix-js-sdk/lib/@types/media'
 import { fetch as tauriFetch } from '@tauri-apps/plugin-http'
-import { EventType, MsgType, RelationType } from 'matrix-js-sdk'
+import { EventTimeline, EventType, MsgType, RelationType } from 'matrix-js-sdk'
+import { sanitizeMatrixHtml } from '@/shared/lib/htmlSanitizer'
+import { htmlToPlainText } from '@/shared/lib/markdown'
 import { getClient } from './client'
-import { uploadMedia } from './media'
+import { extractImageMeta, uploadMedia } from './media'
 
 const RE_AMP = /&/g
 const RE_LT = /</g
@@ -16,6 +18,16 @@ function escapeHtml(text: string): string {
 }
 
 const MENTION_SPAN_RE = /<span[^>]*data-type="mention"[^>]*data-id="([^"]*)"[^>]*>@?([^<]*)<\/span>/g
+const NON_PLAIN_HTML_RE = /<(?:[abisu]|blockquote|code|del|em|h[1-6]|li|ol|pre|span|strong|ul)[\s>/]/i
+const MATRIX_HTML_FORMAT = 'org.matrix.custom.html' as const
+
+interface MatrixTextContent {
+  'msgtype': MsgType.Text
+  'body': string
+  'format'?: typeof MATRIX_HTML_FORMAT
+  'formatted_body'?: string
+  'm.mentions'?: { user_ids: string[] }
+}
 
 /**
  * 将 TipTap mention HTML 转换为 Matrix 格式
@@ -37,30 +49,54 @@ function convertMentionsToMatrix(html: string): { html: string, userIds: string[
 }
 
 export async function sendTextMessage(roomId: string, body: string, html?: string): Promise<string> {
-  let content: RoomMessageEventContent = { msgtype: MsgType.Text, body }
-
-  if (html && html !== `<p>${body}</p>`) {
-    const { html: matrixHtml, userIds } = convertMentionsToMatrix(html)
-    content = {
-      ...content,
-      format: 'org.matrix.custom.html',
-      formatted_body: matrixHtml,
-      // 添加 m.mentions 用于通知被提及的用户
-      ...(userIds.length > 0 ? { 'm.mentions': { user_ids: userIds } } : {}),
-    } as RoomMessageEventContent
-  }
-
-  const res = await getClient().sendMessage(roomId, content)
+  const content = createTextMessageContent(body, html)
+  const res = await getClient().sendMessage(roomId, content as RoomMessageEventContent)
   return res.event_id
 }
 
+function createTextMessageContent(body: string, html?: string): MatrixTextContent {
+  if (html && !isPlainEditorHtml(html, body)) {
+    const { html: matrixHtml, userIds } = convertMentionsToMatrix(html)
+    const formattedBody = sanitizeMatrixHtml(matrixHtml)
+    return {
+      msgtype: MsgType.Text,
+      body,
+      format: MATRIX_HTML_FORMAT,
+      formatted_body: formattedBody,
+      // 添加 m.mentions 用于通知被提及的用户
+      ...(userIds.length > 0 ? { 'm.mentions': { user_ids: userIds } } : {}),
+    }
+  }
+
+  return { msgtype: MsgType.Text, body }
+}
+
+function isPlainEditorHtml(html: string, body: string): boolean {
+  return !NON_PLAIN_HTML_RE.test(html) && htmlToPlainText(html) === body.trim()
+}
+
 export async function sendImageMessage(roomId: string, file: File): Promise<string> {
+  let meta: { width: number, height: number } | null = null
+  try {
+    meta = await extractImageMeta(file)
+  }
+  catch (e) {
+    console.warn('[upload] failed to extract image meta', e)
+  }
   const mxcUrl = await uploadMedia(file)
+  const info: { mimetype: string, size: number, w?: number, h?: number } = {
+    mimetype: file.type,
+    size: file.size,
+  }
+  if (meta) {
+    info.w = meta.width
+    info.h = meta.height
+  }
   const res = await getClient().sendMessage(roomId, {
     msgtype: MsgType.Image,
     body: file.name,
     url: mxcUrl,
-    info: { mimetype: file.type, size: file.size },
+    info,
   })
   return res.event_id
 }
@@ -114,25 +150,41 @@ export async function sendAudioMessage(roomId: string, file: Blob, duration: num
   return res.event_id
 }
 
-export async function editMessage(roomId: string, eventId: string, newBody: string): Promise<void> {
+export async function editMessage(roomId: string, eventId: string, newBody: string, html?: string): Promise<void> {
+  const newContent = createTextMessageContent(newBody, html)
+  const replacementContent: MatrixTextContent = {
+    ...newContent,
+    body: `* ${newContent.body}`,
+  }
+
+  if (replacementContent.formatted_body)
+    replacementContent.formatted_body = prefixEditedFormattedBody(replacementContent.formatted_body)
+
   await getClient().sendMessage(roomId, {
-    'msgtype': MsgType.Text,
-    'body': `* ${newBody}`,
-    'm.new_content': { msgtype: MsgType.Text, body: newBody },
+    ...replacementContent,
+    'm.new_content': newContent,
     'm.relates_to': { rel_type: RelationType.Replace, event_id: eventId },
   } as RoomMessageEventContent)
+}
+
+function prefixEditedFormattedBody(formattedBody: string): string {
+  const paragraphIndex = formattedBody.indexOf('<p>')
+  if (paragraphIndex >= 0) {
+    return `${formattedBody.slice(0, paragraphIndex)}${formattedBody.slice(paragraphIndex).replace('<p>', '<p>* ')}`
+  }
+  return `<p>* ${formattedBody}</p>`
 }
 
 export async function redactMessage(roomId: string, eventId: string, reason?: string): Promise<void> {
   await getClient().redactEvent(roomId, eventId, undefined, reason ? { reason } : undefined)
 }
 
-export async function replyToMessage(roomId: string, eventId: string, body: string): Promise<void> {
+export async function replyToMessage(roomId: string, eventId: string, body: string, html?: string): Promise<void> {
+  const content = createTextMessageContent(body, html)
   await getClient().sendMessage(roomId, {
-    'msgtype': MsgType.Text,
-    'body': body,
+    ...content,
     'm.relates_to': { 'm.in_reply_to': { event_id: eventId } },
-  })
+  } as RoomMessageEventContent)
 }
 
 /** 可见的内容事件类型 */
@@ -156,7 +208,7 @@ export function getTimeline(roomId: string, limit = 50): MatrixEvent[] {
   if (!room)
     return []
 
-  return room.getLiveTimeline().getEvents().filter((ev) => {
+  return getLinkedTimelineEvents(room).filter((ev) => {
     const evType = ev.getType()
 
     // 内容类事件
@@ -194,6 +246,35 @@ export function getTimeline(roomId: string, limit = 50): MatrixEvent[] {
 
     return false
   }).slice(-limit)
+}
+
+function getLinkedTimelineEvents(room: Room): MatrixEvent[] {
+  const liveTimeline = room.getLiveTimeline()
+  const timelines: EventTimeline[] = []
+  const seenTimelines = new Set<EventTimeline>()
+
+  let timeline: EventTimeline | null = liveTimeline
+  while (timeline && !seenTimelines.has(timeline)) {
+    seenTimelines.add(timeline)
+    timelines.unshift(timeline)
+    timeline = timeline.getNeighbouringTimeline?.(EventTimeline.BACKWARDS) ?? null
+  }
+
+  const events: MatrixEvent[] = []
+  const seenEventIds = new Set<string>()
+  for (const item of timelines) {
+    for (const event of item.getEvents()) {
+      const eventId = event.getId()
+      if (eventId) {
+        if (seenEventIds.has(eventId))
+          continue
+        seenEventIds.add(eventId)
+      }
+      events.push(event)
+    }
+  }
+
+  return events
 }
 
 /** 判断事件是否为系统事件（用于 UI 渲染区分） */

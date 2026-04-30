@@ -16,7 +16,7 @@ function handleReload() {
 </script>
 
 <template>
-  <div v-if="error" class="flex items-center justify-center h-screen bg-background">
+  <div v-if="error" class="flex h-full items-center justify-center bg-background">
     <div class="max-w-sm text-center space-y-4 p-6">
       <div class="w-12 h-12 mx-auto rounded-full bg-destructive/10 text-destructive flex items-center justify-center text-xl">
         !

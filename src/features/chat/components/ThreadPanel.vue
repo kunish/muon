@@ -106,7 +106,7 @@ watch(replies, async () => {
 </script>
 
 <template>
-  <div class="w-[360px] shrink-0 bg-background border-l border-border h-full flex flex-col">
+  <div class="flex h-full w-[360px] flex-col bg-background">
     <!-- Header -->
     <div class="flex items-center justify-between px-4 py-3 border-b border-border">
       <div class="flex items-center gap-2 text-sm font-medium">

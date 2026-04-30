@@ -23,7 +23,7 @@ vi.mock('vue-i18n', () => ({
   }),
 }))
 
-vi.mock('@/shared/lib/knowledgeDb', () => ({
+vi.mock('@features/chat/lib/knowledgeDb', () => ({
   createKnowledgeRepository: () => ({
     listDecisionCards: (...args: unknown[]) => listDecisionCardsMock(...args),
     listDigestEntries: (...args: unknown[]) => listDigestEntriesMock(...args),

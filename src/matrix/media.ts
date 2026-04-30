@@ -1,6 +1,15 @@
 import { fetch as tauriFetch } from '@tauri-apps/plugin-http'
 import { getClient } from './client'
 
+async function fetchMediaResponse(url: string, headers: Record<string, string>): Promise<Response> {
+  try {
+    return await tauriFetch(url, { headers }) as Response
+  }
+  catch {
+    return fetch(url, { headers })
+  }
+}
+
 export async function uploadMedia(file: File | Blob): Promise<string> {
   const response = await getClient().uploadContent(file, {
     type: file.type,
@@ -55,9 +64,7 @@ export async function fetchMediaBlobUrl(mxcUrl: string, width?: number, height?:
 
   for (const url of urls) {
     try {
-      const res = await tauriFetch(url, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      })
+      const res = await fetchMediaResponse(url, token ? { Authorization: `Bearer ${token}` } : {})
       if (!res.ok) {
         continue
       }
@@ -81,6 +88,37 @@ interface VideoMeta {
   width: number
   height: number
   duration: number
+}
+
+interface ImageMeta {
+  width: number
+  height: number
+}
+
+export function extractImageMeta(file: File | Blob): Promise<ImageMeta> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file)
+    const image = new Image()
+
+    image.onload = () => {
+      URL.revokeObjectURL(url)
+      if (image.naturalWidth > 0 && image.naturalHeight > 0) {
+        resolve({
+          width: image.naturalWidth,
+          height: image.naturalHeight,
+        })
+        return
+      }
+      reject(new Error('Failed to read image dimensions'))
+    }
+
+    image.onerror = () => {
+      URL.revokeObjectURL(url)
+      reject(new Error('Failed to load image for metadata'))
+    }
+
+    image.src = url
+  })
 }
 
 export function extractVideoMeta(file: File | Blob): Promise<VideoMeta> {

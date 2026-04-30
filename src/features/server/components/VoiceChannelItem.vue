@@ -9,6 +9,7 @@ import { Avatar } from '@/shared/components/ui/avatar'
 
 const props = defineProps<{
   channel: ChannelInfo
+  contextMenuOpen?: boolean
   /** Users currently connected to this voice channel */
   connectedUsers?: { userId: string, displayName: string, avatarUrl?: string, isMuted?: boolean }[]
 }>()
@@ -42,6 +43,13 @@ const usersInChannel = computed(() => {
 })
 
 const memberCount = computed(() => usersInChannel.value.length)
+const rowStateClass = computed(() => {
+  if (isActive.value)
+    return 'bg-accent text-foreground font-medium'
+  if (props.contextMenuOpen === true)
+    return 'bg-accent/30 text-foreground'
+  return 'text-muted-foreground hover:bg-accent/30 hover:text-foreground'
+})
 
 async function onJoinVoice() {
   const serverId = serverStore.currentServerId
@@ -68,9 +76,7 @@ async function onJoinVoice() {
     <button
       class="group flex w-full items-center gap-1.5 rounded px-2 py-[5px] text-[15px] transition-colors"
       :class="[
-        isActive
-          ? 'bg-accent text-foreground font-medium'
-          : 'text-muted-foreground hover:bg-accent/30 hover:text-foreground',
+        rowStateClass,
         isUnread && !isActive ? 'font-semibold text-foreground' : '',
       ]"
       @click="onJoinVoice"
@@ -81,7 +87,7 @@ async function onJoinVoice() {
         :class="isActive ? 'text-foreground' : 'text-muted-foreground'"
       />
       <span class="truncate">{{ channel.name }}</span>
-      <span v-if="isJoining" class="ml-auto text-[11px] text-muted-foreground">{{ t('calls.connecting') }}</span>
+      <span v-if="isJoining" class="ml-auto text-[11px] text-muted-foreground">{{ t('voice.connecting') }}</span>
       <span v-else-if="hasMentions" class="ml-auto inline-flex min-w-[18px] h-[18px] items-center justify-center rounded-full bg-destructive px-1 text-[11px] font-bold text-destructive-foreground">
         {{ channel.highlightCount > 99 ? '99+' : channel.highlightCount }}
       </span>

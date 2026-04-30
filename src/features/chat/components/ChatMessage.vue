@@ -12,9 +12,8 @@ import type { MatrixEvent } from 'matrix-js-sdk'
 import { getClient } from '@matrix/client'
 import { getReactions, getThreadReplies, redactMessage } from '@matrix/index'
 import { ask } from '@tauri-apps/plugin-dialog'
-import { onClickOutside } from '@vueuse/core'
 import { Copy, MessageSquare, Reply, Trash2 } from 'lucide-vue-next'
-import { computed, ref } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useSettingsStore } from '@/features/settings/stores/settingsStore'
 import { Avatar } from '@/shared/components/ui/avatar'
@@ -22,10 +21,13 @@ import { useAuthMedia } from '@/shared/composables/useAuthMedia'
 import { isFullEmojiText } from '@/shared/lib/emoji'
 import { sanitizeMatrixHtml } from '@/shared/lib/htmlSanitizer'
 import { handleMatrixLinkClick } from '@/shared/lib/matrixLinks'
+import { getFloatingPosition } from '../composables/useFloatingPosition'
+import { getMediaFrameStyle } from '../lib/mediaFrame'
 import { useChatStore } from '../stores/chatStore'
 import LinkPreview from './LinkPreview.vue'
 import MessageActionBar from './MessageActionBar.vue'
 import AudioMessage from './messages/AudioMessage.vue'
+import ContactCardMessage from './messages/ContactCardMessage.vue'
 import FileMessage from './messages/FileMessage.vue'
 import ImageMessage from './messages/ImageMessage.vue'
 import VideoMessage from './messages/VideoMessage.vue'
@@ -36,6 +38,7 @@ const props = defineProps<{
   isFirst: boolean
   roomId: string
   hideAvatarColumn?: boolean
+  timelineVersion?: number
 }>()
 
 const emit = defineEmits<{
@@ -48,14 +51,25 @@ const settingsStore = useSettingsStore()
 const hovered = ref(false)
 const showEmojiPicker = ref(false)
 const showContextMenu = ref(false)
+const actionMenuOpen = ref(false)
+const actionBarHovered = ref(false)
+const messageRef = ref<HTMLElement | null>(null)
+const actionBarRef = ref<HTMLElement | null>(null)
+const actionBarStyle = ref({ left: '0px', top: '0px' })
+const actionBarPositioned = ref(false)
 const contextMenuRef = ref<HTMLElement | null>(null)
 const contextMenuPos = ref({ x: 0, y: 0 })
+const isVisuallyHovered = computed(() => hovered.value || showContextMenu.value || actionMenuOpen.value || actionBarHovered.value)
+let hoverCloseTimer: ReturnType<typeof setTimeout> | null = null
 
 // --- 基础信息 ---
 const eventId = computed(() => props.event.getId() || '')
 const eventType = computed(() => props.event.getType())
 const sender = computed(() => props.event.getSender() || '')
-const isRedacted = computed(() => props.event.isRedacted())
+const isRedacted = computed(() => {
+  void props.timelineVersion
+  return props.event.isRedacted()
+})
 const msgtype = computed(() => props.event.getContent()?.msgtype)
 const body = computed(() => props.event.getContent()?.body || '')
 
@@ -71,6 +85,81 @@ const contextMenuStyle = computed(() => ({
   left: `${contextMenuPos.value.x}px`,
   top: `${contextMenuPos.value.y}px`,
 }))
+
+function clearHoverCloseTimer() {
+  if (!hoverCloseTimer)
+    return
+  clearTimeout(hoverCloseTimer)
+  hoverCloseTimer = null
+}
+
+function targetIsInside(element: HTMLElement | null, target: EventTarget | null) {
+  return !!(target instanceof Node && element?.contains(target))
+}
+
+function hideActionBarFromOutsideInteraction() {
+  clearHoverCloseTimer()
+  hovered.value = false
+  actionBarHovered.value = false
+  showEmojiPicker.value = false
+  if (!actionMenuOpen.value)
+    actionBarPositioned.value = false
+}
+
+function onMessageMouseEnter() {
+  clearHoverCloseTimer()
+  hovered.value = true
+}
+
+function onMessageMouseLeave() {
+  clearHoverCloseTimer()
+  showEmojiPicker.value = false
+  hoverCloseTimer = setTimeout(() => {
+    hovered.value = false
+  }, 120)
+}
+
+function onActionBarMouseEnter() {
+  clearHoverCloseTimer()
+  actionBarHovered.value = true
+}
+
+function onActionBarMouseLeave() {
+  actionBarHovered.value = false
+}
+
+function updateActionBarPosition() {
+  const message = messageRef.value
+  const actionBar = actionBarRef.value
+  if (!message || !actionBar)
+    return
+  actionBarStyle.value = getFloatingPosition(message, actionBar, { margin: 8, offset: 6, align: 'end' })
+  actionBarPositioned.value = true
+}
+
+async function positionActionBarAfterRender() {
+  actionBarPositioned.value = false
+  await nextTick()
+  if (isVisuallyHovered.value && !isRedacted.value)
+    updateActionBarPosition()
+}
+
+function onViewportChange() {
+  if (isVisuallyHovered.value && !isRedacted.value)
+    updateActionBarPosition()
+}
+
+function onDocumentActionBarPointerDown(event: PointerEvent) {
+  if (!isVisuallyHovered.value || isRedacted.value)
+    return
+  if (
+    targetIsInside(messageRef.value, event.target)
+    || targetIsInside(actionBarRef.value, event.target)
+  ) {
+    return
+  }
+  hideActionBarFromOutsideInteraction()
+}
 
 // --- Sticker support (m.sticker) ---
 const isSticker = computed(() => eventType.value === 'm.sticker')
@@ -97,6 +186,15 @@ const imageStickerMxcUrl = computed(() => {
   return props.event.getContent()?.url as string | undefined
 })
 const imageStickerSrc = useAuthMedia(imageStickerMxcUrl, 240, 240)
+const imageStickerFrameStyle = computed(() => {
+  const info = props.event.getContent()?.info as { w?: unknown, h?: unknown } | undefined
+  return getMediaFrameStyle(info, {
+    maxWidth: 220,
+    maxHeight: 220,
+    fallbackWidth: 120,
+    fallbackHeight: 120,
+  })
+})
 
 // --- Full emoji text support (1-3 emojis) ---
 const isFullEmoji = computed(() => {
@@ -216,10 +314,57 @@ const formattedBody = computed(() => {
   return ''
 })
 
+const currentRoomMemberIds = computed(() => {
+  void props.timelineVersion
+  const room = getClient().getRoom(props.roomId)
+  if (!room)
+    return null
+  return new Set(room.getJoinedMembers().map(member => member.userId))
+})
+
+function getMatrixToUserId(href: string): string {
+  try {
+    const url = new URL(href, 'https://matrix.to')
+    if (url.hostname !== 'matrix.to')
+      return ''
+    const hashPath = url.hash.replace(/^#\/?/, '')
+    const rawUserId = hashPath.split(/[?#]/)[0]
+    const userId = decodeURIComponent(rawUserId)
+    return userId.startsWith('@') ? userId : ''
+  }
+  catch {
+    return ''
+  }
+}
+
+function markOutOfContextMentions(html: string): string {
+  const memberIds = currentRoomMemberIds.value
+  if (!memberIds || typeof document === 'undefined')
+    return html
+
+  const template = document.createElement('template')
+  template.innerHTML = html
+  for (const anchor of template.content.querySelectorAll<HTMLAnchorElement>('a[href]')) {
+    const userId = getMatrixToUserId(anchor.getAttribute('href') || '')
+    if (userId && !memberIds.has(userId))
+      anchor.classList.add('mention-out-of-context', 'opacity-50')
+  }
+
+  return template.innerHTML
+}
+
 const sanitizedHtml = computed(() => {
   if (!formattedBody.value)
     return ''
-  return sanitizeMatrixHtml(formattedBody.value)
+  return sanitizeMatrixHtml(markOutOfContextMentions(formattedBody.value))
+})
+
+// --- Contact card support ---
+const isContactCard = computed(() => msgtype.value === 'im.muon.contact_card')
+const contactCardData = computed(() => {
+  if (!isContactCard.value)
+    return null
+  return props.event.getContent()?.['im.muon.contact_card'] || null
 })
 
 // --- 编辑标记 ---
@@ -303,15 +448,51 @@ async function onDeleteFromContextMenu() {
   closeContextMenu()
 }
 
-onClickOutside(contextMenuRef, () => {
-  if (showContextMenu.value)
-    closeContextMenu()
+function onDocumentPointerDown(event: MouseEvent) {
+  if (!showContextMenu.value)
+    return
+  if (contextMenuRef.value?.contains(event.target as Node))
+    return
+  closeContextMenu()
+}
+
+watch(showContextMenu, (open) => {
+  if (open) {
+    setTimeout(() => document.addEventListener('mousedown', onDocumentPointerDown), 0)
+  }
+  else {
+    document.removeEventListener('mousedown', onDocumentPointerDown)
+  }
+})
+
+watch(isVisuallyHovered, (visible) => {
+  if (!visible || isRedacted.value) {
+    actionBarPositioned.value = false
+    return
+  }
+  void positionActionBarAfterRender()
+})
+
+onMounted(() => {
+  document.addEventListener('pointerdown', onDocumentActionBarPointerDown, true)
+  window.addEventListener('resize', onViewportChange)
+  document.addEventListener('scroll', onViewportChange, true)
+})
+
+onUnmounted(() => {
+  clearHoverCloseTimer()
+  document.removeEventListener('mousedown', onDocumentPointerDown)
+  document.removeEventListener('pointerdown', onDocumentActionBarPointerDown, true)
+  window.removeEventListener('resize', onViewportChange)
+  document.removeEventListener('scroll', onViewportChange, true)
 })
 </script>
 
 <template>
   <div
+    ref="messageRef"
     class="chat-message relative flex py-0.5 group"
+    data-testid="chat-message-row"
     :class="[
       avatarColumnHidden
         ? (isRightAligned ? 'justify-end px-0' : 'w-full px-0')
@@ -319,10 +500,10 @@ onClickOutside(contextMenuRef, () => {
       isFirst
         ? (avatarColumnHidden ? 'pt-0.5' : 'mt-[1.0625rem] pt-0.5')
         : '',
-      hovered ? 'bg-accent/30' : 'hover:bg-accent/30',
+      isVisuallyHovered ? 'bg-accent/30' : 'hover:bg-accent/30',
     ]"
-    @mouseenter="hovered = true"
-    @mouseleave="hovered = false; showEmojiPicker = false"
+    @mouseenter="onMessageMouseEnter"
+    @mouseleave="onMessageMouseLeave"
     @contextmenu="onMessageContextMenu"
   >
     <!-- 头像列 (32px 宽) -->
@@ -341,8 +522,7 @@ onClickOutside(contextMenuRef, () => {
           :alt="senderName"
           :color-id="sender"
           size="md"
-          clickable
-          class="mt-0.5"
+          class="mt-0.5 cursor-pointer"
           @click.stop="emit('avatarClick', sender, $event)"
         />
       </template>
@@ -413,17 +593,24 @@ onClickOutside(contextMenuRef, () => {
       </div>
       <template v-else>
         <div v-if="isSticker" class="py-1">
-          <img
-            v-if="isImageSticker && imageStickerSrc"
-            :src="imageStickerSrc"
-            :alt="body"
-            :title="body"
-            class="max-w-[220px] max-h-[220px] rounded-lg object-contain select-none"
-          >
           <div
-            v-else-if="isImageSticker"
-            class="h-[120px] w-[120px] animate-pulse rounded-lg bg-muted/40"
-          />
+            v-if="isImageSticker"
+            data-testid="image-sticker-frame"
+            class="overflow-hidden rounded-lg"
+            :style="imageStickerFrameStyle"
+          >
+            <img
+              v-if="imageStickerSrc"
+              :src="imageStickerSrc"
+              :alt="body"
+              :title="body"
+              class="h-full w-full object-contain select-none"
+            >
+            <div
+              v-else
+              class="h-full w-full animate-pulse rounded-lg bg-muted/40"
+            />
+          </div>
           <span
             v-else
             class="select-none text-6xl leading-none"
@@ -434,6 +621,13 @@ onClickOutside(contextMenuRef, () => {
         <VideoMessage v-else-if="msgtype === 'm.video'" :event="event" />
         <AudioMessage v-else-if="msgtype === 'm.audio'" :event="event" />
         <FileMessage v-else-if="msgtype === 'm.file'" :event="event" />
+        <ContactCardMessage
+          v-else-if="isContactCard && contactCardData"
+          :user-id="contactCardData.user_id"
+          :display-name="contactCardData.display_name"
+          :avatar-url="contactCardData.avatar_url"
+          @open-profile="(userId, e) => emit('avatarClick', userId, e)"
+        />
         <div
           v-else-if="sanitizedHtml"
           class="rich-message-content text-[15px] leading-relaxed text-foreground/90 [&_blockquote]:border-l-[3px] [&_blockquote]:border-muted-foreground [&_blockquote]:pl-3 [&_blockquote]:text-muted-foreground [&_code]:border [&_code]:border-border [&_code]:bg-muted [&_code]:px-[0.35em] [&_code]:py-[0.15em] [&_code]:font-['Consolas','Monaco',monospace] [&_del]:opacity-70 [&_del]:line-through [&_em]:italic [&_ol]:pl-6 [&_pre]:my-2 [&_pre]:rounded [&_pre]:border [&_pre]:border-border [&_pre]:bg-card [&_pre]:p-3 [&_pre_code]:border-0 [&_s]:opacity-70 [&_s]:line-through [&_strong]:font-bold [&_strong]:text-foreground [&_ul]:pl-6 [&_a]:text-primary [&_a]:no-underline hover:[&_a]:underline [&_a[href^='https://matrix.to']]:rounded [&_a[href^='https://matrix.to']]:bg-[color-mix(in_srgb,var(--color-primary)_15%,transparent)] [&_a[href^='https://matrix.to']]:px-0.5 hover:[&_a[href^='https://matrix.to']]:bg-[color-mix(in_srgb,var(--color-primary)_25%,transparent)]"
@@ -451,7 +645,7 @@ onClickOutside(contextMenuRef, () => {
         </p>
         <p
           v-else
-          class="text-[15px] leading-relaxed text-foreground/90 whitespace-pre-wrap break-words"
+          class="message-selectable-text text-[15px] leading-relaxed text-foreground/90 whitespace-pre-wrap break-words"
           :class="isRightAligned ? 'rounded-2xl bg-primary/10 px-3 py-2' : ''"
           :style="isRightAligned ? { width: 'fit-content', maxWidth: '100%', marginLeft: 'auto' } : {}"
         >
@@ -482,17 +676,26 @@ onClickOutside(contextMenuRef, () => {
       </button>
     </div>
 
-    <!-- 悬浮操作栏 -->
-    <div
-      v-if="hovered && !isRedacted"
-      class="absolute -top-4 right-4 z-10"
-    >
-      <MessageActionBar
-        :event="event"
-        :room-id="roomId"
-        @react="onActionReact"
-      />
-    </div>
+    <Teleport to="body">
+      <!-- 悬浮操作栏 -->
+      <div
+        v-if="isVisuallyHovered && !isRedacted"
+        ref="actionBarRef"
+        class="fixed z-[190] transition-opacity duration-75"
+        :class="actionBarPositioned ? 'opacity-100' : 'opacity-0'"
+        :style="{ left: actionBarStyle.left, top: actionBarStyle.top }"
+        data-testid="chat-message-action-bar"
+        @mouseenter="onActionBarMouseEnter"
+        @mouseleave="onActionBarMouseLeave"
+      >
+        <MessageActionBar
+          :event="event"
+          :room-id="roomId"
+          @react="onActionReact"
+          @menu-open-change="actionMenuOpen = $event"
+        />
+      </div>
+    </Teleport>
 
     <Teleport to="body">
       <Transition

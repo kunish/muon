@@ -163,12 +163,12 @@ async function openInBrowser() {
   <div
     v-if="!failed"
     role="link"
-    class="link-card block mt-2 rounded-lg border border-border/50 bg-background overflow-hidden hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)] transition-all duration-200 no-underline max-w-[400px] cursor-pointer"
+    class="link-card block mt-2 w-full max-w-[400px] cursor-pointer overflow-hidden rounded-lg border border-border/50 bg-background no-underline transition-[box-shadow] duration-200 hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)]"
     :class="{ 'pointer-events-none': loading }"
     @click.stop="openInBrowser"
   >
     <!-- URL display -->
-    <div class="px-3 pt-2.5 pb-1">
+    <div class="flex h-[29px] items-center px-3 pt-1.5">
       <div class="text-xs text-primary truncate">
         {{ url }}
       </div>
@@ -178,7 +178,7 @@ async function openInBrowser() {
     <div class="flex items-start gap-3 px-3 pb-2.5">
       <div class="flex-1 min-w-0">
         <!-- Domain with favicon -->
-        <div class="flex items-center gap-1.5 mb-1">
+        <div class="flex h-4 items-center gap-1.5 mb-1">
           <template v-if="loading">
             <div class="w-4 h-4 rounded-sm shrink-0 bg-muted/60 animate-pulse" />
             <div class="h-3 w-20 rounded bg-muted/60 animate-pulse" />
@@ -195,36 +195,48 @@ async function openInBrowser() {
         </div>
 
         <!-- Title -->
-        <div v-if="loading" class="h-4 w-3/4 rounded bg-muted/60 animate-pulse" />
-        <div v-else class="text-sm font-medium text-foreground leading-snug line-clamp-1">
-          {{ title }}
+        <div class="h-[18px]">
+          <div v-if="loading" class="h-4 w-3/4 rounded bg-muted/60 animate-pulse" />
+          <div v-else class="text-sm font-medium text-foreground leading-[18px] line-clamp-1">
+            {{ title }}
+          </div>
         </div>
 
-        <!-- Description: always reserve space (min-h) to prevent layout shift -->
-        <div v-if="loading" class="mt-1 space-y-1">
-          <div class="h-3 w-full rounded bg-muted/50 animate-pulse" />
-          <div class="h-3 w-2/3 rounded bg-muted/50 animate-pulse" />
-        </div>
-        <div v-else-if="description" class="text-xs text-muted-foreground line-clamp-2 mt-1 leading-relaxed">
-          {{ description }}
+        <div
+          data-testid="link-preview-description-slot"
+          class="mt-1 min-h-[34px]"
+        >
+          <template v-if="loading">
+            <div class="space-y-1 pt-0.5">
+              <div class="h-3 w-full rounded bg-muted/50 animate-pulse" />
+              <div class="h-3 w-2/3 rounded bg-muted/50 animate-pulse" />
+            </div>
+          </template>
+          <div v-else-if="description" class="text-xs text-muted-foreground line-clamp-2 leading-[17px]">
+            {{ description }}
+          </div>
         </div>
       </div>
 
-      <!-- OG Image placeholder during loading / real image after -->
       <div
-        v-if="loading"
-        class="w-[60px] h-[60px] rounded-md shrink-0 bg-muted/50 animate-pulse"
-      />
-      <img
-        v-else-if="ogImage"
-        :src="ogImage"
-        class="w-[60px] h-[60px] rounded-md object-cover shrink-0"
-        @error="ogImage = ''"
+        data-testid="link-preview-media-slot"
+        class="w-[60px] h-[60px] rounded-md shrink-0 overflow-hidden"
       >
+        <div
+          v-if="loading"
+          class="h-full w-full bg-muted/50 animate-pulse"
+        />
+        <img
+          v-else-if="ogImage"
+          :src="ogImage"
+          class="h-full w-full object-cover"
+          @error="ogImage = ''"
+        >
+      </div>
     </div>
 
     <!-- Bottom bar with more info icon -->
-    <div class="flex items-center gap-1 px-3 py-1.5 bg-muted/30 border-t border-border/30">
+    <div class="flex h-[26px] items-center gap-1 border-t border-border/30 bg-muted/30 px-3">
       <ExternalLink :size="10" class="text-muted-foreground/40" />
       <span class="text-[10px] text-muted-foreground/50">{{ t('chat.link_open') }}</span>
     </div>

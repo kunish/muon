@@ -51,32 +51,29 @@ watch(activeTab, (tab) => {
 </script>
 
 <template>
-  <div class="flex-1 flex flex-col h-full">
-    <!-- Header -->
-    <div class="flex items-center px-6 h-14 border-b border-border shrink-0">
-      <div class="flex items-center gap-2">
+  <div class="flex h-full min-w-0 flex-1 bg-background">
+    <nav class="workspace-panel w-[260px] shrink-0 rounded-none border-y-0 border-l-0 p-3">
+      <div class="mb-4 flex h-11 items-center gap-2 px-2">
         <Settings :size="20" class="text-primary" />
         <h1 class="text-base font-semibold">
           {{ t('settings.settings') }}
         </h1>
       </div>
-    </div>
 
-    <div class="flex flex-1 overflow-hidden">
-      <nav class="w-48 border-r border-border p-3 space-y-1">
-        <button
-          v-for="tab in tabs"
-          :key="tab.id"
-          class="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors"
-          :class="activeTab === tab.id ? 'bg-accent text-foreground' : 'text-muted-foreground hover:bg-accent/50'"
-          @click="activeTab = tab.id"
-        >
-          <component :is="tab.icon" :size="16" />
-          {{ tab.label() }}
-        </button>
-      </nav>
+      <button
+        v-for="tab in tabs"
+        :key="tab.id"
+        class="workspace-row mb-1 gap-2 px-3 py-2 text-muted-foreground"
+        :class="activeTab === tab.id ? 'workspace-row-active' : ''"
+        @click="activeTab = tab.id"
+      >
+        <component :is="tab.icon" :size="16" />
+        {{ tab.label() }}
+      </button>
+    </nav>
 
-      <div class="flex-1 overflow-y-auto p-6">
+    <div class="min-w-0 flex-1 overflow-y-auto p-6">
+      <div class="workspace-surface mx-auto w-full max-w-[860px] rounded-3xl p-6">
         <ProfileSettings v-if="activeTab === 'profile'" />
         <GeneralSettings v-else-if="activeTab === 'general'" />
         <NotificationSettings v-else-if="activeTab === 'notifications'" />

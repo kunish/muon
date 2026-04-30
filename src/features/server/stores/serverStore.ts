@@ -27,15 +27,35 @@ export interface VoiceConnection {
   serverId: string
 }
 
+function loadServerOrder(): string[] {
+  try {
+    if (typeof localStorage?.getItem !== 'function')
+      return []
+    const raw = localStorage.getItem('muon_server_order')
+    return raw ? JSON.parse(raw) : []
+  }
+  catch {
+    return []
+  }
+}
+
+function saveServerOrder(order: string[]): void {
+  try {
+    if (typeof localStorage?.setItem === 'function')
+      localStorage.setItem('muon_server_order', JSON.stringify(order))
+  }
+  catch {
+    // Ignore persistence failures; the in-memory order still applies.
+  }
+}
+
 // ── Store ──
 
 export const useServerStore = defineStore('server', () => {
   // --- Server list ---
   const servers = shallowRef<SpaceInfo[]>([])
   const currentServerId = ref<string | null>(null)
-  const serverOrder = ref<string[]>(
-    JSON.parse(localStorage.getItem('muon_server_order') || '[]'),
-  )
+  const serverOrder = ref<string[]>(loadServerOrder())
 
   // --- Channel tree for current server ---
   const channelTree = shallowRef<ChannelTreeCategory[]>([])
@@ -79,7 +99,7 @@ export const useServerStore = defineStore('server', () => {
 
   function setServerOrder(order: string[]) {
     serverOrder.value = order
-    localStorage.setItem('muon_server_order', JSON.stringify(order))
+    saveServerOrder(order)
     loadServers() // re-sort
   }
 

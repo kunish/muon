@@ -9,11 +9,15 @@ export interface Contact {
   presence: 'online' | 'offline' | 'unavailable'
 }
 
-interface GroupInfo {
+export interface GroupInfo {
   roomId: string
   name: string
   memberCount: number
   avatarUrl?: string
+}
+
+function isSystemContact(userId: string): boolean {
+  return userId.startsWith('@conduit:')
 }
 
 export const useContactStore = defineStore('contacts', () => {
@@ -31,11 +35,11 @@ export const useContactStore = defineStore('contacts', () => {
       const members = room.getJoinedMembers()
       if (members.length === 2) {
         const other = members.find(m => m.userId !== client.getUserId())
-        if (other && !dmMap.has(other.userId)) {
+        if (other && !isSystemContact(other.userId) && !dmMap.has(other.userId)) {
           dmMap.set(other.userId, {
             userId: other.userId,
             displayName: other.name || other.userId,
-            avatarUrl: other.getAvatarUrl(client.getHomeserverUrl(), 40, 40, 'crop', false, false) || undefined,
+            avatarUrl: other.getMxcAvatarUrl() || undefined,
             presence: 'offline',
           })
         }
@@ -59,12 +63,23 @@ export const useContactStore = defineStore('contacts', () => {
       }))
   }
 
+  const normalizedSearchQuery = computed(() => searchQuery.value.trim().toLowerCase())
+
   const filteredContacts = computed(() => {
-    if (!searchQuery.value)
+    const q = normalizedSearchQuery.value
+    if (!q)
       return contacts.value
-    const q = searchQuery.value.toLowerCase()
     return contacts.value.filter(c =>
       c.displayName.toLowerCase().includes(q) || c.userId.toLowerCase().includes(q),
+    )
+  })
+
+  const filteredGroups = computed(() => {
+    const q = normalizedSearchQuery.value
+    if (!q)
+      return groups.value
+    return groups.value.filter(g =>
+      g.name.toLowerCase().includes(q) || g.roomId.toLowerCase().includes(q),
     )
   })
 
@@ -74,6 +89,7 @@ export const useContactStore = defineStore('contacts', () => {
     searchQuery,
     selectedContactId,
     filteredContacts,
+    filteredGroups,
     loadContacts,
     loadGroups,
   }

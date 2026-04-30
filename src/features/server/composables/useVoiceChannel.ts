@@ -3,6 +3,7 @@ import type { VoiceConnection } from '../stores/serverStore'
 import { computed, ref, shallowRef } from 'vue'
 import { toast } from 'vue-sonner'
 import { getClient } from '@/matrix/client'
+import { getLiveKitToken } from '../lib/livekitToken'
 import { useServerStore } from '../stores/serverStore'
 
 const LIVEKIT_URL = import.meta.env.VITE_LIVEKIT_URL || 'ws://localhost:7880'
@@ -33,7 +34,7 @@ const connectedUsers = ref<VoiceChannelUser[]>([])
 export function useVoiceChannel() {
   const serverStore = useServerStore()
 
-  /** Add the current user to the mock connected-users list */
+  /** Add the current user to the local connected-users list */
   function addSelfToUsers() {
     const client = getClient()
     const userId = client.getUserId()
@@ -53,7 +54,7 @@ export function useVoiceChannel() {
     ]
   }
 
-  /** Remove the current user from the mock connected-users list */
+  /** Remove the current user from the local connected-users list */
   function removeSelfFromUsers() {
     const client = getClient()
     const userId = client.getUserId()
@@ -62,7 +63,7 @@ export function useVoiceChannel() {
     connectedUsers.value = connectedUsers.value.filter(u => u.userId !== userId)
   }
 
-  /** Update the current user's mute/deafen state in the mock list */
+  /** Update the current user's mute/deafen state in the local list */
   function updateSelfInUsers() {
     const client = getClient()
     const userId = client.getUserId()
@@ -103,8 +104,16 @@ export function useVoiceChannel() {
         resetState()
       })
 
-      // Token would come from server in production; use roomId as placeholder
-      await room.value.connect(LIVEKIT_URL, roomId)
+      const client = getClient()
+      const identity = client.getUserId() || 'local'
+      const profile = client.getUser(identity)
+      const token = await getLiveKitToken({
+        roomName: roomId,
+        identity,
+        name: profile?.displayName || identity,
+        metadata: JSON.stringify({ matrixRoomId: roomId, serverId, channelName }),
+      })
+      await room.value.connect(LIVEKIT_URL, token)
 
       // Enable microphone by default (not deafened)
       await room.value.localParticipant.setMicrophoneEnabled(!isMuted.value)
@@ -113,7 +122,7 @@ export function useVoiceChannel() {
       const connection: VoiceConnection = { channelId: roomId, channelName, serverId }
       serverStore.setVoiceConnection(connection)
 
-      // Add self to mock participant list
+      // Add self to the local participant list until remote participant rendering is wired.
       addSelfToUsers()
     }
     catch (err) {

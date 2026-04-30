@@ -25,9 +25,10 @@ import {
   Smile,
   Trash2,
 } from 'lucide-vue-next'
-import { computed, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
+import { getFloatingPosition } from '../composables/useFloatingPosition'
 import { useChatStore } from '../stores/chatStore'
 import { useDeferStore } from '../stores/deferStore'
 import { useTaskStore } from '../stores/taskStore'
@@ -41,6 +42,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   react: []
   reply: []
+  menuOpenChange: [open: boolean]
 }>()
 
 const store = useChatStore()
@@ -52,6 +54,10 @@ const showDeferMenu = ref(false)
 const customDeferValue = ref('')
 const showTaskComposer = ref(false)
 const creatingTask = ref(false)
+const moreTriggerRef = ref<HTMLElement>()
+const moreMenuRef = ref<HTMLElement>()
+const moreMenuStyle = ref({ left: '0px', top: '0px' })
+const moreMenuPositioned = ref(false)
 
 const myUserId = computed(() => getClient().getUserId())
 const isMine = computed(() => props.event.getSender() === myUserId.value)
@@ -63,6 +69,29 @@ const isPinned = computed(() => {
     return false
   return isMessagePinned(props.roomId, eventId.value)
 })
+
+function updateMoreMenuPosition() {
+  const trigger = moreTriggerRef.value
+  const menu = moreMenuRef.value
+  if (!trigger || !menu)
+    return
+  moreMenuStyle.value = getFloatingPosition(trigger, menu, { margin: 12, offset: 6 })
+}
+
+function closeMoreMenu() {
+  showMore.value = false
+  showDeferMenu.value = false
+  moreMenuPositioned.value = false
+}
+
+function toggleMore() {
+  if (showMore.value) {
+    closeMoreMenu()
+    return
+  }
+  moreMenuPositioned.value = false
+  showMore.value = true
+}
 
 function onReply() {
   store.setReplyingTo(props.event)
@@ -202,12 +231,58 @@ async function onSubmitTask(payload: { title: string, assignee: string, dueAt: s
     creatingTask.value = false
   }
 }
+
+function onDocumentPointerDown(event: PointerEvent) {
+  if (!showMore.value)
+    return
+  const target = event.target as Node | null
+  if (!target)
+    return
+  if (moreTriggerRef.value?.contains(target) || moreMenuRef.value?.contains(target))
+    return
+  closeMoreMenu()
+}
+
+function onViewportChange() {
+  if (showMore.value)
+    updateMoreMenuPosition()
+}
+
+watch(showMore, async (open) => {
+  emit('menuOpenChange', open)
+  if (!open) {
+    moreMenuPositioned.value = false
+    return
+  }
+  await nextTick()
+  updateMoreMenuPosition()
+  moreMenuPositioned.value = true
+})
+
+watch(showDeferMenu, async () => {
+  if (!showMore.value)
+    return
+  await nextTick()
+  updateMoreMenuPosition()
+})
+
+onMounted(() => {
+  document.addEventListener('pointerdown', onDocumentPointerDown)
+  window.addEventListener('resize', onViewportChange)
+  document.addEventListener('scroll', onViewportChange, true)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('pointerdown', onDocumentPointerDown)
+  window.removeEventListener('resize', onViewportChange)
+  document.removeEventListener('scroll', onViewportChange, true)
+  emit('menuOpenChange', false)
+})
 </script>
 
 <template>
   <div
-    class="action-bar flex items-center bg-popover border border-border rounded-md shadow-sm overflow-hidden"
-    @mouseleave="showMore = false"
+    class="action-bar flex items-center overflow-visible bg-popover border border-border rounded-md shadow-sm"
   >
     <!-- Add Reaction -->
     <button
@@ -228,17 +303,19 @@ async function onSubmitTask(payload: { title: string, assignee: string, dueAt: s
     </button>
 
     <!-- More -->
-    <div class="relative">
+    <div>
       <button
+        ref="moreTriggerRef"
         class="flex size-8 cursor-pointer items-center justify-center text-muted-foreground transition-all duration-100 hover:bg-muted hover:text-foreground"
         :title="t('chat.more_actions')"
         data-testid="message-more-trigger"
-        @click.stop="showMore = !showMore"
+        @click.stop="toggleMore"
       >
         <MoreHorizontal :size="16" />
       </button>
+    </div>
 
-      <!-- Dropdown -->
+    <Teleport to="body">
       <Transition
         enter-active-class="transition-all duration-[120ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
         leave-active-class="transition-all duration-75 ease-in"
@@ -247,7 +324,11 @@ async function onSubmitTask(payload: { title: string, assignee: string, dueAt: s
       >
         <div
           v-if="showMore"
-          class="absolute top-full right-0 z-30 mt-1 min-w-[160px] rounded-md border border-[var(--color-muted)]/30 bg-card py-1 shadow-[0_8px_24px_rgba(0,0,0,0.5)]"
+          ref="moreMenuRef"
+          class="fixed z-[200] max-h-[min(420px,calc(100vh-24px))] min-w-[160px] overflow-y-auto rounded-md border border-[var(--color-muted)]/30 bg-card py-1 shadow-[0_8px_24px_rgba(0,0,0,0.5)]"
+          :class="moreMenuPositioned ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'"
+          :style="{ left: moreMenuStyle.left, top: moreMenuStyle.top }"
+          data-testid="message-more-menu"
           @click.stop
         >
           <!-- Edit (own msg) -->
@@ -280,6 +361,8 @@ async function onSubmitTask(payload: { title: string, assignee: string, dueAt: s
 
           <button
             class="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-[13px] text-muted-foreground transition-colors duration-100 hover:bg-primary hover:text-white"
+            :aria-expanded="showDeferMenu"
+            aria-haspopup="menu"
             data-testid="message-defer-trigger"
             @click.stop="onToggleDeferMenu"
           >
@@ -294,60 +377,72 @@ async function onSubmitTask(payload: { title: string, assignee: string, dueAt: s
             <span>{{ t('chat.convert_to_task') }}</span>
           </button>
 
-          <div v-if="showDeferMenu" class="mx-2 my-1 rounded-md border border-[var(--color-muted)]/20 p-2">
-            <div class="space-y-1">
+          <Transition
+            enter-active-class="transition-[opacity,transform] duration-150 ease-[cubic-bezier(0.16,1,0.3,1)]"
+            leave-active-class="transition-[opacity,transform] duration-100 ease-in"
+            enter-from-class="opacity-0 translate-x-1.5 -translate-y-1 scale-[0.98]"
+            leave-to-class="opacity-0 translate-x-1 -translate-y-0.5 scale-[0.98]"
+          >
+            <div
+              v-if="showDeferMenu"
+              class="mx-2 my-1 origin-top-right transform-gpu will-change-transform rounded-md border border-[var(--color-muted)]/20 p-2"
+              role="menu"
+              data-testid="message-defer-submenu"
+            >
+              <div class="space-y-1">
+                <button
+                  class="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-[13px] text-muted-foreground transition-colors duration-100 hover:bg-primary hover:text-white"
+                  data-testid="message-defer-preset-1h"
+                  @click.stop="createDeferredFromMessage('in-1-hour', '1h')"
+                >
+                  <span>{{ t('chat.defer_preset_1h') }}</span>
+                </button>
+                <button
+                  class="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-[13px] text-muted-foreground transition-colors duration-100 hover:bg-primary hover:text-white"
+                  data-testid="message-defer-preset-tonight"
+                  @click.stop="createDeferredFromMessage('tonight', 'tonight')"
+                >
+                  <span>{{ t('chat.defer_preset_tonight') }}</span>
+                </button>
+                <button
+                  class="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-[13px] text-muted-foreground transition-colors duration-100 hover:bg-primary hover:text-white"
+                  data-testid="message-defer-preset-tomorrow-morning"
+                  @click.stop="createDeferredFromMessage('tomorrow-morning', 'tomorrow-morning')"
+                >
+                  <span>{{ t('chat.defer_preset_tomorrow_morning') }}</span>
+                </button>
+                <button
+                  class="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-[13px] text-muted-foreground transition-colors duration-100 hover:bg-primary hover:text-white"
+                  data-testid="message-defer-preset-tomorrow"
+                  @click.stop="createDeferredFromMessage('tomorrow', 'tomorrow')"
+                >
+                  <span>{{ t('chat.defer_preset_tomorrow') }}</span>
+                </button>
+              </div>
+
               <button
                 class="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-[13px] text-muted-foreground transition-colors duration-100 hover:bg-primary hover:text-white"
-                data-testid="message-defer-preset-1h"
-                @click.stop="createDeferredFromMessage('in-1-hour', '1h')"
+                data-testid="message-defer-custom-toggle"
+                @click.stop
               >
-                <span>{{ t('chat.defer_preset_1h') }}</span>
+                <span>{{ t('chat.defer_custom') }}</span>
               </button>
-              <button
-                class="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-[13px] text-muted-foreground transition-colors duration-100 hover:bg-primary hover:text-white"
-                data-testid="message-defer-preset-tonight"
-                @click.stop="createDeferredFromMessage('tonight', 'tonight')"
+              <input
+                v-model="customDeferValue"
+                type="datetime-local"
+                class="mt-1 w-full rounded border border-[var(--color-muted)]/40 bg-background px-2 py-1 text-xs"
+                data-testid="message-defer-custom-input"
               >
-                <span>{{ t('chat.defer_preset_tonight') }}</span>
-              </button>
               <button
-                class="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-[13px] text-muted-foreground transition-colors duration-100 hover:bg-primary hover:text-white"
-                data-testid="message-defer-preset-tomorrow-morning"
-                @click.stop="createDeferredFromMessage('tomorrow-morning', 'tomorrow-morning')"
+                class="mt-1 w-full rounded bg-primary px-2 py-1 text-xs text-primary-foreground disabled:opacity-50"
+                :disabled="!customDeferValue"
+                data-testid="message-defer-custom-submit"
+                @click.stop="submitCustomDeferredFromMessage"
               >
-                <span>{{ t('chat.defer_preset_tomorrow_morning') }}</span>
-              </button>
-              <button
-                class="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-[13px] text-muted-foreground transition-colors duration-100 hover:bg-primary hover:text-white"
-                data-testid="message-defer-preset-tomorrow"
-                @click.stop="createDeferredFromMessage('tomorrow', 'tomorrow')"
-              >
-                <span>{{ t('chat.defer_preset_tomorrow') }}</span>
+                {{ t('common.confirm') }}
               </button>
             </div>
-
-            <button
-              class="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-[13px] text-muted-foreground transition-colors duration-100 hover:bg-primary hover:text-white"
-              data-testid="message-defer-custom-toggle"
-              @click.stop
-            >
-              <span>{{ t('chat.defer_custom') }}</span>
-            </button>
-            <input
-              v-model="customDeferValue"
-              type="datetime-local"
-              class="mt-1 w-full rounded border border-[var(--color-muted)]/40 bg-background px-2 py-1 text-xs"
-              data-testid="message-defer-custom-input"
-            >
-            <button
-              class="mt-1 w-full rounded bg-primary px-2 py-1 text-xs text-primary-foreground disabled:opacity-50"
-              :disabled="!customDeferValue"
-              data-testid="message-defer-custom-submit"
-              @click.stop="submitCustomDeferredFromMessage"
-            >
-              {{ t('common.confirm') }}
-            </button>
-          </div>
+          </Transition>
 
           <!-- Copy Text -->
           <button
@@ -381,7 +476,7 @@ async function onSubmitTask(payload: { title: string, assignee: string, dueAt: s
           </button>
         </div>
       </Transition>
-    </div>
+    </Teleport>
 
     <TaskComposerDialog
       :open="showTaskComposer"

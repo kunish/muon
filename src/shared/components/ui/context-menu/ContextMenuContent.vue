@@ -18,7 +18,7 @@ const forwarded = useForwardPropsEmits(props, emits)
     <ContextMenuContent
       v-bind="{ ...forwarded, class: undefined }"
       :class="cn(
-        'z-50 min-w-32 overflow-hidden rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-lg animate-in fade-in-0 zoom-in-95',
+        'workspace-menu animate-in fade-in-0 zoom-in-95',
         props.class,
       )"
     >

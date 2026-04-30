@@ -6,6 +6,7 @@ import { writeFile } from '@tauri-apps/plugin-fs'
 import { Copy, Download, FileText, Forward } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import ForwardDialog from '@/features/chat/components/ForwardDialog.vue'
 import { triggerBlobDownload } from '@/shared/lib/download'
 
 const props = defineProps<{
@@ -53,6 +54,7 @@ const fileIconColor = computed(() => {
 const downloading = ref(false)
 const downloadError = ref('')
 const toastMessage = ref('')
+const showForwardDialog = ref(false)
 
 function showToast(msg: string) {
   toastMessage.value = msg
@@ -108,7 +110,7 @@ async function saveAs() {
 }
 
 function forward() {
-  showToast(t('chat.forward_wip'))
+  showForwardDialog.value = true
 }
 </script>
 
@@ -142,7 +144,7 @@ function forward() {
         <Download :size="14" />
         <span>{{ downloading ? t('chat.downloading') : t('chat.download') }}</span>
       </button>
-      <button class="flex flex-1 cursor-pointer items-center justify-center gap-1 py-[7px] text-xs text-muted-foreground transition-all duration-150 hover:bg-[color-mix(in_srgb,var(--color-primary)_5%,transparent)] hover:text-primary" @click.stop="forward">
+      <button data-testid="file-forward-button" class="flex flex-1 cursor-pointer items-center justify-center gap-1 py-[7px] text-xs text-muted-foreground transition-all duration-150 hover:bg-[color-mix(in_srgb,var(--color-primary)_5%,transparent)] hover:text-primary" @click.stop="forward">
         <Forward :size="14" />
         <span>{{ t('chat.forward') }}</span>
       </button>
@@ -166,5 +168,11 @@ function forward() {
         {{ toastMessage }}
       </div>
     </Transition>
+
+    <ForwardDialog
+      v-if="showForwardDialog"
+      :event="event"
+      @close="showForwardDialog = false"
+    />
   </div>
 </template>

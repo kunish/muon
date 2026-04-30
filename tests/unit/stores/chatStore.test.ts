@@ -1,5 +1,22 @@
+import type { RoomSummary } from '@/matrix/types'
 import { describe, expect, it } from 'vitest'
 import { useChatStore } from '@/features/chat/stores/chatStore'
+
+function createRoom(overrides: Partial<RoomSummary> = {}): RoomSummary {
+  return {
+    roomId: '!room:localhost',
+    name: 'Room',
+    unreadCount: 0,
+    isDirect: true,
+    isEncrypted: false,
+    members: ['@alice:localhost'],
+    isPinned: false,
+    isMuted: false,
+    highlightCount: 0,
+    memberCount: 2,
+    ...overrides,
+  }
+}
 
 describe('chatStore', () => {
   it('should have null currentRoomId by default', () => {
@@ -27,5 +44,42 @@ describe('chatStore', () => {
     store.setSearchQuery('hello')
 
     expect(store.searchQuery).toBe('hello')
+  })
+
+  it('keeps an optimistic pin state while server summaries are stale', () => {
+    const store = useChatStore()
+    store.togglePin('!room:localhost')
+
+    store.syncServerState([
+      createRoom({ roomId: '!room:localhost', isPinned: false }),
+    ])
+
+    expect(store.isPinned('!room:localhost')).toBe(true)
+  })
+
+  it('does not promote a route sync that came from a history list selection', () => {
+    const store = useChatStore()
+
+    store.selectRoomFromHistory('!bob:localhost')
+    store.setCurrentRoomFromRoute('!bob:localhost')
+
+    expect(store.currentRoomId).toBe('!bob:localhost')
+    expect(store.sidebarPromotedRoomId).toBeNull()
+
+    store.setCurrentRoomFromRoute('!alice:localhost')
+
+    expect(store.currentRoomId).toBe('!alice:localhost')
+    expect(store.sidebarPromotedRoomId).toBe('!alice:localhost')
+  })
+
+  it('keeps an existing promoted room when selecting another room from history', () => {
+    const store = useChatStore()
+
+    store.setCurrentRoom('!bob:localhost', { sidebarPlacement: 'promote' })
+    store.selectRoomFromHistory('!alice:localhost')
+    store.setCurrentRoomFromRoute('!alice:localhost')
+
+    expect(store.currentRoomId).toBe('!alice:localhost')
+    expect(store.sidebarPromotedRoomId).toBe('!bob:localhost')
   })
 })

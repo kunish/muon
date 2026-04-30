@@ -1,6 +1,7 @@
 import type { RoomSummary } from '@matrix/types'
 import { getRoomSummaries, matrixEvents } from '@matrix/index'
 import { computed, onMounted, ref, shallowRef } from 'vue'
+import { normalizeRoomId } from '@matrix/roomUtils'
 import { useChatStore } from '../stores/chatStore'
 
 const LISTENED_EVENTS = ['room.message', 'room.member', 'sync.state', 'room.receipt'] as const
@@ -144,16 +145,35 @@ export function useConversations() {
       )
     }
 
-    // 置顶排序：pinned 在前，各组内按时间倒序
-    const pinned = list.filter(r => store.isPinned(r.roomId))
-    const normal = list.filter(r => !store.isPinned(r.roomId))
-    return [...pinned, ...normal]
+    const promotedRoomId = normalizeRoomId(store.sidebarPromotedRoomId)
+    const promotedRoom = promotedRoomId
+      ? list.find(r => normalizeRoomId(r.roomId) === promotedRoomId)
+      : undefined
+    const remaining = promotedRoom
+      ? list.filter(r => normalizeRoomId(r.roomId) !== promotedRoomId)
+      : list
+
+    // 显式从右侧/外部打开的聊天优先展示；侧边栏历史点击只更新高亮，不触发重排。
+    const pinned = remaining.filter(r => store.isPinned(r.roomId))
+    const normal = remaining.filter(r => !store.isPinned(r.roomId))
+    return promotedRoom ? [promotedRoom, ...pinned, ...normal] : [...pinned, ...normal]
   })
 
-  // 当前筛选结果中的置顶数量（用于列表分隔线定位）
-  const pinnedCount = computed(() =>
-    conversations.value.filter(r => store.isPinned(r.roomId)).length,
-  )
+  // 顶部特殊区域数量（用于列表分隔线定位）：显式提升会话 + 置顶会话。
+  const pinnedCount = computed(() => {
+    if (!conversations.value.some(r => store.isPinned(r.roomId)))
+      return 0
+
+    const promotedRoomId = normalizeRoomId(store.sidebarPromotedRoomId)
+    let count = 0
+    for (const room of conversations.value) {
+      const isPromoted = !!promotedRoomId && normalizeRoomId(room.roomId) === promotedRoomId
+      if (!isPromoted && !store.isPinned(room.roomId))
+        break
+      count += 1
+    }
+    return count
+  })
 
   // --- 总未读数（不受筛选/搜索影响，用于侧边栏角标） ---
   const totalUnreadCount = computed(() =>

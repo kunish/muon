@@ -8,7 +8,7 @@ vi.mock('@/matrix/retrieval', () => ({
   searchRoomEvents: (...args: unknown[]) => searchRoomEventsMock(...args),
 }))
 
-vi.mock('@/shared/lib/knowledgeDb', () => ({
+vi.mock('@features/chat/lib/knowledgeDb', () => ({
   createKnowledgeRepository: () => ({
     saveQaSession: (...args: unknown[]) => saveQaSessionMock(...args),
     listQaSessions: (...args: unknown[]) => listQaSessionsMock(...args),

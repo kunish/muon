@@ -1,3 +1,9 @@
+import {
+  createKnowledgeRepository,
+  KNOWLEDGE_DB_NAME,
+  KNOWLEDGE_DB_STORES,
+  MuonKnowledgeDB,
+} from '@features/chat/lib/knowledgeDb'
 import { describe, expect, it } from 'vitest'
 import {
   citationRefSchema,
@@ -5,12 +11,6 @@ import {
   digestEntrySchema,
   toCitationEventIds,
 } from '@/features/chat/types/knowledge'
-import {
-  createKnowledgeRepository,
-  KNOWLEDGE_DB_NAME,
-  KNOWLEDGE_DB_STORES,
-  MuonKnowledgeDB,
-} from '@/shared/lib/knowledgeDb'
 
 function createFakeTable<T extends { id: string }>(seed: T[] = []) {
   const state = [...seed]

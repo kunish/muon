@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { MatrixEvent } from 'matrix-js-sdk'
 import { getReadMarkerEventId } from '@matrix/index'
-import { ChevronDown } from 'lucide-vue-next'
+import { ChevronDown, Undo2 } from 'lucide-vue-next'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
@@ -22,7 +22,7 @@ import UserInfoPanel from './UserInfoPanel.vue'
 //
 // ──────────────────────────────────────────────────────────────
 
-const { messages, isLoading, hasMore, loadMore } = useMessages()
+const { messages, isLoading, hasMore, loadMore, timelineVersion } = useMessages()
 const store = useChatStore()
 const { t } = useI18n()
 const route = useRoute()
@@ -73,6 +73,7 @@ const unreadEventId = computed(() => {
 let observer: IntersectionObserver | null = null
 const pendingFocusEventId = ref<string | null>(null)
 let focusFlashTimer = 0
+let bottomSettleFrame = 0
 
 // ── 锚点数据结构 ─────────────────────────────────────────────
 
@@ -80,6 +81,12 @@ interface ScrollAnchor {
   eventId: string
   offset: number
 }
+
+type ReturnPosition
+  = | { type: 'anchor', anchor: ScrollAnchor }
+    | { type: 'bottom' }
+
+const returnPosition = ref<ReturnPosition | null>(null)
 
 // 实时锚点（每次用户滚动时更新）
 let liveAnchorEventId: string | null = null
@@ -89,11 +96,18 @@ let liveAnchorOffset = 0
 // undefined = 首次进入，null = 粘底，ScrollAnchor = 中间位置
 const scrollStateMap = new Map<string, ScrollAnchor | null>()
 
+const showJumpToBottom = computed(() => !isRestoring.value && !isAtBottom.value)
+const showJumpToPrevious = computed(() => !isRestoring.value && returnPosition.value !== null)
+const jumpToBottomLabel = computed(() =>
+  showNewMsg.value ? t('chat.new_msg_btn') : t('chat.jump_to_bottom'),
+)
+
 // 切换房间后等消息到达再恢复
 // 此标志为 true 期间，onScroll / ResizeObserver 全部挂起
 // （类似 Telegram 的 if (_scrollTopState.item) return 守卫）
 let pendingRestore = false
 let pendingRestoreRoomId: string | null = null
+let restoreSessionVersion = 0
 
 function finishPendingRestore(resetBottomState = false) {
   if (resetBottomState) {
@@ -140,6 +154,11 @@ function onUserScrollIntent() {
   }, 150)
 }
 
+function clearUserScrollIntent() {
+  userInteracting = false
+  clearTimeout(userInteractingTimer)
+}
+
 // ── 锚点计算 ─────────────────────────────────────────────────
 
 function findAnchorElement(
@@ -158,6 +177,77 @@ function findAnchorElement(
   return null
 }
 
+function isScrollerAtBottom(el: HTMLElement) {
+  return el.scrollHeight - el.scrollTop - el.clientHeight < 50
+}
+
+function getBottomScrollTop(el: HTMLElement) {
+  return Math.max(0, el.scrollHeight - el.clientHeight)
+}
+
+function captureCurrentScrollState(): ScrollAnchor | null {
+  const el = containerRef.value
+  if (!el) {
+    return liveAnchorEventId
+      ? { eventId: liveAnchorEventId, offset: liveAnchorOffset }
+      : null
+  }
+
+  if (isScrollerAtBottom(el)) {
+    liveAnchorEventId = null
+    liveAnchorOffset = 0
+    isAtBottom.value = true
+    showNewMsg.value = false
+    return null
+  }
+
+  const anchor = findAnchorElement(el, el.scrollTop)
+  if (anchor) {
+    liveAnchorEventId = anchor.eventId
+    liveAnchorOffset = anchor.offset
+    return anchor
+  }
+
+  return liveAnchorEventId
+    ? { eventId: liveAnchorEventId, offset: liveAnchorOffset }
+    : null
+}
+
+function alignToBottom() {
+  const el = containerRef.value
+  if (!el)
+    return
+  el.scrollTop = getBottomScrollTop(el)
+  isAtBottom.value = true
+  liveAnchorEventId = null
+  liveAnchorOffset = 0
+  showNewMsg.value = false
+}
+
+function cancelBottomSettle() {
+  if (!bottomSettleFrame)
+    return
+  window.cancelAnimationFrame(bottomSettleFrame)
+  bottomSettleFrame = 0
+}
+
+function scheduleBottomSettle(sessionVersion: number, frames = 2) {
+  cancelBottomSettle()
+
+  function step(remaining: number) {
+    bottomSettleFrame = window.requestAnimationFrame(() => {
+      bottomSettleFrame = 0
+      if (sessionVersion !== restoreSessionVersion || !isAtBottom.value)
+        return
+      alignToBottom()
+      if (remaining > 1)
+        step(remaining - 1)
+    })
+  }
+
+  step(frames)
+}
+
 function scrollToPosition(eventId: string, offset: number) {
   const el = containerRef.value
   if (!el)
@@ -172,19 +262,22 @@ function scrollToPosition(eventId: string, offset: number) {
   el.scrollTop = target.offsetTop + offset
   liveAnchorEventId = eventId
   liveAnchorOffset = offset
-  isAtBottom.value = el.scrollHeight - el.scrollTop - el.clientHeight < 50
+  isAtBottom.value = isScrollerAtBottom(el)
   if (isAtBottom.value)
     showNewMsg.value = false
   return true
 }
 
-function scrollToCenteredEvent(eventId: string) {
+function scrollToCenteredEvent(eventId: string, options: { rememberPrevious?: boolean } = {}) {
   const el = containerRef.value
   if (!el)
     return false
   const target = el.querySelector<HTMLElement>(`[data-event-id="${CSS.escape(eventId)}"]`)
   if (!target)
     return false
+
+  if (options.rememberPrevious)
+    rememberCurrentPositionForReturn()
 
   const containerRect = el.getBoundingClientRect()
   const targetRect = target.getBoundingClientRect()
@@ -198,7 +291,7 @@ function scrollToCenteredEvent(eventId: string) {
   const anchorOffset = el.scrollTop - target.offsetTop
   liveAnchorEventId = eventId
   liveAnchorOffset = anchorOffset
-  isAtBottom.value = el.scrollHeight - el.scrollTop - el.clientHeight < 50
+  isAtBottom.value = isScrollerAtBottom(el)
   if (isAtBottom.value)
     showNewMsg.value = false
 
@@ -219,15 +312,97 @@ function flashFocusedEvent(eventId: string) {
   }, 1200)
 }
 
-function scrollToBottom() {
+function rememberCurrentPositionForReturn() {
   const el = containerRef.value
-  if (!el)
+  if (el && isScrollerAtBottom(el)) {
+    returnPosition.value = { type: 'bottom' }
     return
-  el.scrollTop = el.scrollHeight
-  isAtBottom.value = true
-  liveAnchorEventId = null
-  liveAnchorOffset = 0
-  showNewMsg.value = false
+  }
+
+  const anchor = captureCurrentScrollState()
+  if (anchor)
+    returnPosition.value = { type: 'anchor', anchor }
+}
+
+function scrollToBottom(options: { rememberPrevious?: boolean } = {}) {
+  if (options.rememberPrevious)
+    rememberCurrentPositionForReturn()
+  clearUserScrollIntent()
+  alignToBottom()
+}
+
+function jumpToBottom() {
+  scrollToBottom({ rememberPrevious: true })
+}
+
+function jumpToPreviousPosition() {
+  const position = returnPosition.value
+  if (!position)
+    return
+  clearUserScrollIntent()
+
+  if (position.type === 'bottom') {
+    scrollToBottom()
+    returnPosition.value = null
+    return
+  }
+
+  if (scrollToPosition(position.anchor.eventId, position.anchor.offset)) {
+    returnPosition.value = null
+    showNewMsg.value = false
+  }
+}
+
+async function restorePendingScrollIfReady() {
+  if (!pendingRestore)
+    return false
+
+  if (visibleMessages.value.length === 0 && isLoading.value)
+    return true
+
+  const roomId = pendingRestoreRoomId
+  const sessionVersion = restoreSessionVersion
+  await nextTick()
+
+  if (
+    !pendingRestore
+    || sessionVersion !== restoreSessionVersion
+    || roomId !== pendingRestoreRoomId
+    || roomId !== store.currentRoomId
+  ) {
+    return true
+  }
+
+  let restoredStickyBottom = false
+
+  if (roomId && scrollStateMap.has(roomId)) {
+    const saved = scrollStateMap.get(roomId)
+    if (saved) {
+      const ok = scrollToPosition(saved.eventId, saved.offset)
+      if (!ok) {
+        scrollToBottom()
+        restoredStickyBottom = true
+      }
+    }
+    else {
+      // null = 之前粘底
+      scrollToBottom()
+      restoredStickyBottom = true
+    }
+  }
+  else {
+    // 首次进入，滚到底部；空 timeline 也必须结束恢复态以显示欢迎页
+    scrollToBottom()
+    restoredStickyBottom = true
+  }
+
+  // 解锁滚动处理 & 显示内容（滚动位置已就绪）
+  pendingRestore = false
+  pendingRestoreRoomId = null
+  isRestoring.value = false
+  if (restoredStickyBottom)
+    scheduleBottomSettle(sessionVersion)
+  return true
 }
 
 async function clearFocusQuery() {
@@ -242,7 +417,7 @@ async function tryFocusEventFromQuery() {
     return
 
   await nextTick()
-  const focused = scrollToCenteredEvent(focusEventId)
+  const focused = scrollToCenteredEvent(focusEventId, { rememberPrevious: true })
   if (focused) {
     flashFocusedEvent(focusEventId)
     pendingFocusEventId.value = null
@@ -263,7 +438,7 @@ function onScroll() {
   if (!el)
     return
 
-  const atBot = el.scrollHeight - el.scrollTop - el.clientHeight < 50
+  const atBot = isScrollerAtBottom(el)
 
   if (atBot) {
     liveAnchorEventId = null
@@ -293,11 +468,15 @@ function onScroll() {
 async function triggerPagination() {
   if (isPaginating.value || !hasMore.value || isLoading.value)
     return
+  const roomId = store.currentRoomId
+  if (!roomId)
+    return
+  const sessionVersion = restoreSessionVersion
   const el = containerRef.value
   if (!el)
     return
 
-  const wasAtBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 50
+  const wasAtBottom = isScrollerAtBottom(el)
 
   let savedId = liveAnchorEventId
   let savedOff = liveAnchorOffset
@@ -313,23 +492,33 @@ async function triggerPagination() {
   }
 
   isPaginating.value = true
-  await loadMore()
-  await nextTick()
+  try {
+    await loadMore()
+    await nextTick()
 
-  if (savedId) {
-    scrollToPosition(savedId, savedOff)
+    if (sessionVersion !== restoreSessionVersion || roomId !== store.currentRoomId)
+      return
+
+    if (savedId) {
+      scrollToPosition(savedId, savedOff)
+    }
+    else if (wasAtBottom) {
+      scrollToBottom()
+    }
   }
-  else if (wasAtBottom) {
-    scrollToBottom()
+  finally {
+    if (sessionVersion === restoreSessionVersion && roomId === store.currentRoomId)
+      isPaginating.value = false
   }
-  isPaginating.value = false
 
   await nextTick()
-  if (sentinelRef.value && hasMore.value) {
-    const rect = sentinelRef.value.getBoundingClientRect()
-    const containerRect = el.getBoundingClientRect()
-    if (rect.bottom >= containerRect.top && rect.top <= containerRect.bottom) {
-      triggerPagination()
+  if (sessionVersion === restoreSessionVersion && roomId === store.currentRoomId) {
+    if (sentinelRef.value && hasMore.value) {
+      const rect = sentinelRef.value.getBoundingClientRect()
+      const containerRect = el.getBoundingClientRect()
+      if (rect.bottom >= containerRect.top && rect.top <= containerRect.bottom) {
+        void triggerPagination()
+      }
     }
   }
 }
@@ -341,19 +530,18 @@ watch(
   (newId, oldId) => {
     // 保存旧房间锚点
     if (oldId) {
-      scrollStateMap.set(
-        oldId,
-        liveAnchorEventId
-          ? { eventId: liveAnchorEventId, offset: liveAnchorOffset }
-          : null,
-      )
+      scrollStateMap.set(oldId, captureCurrentScrollState())
     }
 
     // 挂起所有滚动处理，直到恢复完成
+    clearUserScrollIntent()
+    cancelBottomSettle()
+    restoreSessionVersion++
     pendingRestore = true
     pendingRestoreRoomId = newId || null
     liveAnchorEventId = null
     liveAnchorOffset = 0
+    returnPosition.value = null
     showNewMsg.value = false
     isPaginating.value = false
 
@@ -363,6 +551,7 @@ watch(
 
     void finishEmptyPendingRestoreIfReady()
   },
+  { flush: 'sync' },
 )
 
 // 消息到达后恢复滚动位置
@@ -371,39 +560,7 @@ watch(
 watch(visibleMessages, async (newArr, oldArr) => {
   const newLen = newArr.length
   const oldLen = oldArr?.length ?? 0
-  if (pendingRestore && newLen > 0) {
-    const roomId = pendingRestoreRoomId
-    // 单次 nextTick 即可：Vue 的 DOM patch 在 nextTick 后已完成
-    // 配合 visibility:hidden 遮盖，即使有微小误差也不可见
-    await nextTick()
-
-    if (roomId && scrollStateMap.has(roomId)) {
-      const saved = scrollStateMap.get(roomId)
-      if (saved) {
-        const ok = scrollToPosition(saved.eventId, saved.offset)
-        if (!ok)
-          scrollToBottom()
-      }
-      else {
-        // null = 之前粘底
-        scrollToBottom()
-      }
-    }
-    else {
-      // 首次进入，滚到底部
-      scrollToBottom()
-    }
-
-    // 解锁滚动处理 & 显示内容（滚动位置已就绪）
-    finishPendingRestore()
-    return
-  }
-
-  if (await finishEmptyPendingRestoreIfReady())
-    return
-
-  // pendingRestore 期间忽略其他变化
-  if (pendingRestore)
+  if (await restorePendingScrollIfReady())
     return
 
   // 普通新消息到达
@@ -422,8 +579,8 @@ watch(visibleMessages, async (newArr, oldArr) => {
   }
 })
 
-watch(isLoading, () => {
-  void finishEmptyPendingRestoreIfReady()
+watch(isLoading, async () => {
+  await restorePendingScrollIfReady()
 })
 
 watch(
@@ -455,7 +612,7 @@ function onChildResize() {
 
   if (isAtBottom.value) {
     // 粘底：内容高度变化后继续跟随底部
-    el.scrollTop = el.scrollHeight
+    alignToBottom()
   }
   else if (liveAnchorEventId) {
     // 有锚点：恢复锚点位置（防止内容膨胀导致跳动）
@@ -497,6 +654,7 @@ onMounted(() => {
   const el = containerRef.value
   if (el) {
     el.addEventListener('wheel', onUserScrollIntent, { passive: true })
+    el.addEventListener('pointerdown', onUserScrollIntent, { passive: true })
     el.addEventListener('touchstart', onUserScrollIntent, { passive: true })
     el.addEventListener('keydown', onUserScrollIntent, { passive: true })
   }
@@ -517,12 +675,14 @@ onUnmounted(() => {
   observer?.disconnect()
   resizeObs?.disconnect()
   mutationObs?.disconnect()
+  cancelBottomSettle()
   clearTimeout(userInteractingTimer)
   clearTimeout(focusFlashTimer)
 
   const el = containerRef.value
   if (el) {
     el.removeEventListener('wheel', onUserScrollIntent)
+    el.removeEventListener('pointerdown', onUserScrollIntent)
     el.removeEventListener('touchstart', onUserScrollIntent)
     el.removeEventListener('keydown', onUserScrollIntent)
   }
@@ -531,49 +691,74 @@ onUnmounted(() => {
 
 <template>
   <div
-    ref="containerRef"
-    class="flex-1 overflow-y-auto py-2 relative"
-    :style="{
-      overflowAnchor: 'none',
-      visibility: isRestoring ? 'hidden' : 'visible',
-    }"
-    @scroll="onScroll"
+    class="relative min-h-0 flex-1"
+    :style="{ visibility: isRestoring ? 'hidden' : 'visible' }"
   >
-    <div ref="sentinelRef" class="h-1" />
-    <div v-if="isLoading" class="text-center py-2">
-      <span class="text-xs text-muted-foreground">{{ t("chat.loading") }}</span>
+    <div
+      ref="containerRef"
+      data-testid="message-list-scroller"
+      class="relative h-full min-h-0 overflow-y-auto py-2"
+      :style="{
+        overflowAnchor: 'none',
+        visibility: isRestoring ? 'hidden' : 'visible',
+      }"
+      @scroll="onScroll"
+    >
+      <div ref="sentinelRef" class="h-1" />
+      <div v-if="isLoading" class="text-center py-2">
+        <span class="text-xs text-muted-foreground">{{ t("chat.loading") }}</span>
+      </div>
+
+      <!-- Message rendering: delegate grouping to MessageGroup -->
+      <MessageGroup
+        v-if="visibleMessages.length"
+        :events="visibleMessages"
+        :room-id="store.currentRoomId || ''"
+        :timeline-version="timelineVersion"
+        :unread-event-id="unreadEventId"
+        @avatar-click="onAvatarClick"
+        @user-click="onAvatarClick"
+      />
+
+      <ChannelWelcome
+        v-else-if="!isLoading && store.currentRoomId"
+        :room-id="store.currentRoomId"
+      />
+
+      <UserInfoPanel
+        :room="null"
+        :user-id="infoPanelUserId"
+        :room-id="store.currentRoomId"
+        :position="infoPanelPos"
+        @close="closeInfoPanel"
+      />
     </div>
 
-    <!-- Message rendering: delegate grouping to MessageGroup -->
-    <MessageGroup
-      v-if="visibleMessages.length"
-      :events="visibleMessages"
-      :room-id="store.currentRoomId || ''"
-      :unread-event-id="unreadEventId"
-      @avatar-click="onAvatarClick"
-      @user-click="onAvatarClick"
-    />
-
-    <ChannelWelcome
-      v-else-if="!isLoading && store.currentRoomId"
-      :room-id="store.currentRoomId"
-    />
-
-    <button
-      v-if="showNewMsg"
-      class="sticky bottom-2 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-xs px-3 py-1.5 rounded-full shadow-md flex items-center gap-1"
-      @click="scrollToBottom"
+    <div
+      v-if="showJumpToBottom || showJumpToPrevious"
+      class="pointer-events-none absolute inset-x-0 bottom-2 z-10 flex flex-col items-center gap-2"
     >
-      <ChevronDown :size="14" />
-      {{ t("chat.new_msg_btn") }}
-    </button>
+      <button
+        v-if="showJumpToPrevious"
+        data-testid="timeline-jump-to-previous"
+        class="pointer-events-auto flex items-center gap-1 rounded-full border border-border/60 bg-background/95 px-3 py-1.5 text-xs text-foreground shadow-md backdrop-blur transition-colors hover:bg-accent"
+        :aria-label="t('chat.jump_to_previous')"
+        @click="jumpToPreviousPosition"
+      >
+        <Undo2 :size="14" />
+        {{ t("chat.jump_to_previous") }}
+      </button>
 
-    <UserInfoPanel
-      :room="null"
-      :user-id="infoPanelUserId"
-      :room-id="store.currentRoomId"
-      :position="infoPanelPos"
-      @close="closeInfoPanel"
-    />
+      <button
+        v-if="showJumpToBottom"
+        data-testid="timeline-jump-to-bottom"
+        class="pointer-events-auto flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-xs text-primary-foreground shadow-md transition-colors hover:bg-primary/90"
+        :aria-label="jumpToBottomLabel"
+        @click="jumpToBottom"
+      >
+        <ChevronDown :size="14" />
+        {{ jumpToBottomLabel }}
+      </button>
+    </div>
   </div>
 </template>

@@ -3,7 +3,7 @@ import { getClient } from '@matrix/client'
 import { Hash, Search, Settings, Users } from 'lucide-vue-next'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { isDirectRoom } from '@/shared/lib/roomUtils'
+import { isDirectRoom } from '@matrix/roomUtils'
 import { useChatStore } from '../stores/chatStore'
 
 const props = defineProps<{

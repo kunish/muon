@@ -19,7 +19,7 @@ vi.mock('@/shared/composables/useNetworkStatus', () => ({
   }),
 }))
 
-vi.mock('@/shared/lib/knowledgeDb', () => ({
+vi.mock('@features/chat/lib/knowledgeDb', () => ({
   createKnowledgeRepository: () => ({
     listDigestEntries: (...args: unknown[]) => listDigestEntriesMock(...args),
     saveDigestEntry: (...args: unknown[]) => saveDigestEntryMock(...args),

@@ -1,246 +1,151 @@
 #!/usr/bin/env npx tsx
+import type { LocalServiceChannel, LocalServiceMessage, LocalServiceSpace } from '../src/shared/data/localServiceMock'
 import process from 'node:process'
-/**
- * Seed 脚本 — 在本地 Conduit 上创建测试用户、DM 房间、群聊房间并发送消息
- *
- * 用法:  npx tsx scripts/seed-conduit.ts
- *
- * 需要:
- *   - 本地 Conduit 运行在 http://127.0.0.1:6167
- *   - allow_registration = true
- *   - kunish 账号已存在
- */
+import { LOCAL_SERVICE_MOCK_DATA } from '../src/shared/data/localServiceMock'
 
-const BASE_URL = 'http://127.0.0.1:6167'
-const KUNISH_PASSWORD = 'Aa794613123.'
-const TEST_USER_PASSWORD = 'test1234'
+const BASE_URL = process.env.MUON_SEED_BASE_URL ?? 'http://127.0.0.1:6167'
+const DEFAULT_USER_PASSWORD = process.env.MUON_SEED_USER_PASSWORD ?? process.env.MUON_SEED_PASSWORD ?? 'test1234'
+const OWNER_PASSWORD_CANDIDATES = unique([
+  process.env.MUON_SEED_OWNER_PASSWORD,
+  process.env.MUON_SEED_PASSWORD,
+  'test1234',
+  // Older local setups used this password for @kunish:localhost.
+  'Aa794613123.',
+])
+const OWNER_REGISTRATION_PASSWORD = OWNER_PASSWORD_CANDIDATES[0] ?? 'test1234'
+const SEED_ACCOUNT_DATA_TYPE = 'im.muon.local_seed'
+const MESSAGE_DELAY_MS = Number(process.env.MUON_SEED_MESSAGE_DELAY_MS ?? 20)
+const FORCE_SEED = process.argv.includes('--force') || process.env.MUON_SEED_FORCE === '1'
 
-// ───────────────────────────── 用户定义 ─────────────────────────────
-interface UserDef {
+interface MatrixErrorResponse {
+  _error: true
+  _status: number
+  errcode?: string
+  error?: string
+  [key: string]: unknown
+}
+
+interface MatrixFetchOptions {
+  method?: string
+  body?: unknown
+  token?: string
+}
+
+interface SeededUser {
   localpart: string
+  userId: string
+  token: string
   displayName: string
+  password: string
 }
 
-const TEST_USERS: UserDef[] = [
-  { localpart: 'xiaohong', displayName: '小红' },
-  { localpart: 'xiaoming', displayName: '小明' },
-  { localpart: 'xiaogang', displayName: '小刚' },
-  { localpart: 'xiaoli', displayName: '小丽' },
-  { localpart: 'xiaowei', displayName: '小伟' },
-  { localpart: 'xiaofang', displayName: '小芳' },
-  { localpart: 'xiaojie', displayName: '小杰' },
-]
-
-// ───────────────────────────── 消息定义 ─────────────────────────────
-// sender 用 localpart 或 'kunish' 表示
-interface MsgDef {
-  sender: string // localpart
-  body: string
-  delayMs?: number // 消息之间的延迟（默认 50ms）
+interface SeedMarker {
+  version: string
+  serverName: string
+  ownerUserId: string
+  seededAt: string
+  avatars: Record<string, string>
+  rooms: Record<string, string>
+  spaces: Record<string, string>
+  categories: Record<string, string>
+  channels: Record<string, string>
 }
 
-interface DmRoomDef {
-  peer: string // localpart of the other user
-  messages: MsgDef[]
+interface InitialStateEvent {
+  type: string
+  state_key?: string
+  content: Record<string, unknown>
 }
 
-interface GroupRoomDef {
-  name: string
+interface CreateRoomBody {
+  name?: string
   topic?: string
-  members: string[] // localpart list (不含 kunish，他是创建者)
-  messages: MsgDef[]
+  invite?: string[]
+  is_direct?: boolean
+  preset?: 'private_chat' | 'public_chat' | 'trusted_private_chat'
+  creation_content?: Record<string, unknown>
+  initial_state?: InitialStateEvent[]
+  power_level_content_override?: Record<string, unknown>
 }
 
-const DM_ROOMS: DmRoomDef[] = [
-  {
-    peer: 'xiaohong',
-    messages: [
-      { sender: 'xiaohong', body: '在吗？有个事想问你' },
-      { sender: 'kunish', body: '在的，怎么了？' },
-      { sender: 'xiaohong', body: '明天下午有空吗？想约你一起去看展览' },
-      { sender: 'kunish', body: '明天下午可以啊，几点？' },
-      { sender: 'xiaohong', body: '两点半在美术馆门口集合怎么样？' },
-      { sender: 'kunish', body: '好的没问题 👍' },
-      { sender: 'xiaohong', body: '就是这个展，看起来很不错吧' },
-      { sender: 'kunish', body: '哇，这个看起来很有意思！我很期待' },
-      { sender: 'xiaohong', body: '对了，要不要叫上小明一起？' },
-      { sender: 'kunish', body: '可以呀，你问问他' },
-      { sender: 'xiaohong', body: '好，我问一下他' },
-      { sender: 'xiaohong', body: '小明说他明天有事去不了 😅' },
-      { sender: 'kunish', body: '那就咱俩去吧' },
-      { sender: 'xiaohong', body: '嗯嗯，到时候见！' },
-      { sender: 'xiaohong', body: '我到啦，你到哪了？' },
-      { sender: 'kunish', body: '马上到，还有两分钟' },
-      { sender: 'kunish', body: '到了到了，在入口处' },
-      { sender: 'xiaohong', body: '看到你了！' },
-      { sender: 'xiaohong', body: '今天的展好棒啊！' },
-      { sender: 'kunish', body: '拍了好多照片哈哈' },
-      { sender: 'xiaohong', body: '对对对，我也拍了好多，等下发你' },
-      { sender: 'kunish', body: '这两张拍得真好！' },
-      { sender: 'xiaohong', body: '谢谢 😊 下次再一起出去玩' },
-      { sender: 'kunish', body: '好呀，随时约' },
-    ],
-  },
-  {
-    peer: 'xiaoming',
-    messages: [
-      { sender: 'xiaoming', body: '兄弟，新版本的代码你看了吗？' },
-      { sender: 'kunish', body: '还没来得及，今天晚上看' },
-      { sender: 'xiaoming', body: '好的，里面有几个 bug 需要修一下' },
-      { sender: 'kunish', body: '什么 bug？' },
-      { sender: 'xiaoming', body: '登录页面在 Safari 上样式有问题，还有一个数据请求的竞态条件' },
-      { sender: 'kunish', body: '了解，我先处理 Safari 的问题' },
-      { sender: 'xiaoming', body: '这是详细的 bug 报告，你看看' },
-      { sender: 'kunish', body: '收到，我看一下' },
-      { sender: 'kunish', body: 'Safari 的问题找到了，是 flex gap 的兼容性问题' },
-      { sender: 'xiaoming', body: '果然，Safari 老毛病了' },
-      { sender: 'kunish', body: '已经修好了，你帮我测一下' },
-      { sender: 'xiaoming', body: '好，我测一下' },
-      { sender: 'xiaoming', body: 'Safari 上没问题了 ✅' },
-      { sender: 'kunish', body: '太好了，竞态条件我明天处理' },
-      { sender: 'xiaoming', body: '不着急，这个周末前搞定就行' },
-      { sender: 'kunish', body: '收到，周末前一定搞定' },
-      { sender: 'xiaoming', body: '竞态条件的 bug 你搞定了吗？' },
-      { sender: 'kunish', body: '搞定了，用 AbortController 解决的' },
-      { sender: 'xiaoming', body: '代码发我看看？' },
-      { sender: 'kunish', body: '```\nconst controller = new AbortController()\nfetch(url, { signal: controller.signal })\n```' },
-      { sender: 'xiaoming', body: '不错不错，这个方案简洁' },
-    ],
-  },
-  {
-    peer: 'xiaogang',
-    messages: [
-      { sender: 'xiaogang', body: '哥，周末一起打球不？' },
-      { sender: 'kunish', body: '什么球？' },
-      { sender: 'xiaogang', body: '羽毛球呗，上次那个场地' },
-      { sender: 'kunish', body: '行啊，周六下午怎么样？' },
-      { sender: 'xiaogang', body: '周六下午三点，我去订场地' },
-      { sender: 'kunish', body: '好的 💪' },
-      { sender: 'xiaogang', body: '场地订好了，3号场' },
-      { sender: 'kunish', body: '收到' },
-      { sender: 'xiaogang', body: '对了，带上你那个新拍子' },
-      { sender: 'kunish', body: '没问题' },
-      { sender: 'xiaogang', body: '🏸' },
-      { sender: 'xiaogang', body: '到了说一声' },
-      { sender: 'kunish', body: '快了快了，堵车 🚗' },
-      { sender: 'xiaogang', body: '哈哈哈行，我先热身' },
-      { sender: 'kunish', body: '到了！' },
-    ],
-  },
-  {
-    peer: 'xiaoli',
-    messages: [
-      { sender: 'xiaoli', body: '请问这个项目的设计稿在哪里可以看？' },
-      { sender: 'kunish', body: '在 Figma 上，我把链接发给你' },
-      { sender: 'kunish', body: 'https://figma.com/file/xxx/muon-design' },
-      { sender: 'xiaoli', body: '收到，谢谢！' },
-      { sender: 'xiaoli', body: '设计稿看了，有几个页面的交互想和你讨论一下' },
-      { sender: 'kunish', body: '好的，具体是哪些？' },
-      { sender: 'xiaoli', body: '主要是聊天页面的右键菜单和设置面板的动画' },
-      { sender: 'kunish', body: '明白了，右键菜单我可以加个弹出动画' },
-      { sender: 'xiaoli', body: '嗯嗯，可以参考 Telegram 的效果' },
-    ],
-  },
-  {
-    peer: 'xiaowei',
-    messages: [
-      { sender: 'xiaowei', body: '大佬，问个技术问题' },
-      { sender: 'kunish', body: '你说' },
-      { sender: 'xiaowei', body: 'Vue 3 的 shallowRef 和 ref 有什么区别？' },
-      { sender: 'kunish', body: 'ref 会深度追踪响应性，shallowRef 只追踪 .value 本身的变化。如果你放的是大数组或复杂对象，用 shallowRef 性能更好' },
-      { sender: 'xiaowei', body: '懂了，那我列表数据应该用 shallowRef？' },
-      { sender: 'kunish', body: '对，替换整个数组触发更新，内部变化用 triggerRef' },
-      { sender: 'xiaowei', body: '太有帮助了，谢谢大佬！' },
-    ],
-  },
-]
+function unique(values: Array<string | undefined>): string[] {
+  return [...new Set(values.filter((value): value is string => !!value))]
+}
 
-const GROUP_ROOMS: GroupRoomDef[] = [
-  {
-    name: '项目讨论组',
-    topic: 'Muon 项目日常讨论',
-    members: ['xiaohong', 'xiaoming', 'xiaogang', 'xiaoli'],
-    messages: [
-      { sender: 'kunish', body: '大家早上好，今天的站会推迟到 10 点' },
-      { sender: 'xiaohong', body: '好的收到' },
-      { sender: 'xiaoming', body: '收到 👌' },
-      { sender: 'xiaogang', body: 'OK' },
-      { sender: 'xiaoli', body: '好的' },
-      { sender: 'kunish', body: '站会开始，大家依次说一下昨天的进度' },
-      { sender: 'xiaohong', body: '我昨天完成了用户资料页的样式调整' },
-      { sender: 'xiaoming', body: '我修了两个前端 bug，还在处理第三个' },
-      { sender: 'xiaogang', body: '后端 API 已经部署到测试环境了' },
-      { sender: 'xiaoli', body: '设计稿已经更新到最新版本' },
-      { sender: 'kunish', body: '很好，进度不错。今天的重点是准备下周的 demo' },
-      { sender: 'xiaohong', body: '需要我准备哪些页面的截图？' },
-      { sender: 'kunish', body: '主要是聊天页面、联系人页面、设置页面这三个' },
-      { sender: 'xiaohong', body: '好的，下班前发出来' },
-      { sender: 'xiaoming', body: '性能优化的数据我也整理一下' },
-      { sender: 'kunish', body: '那今天就这样，大家加油 💪' },
-      { sender: 'xiaoming', body: '@kunish 消息列表的虚拟滚动要不要加？数据量大的时候有卡顿' },
-      { sender: 'kunish', body: '先不加，等遇到实际性能问题再说。过早优化是万恶之源' },
-      { sender: 'xiaogang', body: '赞同，先保证功能正确' },
-      { sender: 'xiaohong', body: '页面截图好了，发在这里大家看看' },
-      { sender: 'kunish', body: '截图很完美，辛苦了！' },
-      { sender: 'xiaoli', body: '小红做的截图真好看 ✨' },
-    ],
-  },
-  {
-    name: '家庭群',
-    topic: '家人们的日常',
-    members: ['xiaohong', 'xiaofang', 'xiaojie'],
-    messages: [
-      { sender: 'xiaofang', body: '周末谁来吃饭呀？' },
-      { sender: 'kunish', body: '我来！' },
-      { sender: 'xiaojie', body: '我也来，带点水果过去' },
-      { sender: 'xiaohong', body: '算我一个～' },
-      { sender: 'xiaofang', body: '太好了，那我准备四个人的菜' },
-      { sender: 'xiaofang', body: '想吃什么？提前说，我好买菜' },
-      { sender: 'kunish', body: '红烧肉！' },
-      { sender: 'xiaojie', body: '鱼香茄子 🍆' },
-      { sender: 'xiaohong', body: '西红柿炒蛋就行 😋' },
-      { sender: 'xiaofang', body: '好的好的，都记下了' },
-      { sender: 'xiaofang', body: '菜买好了！' },
-      { sender: 'kunish', body: '看起来好丰盛' },
-      { sender: 'xiaojie', body: '我买了西瓜和葡萄，一会到' },
-      { sender: 'xiaofang', body: '快来吧，已经开始做了' },
-    ],
-  },
-  {
-    name: '技术交流群',
-    topic: '技术分享与讨论',
-    members: ['xiaoming', 'xiaogang', 'xiaowei', 'xiaofang', 'xiaojie'],
-    messages: [
-      { sender: 'xiaoming', body: '有人用过 Tauri 2.0 吗？' },
-      { sender: 'kunish', body: '我正在用，有什么问题？' },
-      { sender: 'xiaowei', body: '我也在研究' },
-      { sender: 'xiaoming', body: '跨平台打包的时候遇到点问题' },
-      { sender: 'kunish', body: '什么问题？贴一下错误日志' },
-      { sender: 'xiaoming', body: '```\nerror[E0433]: failed to resolve: use of undeclared crate\n```' },
-      { sender: 'kunish', body: '这个是 Rust 依赖没装好，检查一下 Cargo.toml' },
-      { sender: 'xiaoming', body: '果然，少了一个 dependency，加上就好了' },
-      { sender: 'xiaowei', body: 'Tauri 2 比 Electron 快多了，二进制文件才 8MB' },
-      { sender: 'kunish', body: '是的，而且内存占用也小很多' },
-      { sender: 'xiaogang', body: '有没有人测过 Tauri 的 IPC 性能？' },
-      { sender: 'kunish', body: '我测过，JSON 序列化大概 0.1ms，比 Electron 的 IPC 快 3 倍左右' },
-      { sender: 'xiaogang', body: '这么快？有 benchmark 数据吗？' },
-      { sender: 'kunish', body: '有的，我整理一下发出来' },
-      { sender: 'xiaogang', body: '太棒了，这个数据正好写技术报告用' },
-      { sender: 'xiaofang', body: '推荐一个好用的 VS Code 插件：Tauri 官方的那个' },
-      { sender: 'xiaowei', body: '已经装了，自动补全确实方便' },
-      { sender: 'xiaoming', body: '感谢推荐，装上了 👍' },
-      { sender: 'xiaojie', body: '大家有没有研究过 WebView2 的限制？' },
-      { sender: 'kunish', body: '主要是 Windows 上的 WebView2 版本问题，但 Tauri 2 做了很好的兼容' },
-    ],
-  },
-]
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
 
-// ───────────────────────────── HTTP 工具 ─────────────────────────────
+function isMatrixError(value: unknown): value is MatrixErrorResponse {
+  return isRecord(value) && value._error === true
+}
 
-async function matrixFetch(
+function readStringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []
+}
+
+function createEmptyMarker(ownerUserId: string): SeedMarker {
+  return {
+    version: LOCAL_SERVICE_MOCK_DATA.version,
+    serverName: LOCAL_SERVICE_MOCK_DATA.serverName,
+    ownerUserId,
+    seededAt: new Date().toISOString(),
+    avatars: {},
+    rooms: {},
+    spaces: {},
+    categories: {},
+    channels: {},
+  }
+}
+
+function isCurrentSeedMarker(value: unknown): value is SeedMarker {
+  return isRecord(value)
+    && value.version === LOCAL_SERVICE_MOCK_DATA.version
+    && value.serverName === LOCAL_SERVICE_MOCK_DATA.serverName
+}
+
+function normalizeSeedMarker(marker: SeedMarker): SeedMarker {
+  marker.avatars ??= {}
+  marker.rooms ??= {}
+  marker.spaces ??= {}
+  marker.categories ??= {}
+  marker.channels ??= {}
+  return marker
+}
+
+function expectedSeedKeys() {
+  const rooms = [
+    ...LOCAL_SERVICE_MOCK_DATA.dmRooms.map(room => room.key),
+    ...LOCAL_SERVICE_MOCK_DATA.groupRooms.map(room => room.key),
+  ]
+  const spaces = LOCAL_SERVICE_MOCK_DATA.spaces.map(space => space.key)
+  const categories = LOCAL_SERVICE_MOCK_DATA.spaces.flatMap(space => space.categories.map(category => category.key))
+  const channels = LOCAL_SERVICE_MOCK_DATA.spaces.flatMap(space => [
+    ...space.channels.map(channel => channel.key),
+    ...space.categories.flatMap(category => category.channels.map(channel => channel.key)),
+  ])
+  const avatars = [
+    LOCAL_SERVICE_MOCK_DATA.owner.localpart,
+    ...LOCAL_SERVICE_MOCK_DATA.users.map(user => user.localpart),
+    ...LOCAL_SERVICE_MOCK_DATA.profileUsers.map(user => user.localpart),
+  ]
+
+  return { avatars, rooms, spaces, categories, channels }
+}
+
+function isCompleteSeedMarker(marker: SeedMarker): boolean {
+  const expected = expectedSeedKeys()
+  return expected.avatars.every(key => !!marker.avatars[key])
+    && expected.rooms.every(key => !!marker.rooms[key])
+    && expected.spaces.every(key => !!marker.spaces[key])
+    && expected.categories.every(key => !!marker.categories[key])
+    && expected.channels.every(key => !!marker.channels[key])
+}
+
+async function matrixFetch<T extends Record<string, unknown> = Record<string, unknown>>(
   path: string,
-  opts: { method?: string, body?: any, token?: string } = {},
-): Promise<any> {
+  opts: MatrixFetchOptions = {},
+): Promise<T | MatrixErrorResponse> {
   const { method = 'GET', body, token } = opts
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
   if (token)
@@ -249,243 +154,654 @@ async function matrixFetch(
   const res = await fetch(`${BASE_URL}${path}`, {
     method,
     headers,
-    body: body ? JSON.stringify(body) : undefined,
+    body: body === undefined ? undefined : JSON.stringify(body),
   })
-  const json = await res.json()
-  if (!res.ok && json.errcode) {
-    // 不抛错，让调用方决定
-    return { _error: true, ...json }
+  const text = await res.text()
+  let payload: unknown = {}
+  if (text) {
+    try {
+      payload = JSON.parse(text)
+    }
+    catch {
+      payload = { error: text }
+    }
   }
-  return json
+
+  const json = isRecord(payload) ? payload : { value: payload }
+  if (!res.ok) {
+    return {
+      _error: true,
+      _status: res.status,
+      ...json,
+    }
+  }
+  return json as T
 }
 
-function sleep(ms: number) {
-  return new Promise(r => setTimeout(r, ms))
+async function uploadAvatarMedia(user: SeededUser): Promise<string | null> {
+  const svg = createAvatarSvg(user)
+  const res = await fetch(
+    `${BASE_URL}/_matrix/media/v3/upload?filename=${encodeURIComponent(`${user.localpart}-avatar.svg`)}`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'image/svg+xml',
+        'Authorization': `Bearer ${user.token}`,
+      },
+      body: svg,
+    },
+  )
+  const text = await res.text()
+  let payload: unknown = {}
+  if (text) {
+    try {
+      payload = JSON.parse(text)
+    }
+    catch {
+      payload = { error: text }
+    }
+  }
+
+  if (!res.ok || !isRecord(payload) || typeof payload.content_uri !== 'string') {
+    console.error(`  WARN upload avatar ${user.localpart} failed:`, payload)
+    return null
+  }
+
+  return payload.content_uri
 }
 
-// ───────────────────────────── 主流程 ─────────────────────────────
+function createAvatarSvg(user: SeededUser): string {
+  const hue = hashHue(user.userId)
+  const label = escapeXml((user.displayName || user.localpart).slice(0, 2).toUpperCase())
+  return [
+    '<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">',
+    '<defs>',
+    `<linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="hsl(${hue} 72% 58%)"/><stop offset="100%" stop-color="hsl(${(hue + 42) % 360} 70% 42%)"/></linearGradient>`,
+    '</defs>',
+    '<rect width="128" height="128" rx="64" fill="url(#g)"/>',
+    '<circle cx="94" cy="32" r="22" fill="rgba(255,255,255,0.18)"/>',
+    '<circle cx="32" cy="100" r="28" fill="rgba(0,0,0,0.08)"/>',
+    `<text x="64" y="76" text-anchor="middle" font-family="Arial, sans-serif" font-size="40" font-weight="700" fill="#fff">${label}</text>`,
+    '</svg>',
+  ].join('')
+}
 
-async function main() {
-  console.log('=== Muon Conduit Seed 脚本 ===\n')
+function hashHue(value: string): number {
+  let hash = 0
+  for (const ch of value)
+    hash = ch.charCodeAt(0) + ((hash << 5) - hash)
+  return Math.abs(hash) % 360
+}
 
-  // 1. 登录 kunish
-  console.log('1. 登录 kunish...')
-  const kunishLogin = await matrixFetch('/_matrix/client/v3/login', {
+function escapeXml(value: string): string {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll('\'', '&apos;')
+}
+
+async function loginWithPassword(localpart: string, password: string): Promise<SeededUser | MatrixErrorResponse> {
+  const loginRes = await matrixFetch('/_matrix/client/v3/login', {
     method: 'POST',
     body: {
       type: 'm.login.password',
-      identifier: { type: 'm.id.user', user: 'kunish' },
-      password: KUNISH_PASSWORD,
+      identifier: { type: 'm.id.user', user: localpart },
+      password,
     },
   })
-  if (kunishLogin._error) {
-    console.error('   kunish 登录失败:', kunishLogin)
-    process.exit(1)
-  }
-  const kunishToken = kunishLogin.access_token
-  const kunishUserId = kunishLogin.user_id
-  console.log(`   ✓ kunish 登录成功: ${kunishUserId}\n`)
+  if (isMatrixError(loginRes))
+    return loginRes
 
-  // 2. 注册测试用户
-  console.log('2. 注册测试用户...')
-  const userTokens: Record<string, string> = { kunish: kunishToken }
-  const userIds: Record<string, string> = { kunish: kunishUserId }
-
-  for (const u of TEST_USERS) {
-    const regResult = await matrixFetch('/_matrix/client/v3/register', {
-      method: 'POST',
-      body: {
-        auth: { type: 'm.login.dummy' },
-        username: u.localpart,
-        password: TEST_USER_PASSWORD,
-      },
-    })
-
-    if (regResult._error) {
-      if (regResult.errcode === 'M_USER_IN_USE') {
-        console.log(`   ⦿ ${u.localpart} 已存在，尝试登录...`)
-        const loginRes = await matrixFetch('/_matrix/client/v3/login', {
-          method: 'POST',
-          body: {
-            type: 'm.login.password',
-            identifier: { type: 'm.id.user', user: u.localpart },
-            password: TEST_USER_PASSWORD,
-          },
-        })
-        if (loginRes._error) {
-          console.error(`   ✗ ${u.localpart} 登录失败:`, loginRes)
-          continue
-        }
-        userTokens[u.localpart] = loginRes.access_token
-        userIds[u.localpart] = loginRes.user_id
-      }
-      else {
-        console.error(`   ✗ ${u.localpart} 注册失败:`, regResult)
-        continue
-      }
+  if (typeof loginRes.access_token !== 'string' || typeof loginRes.user_id !== 'string') {
+    return {
+      _error: true,
+      _status: 500,
+      error: `Login response for ${localpart} did not include access_token/user_id`,
     }
-    else {
-      userTokens[u.localpart] = regResult.access_token
-      userIds[u.localpart] = regResult.user_id
-      console.log(`   ✓ ${u.localpart} 注册成功: ${regResult.user_id}`)
-    }
-
-    // 设置显示名
-    await matrixFetch(`/_matrix/client/v3/profile/${userIds[u.localpart]}/displayname`, {
-      method: 'PUT',
-      token: userTokens[u.localpart],
-      body: { displayname: u.displayName },
-    })
-    console.log(`   ✓ ${u.localpart} 显示名设置为 "${u.displayName}"`)
-  }
-  console.log()
-
-  // 3. 创建 DM 房间
-  console.log('3. 创建 DM 房间...')
-  const dmRoomIds: Record<string, string> = {}
-
-  for (const dm of DM_ROOMS) {
-    if (!userIds[dm.peer]) {
-      console.error(`   ✗ 跳过 DM ${dm.peer}: 用户未注册成功`)
-      continue
-    }
-
-    // kunish 创建 DM 房间并邀请对方
-    const createRes = await matrixFetch('/_matrix/client/v3/createRoom', {
-      method: 'POST',
-      token: kunishToken,
-      body: {
-        is_direct: true,
-        invite: [userIds[dm.peer]],
-        preset: 'trusted_private_chat',
-      },
-    })
-    if (createRes._error) {
-      console.error(`   ✗ 创建 DM ${dm.peer} 失败:`, createRes)
-      continue
-    }
-    const roomId = createRes.room_id
-    dmRoomIds[dm.peer] = roomId
-    console.log(`   ✓ DM ${dm.peer}: ${roomId}`)
-
-    // 对方加入房间
-    const peerToken = userTokens[dm.peer]
-    const joinRes = await matrixFetch(`/_matrix/client/v3/join/${encodeURIComponent(roomId)}`, {
-      method: 'POST',
-      token: peerToken,
-      body: {},
-    })
-    if (joinRes._error) {
-      console.error(`     ✗ ${dm.peer} 加入失败:`, joinRes)
-    }
-    else {
-      console.log(`     ✓ ${dm.peer} 已加入`)
-    }
-
-    // 设置 m.direct account data (kunish 端)
-    // 先读取现有的
-    const existingDirect = await matrixFetch(
-      `/_matrix/client/v3/user/${encodeURIComponent(kunishUserId)}/account_data/m.direct`,
-      { token: kunishToken },
-    )
-    const directContent = existingDirect._error ? {} : existingDirect
-    const peerId = userIds[dm.peer]
-    if (!directContent[peerId])
-      directContent[peerId] = []
-    if (!directContent[peerId].includes(roomId))
-      directContent[peerId].push(roomId)
-    await matrixFetch(
-      `/_matrix/client/v3/user/${encodeURIComponent(kunishUserId)}/account_data/m.direct`,
-      { method: 'PUT', token: kunishToken, body: directContent },
-    )
-
-    // 发送消息
-    let txnId = 0
-    for (const msg of dm.messages) {
-      const senderToken = msg.sender === 'kunish' ? kunishToken : userTokens[msg.sender]
-      if (!senderToken)
-        continue
-
-      await matrixFetch(
-        `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/send/m.room.message/${txnId++}`,
-        {
-          method: 'PUT',
-          token: senderToken,
-          body: { msgtype: 'm.text', body: msg.body },
-        },
-      )
-      await sleep(30) // 避免过快发送
-    }
-    console.log(`     ✓ 发送了 ${dm.messages.length} 条消息`)
-  }
-  console.log()
-
-  // 4. 创建群聊房间
-  console.log('4. 创建群聊房间...')
-
-  for (const group of GROUP_ROOMS) {
-    const inviteIds = group.members
-      .map(m => userIds[m])
-      .filter(Boolean)
-
-    const createRes = await matrixFetch('/_matrix/client/v3/createRoom', {
-      method: 'POST',
-      token: kunishToken,
-      body: {
-        name: group.name,
-        topic: group.topic || '',
-        invite: inviteIds,
-        preset: 'private_chat',
-      },
-    })
-    if (createRes._error) {
-      console.error(`   ✗ 创建群 "${group.name}" 失败:`, createRes)
-      continue
-    }
-    const roomId = createRes.room_id
-    console.log(`   ✓ 群 "${group.name}": ${roomId}`)
-
-    // 成员加入
-    for (const member of group.members) {
-      const memberToken = userTokens[member]
-      if (!memberToken)
-        continue
-      const joinRes = await matrixFetch(
-        `/_matrix/client/v3/join/${encodeURIComponent(roomId)}`,
-        { method: 'POST', token: memberToken, body: {} },
-      )
-      if (joinRes._error) {
-        console.error(`     ✗ ${member} 加入失败:`, joinRes)
-      }
-    }
-    console.log(`     ✓ ${group.members.length} 位成员已加入`)
-
-    // 发送消息
-    let txnId = 0
-    for (const msg of group.messages) {
-      const senderToken = msg.sender === 'kunish' ? kunishToken : userTokens[msg.sender]
-      if (!senderToken)
-        continue
-
-      await matrixFetch(
-        `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/send/m.room.message/${txnId++}`,
-        {
-          method: 'PUT',
-          token: senderToken,
-          body: { msgtype: 'm.text', body: msg.body },
-        },
-      )
-      await sleep(30)
-    }
-    console.log(`     ✓ 发送了 ${group.messages.length} 条消息`)
   }
 
-  console.log('\n=== Seed 完成! ===')
-  console.log(`\n用户密码统一为: ${TEST_USER_PASSWORD}`)
-  console.log('kunish 账号可以在 Muon 中登录查看所有对话\n')
+  return {
+    localpart,
+    userId: loginRes.user_id,
+    token: loginRes.access_token,
+    displayName: localpart,
+    password,
+  }
 }
 
-main().catch((e) => {
-  console.error('脚本执行出错:', e)
+async function loginWithCandidates(localpart: string, passwords: string[]): Promise<SeededUser | MatrixErrorResponse> {
+  let lastError: MatrixErrorResponse | null = null
+  for (const password of passwords) {
+    const loginRes = await loginWithPassword(localpart, password)
+    if (!isMatrixError(loginRes))
+      return loginRes
+    lastError = loginRes
+  }
+  return lastError ?? { _error: true, _status: 500, error: `No password candidate for ${localpart}` }
+}
+
+async function ensureUser(
+  localpart: string,
+  displayName: string,
+  passwords: string[],
+  registrationPassword: string,
+): Promise<SeededUser | null> {
+  const regResult = await matrixFetch('/_matrix/client/v3/register', {
+    method: 'POST',
+    body: {
+      auth: { type: 'm.login.dummy' },
+      username: localpart,
+      password: registrationPassword,
+    },
+  })
+
+  let user: SeededUser | MatrixErrorResponse
+  if (isMatrixError(regResult)) {
+    if (regResult.errcode !== 'M_USER_IN_USE') {
+      console.error(`  FAIL register ${localpart}:`, regResult.error ?? regResult)
+      return null
+    }
+    user = await loginWithCandidates(localpart, passwords)
+  }
+  else if (typeof regResult.access_token === 'string' && typeof regResult.user_id === 'string') {
+    user = {
+      localpart,
+      userId: regResult.user_id,
+      token: regResult.access_token,
+      displayName,
+      password: registrationPassword,
+    }
+  }
+  else {
+    console.error(`  FAIL register ${localpart}: invalid registration response`)
+    return null
+  }
+
+  if (isMatrixError(user)) {
+    console.error(`  FAIL login ${localpart}:`, user.error ?? user)
+    return null
+  }
+
+  user.displayName = displayName
+  await setProfile(user, displayName)
+  return user
+}
+
+async function setProfile(user: SeededUser, displayName: string, avatarUrl?: string): Promise<void> {
+  await matrixFetch(`/_matrix/client/v3/profile/${encodeURIComponent(user.userId)}/displayname`, {
+    method: 'PUT',
+    token: user.token,
+    body: { displayname: displayName },
+  })
+
+  if (avatarUrl) {
+    await matrixFetch(`/_matrix/client/v3/profile/${encodeURIComponent(user.userId)}/avatar_url`, {
+      method: 'PUT',
+      token: user.token,
+      body: { avatar_url: avatarUrl },
+    })
+  }
+}
+
+async function ensureUserAvatar(user: SeededUser, marker: SeedMarker): Promise<void> {
+  let avatarUrl = !FORCE_SEED ? marker.avatars[user.localpart] : undefined
+  if (!avatarUrl) {
+    avatarUrl = await uploadAvatarMedia(user) ?? undefined
+    if (!avatarUrl)
+      return
+    marker.avatars[user.localpart] = avatarUrl
+    console.log(`  OK avatar ${user.localpart}: ${avatarUrl}`)
+  }
+
+  await setProfile(user, user.displayName, avatarUrl)
+}
+
+async function getAccountData(user: SeededUser, type: string): Promise<unknown> {
+  const res = await matrixFetch(
+    `/_matrix/client/v3/user/${encodeURIComponent(user.userId)}/account_data/${encodeURIComponent(type)}`,
+    { token: user.token },
+  )
+  return isMatrixError(res) ? null : res
+}
+
+async function setAccountData(user: SeededUser, type: string, content: Record<string, unknown>): Promise<void> {
+  const res = await matrixFetch(
+    `/_matrix/client/v3/user/${encodeURIComponent(user.userId)}/account_data/${encodeURIComponent(type)}`,
+    { method: 'PUT', token: user.token, body: content },
+  )
+  if (isMatrixError(res))
+    console.error(`  WARN set account data ${type} failed:`, res.error ?? res)
+}
+
+async function upsertDirectRoom(owner: SeededUser, peer: SeededUser, roomId: string): Promise<void> {
+  await upsertDirectAccountData(owner, peer.userId, roomId)
+  await upsertDirectAccountData(peer, owner.userId, roomId)
+}
+
+async function upsertDirectAccountData(user: SeededUser, peerUserId: string, roomId: string): Promise<void> {
+  const existing = await getAccountData(user, 'm.direct')
+  const directContent = isRecord(existing) ? { ...existing } : {}
+  const roomIds = readStringArray(directContent[peerUserId])
+  if (!roomIds.includes(roomId))
+    roomIds.push(roomId)
+  directContent[peerUserId] = roomIds
+  await setAccountData(user, 'm.direct', directContent)
+}
+
+async function createMatrixRoom(owner: SeededUser, body: CreateRoomBody): Promise<string | null> {
+  const createRes = await matrixFetch('/_matrix/client/v3/createRoom', {
+    method: 'POST',
+    token: owner.token,
+    body,
+  })
+  if (isMatrixError(createRes)) {
+    console.error(`  FAIL create room ${body.name ?? '(unnamed)'}:`, createRes.error ?? createRes)
+    return null
+  }
+  return typeof createRes.room_id === 'string' ? createRes.room_id : null
+}
+
+async function joinRoom(roomId: string, user: SeededUser): Promise<void> {
+  const res = await matrixFetch(`/_matrix/client/v3/join/${encodeURIComponent(roomId)}`, {
+    method: 'POST',
+    token: user.token,
+    body: {},
+  })
+  if (isMatrixError(res))
+    console.error(`    WARN ${user.localpart} join ${roomId} failed:`, res.error ?? res)
+}
+
+async function joinMembers(roomId: string, members: string[], users: Map<string, SeededUser>): Promise<void> {
+  for (const localpart of members) {
+    const user = users.get(localpart)
+    if (user)
+      await joinRoom(roomId, user)
+  }
+}
+
+async function sendStateEvent(
+  roomId: string,
+  eventType: string,
+  stateKey: string,
+  content: Record<string, unknown>,
+  owner: SeededUser,
+): Promise<void> {
+  const res = await matrixFetch(
+    `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/state/${encodeURIComponent(eventType)}/${encodeURIComponent(stateKey)}`,
+    { method: 'PUT', token: owner.token, body: content },
+  )
+  if (isMatrixError(res))
+    console.error(`    WARN state ${eventType} on ${roomId} failed:`, res.error ?? res)
+}
+
+async function syncSeededMemberProfiles(users: Map<string, SeededUser>, marker: SeedMarker): Promise<void> {
+  console.log('7. Sync seeded member avatars')
+  let updated = 0
+
+  async function updateRoomMembers(roomId: string | undefined, members: string[]): Promise<void> {
+    if (!roomId)
+      return
+    for (const localpart of ['kunish', ...members]) {
+      const user = users.get(localpart)
+      const avatarUrl = marker.avatars[localpart]
+      if (!user || !avatarUrl)
+        continue
+
+      const res = await matrixFetch(
+        `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/state/m.room.member/${encodeURIComponent(user.userId)}`,
+        {
+          method: 'PUT',
+          token: user.token,
+          body: {
+            membership: 'join',
+            displayname: user.displayName,
+            avatar_url: avatarUrl,
+          },
+        },
+      )
+      if (isMatrixError(res)) {
+        console.error(`    WARN member avatar ${user.localpart} in ${roomId} failed:`, res.error ?? res)
+        continue
+      }
+      updated += 1
+    }
+  }
+
+  for (const dm of LOCAL_SERVICE_MOCK_DATA.dmRooms)
+    await updateRoomMembers(marker.rooms[dm.key], [dm.peer])
+
+  for (const room of LOCAL_SERVICE_MOCK_DATA.groupRooms)
+    await updateRoomMembers(marker.rooms[room.key], room.members)
+
+  for (const space of LOCAL_SERVICE_MOCK_DATA.spaces) {
+    await updateRoomMembers(marker.spaces[space.key], space.members)
+    for (const channel of space.channels)
+      await updateRoomMembers(marker.channels[channel.key], channel.members)
+    for (const category of space.categories) {
+      await updateRoomMembers(marker.categories[category.key], space.members)
+      for (const channel of category.channels)
+        await updateRoomMembers(marker.channels[channel.key], channel.members)
+    }
+  }
+
+  console.log(`  OK synced ${updated} member profile states`)
+}
+
+async function sendRoomMessages(
+  roomId: string,
+  roomKey: string,
+  messages: LocalServiceMessage[],
+  users: Map<string, SeededUser>,
+): Promise<number> {
+  let sent = 0
+  for (const [index, message] of messages.entries()) {
+    const sender = users.get(message.sender)
+    if (!sender) {
+      console.error(`    WARN skip message ${roomKey}/${index}: unknown sender ${message.sender}`)
+      continue
+    }
+
+    const txnId = encodeURIComponent(`${roomKey}-${index}-${Date.now()}`)
+    const res = await matrixFetch(
+      `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/send/m.room.message/${txnId}`,
+      {
+        method: 'PUT',
+        token: sender.token,
+        body: message.content,
+      },
+    )
+    if (isMatrixError(res)) {
+      console.error(`    WARN message ${roomKey}/${index} failed:`, res.error ?? res)
+      continue
+    }
+    sent += 1
+    await sleep(message.delayMs ?? MESSAGE_DELAY_MS)
+  }
+  return sent
+}
+
+function resolveMemberIds(members: string[], users: Map<string, SeededUser>): string[] {
+  return members
+    .map(localpart => users.get(localpart)?.userId)
+    .filter((userId): userId is string => !!userId)
+}
+
+async function seedDirectRooms(owner: SeededUser, users: Map<string, SeededUser>, marker: SeedMarker): Promise<void> {
+  console.log('4. Seed DM rooms')
+  for (const dm of LOCAL_SERVICE_MOCK_DATA.dmRooms) {
+    if (!FORCE_SEED && marker.rooms[dm.key]) {
+      console.log(`  SKIP ${dm.peer}: ${marker.rooms[dm.key]}`)
+      continue
+    }
+
+    const peer = users.get(dm.peer)
+    if (!peer) {
+      console.error(`  FAIL ${dm.key}: peer ${dm.peer} not available`)
+      continue
+    }
+
+    const roomId = await createMatrixRoom(owner, {
+      is_direct: true,
+      invite: [peer.userId],
+      preset: 'trusted_private_chat',
+    })
+    if (!roomId)
+      continue
+
+    await joinRoom(roomId, peer)
+    await upsertDirectRoom(owner, peer, roomId)
+    const sent = await sendRoomMessages(roomId, dm.key, dm.messages, users)
+    marker.rooms[dm.key] = roomId
+    console.log(`  OK ${dm.peer}: ${roomId} (${sent} messages)`)
+  }
+}
+
+async function seedGroupRooms(owner: SeededUser, users: Map<string, SeededUser>, marker: SeedMarker): Promise<void> {
+  console.log('5. Seed group rooms')
+  for (const room of LOCAL_SERVICE_MOCK_DATA.groupRooms) {
+    if (!FORCE_SEED && marker.rooms[room.key]) {
+      console.log(`  SKIP ${room.name}: ${marker.rooms[room.key]}`)
+      continue
+    }
+
+    const roomId = await createMatrixRoom(owner, {
+      name: room.name,
+      topic: room.topic,
+      invite: resolveMemberIds(room.members, users),
+      preset: 'private_chat',
+    })
+    if (!roomId)
+      continue
+
+    await joinMembers(roomId, room.members, users)
+    const sent = await sendRoomMessages(roomId, room.key, room.messages, users)
+    marker.rooms[room.key] = roomId
+    console.log(`  OK ${room.name}: ${roomId} (${sent} messages)`)
+  }
+}
+
+async function seedSpaces(owner: SeededUser, users: Map<string, SeededUser>, marker: SeedMarker): Promise<void> {
+  console.log('6. Seed spaces and channels')
+  for (const space of LOCAL_SERVICE_MOCK_DATA.spaces) {
+    let spaceId: string | undefined = marker.spaces[space.key]
+    if (!FORCE_SEED && spaceId) {
+      console.log(`  SKIP ${space.name}: ${spaceId}`)
+    }
+    else {
+      spaceId = await createSpace(owner, users, space) ?? undefined
+    }
+    if (!spaceId)
+      continue
+    marker.spaces[space.key] = spaceId
+
+    await seedChannels(owner, users, marker, spaceId, space.channels)
+
+    for (const category of space.categories) {
+      let categoryId: string | undefined = marker.categories[category.key]
+      if (!FORCE_SEED && categoryId) {
+        console.log(`    SKIP ${category.name}: ${categoryId}`)
+      }
+      else {
+        categoryId = await createSpace(owner, users, {
+          key: category.key,
+          name: category.name,
+          members: space.members,
+          channels: [],
+          categories: [],
+        }, spaceId, category.order) ?? undefined
+      }
+      if (!categoryId)
+        continue
+      marker.categories[category.key] = categoryId
+      await seedChannels(owner, users, marker, categoryId, category.channels)
+    }
+
+    console.log(`  OK ${space.name}: ${spaceId}`)
+  }
+}
+
+async function createSpace(
+  owner: SeededUser,
+  users: Map<string, SeededUser>,
+  space: LocalServiceSpace,
+  parentSpaceId?: string,
+  order?: string,
+): Promise<string | null> {
+  const initialState: InitialStateEvent[] = parentSpaceId
+    ? [{
+        type: 'm.space.parent',
+        state_key: parentSpaceId,
+        content: { via: [LOCAL_SERVICE_MOCK_DATA.serverName], canonical: true },
+      }]
+    : []
+
+  const spaceId = await createMatrixRoom(owner, {
+    name: space.name,
+    topic: space.topic,
+    invite: resolveMemberIds(space.members, users),
+    preset: 'private_chat',
+    creation_content: { type: 'm.space' },
+    initial_state: initialState,
+  })
+  if (!spaceId)
+    return null
+
+  await joinMembers(spaceId, space.members, users)
+
+  if (parentSpaceId) {
+    await sendStateEvent(parentSpaceId, 'm.space.child', spaceId, {
+      via: [LOCAL_SERVICE_MOCK_DATA.serverName],
+      suggested: true,
+      order,
+    }, owner)
+  }
+
+  return spaceId
+}
+
+async function seedChannels(
+  owner: SeededUser,
+  users: Map<string, SeededUser>,
+  marker: SeedMarker,
+  parentSpaceId: string,
+  channels: LocalServiceChannel[],
+): Promise<void> {
+  for (const channel of channels) {
+    if (!FORCE_SEED && marker.channels[channel.key]) {
+      console.log(`    SKIP #${channel.name}: ${marker.channels[channel.key]}`)
+      continue
+    }
+
+    const initialState: InitialStateEvent[] = [
+      {
+        type: 'm.space.parent',
+        state_key: parentSpaceId,
+        content: { via: [LOCAL_SERVICE_MOCK_DATA.serverName], canonical: true },
+      },
+    ]
+    if (channel.isVoice) {
+      initialState.push({
+        type: 'im.muon.voice_channel',
+        state_key: '',
+        content: { enabled: true },
+      })
+    }
+
+    const roomId = await createMatrixRoom(owner, {
+      name: channel.name,
+      topic: channel.topic,
+      invite: resolveMemberIds(channel.members, users),
+      preset: 'private_chat',
+      initial_state: initialState,
+    })
+    if (!roomId)
+      continue
+
+    await joinMembers(roomId, channel.members, users)
+    await sendStateEvent(parentSpaceId, 'm.space.child', roomId, {
+      via: [LOCAL_SERVICE_MOCK_DATA.serverName],
+      suggested: true,
+      order: channel.order,
+    }, owner)
+
+    const sent = await sendRoomMessages(roomId, channel.key, channel.messages, users)
+    marker.channels[channel.key] = roomId
+    console.log(`    OK #${channel.name}: ${roomId}${channel.isVoice ? ' (voice)' : ` (${sent} messages)`}`)
+  }
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+async function main(): Promise<void> {
+  console.log('=== Muon local service seed ===')
+  console.log(`Base URL: ${BASE_URL}`)
+  console.log(`Seed version: ${LOCAL_SERVICE_MOCK_DATA.version}`)
+  if (FORCE_SEED)
+    console.log('Force mode: enabled')
+  console.log()
+
+  console.log('1. Ensure users')
+  const users = new Map<string, SeededUser>()
+  const owner = await ensureUser(
+    LOCAL_SERVICE_MOCK_DATA.owner.localpart,
+    LOCAL_SERVICE_MOCK_DATA.owner.displayName,
+    OWNER_PASSWORD_CANDIDATES,
+    OWNER_REGISTRATION_PASSWORD,
+  )
+  if (!owner) {
+    console.error('Owner account is unavailable; aborting seed.')
+    process.exit(1)
+  }
+  users.set(owner.localpart, owner)
+  console.log(`  OK owner ${owner.userId}`)
+
+  for (const userDef of LOCAL_SERVICE_MOCK_DATA.users) {
+    const user = await ensureUser(
+      userDef.localpart,
+      userDef.displayName,
+      [DEFAULT_USER_PASSWORD],
+      DEFAULT_USER_PASSWORD,
+    )
+    if (user) {
+      users.set(user.localpart, user)
+      console.log(`  OK ${user.userId}`)
+    }
+  }
+
+  for (const userDef of LOCAL_SERVICE_MOCK_DATA.profileUsers) {
+    const user = await ensureUser(
+      userDef.localpart,
+      userDef.displayName,
+      [DEFAULT_USER_PASSWORD],
+      DEFAULT_USER_PASSWORD,
+    )
+    if (user) {
+      users.set(user.localpart, user)
+      console.log(`  OK ${user.userId}`)
+    }
+  }
+  console.log()
+
+  console.log('2. Check seed marker')
+  const existingMarker = await getAccountData(owner, SEED_ACCOUNT_DATA_TYPE)
+  const marker = isCurrentSeedMarker(existingMarker) && !FORCE_SEED
+    ? normalizeSeedMarker(existingMarker)
+    : createEmptyMarker(owner.userId)
+
+  console.log('3. Ensure uploaded avatars')
+  for (const user of users.values())
+    await ensureUserAvatar(user, marker)
+
+  if (isCurrentSeedMarker(existingMarker) && isCompleteSeedMarker(marker) && !FORCE_SEED) {
+    console.log(`  OK already seeded for version ${existingMarker.version}; skip.`)
+    await syncSeededMemberProfiles(users, marker)
+    await setAccountData(owner, SEED_ACCOUNT_DATA_TYPE, marker as unknown as Record<string, unknown>)
+    console.log('  Run `pnpm services:seed -- --force` to create a fresh dataset.')
+    return
+  }
+  if (isCurrentSeedMarker(existingMarker) && !FORCE_SEED)
+    console.log('  Existing seed marker is incomplete; missing data will be filled.')
+  else
+    console.log('  Continue seeding local mock data')
+
+  await seedDirectRooms(owner, users, marker)
+  await seedGroupRooms(owner, users, marker)
+  await seedSpaces(owner, users, marker)
+  await syncSeededMemberProfiles(users, marker)
+
+  await setAccountData(owner, SEED_ACCOUNT_DATA_TYPE, marker as unknown as Record<string, unknown>)
+
+  console.log('\n=== Seed complete ===')
+  console.log(`Owner: ${owner.userId}`)
+  console.log(`Owner password: ${owner.password === 'Aa794613123.' ? '(existing local password)' : owner.password}`)
+  console.log(`Mock users password: ${DEFAULT_USER_PASSWORD}`)
+}
+
+main().catch((error) => {
+  console.error('Seed failed:', error)
   process.exit(1)
 })

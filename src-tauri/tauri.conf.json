@@ -10,6 +10,7 @@
     "beforeBuildCommand": "pnpm build"
   },
   "app": {
+    "macOSPrivateApi": true,
     "windows": [
       {
         "title": "Muon",
@@ -18,6 +19,8 @@
         "minWidth": 800,
         "minHeight": 600,
         "resizable": true,
+        "decorations": false,
+        "transparent": true,
         "fullscreen": false
       }
     ],

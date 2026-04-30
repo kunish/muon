@@ -75,12 +75,23 @@ A Docker Compose setup is provided for local development with a [Conduit](https:
 # Start Conduit + LiveKit services
 pnpm services:up
 
+# Re-run the local mock data seed manually
+pnpm services:seed
+
 # View logs
 pnpm services:logs
 
 # Stop services
 pnpm services:down
 ```
+
+`pnpm services:up` seeds Conduit with local mock data after the services are
+ready. The default owner account is `@kunish:localhost` with password
+`test1234` for new local volumes; existing local volumes with a previous
+`@kunish:localhost` password are still supported. Mock users also use
+`test1234`. To skip seeding, run `MUON_SKIP_SEED=1 pnpm services:up`; to create
+a fresh data set for the current seed version, run
+`pnpm services:seed -- --force`.
 
 ### Available Scripts
 
@@ -91,6 +102,10 @@ pnpm services:down
 | `pnpm build`              | Type-check and build for production |
 | `pnpm preview`            | Preview production build locally    |
 | `pnpm lint`               | Run ESLint                          |
+| `pnpm services:up`        | Start local services and seed data  |
+| `pnpm services:seed`      | Seed local Conduit mock data        |
+| `pnpm services:logs`      | Tail local service logs             |
+| `pnpm services:down`      | Stop local services                 |
 | `pnpm type-check`         | Run TypeScript type checking        |
 | `pnpm test:unit`          | Run unit tests (Vitest)             |
 | `pnpm test:unit:watch`    | Run unit tests in watch mode        |

@@ -2,9 +2,15 @@
 import { open as openDialog } from '@tauri-apps/plugin-dialog'
 import { readFile } from '@tauri-apps/plugin-fs'
 import { Camera, FileUp, Image, ImagePlus, MapPin, Plus, Sticker, UserCircle, Video } from 'lucide-vue-next'
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { getFloatingPosition } from '../composables/useFloatingPosition'
+
+withDefaults(defineProps<{
+  triggerIcon?: 'plus' | 'image'
+}>(), {
+  triggerIcon: 'plus',
+})
 
 const emit = defineEmits<{
   image: [file: File]
@@ -43,10 +49,17 @@ function updatePosition() {
   menuStyle.value = getFloatingPosition(trigger, panel)
 }
 
-function toggle() {
-  if (!open.value)
+async function toggle() {
+  if (open.value) {
+    open.value = false
+    return
+  }
+
+  open.value = true
+  await nextTick()
+
+  if (open.value)
     updatePosition()
-  open.value = !open.value
 }
 
 async function pickFile(filters: FileFilter[] | undefined, type: 'image' | 'video' | 'file') {
@@ -109,10 +122,11 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', onClickOutside
 <template>
   <div ref="btnRef">
     <button
-      class="p-1.5 rounded-md hover:bg-accent text-muted-foreground"
+      class="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent"
       @click="toggle"
     >
-      <Plus :size="18" />
+      <Image v-if="triggerIcon === 'image'" :size="18" />
+      <Plus v-else :size="18" />
     </button>
     <Teleport to="body">
       <div

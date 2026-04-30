@@ -120,8 +120,8 @@ async function startDm(userId: string) {
   starting.value = true
   try {
     const roomId = await findOrCreateDm(userId)
-    store.setCurrentRoom(roomId)
-    router.push(`/chat/${roomId}`)
+    store.setCurrentRoom(roomId, { sidebarPlacement: 'promote' })
+    router.push(`/dm/${encodeURIComponent(roomId)}`)
     emit('close')
   }
   catch {
@@ -148,8 +148,8 @@ async function handleCreateGroup() {
       userIds,
       isEncrypted: false,
     })
-    store.setCurrentRoom(roomId)
-    router.push(`/chat/${roomId}`)
+    store.setCurrentRoom(roomId, { sidebarPlacement: 'promote' })
+    router.push(`/dm/${encodeURIComponent(roomId)}`)
     emit('close')
   }
   catch {
@@ -163,7 +163,7 @@ async function handleCreateGroup() {
 
 <template>
   <Teleport to="body">
-    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40" @click.self="emit('close')">
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40" @pointerdown.self="emit('close')">
       <div class="bg-background border border-border rounded-xl shadow-xl w-[400px] max-h-[520px] flex flex-col overflow-hidden">
         <!-- 标题栏 -->
         <div class="flex items-center justify-between px-4 pt-4 pb-2">

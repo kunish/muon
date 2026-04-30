@@ -69,7 +69,7 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <div class="flex items-center justify-center h-screen bg-background">
+  <div class="flex h-full items-center justify-center bg-background">
     <div class="w-full max-w-sm mx-auto p-6">
       <h1 class="text-2xl font-bold text-center mb-6">
         Muon IM

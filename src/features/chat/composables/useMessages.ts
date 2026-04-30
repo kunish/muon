@@ -10,20 +10,26 @@ export function useMessages() {
   const isLoading = ref(false)
   const hasMore = ref(true)
   const displayLimit = ref(50)
-  const refreshKey = ref(0)
+  const timelineVersion = ref(0)
+  let roomSessionVersion = 0
+
+  function isActiveRoomRequest(roomId: string, version: number) {
+    return store.currentRoomId === roomId && roomSessionVersion === version
+  }
 
   function loadTimeline() {
     const roomId = store.currentRoomId
     if (!roomId)
       return
     messages.value = getTimeline(roomId, displayLimit.value)
-    refreshKey.value++
+    timelineVersion.value++
   }
 
   async function loadMore() {
     const roomId = store.currentRoomId
     if (!roomId || isLoading.value || !hasMore.value)
       return
+    const requestVersion = roomSessionVersion
     isLoading.value = true
     try {
       const prevCount = messages.value.length
@@ -31,6 +37,8 @@ export function useMessages() {
       let attempts = 0
       while (attempts < 5) {
         const loaded = await paginateBack(roomId, 30)
+        if (!isActiveRoomRequest(roomId, requestVersion))
+          return
         if (!loaded) {
           hasMore.value = false
           // 服务端无更多历史，但本地 timeline 可能有超过 displayLimit 的事件
@@ -50,7 +58,8 @@ export function useMessages() {
       console.error('[useMessages] Failed to load more messages:', err)
     }
     finally {
-      isLoading.value = false
+      if (isActiveRoomRequest(roomId, requestVersion))
+        isLoading.value = false
     }
   }
 
@@ -85,6 +94,8 @@ export function useMessages() {
   }
 
   watch(() => store.currentRoomId, async () => {
+    roomSessionVersion++
+    const requestVersion = roomSessionVersion
     hasMore.value = true
     displayLimit.value = 50
 
@@ -95,23 +106,23 @@ export function useMessages() {
       const timeline = getTimeline(roomId, displayLimit.value)
       // 直接替换，不经过空数组中间态
       messages.value = timeline
-      refreshKey.value++
+      timelineVersion.value++
       // 如果本地无缓存才异步加载（此时 MessageList 会显示 loading）
       if (timeline.length === 0) {
         isLoading.value = true
         try {
           await paginateBack(roomId, 30)
-          if (store.currentRoomId !== roomId)
+          if (!isActiveRoomRequest(roomId, requestVersion))
             return
           messages.value = getTimeline(roomId, displayLimit.value)
         }
         finally {
-          if (store.currentRoomId === roomId) {
+          if (isActiveRoomRequest(roomId, requestVersion)) {
             isLoading.value = false
           }
         }
       }
-      if (store.currentRoomId !== roomId)
+      if (!isActiveRoomRequest(roomId, requestVersion))
         return
       markAsRead()
     }
@@ -134,5 +145,5 @@ export function useMessages() {
     matrixEvents.off('room.message', onNewMessage)
   })
 
-  return { messages, isLoading, hasMore, loadMore, refresh: loadTimeline }
+  return { messages, isLoading, hasMore, loadMore, refresh: loadTimeline, timelineVersion }
 }

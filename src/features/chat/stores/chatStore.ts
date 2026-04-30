@@ -1,45 +1,51 @@
 import type { RoomSummary } from '@matrix/types'
 import type { MatrixEvent } from 'matrix-js-sdk'
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { reactive, ref } from 'vue'
 
 export type ConversationFilter = 'all' | 'unread' | 'dm' | 'group'
 export type SidePanelType = 'threads' | 'search' | 'pinned' | 'starred' | 'members' | 'settings' | 'tasks' | 'knowledge'
+export type SidebarPlacement = 'promote' | 'history' | 'preserve'
+
+interface SetCurrentRoomOptions {
+  sidebarPlacement?: SidebarPlacement
+}
 
 export const useChatStore = defineStore('chat', () => {
   const currentRoomId = ref<string | null>(null)
+  const sidebarPromotedRoomId = ref<string | null>(null)
+  const routeSelectionWithoutPromotionRoomId = ref<string | null>(null)
   const searchQuery = ref('')
   const replyingTo = ref<MatrixEvent | null>(null)
   const editingEvent = ref<MatrixEvent | null>(null)
 
   // --- 会话管理状态 ---
-  const pinnedRooms = ref(new Set<string>())
-  const mutedRooms = ref(new Set<string>())
-  const markedUnreadRooms = ref(new Set<string>())
-  const drafts = ref(new Map<string, string>())
+  const pinnedRooms = reactive(new Set<string>())
+  const pendingPinStates = reactive(new Map<string, boolean>())
+  const mutedRooms = reactive(new Set<string>())
+  const markedUnreadRooms = reactive(new Set<string>())
+  const drafts = reactive(new Map<string, string>())
   const activeFilter = ref<ConversationFilter>('all')
-  const hiddenMessages = ref(new Set<string>()) // 仅对自己隐藏的消息ID
+  const hiddenMessages = reactive(new Set<string>()) // 仅对自己隐藏的消息ID
 
   // --- 消息多选 ---
   const multiSelectMode = ref(false)
-  const selectedMessages = ref(new Set<string>()) // eventId set
+  const selectedMessages = reactive(new Set<string>()) // eventId set
 
   function enterMultiSelect() {
     multiSelectMode.value = true
   }
   function exitMultiSelect() {
     multiSelectMode.value = false
-    selectedMessages.value = new Set()
+    selectedMessages.clear()
   }
   function toggleMessageSelection(eventId: string) {
-    const next = new Set(selectedMessages.value)
-    if (next.has(eventId))
-      next.delete(eventId)
-    else next.add(eventId)
-    selectedMessages.value = next
+    if (selectedMessages.has(eventId))
+      selectedMessages.delete(eventId)
+    else selectedMessages.add(eventId)
   }
   function isMessageSelected(eventId: string) {
-    return selectedMessages.value.has(eventId)
+    return selectedMessages.has(eventId)
   }
 
   // --- Side panel ---
@@ -79,19 +85,46 @@ export const useChatStore = defineStore('chat', () => {
   } | null>(null)
 
   // --- 基础操作 ---
-  function setCurrentRoom(roomId: string | null) {
+  function setCurrentRoom(roomId: string | null, options: SetCurrentRoomOptions = {}) {
     currentRoomId.value = roomId
+    if (!roomId) {
+      sidebarPromotedRoomId.value = null
+      routeSelectionWithoutPromotionRoomId.value = null
+    }
+    else if (options.sidebarPlacement === 'promote') {
+      sidebarPromotedRoomId.value = roomId
+      routeSelectionWithoutPromotionRoomId.value = null
+    }
     replyingTo.value = null
     editingEvent.value = null
     activeSidePanel.value = null
     // 切换房间时清理多选状态
     exitMultiSelect()
     // 进入房间时清除手动标记未读
-    if (roomId) {
-      const next = new Set(markedUnreadRooms.value)
-      next.delete(roomId)
-      markedUnreadRooms.value = next
+    if (roomId)
+      markedUnreadRooms.delete(roomId)
+  }
+
+  function setCurrentRoomFromRoute(roomId: string | null) {
+    if (!roomId) {
+      setCurrentRoom(null)
+      return
     }
+
+    if (routeSelectionWithoutPromotionRoomId.value === roomId) {
+      routeSelectionWithoutPromotionRoomId.value = null
+      setCurrentRoom(roomId, { sidebarPlacement: 'history' })
+      return
+    }
+
+    setCurrentRoom(roomId, { sidebarPlacement: 'promote' })
+  }
+
+  function selectRoomFromHistory(roomId: string) {
+    const shouldSuppressNextRoutePromotion = currentRoomId.value !== roomId
+    setCurrentRoom(roomId, { sidebarPlacement: 'history' })
+    if (shouldSuppressNextRoutePromotion)
+      routeSelectionWithoutPromotionRoomId.value = roomId
   }
 
   function setSearchQuery(query: string) {
@@ -114,50 +147,58 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   // --- Set toggle 辅助函数 ---
-  function toggleRefSet(setRef: { value: Set<string> }, id: string) {
-    const next = new Set(setRef.value)
-    next.has(id) ? next.delete(id) : next.add(id)
-    setRef.value = next
+  function toggleSet(set: Set<string>, id: string) {
+    set.has(id) ? set.delete(id) : set.add(id)
   }
 
   // --- 置顶 ---
+  function applyPin(roomId: string, pinned: boolean) {
+    if (pinned)
+      pinnedRooms.add(roomId)
+    else
+      pinnedRooms.delete(roomId)
+  }
+  function setPin(roomId: string, pinned: boolean) {
+    applyPin(roomId, pinned)
+    pendingPinStates.set(roomId, pinned)
+  }
   function togglePin(roomId: string) {
-    toggleRefSet(pinnedRooms, roomId)
+    const nextPinned = !isPinned(roomId)
+    setPin(roomId, nextPinned)
+    return nextPinned
   }
   function isPinned(roomId: string) {
-    return pinnedRooms.value.has(roomId)
+    return pinnedRooms.has(roomId)
   }
 
   // --- 免打扰 ---
   function toggleMute(roomId: string) {
-    toggleRefSet(mutedRooms, roomId)
+    toggleSet(mutedRooms, roomId)
   }
   function isMuted(roomId: string) {
-    return mutedRooms.value.has(roomId)
+    return mutedRooms.has(roomId)
   }
 
   // --- 标记未读 ---
   function toggleMarkedUnread(roomId: string) {
-    toggleRefSet(markedUnreadRooms, roomId)
+    toggleSet(markedUnreadRooms, roomId)
   }
   function isMarkedUnread(roomId: string) {
-    return markedUnreadRooms.value.has(roomId)
+    return markedUnreadRooms.has(roomId)
   }
 
   // --- 草稿 ---
   function setDraft(roomId: string, text: string) {
-    const next = new Map(drafts.value)
     if (text.trim()) {
-      next.set(roomId, text)
+      drafts.set(roomId, text)
     }
     else {
-      next.delete(roomId)
+      drafts.delete(roomId)
     }
-    drafts.value = next
   }
 
   function getDraft(roomId: string) {
-    return drafts.value.get(roomId) || ''
+    return drafts.get(roomId) || ''
   }
 
   // --- 筛选 ---
@@ -176,13 +217,25 @@ export const useChatStore = defineStore('chat', () => {
 
   // --- 从服务端同步 pin/mute 状态 ---
   function syncServerState(rooms: RoomSummary[]) {
-    pinnedRooms.value = new Set(rooms.filter(r => r.isPinned).map(r => r.roomId))
-    mutedRooms.value = new Set(rooms.filter(r => r.isMuted).map(r => r.roomId))
+    pinnedRooms.clear()
+    mutedRooms.clear()
+    for (const r of rooms) {
+      const pendingPin = pendingPinStates.get(r.roomId)
+      const isPinned = pendingPin ?? r.isPinned
+      if (pendingPin !== undefined && pendingPin === r.isPinned)
+        pendingPinStates.delete(r.roomId)
+
+      if (isPinned)
+        pinnedRooms.add(r.roomId)
+      if (r.isMuted)
+        mutedRooms.add(r.roomId)
+    }
   }
 
   return {
     // 基础状态
     currentRoomId,
+    sidebarPromotedRoomId,
     searchQuery,
     replyingTo,
     editingEvent,
@@ -192,11 +245,14 @@ export const useChatStore = defineStore('chat', () => {
     contextMenu,
     // 基础操作
     setCurrentRoom,
+    setCurrentRoomFromRoute,
+    selectRoomFromHistory,
     setSearchQuery,
     setReplyingTo,
     setEditingEvent,
     clearCompose,
     // 会话管理操作
+    setPin,
     togglePin,
     isPinned,
     toggleMute,
@@ -212,12 +268,8 @@ export const useChatStore = defineStore('chat', () => {
     syncServerState,
     // 隐藏消息（仅对自己删除）
     hiddenMessages,
-    hideMessage(eventId: string) {
-      const next = new Set(hiddenMessages.value)
-      next.add(eventId)
-      hiddenMessages.value = next
-    },
-    isHidden(eventId: string) { return hiddenMessages.value.has(eventId) },
+    hideMessage(eventId: string) { hiddenMessages.add(eventId) },
+    isHidden(eventId: string) { return hiddenMessages.has(eventId) },
     // 消息多选
     multiSelectMode,
     selectedMessages,

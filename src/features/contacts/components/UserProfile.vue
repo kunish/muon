@@ -43,7 +43,7 @@ const presenceLabel = computed(() => {
 </script>
 
 <template>
-  <div v-if="contact" class="flex flex-col items-center p-6">
+  <div v-if="contact" class="flex min-h-0 w-full min-w-0 flex-1 flex-col items-center overflow-y-auto px-6 py-10">
     <div class="w-20 h-20 rounded-full bg-primary/10 text-primary flex items-center justify-center text-2xl font-medium mb-3">
       {{ contact.displayName.slice(0, 1) }}
     </div>
@@ -100,7 +100,7 @@ const presenceLabel = computed(() => {
     </div>
   </div>
 
-  <div v-else class="flex-1 flex items-center justify-center text-muted-foreground text-sm">
+  <div v-else class="flex min-h-0 w-full min-w-0 flex-1 items-center justify-center text-sm text-muted-foreground">
     {{ t('contacts.select_contact') }}
   </div>
 </template>

@@ -14,17 +14,24 @@ useNotificationSound()
 
 watch(
   () => (route.params.roomId || route.params.channelId) as string | undefined,
-  (roomId) => {
-    if (!roomId) {
+  (encodedRoomId) => {
+    if (!encodedRoomId) {
       store.setCurrentRoom(null)
       return
     }
+
+    let roomId = encodedRoomId
     try {
-      store.setCurrentRoom(decodeURIComponent(roomId))
+      roomId = decodeURIComponent(encodedRoomId)
     }
     catch {
-      store.setCurrentRoom(roomId)
+      roomId = encodedRoomId
     }
+
+    if (route.params.roomId)
+      store.setCurrentRoomFromRoute(roomId)
+    else
+      store.setCurrentRoom(roomId)
   },
   { immediate: true },
 )

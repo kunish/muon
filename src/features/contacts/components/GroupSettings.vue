@@ -165,7 +165,7 @@ const { isModerator: isAdmin } = useRoomPermissions(toRef(props, 'roomId'))
 </script>
 
 <template>
-  <div class="p-4 space-y-4">
+  <div class="min-h-0 w-full min-w-0 flex-1 space-y-4 overflow-y-auto p-6">
     <!-- 群名称 -->
     <div v-if="room">
       <div v-if="!editingName" class="flex items-center gap-2 group">

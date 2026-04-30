@@ -35,7 +35,7 @@ const senderMxcAvatar = computed(() => {
     :alt="senderName"
     :color-id="senderId"
     size="md"
-    clickable
+    class="cursor-pointer"
     @click="emit('avatarClick', senderId, $event)"
   />
 </template>

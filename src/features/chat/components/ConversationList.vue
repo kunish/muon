@@ -1,13 +1,12 @@
 <script setup lang="ts">
 import type { RoomSummary } from '@matrix/types'
 import { getClient } from '@matrix/client'
-import { useVirtualizer } from '@tanstack/vue-virtual'
+import { normalizeRoomId } from '@matrix/roomUtils'
 import { MessageSquarePlus, Search } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { Avatar } from '@/shared/components/ui/avatar'
-import { normalizeRoomId } from '@/shared/lib/roomUtils'
 import { useConversations } from '../composables/useConversations'
 import { useGlobalTyping } from '../composables/useGlobalTyping'
 import { useChatStore } from '../stores/chatStore'
@@ -34,27 +33,13 @@ const currentUser = computed(() => {
   }
 })
 
-// --- 虚拟滚动 ---
-const scrollRef = ref<HTMLElement | null>(null)
-const ITEM_HEIGHT = 56
-
-const virtualizer = useVirtualizer(computed(() => ({
-  count: conversations.value.length,
-  getScrollElement: () => scrollRef.value,
-  estimateSize: () => ITEM_HEIGHT,
-  overscan: 6,
-})))
-
-const virtualItems = computed(() => virtualizer.value.getVirtualItems())
-const totalHeight = computed(() => virtualizer.value.getTotalSize())
-
 // --- 交互 ---
 const infoPanelRoom = ref<RoomSummary | null>(null)
 const infoPanelPos = ref({ x: 0, y: 0 })
 const searchFocused = ref(false)
 
 function selectRoom(roomId: string) {
-  store.setCurrentRoom(roomId)
+  store.selectRoomFromHistory(roomId)
   router.push(`/dm/${encodeURIComponent(roomId)}`)
 }
 
@@ -80,11 +65,11 @@ function onContextMenu(roomId: string, event: MouseEvent) {
   store.openContextMenu(roomId, event.clientX, event.clientY)
 }
 
-// --- 快捷入口：最近/置顶的 DM 联系人 ---
+// --- 快捷入口：置顶的 DM 联系人 ---
 const quickAccessContacts = computed(() => {
-  // 飞书风格：最多显示 5 个，等分容器宽度，永不溢出
+  // 飞书风格：最多显示 5 个，从左侧开始排列
   const dms = conversations.value
-    .filter(r => r.isDirect)
+    .filter(r => r.isDirect && store.isPinned(r.roomId))
     .slice(0, 5)
   return dms.map(r => ({
     roomId: r.roomId,
@@ -94,13 +79,17 @@ const quickAccessContacts = computed(() => {
 })
 
 function selectQuickContact(roomId: string) {
-  store.setCurrentRoom(roomId)
+  store.selectRoomFromHistory(roomId)
   router.push(`/dm/${encodeURIComponent(roomId)}`)
 }
 
 const activeRoomId = computed(() =>
-  normalizeRoomId((route.params.roomId || route.params.channelId) as string | undefined) ?? normalizeRoomId(store.currentRoomId),
+  normalizeRoomId(store.currentRoomId) ?? normalizeRoomId((route.params.roomId || route.params.channelId) as string | undefined),
 )
+
+function isConversationContextMenuOpen(roomId: string): boolean {
+  return normalizeRoomId(store.contextMenu?.roomId) === normalizeRoomId(roomId)
+}
 </script>
 
 <template>
@@ -115,8 +104,7 @@ const activeRoomId = computed(() =>
             :color-id="currentUser.userId"
             size="xs"
             shape="circle"
-            :clickable="true"
-            class="w-7 h-7 ring-1 ring-border/30"
+            class="w-7 h-7 cursor-pointer"
             @click="router.push('/settings')"
           />
           <h2 class="text-[14px] font-semibold tracking-tight text-foreground/90">
@@ -151,15 +139,15 @@ const activeRoomId = computed(() =>
       </div>
     </div>
 
-    <!-- 快捷入口：最近联系人 — 飞书风格等分布局，永不溢出 -->
+    <!-- 快捷入口：置顶联系人 — 从左侧开始排列 -->
     <div
       v-if="quickAccessContacts.length > 0 && !store.searchQuery"
-      class="flex items-start border-b border-[color-mix(in_srgb,var(--color-border)_40%,transparent)] px-3 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      class="flex items-start justify-start gap-2 overflow-x-auto border-b border-[color-mix(in_srgb,var(--color-border)_40%,transparent)] px-3 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
       <button
         v-for="c in quickAccessContacts"
         :key="c.roomId"
-        class="flex flex-col items-center gap-1 min-w-0 flex-1 group cursor-pointer"
+        class="flex w-12 shrink-0 flex-col items-center gap-1 min-w-0 group cursor-pointer"
         :title="c.name"
         @click="selectQuickContact(c.roomId)"
       >
@@ -170,8 +158,7 @@ const activeRoomId = computed(() =>
             :color-id="c.roomId"
             size="sm"
             shape="circle"
-            :clickable="true"
-            class="w-9 h-9 transition-all duration-200 group-hover:scale-110"
+            class="w-9 h-9 cursor-pointer transition-all duration-200 group-hover:scale-110"
           />
         </div>
         <span class="text-[10px] text-muted-foreground/60 w-full text-center truncate leading-tight group-hover:text-foreground/80 transition-colors">
@@ -182,7 +169,6 @@ const activeRoomId = computed(() =>
 
     <!-- 虚拟滚动会话列表 - 带顶部渐隐遮罩 -->
     <div
-      ref="scrollRef"
       class="flex-1 overflow-y-auto px-1.5 pt-0.5 scroll-smooth [mask-image:linear-gradient(to_bottom,transparent_0px,black_8px,black_calc(100%-8px),transparent_100%)] [-webkit-mask-image:linear-gradient(to_bottom,transparent_0px,black_8px,black_calc(100%-8px),transparent_100%)] [&::-webkit-scrollbar]:w-[3px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-[3px] [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:transition-colors [&::-webkit-scrollbar-thumb:hover]:bg-muted-foreground"
     >
       <!-- 筛选标签 -->
@@ -216,33 +202,33 @@ const activeRoomId = computed(() =>
         </div>
       </div>
 
-      <!-- 虚拟列表容器 - 传递交错索引 -->
+      <!-- 会话列表：普通流式布局，避免虚拟测量把联系人之间撑出大空隙 -->
       <div
         v-else-if="conversations.length > 0"
-        class="relative w-full"
-        :style="{ height: `${totalHeight}px` }"
+        class="space-y-0.5 px-0.5 pb-2"
       >
-        <!-- 飞书风格：置顶/非置顶分隔线 -->
-        <div
-          v-if="pinnedCount > 0 && pinnedCount < conversations.length"
-          class="absolute left-0 w-full flex items-center px-4 pointer-events-none z-10"
-          :style="{ top: `${pinnedCount * ITEM_HEIGHT - 1}px`, height: '1px' }"
+        <template
+          v-for="(conversation, index) in conversations"
+          :key="conversation.roomId"
         >
-          <div class="flex-1 h-px bg-border/40" />
-        </div>
+          <div
+            v-if="pinnedCount > 0 && index === pinnedCount"
+            class="flex items-center px-4 py-1"
+          >
+            <div class="h-px flex-1 bg-border/40" />
+          </div>
 
-        <ConversationItem
-          v-for="vItem in virtualItems"
-          :key="conversations[vItem.index].roomId"
-          :room="conversations[vItem.index]"
-          :active="normalizeRoomId(conversations[vItem.index].roomId) === activeRoomId"
-          :typing-users="getTypingUsers(conversations[vItem.index].roomId)"
-          class="absolute top-0 left-0 w-full"
-          :style="{ transform: `translateY(${vItem.start}px)` }"
-          @select="selectRoom"
-          @avatar-click="onAvatarClick"
-          @contextmenu="onContextMenu"
-        />
+          <ConversationItem
+            :room="conversation"
+            :active="normalizeRoomId(conversation.roomId) === activeRoomId"
+            :typing-users="getTypingUsers(conversation.roomId)"
+            :context-menu-open="isConversationContextMenuOpen(conversation.roomId)"
+            class="w-full"
+            @select="selectRoom"
+            @avatar-click="onAvatarClick"
+            @contextmenu="onContextMenu"
+          />
+        </template>
       </div>
 
       <!-- 空状态 - 增强氛围 -->

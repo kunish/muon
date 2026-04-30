@@ -15,6 +15,7 @@ const props = defineProps<{
   room: RoomSummary
   active: boolean
   typingUsers?: string[]
+  contextMenuOpen?: boolean
 }>()
 
 defineEmits<{
@@ -36,6 +37,45 @@ const isBot = computed(() => props.room.isDirect && !!props.room.dmUserId && isL
 
 /** 飞书风格：是否有 @提及（highlightCount > 0 表示有人 @ 了你） */
 const hasHighlight = computed(() => props.room.highlightCount > 0)
+const isContextMenuOpen = computed(() => props.contextMenuOpen === true)
+const isUnreadOrMarked = computed(() => props.room.unreadCount > 0 || markedUnread.value)
+const rowStateClass = computed(() => {
+  if (props.active) {
+    return 'bg-primary/18 shadow-[0_2px_10px_rgba(0,0,0,0.08),0_0_0_1px_color-mix(in_srgb,var(--color-primary)_45%,transparent)] backdrop-blur-[8px] before:pointer-events-none before:absolute before:inset-0 before:rounded-[inherit] before:shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] before:content-[\'\']'
+  }
+
+  if (pinned.value) {
+    return isContextMenuOpen.value
+      ? 'conv-pinned bg-accent/60'
+      : 'conv-pinned bg-accent/30 hover:bg-accent/60'
+  }
+
+  return isContextMenuOpen.value
+    ? 'bg-accent/50 shadow-[0_1px_4px_rgba(0,0,0,0.02)]'
+    : 'hover:bg-accent/50 hover:shadow-[0_1px_4px_rgba(0,0,0,0.02)]'
+})
+const avatarStateClass = computed(() => isContextMenuOpen.value ? 'scale-[1.04]' : '')
+const nameTextClass = computed(() => {
+  if (props.active || isUnreadOrMarked.value)
+    return 'text-foreground'
+  return isContextMenuOpen.value
+    ? 'text-foreground/95'
+    : 'text-foreground/80 group-hover:text-foreground/95'
+})
+const timeTextClass = computed(() => {
+  if (props.active || props.room.unreadCount > 0)
+    return 'text-primary font-semibold'
+  return isContextMenuOpen.value
+    ? 'text-muted-foreground/70'
+    : 'text-muted-foreground/50 group-hover:text-muted-foreground/70'
+})
+const previewTextClass = computed(() => {
+  if (props.active || isUnreadOrMarked.value)
+    return 'text-muted-foreground/90'
+  return isContextMenuOpen.value
+    ? 'text-muted-foreground/70'
+    : 'text-muted-foreground/55 group-hover:text-muted-foreground/70'
+})
 
 /** 群聊成员数（仅群聊显示） */
 const groupMemberCount = computed(() => {
@@ -78,13 +118,9 @@ const sender = computed(() => {
 
 <template>
   <div
-    class="group relative flex cursor-pointer select-none items-center gap-3 rounded-xl px-2.5 py-[9px] transition-[background-color,box-shadow,transform] duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)] active:scale-[0.985] active:duration-75"
+    class="group relative flex min-h-[52px] cursor-pointer select-none items-center gap-2.5 rounded-xl px-2.5 py-1.5 transition-[background-color,box-shadow,transform] duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)] active:scale-[0.985] active:duration-75"
     :class="[
-      active
-        ? 'bg-primary/18 shadow-[0_2px_10px_rgba(0,0,0,0.08),0_0_0_1px_color-mix(in_srgb,var(--color-primary)_45%,transparent)] backdrop-blur-[8px] before:pointer-events-none before:absolute before:inset-0 before:rounded-[inherit] before:shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] before:content-[\'\']'
-        : pinned
-          ? 'conv-pinned bg-accent/30 hover:bg-accent/60'
-          : 'hover:bg-accent/50 hover:shadow-[0_1px_4px_rgba(0,0,0,0.02)]',
+      rowStateClass,
     ]"
     :aria-current="active ? 'true' : undefined"
     @click="$emit('select', room.roomId)"
@@ -105,15 +141,16 @@ const sender = computed(() => {
     <!-- 头像 - 增强悬停效果 -->
     <div
       class="relative shrink-0 transition-transform duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:scale-[1.04]"
+      :class="avatarStateClass"
       @click.stop="$emit('avatarClick', room, $event)"
     >
       <Avatar
         :src="mxcAvatar"
         :alt="room.name"
         :color-id="room.roomId"
-        size="md"
+        size="sm"
         shape="circle"
-        :clickable="true"
+        class="cursor-pointer"
       />
       <!-- 加密徽标 -->
       <div
@@ -129,7 +166,7 @@ const sender = computed(() => {
       <div class="flex items-center justify-between gap-2">
         <span
           class="text-[13px] font-semibold truncate leading-tight transition-colors duration-150"
-          :class="active || room.unreadCount > 0 || markedUnread ? 'text-foreground' : 'text-foreground/80 group-hover:text-foreground/95'"
+          :class="nameTextClass"
         >
           {{ room.name }}
           <span
@@ -147,7 +184,7 @@ const sender = computed(() => {
           <BellOff v-if="muted" :size="10" class="text-muted-foreground/40" />
           <span
             class="text-[10px] tabular-nums tracking-tight transition-colors duration-150"
-            :class="active || room.unreadCount > 0 ? 'text-primary font-semibold' : 'text-muted-foreground/50 group-hover:text-muted-foreground/70'"
+            :class="timeTextClass"
           >
             {{ timeLabel }}
           </span>
@@ -157,7 +194,7 @@ const sender = computed(() => {
       <div class="flex items-center justify-between gap-2 mt-[3px]">
         <div
           class="flex items-center gap-1 min-w-0 text-[11.5px] leading-tight transition-colors duration-150"
-          :class="active || room.unreadCount > 0 || markedUnread ? 'text-muted-foreground/90' : 'text-muted-foreground/55 group-hover:text-muted-foreground/70'"
+          :class="previewTextClass"
         >
           <!-- 正在输入 > 草稿 > 正常预览 -->
           <template v-if="typingUsers && typingUsers.length > 0">

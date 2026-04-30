@@ -201,7 +201,7 @@ describe('richTextInput send recovery', () => {
 
     await mocks.onSubmit?.('<p>Reply</p>', 'Reply')
 
-    expect(replyToMessage).toHaveBeenCalledWith('!room:localhost', '$event-1', 'Reply')
+    expect(replyToMessage).toHaveBeenCalledWith('!room:localhost', '$event-1', 'Reply', '<p>Reply</p>')
     expect(mocks.clear).toHaveBeenCalledTimes(1)
     expect(store.replyingTo).toBeNull()
     expect(store.editingEvent).toBeNull()
@@ -220,7 +220,7 @@ describe('richTextInput send recovery', () => {
 
     await mocks.onSubmit?.('<p>Retry reply</p>', 'Retry reply')
 
-    expect(replyToMessage).toHaveBeenCalledWith('!room:localhost', '$event-2', 'Retry reply')
+    expect(replyToMessage).toHaveBeenCalledWith('!room:localhost', '$event-2', 'Retry reply', '<p>Retry reply</p>')
     expect(store.replyingTo?.getId()).toBe('$event-2')
     expect(mocks.clear).not.toHaveBeenCalled()
     expect(mocks.stopTyping).not.toHaveBeenCalled()
@@ -286,7 +286,7 @@ describe('richTextInput send recovery', () => {
     pendingReply.resolve('$reply-2')
     await submitPromise
 
-    expect(replyToMessage).toHaveBeenCalledWith('!room:localhost', '$event-4', 'Reply one')
+    expect(replyToMessage).toHaveBeenCalledWith('!room:localhost', '$event-4', 'Reply one', '<p>Reply one</p>')
     expect(store.replyingTo?.getId()).toBe('$event-5')
   })
 
@@ -307,7 +307,7 @@ describe('richTextInput send recovery', () => {
     pendingReply.resolve('$reply-3')
     await submitPromise
 
-    expect(replyToMessage).toHaveBeenCalledWith('!room:localhost', '$event-6', 'First reply')
+    expect(replyToMessage).toHaveBeenCalledWith('!room:localhost', '$event-6', 'First reply', '<p>First reply</p>')
     expect(mocks.clear).not.toHaveBeenCalled()
     expect(mocks.stopTyping).not.toHaveBeenCalled()
     expect(store.replyingTo?.getId()).toBe('$event-6')
@@ -330,7 +330,7 @@ describe('richTextInput send recovery', () => {
     pendingReply.resolve('$reply-4')
     await submitPromise
 
-    expect(replyToMessage).toHaveBeenCalledWith('!room:localhost', '$event-7', 'Same reply')
+    expect(replyToMessage).toHaveBeenCalledWith('!room:localhost', '$event-7', 'Same reply', '<p>Same reply</p>')
     expect(store.replyingTo?.getId()).toBe('$event-8')
     expect(mocks.clear).not.toHaveBeenCalled()
     expect(mocks.stopTyping).not.toHaveBeenCalled()
@@ -439,7 +439,7 @@ describe('richTextInput send recovery', () => {
     store.setCurrentRoom('!room-a:localhost')
     await nextTick()
 
-    expect(replyToMessage).toHaveBeenCalledWith('!room-a:localhost', '$event-17', 'Saved draft')
+    expect(replyToMessage).toHaveBeenCalledWith('!room-a:localhost', '$event-17', 'Saved draft', '<p>Saved draft</p>')
     expect(mocks.setContent).toHaveBeenCalledWith('<p>Saved draft</p>')
   })
 
@@ -470,7 +470,7 @@ describe('richTextInput send recovery', () => {
     store.setCurrentRoom('!room-a:localhost')
     await nextTick()
 
-    expect(editMessage).toHaveBeenCalledWith('!room-a:localhost', '$event-18', 'Saved draft')
+    expect(editMessage).toHaveBeenCalledWith('!room-a:localhost', '$event-18', 'Saved draft', '<p>Saved draft</p>')
     expect(mocks.setContent).toHaveBeenCalledWith('<p>Saved draft</p>')
   })
 
@@ -505,7 +505,7 @@ describe('richTextInput send recovery', () => {
 
     await mocks.onSubmit?.('<p>Edited message</p>', 'Edited message')
 
-    expect(editMessage).toHaveBeenCalledWith('!room:localhost', '$event-11', 'Edited message')
+    expect(editMessage).toHaveBeenCalledWith('!room:localhost', '$event-11', 'Edited message', '<p>Edited message</p>')
     expect(mocks.clear).toHaveBeenCalledTimes(1)
     expect(store.editingEvent).toBeNull()
     expect(store.replyingTo).toBeNull()
@@ -524,7 +524,7 @@ describe('richTextInput send recovery', () => {
 
     await mocks.onSubmit?.('<p>Retry edit</p>', 'Retry edit')
 
-    expect(editMessage).toHaveBeenCalledWith('!room:localhost', '$event-12', 'Retry edit')
+    expect(editMessage).toHaveBeenCalledWith('!room:localhost', '$event-12', 'Retry edit', '<p>Retry edit</p>')
     expect(store.editingEvent?.getId()).toBe('$event-12')
     expect(mocks.clear).not.toHaveBeenCalled()
     expect(mocks.stopTyping).not.toHaveBeenCalled()
@@ -602,7 +602,7 @@ describe('richTextInput send recovery', () => {
     pendingReply.resolve('$reply-5')
     await submitPromise
 
-    expect(replyToMessage).toHaveBeenCalledWith('!room:localhost', '$event-15', 'Same reply again')
+    expect(replyToMessage).toHaveBeenCalledWith('!room:localhost', '$event-15', 'Same reply again', '<p>Same reply again</p>')
     expect(store.replyingTo?.getId()).toBe('$event-15')
     expect(mocks.clear).not.toHaveBeenCalled()
     expect(mocks.stopTyping).not.toHaveBeenCalled()
@@ -625,7 +625,7 @@ describe('richTextInput send recovery', () => {
     pendingEdit.resolve('$edit-2')
     await submitPromise
 
-    expect(editMessage).toHaveBeenCalledWith('!room:localhost', '$event-16', 'Same edit again')
+    expect(editMessage).toHaveBeenCalledWith('!room:localhost', '$event-16', 'Same edit again', '<p>Same edit again</p>')
     expect(store.editingEvent?.getId()).toBe('$event-16')
     expect(mocks.clear).not.toHaveBeenCalled()
     expect(mocks.stopTyping).not.toHaveBeenCalled()

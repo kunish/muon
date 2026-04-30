@@ -2,6 +2,7 @@
 import type { Contact } from '../stores/contactStore'
 import { getUserPresenceInfo } from '@matrix/index'
 import { computed } from 'vue'
+import { Avatar } from '@/shared/components/ui/avatar'
 
 const props = defineProps<{
   contact: Contact
@@ -26,9 +27,13 @@ const statusMsg = computed(() => {
     @dblclick="$emit('dblclick')"
   >
     <div class="relative">
-      <div class="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-medium">
-        {{ contact.displayName.slice(0, 1) }}
-      </div>
+      <Avatar
+        :src="contact.avatarUrl"
+        :alt="contact.displayName"
+        :fallback="contact.displayName.slice(0, 1)"
+        :color-id="contact.userId"
+        size="sm"
+      />
       <div
         class="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-background"
         :class="contact.presence === 'online' ? 'bg-success' : 'bg-muted-foreground/30'"

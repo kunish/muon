@@ -14,7 +14,7 @@ import {
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
-import { isDirectRoom } from '@/shared/lib/roomUtils'
+import { isDirectRoom } from '@matrix/roomUtils'
 import { useConversations } from '../composables/useConversations'
 import { useChatStore } from '../stores/chatStore'
 
@@ -48,9 +48,11 @@ onClickOutside(menuRef, () => {
 
 // --- 操作 ---
 async function handlePin() {
-  store.togglePin(roomId.value)
+  const targetRoomId = roomId.value
+  const nextPinned = !store.isPinned(targetRoomId)
+  store.setPin(targetRoomId, nextPinned)
   try {
-    await toggleRoomPin(roomId.value)
+    await toggleRoomPin(targetRoomId)
   }
   catch { /* Conduit 可能不支持 */ }
   refresh()
@@ -120,24 +122,24 @@ async function handleLeave() {
       <div
         v-if="isOpen"
         ref="menuRef"
-        class="ctx-menu fixed z-50 min-w-[180px] py-1.5 rounded-xl border border-border/60 bg-popover/95 backdrop-blur-xl shadow-[0_8px_30px_rgba(0,0,0,0.12),0_2px_8px_rgba(0,0,0,0.06)]"
+        class="workspace-menu ctx-menu fixed"
         :style="style"
         @contextmenu.prevent
       >
         <!-- 置顶 -->
-        <button class="mx-1 flex w-[calc(100%-8px)] items-center gap-2.5 rounded-md px-3.5 py-[7px] text-[13px] text-foreground transition-all duration-100 hover:bg-accent active:scale-[0.98]" @click="handlePin">
+        <button class="workspace-menu-item mx-0 w-full text-foreground active:scale-[0.98]" @click="handlePin">
           <component :is="pinned ? PinOff : Pin" :size="14" />
           <span>{{ pinned ? t('chat.ctx_unpin') : t('chat.ctx_pin') }}</span>
         </button>
 
         <!-- 免打扰 -->
-        <button class="mx-1 flex w-[calc(100%-8px)] items-center gap-2.5 rounded-md px-3.5 py-[7px] text-[13px] text-foreground transition-all duration-100 hover:bg-accent active:scale-[0.98]" @click="handleMute">
+        <button class="workspace-menu-item mx-0 w-full text-foreground active:scale-[0.98]" @click="handleMute">
           <component :is="muted ? Bell : BellOff" :size="14" />
           <span>{{ muted ? t('chat.ctx_unmute') : t('chat.ctx_mute') }}</span>
         </button>
 
         <!-- 标记未读/已读 -->
-        <button class="mx-1 flex w-[calc(100%-8px)] items-center gap-2.5 rounded-md px-3.5 py-[7px] text-[13px] text-foreground transition-all duration-100 hover:bg-accent active:scale-[0.98]" @click="handleMarkUnread">
+        <button class="workspace-menu-item mx-0 w-full text-foreground active:scale-[0.98]" @click="handleMarkUnread">
           <component :is="markedUnread ? Eye : EyeOff" :size="14" />
           <span>{{ markedUnread ? t('chat.ctx_mark_read') : t('chat.ctx_mark_unread') }}</span>
         </button>
@@ -145,7 +147,7 @@ async function handleLeave() {
         <div class="mx-3 my-1 h-px bg-border/50" />
 
         <!-- 退出会话 -->
-        <button class="mx-1 flex w-[calc(100%-8px)] items-center gap-2.5 rounded-md px-3.5 py-[7px] text-[13px] text-destructive transition-all duration-100 hover:bg-[color-mix(in_srgb,var(--color-destructive)_10%,transparent)] active:scale-[0.98]" @click="handleLeave">
+        <button class="workspace-menu-item workspace-menu-item-destructive mx-0 w-full active:scale-[0.98]" @click="handleLeave">
           <LogOut :size="14" />
           <span>{{ t('chat.ctx_leave') }}</span>
         </button>

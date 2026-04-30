@@ -8,6 +8,7 @@ import { Badge } from '@/shared/components/ui/badge'
 
 const props = defineProps<{
   channel: ChannelInfo
+  contextMenuOpen?: boolean
 }>()
 
 const router = useRouter()
@@ -16,8 +17,18 @@ const serverStore = useServerStore()
 const isSelected = computed(() => serverStore.currentChannelId === props.channel.roomId)
 const isUnread = computed(() => props.channel.unreadCount > 0)
 const hasMentions = computed(() => props.channel.highlightCount > 0)
+const rowStateClass = computed(() => {
+  if (isSelected.value)
+    return 'workspace-row-active font-medium'
+  if (props.contextMenuOpen === true)
+    return 'bg-sidebar-accent text-foreground'
+  return 'hover:bg-sidebar-accent hover:text-foreground'
+})
+const hoverAffordanceClass = computed(() =>
+  props.contextMenuOpen === true ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
+)
 
-function navigate() {
+function navigate(): void {
   serverStore.selectChannel(props.channel.roomId)
   const serverId = serverStore.currentServerId
   if (serverId) {
@@ -29,11 +40,9 @@ function navigate() {
 <template>
   <div class="relative">
     <button
-      class="group flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors"
+      class="workspace-row group gap-2 px-3 py-2 text-muted-foreground"
       :class="[
-        isSelected
-          ? 'bg-accent/60 text-foreground font-medium'
-          : 'text-muted-foreground hover:bg-accent/30 hover:text-foreground',
+        rowStateClass,
         isUnread && !isSelected ? 'font-semibold text-foreground' : '',
       ]"
       @click="navigate"
@@ -41,7 +50,6 @@ function navigate() {
       <span class="truncate">{{ channel.name }}</span>
       <span v-if="isUnread && !isSelected" class="ml-1.5 inline-block w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
 
-      <!-- Right actions / mention -->
       <div class="ml-auto flex items-center">
         <Badge
           v-if="hasMentions"
@@ -51,7 +59,7 @@ function navigate() {
           {{ channel.highlightCount > 99 ? '99+' : channel.highlightCount }}
         </Badge>
 
-        <div v-else class="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div v-else class="flex items-center gap-0.5 transition-opacity" :class="hoverAffordanceClass">
           <UserPlus :size="14" class="text-muted-foreground hover:text-foreground" />
         </div>
       </div>

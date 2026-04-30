@@ -158,7 +158,7 @@ async function onSendMessage() {
     const roomId = await findOrCreateDm(uid)
     // 确保房间在会话列表中可见（可能之前被归档/隐藏）
     restoreRoom(roomId)
-    chatStore.setCurrentRoom(roomId)
+    chatStore.setCurrentRoom(roomId, { sidebarPlacement: 'promote' })
   }
   catch {
     toast.error(t('auth.error'))

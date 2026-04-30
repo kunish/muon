@@ -6,7 +6,7 @@ import { computed, ref, shallowRef } from 'vue'
 import { materializeOfflineDigest } from '@/matrix/digest'
 import { matrixEvents } from '@/matrix/events'
 import { useNetworkStatus } from '@/shared/composables/useNetworkStatus'
-import { createKnowledgeRepository } from '@/shared/lib/knowledgeDb'
+import { createKnowledgeRepository } from '@features/chat/lib/knowledgeDb'
 import { compareDigestEntries } from '../types/digest'
 
 const repository = createKnowledgeRepository()

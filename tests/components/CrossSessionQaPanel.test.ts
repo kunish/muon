@@ -13,7 +13,7 @@ const listSavedQaSessionsMock = vi.fn()
 const routerPush = vi.fn()
 const loadInboxEventContextMock = vi.fn()
 
-vi.mock('@/shared/lib/knowledgeDb', () => ({
+vi.mock('@features/chat/lib/knowledgeDb', () => ({
   createKnowledgeRepository: () => ({
     listDigestEntries: vi.fn().mockResolvedValue([]),
     listDecisionCards: vi.fn().mockResolvedValue([]),

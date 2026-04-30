@@ -2,7 +2,7 @@ import type { CreateDecisionCardInput, DecisionCard, SuggestionDisposition } fro
 import type { DigestEntry } from '../types/knowledge'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { createKnowledgeRepository } from '@/shared/lib/knowledgeDb'
+import { createKnowledgeRepository } from '@features/chat/lib/knowledgeDb'
 import { extractSuggestionsFromSummary } from '../services/suggestionExtraction'
 import { createDecisionCard } from '../types/decision'
 import { decisionCardSchema } from '../types/knowledge'

@@ -6,6 +6,7 @@ import {
   editMessage,
   getClient,
   replyToMessage,
+  sendAudioMessage,
   sendContactCard,
   sendGifMessage,
   sendImageStickerMessage,
@@ -18,18 +19,22 @@ import {
   ALargeSmall,
   AtSign,
   Bold,
-  Code,
+  Braces,
+  ChevronDown,
   Italic,
+  Link2,
   List,
   ListOrdered,
   Maximize2,
   Minimize2,
   Quote,
+  SendHorizontal,
   Smile,
   Strikethrough,
+  Underline,
   X,
 } from 'lucide-vue-next'
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
@@ -45,12 +50,10 @@ import ContactCardPicker from './ContactCardPicker.vue'
 import ExpressionPicker from './ExpressionPicker.vue'
 import LocationPicker from './LocationPicker.vue'
 import MentionList from './MentionList.vue'
+import ScreenshotButton from './ScreenshotButton.vue'
 import StickerPackManager from './StickerPackManager.vue'
 import UploadProgress from './UploadProgress.vue'
-// Voice components (VoiceRecorder, VoiceToTextButton) are available but disabled
-// until voice UI is implemented. Their imports are kept commented for reference:
-// import VoiceRecorder from './VoiceRecorder.vue'
-// import VoiceToTextButton from './VoiceToTextButton.vue'
+import VoiceRecorder from './VoiceRecorder.vue'
 
 const store = useChatStore()
 const { t } = useI18n()
@@ -100,9 +103,18 @@ const placeholderText = computed(() => {
   return name ? t('chat.input_placeholder_channel', { name }) : t('chat.input_placeholder')
 })
 
+const editorExpanded = shallowRef(false)
+const postTitle = shallowRef('')
+const editorHeightClass = computed(() =>
+  editorExpanded.value
+    ? 'overflow-y-auto min-h-[320px] max-h-[60vh] [&_.tiptap]:min-h-[304px]'
+    : 'overflow-hidden min-h-[40px] max-h-[40px] [&_.tiptap]:min-h-[24px] [&_.tiptap]:overflow-hidden [&_.tiptap]:whitespace-nowrap [&_.tiptap_p]:truncate',
+)
+
 const { editor, clear, insertEmoji } = useEditor({
   placeholder: placeholderText,
   onSubmit: handleSend,
+  submitOnEnter: computed(() => !editorExpanded.value),
   mentionSearch: (query: string) => filterMembers(query),
   onMentionState: (state: MentionPopupState) => {
     mentionState.value = state
@@ -147,6 +159,10 @@ async function openExpressionPicker(tab: ExpressionTab, anchor?: HTMLElement | n
 
 function onExpressionButtonClick(e: MouseEvent) {
   void openExpressionPicker(expressionTab.value, e.currentTarget as HTMLElement)
+}
+
+function openEmojiPicker(e: MouseEvent) {
+  void openExpressionPicker('emoji', e.currentTarget as HTMLElement)
 }
 
 function toggleGifPicker() {
@@ -224,7 +240,6 @@ async function jumpToReplyTarget() {
   })
 }
 
-const editorExpanded = ref(false)
 const composeVersion = ref(0)
 const sendInFlight = ref(false)
 
@@ -253,7 +268,7 @@ async function handleSend(html: string, text: string) {
         toast.error(t('chat.send_failed'))
         return
       }
-      await editMessage(roomId, eventId, text)
+      await editMessage(roomId, eventId, text, html)
     }
     else if (replyingTo) {
       const eventId = replyingTo.getId()
@@ -261,7 +276,7 @@ async function handleSend(html: string, text: string) {
         toast.error(t('chat.send_failed'))
         return
       }
-      await replyToMessage(roomId, eventId, text)
+      await replyToMessage(roomId, eventId, text, html)
     }
     else {
       await sendTextMessage(roomId, text, html)
@@ -289,6 +304,39 @@ async function handleSend(html: string, text: string) {
     stopTyping()
     store.clearCompose()
   }
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll('\'', '&#39;')
+}
+
+function createSubmitPayload(html: string, text: string) {
+  const title = editorExpanded.value ? postTitle.value.trim() : ''
+  if (!title) {
+    return { html, text }
+  }
+
+  const titleHtml = `<p><strong>${escapeHtml(title)}</strong></p>`
+  const bodyText = text.trim()
+  return {
+    html: bodyText ? `${titleHtml}${html}` : titleHtml,
+    text: bodyText ? `${title}\n\n${text}` : title,
+  }
+}
+
+async function submitEditor() {
+  const html = editor.value?.getHTML() || ''
+  const text = editor.value?.getText() || ''
+  const payload = createSubmitPayload(html, text)
+  if (!store.currentRoomId || !payload.text.trim())
+    return
+  await handleSend(payload.html, payload.text)
+  postTitle.value = ''
 }
 
 function toggleStickerPicker() {
@@ -388,12 +436,26 @@ async function handleLocationSelect(payload: {
   }
 }
 
+async function handleVoiceSend(blob: Blob, duration: number) {
+  const roomId = store.currentRoomId
+  if (!roomId)
+    return
+  try {
+    await sendAudioMessage(roomId, blob, duration)
+  }
+  catch {
+    toast.error(t('auth.error'))
+  }
+}
+
 function onInput() {
   markComposeChanged()
   startTyping()
 }
 
 const showFormatBar = ref(false)
+const showLinkEditor = shallowRef(false)
+const linkUrl = shallowRef('')
 
 function toggleFormatBar() {
   showFormatBar.value = !showFormatBar.value
@@ -401,6 +463,39 @@ function toggleFormatBar() {
 
 function insertMention() {
   editor.value?.chain().focus().insertContent('@').run()
+}
+
+function focusEditor() {
+  editor.value?.commands.focus()
+}
+
+function toggleLinkEditor() {
+  const activeEditor = editor.value
+  if (!activeEditor)
+    return
+
+  linkUrl.value = activeEditor.getAttributes('link').href as string | undefined || ''
+  showLinkEditor.value = !showLinkEditor.value
+}
+
+function applyLink() {
+  const activeEditor = editor.value
+  if (!activeEditor)
+    return
+
+  const nextHref = linkUrl.value.trim()
+  if (!nextHref) {
+    activeEditor.chain().focus().extendMarkRange('link').unsetLink().run()
+    showLinkEditor.value = false
+    return
+  }
+
+  activeEditor.chain().focus().extendMarkRange('link').setLink({ href: nextHref }).run()
+  showLinkEditor.value = false
+}
+
+function closeLinkEditor() {
+  showLinkEditor.value = false
 }
 
 watch(
@@ -431,6 +526,7 @@ watch(
     showExpressionPicker.value = false
     showLocationPicker.value = false
     showContactCardPicker.value = false
+    postTitle.value = ''
   },
 )
 
@@ -514,9 +610,9 @@ onUnmounted(() => {
     </div>
 
     <!-- 主输入容器 -->
-    <div class="flex items-end gap-0 rounded-lg bg-input" @input="onInput">
+    <div v-if="!editorExpanded" data-testid="compact-composer" class="flex items-center gap-0 rounded-lg bg-input" @input="onInput">
       <!-- 左侧: + 附件按钮 -->
-      <div class="flex items-center shrink-0 pl-1 pb-1.5">
+      <div class="flex h-10 items-center shrink-0 pl-1">
         <AttachmentMenu
           @image="uploadImage"
           @video="uploadVideo"
@@ -561,6 +657,14 @@ onUnmounted(() => {
             </button>
             <button
               class="cursor-pointer rounded p-1 text-muted-foreground transition-all duration-[120ms] hover:bg-accent hover:text-foreground"
+              :class="editor.isActive('underline') && 'bg-primary text-primary-foreground hover:opacity-90'"
+              :title="t('chat.format_underline')"
+              @click="editor.chain().focus().toggleUnderline().run()"
+            >
+              <Underline :size="14" />
+            </button>
+            <button
+              class="cursor-pointer rounded p-1 text-muted-foreground transition-all duration-[120ms] hover:bg-accent hover:text-foreground"
               :class="editor.isActive('strike') && 'bg-primary text-primary-foreground hover:opacity-90'"
               :title="t('chat.format_strike')"
               @click="editor.chain().focus().toggleStrike().run()"
@@ -573,7 +677,7 @@ onUnmounted(() => {
               :title="t('chat.format_code')"
               @click="editor.chain().focus().toggleCode().run()"
             >
-              <Code :size="14" />
+              <Braces :size="14" />
             </button>
             <div class="w-px h-4 bg-border/60 mx-0.5" />
             <button
@@ -600,22 +704,48 @@ onUnmounted(() => {
             >
               <Quote :size="14" />
             </button>
+            <button
+              class="cursor-pointer rounded p-1 text-muted-foreground transition-all duration-[120ms] hover:bg-accent hover:text-foreground"
+              :class="editor.isActive('link') && 'bg-primary text-primary-foreground hover:opacity-90'"
+              :title="t('chat.format_link')"
+              @click="toggleLinkEditor"
+            >
+              <Link2 :size="14" />
+            </button>
+            <form
+              v-if="showLinkEditor"
+              class="ml-1 flex h-8 items-center gap-0.5 rounded-md border border-border/60 bg-background px-1"
+              @submit.prevent="applyLink"
+            >
+              <input
+                v-model="linkUrl"
+                class="h-6 w-40 bg-transparent px-1 text-xs outline-none placeholder:text-muted-foreground"
+                :placeholder="t('chat.format_link_prompt')"
+                @keydown.stop
+              >
+              <button type="submit" class="inline-flex h-6 w-6 items-center justify-center rounded hover:bg-accent">
+                <Link2 :size="13" />
+              </button>
+              <button type="button" class="inline-flex h-6 w-6 items-center justify-center rounded hover:bg-accent" @click="closeLinkEditor">
+                <X :size="13" />
+              </button>
+            </form>
           </div>
         </Transition>
 
         <EditorContent
           v-if="editor"
           :editor="editor"
-          class="rich-editor min-h-[40px] overflow-y-auto px-2 py-2 text-sm outline-none transition-[max-height] duration-200 [&_.mention]:font-medium [&_.mention]:text-primary [&_.tiptap]:outline-none [&_.tiptap_p.is-editor-empty:first-child]:before:pointer-events-none [&_.tiptap_p.is-editor-empty:first-child]:before:float-left [&_.tiptap_p.is-editor-empty:first-child]:before:h-0 [&_.tiptap_p.is-editor-empty:first-child]:before:text-muted-foreground [&_.tiptap_p.is-editor-empty:first-child]:before:content-[attr(data-placeholder)]"
-          :class="editorExpanded ? 'max-h-[400px]' : 'max-h-[150px]'"
+          class="rich-editor px-2 py-2 text-sm leading-6 outline-none transition-[max-height,min-height] duration-200 [&_.mention]:font-medium [&_.mention]:text-primary [&_.tiptap]:leading-6 [&_.tiptap]:outline-none [&_.tiptap_ol]:my-1 [&_.tiptap_ol]:list-decimal [&_.tiptap_ol]:pl-5 [&_.tiptap_ul]:my-1 [&_.tiptap_ul]:list-disc [&_.tiptap_ul]:pl-5 [&_.tiptap_li]:pl-1 [&_.tiptap_p]:m-0 [&_.tiptap_p]:leading-6 [&_.tiptap_p.is-editor-empty:first-child]:before:pointer-events-none [&_.tiptap_p.is-editor-empty:first-child]:before:float-left [&_.tiptap_p.is-editor-empty:first-child]:before:h-0 [&_.tiptap_p.is-editor-empty:first-child]:before:text-muted-foreground [&_.tiptap_p.is-editor-empty:first-child]:before:content-[attr(data-placeholder)]"
+          :class="editorHeightClass"
         />
       </div>
 
       <!-- 右侧: GIF / Sticker / Emoji — 简洁布局 -->
-      <div ref="expressionTriggerRef" class="flex items-center shrink-0 gap-0 pr-1 pb-1.5">
+      <div ref="expressionTriggerRef" class="flex h-10 items-center shrink-0 gap-0 pr-1">
         <!-- @ 提及 -->
         <button
-          class="p-1.5 rounded-md hover:bg-accent text-muted-foreground"
+          class="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent"
           :title="t('chat.mention_btn')"
           @click="insertMention"
         >
@@ -624,7 +754,7 @@ onUnmounted(() => {
         <!-- Aa 格式切换 — 仅当有内容或格式栏已展开时显示 -->
         <button
           v-if="showFormatBar || editor?.getText().trim()"
-          class="p-1.5 rounded-md transition-colors"
+          class="inline-flex h-8 w-8 items-center justify-center rounded-md transition-colors"
           :class="
             showFormatBar
               ? 'bg-primary/10 text-primary'
@@ -637,7 +767,7 @@ onUnmounted(() => {
         </button>
         <!-- GIF / Sticker / Emoji 整合入口 -->
         <button
-          class="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-muted-foreground transition-colors hover:bg-accent"
+          class="inline-flex h-8 items-center justify-center gap-1 rounded-md px-2 text-muted-foreground transition-colors hover:bg-accent"
           :title="`${t('chat.gif')} / ${t('chat.sticker_btn')} / Emoji`"
           @click="onExpressionButtonClick"
         >
@@ -646,7 +776,7 @@ onUnmounted(() => {
         </button>
         <!-- 展开/收起编辑器 -->
         <button
-          class="p-1.5 rounded-md hover:bg-accent text-muted-foreground"
+          class="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent"
           :title="
             editorExpanded
               ? t('chat.collapse_editor')
@@ -657,8 +787,186 @@ onUnmounted(() => {
           <Minimize2 v-if="editorExpanded" :size="16" />
           <Maximize2 v-else :size="16" />
         </button>
+        <VoiceRecorder @send="handleVoiceSend" />
       </div>
-      <!-- TODO: Voice features (VoiceRecorder, VoiceToTextButton) disabled until voice UI is implemented -->
+    </div>
+
+    <div
+      v-else
+      data-testid="expanded-composer"
+      class="flex min-h-[420px] flex-col rounded-xl border border-border/70 bg-input shadow-sm"
+      @input="onInput"
+    >
+      <div class="flex h-10 shrink-0 items-center justify-between px-3">
+        <div
+          v-if="editor"
+          data-testid="expanded-format-toolbar"
+          class="flex items-center gap-1 text-muted-foreground"
+        >
+          <button
+            class="inline-flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-accent hover:text-foreground"
+            :class="editor.isActive('bold') && 'bg-primary text-primary-foreground hover:opacity-90'"
+            :title="t('chat.format_bold')"
+            @click="editor.chain().focus().toggleBold().run()"
+          >
+            <Bold :size="17" />
+          </button>
+          <button
+            class="inline-flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-accent hover:text-foreground"
+            :class="editor.isActive('strike') && 'bg-primary text-primary-foreground hover:opacity-90'"
+            :title="t('chat.format_strike')"
+            @click="editor.chain().focus().toggleStrike().run()"
+          >
+            <Strikethrough :size="17" />
+          </button>
+          <button
+            class="inline-flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-accent hover:text-foreground"
+            :class="editor.isActive('italic') && 'bg-primary text-primary-foreground hover:opacity-90'"
+            :title="t('chat.format_italic')"
+            @click="editor.chain().focus().toggleItalic().run()"
+          >
+            <Italic :size="17" />
+          </button>
+          <button
+            class="inline-flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-accent hover:text-foreground"
+            :class="editor.isActive('underline') && 'bg-primary text-primary-foreground hover:opacity-90'"
+            :title="t('chat.format_underline')"
+            @click="editor.chain().focus().toggleUnderline().run()"
+          >
+            <Underline :size="17" />
+          </button>
+          <button
+            class="inline-flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-accent hover:text-foreground"
+            :class="editor.isActive('orderedList') && 'bg-primary text-primary-foreground hover:opacity-90'"
+            :title="t('chat.format_ol')"
+            @click="editor.chain().focus().toggleOrderedList().run()"
+          >
+            <ListOrdered :size="17" />
+          </button>
+          <button
+            class="inline-flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-accent hover:text-foreground"
+            :class="editor.isActive('bulletList') && 'bg-primary text-primary-foreground hover:opacity-90'"
+            :title="t('chat.format_ul')"
+            @click="editor.chain().focus().toggleBulletList().run()"
+          >
+            <List :size="17" />
+          </button>
+          <button
+            class="inline-flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-accent hover:text-foreground"
+            :class="editor.isActive('blockquote') && 'bg-primary text-primary-foreground hover:opacity-90'"
+            :title="t('chat.format_quote')"
+            @click="editor.chain().focus().toggleBlockquote().run()"
+          >
+            <Quote :size="17" />
+          </button>
+          <button
+            class="inline-flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-accent hover:text-foreground"
+            :class="editor.isActive('link') && 'bg-primary text-primary-foreground hover:opacity-90'"
+            :title="t('chat.format_link')"
+            @click="toggleLinkEditor"
+          >
+            <Link2 :size="17" />
+          </button>
+          <form
+            v-if="showLinkEditor"
+            class="ml-1 flex h-8 items-center gap-0.5 rounded-md border border-border/60 bg-background px-1"
+            @submit.prevent="applyLink"
+          >
+            <input
+              v-model="linkUrl"
+              class="h-6 w-44 bg-transparent px-1 text-xs outline-none placeholder:text-muted-foreground"
+              :placeholder="t('chat.format_link_prompt')"
+              @keydown.stop
+            >
+            <button type="submit" class="inline-flex h-6 w-6 items-center justify-center rounded hover:bg-accent">
+              <Link2 :size="13" />
+            </button>
+            <button type="button" class="inline-flex h-6 w-6 items-center justify-center rounded hover:bg-accent" @click="closeLinkEditor">
+              <X :size="13" />
+            </button>
+          </form>
+          <button
+            class="inline-flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-accent hover:text-foreground"
+            :class="editor.isActive('code') && 'bg-primary text-primary-foreground hover:opacity-90'"
+            :title="t('chat.format_code')"
+            @click="editor.chain().focus().toggleCode().run()"
+          >
+            <Braces :size="17" />
+          </button>
+        </div>
+        <button
+          class="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
+          :title="t('chat.collapse_editor')"
+          @click="editorExpanded = false"
+        >
+          <Minimize2 :size="16" />
+        </button>
+      </div>
+
+      <input
+        v-model="postTitle"
+        data-testid="expanded-composer-title"
+        class="mx-4 h-9 shrink-0 bg-transparent text-sm font-semibold text-foreground outline-none placeholder:text-muted-foreground"
+        :placeholder="t('chat.post_title_placeholder')"
+        @keydown.enter.prevent="focusEditor"
+      >
+
+      <div class="min-h-0 flex-1 px-2" @click="focusEditor">
+        <EditorContent
+          v-if="editor"
+          :editor="editor"
+          data-testid="rich-editor"
+          class="rich-editor px-2 py-2 text-sm leading-6 outline-none transition-[max-height,min-height] duration-200 [&_.mention]:font-medium [&_.mention]:text-primary [&_.tiptap]:leading-6 [&_.tiptap]:outline-none [&_.tiptap_ol]:my-1 [&_.tiptap_ol]:list-decimal [&_.tiptap_ol]:pl-5 [&_.tiptap_ul]:my-1 [&_.tiptap_ul]:list-disc [&_.tiptap_ul]:pl-5 [&_.tiptap_li]:pl-1 [&_.tiptap_p]:m-0 [&_.tiptap_p]:leading-6 [&_.tiptap_p.is-editor-empty:first-child]:before:pointer-events-none [&_.tiptap_p.is-editor-empty:first-child]:before:float-left [&_.tiptap_p.is-editor-empty:first-child]:before:h-0 [&_.tiptap_p.is-editor-empty:first-child]:before:text-muted-foreground [&_.tiptap_p.is-editor-empty:first-child]:before:content-[attr(data-placeholder)]"
+          :class="editorHeightClass"
+        />
+      </div>
+
+      <div
+        ref="expressionTriggerRef"
+        data-testid="expanded-action-bar"
+        class="flex h-12 shrink-0 items-center justify-end gap-1 px-3 pb-2"
+      >
+        <button
+          class="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
+          :title="`${t('chat.gif')} / ${t('chat.sticker_btn')} / Emoji`"
+          @click="openEmojiPicker"
+        >
+          <Smile :size="18" />
+        </button>
+        <button
+          class="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
+          :title="t('chat.mention_btn')"
+          @click="insertMention"
+        >
+          <AtSign :size="18" />
+        </button>
+        <ScreenshotButton @capture="uploadImage" />
+        <AttachmentMenu
+          trigger-icon="image"
+          @image="uploadImage"
+          @video="uploadVideo"
+          @file="uploadFile"
+          @sticker="toggleStickerPicker"
+          @location="toggleLocationPicker"
+          @gif="toggleGifPicker"
+          @contact-card="toggleContactCardPicker"
+        />
+        <button
+          data-testid="expanded-send"
+          class="inline-flex h-8 w-8 items-center justify-center rounded-md text-primary transition-colors hover:bg-primary/10"
+          :title="t('chat.send')"
+          @click="submitEditor"
+        >
+          <SendHorizontal :size="19" />
+        </button>
+        <div class="mx-1 h-5 w-px bg-border" />
+        <button
+          class="inline-flex h-8 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
+          :title="t('chat.action_more')"
+        >
+          <ChevronDown :size="14" />
+        </button>
+      </div>
     </div>
 
     <!-- Mention 弹窗 -->

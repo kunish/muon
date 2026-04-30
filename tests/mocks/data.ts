@@ -21,14 +21,14 @@ export interface MockUser {
 export const SELF_USER_ID = '@test:localhost'
 
 export const USERS: Record<string, MockUser> = {
-  '@test:localhost': { userId: '@test:localhost', displayName: '我', presence: 'online' },
+  '@test:localhost': { userId: '@test:localhost', displayName: '我', avatarUrl: 'mxc://localhost/avatar_test', presence: 'online' },
   '@alice:localhost': { userId: '@alice:localhost', displayName: '小红', avatarUrl: 'mxc://localhost/avatar_alice', presence: 'online' },
   '@bob:localhost': { userId: '@bob:localhost', displayName: '小明', avatarUrl: 'mxc://localhost/avatar_bob', presence: 'offline' },
-  '@charlie:localhost': { userId: '@charlie:localhost', displayName: '小刚', presence: 'online' },
+  '@charlie:localhost': { userId: '@charlie:localhost', displayName: '小刚', avatarUrl: 'mxc://localhost/avatar_charlie', presence: 'online' },
   '@diana:localhost': { userId: '@diana:localhost', displayName: '小丽', avatarUrl: 'mxc://localhost/avatar_diana', presence: 'unavailable' },
-  '@edward:localhost': { userId: '@edward:localhost', displayName: '小伟', presence: 'offline' },
+  '@edward:localhost': { userId: '@edward:localhost', displayName: '小伟', avatarUrl: 'mxc://localhost/avatar_edward', presence: 'offline' },
   '@fiona:localhost': { userId: '@fiona:localhost', displayName: '小芳', avatarUrl: 'mxc://localhost/avatar_fiona', presence: 'online' },
-  '@george:localhost': { userId: '@george:localhost', displayName: '小杰', presence: 'offline' },
+  '@george:localhost': { userId: '@george:localhost', displayName: '小杰', avatarUrl: 'mxc://localhost/avatar_george', presence: 'offline' },
 }
 
 export const ALL_USER_IDS = Object.keys(USERS)

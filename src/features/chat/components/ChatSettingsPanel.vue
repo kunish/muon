@@ -17,7 +17,7 @@ import { useI18n } from 'vue-i18n'
 import { Avatar } from '@/shared/components/ui/avatar'
 import { Switch } from '@/shared/components/ui/switch'
 import { Textarea } from '@/shared/components/ui/textarea'
-import { isDirectRoom } from '@/shared/lib/roomUtils'
+import { isDirectRoom } from '@matrix/roomUtils'
 import { useChatStore } from '../stores/chatStore'
 
 const { t } = useI18n()
@@ -82,8 +82,13 @@ const memberPreviews = computed<MemberPreview[]>(() => {
 async function onTogglePin() {
   if (!store.currentRoomId)
     return
-  await toggleRoomPin(store.currentRoomId)
-  store.togglePin(store.currentRoomId)
+  const targetRoomId = store.currentRoomId
+  const nextPinned = !store.isPinned(targetRoomId)
+  store.setPin(targetRoomId, nextPinned)
+  try {
+    await toggleRoomPin(targetRoomId)
+  }
+  catch { /* Conduit 可能不支持 */ }
 }
 
 async function onToggleMute() {

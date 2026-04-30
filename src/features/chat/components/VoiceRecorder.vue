@@ -26,7 +26,7 @@ async function handleStop() {
 <template>
   <div v-if="isRecording" class="flex items-center gap-2">
     <button
-      class="p-1.5 rounded-md hover:bg-accent text-destructive"
+      class="inline-flex h-8 w-8 items-center justify-center rounded-md text-destructive hover:bg-accent"
       @click="cancel"
     >
       <X :size="18" />
@@ -38,7 +38,7 @@ async function handleStop() {
       </span>
     </div>
     <button
-      class="p-1.5 rounded-md bg-primary text-primary-foreground"
+      class="inline-flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground"
       @click="handleStop"
     >
       <Square :size="14" />
@@ -46,7 +46,7 @@ async function handleStop() {
   </div>
   <button
     v-else
-    class="p-1.5 rounded-md hover:bg-accent text-muted-foreground"
+    class="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent"
     @click="start"
   >
     <Mic :size="18" />

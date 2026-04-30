@@ -39,11 +39,18 @@ export default defineConfig({
     sourcemap: !!process.env.TAURI_DEBUG,
     rollupOptions: {
       output: {
-        manualChunks: {
-          'matrix-sdk': ['matrix-js-sdk'],
-          'editor': ['@tiptap/starter-kit', '@tiptap/vue-3', '@tiptap/pm', '@tiptap/extension-image', '@tiptap/extension-mention', '@tiptap/extension-placeholder'],
-          'lottie': ['lottie-web'],
-          'media': ['plyr', 'viewerjs'],
+        manualChunks(id) {
+          if (!id.includes('node_modules'))
+            return undefined
+          if (id.includes('matrix-js-sdk'))
+            return 'matrix-sdk'
+          if (id.includes('@tiptap/'))
+            return 'editor'
+          if (id.includes('lottie-web'))
+            return 'lottie'
+          if (id.includes('plyr') || id.includes('viewerjs'))
+            return 'media'
+          return undefined
         },
       },
     },

@@ -12,16 +12,19 @@ function clamp(value: number, min: number, max: number): number {
 export function getFloatingPosition(
   triggerEl: HTMLElement,
   panelEl: HTMLElement,
-  options?: { margin?: number, offset?: number },
+  options?: { margin?: number, offset?: number, align?: 'start' | 'end' },
 ): { left: string, top: string } {
   const margin = options?.margin ?? FLOAT_MARGIN
   const offset = options?.offset ?? FLOAT_OFFSET
+  const align = options?.align ?? 'start'
 
   const triggerRect = triggerEl.getBoundingClientRect()
   const panelRect = panelEl.getBoundingClientRect()
 
   const maxLeft = window.innerWidth - panelRect.width - margin
-  let left = triggerRect.left
+  let left = align === 'end'
+    ? triggerRect.right - panelRect.width
+    : triggerRect.left
   if (left > maxLeft) {
     left = triggerRect.right - panelRect.width
   }

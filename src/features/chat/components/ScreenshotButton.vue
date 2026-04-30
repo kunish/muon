@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Camera, Loader2 } from 'lucide-vue-next'
+import { ChevronDown, Loader2, Scissors } from 'lucide-vue-next'
 import { ref } from 'vue'
 import { captureScreen } from '@/tauri/screenshot'
 
@@ -28,12 +28,15 @@ async function takeScreenshot() {
 
 <template>
   <button
-    class="p-1.5 rounded-md hover:bg-accent text-muted-foreground disabled:opacity-50"
+    class="inline-flex h-8 items-center justify-center gap-0.5 rounded-md px-1.5 text-muted-foreground hover:bg-accent disabled:opacity-50"
     :disabled="loading"
     :title="$t('chat.screenshot')"
     @click="takeScreenshot"
   >
     <Loader2 v-if="loading" :size="18" class="animate-spin" />
-    <Camera v-else :size="18" />
+    <template v-else>
+      <Scissors :size="18" />
+      <ChevronDown :size="12" />
+    </template>
   </button>
 </template>

@@ -8,9 +8,19 @@ import KnowledgeCapturePanel from '../../src/features/chat/components/KnowledgeC
 import { useChatStore } from '../../src/features/chat/stores/chatStore'
 import ChannelSidebar from '../../src/features/server/components/ChannelSidebar.vue'
 
-const { routerPush, loadInboxEventContext } = vi.hoisted(() => ({
+const { routerPush, loadInboxEventContext, mockConversationState } = vi.hoisted(() => ({
   routerPush: vi.fn(),
   loadInboxEventContext: vi.fn(),
+  mockConversationState: {
+    items: [] as Array<{
+      roomId: string
+      name: string
+      unreadCount: number
+      isDirect: boolean
+      dmUserId?: string
+      dmUserAvatar?: string
+    }>,
+  },
 }))
 
 const serverStore = reactive({
@@ -119,7 +129,7 @@ vi.mock('@/features/server/stores/serverStore', () => ({
 
 vi.mock('@/features/chat/composables/useConversations', () => ({
   useConversations: () => ({
-    conversations: computed(() => []),
+    conversations: computed(() => mockConversationState.items),
   }),
 }))
 
@@ -173,6 +183,14 @@ vi.mock('@/features/chat/components/ThreadPanel.vue', () => ({ default: createSt
 vi.mock('@/features/chat/components/TypingIndicator.vue', () => ({ default: createStub('TypingIndicatorStub') }))
 vi.mock('@/features/chat/components/UnifiedInboxPanel.vue', () => ({ default: createStub('UnifiedInboxPanelStub') }))
 vi.mock('@/features/chat/components/DeferQueuePanel.vue', () => ({ default: createStub('DeferQueuePanelStub') }))
+vi.mock('@/features/chat/components/ConversationList.vue', () => ({
+  default: defineComponent({
+    name: 'ConversationListStub',
+    setup() {
+      return () => h('div', { 'data-testid': 'conversation-list' }, mockConversationState.items.map(item => item.name).join(' '))
+    },
+  }),
+}))
 vi.mock('@/features/server/components/ChannelCategory.vue', () => ({ default: createStub('ChannelCategoryStub') }))
 vi.mock('@/features/server/components/ChannelContextMenu.vue', () => ({ default: createStub('ChannelContextMenuStub') }))
 vi.mock('@/features/server/components/CreateChannelDialog.vue', () => ({ default: createStub('CreateChannelDialogStub') }))
@@ -197,6 +215,7 @@ describe('knowledgeCapturePanel integration', () => {
     chatStore.multiSelectMode = false
     chatStore.activeThreadId = null
     serverStore.isDmMode = true
+    mockConversationState.items = []
     routerPush.mockReset()
     loadInboxEventContext.mockReset()
   })
@@ -238,19 +257,41 @@ describe('knowledgeCapturePanel integration', () => {
     expect(taskWrapper.find('[data-testid="knowledge-capture-panel"]').exists()).toBe(false)
   })
 
-  it('uses the DM sidebar knowledge trigger to toggle the shared side-panel instead of routing away', async () => {
-    const chatStore = useChatStore()
-    const toggleSpy = vi.spyOn(chatStore, 'toggleSidePanel')
+  it('renders a Feishu-style DM sidebar without utility panels before the session list', () => {
     const wrapper = mount(ChannelSidebar, { global: { plugins: [pinia] } })
-    const trigger = wrapper.get('[data-testid="knowledge-panel-trigger"]')
 
-    expect(trigger.attributes('aria-pressed')).toBe('false')
-
-    await trigger.trigger('click')
-
-    expect(toggleSpy).toHaveBeenCalledWith('knowledge')
-    expect(chatStore.activeSidePanel).toBe('knowledge')
+    expect(wrapper.get('[data-testid="conversation-list"]')).toBeTruthy()
+    expect(wrapper.find('[data-testid="knowledge-panel-trigger"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="tasks-panel-trigger"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="UnifiedInboxPanelStub"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="DeferQueuePanelStub"]').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('server.friends')
+    expect(wrapper.text()).not.toContain('server.direct_messages')
+    expect(wrapper.text()).not.toContain('chat.tasks')
+    expect(wrapper.text()).not.toContain('chat.knowledge')
     expect(routerPush).not.toHaveBeenCalled()
-    expect(wrapper.get('[data-testid="knowledge-panel-trigger"]').attributes('aria-pressed')).toBe('true')
+  })
+
+  it('uses the conversation stream as session history instead of private-message-only history', () => {
+    mockConversationState.items = [
+      {
+        roomId: '!dm:example.org',
+        name: 'Alice',
+        unreadCount: 0,
+        isDirect: true,
+        dmUserId: '@alice:example.org',
+      },
+      {
+        roomId: '!group:example.org',
+        name: 'Launch Group',
+        unreadCount: 2,
+        isDirect: false,
+      },
+    ]
+
+    const wrapper = mount(ChannelSidebar, { global: { plugins: [pinia] } })
+
+    expect(wrapper.text()).toContain('Alice')
+    expect(wrapper.text()).toContain('Launch Group')
   })
 })

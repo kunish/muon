@@ -1,14 +1,18 @@
 import type { MaybeRefOrGetter } from 'vue'
+import Link from '@tiptap/extension-link'
 import Mention from '@tiptap/extension-mention'
 import Placeholder from '@tiptap/extension-placeholder'
+import Underline from '@tiptap/extension-underline'
 import StarterKit from '@tiptap/starter-kit'
 import { useEditor as useTiptapEditor } from '@tiptap/vue-3'
 import { toValue, watch } from 'vue'
+import { renderMarkdownForMatrix } from '@/shared/lib/markdown'
 
 interface MentionItem {
   id: string
   label: string
   avatar?: string
+  isInCurrentRoom?: boolean
 }
 
 export interface MentionPopupState {
@@ -22,6 +26,7 @@ export interface MentionPopupState {
 export function useEditor(options: {
   placeholder?: MaybeRefOrGetter<string>
   onSubmit: (html: string, text: string) => void
+  submitOnEnter?: MaybeRefOrGetter<boolean>
   mentionSearch?: (query: string) => MentionItem[]
   onMentionState?: (state: MentionPopupState) => void
 }) {
@@ -31,8 +36,20 @@ export function useEditor(options: {
   const editor = useTiptapEditor({
     extensions: [
       StarterKit.configure({
+        link: false,
+        underline: false,
         heading: false,
         codeBlock: false,
+      }),
+      Underline,
+      Link.configure({
+        autolink: true,
+        linkOnPaste: true,
+        openOnClick: false,
+        HTMLAttributes: {
+          rel: 'noopener noreferrer',
+          target: '_blank',
+        },
       }),
       Placeholder.configure({
         placeholder: () => toValue(options.placeholder) || '',
@@ -134,8 +151,18 @@ export function useEditor(options: {
       }),
     ],
     editorProps: {
+      handlePaste(_view, event) {
+        const text = event.clipboardData?.getData('text/plain') ?? ''
+        const markdown = renderMarkdownForMatrix(text)
+        if (!markdown)
+          return false
+
+        event.preventDefault()
+        editor.value?.chain().focus().insertContent(markdown.formattedBody).run()
+        return true
+      },
       handleKeyDown(_view, event) {
-        if (event.key === 'Enter' && !event.shiftKey) {
+        if (event.key === 'Enter' && !event.shiftKey && toValue(options.submitOnEnter) !== false) {
           // mention popup 打开时不拦截 Enter，让 suggestion 处理选择
           if (mentionActive)
             return false
@@ -143,7 +170,7 @@ export function useEditor(options: {
           event.preventDefault()
           // 使用 TipTap 的 getHTML() 确保 mention 节点被正确序列化
           const html = editor.value?.getHTML() || ''
-          const text = _view.state.doc.textContent
+          const text = editor.value?.getText() || ''
           if (text.trim())
             options.onSubmit(html, text)
           return true

@@ -58,7 +58,7 @@ onBeforeUnmount(() => {
 
 <template>
   <button
-    class="relative p-1.5 rounded-md transition-colors"
+    class="relative inline-flex h-8 w-8 items-center justify-center rounded-md transition-colors"
     :class="[
       !supported
         ? 'text-muted-foreground/40 cursor-not-allowed'

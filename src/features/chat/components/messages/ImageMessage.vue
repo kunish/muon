@@ -3,6 +3,7 @@ import type { MatrixEvent } from 'matrix-js-sdk'
 import { fetchMediaBlobUrl } from '@matrix/index'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { getMediaFrameStyle } from '@/features/chat/lib/mediaFrame'
 import { useMediaViewer } from '../../composables/useMediaViewer'
 
 const props = defineProps<{
@@ -16,6 +17,16 @@ const content = computed(() => props.event.getContent())
 const thumbSrc = ref('')
 const fullSrc = ref('')
 const error = ref('')
+
+const frameStyle = computed(() => {
+  const info = content.value?.info as { w?: unknown, h?: unknown } | undefined
+  return getMediaFrameStyle(info, {
+    maxWidth: 300,
+    maxHeight: 400,
+    fallbackWidth: 200,
+    fallbackHeight: 150,
+  })
+})
 
 watch(() => content.value?.url, async (mxc) => {
   thumbSrc.value = ''
@@ -49,17 +60,24 @@ watch(() => content.value?.url, async (mxc) => {
 <template>
   <div
     class="cursor-pointer rounded-lg overflow-hidden max-w-[300px]"
+    :style="frameStyle"
     @click="openImage(fullSrc)"
   >
     <img
       v-if="thumbSrc"
       :src="thumbSrc"
       :alt="content?.body || t('chat.image_alt')"
-      class="max-w-full max-h-[400px] object-contain"
+      class="h-full w-full object-contain"
     >
-    <div v-else-if="error" class="w-[200px] p-3 text-xs text-destructive">
+    <div
+      v-else-if="error"
+      class="flex h-full w-full items-center p-3 text-xs text-destructive"
+    >
       {{ t('chat.image_load_failed') }}: {{ error }}
     </div>
-    <div v-else class="w-[200px] h-[150px] bg-muted animate-pulse rounded-lg" />
+    <div
+      v-else
+      class="h-full w-full bg-muted animate-pulse rounded-lg"
+    />
   </div>
 </template>

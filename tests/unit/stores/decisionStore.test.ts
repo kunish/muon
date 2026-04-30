@@ -6,7 +6,7 @@ const listDigestEntriesMock = vi.fn()
 const saveDecisionCardMock = vi.fn()
 const updateSuggestionDispositionMock = vi.fn()
 
-vi.mock('@/shared/lib/knowledgeDb', () => ({
+vi.mock('@features/chat/lib/knowledgeDb', () => ({
   createKnowledgeRepository: () => ({
     listDecisionCards: (...args: unknown[]) => listDecisionCardsMock(...args),
     listDigestEntries: (...args: unknown[]) => listDigestEntriesMock(...args),

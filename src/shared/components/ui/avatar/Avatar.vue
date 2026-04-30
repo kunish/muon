@@ -146,16 +146,16 @@ const presenceDotSize = computed(() => {
 
 // --- 组合 class ---
 const containerClasses = computed(() => cn(
-  'relative inline-flex shrink-0',
+  'relative inline-flex shrink-0 items-center justify-center',
+  SIZE_CLASSES[props.size],
   props.clickable && 'cursor-pointer',
+  props.clickable && 'hover:shadow-lg hover:scale-[1.05] active:scale-[0.97] transition-transform duration-100',
   props.class,
 ))
 
 const avatarClasses = computed(() => cn(
-  'relative flex items-center justify-center overflow-hidden',
-  SIZE_CLASSES[props.size],
+  'relative flex h-full w-full items-center justify-center overflow-hidden',
   SHAPE_CLASSES[props.shape],
-  props.clickable && 'hover:shadow-lg hover:scale-[1.05] active:scale-[0.97] transition-transform duration-100',
 ))
 </script>
 

@@ -22,6 +22,7 @@ import TimeStamp from './TimeStamp.vue'
 const props = defineProps<{
   events: MatrixEvent[]
   roomId: string
+  timelineVersion?: number
   /** 未读分割线应插入在该 eventId 之前（由父组件提供），为空则不显示 */
   unreadEventId?: string | null
 }>()
@@ -196,6 +197,7 @@ const messageGroups = computed((): MessageGroup[] => {
                   :is-first="item.isFirst"
                   :room-id="roomId"
                   :hide-avatar-column="true"
+                  :timeline-version="timelineVersion"
                   @avatar-click="(userId, e) => emit('avatarClick', userId, e)"
                 />
               </div>

@@ -1,4 +1,4 @@
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { nextTick } from 'vue'
@@ -31,10 +31,144 @@ function createEventMock() {
   }
 }
 
+function getBodyElement<T extends HTMLElement = HTMLElement>(selector: string): T {
+  const element = document.body.querySelector(selector)
+  expect(element).not.toBeNull()
+  return element as T
+}
+
+async function clickBodyElement(selector: string) {
+  getBodyElement(selector).dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+  await nextTick()
+  await flushPromises()
+}
+
+async function setBodyInputValue(selector: string, value: string) {
+  const input = getBodyElement<HTMLInputElement>(selector)
+  input.value = value
+  input.dispatchEvent(new Event('input', { bubbles: true }))
+  await nextTick()
+  await flushPromises()
+}
+
 describe('messageActionBar', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     localStorage.clear()
+    document.body.innerHTML = ''
+  })
+
+  it('opens the more menu without clipping it inside the toolbar', async () => {
+    const wrapper = mount(MessageActionBar, {
+      props: {
+        event: createEventMock(),
+        roomId: '!room:test',
+      },
+    })
+
+    await wrapper.find('[data-testid="message-more-trigger"]').trigger('click')
+    await flushPromises()
+
+    expect(document.body.querySelector('[data-testid="message-defer-trigger"]')).not.toBeNull()
+    expect(wrapper.get('.action-bar').classes()).not.toContain('overflow-hidden')
+  })
+
+  it('flips the more menu above the trigger when bottom space is limited', async () => {
+    const originalInnerHeight = window.innerHeight
+    const originalInnerWidth = window.innerWidth
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 640 })
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1000 })
+
+    const rectSpy = vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function () {
+      const el = this as HTMLElement
+      if (el.matches('[data-testid="message-more-trigger"]')) {
+        return {
+          x: 720,
+          y: 560,
+          left: 720,
+          top: 560,
+          right: 752,
+          bottom: 592,
+          width: 32,
+          height: 32,
+          toJSON: () => ({}),
+        } as DOMRect
+      }
+      if (el.querySelector('[data-testid="message-defer-trigger"]')) {
+        return {
+          x: 0,
+          y: 0,
+          left: 0,
+          top: 0,
+          right: 180,
+          bottom: 260,
+          width: 180,
+          height: 260,
+          toJSON: () => ({}),
+        } as DOMRect
+      }
+      return {
+        x: 0,
+        y: 0,
+        left: 0,
+        top: 0,
+        right: 0,
+        bottom: 0,
+        width: 0,
+        height: 0,
+        toJSON: () => ({}),
+      } as DOMRect
+    })
+
+    const wrapper = mount(MessageActionBar, {
+      props: {
+        event: createEventMock(),
+        roomId: '!room:test',
+      },
+      attachTo: document.body,
+    })
+
+    try {
+      await wrapper.find('[data-testid="message-more-trigger"]').trigger('click')
+      await flushPromises()
+
+      const menu = document.body.querySelector('[data-testid="message-more-menu"]') as HTMLElement | null
+      expect(menu).not.toBeNull()
+      expect(menu?.classList.contains('fixed')).toBe(true)
+
+      const top = Number.parseFloat(menu?.style.top || '')
+      expect(top).toBeLessThan(560)
+      expect(top + 260).toBeLessThanOrEqual(628)
+    }
+    finally {
+      rectSpy.mockRestore()
+      Object.defineProperty(window, 'innerHeight', { configurable: true, value: originalInnerHeight })
+      Object.defineProperty(window, 'innerWidth', { configurable: true, value: originalInnerWidth })
+      wrapper.unmount()
+    }
+  })
+
+  it('keeps the teleported more menu hidden until its position is measured', async () => {
+    const wrapper = mount(MessageActionBar, {
+      props: {
+        event: createEventMock(),
+        roomId: '!room:test',
+      },
+      attachTo: document.body,
+    })
+
+    wrapper.find('[data-testid="message-more-trigger"]').element.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    await nextTick()
+    const openingMenu = getBodyElement('[data-testid="message-more-menu"]')
+
+    expect(openingMenu.classList.contains('opacity-0')).toBe(true)
+    expect(openingMenu.classList.contains('pointer-events-none')).toBe(true)
+
+    await flushPromises()
+
+    const positionedMenu = getBodyElement('[data-testid="message-more-menu"]')
+    expect(positionedMenu.classList.contains('opacity-100')).toBe(true)
+    expect(positionedMenu.classList.contains('pointer-events-auto')).toBe(true)
   })
 
   it('creates deferred item from more menu and keeps source room/event', async () => {
@@ -46,8 +180,9 @@ describe('messageActionBar', () => {
     })
 
     await wrapper.find('[data-testid="message-more-trigger"]').trigger('click')
-    await wrapper.find('[data-testid="message-defer-trigger"]').trigger('click')
-    await wrapper.find('[data-testid="message-defer-preset-tomorrow"]').trigger('click')
+    await flushPromises()
+    await clickBodyElement('[data-testid="message-defer-trigger"]')
+    await clickBodyElement('[data-testid="message-defer-preset-tomorrow"]')
 
     const deferStore = useDeferStore()
     expect(deferStore.activeItems.length).toBe(1)
@@ -56,6 +191,27 @@ describe('messageActionBar', () => {
       eventId: '$event-1',
       status: 'deferred',
     })
+  })
+
+  it('opens the defer submenu in a dedicated fly-in panel', async () => {
+    const wrapper = mount(MessageActionBar, {
+      props: {
+        event: createEventMock(),
+        roomId: '!room:test',
+      },
+    })
+
+    await wrapper.find('[data-testid="message-more-trigger"]').trigger('click')
+    await flushPromises()
+    await clickBodyElement('[data-testid="message-defer-trigger"]')
+
+    const trigger = getBodyElement<HTMLButtonElement>('[data-testid="message-defer-trigger"]')
+    const submenu = getBodyElement('[data-testid="message-defer-submenu"]')
+
+    expect(trigger.getAttribute('aria-expanded')).toBe('true')
+    expect(submenu.classList.contains('origin-top-right')).toBe(true)
+    expect(submenu.classList.contains('will-change-transform')).toBe(true)
+    expect(submenu.classList.contains('transform-gpu')).toBe(true)
   })
 
   it('uses shared preset/custom defer time logic', async () => {
@@ -70,18 +226,20 @@ describe('messageActionBar', () => {
     })
 
     await wrapper.find('[data-testid="message-more-trigger"]').trigger('click')
-    await wrapper.find('[data-testid="message-defer-trigger"]').trigger('click')
-    await wrapper.find('[data-testid="message-defer-preset-1h"]').trigger('click')
+    await flushPromises()
+    await clickBodyElement('[data-testid="message-defer-trigger"]')
+    await clickBodyElement('[data-testid="message-defer-preset-1h"]')
 
     const deferStore = useDeferStore()
     expect(deferStore.activeItems.length).toBe(1)
     expect(deferStore.activeItems[0]?.dueAt).toBe(resolveReminderDueAt({ preset: 'in-1-hour' }, now))
 
     await wrapper.find('[data-testid="message-more-trigger"]').trigger('click')
-    await wrapper.find('[data-testid="message-defer-trigger"]').trigger('click')
-    await wrapper.find('[data-testid="message-defer-custom-toggle"]').trigger('click')
-    await wrapper.find('[data-testid="message-defer-custom-input"]').setValue('2026-03-06T10:30')
-    await wrapper.find('[data-testid="message-defer-custom-submit"]').trigger('click')
+    await flushPromises()
+    await clickBodyElement('[data-testid="message-defer-trigger"]')
+    await clickBodyElement('[data-testid="message-defer-custom-toggle"]')
+    await setBodyInputValue('[data-testid="message-defer-custom-input"]', '2026-03-06T10:30')
+    await clickBodyElement('[data-testid="message-defer-custom-submit"]')
 
     expect(deferStore.activeItems.length).toBe(2)
     const latestItem = deferStore.activeItems[1]
@@ -101,7 +259,8 @@ describe('messageActionBar', () => {
     })
 
     await wrapper.find('[data-testid="message-more-trigger"]').trigger('click')
-    await wrapper.find('[data-testid="message-convert-task-trigger"]').trigger('click')
+    await flushPromises()
+    await clickBodyElement('[data-testid="message-convert-task-trigger"]')
 
     expect(document.body.querySelector('[data-testid="task-composer-dialog"]')).not.toBeNull()
   })
@@ -119,7 +278,8 @@ describe('messageActionBar', () => {
     const createTaskSpy = vi.spyOn(taskStore, 'createTask')
 
     await wrapper.find('[data-testid="message-more-trigger"]').trigger('click')
-    await wrapper.find('[data-testid="message-convert-task-trigger"]').trigger('click')
+    await flushPromises()
+    await clickBodyElement('[data-testid="message-convert-task-trigger"]')
 
     const composer = wrapper.findComponent(TaskComposerDialog)
     composer.vm.$emit('submit', {
@@ -161,7 +321,8 @@ describe('messageActionBar', () => {
     })
 
     await wrapper.find('[data-testid="message-more-trigger"]').trigger('click')
-    await wrapper.find('[data-testid="message-convert-task-trigger"]').trigger('click')
+    await flushPromises()
+    await clickBodyElement('[data-testid="message-convert-task-trigger"]')
 
     const composer = wrapper.findComponent(TaskComposerDialog)
     const payload = {

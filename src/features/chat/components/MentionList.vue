@@ -4,7 +4,7 @@ import { nextTick, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 const props = defineProps<{
-  items: Array<{ id: string, label: string, avatar?: string }>
+  items: Array<{ id: string, label: string, avatar?: string, isInCurrentRoom?: boolean }>
   selectedIndex: number
 }>()
 
@@ -50,7 +50,10 @@ watch(() => props.selectedIndex, async () => {
       v-for="(item, i) in items"
       :key="item.id"
       class="w-full px-3 py-1.5 text-sm text-left flex items-center gap-2.5 transition-colors"
-      :class="i === selectedIndex ? 'bg-accent' : 'hover:bg-accent/50'"
+      :class="[
+        i === selectedIndex ? 'bg-accent' : 'hover:bg-accent/50',
+        item.isInCurrentRoom === false ? 'opacity-50' : '',
+      ]"
       @click="emit('select', item)"
     >
       <img

@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { findOrCreateDm } from '@matrix/index'
 import { Plus } from 'lucide-vue-next'
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
-import Avatar from '@/shared/components/ui/avatar/Avatar.vue'
 import { useConversations } from '../../chat/composables/useConversations'
 import { useContactStore } from '../stores/contactStore'
 import ContactList from './ContactList.vue'
@@ -21,27 +20,31 @@ const { restoreRoom } = useConversations()
 const showCreateGroup = ref(false)
 const selectedGroupId = ref<string | null>(null)
 
-function handleSelectContact(userId: string) {
+onMounted(() => {
+  void store.loadContacts()
+  void store.loadGroups()
+})
+
+function handleSelectContact(userId: string): void {
   selectedGroupId.value = null
   store.selectedContactId = userId
 }
 
-function handleGroupCreated(roomId: string) {
+function handleGroupCreated(roomId: string): void {
   showCreateGroup.value = false
   selectedGroupId.value = roomId
 }
 
-function handleSelectGroup(roomId: string) {
+function handleSelectGroup(roomId: string): void {
   store.selectedContactId = null
   selectedGroupId.value = roomId
 }
 
-/** 从联系人资料卡点击"消息"：找到或创建 DM 房间后跳转 */
-async function handleOpenMessage(userId: string) {
+async function handleOpenMessage(userId: string): Promise<void> {
   try {
     const roomId = await findOrCreateDm(userId)
     restoreRoom(roomId)
-    router.push(`/chat/${roomId}`)
+    router.push(`/dm/${encodeURIComponent(roomId)}`)
   }
   catch {
     toast.error(t('auth.error'))
@@ -50,12 +53,12 @@ async function handleOpenMessage(userId: string) {
 </script>
 
 <template>
-  <div class="flex h-full">
-    <div class="w-64 border-r border-border flex flex-col">
-      <div class="p-3 border-b border-border flex items-center justify-between">
+  <div class="flex h-full min-w-0 flex-1 bg-background">
+    <div class="workspace-panel flex w-[308px] shrink-0 flex-col rounded-none border-y-0 border-l-0 bg-sidebar/95 backdrop-blur-xl">
+      <div class="flex items-center justify-between border-b border-sidebar-border/80 p-3.5">
         <span class="text-sm font-medium">{{ t('contacts.title') }}</span>
         <button
-          class="p-1 rounded hover:bg-accent text-primary"
+          class="rounded-xl p-1.5 text-primary transition-all hover:bg-sidebar-accent"
           :title="t('contacts.create_group')"
           @click="showCreateGroup = true"
         >
@@ -64,38 +67,15 @@ async function handleOpenMessage(userId: string) {
       </div>
 
       <ContactList
+        class="min-h-0 flex-1"
+        :selected-group-id="selectedGroupId"
         @select="handleSelectContact"
         @open="handleSelectContact"
+        @select-group="handleSelectGroup"
       />
-
-      <div
-        v-if="store.groups.length > 0"
-        class="border-t border-border"
-      >
-        <div class="p-3 text-xs text-muted-foreground font-medium">
-          {{ t('contacts.groups') }}
-        </div>
-        <div
-          v-for="group in store.groups"
-          :key="group.roomId"
-          class="flex items-center gap-2 px-3 py-2 cursor-pointer transition-colors"
-          :class="selectedGroupId === group.roomId ? 'bg-accent' : 'hover:bg-accent/50'"
-          @click="handleSelectGroup(group.roomId)"
-        >
-          <Avatar :alt="group.name" :color-id="group.roomId || group.name" size="sm" />
-          <div class="flex-1 min-w-0">
-            <div class="text-sm truncate">
-              {{ group.name }}
-            </div>
-            <div class="text-xs text-muted-foreground">
-              {{ t('contacts.member_count', { count: group.memberCount }) }}
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
 
-    <div class="flex-1">
+    <div class="flex min-w-0 flex-1 bg-background">
       <GroupSettings
         v-if="selectedGroupId"
         :room-id="selectedGroupId"

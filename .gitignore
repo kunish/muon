@@ -10,3 +10,4 @@ docker/minio_data/
 coverage/
 playwright-report/
 test-results/
+.superpowers/

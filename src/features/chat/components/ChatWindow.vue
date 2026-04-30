@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { provide, ref } from 'vue'
+import { provide, shallowRef, watch } from 'vue'
 import { useTyping } from '../composables/useTyping'
 import { useChatStore } from '../stores/chatStore'
+import ChatDocsList from './ChatDocsList.vue'
+import ChatFileList from './ChatFileList.vue'
 import ChatHeader from './ChatHeader.vue'
 import ChatSettingsPanel from './ChatSettingsPanel.vue'
 import EmojiEffectLayer from './EmojiEffectLayer.vue'
@@ -22,84 +24,122 @@ import TypingIndicator from './TypingIndicator.vue'
 const store = useChatStore()
 
 const { typingUsers } = useTyping()
+type ChatContentTab = 'chat' | 'docs' | 'files'
+
+const activeTab = shallowRef<ChatContentTab>('chat')
 
 // --- 全屏 emoji 特效 ---
-const effectLayerRef = ref<InstanceType<typeof EmojiEffectLayer> | null>(null)
+const effectLayerRef = shallowRef<InstanceType<typeof EmojiEffectLayer> | null>(null)
 
 function triggerEmojiEffect(emoji: string, rect: DOMRect) {
   effectLayerRef.value?.trigger(emoji, rect)
 }
 
 provide('triggerEmojiEffect', triggerEmojiEffect)
+
+watch(
+  () => store.currentRoomId,
+  () => {
+    activeTab.value = 'chat'
+  },
+)
 </script>
 
 <template>
   <div class="flex-1 flex h-full min-w-0 relative">
     <div class="flex-1 flex flex-col h-full min-w-0" data-chat-area>
-      <ChatHeader />
+      <ChatHeader v-model:active-tab="activeTab" />
 
       <!-- Chat content -->
-      <MessageList />
-      <TypingIndicator :users="typingUsers" />
-      <MultiSelectBar v-if="store.multiSelectMode" />
-      <RichTextInput v-else />
+      <template v-if="activeTab === 'chat'">
+        <MessageList />
+        <TypingIndicator :users="typingUsers" />
+        <MultiSelectBar v-if="store.multiSelectMode" />
+        <RichTextInput v-else />
+      </template>
+      <ChatDocsList v-else-if="activeTab === 'docs'" />
+      <ChatFileList v-else-if="activeTab === 'files'" />
 
       <MediaViewer />
       <EmojiEffectLayer ref="effectLayerRef" />
     </div>
 
     <!-- Side panels -->
-    <Transition
-      enter-active-class="transition-all duration-[250ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
-      leave-active-class="transition-all duration-200 ease-in"
-      enter-from-class="translate-x-full opacity-0"
-      leave-to-class="translate-x-full opacity-0"
+    <aside
+      data-testid="chat-side-panel-shell"
+      class="h-full shrink-0 overflow-hidden border-l bg-background transition-[width,border-color] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none"
+      :class="store.activeSidePanel ? 'w-[320px] border-border' : 'w-0 border-transparent'"
+      :aria-hidden="!store.activeSidePanel"
     >
-      <div
-        v-if="store.activeSidePanel"
-        class="w-[320px] h-full border-l border-border bg-background shrink-0 overflow-hidden"
+      <Transition
+        mode="out-in"
+        enter-active-class="transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none"
+        leave-active-class="transition-[opacity,transform] duration-150 ease-in motion-reduce:transition-none"
+        enter-from-class="translate-x-3 opacity-0"
+        leave-to-class="translate-x-3 opacity-0"
       >
-        <GlobalSearch
-          v-if="store.activeSidePanel === 'search'"
-          @close="store.closeSidePanel()"
-        />
-        <ThreadInboxPanel
-          v-else-if="store.activeSidePanel === 'threads' && store.currentRoomId"
-          :room-id="store.currentRoomId"
-        />
-        <PinnedMessages
-          v-else-if="store.activeSidePanel === 'pinned' && store.currentRoomId"
-          :room-id="store.currentRoomId"
-          @close="store.closeSidePanel()"
-        />
-        <StarredMessages
-          v-else-if="store.activeSidePanel === 'starred' && store.currentRoomId"
-          :room-id="store.currentRoomId"
-          @close="store.closeSidePanel()"
-        />
-        <MemberListPanel
-          v-else-if="store.activeSidePanel === 'members'"
-        />
-        <ChatSettingsPanel
-          v-else-if="store.activeSidePanel === 'settings'"
-        />
-        <KnowledgeCapturePanel v-else-if="store.activeSidePanel === 'knowledge'" />
-        <TaskPanel v-else-if="store.activeSidePanel === 'tasks'" />
-      </div>
-    </Transition>
+        <div
+          v-if="store.activeSidePanel"
+          :key="store.activeSidePanel"
+          data-testid="chat-side-panel-frame"
+          class="h-full w-[320px] overflow-hidden"
+        >
+          <GlobalSearch
+            v-if="store.activeSidePanel === 'search'"
+            @close="store.closeSidePanel()"
+          />
+          <ThreadInboxPanel
+            v-else-if="store.activeSidePanel === 'threads' && store.currentRoomId"
+            :room-id="store.currentRoomId"
+          />
+          <PinnedMessages
+            v-else-if="store.activeSidePanel === 'pinned' && store.currentRoomId"
+            :room-id="store.currentRoomId"
+            @close="store.closeSidePanel()"
+          />
+          <StarredMessages
+            v-else-if="store.activeSidePanel === 'starred' && store.currentRoomId"
+            :room-id="store.currentRoomId"
+            @close="store.closeSidePanel()"
+          />
+          <MemberListPanel
+            v-else-if="store.activeSidePanel === 'members'"
+          />
+          <ChatSettingsPanel
+            v-else-if="store.activeSidePanel === 'settings'"
+          />
+          <KnowledgeCapturePanel v-else-if="store.activeSidePanel === 'knowledge'" />
+          <TaskPanel v-else-if="store.activeSidePanel === 'tasks'" />
+        </div>
+      </Transition>
+    </aside>
 
     <!-- Thread panel -->
-    <Transition
-      enter-active-class="transition-all duration-[250ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
-      leave-active-class="transition-all duration-200 ease-in"
-      enter-from-class="translate-x-full opacity-0"
-      leave-to-class="translate-x-full opacity-0"
+    <aside
+      data-testid="thread-panel-shell"
+      class="h-full shrink-0 overflow-hidden border-l bg-background transition-[width,border-color] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none"
+      :class="store.activeThreadId && store.currentRoomId ? 'w-[360px] border-border' : 'w-0 border-transparent'"
+      :aria-hidden="!(store.activeThreadId && store.currentRoomId)"
     >
-      <ThreadPanel
-        v-if="store.activeThreadId && store.currentRoomId"
-        :room-id="store.currentRoomId"
-        :thread-root-id="store.activeThreadId"
-      />
-    </Transition>
+      <Transition
+        mode="out-in"
+        enter-active-class="transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none"
+        leave-active-class="transition-[opacity,transform] duration-150 ease-in motion-reduce:transition-none"
+        enter-from-class="translate-x-3 opacity-0"
+        leave-to-class="translate-x-3 opacity-0"
+      >
+        <div
+          v-if="store.activeThreadId && store.currentRoomId"
+          :key="store.activeThreadId"
+          data-testid="thread-panel-frame"
+          class="h-full w-[360px] overflow-hidden"
+        >
+          <ThreadPanel
+            :room-id="store.currentRoomId"
+            :thread-root-id="store.activeThreadId"
+          />
+        </div>
+      </Transition>
+    </aside>
   </div>
 </template>
