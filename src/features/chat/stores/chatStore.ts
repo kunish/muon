@@ -5,11 +5,19 @@ import { reactive, ref } from 'vue'
 
 export type ConversationFilter = 'all' | 'unread' | 'dm' | 'group'
 export type SidePanelType = 'threads' | 'search' | 'pinned' | 'starred' | 'members' | 'settings' | 'tasks' | 'knowledge'
-// Kept so callers can express where navigation came from; history order is owned by useConversations.
 export type SidebarPlacement = 'promote' | 'history' | 'preserve'
+
+export interface SidebarPreviewInput {
+  name?: string
+  avatar?: string
+  dmUserId?: string
+  dmUserAvatar?: string
+  isDirect?: boolean
+}
 
 interface SetCurrentRoomOptions {
   sidebarPlacement?: SidebarPlacement
+  sidebarPreview?: SidebarPreviewInput
 }
 
 export const useChatStore = defineStore('chat', () => {
@@ -24,6 +32,8 @@ export const useChatStore = defineStore('chat', () => {
   const mutedRooms = reactive(new Set<string>())
   const markedUnreadRooms = reactive(new Set<string>())
   const drafts = reactive(new Map<string, string>())
+  const sidebarPromotionTimes = reactive(new Map<string, number>())
+  const sidebarPromotionPreviews = reactive(new Map<string, RoomSummary>())
   const activeFilter = ref<ConversationFilter>('all')
   const hiddenMessages = reactive(new Set<string>()) // 仅对自己隐藏的消息ID
 
@@ -84,7 +94,7 @@ export const useChatStore = defineStore('chat', () => {
   } | null>(null)
 
   // --- 基础操作 ---
-  function setCurrentRoom(roomId: string | null, _options: SetCurrentRoomOptions = {}) {
+  function setCurrentRoom(roomId: string | null, options: SetCurrentRoomOptions = {}) {
     currentRoomId.value = roomId
     replyingTo.value = null
     editingEvent.value = null
@@ -94,6 +104,13 @@ export const useChatStore = defineStore('chat', () => {
     // 进入房间时清除手动标记未读
     if (roomId)
       markedUnreadRooms.delete(roomId)
+    if (roomId && options.sidebarPlacement === 'promote') {
+      activeFilter.value = 'all'
+      searchQuery.value = ''
+      const promotedAt = Date.now()
+      sidebarPromotionTimes.set(roomId, promotedAt)
+      sidebarPromotionPreviews.set(roomId, createSidebarPreview(roomId, promotedAt, options.sidebarPreview))
+    }
   }
 
   function setCurrentRoomFromRoute(roomId: string | null) {
@@ -178,6 +195,44 @@ export const useChatStore = defineStore('chat', () => {
     return drafts.get(roomId) || ''
   }
 
+  function getSidebarPromotionTime(roomId: string) {
+    return sidebarPromotionTimes.get(roomId)
+  }
+
+  function getSidebarPromotionRoomIds() {
+    return [...sidebarPromotionTimes.keys()]
+  }
+
+  function getSidebarPromotionPreview(roomId: string) {
+    return sidebarPromotionPreviews.get(roomId)
+  }
+
+  function clearSidebarPromotions() {
+    sidebarPromotionTimes.clear()
+    sidebarPromotionPreviews.clear()
+  }
+
+  function createSidebarPreview(roomId: string, promotedAt: number, preview: SidebarPreviewInput = {}): RoomSummary {
+    const isDirect = preview.isDirect ?? !!preview.dmUserId
+
+    return {
+      roomId,
+      name: preview.name || preview.dmUserId?.split(':')[0]?.slice(1) || roomId,
+      avatar: preview.avatar,
+      lastMessageTs: promotedAt,
+      unreadCount: 0,
+      isDirect,
+      isEncrypted: false,
+      members: preview.dmUserId ? [preview.dmUserId] : [],
+      dmUserId: preview.dmUserId,
+      dmUserAvatar: preview.dmUserAvatar || preview.avatar,
+      isPinned: false,
+      isMuted: false,
+      highlightCount: 0,
+      memberCount: isDirect ? 2 : 0,
+    }
+  }
+
   // --- 筛选 ---
   function setFilter(filter: ConversationFilter) {
     activeFilter.value = filter
@@ -237,6 +292,10 @@ export const useChatStore = defineStore('chat', () => {
     isMarkedUnread,
     setDraft,
     getDraft,
+    getSidebarPromotionTime,
+    getSidebarPromotionRoomIds,
+    getSidebarPromotionPreview,
+    clearSidebarPromotions,
     setFilter,
     openContextMenu,
     closeContextMenu,

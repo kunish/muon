@@ -158,7 +158,16 @@ async function onSendMessage() {
     const roomId = await findOrCreateDm(uid)
     // 确保房间在会话列表中可见（可能之前被归档/隐藏）
     restoreRoom(roomId)
-    chatStore.setCurrentRoom(roomId, { sidebarPlacement: 'promote' })
+    chatStore.setCurrentRoom(roomId, {
+      sidebarPlacement: 'promote',
+      sidebarPreview: {
+        name: memberInfo.value?.displayName,
+        avatar: memberInfo.value?.avatarUrl,
+        dmUserId: uid,
+        dmUserAvatar: memberInfo.value?.avatarUrl,
+        isDirect: true,
+      },
+    })
   }
   catch {
     toast.error(t('auth.error'))

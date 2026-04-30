@@ -1,0 +1,22 @@
+name: Setup Node and pnpm
+description: Install pnpm dependencies with the repository package manager.
+
+inputs:
+  node-version:
+    description: Node.js version to install.
+    required: false
+    default: '22'
+
+runs:
+  using: composite
+  steps:
+    - uses: pnpm/action-setup@v5
+
+    - uses: actions/setup-node@v6
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: pnpm
+
+    - name: Install dependencies
+      shell: bash
+      run: pnpm install --frozen-lockfile

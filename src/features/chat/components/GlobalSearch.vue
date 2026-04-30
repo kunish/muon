@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { SidebarPreviewInput } from '@/features/chat/stores/chatStore'
 import { getClient } from '@matrix/client'
 import { findOrCreateDm, loadInboxEventContext } from '@matrix/index'
 import { useVirtualizer } from '@tanstack/vue-virtual'
@@ -7,6 +8,7 @@ import { computed, nextTick, onMounted, onUnmounted, ref, useTemplateRef, watch 
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { workspaceApps } from '@/app/components/workspace/navigation'
+import { useChatStore } from '@/features/chat/stores/chatStore'
 import { useRetrievalStore } from '@/features/chat/stores/retrievalStore'
 import { useContactStore } from '@/features/contacts/stores/contactStore'
 
@@ -19,11 +21,17 @@ interface SearchResultAction {
   execute: () => void | Promise<void>
 }
 
+interface SearchRoomResult {
+  roomId: string
+  name?: string
+}
+
 const { t } = useI18n()
 
 const router = useRouter()
 const query = ref('')
 const client = getClient()
+const chatStore = useChatStore()
 const contactStore = useContactStore()
 const retrievalStore = useRetrievalStore()
 const resultsScrollRef = ref<HTMLElement | null>(null)
@@ -134,8 +142,15 @@ async function openApp(path: string) {
   emit('close')
 }
 
-async function selectRoom(roomId: string) {
-  await router.push(`/dm/${encodeURIComponent(roomId)}`)
+async function selectRoom(room: SearchRoomResult, sidebarPreview: SidebarPreviewInput = {}) {
+  chatStore.setCurrentRoom(room.roomId, {
+    sidebarPlacement: 'promote',
+    sidebarPreview: {
+      name: room.name || room.roomId,
+      ...sidebarPreview,
+    },
+  })
+  await router.push(`/dm/${encodeURIComponent(room.roomId)}`)
   emit('close')
 }
 
@@ -171,14 +186,26 @@ async function jumpToResult(roomId: string, eventId: string) {
   emit('close')
 }
 
-async function selectContact(userId: string) {
+async function selectContact(contact: { userId: string, displayName?: string, avatarUrl?: string }) {
   try {
-    const roomId = await findOrCreateDm(userId)
-    await selectRoom(roomId)
+    const roomId = await findOrCreateDm(contact.userId)
+    await selectRoom(
+      {
+        roomId,
+        name: contact.displayName,
+      },
+      {
+        name: contact.displayName,
+        avatar: contact.avatarUrl,
+        dmUserId: contact.userId,
+        dmUserAvatar: contact.avatarUrl,
+        isDirect: true,
+      },
+    )
   }
   catch (error) {
     console.warn('[global-search] failed to start direct message from contact result', {
-      userId,
+      userId: contact.userId,
       error,
     })
   }
@@ -191,11 +218,11 @@ const resultActions = computed<SearchResultAction[]>(() => [
   })),
   ...rooms.value.map(room => ({
     id: `room:${room.roomId}`,
-    execute: () => selectRoom(room.roomId),
+    execute: () => selectRoom(room),
   })),
   ...contactResults.value.map(contact => ({
     id: `contact:${contact.userId}`,
-    execute: () => selectContact(contact.userId),
+    execute: () => selectContact(contact),
   })),
   ...messageHits.value.map(hit => ({
     id: `message:${hit.eventId}`,
@@ -350,7 +377,7 @@ onUnmounted(() => {
           class="flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors"
           :class="isActiveResult(`room:${r.roomId}`) ? 'bg-accent text-foreground' : 'hover:bg-accent/50'"
           :aria-selected="isActiveResult(`room:${r.roomId}`)"
-          @click="selectRoom(r.roomId)"
+          @click="selectRoom(r)"
         >
           <div class="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-medium text-primary">
             {{ (r.name || '?').slice(0, 1) }}
@@ -378,7 +405,7 @@ onUnmounted(() => {
           class="flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors"
           :class="isActiveResult(`contact:${contact.userId}`) ? 'bg-accent text-foreground' : 'hover:bg-accent/50'"
           :aria-selected="isActiveResult(`contact:${contact.userId}`)"
-          @click="selectContact(contact.userId)"
+          @click="selectContact(contact)"
         >
           <div class="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground">
             {{ (contact.displayName || contact.userId || '?').slice(0, 1) }}

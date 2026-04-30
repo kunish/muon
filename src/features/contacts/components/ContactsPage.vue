@@ -6,6 +6,7 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 import { useConversations } from '../../chat/composables/useConversations'
+import { useChatStore } from '../../chat/stores/chatStore'
 import { useContactStore } from '../stores/contactStore'
 import ContactList from './ContactList.vue'
 import CreateGroupDialog from './CreateGroupDialog.vue'
@@ -15,6 +16,7 @@ import UserProfile from './UserProfile.vue'
 const { t } = useI18n()
 const router = useRouter()
 const store = useContactStore()
+const chatStore = useChatStore()
 const { restoreRoom } = useConversations()
 
 const showCreateGroup = ref(false)
@@ -42,8 +44,19 @@ function handleSelectGroup(roomId: string): void {
 
 async function handleOpenMessage(userId: string): Promise<void> {
   try {
+    const contact = store.contacts.find(item => item.userId === userId)
     const roomId = await findOrCreateDm(userId)
     restoreRoom(roomId)
+    chatStore.setCurrentRoom(roomId, {
+      sidebarPlacement: 'promote',
+      sidebarPreview: {
+        name: contact?.displayName,
+        avatar: contact?.avatarUrl,
+        dmUserId: userId,
+        dmUserAvatar: contact?.avatarUrl,
+        isDirect: true,
+      },
+    })
     router.push(`/dm/${encodeURIComponent(roomId)}`)
   }
   catch {

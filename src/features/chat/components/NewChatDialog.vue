@@ -126,8 +126,18 @@ async function startDm(userId: string) {
     return
   starting.value = true
   try {
+    const user = dmList.value.find(item => item.userId === userId)
     const roomId = await findOrCreateDm(userId)
-    store.setCurrentRoom(roomId, { sidebarPlacement: 'promote' })
+    store.setCurrentRoom(roomId, {
+      sidebarPlacement: 'promote',
+      sidebarPreview: {
+        name: user?.displayName,
+        avatar: user?.avatarMxc,
+        dmUserId: userId,
+        dmUserAvatar: user?.avatarMxc,
+        isDirect: true,
+      },
+    })
     router.push(`/dm/${encodeURIComponent(roomId)}`)
     emit('close')
   }

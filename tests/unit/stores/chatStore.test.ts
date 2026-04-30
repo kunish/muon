@@ -79,4 +79,36 @@ describe('chatStore', () => {
 
     expect(store.currentRoomId).toBe('!alice:localhost')
   })
+
+  it('records a local promotion time only for promoted room openings', () => {
+    const store = useChatStore()
+
+    store.setCurrentRoom('!alice:localhost')
+    store.setCurrentRoom('!bob:localhost', { sidebarPlacement: 'promote' })
+    store.selectRoomFromHistory('!carol:localhost')
+
+    expect(store.getSidebarPromotionTime('!alice:localhost')).toBeUndefined()
+    expect(store.getSidebarPromotionTime('!bob:localhost')).toEqual(expect.any(Number))
+    expect(store.getSidebarPromotionTime('!carol:localhost')).toBeUndefined()
+  })
+
+  it('clears sidebar search and filters when promoting an opened conversation', () => {
+    const store = useChatStore()
+
+    store.setFilter('unread')
+    store.setSearchQuery('alice')
+    store.setCurrentRoom('!bob:localhost', { sidebarPlacement: 'promote' })
+
+    expect(store.activeFilter).toBe('all')
+    expect(store.searchQuery).toBe('')
+  })
+
+  it('can clear local promotion times when message order takes over again', () => {
+    const store = useChatStore()
+
+    store.setCurrentRoom('!bob:localhost', { sidebarPlacement: 'promote' })
+    store.clearSidebarPromotions()
+
+    expect(store.getSidebarPromotionTime('!bob:localhost')).toBeUndefined()
+  })
 })

@@ -99,6 +99,38 @@ function preserveSummaryOrder(next: RoomSummary[]): RoomSummary[] {
   })
 }
 
+function orderBySidebarPromotion(
+  list: RoomSummary[],
+  getPromotionTime: (roomId: string) => number | undefined,
+): RoomSummary[] {
+  const originalIndexByRoomId = new Map(list.map((room, index) => [room.roomId, index]))
+
+  return [...list].sort((a, b) => {
+    const promotedAtA = getPromotionTime(a.roomId)
+    const promotedAtB = getPromotionTime(b.roomId)
+
+    if (promotedAtA !== undefined && promotedAtB !== undefined && promotedAtA !== promotedAtB)
+      return promotedAtB - promotedAtA
+    if (promotedAtA !== undefined && promotedAtB === undefined)
+      return -1
+    if (promotedAtA === undefined && promotedAtB !== undefined)
+      return 1
+
+    return (originalIndexByRoomId.get(a.roomId) ?? 0) - (originalIndexByRoomId.get(b.roomId) ?? 0)
+  })
+}
+
+function mergeSidebarPromotionPreviews(list: RoomSummary[], store: ReturnType<typeof useChatStore>): RoomSummary[] {
+  const knownRoomIds = new Set(list.map(room => room.roomId))
+  const previews = store
+    .getSidebarPromotionRoomIds()
+    .filter(roomId => !knownRoomIds.has(roomId))
+    .map(roomId => store.getSidebarPromotionPreview(roomId))
+    .filter((room): room is RoomSummary => !!room)
+
+  return previews.length > 0 ? [...previews, ...list] : list
+}
+
 function scheduleRefresh(mode: RefreshMode = 'resort') {
   pendingRefreshMode = mergeRefreshMode(pendingRefreshMode, mode)
   if (debounceTimer)
@@ -251,7 +283,7 @@ function restoreRoom(roomId: string) {
 
 /**
  * 会话列表数据源 composable
- * - 置顶排序：pinned 优先；普通会话保持 getRoomSummaries 的历史顺序
+ * - 排序：搜索/联系人入口进入的会话优先，其次置顶会话，普通会话保持 getRoomSummaries 的历史顺序
  * - 筛选：all / unread / dm / group
  * - 搜索同时匹配房间名和最近消息
  */
@@ -270,7 +302,7 @@ export function useConversations() {
 
   // --- 筛选 + 搜索 + 置顶排序 ---
   const conversations = computed(() => {
-    let list = rooms.value
+    let list = mergeSidebarPromotionPreviews(rooms.value, store)
 
     // 筛选
     const filter = store.activeFilter
@@ -294,14 +326,29 @@ export function useConversations() {
       )
     }
 
-    const pinned = list.filter(r => store.isPinned(r.roomId))
-    const normal = list.filter(r => !store.isPinned(r.roomId))
-    return [...pinned, ...normal]
+    const promoted = orderBySidebarPromotion(
+      list.filter(r => store.getSidebarPromotionTime(r.roomId) !== undefined),
+      store.getSidebarPromotionTime,
+    )
+    const promotedIds = new Set(promoted.map(room => room.roomId))
+    const pinned = list.filter(r => !promotedIds.has(r.roomId) && store.isPinned(r.roomId))
+    const normal = list.filter(r => !promotedIds.has(r.roomId) && !store.isPinned(r.roomId))
+    return [
+      ...promoted,
+      ...pinned,
+      ...normal,
+    ]
   })
 
-  // 顶部特殊区域数量（用于列表分隔线定位）：置顶会话。
+  // 顶部连续置顶会话数量（用于列表分隔线定位）；搜索提升只调整排序，不形成独立分组。
   const pinnedCount = computed(() => {
-    return conversations.value.filter(r => store.isPinned(r.roomId)).length
+    let count = 0
+    for (const room of conversations.value) {
+      if (!store.isPinned(room.roomId))
+        break
+      count++
+    }
+    return count
   })
 
   // --- 总未读数（不受筛选/搜索影响，用于侧边栏角标） ---
@@ -334,4 +381,8 @@ export function resetConversationsListeners() {
   rooms.value = []
   isLoading.value = true
   excludedRoomIds.clear()
+  try {
+    useChatStore().clearSidebarPromotions()
+  }
+  catch { /* store 尚未初始化时忽略 */ }
 }

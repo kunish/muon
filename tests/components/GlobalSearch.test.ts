@@ -2,9 +2,12 @@ import { mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { reactive } from 'vue'
 import GlobalSearch from '@/features/chat/components/GlobalSearch.vue'
+import { useChatStore } from '@/features/chat/stores/chatStore'
+import { useContactStore } from '@/features/contacts/stores/contactStore'
 
 const routerPush = vi.fn()
 const loadInboxEventContextMock = vi.fn()
+const findOrCreateDmMock = vi.fn()
 const searchMock = vi.fn()
 const loadMoreMock = vi.fn()
 
@@ -52,6 +55,7 @@ vi.mock('@matrix/index', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@matrix/index')>()
   return {
     ...actual,
+    findOrCreateDm: (...args: unknown[]) => findOrCreateDmMock(...args),
     loadInboxEventContext: (...args: unknown[]) => loadInboxEventContextMock(...args),
   }
 })
@@ -84,6 +88,7 @@ describe('globalSearch', () => {
   beforeEach(() => {
     routerPush.mockReset()
     loadInboxEventContextMock.mockReset()
+    findOrCreateDmMock.mockReset()
     searchMock.mockReset()
     loadMoreMock.mockReset()
     resetStateMock.mockReset()
@@ -94,6 +99,11 @@ describe('globalSearch', () => {
     retrievalState.hasSearched = false
     retrievalState.canLoadMore = false
     retrievalState.results = []
+    const chatStore = useChatStore()
+    chatStore.clearSidebarPromotions()
+    chatStore.setFilter('all')
+    chatStore.setSearchQuery('')
+    useContactStore().contacts = []
   })
 
   it('renders cross-conversation message results after search submit', async () => {
@@ -199,5 +209,42 @@ describe('globalSearch', () => {
     })
     expect(wrapper.emitted('close')).toBeTruthy()
     warnSpy.mockRestore()
+  })
+
+  it('promotes a conversation opened from a room search result', async () => {
+    const chatStore = useChatStore()
+    chatStore.setFilter('unread')
+    chatStore.setSearchQuery('joined')
+
+    const wrapper = mountGlobalSearch()
+
+    await wrapper.find('[data-testid="global-search-input"]').setValue('joined')
+    await wrapper.find('[data-testid="global-search-room-!joined:muon.dev"]').trigger('click')
+    await flushUi()
+
+    expect(routerPush).toHaveBeenCalledWith('/dm/!joined%3Amuon.dev')
+    expect(chatStore.getSidebarPromotionTime('!joined:muon.dev')).toEqual(expect.any(Number))
+    expect(chatStore.activeFilter).toBe('all')
+    expect(chatStore.searchQuery).toBe('')
+  })
+
+  it('promotes a direct conversation opened from a contact result', async () => {
+    const contactStore = useContactStore()
+    contactStore.contacts = [{
+      userId: '@bob:muon.dev',
+      displayName: 'Bob',
+      presence: 'offline',
+    }]
+    findOrCreateDmMock.mockResolvedValue('!bob:muon.dev')
+
+    const wrapper = mountGlobalSearch()
+
+    await wrapper.find('[data-testid="global-search-input"]').setValue('bob')
+    await wrapper.find('[data-testid="global-search-contact-@bob:muon.dev"]').trigger('click')
+    await flushUi()
+
+    expect(findOrCreateDmMock).toHaveBeenCalledWith('@bob:muon.dev')
+    expect(routerPush).toHaveBeenCalledWith('/dm/!bob%3Amuon.dev')
+    expect(useChatStore().getSidebarPromotionTime('!bob:muon.dev')).toEqual(expect.any(Number))
   })
 })

@@ -1,6 +1,6 @@
 import type { RoomSummary } from '@/matrix/types'
 import { flushPromises, mount } from '@vue/test-utils'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h, nextTick } from 'vue'
 import { resetConversationsListeners, useConversations } from '@/features/chat/composables/useConversations'
 import { useChatStore } from '@/features/chat/stores/chatStore'
@@ -15,6 +15,7 @@ const roomSummaryCacheState = vi.hoisted(() => ({
   enabled: false,
   cached: null as RoomSummary[] | null,
 }))
+const mountedWrappers: ReturnType<typeof mount>[] = []
 
 vi.mock('@matrix/index', () => ({
   getRoomSummaries: () => {
@@ -63,7 +64,7 @@ function createRoom(overrides: Partial<RoomSummary> = {}): RoomSummary {
 }
 
 function mountUseConversationsHarness() {
-  return mount(defineComponent({
+  const wrapper = mount(defineComponent({
     name: 'UseConversationsHarness',
     setup() {
       const { conversations, pinnedCount } = useConversations()
@@ -72,11 +73,13 @@ function mountUseConversationsHarness() {
         h('li', {
           'data-room-id': room.roomId,
           'data-last-message': room.lastMessage,
-          'data-pinned-boundary': index === pinnedCount.value ? 'true' : undefined,
+          'data-pinned-boundary': pinnedCount.value > 0 && index === pinnedCount.value ? 'true' : undefined,
         }, room.name),
       ))
     },
   }))
+  mountedWrappers.push(wrapper)
+  return wrapper
 }
 
 describe('useConversations', () => {
@@ -93,6 +96,12 @@ describe('useConversations', () => {
     roomSummaryCacheState.enabled = false
     roomSummaryCacheState.cached = null
     vi.useRealTimers()
+    useChatStore().clearSidebarPromotions()
+  })
+
+  afterEach(() => {
+    for (const wrapper of mountedWrappers.splice(0))
+      wrapper.unmount()
   })
 
   it('keeps history order when an existing conversation is opened outside the sidebar', async () => {
@@ -135,7 +144,194 @@ describe('useConversations', () => {
     ])
   })
 
-  it('ignores navigation placement when rendering the conversation history order', async () => {
+  it('promotes a conversation opened from user search ahead of normal history', async () => {
+    roomSummaries.push(
+      createRoom({ roomId: '!alice:localhost', name: 'Alice', lastMessageTs: 3000 }),
+      createRoom({ roomId: '!carol:localhost', name: 'Carol', lastMessageTs: 2000 }),
+      createRoom({ roomId: '!bob:localhost', name: 'Bob', lastMessageTs: 1000 }),
+    )
+
+    const wrapper = mountUseConversationsHarness()
+    await nextTick()
+
+    const store = useChatStore()
+    store.setCurrentRoom('!bob:localhost', { sidebarPlacement: 'promote' })
+    store.setCurrentRoomFromRoute('!bob:localhost')
+    await nextTick()
+
+    expect(wrapper.findAll('li').map(row => row.attributes('data-room-id'))).toEqual([
+      '!bob:localhost',
+      '!alice:localhost',
+      '!carol:localhost',
+    ])
+  })
+
+  it('keeps the searched contact first even when another conversation has a newer summary timestamp', async () => {
+    const now = Date.now()
+    roomSummaries.push(
+      createRoom({ roomId: '!alice:localhost', name: 'Alice', lastMessageTs: now + 10_000 }),
+      createRoom({ roomId: '!carol:localhost', name: 'Carol', lastMessageTs: now + 5_000 }),
+      createRoom({ roomId: '!bob:localhost', name: 'Bob', lastMessageTs: now - 10_000 }),
+    )
+
+    const wrapper = mountUseConversationsHarness()
+    await nextTick()
+
+    const store = useChatStore()
+    store.setCurrentRoom('!bob:localhost', { sidebarPlacement: 'promote' })
+    await nextTick()
+
+    expect(wrapper.findAll('li').map(row => row.attributes('data-room-id'))).toEqual([
+      '!bob:localhost',
+      '!alice:localhost',
+      '!carol:localhost',
+    ])
+  })
+
+  it('places a searched contact before pinned conversations', async () => {
+    roomSummaries.push(
+      createRoom({ roomId: '!alice:localhost', name: 'Alice', lastMessageTs: 3000, isPinned: true }),
+      createRoom({ roomId: '!bob:localhost', name: 'Bob', lastMessageTs: 1000 }),
+      createRoom({ roomId: '!carol:localhost', name: 'Carol', lastMessageTs: 500 }),
+    )
+
+    const wrapper = mountUseConversationsHarness()
+    await nextTick()
+
+    const store = useChatStore()
+    store.syncServerState(roomSummaries)
+    store.setCurrentRoom('!bob:localhost', { sidebarPlacement: 'promote' })
+    await nextTick()
+
+    expect(wrapper.findAll('li').map(row => row.attributes('data-room-id'))).toEqual([
+      '!bob:localhost',
+      '!alice:localhost',
+      '!carol:localhost',
+    ])
+    expect(wrapper.findAll('li').some(row => row.attributes('data-pinned-boundary') === 'true')).toBe(false)
+  })
+
+  it('keeps the pinned boundary when pinned conversations remain the top group', async () => {
+    roomSummaries.push(
+      createRoom({ roomId: '!alice:localhost', name: 'Alice', lastMessageTs: 3000, isPinned: true }),
+      createRoom({ roomId: '!bob:localhost', name: 'Bob', lastMessageTs: 1000 }),
+    )
+
+    const store = useChatStore()
+    store.syncServerState(roomSummaries)
+
+    const wrapper = mountUseConversationsHarness()
+    await nextTick()
+
+    const rows = wrapper.findAll('li')
+    expect(rows.map(row => row.attributes('data-room-id'))).toEqual([
+      '!alice:localhost',
+      '!bob:localhost',
+    ])
+    expect(rows[1].attributes('data-pinned-boundary')).toBe('true')
+  })
+
+  it('shows a searched contact first before the new DM appears in room summaries', async () => {
+    roomSummaries.push(
+      createRoom({ roomId: '!alice:localhost', name: 'Alice', lastMessageTs: 3000 }),
+    )
+
+    const wrapper = mountUseConversationsHarness()
+    await nextTick()
+
+    const store = useChatStore()
+    store.setCurrentRoom('!bob:localhost', {
+      sidebarPlacement: 'promote',
+      sidebarPreview: {
+        name: 'Bob',
+        dmUserId: '@bob:localhost',
+        isDirect: true,
+      },
+    })
+    await nextTick()
+
+    const rows = wrapper.findAll('li')
+    expect(rows.map(row => row.attributes('data-room-id'))).toEqual([
+      '!bob:localhost',
+      '!alice:localhost',
+    ])
+    expect(rows[0].text()).toBe('Bob')
+  })
+
+  it('shows a searched contact first when sidebar list search and filters were active', async () => {
+    roomSummaries.push(
+      createRoom({ roomId: '!alice:localhost', name: 'Alice', lastMessageTs: 3000, unreadCount: 1 }),
+      createRoom({ roomId: '!carol:localhost', name: 'Carol', lastMessageTs: 2000 }),
+    )
+
+    const wrapper = mountUseConversationsHarness()
+    await nextTick()
+
+    const store = useChatStore()
+    store.setFilter('unread')
+    store.setSearchQuery('alice')
+    await nextTick()
+
+    expect(wrapper.findAll('li').map(row => row.attributes('data-room-id'))).toEqual([
+      '!alice:localhost',
+    ])
+
+    store.setCurrentRoom('!bob:localhost', {
+      sidebarPlacement: 'promote',
+      sidebarPreview: {
+        name: 'Bob',
+        dmUserId: '@bob:localhost',
+        isDirect: true,
+      },
+    })
+    await nextTick()
+
+    expect(store.activeFilter).toBe('all')
+    expect(store.searchQuery).toBe('')
+    expect(wrapper.findAll('li').map(row => row.attributes('data-room-id'))).toEqual([
+      '!bob:localhost',
+      '!alice:localhost',
+      '!carol:localhost',
+    ])
+  })
+
+  it('keeps a searched contact first through immediate live message refreshes', async () => {
+    vi.useFakeTimers()
+    roomSummaries.push(
+      createRoom({ roomId: '!alice:localhost', name: 'Alice', lastMessageTs: 3000 }),
+      createRoom({ roomId: '!bob:localhost', name: 'Bob', lastMessageTs: 1000 }),
+    )
+
+    const wrapper = mountUseConversationsHarness()
+    await nextTick()
+
+    const store = useChatStore()
+    store.setCurrentRoom('!bob:localhost', { sidebarPlacement: 'promote' })
+    await nextTick()
+
+    expect(wrapper.findAll('li').map(row => row.attributes('data-room-id'))).toEqual([
+      '!bob:localhost',
+      '!alice:localhost',
+    ])
+
+    roomSummaries.splice(
+      0,
+      roomSummaries.length,
+      createRoom({ roomId: '!alice:localhost', name: 'Alice', lastMessageTs: 4000 }),
+      createRoom({ roomId: '!bob:localhost', name: 'Bob', lastMessageTs: 1000 }),
+    )
+    for (const handler of matrixEventHandlers.get('room.message') ?? [])
+      handler({ roomId: '!alice:localhost' })
+    await vi.advanceTimersByTimeAsync(90)
+    await nextTick()
+
+    expect(wrapper.findAll('li').map(row => row.attributes('data-room-id'))).toEqual([
+      '!bob:localhost',
+      '!alice:localhost',
+    ])
+  })
+
+  it('does not promote history selections over a search-promoted conversation', async () => {
     roomSummaries.push(
       createRoom({ roomId: '!alice:localhost', name: 'Alice', lastMessageTs: 3000 }),
       createRoom({ roomId: '!carol:localhost', name: 'Carol', lastMessageTs: 2000 }),
@@ -154,9 +350,9 @@ describe('useConversations', () => {
 
     expect(store.currentRoomId).toBe('!alice:localhost')
     expect(wrapper.findAll('li').map(row => row.attributes('data-room-id'))).toEqual([
+      '!bob:localhost',
       '!alice:localhost',
       '!carol:localhost',
-      '!bob:localhost',
     ])
   })
 
