@@ -5,33 +5,32 @@ describe('workspace navigation', () => {
   it('lists app-first workspace entries in display order', () => {
     expect(workspaceApps.map(app => app.id)).toEqual([
       'messages',
+      'contacts',
+      'calendar',
       'docs',
       'workplace',
-      'contacts',
+      'approvals',
+      'email',
+      'calls',
       'settings',
     ])
-  })
-
-  it('does not expose unimplemented secondary app entries', () => {
-    expect(workspaceApps.map(app => app.id)).not.toEqual(
-      expect.arrayContaining(['calendar', 'approvals', 'email', 'calls']),
-    )
   })
 
   it.each([
     ['/dm', 'messages'],
     ['/dm/!room%3Alocalhost', 'messages'],
     ['/server/!space%3Alocalhost/channel/!room%3Alocalhost', 'messages'],
+    ['/contacts', 'contacts'],
+    ['/calendar', 'calendar'],
+    ['/calendar/team', 'calendar'],
     ['/docs', 'docs'],
     ['/docs/recent', 'docs'],
     ['/workplace', 'workplace'],
-    ['/contacts', 'contacts'],
+    ['/approvals', 'approvals'],
+    ['/email', 'email'],
+    ['/calls', 'calls'],
     ['/settings', 'settings'],
   ])('maps %s to %s', (path, appId) => {
     expect(getWorkspaceAppForPath(path)?.id).toBe(appId)
-  })
-
-  it.each(['/calendar', '/approvals', '/email', '/calls'])('falls back retired path %s to messages', (path) => {
-    expect(getWorkspaceAppForPath(path)?.id).toBe('messages')
   })
 })

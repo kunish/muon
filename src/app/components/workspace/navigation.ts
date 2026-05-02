@@ -1,7 +1,7 @@
 import type { Component } from 'vue'
-import { FileText, Grid3X3, MessageCircle, Settings, Users } from 'lucide-vue-next'
+import { CalendarDays, CheckSquare, FileText, Grid3X3, Mail, MessageCircle, Phone, Settings, Users } from 'lucide-vue-next'
 
-export type WorkspaceAppId = 'messages' | 'docs' | 'workplace' | 'contacts' | 'settings'
+export type WorkspaceAppId = 'messages' | 'contacts' | 'calendar' | 'docs' | 'workplace' | 'approvals' | 'email' | 'calls' | 'settings'
 
 export interface WorkspaceApp {
   id: WorkspaceAppId
@@ -21,9 +21,13 @@ function matchesAnyPrefix(path: string, prefixes: readonly string[]): boolean {
 
 export const workspaceApps: WorkspaceApp[] = [
   { id: 'messages', labelKey: 'sidebar.messages', path: '/dm', icon: MessageCircle, match: path => path === '/' || matchesAnyPrefix(path, ['/dm', '/server']) },
+  { id: 'contacts', labelKey: 'sidebar.contacts', path: '/contacts', icon: Users, match: path => matchesPrefix(path, '/contacts') },
+  { id: 'calendar', labelKey: 'sidebar.calendar', path: '/calendar', icon: CalendarDays, match: path => matchesPrefix(path, '/calendar') },
   { id: 'docs', labelKey: 'sidebar.docs', path: '/docs', icon: FileText, match: path => matchesPrefix(path, '/docs') },
   { id: 'workplace', labelKey: 'sidebar.workplace', path: '/workplace', icon: Grid3X3, match: path => matchesPrefix(path, '/workplace') },
-  { id: 'contacts', labelKey: 'sidebar.contacts', path: '/contacts', icon: Users, match: path => matchesPrefix(path, '/contacts') },
+  { id: 'approvals', labelKey: 'sidebar.approvals', path: '/approvals', icon: CheckSquare, match: path => matchesPrefix(path, '/approvals') },
+  { id: 'email', labelKey: 'sidebar.email', path: '/email', icon: Mail, match: path => matchesPrefix(path, '/email') },
+  { id: 'calls', labelKey: 'sidebar.calls', path: '/calls', icon: Phone, match: path => matchesPrefix(path, '/calls') },
   { id: 'settings', labelKey: 'sidebar.settings', path: '/settings', icon: Settings, match: path => matchesPrefix(path, '/settings') },
 ]
 

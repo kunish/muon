@@ -41,6 +41,11 @@ const router = createRouter({
           component: () => import('@features/contacts/components/ContactsPage.vue'),
         },
         {
+          path: 'calendar',
+          name: 'calendar',
+          component: () => import('@features/calendar/components/CalendarPage.vue'),
+        },
+        {
           path: 'docs',
           name: 'docs',
           component: () => import('@features/docs/components/DocsPage.vue'),
@@ -49,6 +54,21 @@ const router = createRouter({
           path: 'workplace',
           name: 'workplace',
           component: () => import('@features/workplace/components/WorkplacePage.vue'),
+        },
+        {
+          path: 'approvals',
+          name: 'approvals',
+          component: () => import('@features/approvals/components/ApprovalsPage.vue'),
+        },
+        {
+          path: 'email',
+          name: 'email',
+          component: () => import('@features/email/components/EmailPage.vue'),
+        },
+        {
+          path: 'calls',
+          name: 'calls',
+          component: () => import('@features/calls/components/CallsPage.vue'),
         },
         {
           path: 'settings',

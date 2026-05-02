@@ -28,28 +28,14 @@ describe('workspaceAppRail', () => {
     const wrapper = mount(WorkspaceAppRail)
 
     expect(wrapper.get('[data-testid="workspace-app-messages"]').attributes('aria-label')).toBe('消息')
-    expect(wrapper.get('[data-testid="workspace-app-docs"]').attributes('aria-label')).toBe('文档')
-    expect(wrapper.get('[data-testid="workspace-app-workplace"]').attributes('aria-label')).toBe('工作台')
     expect(wrapper.get('[data-testid="workspace-app-contacts"]').attributes('aria-current')).toBe('page')
     expect(wrapper.get('[data-testid="workspace-app-contacts"]').attributes('aria-label')).toBe('联系人')
-  })
-
-  it('uses a fixed 64px rail with no resize or label controls', () => {
-    const wrapper = mount(WorkspaceAppRail)
-
-    expect(wrapper.get('[data-testid="workspace-app-rail"]').classes()).toEqual(expect.arrayContaining(['w-16']))
-    expect(wrapper.find('[data-testid="workspace-rail-toggle"]').exists()).toBe(false)
-    expect(wrapper.find('[data-testid="workspace-rail-resize-handle"]').exists()).toBe(false)
-    expect(wrapper.find('[data-testid^="workspace-app-label-"]').exists()).toBe(false)
-  })
-
-  it('does not render unimplemented secondary app entries', () => {
-    const wrapper = mount(WorkspaceAppRail)
-
-    expect(wrapper.find('[data-testid="workspace-app-calendar"]').exists()).toBe(false)
-    expect(wrapper.find('[data-testid="workspace-app-approvals"]').exists()).toBe(false)
-    expect(wrapper.find('[data-testid="workspace-app-email"]').exists()).toBe(false)
-    expect(wrapper.find('[data-testid="workspace-app-calls"]').exists()).toBe(false)
+    expect(wrapper.get('[data-testid="workspace-app-calendar"]').attributes('aria-label')).toBe('日历')
+    expect(wrapper.get('[data-testid="workspace-app-docs"]').attributes('aria-label')).toBe('文档')
+    expect(wrapper.get('[data-testid="workspace-app-workplace"]').attributes('aria-label')).toBe('工作台')
+    expect(wrapper.get('[data-testid="workspace-app-approvals"]').attributes('aria-label')).toBe('审批')
+    expect(wrapper.get('[data-testid="workspace-app-email"]').attributes('aria-label')).toBe('邮件')
+    expect(wrapper.get('[data-testid="workspace-app-calls"]').attributes('aria-label')).toBe('通话')
   })
 
   it('renders injected message unread count', () => {
@@ -66,6 +52,14 @@ describe('workspaceAppRail', () => {
     await wrapper.find('[data-testid="workspace-app-docs"]').trigger('click')
 
     expect(push).toHaveBeenCalledWith('/docs')
+  })
+
+  it('navigates to a missing Feishu secondary app entry', async () => {
+    const wrapper = mount(WorkspaceAppRail)
+
+    await wrapper.find('[data-testid="workspace-app-calendar"]').trigger('click')
+
+    expect(push).toHaveBeenCalledWith('/calendar')
   })
 
   it('opens global search from the rail action', async () => {

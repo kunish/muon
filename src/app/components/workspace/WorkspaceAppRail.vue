@@ -46,7 +46,7 @@ function openApp(path: string): void {
         >
       </div>
 
-      <div class="flex w-full flex-1 flex-col items-center gap-2 px-2">
+      <div class="muon-scrollbar-hidden flex w-full flex-1 flex-col items-center gap-2 overflow-y-auto px-2">
         <button
           v-for="app in primaryWorkspaceApps"
           :key="app.id"

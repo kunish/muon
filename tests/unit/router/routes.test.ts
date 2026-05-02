@@ -9,17 +9,17 @@ describe('app router', () => {
       '/dm',
       '/dm/:roomId',
       '/server/:serverId/channel/:channelId',
+      '/contacts',
+      '/calendar',
       '/docs',
       '/workplace',
-      '/contacts',
+      '/approvals',
+      '/email',
+      '/calls',
       '/settings',
     ]))
     expect(routePaths).not.toEqual(expect.arrayContaining([
       '/chat/:roomId?',
-      '/calendar',
-      '/approvals',
-      '/email',
-      '/calls',
     ]))
   })
 })
