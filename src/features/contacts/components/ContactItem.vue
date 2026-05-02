@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import type { Contact } from '../stores/contactStore'
 import { getUserPresenceInfo } from '@matrix/index'
+import { Avatar } from '@muon/ui/avatar'
 import { computed } from 'vue'
-import { Avatar } from '@/shared/components/ui/avatar'
 
 const props = defineProps<{
   contact: Contact

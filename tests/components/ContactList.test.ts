@@ -1,13 +1,10 @@
+import { setAuthMediaResolver } from '@muon/ui/media'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { describe, expect, it, vi } from 'vitest'
 import ContactItem from '@/features/contacts/components/ContactItem.vue'
 import ContactList from '@/features/contacts/components/ContactList.vue'
 import { useContactStore } from '@/features/contacts/stores/contactStore'
-
-vi.mock('@matrix/media', () => ({
-  fetchMediaBlobUrl: vi.fn(async (url: string) => `blob:${url}`),
-}))
 
 vi.mock('@matrix/client', () => ({
   getClient: vi.fn(() => ({
@@ -18,6 +15,7 @@ vi.mock('@matrix/client', () => ({
 describe('contactItem', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    setAuthMediaResolver(async (url: string) => `blob:${url}`)
   })
 
   it('should render contact display name', () => {

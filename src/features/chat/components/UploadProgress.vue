@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Progress } from '@/shared/components/ui/progress'
+import { Progress } from '@muon/ui/progress'
 
 defineProps<{
   progress: number

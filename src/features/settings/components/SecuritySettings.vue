@@ -1,8 +1,8 @@
 <script setup lang="ts">
+import { Label } from '@muon/ui/label'
+import { Switch } from '@muon/ui/switch'
 import { Droplets, Shield, UserX } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
-import { Label } from '@/shared/components/ui/label'
-import { Switch } from '@/shared/components/ui/switch'
 import { useWatermark } from '@/shared/composables/useWatermark'
 import { useSettingsStore } from '../stores/settingsStore'
 import BlockedUsers from './BlockedUsers.vue'

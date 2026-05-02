@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import { Button } from '@muon/ui/button'
+import { Input } from '@muon/ui/input'
+import { Label } from '@muon/ui/label'
+import { Textarea } from '@muon/ui/textarea'
 import { Camera } from 'lucide-vue-next'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -6,10 +10,6 @@ import { toast } from 'vue-sonner'
 import { useServerStore } from '@/features/server/stores/serverStore'
 import { getClient } from '@/matrix/client'
 import { setRoomName, setRoomTopic } from '@/matrix/rooms'
-import { Button } from '@/shared/components/ui/button'
-import { Input } from '@/shared/components/ui/input'
-import { Label } from '@/shared/components/ui/label'
-import { Textarea } from '@/shared/components/ui/textarea'
 
 const props = defineProps<{
   serverId: string

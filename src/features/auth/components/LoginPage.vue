@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { bindClientEvents, login, register, startSync } from '@matrix/index'
-import { ref } from 'vue'
+import { bindClientEvents, completeEnterpriseLogin, isEnterpriseAuthConfigured, login, register, startEnterpriseLogin, startSync } from '@matrix/index'
+import { Input } from '@muon/ui/input'
+import { Label } from '@muon/ui/label'
+import { Tabs, TabsList, TabsTrigger } from '@muon/ui/tabs'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
-import { Input } from '@/shared/components/ui/input'
-import { Label } from '@/shared/components/ui/label'
-import { Tabs, TabsList, TabsTrigger } from '@/shared/components/ui/tabs'
+import { getDesktopBridge } from '@/electron/bridge'
 
 const router = useRouter()
 const { t } = useI18n()
@@ -17,6 +18,9 @@ const password = ref('')
 const displayName = ref('')
 const error = ref('')
 const loading = ref(false)
+const enterpriseLoading = ref(false)
+const enterpriseEnabled = computed(() => isEnterpriseAuthConfigured())
+let unsubscribeEnterpriseCallback: (() => void) | undefined
 
 const USER_ID_TAKEN_RE = /M_USER_IN_USE|desired user id is already taken/i
 
@@ -95,6 +99,47 @@ async function handleSubmit() {
     loading.value = false
   }
 }
+
+async function handleEnterpriseLogin() {
+  error.value = ''
+  enterpriseLoading.value = true
+  try {
+    await startEnterpriseLogin()
+  }
+  catch (e: unknown) {
+    error.value = e instanceof Error ? e.message : t('auth.error')
+  }
+  finally {
+    enterpriseLoading.value = false
+  }
+}
+
+async function handleEnterpriseCallback(url: string) {
+  error.value = ''
+  enterpriseLoading.value = true
+  try {
+    await completeEnterpriseLogin(url)
+    bindClientEvents()
+    startSync()
+    router.push('/dm')
+  }
+  catch (e: unknown) {
+    error.value = e instanceof Error ? e.message : t('auth.error')
+  }
+  finally {
+    enterpriseLoading.value = false
+  }
+}
+
+onMounted(() => {
+  unsubscribeEnterpriseCallback = getDesktopBridge()?.auth?.onCallback((url) => {
+    void handleEnterpriseCallback(url)
+  })
+})
+
+onBeforeUnmount(() => {
+  unsubscribeEnterpriseCallback?.()
+})
 </script>
 
 <template>
@@ -103,6 +148,16 @@ async function handleSubmit() {
       <h1 class="text-2xl font-bold text-center mb-6">
         Muon IM
       </h1>
+
+      <button
+        v-if="enterpriseEnabled"
+        type="button"
+        :disabled="enterpriseLoading"
+        class="mb-4 w-full h-9 rounded-md border border-border bg-card text-sm font-medium hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+        @click="handleEnterpriseLogin"
+      >
+        {{ enterpriseLoading ? t('auth.processing') : '企业登录' }}
+      </button>
 
       <!-- Tabs -->
       <Tabs v-model="tab" class="w-full">

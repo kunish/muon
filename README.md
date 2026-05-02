@@ -70,19 +70,22 @@ cd muon
 # Install dependencies
 pnpm install
 
-# Start the Electron desktop app in development mode
+# Start local infrastructure and every code project in development mode
 pnpm dev
 
-# Or start only the web renderer
-pnpm dev:web
+# Or start one project explicitly
+pnpm dev:desktop
+pnpm dev:api      # requires Postgres from pnpm services:up
+pnpm dev:admin
+pnpm dev:web      # renderer-only server used by Playwright
 ```
 
 ### Local Matrix Homeserver
 
-A Docker Compose setup is provided for local development with a [Conduit](https://conduit.rs) homeserver:
+A Docker Compose setup is provided for local development infrastructure:
 
 ```bash
-# Start Conduit + LiveKit services
+# Start Postgres + Conduit + LiveKit + MinIO
 pnpm services:up
 
 # Re-run the local mock data seed manually
@@ -103,28 +106,83 @@ ready. The default owner account is `@kunish:localhost` with password
 a fresh data set for the current seed version, run
 `pnpm services:seed -- --force`.
 
+### Enterprise Admin And Desktop SSO
+
+Muon includes an in-repo enterprise foundation for self-hosted organization
+management and desktop SSO:
+
+- API service: `apps/api`
+- Admin Web console: `apps/admin`
+- Shared API contracts: `packages/enterprise-contracts`
+- Admin URL: `http://127.0.0.1:4174`
+- API URL: `http://127.0.0.1:8787`
+
+`pnpm dev` prepares this infrastructure automatically. To manage it manually:
+
+```bash
+pnpm services:up
+```
+
+Then open the Admin Web console and complete the first-run install wizard. The
+wizard creates the first organization and owner account. Users are created
+manually by an owner or admin with an initial password. After installation,
+signed-in owners and admins can create additional organizations from the
+organization management panel; each new organization gets its own owner account.
+
+For desktop SSO development, start every code project with the API URL configured:
+
+```bash
+VITE_MUON_API_BASE_URL=http://127.0.0.1:8787 pnpm dev
+```
+
+The login page will show `企业登录`. Clicking it opens the browser-based Muon
+login page. After successful login, the API redirects to
+`muon://auth/callback`, the Electron main process forwards the callback to the
+renderer, and the renderer exchanges the one-time code for a Muon session plus a
+Matrix session.
+
+Run enterprise-focused tests:
+
+```bash
+pnpm test:enterprise
+```
+
 ### Available Scripts
 
-| Command                   | Description                               |
-| ------------------------- | ----------------------------------------- |
-| `pnpm dev`                | Start Electron desktop app in dev mode    |
-| `pnpm dev:web`            | Start Vite dev server for renderer only   |
-| `pnpm build`              | Type-check and build Electron app         |
-| `pnpm build:web`          | Type-check and build renderer only        |
-| `pnpm preview`            | Preview Electron production build locally |
-| `pnpm package`            | Build unpacked Electron package           |
-| `pnpm dist`               | Build distributable Electron package      |
-| `pnpm lint`               | Run ESLint                                |
-| `pnpm services:up`        | Start local services and seed data        |
-| `pnpm services:seed`      | Seed local Conduit mock data              |
-| `pnpm services:logs`      | Tail local service logs                   |
-| `pnpm services:down`      | Stop local services                       |
-| `pnpm type-check`         | Run TypeScript type checking              |
-| `pnpm test:unit`          | Run unit tests (Vitest)                   |
-| `pnpm test:unit:watch`    | Run unit tests in watch mode              |
-| `pnpm test:unit:coverage` | Run unit tests with coverage report       |
-| `pnpm test:e2e`           | Run end-to-end tests (Playwright)         |
-| `pnpm test`               | Run all tests                             |
+All human-facing commands are exposed from the repository root. `pnpm dev` and
+`pnpm build` target the whole monorepo; use suffixed commands only when you need
+one project. Workspace packages keep small `dev`/`build`/`test` scripts for
+`pnpm --filter`, but day to day usage should stay on the root commands below.
+
+| Command                   | Description                                        |
+| ------------------------- | -------------------------------------------------- |
+| `pnpm dev`                | Start desktop, API, and Admin projects             |
+| `pnpm dev:desktop`        | Start Electron desktop app in dev mode             |
+| `pnpm dev:web`            | Start Vite dev server for renderer only            |
+| `pnpm dev:api`            | Start the enterprise API service                   |
+| `pnpm dev:admin`          | Start the Admin Web console                        |
+| `pnpm build`              | Build every monorepo project                       |
+| `pnpm build:contracts`    | Type-check shared enterprise contracts             |
+| `pnpm build:api`          | Type-check the enterprise API service              |
+| `pnpm build:desktop`      | Type-check and build Electron app                  |
+| `pnpm build:web`          | Type-check and build renderer only                 |
+| `pnpm build:admin`        | Build the Admin Web console                        |
+| `pnpm preview`            | Preview Electron production build locally          |
+| `pnpm package`            | Build unpacked Electron package                    |
+| `pnpm dist`               | Build distributable Electron package               |
+| `pnpm check`              | Run lint, type-check, unit tests, web/admin builds |
+| `pnpm lint`               | Run ESLint                                         |
+| `pnpm type-check`         | Run TypeScript type checking                       |
+| `pnpm test`               | Run unit and e2e tests                             |
+| `pnpm test:unit`          | Run unit tests (Vitest)                            |
+| `pnpm test:unit:watch`    | Run unit tests in watch mode                       |
+| `pnpm test:unit:coverage` | Run unit tests with coverage report                |
+| `pnpm test:e2e`           | Run end-to-end tests (Playwright)                  |
+| `pnpm test:enterprise`    | Run enterprise API/Admin/login tests               |
+| `pnpm services:up`        | Start local infrastructure and seed data           |
+| `pnpm services:seed`      | Seed local Conduit mock data                       |
+| `pnpm services:logs`      | Tail local service logs                            |
+| `pnpm services:down`      | Stop local services                                |
 
 `pnpm test:e2e` runs browser-compatible Playwright tests by default. Runtime-backed settings tests require `ELECTRON_E2E=1`, Electron runtime access, Matrix homeserver services, and session env vars: `E2E_MATRIX_SERVER_URL`, `E2E_MATRIX_USER_ID`, `E2E_MATRIX_ACCESS_TOKEN`, and `E2E_MATRIX_DEVICE_ID`.
 
@@ -132,6 +190,8 @@ a fresh data set for the current seed version, run
 
 ```text
 muon/
+├── apps/                 # Enterprise API and Admin Web apps
+├── packages/             # Shared workspace packages
 ├── public/              # Static web assets, including the Muon logo
 ├── electron/            # Electron main and preload sources
 ├── build/icons/         # Electron package icons

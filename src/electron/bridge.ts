@@ -70,6 +70,9 @@ export interface SerializedFetchResponse {
 export interface MuonDesktopBridge {
   isElectron: true
   platform: string
+  auth: {
+    onCallback: (callback: (url: string) => void) => UnlistenFn
+  }
   dialog: {
     ask: (message: string, options?: DesktopDialogAskOptions) => Promise<boolean>
     open: (options?: DesktopDialogOpenOptions) => Promise<string | string[] | null>

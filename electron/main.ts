@@ -8,6 +8,7 @@ import { app, BrowserWindow, dialog, ipcMain, net, screen, shell } from 'electro
 
 let mainWindow: BrowserWindow | null = null
 const runtimeRequire = createRequire(__filename)
+let pendingAuthCallbackUrl: string | null = null
 
 function getMainWindow(): BrowserWindow {
   if (!mainWindow || mainWindow.isDestroyed())
@@ -51,6 +52,38 @@ function sendWindowFrameEvent(channel: string): void {
     return
 
   mainWindow.webContents.send(channel)
+}
+
+function isEnterpriseAuthCallbackUrl(value: string): boolean {
+  try {
+    const url = new URL(value)
+    return url.protocol === 'muon:' && url.hostname === 'auth' && url.pathname === '/callback'
+  }
+  catch {
+    return false
+  }
+}
+
+function extractEnterpriseAuthCallbackUrl(argv: readonly string[]): string | null {
+  return argv.find(value => isEnterpriseAuthCallbackUrl(value)) ?? null
+}
+
+function sendEnterpriseAuthCallbackUrl(url: string): void {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    pendingAuthCallbackUrl = url
+    return
+  }
+
+  mainWindow.webContents.send('muon:auth-callback', url)
+}
+
+function registerEnterpriseProtocol(): void {
+  if (process.defaultApp && process.argv.length >= 2) {
+    app.setAsDefaultProtocolClient('muon', process.execPath, [process.argv[1]])
+    return
+  }
+
+  app.setAsDefaultProtocolClient('muon')
 }
 
 function toSize(size: Electron.Size): { height: number, width: number } {
@@ -401,6 +434,10 @@ function createMainWindow(): void {
 
   mainWindow.once('ready-to-show', () => {
     mainWindow?.show()
+    if (pendingAuthCallbackUrl) {
+      sendEnterpriseAuthCallbackUrl(pendingAuthCallbackUrl)
+      pendingAuthCallbackUrl = null
+    }
   })
 
   mainWindow.on('move', () => sendWindowFrameEvent('muon:window:moved'))
@@ -428,16 +465,27 @@ if (!app.requestSingleInstanceLock()) {
   app.quit()
 }
 else {
-  app.on('second-instance', () => {
+  app.on('second-instance', (_event, argv) => {
     if (!mainWindow)
       return
 
     if (mainWindow.isMinimized())
       mainWindow.restore()
     mainWindow.focus()
+
+    const authCallbackUrl = extractEnterpriseAuthCallbackUrl(argv)
+    if (authCallbackUrl)
+      sendEnterpriseAuthCallbackUrl(authCallbackUrl)
+  })
+
+  app.on('open-url', (event, url) => {
+    event.preventDefault()
+    if (isEnterpriseAuthCallbackUrl(url))
+      sendEnterpriseAuthCallbackUrl(url)
   })
 
   app.whenReady().then(() => {
+    registerEnterpriseProtocol()
     registerIpc()
     applyRuntimeAppIcon()
     createMainWindow()

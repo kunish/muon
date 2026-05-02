@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { DownloadItem } from '../stores/downloadStore'
+import { Progress } from '@muon/ui/progress'
 import {
   AlertCircle,
   CheckCircle2,
@@ -14,7 +15,6 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import { openPath, revealItemInDir } from '@/electron/opener'
-import { Progress } from '@/shared/components/ui/progress'
 import { useDownloadStore } from '../stores/downloadStore'
 
 defineEmits<{ close: [] }>()

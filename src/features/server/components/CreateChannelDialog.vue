@@ -1,4 +1,9 @@
 <script setup lang="ts">
+import { Button } from '@muon/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@muon/ui/dialog'
+import { Input } from '@muon/ui/input'
+import { Label } from '@muon/ui/label'
+import { Switch } from '@muon/ui/switch'
 import { Hash, Lock, Volume2 } from 'lucide-vue-next'
 import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -6,11 +11,6 @@ import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 import { useServerStore } from '@/features/server/stores/serverStore'
 import { createChannel } from '@/matrix/spaces'
-import { Button } from '@/shared/components/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/shared/components/ui/dialog'
-import { Input } from '@/shared/components/ui/input'
-import { Label } from '@/shared/components/ui/label'
-import { Switch } from '@/shared/components/ui/switch'
 
 const props = withDefaults(defineProps<{
   /** Pre-fill category when creating from a category header */

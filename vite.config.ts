@@ -25,6 +25,7 @@ export default defineConfig({
       '@features': resolve(__dirname, 'src/features'),
       '@shared': resolve(__dirname, 'src/shared'),
       '@matrix': resolve(__dirname, 'src/matrix'),
+      '@muon/enterprise-contracts': resolve(__dirname, 'packages/enterprise-contracts/src/index.ts'),
     },
   },
   clearScreen: false,

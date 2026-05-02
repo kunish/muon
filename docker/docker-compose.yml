@@ -1,4 +1,16 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_DB: muon
+      POSTGRES_USER: muon
+      POSTGRES_PASSWORD: muon
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
   conduit:
     image: matrixconduit/matrix-conduit:latest
     ports:
@@ -34,6 +46,41 @@ services:
     command: server /data --console-address ":9001"
     restart: unless-stopped
 
+  api:
+    image: node:22-alpine
+    working_dir: /workspace
+    command: sh -lc "corepack enable && pnpm install --frozen-lockfile=false && pnpm dev:api"
+    ports:
+      - '8787:8787'
+    volumes:
+      - ..:/workspace
+    environment:
+      MUON_API_BASE_URL: http://127.0.0.1:8787
+      MUON_ADMIN_BASE_URL: http://127.0.0.1:4174
+      MUON_DATABASE_URL: postgres://muon:muon@postgres:5432/muon
+      MUON_SESSION_SECRET: local-development-secret
+      MUON_MATRIX_ADAPTER: conduit
+      MUON_MATRIX_SERVER_URL: http://conduit:6167
+    depends_on:
+      - postgres
+      - conduit
+    restart: unless-stopped
+
+  admin:
+    image: node:22-alpine
+    working_dir: /workspace
+    command: sh -lc "corepack enable && pnpm install --frozen-lockfile=false && pnpm dev:admin"
+    ports:
+      - '4174:4174'
+    volumes:
+      - ..:/workspace
+    environment:
+      VITE_MUON_API_BASE_URL: http://127.0.0.1:8787
+    depends_on:
+      - api
+    restart: unless-stopped
+
 volumes:
   conduit_data:
   minio_data:
+  postgres_data:

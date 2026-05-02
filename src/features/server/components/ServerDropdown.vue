@@ -1,5 +1,12 @@
 <script setup lang="ts">
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@muon/ui/dropdown-menu'
+import {
   Bell,
   FolderPlus,
   Hash,
@@ -10,13 +17,6 @@ import {
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useServerStore } from '@/features/server/stores/serverStore'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/shared/components/ui/dropdown-menu'
 import { useRoomPermissions } from '@/shared/composables/useRoomPermissions'
 
 const emit = defineEmits<{

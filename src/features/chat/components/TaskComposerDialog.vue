@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import type { TaskStatus } from '../types/task'
+import { Label } from '@muon/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@muon/ui/select'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Label } from '@/shared/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select'
 
 const props = defineProps<{
   open: boolean

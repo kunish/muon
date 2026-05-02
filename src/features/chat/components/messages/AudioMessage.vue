@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import type { MatrixEvent } from 'matrix-js-sdk'
 import { fetchMediaBlobUrl } from '@matrix/index'
+import { Progress } from '@muon/ui/progress'
 import { Pause, Play } from 'lucide-vue-next'
 import { computed, ref, watch } from 'vue'
-import { Progress } from '@/shared/components/ui/progress'
 
 const props = defineProps<{
   event: MatrixEvent

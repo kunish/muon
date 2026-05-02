@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import type { ChannelInfo } from '@/matrix/spaces'
+import { Avatar } from '@muon/ui/avatar'
 import { MicOff, Volume2 } from 'lucide-vue-next'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useVoiceChannel } from '@/features/server/composables/useVoiceChannel'
 import { useServerStore } from '@/features/server/stores/serverStore'
-import { Avatar } from '@/shared/components/ui/avatar'
 
 const props = defineProps<{
   channel: ChannelInfo

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { SpaceMember } from '@/matrix/spaces'
+import { Avatar } from '@muon/ui/avatar'
 import { MessageCircle, X } from 'lucide-vue-next'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -8,7 +9,6 @@ import { avatarGradient } from '@/features/chat/lib/format'
 import { getClient } from '@/matrix/client'
 import { getUserPresenceInfo } from '@/matrix/profile'
 import { findOrCreateDm } from '@/matrix/rooms'
-import { Avatar } from '@/shared/components/ui/avatar'
 
 const props = defineProps<{
   member: SpaceMember | null

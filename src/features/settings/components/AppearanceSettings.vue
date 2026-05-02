@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { MessageAlignment, ThemeMode } from '../stores/settingsStore'
+import { Tabs, TabsList, TabsTrigger } from '@muon/ui/tabs'
 import { useI18n } from 'vue-i18n'
-import { Tabs, TabsList, TabsTrigger } from '@/shared/components/ui/tabs'
 import { useSettingsStore } from '../stores/settingsStore'
 
 const { t } = useI18n()

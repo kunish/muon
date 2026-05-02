@@ -1,12 +1,12 @@
 <script setup lang="ts">
+import { Button } from '@muon/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@muon/ui/dialog'
+import { Input } from '@muon/ui/input'
+import { Label } from '@muon/ui/label'
 import { Check, Copy, Link } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { getClient } from '@/matrix/client'
-import { Button } from '@/shared/components/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/shared/components/ui/dialog'
-import { Input } from '@/shared/components/ui/input'
-import { Label } from '@/shared/components/ui/label'
 
 const props = defineProps<{
   spaceId: string

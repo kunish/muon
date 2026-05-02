@@ -1,9 +1,9 @@
 <script setup lang="ts">
+import { Avatar } from '@muon/ui/avatar'
 import { Search } from 'lucide-vue-next'
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useContactStore } from '@/features/contacts/stores/contactStore'
-import { Avatar } from '@/shared/components/ui/avatar'
 
 const emit = defineEmits<{
   select: [contact: { userId: string, displayName: string, avatarUrl?: string }]

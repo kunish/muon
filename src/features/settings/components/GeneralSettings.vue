@@ -1,8 +1,8 @@
 <script setup lang="ts">
+import { Label } from '@muon/ui/label'
+import { Switch } from '@muon/ui/switch'
 import { watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Label } from '@/shared/components/ui/label'
-import { Switch } from '@/shared/components/ui/switch'
 import { setAnalyticsEnabled } from '@/shared/lib/analytics'
 import { useSettingsStore } from '../stores/settingsStore'
 

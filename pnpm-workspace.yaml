@@ -1,0 +1,13 @@
+shellEmulator: true
+
+trustPolicy: no-downgrade
+
+packages:
+  - .
+  - apps/*
+  - packages/*
+onlyBuiltDependencies:
+  - electron
+  - electron-winstaller
+  - esbuild
+  - msw

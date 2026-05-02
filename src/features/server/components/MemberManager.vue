@@ -1,16 +1,16 @@
 <script setup lang="ts">
 import type { SpaceMember } from '@/matrix/spaces'
+import { Avatar } from '@muon/ui/avatar'
+import { Button } from '@muon/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@muon/ui/dialog'
+import { Input } from '@muon/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@muon/ui/select'
 import { Search, ShieldAlert, UserX } from 'lucide-vue-next'
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import { getClient } from '@/matrix/client'
 import { getSpaceMembers, setSpacePowerLevel } from '@/matrix/spaces'
-import { Avatar } from '@/shared/components/ui/avatar'
-import { Button } from '@/shared/components/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog'
-import { Input } from '@/shared/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select'
 import { useMemberActions } from '@/shared/composables/useMemberActions'
 
 const props = defineProps<{

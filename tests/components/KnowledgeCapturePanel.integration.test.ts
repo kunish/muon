@@ -198,10 +198,10 @@ vi.mock('@/features/server/components/ServerDropdown.vue', () => ({ default: cre
 vi.mock('@/features/server/components/TextChannelItem.vue', () => ({ default: createStub('TextChannelItemStub') }))
 vi.mock('@/features/server/components/VoiceChannelItem.vue', () => ({ default: createStub('VoiceChannelItemStub') }))
 vi.mock('@/features/server/components/VoiceStatusBar.vue', () => ({ default: createStub('VoiceStatusBarStub') }))
-vi.mock('@/shared/components/ui/avatar', () => ({ Avatar: createStub('AvatarStub') }))
-vi.mock('@/shared/components/ui/badge', () => ({ Badge: createStub('BadgeStub') }))
-vi.mock('@/shared/components/ui/input', () => ({ Input: createInputStub() }))
-vi.mock('@/shared/components/ui/scroll-area', () => ({ ScrollArea: createScrollAreaStub() }))
+vi.mock('@muon/ui/avatar', () => ({ Avatar: createStub('AvatarStub') }))
+vi.mock('@muon/ui/badge', () => ({ Badge: createStub('BadgeStub') }))
+vi.mock('@muon/ui/input', () => ({ Input: createInputStub() }))
+vi.mock('@muon/ui/scroll-area', () => ({ ScrollArea: createScrollAreaStub() }))
 
 let pinia: ReturnType<typeof createPinia>
 

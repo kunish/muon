@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import type { ChannelInfo } from '@/matrix/spaces'
+import { Badge } from '@muon/ui/badge'
 import { UserPlus } from 'lucide-vue-next'
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useServerStore } from '@/features/server/stores/serverStore'
-import { Badge } from '@/shared/components/ui/badge'
 
 const props = defineProps<{
   channel: ChannelInfo

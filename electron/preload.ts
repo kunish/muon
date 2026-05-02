@@ -7,7 +7,16 @@ function subscribe(channel: string, callback: () => void): () => void {
   return () => ipcRenderer.removeListener(channel, listener)
 }
 
+function subscribeValue<T>(channel: string, callback: (value: T) => void): () => void {
+  const listener = (_event: Electron.IpcRendererEvent, value: T): void => callback(value)
+  ipcRenderer.on(channel, listener)
+  return () => ipcRenderer.removeListener(channel, listener)
+}
+
 contextBridge.exposeInMainWorld('muonDesktop', {
+  auth: {
+    onCallback: (callback: (url: string) => void) => subscribeValue('muon:auth-callback', callback),
+  },
   dialog: {
     ask: (message: string, options?: unknown) => ipcRenderer.invoke('muon:dialog:ask', message, options),
     open: (options?: unknown) => ipcRenderer.invoke('muon:dialog:open', options),

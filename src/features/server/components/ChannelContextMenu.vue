@@ -1,6 +1,13 @@
 <script setup lang="ts">
 import type { ChannelInfo } from '@/matrix/spaces'
 import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from '@muon/ui/context-menu'
+import {
   BellOff,
   CheckCheck,
   Copy,
@@ -10,13 +17,6 @@ import {
 import { computed, shallowRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useServerStore } from '@/features/server/stores/serverStore'
-import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuSeparator,
-  ContextMenuTrigger,
-} from '@/shared/components/ui/context-menu'
 import { useRoomPermissions } from '@/shared/composables/useRoomPermissions'
 
 const props = defineProps<{

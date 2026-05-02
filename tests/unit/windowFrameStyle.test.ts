@@ -9,7 +9,7 @@ function readSource(path: string): string {
 describe('window frame style', () => {
   it('keeps the transparent native window clipped by the rounded app frame', () => {
     const app = readSource('src/app/App.vue')
-    const css = readSource('src/app/main.css')
+    const css = `${readSource('packages/ui/src/styles.css')}\n${readSource('src/app/main.css')}`
 
     expect(app).toContain('app-window-frame')
     expect(css).toContain('background: transparent')

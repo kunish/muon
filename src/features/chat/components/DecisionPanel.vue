@@ -1,9 +1,9 @@
 <script setup lang="ts">
+import { Textarea } from '@muon/ui/textarea'
 import { onMounted, reactive } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
-import { Textarea } from '@/shared/components/ui/textarea'
 import { preloadAndNavigate } from '@/shared/lib/contextPreload'
 import { useDecisionStore } from '../stores/decisionStore'
 

@@ -1,11 +1,11 @@
 <script setup lang="ts">
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@muon/ui/tooltip'
 import { Compass, MessageCircle, Plus } from 'lucide-vue-next'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useConversations } from '@/features/chat/composables/useConversations'
 import { useServerStore } from '@/features/server/stores/serverStore'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shared/components/ui/tooltip'
 import CreateServerDialog from './CreateServerDialog.vue'
 import ServerIcon from './ServerIcon.vue'
 

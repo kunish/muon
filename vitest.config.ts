@@ -28,6 +28,10 @@ export default defineConfig({
       '@matrix': resolve(__dirname, 'src/matrix'),
       '@features': resolve(__dirname, 'src/features'),
       '@shared': resolve(__dirname, 'src/shared'),
+      '@muon/enterprise-contracts': resolve(__dirname, 'packages/enterprise-contracts/src/index.ts'),
+      '@muon/ui/media': resolve(__dirname, 'packages/ui/src/composables/useAuthMedia.ts'),
+      '@muon/ui/avatar/Avatar.vue': resolve(__dirname, 'packages/ui/src/components/ui/avatar/Avatar.vue'),
+      '@muon/ui': resolve(__dirname, 'packages/ui/src/components/ui'),
     },
   },
 })

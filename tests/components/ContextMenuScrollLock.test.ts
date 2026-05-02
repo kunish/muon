@@ -145,9 +145,7 @@ describe('context menu scroll lock', () => {
   })
 
   it('prevents underlying scroll for shared Reka context menus', async () => {
-    const ContextMenu = (
-      await import('@/shared/components/ui/context-menu/ContextMenu.vue')
-    ).default
+    const { ContextMenu } = await import('@muon/ui/context-menu')
 
     const wrapper = mount(ContextMenu, {
       props: { open: true },

@@ -12,6 +12,7 @@ export default antfu({
     '.planning/**',
     '.playwright-cli/**',
     'design/stitch/**',
+    'docs/superpowers/**',
     'output/playwright/**',
     'openspec/**',
     'out/**',

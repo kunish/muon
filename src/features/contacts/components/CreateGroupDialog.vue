@@ -1,9 +1,9 @@
 <script setup lang="ts">
+import { Label } from '@muon/ui/label'
+import { Switch } from '@muon/ui/switch'
 import { Lock, X } from 'lucide-vue-next'
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Label } from '@/shared/components/ui/label'
-import { Switch } from '@/shared/components/ui/switch'
 import { useGroupManagement } from '../composables/useGroupManagement'
 import GroupMemberPicker from './GroupMemberPicker.vue'
 

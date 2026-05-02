@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import { findOrCreateDm } from '@matrix/rooms'
+import { Avatar } from '@muon/ui/avatar'
+import { Label } from '@muon/ui/label'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@muon/ui/tabs'
 import { Search, Users, X } from 'lucide-vue-next'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -9,9 +12,6 @@ import GroupMemberPicker from '@/features/contacts/components/GroupMemberPicker.
 import { useContacts } from '@/features/contacts/composables/useContacts'
 import { useGroupManagement } from '@/features/contacts/composables/useGroupManagement'
 import { useContactStore } from '@/features/contacts/stores/contactStore'
-import { Avatar } from '@/shared/components/ui/avatar'
-import { Label } from '@/shared/components/ui/label'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs'
 import { useChatStore } from '../stores/chatStore'
 
 const emit = defineEmits<{

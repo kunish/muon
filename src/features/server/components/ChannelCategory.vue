@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import type { ChannelTreeCategory } from '@/features/server/stores/serverStore'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@muon/ui/tooltip'
 import { ChevronDown, Plus } from 'lucide-vue-next'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useServerStore } from '@/features/server/stores/serverStore'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shared/components/ui/tooltip'
 
 const props = defineProps<{
   category: ChannelTreeCategory

@@ -4,6 +4,8 @@ import LoginPage from '@/features/auth/components/LoginPage.vue'
 
 const mocks = vi.hoisted(() => ({
   bindClientEvents: vi.fn(),
+  completeEnterpriseLogin: vi.fn(),
+  isEnterpriseAuthConfigured: vi.fn(() => false),
   login: vi.fn(),
   push: vi.fn(),
   register: vi.fn(),
@@ -12,6 +14,8 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@matrix/index', () => ({
   bindClientEvents: mocks.bindClientEvents,
+  completeEnterpriseLogin: mocks.completeEnterpriseLogin,
+  isEnterpriseAuthConfigured: mocks.isEnterpriseAuthConfigured,
   login: mocks.login,
   register: mocks.register,
   startSync: mocks.startSync,

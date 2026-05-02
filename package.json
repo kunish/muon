@@ -27,19 +27,28 @@
   ],
   "main": "out/main/main.cjs",
   "scripts": {
-    "dev": "electron-vite dev",
+    "dev": "bash scripts/dev-all.sh",
+    "dev:desktop": "electron-vite dev",
     "dev:web": "vite",
-    "build": "vue-tsc --noEmit && tsc -p tsconfig.electron.json --noEmit && electron-vite build",
+    "dev:api": "pnpm --filter @muon/api dev",
+    "dev:admin": "pnpm --filter @muon/admin dev",
+    "build": "pnpm build:contracts && pnpm build:api && pnpm build:admin && pnpm build:desktop",
+    "build:contracts": "pnpm --filter @muon/enterprise-contracts build",
+    "build:api": "pnpm --filter @muon/api build",
+    "build:desktop": "pnpm type-check && electron-vite build",
     "build:web": "vue-tsc --noEmit && vite build",
+    "build:admin": "pnpm --filter @muon/admin build",
     "preview": "electron-vite preview",
-    "package": "pnpm build && electron-builder --dir",
-    "dist": "pnpm build && electron-builder",
+    "package": "pnpm build:desktop && electron-builder --dir",
+    "dist": "pnpm build:desktop && electron-builder",
+    "check": "pnpm lint && pnpm test:unit && pnpm build",
     "lint": "eslint .",
     "type-check": "vue-tsc --noEmit && tsc -p tsconfig.electron.json --noEmit",
     "services:up": "bash docker/start.sh",
     "services:seed": "npx --yes tsx scripts/seed-conduit.ts",
     "services:down": "docker compose -f docker/docker-compose.yml down",
     "services:logs": "docker compose -f docker/docker-compose.yml logs -f",
+    "test:enterprise": "vitest run tests/unit/enterprise tests/components/AdminApp.test.ts tests/components/LoginPage.enterprise.test.ts",
     "test:unit": "vitest run",
     "test:unit:watch": "vitest",
     "test:unit:coverage": "vitest run --coverage",
@@ -79,6 +88,8 @@
   "dependencies": {
     "@floating-ui/vue": "^1.1.11",
     "@intlify/unplugin-vue-i18n": "^11.1.2",
+    "@muon/enterprise-contracts": "workspace:*",
+    "@muon/ui": "workspace:*",
     "@tailwindcss/vite": "^4.2.4",
     "@tanstack/vue-query": "^5.100.6",
     "@tanstack/vue-virtual": "^3.13.24",
@@ -141,13 +152,5 @@
     "vite": "^8.0.10",
     "vitest": "^4.1.5",
     "vue-tsc": "^3.2.7"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "electron",
-      "electron-winstaller",
-      "esbuild",
-      "msw"
-    ]
   }
 }

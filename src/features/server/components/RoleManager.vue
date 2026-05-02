@@ -1,13 +1,13 @@
 <script setup lang="ts">
+import { Button } from '@muon/ui/button'
+import { Input } from '@muon/ui/input'
+import { Label } from '@muon/ui/label'
+import { Separator } from '@muon/ui/separator'
 import { Plus, Save, Trash2 } from 'lucide-vue-next'
 import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import { getClient } from '@/matrix/client'
-import { Button } from '@/shared/components/ui/button'
-import { Input } from '@/shared/components/ui/input'
-import { Label } from '@/shared/components/ui/label'
-import { Separator } from '@/shared/components/ui/separator'
 
 const props = defineProps<{
   serverId: string

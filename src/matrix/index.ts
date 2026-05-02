@@ -1,4 +1,4 @@
-export { login, logout, register, restoreSession } from './auth'
+export { completeEnterpriseLogin, isEnterpriseAuthConfigured, login, logout, parseEnterpriseAuthCallback, register, restoreSession, startEnterpriseLogin } from './auth'
 export { blockUser, getBlockedUsers, isUserBlocked, unblockUser } from './blocking'
 export { createClient, destroyClient, getClient } from './client'
 export { createEncryptedRoom, initCrypto } from './crypto'

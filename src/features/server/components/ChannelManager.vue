@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import type { ChannelInfo } from '@/matrix/spaces'
+import { Button } from '@muon/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@muon/ui/dialog'
 import { GripVertical, Hash, Pencil, Trash2, Volume2 } from 'lucide-vue-next'
 import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import { useServerStore } from '@/features/server/stores/serverStore'
 import { getCategoryChannels, getSpaceHierarchy, removeRoomFromSpace } from '@/matrix/spaces'
-import { Button } from '@/shared/components/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog'
 
 const props = defineProps<{
   serverId: string

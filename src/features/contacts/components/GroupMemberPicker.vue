@@ -1,10 +1,10 @@
 <script setup lang="ts">
+import { Avatar } from '@muon/ui/avatar'
+import { Checkbox } from '@muon/ui/checkbox'
+import { Label } from '@muon/ui/label'
 import { Check, Search, X } from 'lucide-vue-next'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Avatar } from '@/shared/components/ui/avatar'
-import { Checkbox } from '@/shared/components/ui/checkbox'
-import { Label } from '@/shared/components/ui/label'
 import { useContacts } from '../composables/useContacts'
 import { useContactStore } from '../stores/contactStore'
 

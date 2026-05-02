@@ -1,0 +1,20 @@
+{
+  "name": "@muon/api",
+  "type": "module",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc --noEmit --project tsconfig.json",
+    "dev": "tsx src/server.ts",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@muon/enterprise-contracts": "workspace:*",
+    "pg": "^8.20.0",
+    "zod": "^4.4.1"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.20.0",
+    "tsx": "^4.21.0"
+  }
+}

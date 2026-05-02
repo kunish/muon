@@ -1,8 +1,8 @@
 <script setup lang="ts">
+import { Textarea } from '@muon/ui/textarea'
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { Textarea } from '@/shared/components/ui/textarea'
 import { preloadAndNavigate } from '@/shared/lib/contextPreload'
 import { useQaStore } from '../stores/qaStore'
 

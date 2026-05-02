@@ -1,7 +1,7 @@
 <script setup lang="ts">
+import { Avatar } from '@muon/ui/avatar'
 import { Search } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
-import Avatar from '@/shared/components/ui/avatar/Avatar.vue'
 import { useContactStore } from '../stores/contactStore'
 import ContactItem from './ContactItem.vue'
 

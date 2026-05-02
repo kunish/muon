@@ -8,14 +8,14 @@ function readSource(path: string): string {
 
 describe('text selection rules', () => {
   it('disables selection by default at the app shell level', () => {
-    const css = readSource('src/app/main.css')
+    const css = readSource('packages/ui/src/styles.css')
 
     expect(css).toContain('-webkit-user-select: none')
     expect(css).toContain('user-select: none')
   })
 
   it('keeps editable and message payload text selectable', () => {
-    const css = readSource('src/app/main.css')
+    const css = `${readSource('packages/ui/src/styles.css')}\n${readSource('src/app/main.css')}`
     const chatMessage = readSource('src/features/chat/components/ChatMessage.vue')
     const richTextInput = readSource('src/features/chat/components/RichTextInput.vue')
 

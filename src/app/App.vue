@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { bindClientEvents, restoreSession, startSync, syncState } from '@matrix/index'
+import { Toaster } from '@muon/ui/sonner'
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
-import { Toaster } from '@/shared/components/ui/sonner'
 import ErrorBoundary from './components/ErrorBoundary.vue'
 import WindowTitleBar from './components/window/WindowTitleBar.vue'
 

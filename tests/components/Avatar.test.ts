@@ -1,6 +1,6 @@
+import { Avatar } from '@muon/ui/avatar'
 import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
-import Avatar from '@/shared/components/ui/avatar/Avatar.vue'
 
 describe('avatar', () => {
   it('uses custom dimensions as the visible avatar size', () => {

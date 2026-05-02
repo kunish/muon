@@ -45,8 +45,10 @@ describe('custom window title bar configuration', () => {
     const config = readSource('electron.vite.config.ts')
 
     expect(pkg.main).toBe('out/main/main.cjs')
-    expect(pkg.scripts?.dev).toBe('electron-vite dev')
-    expect(pkg.scripts?.build).toContain('electron-vite build')
+    expect(pkg.scripts?.dev).toBe('bash scripts/dev-all.sh')
+    expect(pkg.scripts?.['dev:desktop']).toBe('electron-vite dev')
+    expect(pkg.scripts?.build).toContain('pnpm build:desktop')
+    expect(pkg.scripts?.['build:desktop']).toContain('electron-vite build')
     expect(config).toContain('entry: resolve(__dirname, \'electron/main.ts\')')
     expect(config).toContain('entry: resolve(__dirname, \'electron/preload.ts\')')
   })

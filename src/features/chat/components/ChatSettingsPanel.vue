@@ -2,6 +2,9 @@
 import { getClient } from '@matrix/client'
 import { getRoomTopic, leaveRoom, setRoomTopic, toggleRoomMute, toggleRoomPin } from '@matrix/rooms'
 import { isDirectRoom } from '@matrix/roomUtils'
+import { Avatar } from '@muon/ui/avatar'
+import { Switch } from '@muon/ui/switch'
+import { Textarea } from '@muon/ui/textarea'
 import {
   Bell,
   BellOff,
@@ -15,9 +18,6 @@ import {
 import { computed, onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ask } from '@/electron/dialog'
-import { Avatar } from '@/shared/components/ui/avatar'
-import { Switch } from '@/shared/components/ui/switch'
-import { Textarea } from '@/shared/components/ui/textarea'
 import { useChatStore } from '../stores/chatStore'
 
 const { t } = useI18n()

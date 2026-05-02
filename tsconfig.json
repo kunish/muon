@@ -9,7 +9,11 @@
       "@/*": ["./src/*"],
       "@features/*": ["./src/features/*"],
       "@shared/*": ["./src/shared/*"],
-      "@matrix/*": ["./src/matrix/*"]
+      "@matrix/*": ["./src/matrix/*"],
+      "@muon/enterprise-contracts": ["./packages/enterprise-contracts/src/index.ts"],
+      "@muon/ui/media": ["./packages/ui/src/composables/useAuthMedia.ts"],
+      "@muon/ui/avatar/Avatar.vue": ["./packages/ui/src/components/ui/avatar/Avatar.vue"],
+      "@muon/ui/*": ["./packages/ui/src/components/ui/*/index.ts"]
     },
     "resolveJsonModule": true,
     "strict": true,
@@ -19,5 +23,5 @@
     "skipLibCheck": true
   },
   "references": [{ "path": "./tsconfig.node.json" }],
-  "include": ["src/**/*.ts", "src/**/*.vue"]
+  "include": ["src/**/*.ts", "src/**/*.vue", "apps/**/*.ts", "apps/**/*.vue", "packages/**/*.ts", "packages/**/*.vue"]
 }

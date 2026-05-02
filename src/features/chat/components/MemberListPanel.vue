@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { getClient } from '@matrix/client'
+import { Avatar } from '@muon/ui/avatar'
 import { Crown, Search, Shield, ShieldCheck, X } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Avatar } from '@/shared/components/ui/avatar'
 import { useChatStore } from '../stores/chatStore'
 
 const { t } = useI18n()
