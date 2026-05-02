@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import type { AuditLog, EnterpriseUser, Organization, UserRole } from '@muon/enterprise-contracts'
+import type { AuditLog, EnterpriseUser, Organization, UserRole, UserStatus } from '@muon/enterprise-contracts'
 import { Button } from '@muon/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@muon/ui/card'
 import { Input } from '@muon/ui/input'
 import { Label } from '@muon/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@muon/ui/select'
 import { computed, reactive, ref } from 'vue'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { createAdminUser, createOrganization, installMuon, listAuditLogs, listOrganizations, listUsers, loginAdmin, resetAdminUserPassword, updateAdminUser } from './api'
+import { adminSections, defaultAdminSection, isAdminSection } from './router'
 
 const props = withDefaults(defineProps<{
   initialInstalled?: boolean
@@ -17,6 +19,8 @@ const props = withDefaults(defineProps<{
 })
 
 const adminTokenStorageKey = 'muon_admin_token'
+const route = useRoute()
+const router = useRouter()
 
 function readStoredAdminToken(): string {
   if (typeof window === 'undefined')
@@ -30,6 +34,7 @@ const submitting = ref(false)
 const loginSubmitting = ref(false)
 const organizationSubmitting = ref(false)
 const userSubmitting = ref(false)
+const dashboardLoading = ref(false)
 const error = ref('')
 const loginError = ref('')
 const organizationError = ref('')
@@ -37,6 +42,10 @@ const userError = ref('')
 const organizations = ref<Organization[]>([])
 const users = ref<EnterpriseUser[]>([])
 const auditLogs = ref<AuditLog[]>([])
+const organizationSearch = ref('')
+const userSearch = ref('')
+const userStatusFilter = ref<'all' | UserStatus>('all')
+const auditSearch = ref('')
 const userDrafts = reactive<Record<string, {
   displayName: string
   email: string
@@ -44,6 +53,7 @@ const userDrafts = reactive<Record<string, {
   username: string
 }>>({})
 const passwordDrafts = reactive<Record<string, string>>({})
+const passwordPolicies = reactive<Record<string, boolean>>({})
 const updatingUsers = reactive<Record<string, boolean>>({})
 const resettingPasswords = reactive<Record<string, boolean>>({})
 const form = reactive({
@@ -102,6 +112,56 @@ const canCreateOrganization = computed(() => {
 })
 
 const loggedIn = computed(() => Boolean(adminToken.value))
+const activeAdminSection = computed(() => {
+  return isAdminSection(route.meta.adminSection) ? route.meta.adminSection : defaultAdminSection
+})
+const activeUsers = computed(() => users.value.filter(user => user.status === 'active').length)
+const disabledUsers = computed(() => users.value.filter(user => user.status === 'disabled').length)
+const filteredOrganizations = computed(() => {
+  const query = organizationSearch.value.trim().toLowerCase()
+  if (!query)
+    return organizations.value
+  return organizations.value.filter((organization) => {
+    return [
+      organization.name,
+      organization.slug,
+      organization.status,
+      statusLabel(organization.status),
+    ].some(value => value.toLowerCase().includes(query))
+  })
+})
+const filteredUsers = computed(() => {
+  const query = userSearch.value.trim().toLowerCase()
+  return users.value.filter((user) => {
+    if (userStatusFilter.value !== 'all' && user.status !== userStatusFilter.value)
+      return false
+    if (!query)
+      return true
+    return [
+      user.username,
+      user.email,
+      user.displayName,
+      user.status,
+      statusLabel(user.status),
+      user.roles.join(' '),
+      user.roles.map(roleLabel).join(' '),
+    ].some(value => value.toLowerCase().includes(query))
+  })
+})
+const filteredAuditLogs = computed(() => {
+  const query = auditSearch.value.trim().toLowerCase()
+  if (!query)
+    return auditLogs.value
+  return auditLogs.value.filter((entry) => {
+    return [
+      entry.action,
+      entry.targetType,
+      entry.targetId ?? '',
+      entry.actorUserId ?? '',
+      metadataSummary(entry),
+    ].some(value => value.toLowerCase().includes(query))
+  })
+})
 
 function persistAdminToken(token: string) {
   adminToken.value = token
@@ -111,6 +171,11 @@ function persistAdminToken(token: string) {
 
 function clearAdminToken() {
   adminToken.value = ''
+  void router.replace({ name: 'admin-organizations' })
+  organizationSearch.value = ''
+  userSearch.value = ''
+  userStatusFilter.value = 'all'
+  auditSearch.value = ''
   if (typeof window !== 'undefined')
     window.localStorage.removeItem(adminTokenStorageKey)
 }
@@ -128,6 +193,7 @@ function syncUserDrafts(nextUsers: EnterpriseUser[]) {
       role: user.roles[0] ?? 'member',
     }
     passwordDrafts[user.id] = ''
+    passwordPolicies[user.id] = false
   }
 }
 
@@ -140,10 +206,30 @@ function canResetUserPassword(user: EnterpriseUser) {
   return (passwordDrafts[user.id]?.length ?? 0) >= 12
 }
 
+function roleLabel(role: UserRole) {
+  return role === 'owner' ? 'Owner' : role === 'admin' ? '管理员' : '成员'
+}
+
+function statusLabel(status: UserStatus | Organization['status']) {
+  return status === 'active' ? '正常' : status === 'disabled' ? '已停用' : '已暂停'
+}
+
+function formatDate(value: string) {
+  return new Date(value).toLocaleString()
+}
+
+function metadataSummary(entry: AuditLog) {
+  const entries = Object.entries(entry.metadata)
+  if (entries.length === 0)
+    return '无附加信息'
+  return entries.map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : String(value)}`).join('；')
+}
+
 async function refreshDashboard() {
   if (!adminToken.value)
     return
 
+  dashboardLoading.value = true
   try {
     const token = adminToken.value
     const [organizationResult, userResult, auditResult] = await Promise.all([
@@ -161,6 +247,9 @@ async function refreshDashboard() {
       clearAdminToken()
     else
       userError.value = err instanceof Error ? err.message : '加载后台数据失败'
+  }
+  finally {
+    dashboardLoading.value = false
   }
 }
 
@@ -292,6 +381,26 @@ async function submitUpdateUser(user: EnterpriseUser) {
   }
 }
 
+async function toggleUserStatus(user: EnterpriseUser) {
+  if (!adminToken.value || updatingUsers[user.id])
+    return
+
+  updatingUsers[user.id] = true
+  userError.value = ''
+  try {
+    await updateAdminUser(adminToken.value, user.id, {
+      status: user.status === 'active' ? 'disabled' : 'active',
+    })
+    await refreshDashboard()
+  }
+  catch (err) {
+    userError.value = err instanceof Error ? err.message : '更新用户状态失败'
+  }
+  finally {
+    updatingUsers[user.id] = false
+  }
+}
+
 async function submitResetUserPassword(user: EnterpriseUser) {
   if (!adminToken.value || !canResetUserPassword(user) || resettingPasswords[user.id])
     return
@@ -301,7 +410,7 @@ async function submitResetUserPassword(user: EnterpriseUser) {
   try {
     await resetAdminUserPassword(adminToken.value, user.id, {
       newPassword: passwordDrafts[user.id],
-      mustChangePassword: false,
+      mustChangePassword: passwordPolicies[user.id] ?? false,
     })
     passwordDrafts[user.id] = ''
     await refreshDashboard()
@@ -324,10 +433,17 @@ if (adminToken.value)
       <div class="brand">
         Muon Admin
       </div>
-      <nav v-if="installed" class="nav-list" aria-label="管理导航">
-        <a href="#organizations">组织管理</a>
-        <a href="#users">用户管理</a>
-        <a href="#audit">审计日志</a>
+      <nav v-if="loggedIn" class="nav-list" aria-label="管理导航">
+        <RouterLink
+          v-for="section in adminSections"
+          :key="section.id"
+          :to="{ name: section.routeName }"
+          :class="{ active: activeAdminSection === section.id }"
+          :aria-current="activeAdminSection === section.id ? 'page' : undefined"
+          :data-section="section.id"
+        >
+          {{ section.label }}
+        </RouterLink>
       </nav>
     </aside>
 
@@ -403,18 +519,48 @@ if (adminToken.value)
     </section>
 
     <section v-else class="admin-content dashboard-layout">
-      <div class="page-heading">
-        <p>组织后台</p>
-        <h1>组织、用户与安全</h1>
+      <div class="dashboard-header">
+        <div class="page-heading">
+          <p>组织后台</p>
+          <h1>组织、用户与安全</h1>
+        </div>
+        <div class="dashboard-actions">
+          <Button data-testid="refresh-dashboard" type="button" variant="outline" :disabled="dashboardLoading" @click="refreshDashboard">
+            {{ dashboardLoading ? '刷新中' : '刷新数据' }}
+          </Button>
+          <Button data-testid="logout-admin" type="button" variant="secondary" @click="clearAdminToken">
+            退出登录
+          </Button>
+        </div>
+      </div>
+
+      <div class="summary-grid" aria-label="后台概览">
+        <div class="summary-card">
+          <span>组织</span>
+          <strong>组织 {{ organizations.length }}</strong>
+        </div>
+        <div class="summary-card">
+          <span>用户</span>
+          <strong>用户 {{ users.length }}</strong>
+          <small>{{ activeUsers }} 正常 / {{ disabledUsers }} 停用</small>
+        </div>
+        <div class="summary-card">
+          <span>审计</span>
+          <strong>审计 {{ auditLogs.length }}</strong>
+        </div>
       </div>
 
       <div class="panel-grid">
-        <Card id="organizations" class="wide-panel">
+        <Card v-if="activeAdminSection === 'organizations'" id="organizations" class="wide-panel" data-testid="organizations-panel">
           <CardHeader>
             <CardTitle>组织管理</CardTitle>
             <CardDescription>创建新的组织，并为新组织设置独立 owner 账号。</CardDescription>
           </CardHeader>
           <CardContent>
+            <div class="panel-toolbar">
+              <Input v-model="organizationSearch" data-testid="organization-search" placeholder="搜索组织名称、标识或状态" autocomplete="off" />
+              <span>{{ filteredOrganizations.length }} / {{ organizations.length }} 个组织</span>
+            </div>
             <form class="organization-form" @submit.prevent="submitCreateOrganization">
               <Input v-model="organizationForm.organizationName" placeholder="组织名称" autocomplete="off" />
               <Input v-model="organizationForm.organizationSlug" placeholder="组织标识" autocomplete="off" />
@@ -430,22 +576,40 @@ if (adminToken.value)
               {{ organizationError }}
             </p>
             <div class="table-list" aria-label="组织列表">
-              <div v-for="organization in organizations" :key="organization.id" class="table-row organization-row">
+              <div v-for="organization in filteredOrganizations" :key="organization.id" class="table-row organization-row">
                 <strong>{{ organization.name }}</strong>
                 <span>{{ organization.slug }}</span>
-                <span>{{ organization.status }}</span>
-                <span>{{ new Date(organization.createdAt).toLocaleString() }}</span>
+                <span>{{ statusLabel(organization.status) }}</span>
+                <span>{{ formatDate(organization.createdAt) }}</span>
+              </div>
+              <div v-if="filteredOrganizations.length === 0" class="empty-state">
+                没有匹配的组织
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card id="users">
+        <Card v-if="activeAdminSection === 'users'" id="users" class="wide-panel" data-testid="users-panel">
           <CardHeader>
             <CardTitle>用户管理</CardTitle>
             <CardDescription>创建成员、设置初始密码、调整角色与停用账号。</CardDescription>
           </CardHeader>
           <CardContent>
+            <div class="panel-toolbar">
+              <Input v-model="userSearch" data-testid="user-search" placeholder="搜索用户名、邮箱、显示名称或角色" autocomplete="off" />
+              <select v-model="userStatusFilter" data-testid="user-status-filter" aria-label="用户状态筛选">
+                <option value="all">
+                  全部状态
+                </option>
+                <option value="active">
+                  正常
+                </option>
+                <option value="disabled">
+                  已停用
+                </option>
+              </select>
+              <span>{{ filteredUsers.length }} / {{ users.length }} 个用户</span>
+            </div>
             <form class="user-form" @submit.prevent="submitCreateUser">
               <Input v-model="userForm.username" placeholder="用户名" autocomplete="off" />
               <Input v-model="userForm.email" placeholder="邮箱" autocomplete="off" />
@@ -475,7 +639,18 @@ if (adminToken.value)
               {{ userError }}
             </p>
             <div class="table-list" aria-label="用户列表">
-              <div v-for="user in users" :key="user.id" class="user-row">
+              <div v-for="user in filteredUsers" :key="user.id" class="user-row">
+                <div class="user-row-header">
+                  <div>
+                    <strong>{{ user.displayName }}</strong>
+                    <span>{{ user.username }} · {{ user.email }}</span>
+                  </div>
+                  <div class="user-badges">
+                    <span class="status-pill" :class="user.status">{{ statusLabel(user.status) }}</span>
+                    <span>{{ user.roles.map(roleLabel).join(' / ') }}</span>
+                    <span v-if="user.mustChangePassword">需改密</span>
+                  </div>
+                </div>
                 <form class="user-edit-form" :data-testid="`edit-user-${user.id}`" @submit.prevent="submitUpdateUser(user)">
                   <Input v-model="userDrafts[user.id].username" placeholder="编辑用户名" autocomplete="off" />
                   <Input v-model="userDrafts[user.id].email" placeholder="编辑邮箱" autocomplete="off" />
@@ -499,29 +674,54 @@ if (adminToken.value)
                   <Button type="submit" :disabled="!canUpdateUser(user) || updatingUsers[user.id]">
                     {{ updatingUsers[user.id] ? '正在保存' : '保存用户' }}
                   </Button>
+                  <Button
+                    :data-testid="`toggle-user-status-${user.id}`"
+                    type="button"
+                    variant="outline"
+                    :disabled="updatingUsers[user.id]"
+                    @click="toggleUserStatus(user)"
+                  >
+                    {{ user.status === 'active' ? '停用用户' : '启用用户' }}
+                  </Button>
                 </form>
                 <form class="password-form" :data-testid="`reset-password-${user.id}`" @submit.prevent="submitResetUserPassword(user)">
                   <Input v-model="passwordDrafts[user.id]" type="password" placeholder="新密码，至少 12 位" autocomplete="new-password" />
+                  <label class="checkbox-row">
+                    <input v-model="passwordPolicies[user.id]" :data-testid="`must-change-password-${user.id}`" type="checkbox">
+                    下次登录必须修改密码
+                  </label>
                   <Button type="submit" :disabled="!canResetUserPassword(user) || resettingPasswords[user.id]">
                     {{ resettingPasswords[user.id] ? '正在重置' : '重置密码' }}
                   </Button>
                 </form>
               </div>
+              <div v-if="filteredUsers.length === 0" class="empty-state">
+                没有匹配的用户
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card id="audit">
+        <Card v-if="activeAdminSection === 'audit'" id="audit" class="wide-panel" data-testid="audit-panel">
           <CardHeader>
             <CardTitle>审计日志</CardTitle>
             <CardDescription>查看安装、登录、创建用户、重置密码、角色变更和 Matrix provision 记录。</CardDescription>
           </CardHeader>
           <CardContent>
+            <div class="panel-toolbar">
+              <Input v-model="auditSearch" data-testid="audit-search" placeholder="搜索动作、目标、操作者或元数据" autocomplete="off" />
+              <span>{{ filteredAuditLogs.length }} / {{ auditLogs.length }} 条记录</span>
+            </div>
             <div class="table-list" aria-label="审计日志列表">
-              <div v-for="entry in auditLogs" :key="entry.id" class="table-row audit-row">
+              <div v-for="entry in filteredAuditLogs" :key="entry.id" class="table-row audit-row">
                 <strong>{{ entry.action }}</strong>
                 <span>{{ entry.targetType }}</span>
-                <span>{{ new Date(entry.createdAt).toLocaleString() }}</span>
+                <span>{{ entry.targetId ?? '无目标' }}</span>
+                <span>{{ metadataSummary(entry) }}</span>
+                <span>{{ formatDate(entry.createdAt) }}</span>
+              </div>
+              <div v-if="filteredAuditLogs.length === 0" class="empty-state">
+                没有匹配的审计日志
               </div>
             </div>
           </CardContent>
@@ -533,15 +733,18 @@ if (adminToken.value)
 
 <style scoped>
 .admin-shell {
-  min-height: 100vh;
+  height: 100vh;
   display: grid;
   grid-template-columns: 224px minmax(0, 1fr);
+  overflow: hidden;
   background: #f6f7f9;
   color: #1f2328;
   font-family: Inter, 'PingFang SC', 'Microsoft YaHei', sans-serif;
 }
 
 .admin-sidebar {
+  min-height: 0;
+  overflow-y: auto;
   background: #fff;
   border-right: 1px solid #e4e7ec;
   padding: 24px 18px;
@@ -560,17 +763,42 @@ if (adminToken.value)
 
 .nav-list a {
   color: #3d4656;
-  text-decoration: none;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
   padding: 8px 10px;
   border-radius: 6px;
+  text-align: left;
+  text-decoration: none;
 }
 
-.nav-list a:hover {
+.nav-list a:hover,
+.nav-list a.active {
   background: #f0f3f8;
+  color: #1f2328;
+}
+
+.nav-list a.active {
+  font-weight: 700;
 }
 
 .admin-content {
+  min-height: 0;
+  overflow-y: auto;
   padding: 40px;
+}
+
+.dashboard-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.dashboard-actions {
+  display: flex;
+  gap: 8px;
 }
 
 .page-heading p {
@@ -633,6 +861,33 @@ if (adminToken.value)
   color: #c2410c;
 }
 
+.summary-grid {
+  margin-top: 24px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.summary-card {
+  display: grid;
+  gap: 4px;
+  padding: 16px;
+  border: 1px solid #e4e7ec;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.summary-card span,
+.summary-card small {
+  color: #667085;
+  font-size: 13px;
+}
+
+.summary-card strong {
+  color: #1f2328;
+  font-size: 20px;
+}
+
 .panel-grid {
   margin-top: 28px;
   display: grid;
@@ -659,6 +914,30 @@ if (adminToken.value)
 .panel p {
   color: #667085;
   line-height: 1.6;
+}
+
+.panel-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.panel-toolbar select {
+  min-width: 128px;
+  height: 40px;
+  border: 1px solid #d0d5dd;
+  border-radius: 8px;
+  padding: 0 10px;
+  background: #fff;
+  color: #1f2328;
+}
+
+.panel-toolbar span {
+  color: #667085;
+  font-size: 13px;
+  white-space: nowrap;
 }
 
 .organization-form,
@@ -710,11 +989,56 @@ if (adminToken.value)
 
 .user-row {
   display: grid;
-  gap: 8px;
+  gap: 10px;
   padding: 10px;
   border: 1px solid #edf0f4;
   border-radius: 6px;
   background: #fbfcfe;
+}
+
+.user-row-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.user-row-header div:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+.user-row-header span {
+  color: #667085;
+  font-size: 13px;
+}
+
+.user-badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.user-badges span,
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  border-radius: 999px;
+  padding: 0 8px;
+  background: #edf0f4;
+  color: #3d4656;
+  font-size: 12px;
+}
+
+.status-pill.active {
+  background: #e8f7ee;
+  color: #17663a;
+}
+
+.status-pill.disabled {
+  background: #feeceb;
+  color: #b42318;
 }
 
 .user-edit-form,
@@ -729,11 +1053,63 @@ if (adminToken.value)
   width: fit-content;
 }
 
+.checkbox-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #3d4656;
+  font-size: 13px;
+}
+
+.checkbox-row input {
+  width: 16px;
+  height: 16px;
+}
+
 .audit-row {
-  grid-template-columns: 1fr 0.8fr 1.4fr;
+  grid-template-columns: 1fr 0.7fr 1fr 1.4fr 1.2fr;
 }
 
 .organization-row {
   grid-template-columns: 1fr 0.8fr 0.7fr 1.3fr;
+}
+
+.empty-state {
+  padding: 16px;
+  border: 1px dashed #d0d5dd;
+  border-radius: 8px;
+  color: #667085;
+  text-align: center;
+}
+
+@media (max-width: 900px) {
+  .admin-shell {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .admin-sidebar {
+    border-right: 0;
+    border-bottom: 1px solid #e4e7ec;
+  }
+
+  .dashboard-header,
+  .user-row-header {
+    flex-direction: column;
+  }
+
+  .dashboard-actions {
+    flex-wrap: wrap;
+  }
+
+  .summary-grid,
+  .panel-grid,
+  .organization-form,
+  .user-form,
+  .user-edit-form,
+  .password-form,
+  .panel-toolbar {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

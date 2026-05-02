@@ -222,6 +222,9 @@ importers:
       vue:
         specifier: ^3.5.33
         version: 3.5.33(typescript@6.0.3)
+      vue-router:
+        specifier: ^5.0.6
+        version: 5.0.6(@vue/compiler-sfc@3.5.33)(pinia@3.0.4(typescript@6.0.3)(vue@3.5.33(typescript@6.0.3)))(vue@3.5.33(typescript@6.0.3))
 
   apps/api:
     dependencies:

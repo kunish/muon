@@ -1,7 +1,9 @@
 import { mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { createMemoryHistory } from 'vue-router'
 import AdminApp from '../../apps/admin/src/AdminApp.vue'
 import { createAdminUser, createOrganization, listAuditLogs, listOrganizations, listUsers, loginAdmin, resetAdminUserPassword, updateAdminUser } from '../../apps/admin/src/api'
+import { createAdminRouter } from '../../apps/admin/src/router'
 
 vi.mock('../../apps/admin/src/api', () => ({
   createAdminUser: vi.fn(async () => ({
@@ -52,6 +54,14 @@ vi.mock('../../apps/admin/src/api', () => ({
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       },
+      {
+        id: 'org-2',
+        slug: 'beta',
+        name: 'Beta Team',
+        status: 'suspended',
+        createdAt: new Date(Date.now() - 86_400_000).toISOString(),
+        updatedAt: new Date(Date.now() - 3_600_000).toISOString(),
+      },
     ],
   })),
   listUsers: vi.fn(async () => ({
@@ -67,6 +77,18 @@ vi.mock('../../apps/admin/src/api', () => ({
         roles: ['owner'],
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
+      },
+      {
+        id: 'user-disabled',
+        organizationId: 'org-1',
+        username: 'disabled-user',
+        email: 'disabled@muon.local',
+        displayName: 'Disabled User',
+        status: 'disabled',
+        mustChangePassword: true,
+        roles: ['member'],
+        createdAt: new Date(Date.now() - 86_400_000).toISOString(),
+        updatedAt: new Date(Date.now() - 3_600_000).toISOString(),
       },
     ],
   })),
@@ -119,14 +141,73 @@ vi.mock('../../apps/admin/src/api', () => ({
   })),
 }))
 
+vi.mocked(listAuditLogs).mockImplementation(async () => ({
+  auditLogs: [
+    {
+      id: 'audit-created',
+      organizationId: 'org-1',
+      actorUserId: 'user-owner',
+      action: 'user.created',
+      targetType: 'user',
+      targetId: 'user-disabled',
+      metadata: { username: 'disabled-user', roles: ['member'] },
+      ipAddress: null,
+      userAgent: null,
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 'audit-password',
+      organizationId: 'org-1',
+      actorUserId: 'user-owner',
+      action: 'user.password_reset',
+      targetType: 'user',
+      targetId: 'user-owner',
+      metadata: { username: 'owner', mustChangePassword: true },
+      ipAddress: null,
+      userAgent: null,
+      createdAt: new Date(Date.now() - 3_600_000).toISOString(),
+    },
+  ],
+}))
+
+async function mountAdminApp(options: {
+  props?: InstanceType<typeof AdminApp>['$props']
+  route?: string
+} = {}) {
+  const router = createAdminRouter(createMemoryHistory())
+  await router.push(options.route ?? '/organizations')
+  const wrapper = mount(AdminApp, {
+    props: options.props,
+    global: {
+      plugins: [router],
+    },
+  })
+  await router.isReady()
+
+  return { router, wrapper }
+}
+
+async function clickAdminSection(
+  wrapper: ReturnType<typeof mount>,
+  router: ReturnType<typeof createAdminRouter>,
+  section: 'audit' | 'organizations' | 'users',
+  path: string,
+) {
+  await wrapper.get(`[data-section="${section}"]`).trigger('click')
+  await vi.waitFor(() => {
+    expect(router.currentRoute.value.path).toBe(path)
+  })
+}
+
 describe('adminApp', () => {
   beforeEach(() => {
+    window.history.replaceState(null, '', '/')
     localStorage.clear()
     vi.clearAllMocks()
   })
 
   it('shows the install wizard when Muon is not installed', async () => {
-    const wrapper = mount(AdminApp, {
+    const { wrapper } = await mountAdminApp({
       props: {
         initialInstalled: false,
       },
@@ -137,7 +218,7 @@ describe('adminApp', () => {
   })
 
   it('shows the administrator login after install', async () => {
-    const wrapper = mount(AdminApp, {
+    const { wrapper } = await mountAdminApp({
       props: {
         initialInstalled: true,
       },
@@ -148,7 +229,7 @@ describe('adminApp', () => {
   })
 
   it('persists the admin session after login', async () => {
-    const wrapper = mount(AdminApp, {
+    const { wrapper } = await mountAdminApp({
       props: {
         initialInstalled: true,
       },
@@ -166,7 +247,7 @@ describe('adminApp', () => {
   it('restores the admin session after a page refresh', async () => {
     localStorage.setItem('muon_admin_token', 'stored-token')
 
-    const wrapper = mount(AdminApp, {
+    const { wrapper } = await mountAdminApp({
       props: {
         initialInstalled: true,
       },
@@ -179,7 +260,7 @@ describe('adminApp', () => {
   })
 
   it('shows the user administration surface for signed-in admins', async () => {
-    const wrapper = mount(AdminApp, {
+    const { router, wrapper } = await mountAdminApp({
       props: {
         initialInstalled: true,
         initialAdminToken: 'admin-token',
@@ -193,14 +274,196 @@ describe('adminApp', () => {
     expect(wrapper.text()).toContain('组织管理')
     expect(wrapper.text()).toContain('用户管理')
     expect(wrapper.text()).toContain('审计日志')
+    await clickAdminSection(wrapper, router, 'users', '/users')
     await vi.waitFor(() => {
       expect(wrapper.find('[data-testid="edit-user-user-owner"]').exists()).toBe(true)
     })
     expect((wrapper.get('[data-testid="edit-user-user-owner"] input[placeholder="编辑显示名称"]').element as HTMLInputElement).value).toBe('Owner')
   })
 
+  it('switches dashboard panels from the sidebar navigation', async () => {
+    const { router, wrapper } = await mountAdminApp({
+      props: {
+        initialInstalled: true,
+        initialAdminToken: 'admin-token',
+      },
+    })
+
+    await vi.waitFor(() => {
+      expect(listAuditLogs).toHaveBeenCalled()
+    })
+
+    expect(wrapper.find('form.organization-form').exists()).toBe(true)
+    expect(wrapper.find('form.user-form').exists()).toBe(false)
+    expect(wrapper.find('[aria-label="审计日志列表"]').exists()).toBe(false)
+
+    await clickAdminSection(wrapper, router, 'users', '/users')
+
+    expect(wrapper.find('form.organization-form').exists()).toBe(false)
+    expect(wrapper.find('form.user-form').exists()).toBe(true)
+    expect(wrapper.find('[aria-label="审计日志列表"]').exists()).toBe(false)
+
+    await clickAdminSection(wrapper, router, 'audit', '/audit')
+
+    expect(wrapper.find('form.organization-form').exists()).toBe(false)
+    expect(wrapper.find('form.user-form').exists()).toBe(false)
+    expect(wrapper.find('[aria-label="审计日志列表"]').exists()).toBe(true)
+
+    await clickAdminSection(wrapper, router, 'organizations', '/organizations')
+
+    expect(wrapper.find('form.organization-form').exists()).toBe(true)
+    expect(wrapper.find('form.user-form').exists()).toBe(false)
+    expect(wrapper.find('[aria-label="审计日志列表"]').exists()).toBe(false)
+  })
+
+  it('routes directly to admin panels and updates navigation links', async () => {
+    const { router, wrapper } = await mountAdminApp({
+      route: '/users',
+      props: {
+        initialInstalled: true,
+        initialAdminToken: 'admin-token',
+      },
+    })
+
+    await vi.waitFor(() => {
+      expect(listAuditLogs).toHaveBeenCalled()
+    })
+
+    expect(wrapper.find('form.user-form').exists()).toBe(true)
+    expect(router.currentRoute.value.name).toBe('admin-users')
+    expect(wrapper.get('[data-section="users"]').attributes('aria-current')).toBe('page')
+
+    await clickAdminSection(wrapper, router, 'audit', '/audit')
+
+    expect(wrapper.find('[aria-label="审计日志列表"]').exists()).toBe(true)
+
+    await router.push('/organizations')
+    await vi.waitFor(() => {
+      expect(router.currentRoute.value.name).toBe('admin-organizations')
+    })
+
+    expect(wrapper.find('form.organization-form').exists()).toBe(true)
+    expect(wrapper.get('[data-section="organizations"]').attributes('aria-current')).toBe('page')
+  })
+
+  it('routes admin path URLs to their panels', async () => {
+    const { wrapper } = await mountAdminApp({
+      route: '/audit',
+      props: {
+        initialInstalled: true,
+        initialAdminToken: 'admin-token',
+      },
+    })
+
+    await vi.waitFor(() => {
+      expect(listAuditLogs).toHaveBeenCalled()
+    })
+
+    expect(wrapper.find('[aria-label="审计日志列表"]').exists()).toBe(true)
+    expect(wrapper.get('[data-section="audit"]').attributes('aria-current')).toBe('page')
+  })
+
+  it('refreshes dashboard data and signs out from the admin header', async () => {
+    localStorage.setItem('muon_admin_token', 'stored-token')
+    const { wrapper } = await mountAdminApp({
+      props: {
+        initialInstalled: true,
+      },
+    })
+
+    await vi.waitFor(() => {
+      expect(listUsers).toHaveBeenCalledTimes(1)
+    })
+
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain('组织 2')
+      expect(wrapper.text()).toContain('用户 2')
+      expect(wrapper.text()).toContain('审计 2')
+    })
+
+    await wrapper.get('button[data-testid="refresh-dashboard"]').trigger('click')
+    await vi.waitFor(() => {
+      expect(listUsers).toHaveBeenCalledTimes(2)
+    })
+
+    await wrapper.get('button[data-testid="logout-admin"]').trigger('click')
+
+    expect(localStorage.getItem('muon_admin_token')).toBeNull()
+    expect(wrapper.text()).toContain('进入组织后台')
+    expect(wrapper.find('nav[aria-label="管理导航"]').exists()).toBe(false)
+  })
+
+  it('filters organizations, users, and audit logs inside their management panels', async () => {
+    const { router, wrapper } = await mountAdminApp({
+      props: {
+        initialInstalled: true,
+        initialAdminToken: 'admin-token',
+      },
+    })
+
+    await vi.waitFor(() => {
+      expect(listAuditLogs).toHaveBeenCalled()
+    })
+
+    await wrapper.get('input[data-testid="organization-search"]').setValue('beta')
+
+    const organizationPanel = wrapper.get('[data-testid="organizations-panel"]')
+    expect(organizationPanel.text()).toContain('Beta Team')
+    expect(organizationPanel.text()).not.toContain('Muon')
+
+    await clickAdminSection(wrapper, router, 'users', '/users')
+    await wrapper.get('input[data-testid="user-search"]').setValue('disabled')
+    await wrapper.get('select[data-testid="user-status-filter"]').setValue('disabled')
+
+    const usersPanel = wrapper.get('[data-testid="users-panel"]')
+    expect(usersPanel.text()).toContain('disabled-user')
+    expect(usersPanel.text()).not.toContain('owner@muon.local')
+
+    await clickAdminSection(wrapper, router, 'audit', '/audit')
+    await wrapper.get('input[data-testid="audit-search"]').setValue('password')
+
+    const auditPanel = wrapper.get('[data-testid="audit-panel"]')
+    expect(auditPanel.text()).toContain('user.password_reset')
+    expect(auditPanel.text()).not.toContain('user.created')
+  })
+
+  it('updates user status and controls password reset change requirements', async () => {
+    const { wrapper } = await mountAdminApp({
+      route: '/users',
+      props: {
+        initialInstalled: true,
+        initialAdminToken: 'admin-token',
+      },
+    })
+
+    await vi.waitFor(() => {
+      expect(wrapper.find('[data-testid="edit-user-user-owner"]').exists()).toBe(true)
+    })
+
+    await wrapper.get('button[data-testid="toggle-user-status-user-owner"]').trigger('click')
+
+    await vi.waitFor(() => {
+      expect(updateAdminUser).toHaveBeenCalledWith('admin-token', 'user-owner', {
+        status: 'disabled',
+      })
+    })
+
+    const passwordForm = wrapper.get('[data-testid="reset-password-user-owner"]')
+    await passwordForm.find('input[placeholder="新密码，至少 12 位"]').setValue('new owner passphrase')
+    await passwordForm.find('input[data-testid="must-change-password-user-owner"]').setValue(true)
+    await passwordForm.trigger('submit')
+
+    await vi.waitFor(() => {
+      expect(resetAdminUserPassword).toHaveBeenCalledWith('admin-token', 'user-owner', {
+        newPassword: 'new owner passphrase',
+        mustChangePassword: true,
+      })
+    })
+  })
+
   it('creates users from the administration surface', async () => {
-    const wrapper = mount(AdminApp, {
+    const { wrapper } = await mountAdminApp({
+      route: '/users',
       props: {
         initialInstalled: true,
         initialAdminToken: 'admin-token',
@@ -229,7 +492,8 @@ describe('adminApp', () => {
   })
 
   it('updates owner accounts and resets their passwords from the administration surface', async () => {
-    const wrapper = mount(AdminApp, {
+    const { wrapper } = await mountAdminApp({
+      route: '/users',
       props: {
         initialInstalled: true,
         initialAdminToken: 'admin-token',
@@ -268,7 +532,7 @@ describe('adminApp', () => {
   })
 
   it('creates organizations from the administration surface', async () => {
-    const wrapper = mount(AdminApp, {
+    const { wrapper } = await mountAdminApp({
       props: {
         initialInstalled: true,
         initialAdminToken: 'admin-token',

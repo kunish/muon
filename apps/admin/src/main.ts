@@ -1,11 +1,18 @@
 import { createApp } from 'vue'
 import AdminApp from './AdminApp.vue'
 import { getInstallStatus } from './api'
-import '@muon/ui/styles.css'
+import { createAdminRouter, normalizeLegacyAdminHash } from './router'
+import './main.css'
 
 async function bootstrap() {
   const status = await getInstallStatus().catch(() => ({ installed: false }))
-  createApp(AdminApp, { initialInstalled: status.installed }).mount('#app')
+  normalizeLegacyAdminHash()
+
+  const router = createAdminRouter()
+  const app = createApp(AdminApp, { initialInstalled: status.installed })
+  app.use(router)
+  await router.isReady()
+  app.mount('#app')
 }
 
 void bootstrap()

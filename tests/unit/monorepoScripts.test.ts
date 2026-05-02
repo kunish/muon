@@ -19,9 +19,13 @@ describe('monorepo scripts', () => {
 
     expect(root.scripts?.dev).toBe('bash scripts/dev-all.sh')
     expect(devAll).toContain('pnpm services:up')
-    expect(devAll).toContain('pnpm dev:api')
-    expect(devAll).toContain('pnpm dev:admin')
-    expect(devAll).toContain('pnpm dev:desktop')
+    expect(devAll).toContain('pnpm --filter @muon/api exec tsx src/server.ts')
+    expect(devAll).toContain('pnpm --filter @muon/admin exec vite --host 0.0.0.0 --port 4174')
+    expect(devAll).toContain('pnpm exec electron-vite dev')
+    expect(devAll).toContain('exited with status')
+    expect(devAll).not.toContain('start "enterprise API" pnpm dev:api')
+    expect(devAll).not.toContain('start "Admin Web" pnpm dev:admin')
+    expect(devAll).not.toContain('start "Electron desktop" pnpm dev:desktop')
   })
 
   it('builds every buildable workspace from the root build command', () => {
