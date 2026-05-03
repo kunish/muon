@@ -5,9 +5,12 @@ import LoginPage from '@/features/auth/components/LoginPage.vue'
 const mocks = vi.hoisted(() => ({
   bindClientEvents: vi.fn(),
   completeEnterpriseLogin: vi.fn(),
+  desktopCallbacks: [] as Array<(url: string) => void>,
+  desktopUnsubscribe: vi.fn(),
   isEnterpriseAuthConfigured: vi.fn(() => true),
   login: vi.fn(),
   register: vi.fn(),
+  routerPush: vi.fn(),
   startEnterpriseLogin: vi.fn(),
   startSync: vi.fn(),
 }))
@@ -24,7 +27,18 @@ vi.mock('@matrix/index', () => ({
 
 vi.mock('vue-router', () => ({
   useRouter: () => ({
-    push: vi.fn(),
+    push: mocks.routerPush,
+  }),
+}))
+
+vi.mock('@/electron/bridge', () => ({
+  getDesktopBridge: () => ({
+    auth: {
+      onCallback: vi.fn((callback: (url: string) => void) => {
+        mocks.desktopCallbacks.push(callback)
+        return mocks.desktopUnsubscribe
+      }),
+    },
   }),
 }))
 
@@ -32,6 +46,7 @@ describe('loginPage enterprise login', () => {
   afterEach(() => {
     vi.unstubAllEnvs()
     vi.clearAllMocks()
+    mocks.desktopCallbacks.length = 0
   })
 
   it('shows enterprise login when an API URL is configured', () => {
@@ -39,5 +54,43 @@ describe('loginPage enterprise login', () => {
     const wrapper = mount(LoginPage)
 
     expect(wrapper.text()).toContain('企业登录')
+  })
+
+  it('starts enterprise login from the SSO button', async () => {
+    vi.stubEnv('VITE_MUON_API_BASE_URL', 'http://127.0.0.1:8787')
+    const wrapper = mount(LoginPage)
+
+    await wrapper.get('button[type="button"]').trigger('click')
+
+    expect(mocks.startEnterpriseLogin).toHaveBeenCalledOnce()
+  })
+
+  it('completes enterprise login from a desktop deeplink callback', async () => {
+    vi.stubEnv('VITE_MUON_API_BASE_URL', 'http://127.0.0.1:8787')
+    mocks.completeEnterpriseLogin.mockResolvedValue({
+      accessToken: 'matrix-token',
+      deviceId: 'MUONDEVICE',
+      serverUrl: 'http://127.0.0.1:6167',
+      userId: '@owner:localhost',
+    })
+    mount(LoginPage)
+
+    mocks.desktopCallbacks[0]('muon://auth/callback?code=oauth-code&state=oauth-state')
+
+    await vi.waitFor(() => {
+      expect(mocks.completeEnterpriseLogin).toHaveBeenCalledWith('muon://auth/callback?code=oauth-code&state=oauth-state')
+    })
+    expect(mocks.bindClientEvents).toHaveBeenCalledOnce()
+    expect(mocks.startSync).toHaveBeenCalledOnce()
+    expect(mocks.routerPush).toHaveBeenCalledWith('/dm')
+  })
+
+  it('unsubscribes from desktop deeplink callbacks on unmount', () => {
+    vi.stubEnv('VITE_MUON_API_BASE_URL', 'http://127.0.0.1:8787')
+    const wrapper = mount(LoginPage)
+
+    wrapper.unmount()
+
+    expect(mocks.desktopUnsubscribe).toHaveBeenCalledOnce()
   })
 })

@@ -17,6 +17,7 @@ import {
   unpinMessage,
   unstarMessage,
 } from '@matrix/rooms'
+import RichMessageContent from '@muon/rich-text/message-content'
 import {
   CheckSquare,
   Copy,
@@ -42,7 +43,6 @@ import { ask } from '@/electron/dialog'
 import { useSettingsStore } from '@/features/settings/stores/settingsStore'
 import { useAuthMedia } from '@/shared/composables/useAuthMedia'
 import { isFullEmojiText } from '@/shared/lib/emoji'
-import { sanitizeMatrixHtml } from '@/shared/lib/htmlSanitizer'
 import { handleMatrixLinkClick } from '@/shared/lib/matrixLinks'
 import { getSystemLanguage, translateText } from '@/shared/lib/translate'
 import { copyMessageContentToClipboard } from '../lib/messageClipboard'
@@ -232,11 +232,7 @@ const formattedBody = computed(() => {
   return ''
 })
 
-const sanitizedHtml = computed(() => {
-  if (!formattedBody.value)
-    return ''
-  return sanitizeMatrixHtml(formattedBody.value)
-})
+const sanitizedHtml = computed(() => formattedBody.value)
 
 const isFullEmoji = computed(() => {
   if (msgtype.value !== 'm.text' || !body.value)
@@ -589,11 +585,11 @@ function onOpenThread() {
               (uid: string, e: MouseEvent) => emit('avatarClick', uid, e)
             "
           />
-          <div
+          <RichMessageContent
             v-else-if="sanitizedHtml"
+            :html="sanitizedHtml"
             class="rich-message-content [&_blockquote]:border-l-2 [&_blockquote]:border-current [&_blockquote]:pl-[0.6em] [&_blockquote]:opacity-80 [&_code]:bg-[color-mix(in_srgb,var(--color-foreground)_8%,transparent)] [&_code]:px-[0.3em] [&_code]:py-[0.1em] [&_ol]:pl-[1.4em] [&_pre]:my-[0.4em] [&_pre]:rounded-md [&_pre]:bg-[color-mix(in_srgb,var(--color-foreground)_8%,transparent)] [&_pre]:p-2 [&_strong]:font-semibold [&_ul]:pl-[1.4em] [&_a]:underline [&_a]:underline-offset-2 [&_a[href^='https://matrix.to']]:no-underline"
             @click="onRichContentClick"
-            v-html="sanitizedHtml"
           />
           <template v-else>
             {{ body }}

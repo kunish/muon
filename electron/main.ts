@@ -5,6 +5,7 @@ import { createRequire } from 'node:module'
 import { join } from 'node:path'
 import process from 'node:process'
 import { app, BrowserWindow, dialog, ipcMain, net, screen, shell } from 'electron'
+import { ENTERPRISE_AUTH_CALLBACK_CHANNEL, extractEnterpriseAuthCallbackUrl, isEnterpriseAuthCallbackUrl } from './authCallback.js'
 
 let mainWindow: BrowserWindow | null = null
 const runtimeRequire = createRequire(__filename)
@@ -54,27 +55,13 @@ function sendWindowFrameEvent(channel: string): void {
   mainWindow.webContents.send(channel)
 }
 
-function isEnterpriseAuthCallbackUrl(value: string): boolean {
-  try {
-    const url = new URL(value)
-    return url.protocol === 'muon:' && url.hostname === 'auth' && url.pathname === '/callback'
-  }
-  catch {
-    return false
-  }
-}
-
-function extractEnterpriseAuthCallbackUrl(argv: readonly string[]): string | null {
-  return argv.find(value => isEnterpriseAuthCallbackUrl(value)) ?? null
-}
-
 function sendEnterpriseAuthCallbackUrl(url: string): void {
   if (!mainWindow || mainWindow.isDestroyed()) {
     pendingAuthCallbackUrl = url
     return
   }
 
-  mainWindow.webContents.send('muon:auth-callback', url)
+  mainWindow.webContents.send(ENTERPRISE_AUTH_CALLBACK_CHANNEL, url)
 }
 
 function registerEnterpriseProtocol(): void {
@@ -454,7 +441,6 @@ function createMainWindow(): void {
 
   if (!app.isPackaged && process.env.ELECTRON_RENDERER_URL) {
     mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL)
-    mainWindow.webContents.openDevTools({ mode: 'detach' })
   }
   else {
     mainWindow.loadFile(getRendererEntry())

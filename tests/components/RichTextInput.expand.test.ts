@@ -35,11 +35,11 @@ vi.mock('@/features/chat/composables/useCurrentRoom', async () => {
   }
 })
 
-vi.mock('@/features/chat/composables/useEditor', async () => {
+vi.mock('@muon/rich-text/editor', async () => {
   const { shallowRef } = await import('vue')
 
   return {
-    useEditor: () => ({
+    useRichTextEditor: () => ({
       clear: vi.fn(),
       editor: shallowRef({
         getHTML: vi.fn(() => '<p>Hello body</p>'),

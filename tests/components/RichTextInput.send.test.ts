@@ -47,8 +47,8 @@ vi.mock('@tiptap/vue-3', () => ({
   }),
 }))
 
-vi.mock('@/features/chat/composables/useEditor', () => ({
-  useEditor: (options: {
+vi.mock('@muon/rich-text/editor', () => ({
+  useRichTextEditor: (options: {
     onSubmit: (html: string, text: string) => unknown
     onPasteFiles?: (files: File[]) => unknown
     onPasteMediaSources?: (sources: Array<{ index: number, src: string, name: string, kind: 'image' | 'video' | 'file' }>) => unknown

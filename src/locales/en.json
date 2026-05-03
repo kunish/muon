@@ -541,6 +541,7 @@
     "email": "Mail",
     "calls": "Calls",
     "contacts": "Contacts",
+    "organization": "Organization",
     "settings": "Settings",
     "collapse_messages": "Collapse message sidebar",
     "expand_messages": "Expand message sidebar",

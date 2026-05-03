@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { MentionPopupState, PastedMediaSource } from '../composables/useEditor'
+import type { MentionPopupState, PastedMediaSource } from '@muon/rich-text/editor'
 import type { ImageSticker } from '@/shared/data/stickerPacks'
 import type { GifResult } from '@/shared/lib/gifSearch'
 import {
@@ -17,6 +17,8 @@ import {
   sendTextMessage,
   uploadMedia,
 } from '@matrix/index'
+import { useRichTextEditor } from '@muon/rich-text/editor'
+import { htmlToPlainText } from '@muon/rich-text/markdown'
 import { EditorContent } from '@tiptap/vue-3'
 import {
   ALargeSmall,
@@ -41,9 +43,7 @@ import { computed, nextTick, onMounted, onUnmounted, ref, shallowRef, watch } fr
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
-import { htmlToPlainText } from '@/shared/lib/markdown'
 import { useCurrentRoom } from '../composables/useCurrentRoom'
-import { useEditor } from '../composables/useEditor'
 import { getFloatingPosition } from '../composables/useFloatingPosition'
 import { useMediaUpload } from '../composables/useMediaUpload'
 import { useMediaViewer } from '../composables/useMediaViewer'
@@ -135,7 +135,7 @@ const editorHeightClass = computed(() => {
   return 'overflow-hidden min-h-[40px] max-h-[40px] [&_.tiptap]:min-h-[24px] [&_.tiptap]:overflow-hidden [&_.tiptap]:whitespace-nowrap [&_.tiptap_p]:truncate'
 })
 
-const { editor, clear, insertEmoji, insertPendingMediaAttachment } = useEditor({
+const { editor, clear, insertEmoji, insertPendingMediaAttachment } = useRichTextEditor({
   placeholder: placeholderText,
   onSubmit: submitComposer,
   onPasteFiles: handlePasteFiles,

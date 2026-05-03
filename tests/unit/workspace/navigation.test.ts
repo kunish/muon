@@ -6,6 +6,7 @@ describe('workspace navigation', () => {
     expect(workspaceApps.map(app => app.id)).toEqual([
       'messages',
       'contacts',
+      'organization',
       'calendar',
       'docs',
       'workplace',
@@ -21,6 +22,8 @@ describe('workspace navigation', () => {
     ['/dm/!room%3Alocalhost', 'messages'],
     ['/server/!space%3Alocalhost/channel/!room%3Alocalhost', 'messages'],
     ['/contacts', 'contacts'],
+    ['/organization', 'organization'],
+    ['/organization/members', 'organization'],
     ['/calendar', 'calendar'],
     ['/calendar/team', 'calendar'],
     ['/docs', 'docs'],

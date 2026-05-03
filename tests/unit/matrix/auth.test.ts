@@ -15,6 +15,8 @@ const mockRegister = vi.fn().mockResolvedValue({
   device_id: 'MOCK_DEVICE',
 })
 const mockSetDisplayName = vi.fn().mockResolvedValue(undefined)
+const mockOpenUrl = vi.fn().mockResolvedValue(undefined)
+const mockFetch = vi.fn()
 
 vi.mock('@matrix/client', () => ({
   createClient: vi.fn(() => ({
@@ -30,6 +32,10 @@ vi.mock('@matrix/client', () => ({
   destroyClient: mockDestroyClient,
 }))
 
+vi.mock('@/electron/opener', () => ({
+  openUrl: mockOpenUrl,
+}))
+
 vi.mock('@/matrix/sync', () => ({
   stopSync: mockStopSync,
 }))
@@ -42,6 +48,8 @@ describe('auth', () => {
   beforeEach(() => {
     localStorage.clear()
     vi.clearAllMocks()
+    mockFetch.mockReset()
+    vi.stubGlobal('fetch', mockFetch)
   })
 
   it('should login and persist session', async () => {
@@ -118,5 +126,81 @@ describe('auth', () => {
     const result = restoreSession()
 
     expect(result).toBe(false)
+  })
+
+  it('starts enterprise SSO with desktop OAuth parameters', async () => {
+    const { startEnterpriseLogin } = await import('@/matrix/auth')
+
+    await startEnterpriseLogin('http://127.0.0.1:8787/')
+
+    expect(mockOpenUrl).toHaveBeenCalledOnce()
+    const authorizeUrl = new URL(mockOpenUrl.mock.calls[0][0])
+    expect(authorizeUrl.origin).toBe('http://127.0.0.1:8787')
+    expect(authorizeUrl.pathname).toBe('/api/oauth/authorize')
+    expect(authorizeUrl.searchParams.get('client_id')).toBe('muon-desktop')
+    expect(authorizeUrl.searchParams.get('redirect_uri')).toBe('muon://auth/callback')
+    expect(authorizeUrl.searchParams.get('response_type')).toBe('code')
+    expect(authorizeUrl.searchParams.get('code_challenge_method')).toBe('S256')
+    expect(authorizeUrl.searchParams.get('code_challenge')).toBeTruthy()
+    expect(authorizeUrl.searchParams.get('state')).toBeTruthy()
+    expect(JSON.parse(localStorage.getItem('muon_enterprise_pkce')!)).toMatchObject({
+      state: authorizeUrl.searchParams.get('state'),
+    })
+  })
+
+  it('completes enterprise SSO from a deeplink and stores the client session', async () => {
+    const { completeEnterpriseLogin } = await import('@/matrix/auth')
+    localStorage.setItem('muon_enterprise_pkce', JSON.stringify({
+      codeVerifier: 'pkce-verifier',
+      state: 'oauth-state',
+    }))
+    mockFetch.mockResolvedValue(new Response(JSON.stringify({
+      matrixSession: {
+        accessToken: 'matrix-token',
+        deviceId: 'MUONDEVICE',
+        serverUrl: 'http://127.0.0.1:6167',
+        userId: '@owner:localhost',
+      },
+      muonSession: {
+        accessToken: 'muon-token',
+        expiresAt: new Date('2026-06-01T00:00:00.000Z').toISOString(),
+        refreshToken: 'refresh-token',
+      },
+    }), {
+      headers: { 'content-type': 'application/json' },
+      status: 200,
+    }))
+
+    const session = await completeEnterpriseLogin(
+      'muon://auth/callback?code=oauth-code&state=oauth-state',
+      'http://127.0.0.1:8787/',
+    )
+
+    expect(mockFetch).toHaveBeenCalledOnce()
+    const [tokenUrl, tokenRequest] = mockFetch.mock.calls[0] as [string, RequestInit]
+    expect(tokenUrl).toBe('http://127.0.0.1:8787/api/oauth/token')
+    expect(tokenRequest).toMatchObject({
+      headers: { 'content-type': 'application/json' },
+      method: 'POST',
+    })
+    expect(JSON.parse(String(tokenRequest.body))).toEqual({
+      clientId: 'muon-desktop',
+      code: 'oauth-code',
+      codeVerifier: 'pkce-verifier',
+      deviceName: 'Muon Desktop',
+      redirectUri: 'muon://auth/callback',
+    })
+    expect(session).toEqual({
+      accessToken: 'matrix-token',
+      deviceId: 'MUONDEVICE',
+      serverUrl: 'http://127.0.0.1:6167',
+      userId: '@owner:localhost',
+    })
+    expect(JSON.parse(localStorage.getItem('muon_auth')!)).toEqual(session)
+    expect(JSON.parse(localStorage.getItem('muon_enterprise_session')!)).toMatchObject({
+      accessToken: 'muon-token',
+      refreshToken: 'refresh-token',
+    })
+    expect(localStorage.getItem('muon_enterprise_pkce')).toBeNull()
   })
 })

@@ -1,5 +1,4 @@
-import { sanitizeMatrixHtml } from '@/shared/lib/htmlSanitizer'
-import { htmlToPlainText } from '@/shared/lib/markdown'
+import { htmlToPlainText, sanitizeMatrixHtml } from '@muon/rich-text'
 
 export interface MessageClipboardPayload {
   text: string

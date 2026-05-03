@@ -1,15 +1,15 @@
+import { useRichTextEditor } from '@muon/rich-text/editor'
 import { EditorContent } from '@tiptap/vue-3'
 import { mount } from '@vue/test-utils'
 import { describe, expect, it, vi } from 'vitest'
 import { defineComponent, h, nextTick } from 'vue'
-import { useEditor } from '@/features/chat/composables/useEditor'
 
-describe('useEditor', () => {
+describe('useRichTextEditor', () => {
   it('converts pasted markdown into rich editor content', async () => {
-    let editorApi: ReturnType<typeof useEditor>
+    let editorApi: ReturnType<typeof useRichTextEditor>
     const TestEditor = defineComponent({
       setup() {
-        const api = useEditor({
+        const api = useRichTextEditor({
           onSubmit: vi.fn(),
         })
         editorApi = api
@@ -49,10 +49,10 @@ describe('useEditor', () => {
 
   it('routes pasted files to the media paste handler before text paste handling', async () => {
     const onPasteFiles = vi.fn()
-    let editorApi: ReturnType<typeof useEditor>
+    let editorApi: ReturnType<typeof useRichTextEditor>
     const TestEditor = defineComponent({
       setup() {
-        const api = useEditor({
+        const api = useRichTextEditor({
           onSubmit: vi.fn(),
           onPasteFiles,
         })
@@ -93,10 +93,10 @@ describe('useEditor', () => {
 
   it('reads pasted files from clipboard items when the files list is empty', async () => {
     const onPasteFiles = vi.fn()
-    let editorApi: ReturnType<typeof useEditor>
+    let editorApi: ReturnType<typeof useRichTextEditor>
     const TestEditor = defineComponent({
       setup() {
-        const api = useEditor({
+        const api = useRichTextEditor({
           onSubmit: vi.fn(),
           onPasteFiles,
         })
@@ -146,10 +146,10 @@ describe('useEditor', () => {
       kind: 'image' as const,
       previewUrl: 'blob:image.png',
     }
-    let editorApi: ReturnType<typeof useEditor>
+    let editorApi: ReturnType<typeof useRichTextEditor>
     const TestEditor = defineComponent({
       setup() {
-        const api = useEditor({
+        const api = useRichTextEditor({
           onSubmit: vi.fn(),
           onPasteMediaSources,
           pendingMedia: {
@@ -221,10 +221,10 @@ describe('useEditor', () => {
       kind: 'image' as const,
       previewUrl: 'blob:cursor.png',
     }
-    let editorApi: ReturnType<typeof useEditor>
+    let editorApi: ReturnType<typeof useRichTextEditor>
     const TestEditor = defineComponent({
       setup() {
-        const api = useEditor({
+        const api = useRichTextEditor({
           onSubmit: vi.fn(),
           pendingMedia: {
             getAttachment: id => id === attachment.id ? attachment : undefined,
@@ -269,10 +269,10 @@ describe('useEditor', () => {
 
   it('allows Enter to create a new line when submitOnEnter is false', async () => {
     const onSubmit = vi.fn()
-    let editorApi: ReturnType<typeof useEditor>
+    let editorApi: ReturnType<typeof useRichTextEditor>
     const TestEditor = defineComponent({
       setup() {
-        const api = useEditor({
+        const api = useRichTextEditor({
           onSubmit,
           submitOnEnter: false,
         })
@@ -302,10 +302,10 @@ describe('useEditor', () => {
 
   it('submits on Enter with empty text when non-text content is pending', async () => {
     const onSubmit = vi.fn()
-    let editorApi: ReturnType<typeof useEditor>
+    let editorApi: ReturnType<typeof useRichTextEditor>
     const TestEditor = defineComponent({
       setup() {
-        const api = useEditor({
+        const api = useRichTextEditor({
           onSubmit,
           canSubmit: true,
         })
@@ -334,10 +334,10 @@ describe('useEditor', () => {
 
   it('submits an atom-only mention with its rendered text', async () => {
     const onSubmit = vi.fn()
-    let editorApi: ReturnType<typeof useEditor>
+    let editorApi: ReturnType<typeof useRichTextEditor>
     const TestEditor = defineComponent({
       setup() {
-        const api = useEditor({
+        const api = useRichTextEditor({
           onSubmit,
         })
         editorApi = api

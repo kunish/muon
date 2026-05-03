@@ -33,14 +33,17 @@ describe('monorepo scripts', () => {
     const api = readJson('apps/api/package.json')
     const admin = readJson('apps/admin/package.json')
     const contracts = readJson('packages/enterprise-contracts/package.json')
+    const richText = readJson('packages/rich-text/package.json')
 
     expect(root.scripts?.build).toContain('pnpm build:contracts')
+    expect(root.scripts?.build).toContain('pnpm build:rich-text')
     expect(root.scripts?.build).toContain('pnpm build:api')
     expect(root.scripts?.build).toContain('pnpm build:admin')
     expect(root.scripts?.build).toContain('pnpm build:desktop')
     expect(api.scripts?.build).toBeDefined()
     expect(admin.scripts?.build).toBeDefined()
     expect(contracts.scripts?.build).toBeDefined()
+    expect(richText.scripts?.build).toBeDefined()
   })
 
   it('keeps local services focused on infrastructure', () => {

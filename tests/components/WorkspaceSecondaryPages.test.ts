@@ -1,10 +1,11 @@
 import { mount } from '@vue/test-utils'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import ApprovalsPage from '@/features/approvals/components/ApprovalsPage.vue'
 import CalendarPage from '@/features/calendar/components/CalendarPage.vue'
 import CallsPage from '@/features/calls/components/CallsPage.vue'
 import DocsPage from '@/features/docs/components/DocsPage.vue'
 import EmailPage from '@/features/email/components/EmailPage.vue'
+import OrganizationPage from '@/features/organization/components/OrganizationPage.vue'
 import WorkplacePage from '@/features/workplace/components/WorkplacePage.vue'
 
 const pages = [
@@ -17,6 +18,11 @@ const pages = [
     component: WorkplacePage,
     name: '工作台',
     requiredText: ['添加应用', '推荐应用', '今日重点'],
+  },
+  {
+    component: OrganizationPage,
+    name: '组织',
+    requiredText: ['组织架构', '成员目录', '团队群组'],
   },
   {
     component: CalendarPage,
@@ -41,6 +47,10 @@ const pages = [
 ]
 
 describe('workspace secondary pages', () => {
+  beforeEach(() => {
+    localStorage.removeItem('muon_organization_directory_v1')
+  })
+
   it.each(pages)('renders a complete Chinese workspace frame for $name', ({ component, name, requiredText }) => {
     const wrapper = mount(component)
 
@@ -78,6 +88,73 @@ describe('workspace secondary pages', () => {
 
     await wrapper.get('[data-testid="workplace-add-app"]').trigger('click')
     expect(wrapper.text()).toContain('自定义流程')
+  })
+
+  it('lets organization search, section navigation, and invite action work locally', async () => {
+    const wrapper = mount(OrganizationPage)
+
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain('小红')
+    })
+
+    await wrapper.get('[data-testid="organization-search-input"]').setValue('小红')
+    expect(wrapper.text()).toContain('小红')
+    expect(wrapper.text()).not.toContain('小明')
+
+    await wrapper.get('[data-testid="organization-section-groups"]').trigger('click')
+    expect(wrapper.text()).toContain('团队群组')
+    expect(wrapper.text()).toContain('技术交流群')
+
+    await wrapper.get('[data-testid="organization-invite-member"]').trigger('click')
+    expect(wrapper.text()).toContain('邀请成员入口已就绪')
+  })
+
+  it('lets organization members be created, edited, and deleted locally', async () => {
+    const wrapper = mount(OrganizationPage)
+
+    await wrapper.get('[data-testid="organization-invite-member"]').trigger('click')
+    await wrapper.get('[data-testid="organization-member-name-input"]').setValue('新成员')
+    await wrapper.get('[data-testid="organization-member-id-input"]').setValue('@new-member:localhost')
+    await wrapper.get('[data-testid="organization-member-role-input"]').setValue('产品负责人')
+    await wrapper.get('[data-testid="organization-member-save"]').trigger('click')
+
+    expect(wrapper.text()).toContain('新成员')
+    expect(wrapper.text()).toContain('产品负责人')
+
+    await wrapper.get('[data-testid="organization-edit-member--new-member-localhost"]').trigger('click')
+    await wrapper.get('[data-testid="organization-member-name-input"]').setValue('成员一号')
+    await wrapper.get('[data-testid="organization-member-save"]').trigger('click')
+
+    expect(wrapper.text()).toContain('成员一号')
+    expect(wrapper.text()).not.toContain('新成员')
+
+    await wrapper.get('[data-testid="organization-delete-member--new-member-localhost"]').trigger('click')
+
+    expect(wrapper.text()).not.toContain('成员一号')
+  })
+
+  it('lets organization teams be created, edited, and deleted locally', async () => {
+    const wrapper = mount(OrganizationPage)
+
+    await wrapper.get('[data-testid="organization-section-groups"]').trigger('click')
+    await wrapper.get('[data-testid="organization-new-group"]').trigger('click')
+    await wrapper.get('[data-testid="organization-group-name-input"]').setValue('体验小组')
+    await wrapper.get('[data-testid="organization-group-desc-input"]').setValue('负责客户端体验优化')
+    await wrapper.get('[data-testid="organization-group-save"]').trigger('click')
+
+    expect(wrapper.text()).toContain('体验小组')
+    expect(wrapper.text()).toContain('负责客户端体验优化')
+
+    await wrapper.get('[data-testid^="organization-edit-group-local-team-"]').trigger('click')
+    await wrapper.get('[data-testid="organization-group-name-input"]').setValue('体验平台组')
+    await wrapper.get('[data-testid="organization-group-save"]').trigger('click')
+
+    expect(wrapper.text()).toContain('体验平台组')
+    expect(wrapper.text()).not.toContain('体验小组')
+
+    await wrapper.get('[data-testid^="organization-delete-group-local-team-"]').trigger('click')
+
+    expect(wrapper.text()).not.toContain('体验平台组')
   })
 
   it('lets calendar week navigation and new event work locally', async () => {

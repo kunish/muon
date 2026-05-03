@@ -1,10 +1,9 @@
 import type { MatrixEvent, Room } from 'matrix-js-sdk'
 import type { RoomMessageEventContent, StickerEventContent } from 'matrix-js-sdk/lib/@types/events'
 import type { VideoInfo } from 'matrix-js-sdk/lib/@types/media'
+import { htmlToPlainText, sanitizeMatrixHtml } from '@muon/rich-text'
 import { EventTimeline, EventType, MsgType, RelationType } from 'matrix-js-sdk'
 import { fetch as desktopFetch } from '@/electron/http'
-import { sanitizeMatrixHtml } from '@/shared/lib/htmlSanitizer'
-import { htmlToPlainText } from '@/shared/lib/markdown'
 import { getClient } from './client'
 import { extractImageMeta, uploadMedia } from './media'
 

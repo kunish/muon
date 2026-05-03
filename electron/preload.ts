@@ -1,5 +1,6 @@
 import process from 'node:process'
 import { contextBridge, ipcRenderer } from 'electron'
+import { ENTERPRISE_AUTH_CALLBACK_CHANNEL } from './authCallback.js'
 
 function subscribe(channel: string, callback: () => void): () => void {
   const listener = (): void => callback()
@@ -15,7 +16,7 @@ function subscribeValue<T>(channel: string, callback: (value: T) => void): () =>
 
 contextBridge.exposeInMainWorld('muonDesktop', {
   auth: {
-    onCallback: (callback: (url: string) => void) => subscribeValue('muon:auth-callback', callback),
+    onCallback: (callback: (url: string) => void) => subscribeValue(ENTERPRISE_AUTH_CALLBACK_CHANNEL, callback),
   },
   dialog: {
     ask: (message: string, options?: unknown) => ipcRenderer.invoke('muon:dialog:ask', message, options),

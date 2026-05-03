@@ -4,6 +4,8 @@ import type { MatrixEvent } from 'matrix-js-sdk'
 import { getClient } from '@matrix/client'
 import { getReactions, getThreadReplies, redactMessage } from '@matrix/index'
 import { fetchMediaBlobUrl } from '@matrix/media'
+import { hasPlainUrl, linkifyPlainText, sanitizeMatrixHtml } from '@muon/rich-text'
+import RichMessageContent from '@muon/rich-text/message-content'
 import { Avatar } from '@muon/ui/avatar'
 import { Copy, MessageSquare, Reply, Trash2 } from 'lucide-vue-next'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
@@ -14,7 +16,6 @@ import { useAuthMedia } from '@/shared/composables/useAuthMedia'
 import { useContextMenuScrollLock } from '@/shared/composables/useContextMenuScrollLock'
 import { useViewportClampedFloating } from '@/shared/composables/useViewportClampedFloating'
 import { isFullEmojiText } from '@/shared/lib/emoji'
-import { sanitizeMatrixHtml } from '@/shared/lib/htmlSanitizer'
 import { handleMatrixLinkClick } from '@/shared/lib/matrixLinks'
 import { getFloatingPosition } from '../composables/useFloatingPosition'
 import { useMediaViewer } from '../composables/useMediaViewer'
@@ -350,7 +351,6 @@ const currentRoomMemberIds = computed(() => {
 })
 
 const urlRegex = /https?:\/\/[^\s<>"]+/gi
-const hasUrlRegex = /https?:\/\/[^\s<>"]+/i
 
 function getMatrixToUserId(href: string): string {
   try {
@@ -383,50 +383,10 @@ function markOutOfContextMentions(html: string): string {
   return template.innerHTML
 }
 
-function escapeHtmlText(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-}
-
-function escapeHtmlAttribute(value: string): string {
-  return escapeHtmlText(value).replace(/'/g, '&#39;')
-}
-
-function stripTrailingUrlPunctuation(url: string): { href: string, trailing: string } {
-  const match = url.match(/[),.;:!?]+$/)
-  if (!match)
-    return { href: url, trailing: '' }
-  return {
-    href: url.slice(0, -match[0].length),
-    trailing: match[0],
-  }
-}
-
-function linkifyPlainText(text: string): string {
-  let html = ''
-  let lastIndex = 0
-  for (const match of text.matchAll(urlRegex)) {
-    const rawUrl = match[0]
-    const index = match.index ?? 0
-    const { href, trailing } = stripTrailingUrlPunctuation(rawUrl)
-    if (!href)
-      continue
-
-    html += escapeHtmlText(text.slice(lastIndex, index))
-    html += `<a href="${escapeHtmlAttribute(href)}" target="_blank" rel="noopener noreferrer">${escapeHtmlText(href)}</a>${escapeHtmlText(trailing)}`
-    lastIndex = index + rawUrl.length
-  }
-  html += escapeHtmlText(text.slice(lastIndex))
-  return html
-}
-
 const linkifiedPlainBodyHtml = computed(() => {
   if (formattedBody.value || (msgtype.value !== 'm.text' && msgtype.value !== 'm.notice') || !body.value)
     return ''
-  if (!hasUrlRegex.test(body.value))
+  if (!hasPlainUrl(body.value))
     return ''
   return linkifyPlainText(body.value)
 })
@@ -793,11 +753,15 @@ onUnmounted(() => {
         <div
           v-else-if="sanitizedHtml"
           ref="richContentRef"
-          class="rich-message-content text-[15px] leading-relaxed text-foreground/90 whitespace-pre-wrap break-words [&_blockquote]:border-l-[3px] [&_blockquote]:border-muted-foreground [&_blockquote]:pl-3 [&_blockquote]:text-muted-foreground [&_code]:border [&_code]:border-border [&_code]:bg-muted [&_code]:px-[0.35em] [&_code]:py-[0.15em] [&_code]:font-['Consolas','Monaco',monospace] [&_del]:opacity-70 [&_del]:line-through [&_em]:italic [&_img]:my-1 [&_img]:block [&_img]:max-h-[400px] [&_img]:max-w-[300px] [&_img]:cursor-pointer [&_img]:rounded-lg [&_img]:bg-muted [&_img]:object-contain [&_ol]:pl-6 [&_p]:my-1 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_pre]:my-2 [&_pre]:rounded [&_pre]:border [&_pre]:border-border [&_pre]:bg-card [&_pre]:p-3 [&_pre_code]:border-0 [&_s]:opacity-70 [&_s]:line-through [&_strong]:font-bold [&_strong]:text-foreground [&_ul]:pl-6 [&_a]:text-primary [&_a]:no-underline hover:[&_a]:underline [&_a[href^='https://matrix.to']]:rounded [&_a[href^='https://matrix.to']]:bg-[color-mix(in_srgb,var(--color-primary)_15%,transparent)] [&_a[href^='https://matrix.to']]:px-0.5 hover:[&_a[href^='https://matrix.to']]:bg-[color-mix(in_srgb,var(--color-primary)_25%,transparent)]"
           :class="textBubbleClass"
-          @click="onRichContentClick"
-          v-html="sanitizedHtml"
-        />
+        >
+          <RichMessageContent
+            :html="sanitizedHtml"
+            :sanitize="false"
+            class="text-[15px] leading-relaxed text-foreground/90 whitespace-pre-wrap break-words [&_blockquote]:border-l-[3px] [&_blockquote]:border-muted-foreground [&_blockquote]:pl-3 [&_blockquote]:text-muted-foreground [&_code]:border [&_code]:border-border [&_code]:bg-muted [&_code]:px-[0.35em] [&_code]:py-[0.15em] [&_code]:font-['Consolas','Monaco',monospace] [&_del]:opacity-70 [&_del]:line-through [&_em]:italic [&_img]:my-1 [&_img]:block [&_img]:max-h-[400px] [&_img]:max-w-[300px] [&_img]:cursor-pointer [&_img]:rounded-lg [&_img]:bg-muted [&_img]:object-contain [&_ol]:pl-6 [&_p]:my-1 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_pre]:my-2 [&_pre]:rounded [&_pre]:border [&_pre]:border-border [&_pre]:bg-card [&_pre]:p-3 [&_pre_code]:border-0 [&_s]:opacity-70 [&_s]:line-through [&_strong]:font-bold [&_strong]:text-foreground [&_ul]:pl-6 [&_a]:text-primary [&_a]:no-underline hover:[&_a]:underline [&_a[href^='https://matrix.to']]:rounded [&_a[href^='https://matrix.to']]:bg-[color-mix(in_srgb,var(--color-primary)_15%,transparent)] [&_a[href^='https://matrix.to']]:px-0.5 hover:[&_a[href^='https://matrix.to']]:bg-[color-mix(in_srgb,var(--color-primary)_25%,transparent)]"
+            @click="onRichContentClick"
+          />
+        </div>
         <p
           v-else-if="isFullEmoji"
           class="whitespace-pre-wrap break-words text-[44px] leading-none"

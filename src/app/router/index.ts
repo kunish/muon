@@ -41,6 +41,11 @@ const router = createRouter({
           component: () => import('@features/contacts/components/ContactsPage.vue'),
         },
         {
+          path: 'organization',
+          name: 'organization',
+          component: () => import('@features/organization/components/OrganizationPage.vue'),
+        },
+        {
           path: 'calendar',
           name: 'calendar',
           component: () => import('@features/calendar/components/CalendarPage.vue'),

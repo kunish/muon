@@ -1,7 +1,7 @@
 import type { Component } from 'vue'
-import { CalendarDays, CheckSquare, FileText, Grid3X3, Mail, MessageCircle, Phone, Settings, Users } from 'lucide-vue-next'
+import { Building2, CalendarDays, CheckSquare, FileText, Grid3X3, Mail, MessageCircle, Phone, Settings, Users } from 'lucide-vue-next'
 
-export type WorkspaceAppId = 'messages' | 'contacts' | 'calendar' | 'docs' | 'workplace' | 'approvals' | 'email' | 'calls' | 'settings'
+export type WorkspaceAppId = 'messages' | 'contacts' | 'organization' | 'calendar' | 'docs' | 'workplace' | 'approvals' | 'email' | 'calls' | 'settings'
 
 export interface WorkspaceApp {
   id: WorkspaceAppId
@@ -22,6 +22,7 @@ function matchesAnyPrefix(path: string, prefixes: readonly string[]): boolean {
 export const workspaceApps: WorkspaceApp[] = [
   { id: 'messages', labelKey: 'sidebar.messages', path: '/dm', icon: MessageCircle, match: path => path === '/' || matchesAnyPrefix(path, ['/dm', '/server']) },
   { id: 'contacts', labelKey: 'sidebar.contacts', path: '/contacts', icon: Users, match: path => matchesPrefix(path, '/contacts') },
+  { id: 'organization', labelKey: 'sidebar.organization', path: '/organization', icon: Building2, match: path => matchesPrefix(path, '/organization') },
   { id: 'calendar', labelKey: 'sidebar.calendar', path: '/calendar', icon: CalendarDays, match: path => matchesPrefix(path, '/calendar') },
   { id: 'docs', labelKey: 'sidebar.docs', path: '/docs', icon: FileText, match: path => matchesPrefix(path, '/docs') },
   { id: 'workplace', labelKey: 'sidebar.workplace', path: '/workplace', icon: Grid3X3, match: path => matchesPrefix(path, '/workplace') },

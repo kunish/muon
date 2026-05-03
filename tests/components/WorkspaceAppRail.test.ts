@@ -30,6 +30,7 @@ describe('workspaceAppRail', () => {
     expect(wrapper.get('[data-testid="workspace-app-messages"]').attributes('aria-label')).toBe('消息')
     expect(wrapper.get('[data-testid="workspace-app-contacts"]').attributes('aria-current')).toBe('page')
     expect(wrapper.get('[data-testid="workspace-app-contacts"]').attributes('aria-label')).toBe('联系人')
+    expect(wrapper.get('[data-testid="workspace-app-organization"]').attributes('aria-label')).toBe('组织')
     expect(wrapper.get('[data-testid="workspace-app-calendar"]').attributes('aria-label')).toBe('日历')
     expect(wrapper.get('[data-testid="workspace-app-docs"]').attributes('aria-label')).toBe('文档')
     expect(wrapper.get('[data-testid="workspace-app-workplace"]').attributes('aria-label')).toBe('工作台')
@@ -52,6 +53,14 @@ describe('workspaceAppRail', () => {
     await wrapper.find('[data-testid="workspace-app-docs"]').trigger('click')
 
     expect(push).toHaveBeenCalledWith('/docs')
+  })
+
+  it('navigates to the organization hub entry', async () => {
+    const wrapper = mount(WorkspaceAppRail)
+
+    await wrapper.find('[data-testid="workspace-app-organization"]').trigger('click')
+
+    expect(push).toHaveBeenCalledWith('/organization')
   })
 
   it('navigates to a missing Feishu secondary app entry', async () => {

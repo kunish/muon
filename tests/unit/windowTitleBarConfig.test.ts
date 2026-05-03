@@ -52,4 +52,12 @@ describe('custom window title bar configuration', () => {
     expect(config).toContain('entry: resolve(__dirname, \'electron/main.ts\')')
     expect(config).toContain('entry: resolve(__dirname, \'electron/preload.ts\')')
   })
+
+  it('does not auto-open DevTools during local desktop development', () => {
+    const source = readSource('electron/main.ts')
+
+    expect(source).toContain('process.env.ELECTRON_RENDERER_URL')
+    expect(source).toContain('mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL)')
+    expect(source).not.toContain('openDevTools')
+  })
 })

@@ -541,6 +541,7 @@
     "email": "邮件",
     "calls": "通话",
     "contacts": "联系人",
+    "organization": "组织",
     "settings": "设置",
     "collapse_messages": "收起消息侧边栏",
     "expand_messages": "展开消息侧边栏",
