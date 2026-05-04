@@ -44,11 +44,11 @@ const presetColors = [
   '#6a6560', // dark warm gray
 ]
 
-const DEFAULT_ROLES: Omit<Role, 'id'>[] = [
-  { name: 'Owner', color: '#c08b2e', powerLevel: 100, isDefault: true },
-  { name: 'Admin', color: '#b85c4a', powerLevel: 75, isDefault: true },
-  { name: 'Moderator', color: '#4a9882', powerLevel: 50, isDefault: true },
-  { name: 'Member', color: '#8a8580', powerLevel: 0, isDefault: true },
+const DEFAULT_ROLE_DEFINITIONS = [
+  { nameKey: 'role.owner', color: '#c08b2e', powerLevel: 100, isDefault: true },
+  { nameKey: 'role.admin', color: '#b85c4a', powerLevel: 75, isDefault: true },
+  { nameKey: 'role.moderator', color: '#4a9882', powerLevel: 50, isDefault: true },
+  { nameKey: 'role.member', color: '#8a8580', powerLevel: 0, isDefault: true },
 ]
 
 // ── State ──
@@ -78,7 +78,7 @@ function loadRoles() {
   if (content?.roles && Array.isArray(content.roles)) {
     roles.value = content.roles.map((r: any, idx: number) => ({
       id: r.id || `role_${idx}`,
-      name: r.name || 'Unnamed',
+      name: r.name || t('role.unnamed'),
       color: r.color || '#8a8580',
       powerLevel: r.powerLevel ?? 0,
       isDefault: r.isDefault ?? false,
@@ -86,8 +86,9 @@ function loadRoles() {
   }
   else {
     // Initialize with defaults
-    roles.value = DEFAULT_ROLES.map((r, idx) => ({
+    roles.value = DEFAULT_ROLE_DEFINITIONS.map((r, idx) => ({
       ...r,
+      name: t(r.nameKey),
       id: `role_${idx}`,
     }))
   }
@@ -111,7 +112,7 @@ function selectRole(roleId: string) {
 function addRole() {
   const newRole: Role = {
     id: `role_${Date.now()}`,
-    name: 'New Role',
+    name: t('role.new_role'),
     color: '#c08b2e',
     powerLevel: 1,
     isDefault: false,
@@ -232,7 +233,7 @@ onMounted(loadRoles)
             v-if="role.isDefault"
             class="ml-auto text-[10px] text-muted-foreground/50"
           >
-            default
+            {{ t('role.default_role') }}
           </span>
         </button>
       </div>
@@ -247,7 +248,7 @@ onMounted(loadRoles)
             </Label>
             <Input
               v-model="editName"
-              placeholder="Role name"
+              :placeholder="t('role.role_name_placeholder')"
             />
           </div>
 
@@ -303,7 +304,7 @@ onMounted(loadRoles)
               <span class="text-xs text-muted-foreground/50">100</span>
             </div>
             <p class="text-xs text-muted-foreground">
-              Higher levels can manage users at lower levels. Owner = 100, Admin = 75, Moderator = 50.
+              {{ t('role.power_level_hint') }}
             </p>
           </div>
 

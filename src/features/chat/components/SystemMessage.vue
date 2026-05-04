@@ -21,13 +21,14 @@ import { computed } from 'vue'
 
 const props = defineProps<{
   event: MatrixEvent
+  events?: MatrixEvent[]
 }>()
 
 const emit = defineEmits<{
   userClick: [userId: string, event: MouseEvent]
 }>()
 
-const info = computed<SystemEventInfo>(() => getSystemEventInfo(props.event))
+const info = computed<SystemEventInfo>(() => getSystemEventInfo(props.events?.length ? props.events : props.event))
 
 const ICON_MAP: Record<string, any> = {
   join: ArrowRight,

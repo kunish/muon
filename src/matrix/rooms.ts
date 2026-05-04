@@ -188,6 +188,23 @@ export async function toggleRoomMute(roomId: string): Promise<boolean> {
   }
 }
 
+/** 标记房间最新可见事件为已读 */
+export async function markRoomAsRead(roomId: string): Promise<void> {
+  const client = getClient()
+  const room = client.getRoom(roomId)
+  if (!room)
+    return
+
+  const { event, lastTimeEvent } = getLatestVisibleEvent(room)
+  const markerEvent = lastTimeEvent ?? event
+  const markerEventId = markerEvent?.getId()
+  if (!markerEvent || !markerEventId)
+    return
+
+  await client.setRoomReadMarkers(roomId, markerEventId, event ?? markerEvent)
+  invalidateRoomSummariesCache()
+}
+
 /** 退出房间 */
 export async function leaveRoom(roomId: string): Promise<void> {
   const client = getClient()

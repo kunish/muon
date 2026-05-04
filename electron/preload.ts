@@ -15,6 +15,10 @@ function subscribeValue<T>(channel: string, callback: (value: T) => void): () =>
 }
 
 contextBridge.exposeInMainWorld('muonDesktop', {
+  app: {
+    setAutoLaunch: (enabled: boolean) => ipcRenderer.invoke('muon:app:set-auto-launch', enabled),
+    setCloseToTray: (enabled: boolean) => ipcRenderer.invoke('muon:app:set-close-to-tray', enabled),
+  },
   auth: {
     onCallback: (callback: (url: string) => void) => subscribeValue(ENTERPRISE_AUTH_CALLBACK_CHANNEL, callback),
   },

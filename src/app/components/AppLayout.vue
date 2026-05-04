@@ -8,12 +8,12 @@ import { useServerStore } from '@features/server/stores/serverStore'
 import { useTheme } from '@features/settings/composables/useTheme'
 import { useSettingsStore } from '@features/settings/stores/settingsStore'
 import { getClient } from '@matrix/client'
-import { Button } from '@muon/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@muon/ui/dialog'
+import { getMyDisplayName } from '@matrix/index'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
+import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
 import { useGlobalShortcuts } from '../composables/useGlobalShortcuts'
 import GlobalOverlayHost from './GlobalOverlayHost.vue'
 import NetworkStatusBar from './NetworkStatusBar.vue'
@@ -33,6 +33,10 @@ useGlobalShortcuts()
 
 const showChannelSidebar = computed(() => {
   return getWorkspaceAppForPath(route.path).id === 'messages'
+})
+
+const visibleMessageUnreadCount = computed(() => {
+  return settingsStore.badgeCount ? totalUnreadCount.value : 0
 })
 
 const showServerSettings = ref(false)
@@ -93,7 +97,8 @@ watch(() => route.fullPath, syncServerSelectionFromRoute)
 
 const watermarkText = computed(() => {
   const date = new Date().toLocaleDateString()
-  return `${settingsStore.watermarkEnabled ? 'User' : ''} ${date}`
+  const displayName = getMyDisplayName() || 'User'
+  return `${settingsStore.watermarkEnabled ? displayName : ''} ${date}`
 })
 
 onMounted(() => {
@@ -109,7 +114,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <WorkspaceLayout :message-unread-count="totalUnreadCount">
+  <WorkspaceLayout :message-unread-count="visibleMessageUnreadCount">
     <template #message-sidebar>
       <ChannelSidebar
         v-if="showChannelSidebar"
@@ -137,26 +142,17 @@ onUnmounted(() => {
         v-model:open="showCreateCategoryDialog"
       />
 
-      <Dialog v-model:open="showLeaveConfirm">
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{{ t('server.leave_server') }}</DialogTitle>
-            <DialogDescription>{{ t('server.leave_server_confirm') }}</DialogDescription>
-          </DialogHeader>
-          <div class="flex justify-end gap-2">
-            <Button variant="ghost" @click="showLeaveConfirm = false">
-              {{ t('common.cancel') }}
-            </Button>
-            <Button
-              variant="destructive"
-              :disabled="isLeavingServer"
-              @click="confirmLeaveServer"
-            >
-              {{ t('server.leave_server') }}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        v-model:open="showLeaveConfirm"
+        :title="t('server.leave_server')"
+        :description="t('server.leave_server_confirm')"
+        :confirm-label="t('server.leave_server')"
+        :cancel-label="t('common.cancel')"
+        :loading="isLeavingServer"
+        variant="destructive"
+        @confirm="confirmLeaveServer"
+        @cancel="showLeaveConfirm = false"
+      />
       <GlobalOverlayHost />
     </template>
   </WorkspaceLayout>

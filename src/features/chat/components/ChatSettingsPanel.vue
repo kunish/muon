@@ -17,6 +17,7 @@ import {
 } from 'lucide-vue-next'
 import { computed, onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { toast } from 'vue-sonner'
 import { ask } from '@/electron/dialog'
 import { useChatStore } from '../stores/chatStore'
 
@@ -122,12 +123,17 @@ let copyTimer: ReturnType<typeof setTimeout> | undefined
 async function copyRoomId() {
   if (!store.currentRoomId)
     return
-  await navigator.clipboard.writeText(store.currentRoomId)
-  copied.value = true
-  clearTimeout(copyTimer)
-  copyTimer = setTimeout(() => {
-    copied.value = false
-  }, 2000)
+  try {
+    await navigator.clipboard.writeText(store.currentRoomId)
+    copied.value = true
+    clearTimeout(copyTimer)
+    copyTimer = setTimeout(() => {
+      copied.value = false
+    }, 2000)
+  }
+  catch {
+    toast.error(t('chat.copy_room_id_failed'))
+  }
 }
 
 onUnmounted(() => {
@@ -286,7 +292,7 @@ function cancelEditTopic() {
             <Bell v-else :size="15" class="text-muted-foreground/60" />
             <span class="text-sm">{{ isMuted ? t('chat.ctx_unmute') : t('chat.ctx_mute') }}</span>
           </span>
-          <Switch :checked="isMuted" @update:checked="() => onToggleMute()" />
+          <Switch :checked="isMuted" @click.stop @update:checked="() => onToggleMute()" />
         </button>
 
         <!-- Pin to top -->
@@ -299,7 +305,7 @@ function cancelEditTopic() {
             <Pin v-else :size="15" class="text-muted-foreground/60" />
             <span class="text-sm">{{ isPinned ? t('chat.ctx_unpin') : t('chat.ctx_pin') }}</span>
           </span>
-          <Switch :checked="isPinned" @update:checked="() => onTogglePin()" />
+          <Switch :checked="isPinned" @click.stop @update:checked="() => onTogglePin()" />
         </button>
       </div>
 

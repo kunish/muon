@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import { toast } from 'vue-sonner'
+import { localizedText } from '@/shared/lib/localizedText'
 
 export function useVoiceRecorder() {
   const isRecording = ref(false)
@@ -40,7 +41,7 @@ export function useVoiceRecorder() {
     }
     catch (err) {
       console.error('[useVoiceRecorder] Microphone access failed:', err)
-      toast.error('Microphone access denied')
+      toast.error(localizedText('chat.record_failed'))
     }
   }
 

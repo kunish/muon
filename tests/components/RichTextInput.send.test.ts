@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
   replyToMessage: vi.fn(),
   editMessage: vi.fn(),
   setContent: vi.fn(),
+  insertContent: vi.fn(() => ({ run: vi.fn() })),
   getClient: vi.fn(() => ({
     getRoom: vi.fn(() => ({
       getMember: vi.fn(() => ({ name: 'Alice' })),
@@ -63,7 +64,7 @@ vi.mock('@muon/rich-text/editor', () => ({
         isActive: vi.fn(() => false),
         chain: vi.fn(() => ({
           focus: vi.fn(() => ({
-            insertContent: vi.fn(() => ({ run: vi.fn() })),
+            insertContent: mocks.insertContent,
             toggleBold: vi.fn(() => ({ run: vi.fn() })),
             toggleItalic: vi.fn(() => ({ run: vi.fn() })),
             toggleStrike: vi.fn(() => ({ run: vi.fn() })),
@@ -196,6 +197,21 @@ describe('richTextInput send recovery', () => {
     mocks.onSubmit = undefined
     mocks.onPasteFiles = undefined
     mocks.onPasteMediaSources = undefined
+  })
+
+  it('inserts queued member mentions into the composer', async () => {
+    const store = useChatStore()
+    store.setCurrentRoom('!room:localhost')
+    mountInput()
+
+    ;(store as any).requestMention({ id: '@alice:localhost', label: 'Alice' })
+    await nextTick()
+
+    expect(mocks.insertContent).toHaveBeenCalledWith([
+      { type: 'mention', attrs: { id: '@alice:localhost', label: 'Alice' } },
+      { type: 'text', text: ' ' },
+    ])
+    expect(mocks.startTyping).toHaveBeenCalled()
   })
 
   it('stages pasted media files and only uploads them when the composer is submitted', async () => {

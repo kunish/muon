@@ -3,6 +3,7 @@ import type { VoiceConnection } from '../stores/serverStore'
 import { computed, ref, shallowRef } from 'vue'
 import { toast } from 'vue-sonner'
 import { getClient } from '@/matrix/client'
+import { localizedText } from '@/shared/lib/localizedText'
 import { getLiveKitToken } from '../lib/livekitToken'
 import { useServerStore } from '../stores/serverStore'
 
@@ -26,6 +27,7 @@ const isConnected = ref(false)
 const isConnecting = ref(false)
 const isMuted = ref(false)
 const isDeafened = ref(false)
+const wasMutedBeforeDeafen = ref(false)
 const currentChannelId = ref<string | null>(null)
 const connectedUsers = ref<VoiceChannelUser[]>([])
 
@@ -127,7 +129,7 @@ export function useVoiceChannel() {
     }
     catch (err) {
       console.error('[useVoiceChannel] Failed to join:', err)
-      toast.error('Could not join voice channel')
+      toast.error(localizedText('server.voice_join_failed'))
       resetState()
     }
   }
@@ -165,7 +167,7 @@ export function useVoiceChannel() {
       }
       catch {
         isMuted.value = !isMuted.value
-        toast.error('Microphone toggle failed')
+        toast.error(localizedText('server.microphone_toggle_failed'))
       }
     }
 
@@ -174,7 +176,11 @@ export function useVoiceChannel() {
 
   /** Toggle deafen (mutes audio output; also mutes mic when deafened) */
   async function toggleDeafen() {
-    isDeafened.value = !isDeafened.value
+    const nextDeafened = !isDeafened.value
+    if (nextDeafened)
+      wasMutedBeforeDeafen.value = isMuted.value
+
+    isDeafened.value = nextDeafened
 
     // Deafening also mutes mic
     if (isDeafened.value && !isMuted.value) {
@@ -184,23 +190,25 @@ export function useVoiceChannel() {
           await room.value.localParticipant.setMicrophoneEnabled(false)
         }
         catch {
-          toast.error('Microphone toggle failed')
+          toast.error(localizedText('server.microphone_toggle_failed'))
         }
       }
     }
 
-    // Un-deafening restores mic to unmuted
-    if (!isDeafened.value && isMuted.value) {
+    // Un-deafening restores mic only if deafen caused the mute.
+    if (!isDeafened.value && isMuted.value && !wasMutedBeforeDeafen.value) {
       isMuted.value = false
       if (room.value) {
         try {
           await room.value.localParticipant.setMicrophoneEnabled(true)
         }
         catch {
-          toast.error('Microphone toggle failed')
+          toast.error(localizedText('server.microphone_toggle_failed'))
         }
       }
     }
+    if (!isDeafened.value)
+      wasMutedBeforeDeafen.value = false
 
     updateSelfInUsers()
   }
@@ -211,6 +219,7 @@ export function useVoiceChannel() {
     isConnecting.value = false
     isMuted.value = false
     isDeafened.value = false
+    wasMutedBeforeDeafen.value = false
     currentChannelId.value = null
     room.value = null
     serverStore.setVoiceConnection(null)

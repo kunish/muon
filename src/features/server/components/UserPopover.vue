@@ -4,8 +4,11 @@ import { Avatar } from '@muon/ui/avatar'
 import { MessageCircle, X } from 'lucide-vue-next'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
+import { useConversations } from '@/features/chat/composables/useConversations'
 import { avatarGradient } from '@/features/chat/lib/format'
+import { useChatStore } from '@/features/chat/stores/chatStore'
 import { getClient } from '@/matrix/client'
 import { getUserPresenceInfo } from '@/matrix/profile'
 import { findOrCreateDm } from '@/matrix/rooms'
@@ -20,6 +23,9 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+const router = useRouter()
+const chatStore = useChatStore()
+const { restoreRoom } = useConversations()
 const isVisible = computed(() => !!props.member)
 
 // ── 头像 ──
@@ -35,10 +41,10 @@ const presence = computed(() => {
 
 const presenceLabel = computed(() => {
   switch (presence.value.presence) {
-    case 'online': return 'Online'
-    case 'unavailable': return 'Idle'
-    case 'busy': return 'Do Not Disturb'
-    default: return 'Offline'
+    case 'online': return t('member.online')
+    case 'unavailable': return t('member.idle')
+    case 'busy': return t('member.dnd')
+    default: return t('member.offline')
   }
 })
 
@@ -57,12 +63,12 @@ const roleLabel = computed(() => {
     return ''
   const pl = props.member.powerLevel
   if (pl >= 100)
-    return 'Owner'
+    return t('role.owner')
   if (pl >= 75)
-    return 'Admin'
+    return t('role.admin')
   if (pl >= 50)
-    return 'Moderator'
-  return 'Member'
+    return t('role.moderator')
+  return t('role.member')
 })
 
 const roleColor = computed(() => {
@@ -120,9 +126,19 @@ async function onMessage() {
     return
   emit('close')
   try {
-    const _roomId = await findOrCreateDm(props.member.userId)
-    // 跳转由外部通过事件处理或 router 处理
-    // 这里只确保房间已创建
+    const roomId = await findOrCreateDm(props.member.userId)
+    restoreRoom(roomId)
+    chatStore.setCurrentRoom(roomId, {
+      sidebarPlacement: 'promote',
+      sidebarPreview: {
+        name: props.member.displayName,
+        avatar: props.member.avatarUrl,
+        dmUserId: props.member.userId,
+        dmUserAvatar: props.member.avatarUrl,
+        isDirect: true,
+      },
+    })
+    await router.push(`/dm/${encodeURIComponent(roomId)}`)
   }
   catch (err) {
     console.error('Failed to open DM:', err)
@@ -211,7 +227,7 @@ async function onMessage() {
         <!-- 角色 Badge -->
         <div class="px-5 pt-2 pb-1">
           <div class="flex items-center gap-2">
-            <span class="text-[10px] font-bold uppercase tracking-wide text-muted-foreground/50">Roles</span>
+            <span class="text-[10px] font-bold uppercase tracking-wide text-muted-foreground/50">{{ t('member.role_col') }}</span>
           </div>
           <div class="mt-1 flex flex-wrap gap-1.5">
             <span
@@ -237,17 +253,18 @@ async function onMessage() {
         <div class="px-5 pb-4 pt-1">
           <button
             v-if="!isSelf"
+            data-testid="user-popover-message"
             class="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-semibold hover:brightness-110 active:scale-[0.98] transition-all duration-150 shadow-sm"
             @click="onMessage"
           >
             <MessageCircle :size="14" />
-            Message
+            {{ t('member.message') }}
           </button>
           <p
             v-else
             class="text-center text-xs text-muted-foreground/40"
           >
-            This is you
+            {{ t('member.this_is_you') }}
           </p>
         </div>
       </div>

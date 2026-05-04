@@ -1,21 +1,28 @@
 <script setup lang="ts">
 import type { DigestFilter } from '../types/digest'
+import type { DigestRelevance } from '../types/knowledge'
 import { computed, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { preloadAndNavigate } from '@/shared/lib/contextPreload'
 import { useDigestStore } from '../stores/digestStore'
 
 const router = useRouter()
 const digestStore = useDigestStore()
+const { t } = useI18n()
 
-const filters: Array<{ id: DigestFilter, label: string }> = [
-  { id: 'all', label: 'All' },
-  { id: 'responsibility', label: 'Responsibility' },
-  { id: 'follow', label: 'Follow' },
-  { id: 'mention', label: 'Mention' },
-]
+const filters = computed<Array<{ id: DigestFilter, label: string }>>(() => [
+  { id: 'all', label: t('chat.digest_filter_all') },
+  { id: 'responsibility', label: t('chat.digest_relevance_responsibility') },
+  { id: 'follow', label: t('chat.digest_relevance_follow') },
+  { id: 'mention', label: t('chat.digest_relevance_mention') },
+])
 
 const entries = computed(() => digestStore.visibleEntries)
+
+function relevanceLabel(relevance: DigestRelevance) {
+  return t(`chat.digest_relevance_${relevance}`)
+}
 
 onMounted(() => {
   void digestStore.initializeDigest()
@@ -34,7 +41,7 @@ async function openCitation(roomId: string, eventId: string) {
   <section class="flex h-full flex-col" data-testid="offline-digest-panel">
     <header class="border-b border-border px-4 py-3">
       <div class="text-sm font-semibold text-foreground">
-        Offline Digest
+        {{ t('chat.offline_digest_title') }}
       </div>
       <div class="mt-3 flex flex-wrap gap-2">
         <button
@@ -59,7 +66,7 @@ async function openCitation(roomId: string, eventId: string) {
         :data-testid="`digest-entry-${entry.eventId}`"
       >
         <div class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          {{ entry.relevance }}
+          {{ relevanceLabel(entry.relevance) }}
         </div>
         <div class="mt-1 text-sm font-medium text-foreground">
           {{ entry.title }}
@@ -76,13 +83,13 @@ async function openCitation(roomId: string, eventId: string) {
             :data-testid="`digest-citation-${citation.eventId}`"
             @click="openCitation(citation.roomId, citation.eventId)"
           >
-            Open citation
+            {{ t('chat.knowledge_open_citation') }}
           </button>
         </div>
       </article>
 
       <p v-if="entries.length === 0" class="text-sm text-muted-foreground">
-        No digest entries yet.
+        {{ t('chat.digest_empty') }}
       </p>
     </div>
   </section>

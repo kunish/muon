@@ -70,6 +70,10 @@ export interface SerializedFetchResponse {
 export interface MuonDesktopBridge {
   isElectron: true
   platform: string
+  app: {
+    setAutoLaunch: (enabled: boolean) => Promise<void>
+    setCloseToTray: (enabled: boolean) => Promise<void>
+  }
   auth: {
     onCallback: (callback: (url: string) => void) => UnlistenFn
   }

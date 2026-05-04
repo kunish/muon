@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { ContactCallMode } from '@/features/calls/stores/callLaunchStore'
 import { findOrCreateDm } from '@matrix/index'
 import { Plus } from 'lucide-vue-next'
 import { computed, onMounted, ref } from 'vue'
@@ -6,6 +7,7 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 import WorkspaceResizablePane from '@/app/components/workspace/WorkspaceResizablePane.vue'
+import { launchContactCall } from '@/features/calls/stores/callLaunchStore'
 import { useConversations } from '../../chat/composables/useConversations'
 import { useChatStore } from '../../chat/stores/chatStore'
 import { useContactStore } from '../stores/contactStore'
@@ -69,6 +71,16 @@ async function handleOpenMessage(userId: string): Promise<void> {
   catch {
     toast.error(t('auth.error'))
   }
+}
+
+function handleStartContactCall(userId: string, mode: ContactCallMode): void {
+  const contact = store.contacts.find(item => item.userId === userId)
+  launchContactCall({
+    userId,
+    displayName: contact?.displayName,
+    mode,
+  })
+  router.push('/calls')
 }
 </script>
 
@@ -134,6 +146,8 @@ async function handleOpenMessage(userId: string): Promise<void> {
         <UserProfile
           v-else
           @message="handleOpenMessage"
+          @audio-call="userId => handleStartContactCall(userId, 'audio')"
+          @video-call="userId => handleStartContactCall(userId, 'video')"
         />
       </div>
     </section>

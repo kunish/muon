@@ -10,6 +10,7 @@ describe('app router', () => {
       '/dm/:roomId',
       '/server/:serverId/channel/:channelId',
       '/contacts',
+      '/organization',
       '/calendar',
       '/docs',
       '/workplace',

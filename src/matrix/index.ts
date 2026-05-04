@@ -7,6 +7,7 @@ export { loadInboxEventContext } from './inbox'
 export type { InboxEventContext } from './inbox'
 export { downloadMedia, extractImageMeta, extractVideoMeta, fetchMediaBlobUrl, uploadMedia } from './media'
 export {
+  canMergeSystemEvents,
   editMessage,
   forwardMessages,
   getReactions,
@@ -36,7 +37,7 @@ export { clearMyStatus, getMyAvatarUrl, getMyDisplayName, getMyStatus, getUserPr
 export { getReadMarkerEventId, getReadUsers, sendReadReceipt } from './receipts'
 export { backPaginateRoomEventsSearch, searchRoomEvents } from './retrieval'
 export type { RetrievalItem, RetrievalPage, RetrievalSession } from './retrieval'
-export { findOrCreateDm, getRoom, getRoomAnnouncement, getRoomSummaries, getRoomTopic, invalidateRoomSummariesCache, isMessagePinned, isMessageStarred, leaveRoom, pinMessage, setRoomAnnouncement, setRoomName, setRoomTopic, starMessage, toggleRoomMute, toggleRoomPin, unpinMessage, unstarMessage } from './rooms'
+export { findOrCreateDm, getRoom, getRoomAnnouncement, getRoomSummaries, getRoomTopic, invalidateRoomSummariesCache, isMessagePinned, isMessageStarred, leaveRoom, markRoomAsRead, pinMessage, setRoomAnnouncement, setRoomName, setRoomTopic, starMessage, toggleRoomMute, toggleRoomPin, unpinMessage, unstarMessage } from './rooms'
 export {
   addRoomToSpace,
   buildChannelInfo,

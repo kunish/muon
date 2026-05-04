@@ -35,6 +35,12 @@ export default defineConfig({
     },
   },
   clearScreen: false,
+  optimizeDeps: {
+    include: [
+      'date-fns',
+      'date-fns/locale',
+    ],
+  },
   server: {
     port: 1420,
     strictPort: true,

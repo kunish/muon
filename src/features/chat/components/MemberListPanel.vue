@@ -5,10 +5,13 @@ import { Crown, Search, Shield, ShieldCheck, X } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useChatStore } from '../stores/chatStore'
+import UserInfoPanel from './UserInfoPanel.vue'
 
 const { t } = useI18n()
 const store = useChatStore()
 const searchQuery = ref('')
+const infoPanelUserId = ref<string | null>(null)
+const infoPanelPosition = ref({ x: 0, y: 0 })
 
 interface MemberInfo {
   userId: string
@@ -75,6 +78,19 @@ function getPowerLevelLabel(level: number) {
     return t('chat.role_moderator')
   return ''
 }
+
+function openMemberProfile(member: MemberInfo, event: MouseEvent | KeyboardEvent) {
+  const target = event.currentTarget as HTMLElement | null
+  const rect = target?.getBoundingClientRect()
+  infoPanelPosition.value = rect
+    ? { x: rect.right, y: rect.top }
+    : { x: window.innerWidth / 2, y: window.innerHeight / 2 }
+  infoPanelUserId.value = member.userId
+}
+
+function closeInfoPanel() {
+  infoPanelUserId.value = null
+}
 </script>
 
 <template>
@@ -111,7 +127,13 @@ function getPowerLevelLabel(level: number) {
       <div
         v-for="member in filteredMembers"
         :key="member.userId"
+        :data-testid="`chat-member-row-${member.userId}`"
+        role="button"
+        tabindex="0"
         class="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-accent/50 cursor-pointer transition-colors"
+        @click="openMemberProfile(member, $event)"
+        @keydown.enter.prevent="openMemberProfile(member, $event)"
+        @keydown.space.prevent="openMemberProfile(member, $event)"
       >
         <!-- Avatar -->
         <Avatar
@@ -150,6 +172,14 @@ function getPowerLevelLabel(level: number) {
       >
         <span class="text-xs">{{ searchQuery ? t('chat.no_matching_members') : t('chat.no_members') }}</span>
       </div>
+
+      <UserInfoPanel
+        :room="null"
+        :user-id="infoPanelUserId"
+        :room-id="store.currentRoomId"
+        :position="infoPanelPosition"
+        @close="closeInfoPanel"
+      />
     </div>
   </div>
 </template>

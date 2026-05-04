@@ -7,6 +7,11 @@ export type ConversationFilter = 'all' | 'unread' | 'dm' | 'group'
 export type SidePanelType = 'threads' | 'search' | 'pinned' | 'starred' | 'members' | 'settings' | 'tasks' | 'knowledge'
 export type SidebarPlacement = 'promote' | 'history' | 'preserve'
 
+export interface ComposerMentionRequest {
+  id: string
+  label: string
+}
+
 export interface SidebarPreviewInput {
   name?: string
   avatar?: string
@@ -32,6 +37,7 @@ export const useChatStore = defineStore('chat', () => {
   const mutedRooms = reactive(new Set<string>())
   const markedUnreadRooms = reactive(new Set<string>())
   const drafts = reactive(new Map<string, string>())
+  const pendingMentionRequests = reactive<ComposerMentionRequest[]>([])
   const sidebarPromotionTimes = reactive(new Map<string, number>())
   const sidebarPromotionPreviews = reactive(new Map<string, RoomSummary>())
   const activeFilter = ref<ConversationFilter>('all')
@@ -138,6 +144,14 @@ export const useChatStore = defineStore('chat', () => {
   function clearCompose() {
     replyingTo.value = null
     editingEvent.value = null
+  }
+
+  function requestMention(mention: ComposerMentionRequest) {
+    pendingMentionRequests.push(mention)
+  }
+
+  function consumePendingMentionRequests() {
+    return pendingMentionRequests.splice(0)
   }
 
   // --- Set toggle 辅助函数 ---
@@ -282,6 +296,8 @@ export const useChatStore = defineStore('chat', () => {
     setReplyingTo,
     setEditingEvent,
     clearCompose,
+    requestMention,
+    consumePendingMentionRequests,
     // 会话管理操作
     setPin,
     togglePin,
@@ -292,6 +308,7 @@ export const useChatStore = defineStore('chat', () => {
     isMarkedUnread,
     setDraft,
     getDraft,
+    pendingMentionRequests,
     getSidebarPromotionTime,
     getSidebarPromotionRoomIds,
     getSidebarPromotionPreview,

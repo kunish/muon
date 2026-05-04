@@ -36,6 +36,7 @@ export function createMockMatrixClient() {
     sendMessage: vi.fn().mockResolvedValue({ event_id: '$mock_event' }),
     sendEvent: vi.fn().mockResolvedValue({ event_id: '$mock_event' }),
     sendStateEvent: vi.fn().mockResolvedValue({ event_id: '$mock_state' }),
+    setRoomReadMarkers: vi.fn().mockResolvedValue({}),
     redactEvent: vi.fn().mockResolvedValue(undefined),
     getEventTimeline: vi.fn().mockResolvedValue(null),
     getEventContext: vi.fn().mockResolvedValue(null),

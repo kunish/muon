@@ -176,7 +176,7 @@ const resolvedAvatar = computed(() => {
           </Label>
           <Input
             v-model="name"
-            placeholder="Server name"
+            :placeholder="t('server.server_name_placeholder')"
           />
         </div>
 
@@ -188,7 +188,7 @@ const resolvedAvatar = computed(() => {
           <Textarea
             v-model="topic"
             rows="4"
-            placeholder="Tell people about your server"
+            :placeholder="t('server.server_description_placeholder')"
             class="flex w-full rounded-md border border-input bg-input px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
           />
         </div>

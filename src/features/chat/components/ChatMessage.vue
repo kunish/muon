@@ -19,9 +19,9 @@ import { isFullEmojiText } from '@/shared/lib/emoji'
 import { handleMatrixLinkClick } from '@/shared/lib/matrixLinks'
 import { getFloatingPosition } from '../composables/useFloatingPosition'
 import { useMediaViewer } from '../composables/useMediaViewer'
+import { useMessageClipboardFeedback } from '../composables/useMessageClipboardFeedback'
 import { useMessageContextMenuState } from '../composables/useMessageContextMenuState'
 import { getMediaFrameStyle } from '../lib/mediaFrame'
-import { copyMessageContentToClipboard } from '../lib/messageClipboard'
 import { useChatStore } from '../stores/chatStore'
 import LinkPreview from './LinkPreview.vue'
 import MessageActionBar from './MessageActionBar.vue'
@@ -62,6 +62,7 @@ const RICH_MEDIA_FALLBACK_WIDTH = 300
 const RICH_MEDIA_FALLBACK_HEIGHT = 180
 
 const { t } = useI18n()
+const { copyMessageContentWithFeedback } = useMessageClipboardFeedback()
 const store = useChatStore()
 const settingsStore = useSettingsStore()
 const { openImage } = useMediaViewer()
@@ -543,7 +544,7 @@ function onReplyFromContextMenu() {
 }
 
 function onCopyFromContextMenu() {
-  void copyMessageContentToClipboard(props.event.getContent() ?? {})
+  void copyMessageContentWithFeedback(props.event.getContent() ?? {})
   closeContextMenu()
 }
 

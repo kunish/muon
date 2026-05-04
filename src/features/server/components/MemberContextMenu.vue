@@ -13,8 +13,11 @@ import {
 import { EventType } from 'matrix-js-sdk'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 import { ask } from '@/electron/dialog'
+import { useConversations } from '@/features/chat/composables/useConversations'
+import { useChatStore } from '@/features/chat/stores/chatStore'
 import { blockUser } from '@/matrix/blocking'
 import { getClient } from '@/matrix/client'
 import { findOrCreateDm } from '@/matrix/rooms'
@@ -38,6 +41,9 @@ const emit = defineEmits<{
 const menuRef = ref<HTMLElement | null>(null)
 const isOpen = computed(() => !!props.member)
 const { t } = useI18n()
+const router = useRouter()
+const chatStore = useChatStore()
+const { restoreRoom } = useConversations()
 const { kickMember, banMember } = useMemberActions()
 
 useContextMenuScrollLock(isOpen)
@@ -82,7 +88,19 @@ async function onMessage() {
     return
   emit('close')
   try {
-    await findOrCreateDm(props.member.userId)
+    const roomId = await findOrCreateDm(props.member.userId)
+    restoreRoom(roomId)
+    chatStore.setCurrentRoom(roomId, {
+      sidebarPlacement: 'promote',
+      sidebarPreview: {
+        name: props.member.displayName,
+        avatar: props.member.avatarUrl,
+        dmUserId: props.member.userId,
+        dmUserAvatar: props.member.avatarUrl,
+        isDirect: true,
+      },
+    })
+    await router.push(`/dm/${encodeURIComponent(roomId)}`)
   }
   catch (err) {
     console.error('Failed to open DM:', err)
@@ -203,7 +221,7 @@ async function onBan() {
           <span>{{ t('member.profile') }}</span>
         </button>
 
-        <button v-if="!isSelf" class="mx-1 flex w-[calc(100%-8px)] items-center gap-2.5 rounded-md px-3.5 py-[7px] text-[13px] text-foreground transition-all duration-100 hover:bg-accent active:scale-[0.98]" @click="onMessage">
+        <button v-if="!isSelf" data-testid="member-context-message" class="mx-1 flex w-[calc(100%-8px)] items-center gap-2.5 rounded-md px-3.5 py-[7px] text-[13px] text-foreground transition-all duration-100 hover:bg-accent active:scale-[0.98]" @click="onMessage">
           <MessageCircle :size="14" />
           <span>{{ t('member.message') }}</span>
         </button>

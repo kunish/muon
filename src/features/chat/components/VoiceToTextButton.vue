@@ -2,6 +2,7 @@
 import { Mic, MicOff } from 'lucide-vue-next'
 import { onBeforeUnmount, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { toast } from 'vue-sonner'
 import { createSpeechRecognizer, isSpeechRecognitionSupported } from '@/shared/lib/speechToText'
 
 const emit = defineEmits<{
@@ -36,6 +37,7 @@ function start() {
     },
     onError: () => {
       isListening.value = false
+      toast.error(t('chat.stt_failed'))
     },
     onEnd: () => {
       isListening.value = false

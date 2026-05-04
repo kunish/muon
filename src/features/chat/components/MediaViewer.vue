@@ -240,20 +240,20 @@ onUnmounted(() => {
       <!-- Toolbar -->
       <div class="absolute top-4 right-4 flex items-center gap-2 z-10" @click.stop>
         <template v-if="currentType === 'image'">
-          <button type="button" class="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white" aria-label="Zoom in" title="Zoom in" @click="zoomIn">
+          <button type="button" class="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white" :aria-label="t('chat.media_zoom_in')" :title="t('chat.media_zoom_in')" @click="zoomIn">
             <ZoomIn :size="18" />
           </button>
-          <button type="button" class="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white" aria-label="Zoom out" title="Zoom out" @click="zoomOut">
+          <button type="button" class="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white" :aria-label="t('chat.media_zoom_out')" :title="t('chat.media_zoom_out')" @click="zoomOut">
             <ZoomOut :size="18" />
           </button>
-          <button type="button" class="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white" aria-label="Rotate" title="Rotate" @click="rotate">
+          <button type="button" class="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white" :aria-label="t('chat.media_rotate')" :title="t('chat.media_rotate')" @click="rotate">
             <RotateCw :size="18" />
           </button>
         </template>
-        <button type="button" class="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white" aria-label="Download" title="Download" @click="download">
+        <button type="button" class="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white" :aria-label="t('chat.download')" :title="t('chat.download')" @click="download">
           <Download :size="18" />
         </button>
-        <button type="button" class="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white" aria-label="Close" title="Close" @click="resetAndClose">
+        <button type="button" class="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white" :aria-label="t('common.close')" :title="t('common.close')" @click="resetAndClose">
           <X :size="18" />
         </button>
       </div>

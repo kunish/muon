@@ -1,12 +1,22 @@
 <script setup lang="ts">
+import type { ChannelInfo } from '@/matrix/spaces'
 import { Avatar } from '@muon/ui/avatar'
+import { Button } from '@muon/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@muon/ui/dialog'
+import { Input } from '@muon/ui/input'
+import { Label } from '@muon/ui/label'
 import { ScrollArea } from '@muon/ui/scroll-area'
+import { Textarea } from '@muon/ui/textarea'
 import { ChevronDown, X } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { toast } from 'vue-sonner'
 import WorkspaceResizablePane from '@/app/components/workspace/WorkspaceResizablePane.vue'
 import ConversationList from '@/features/chat/components/ConversationList.vue'
 import { useServerStore } from '@/features/server/stores/serverStore'
+import { markRoomAsRead, setRoomName, setRoomTopic, toggleRoomMute } from '@/matrix/rooms'
+import { removeRoomFromSpace } from '@/matrix/spaces'
+import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
 import ChannelCategory from './ChannelCategory.vue'
 import ChannelContextMenu from './ChannelContextMenu.vue'
 import CreateChannelDialog from './CreateChannelDialog.vue'
@@ -42,11 +52,123 @@ const currentServer = computed(() => {
 
 const showCreateChannel = ref(false)
 const createChannelCategoryId = ref<string | undefined>(undefined)
+const editingChannel = ref<ChannelInfo | null>(null)
+const editChannelName = ref('')
+const editChannelTopic = ref('')
+const isSavingChannelEdit = ref(false)
+const deleteTarget = ref<ChannelInfo | null>(null)
+const isDeletingChannel = ref(false)
 const resizeHandleLabel = computed(() => t('sidebar.resize_messages'))
 
 function openCreateChannel(categoryId?: string): void {
   createChannelCategoryId.value = categoryId
   showCreateChannel.value = true
+}
+
+function findChannel(roomId: string): ChannelInfo | null {
+  for (const category of channelTree.value) {
+    const channel = category.channels.find(item => item.roomId === roomId)
+    if (channel)
+      return channel
+  }
+  return null
+}
+
+function refreshCurrentServerChannels(): void {
+  if (serverStore.currentServerId)
+    serverStore.loadChannelTree(serverStore.currentServerId)
+}
+
+async function handleMarkChannelAsRead(roomId: string): Promise<void> {
+  await markRoomAsRead(roomId)
+  refreshCurrentServerChannels()
+}
+
+async function handleMuteChannel(roomId: string): Promise<void> {
+  await toggleRoomMute(roomId)
+  refreshCurrentServerChannels()
+}
+
+function handleEditChannel(roomId: string): void {
+  const channel = findChannel(roomId)
+  if (!channel)
+    return
+
+  editingChannel.value = channel
+  editChannelName.value = channel.name
+  editChannelTopic.value = channel.topic ?? ''
+}
+
+function closeEditChannelDialog(): void {
+  editingChannel.value = null
+  editChannelName.value = ''
+  editChannelTopic.value = ''
+}
+
+async function saveChannelEdit(): Promise<void> {
+  const channel = editingChannel.value
+  const name = editChannelName.value.trim()
+  if (!channel || !name || isSavingChannelEdit.value)
+    return
+
+  isSavingChannelEdit.value = true
+  try {
+    const topic = editChannelTopic.value.trim()
+    if (name !== channel.name)
+      await setRoomName(channel.roomId, name)
+    if (topic !== (channel.topic ?? ''))
+      await setRoomTopic(channel.roomId, topic)
+
+    refreshCurrentServerChannels()
+    closeEditChannelDialog()
+  }
+  catch (error) {
+    console.error('Failed to edit channel:', error)
+    toast.error(t('server.channel_failed'))
+  }
+  finally {
+    isSavingChannelEdit.value = false
+  }
+}
+
+function handleDeleteChannel(roomId: string): void {
+  deleteTarget.value = findChannel(roomId)
+}
+
+function closeDeleteChannelDialog(): void {
+  deleteTarget.value = null
+}
+
+async function confirmDeleteChannel(): Promise<void> {
+  const channel = deleteTarget.value
+  const serverId = serverStore.currentServerId
+  if (!channel || !serverId || isDeletingChannel.value)
+    return
+
+  isDeletingChannel.value = true
+  try {
+    const parentId = channel.categoryId ?? serverId
+    await removeRoomFromSpace(parentId, channel.roomId)
+
+    if (channel.categoryId) {
+      try {
+        await removeRoomFromSpace(serverId, channel.roomId)
+      }
+      catch {
+        // Category channels are not always direct children of the top-level server.
+      }
+    }
+
+    refreshCurrentServerChannels()
+    closeDeleteChannelDialog()
+  }
+  catch (error) {
+    console.error('Failed to delete channel:', error)
+    toast.error(t('server.channel_failed'))
+  }
+  finally {
+    isDeletingChannel.value = false
+  }
 }
 </script>
 
@@ -120,7 +242,13 @@ function openCreateChannel(categoryId?: string): void {
             @create-channel="openCreateChannel($event)"
           >
             <template v-for="channel in category.channels" :key="channel.roomId">
-              <ChannelContextMenu :channel="channel">
+              <ChannelContextMenu
+                :channel="channel"
+                @mark-as-read="handleMarkChannelAsRead"
+                @mute-channel="handleMuteChannel"
+                @edit-channel="handleEditChannel"
+                @delete-channel="handleDeleteChannel"
+              >
                 <template #default="{ open }">
                   <TextChannelItem
                     v-if="!channel.isVoice"
@@ -147,6 +275,74 @@ function openCreateChannel(categoryId?: string): void {
     <CreateChannelDialog
       v-model:open="showCreateChannel"
       :category-id="createChannelCategoryId"
+    />
+
+    <Dialog
+      :open="Boolean(editingChannel)"
+      @update:open="value => { if (!value) closeEditChannelDialog() }"
+    >
+      <DialogContent v-if="editingChannel">
+        <DialogHeader>
+          <DialogTitle>{{ t('channel.edit_channel') }}</DialogTitle>
+          <DialogDescription>
+            {{ editingChannel.name }}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div class="space-y-2">
+          <Label for="channel-edit-name" class="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+            {{ t('channel.channel_name') }}
+          </Label>
+          <Input
+            id="channel-edit-name"
+            v-model="editChannelName"
+            data-testid="channel-edit-name"
+            :placeholder="t('channel.channel_name_placeholder')"
+            @keydown.enter="saveChannelEdit"
+          />
+        </div>
+
+        <div class="space-y-2">
+          <Label for="channel-edit-topic" class="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+            {{ t('channel.channel_topic') }}
+          </Label>
+          <Textarea
+            id="channel-edit-topic"
+            v-model="editChannelTopic"
+            data-testid="channel-edit-topic"
+            class="min-h-20"
+            :placeholder="t('channel.channel_topic_placeholder')"
+          />
+        </div>
+
+        <div class="flex justify-end gap-2">
+          <Button variant="ghost" @click="closeEditChannelDialog">
+            {{ t('common.cancel') }}
+          </Button>
+          <Button
+            data-testid="channel-edit-save"
+            :disabled="!editChannelName.trim() || isSavingChannelEdit"
+            @click="saveChannelEdit"
+          >
+            {{ isSavingChannelEdit ? t('server.saving') : t('common.save') }}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+
+    <ConfirmDialog
+      :open="Boolean(deleteTarget)"
+      :title="t('channel.delete_channel')"
+      :description="deleteTarget ? t('channel.delete_channel_confirm', { name: deleteTarget.name }) : ''"
+      :confirm-label="t('channel.delete_channel')"
+      :cancel-label="t('common.cancel')"
+      :loading="isDeletingChannel"
+      :loading-label="t('server.deleting')"
+      confirm-test-id="channel-delete-confirm"
+      variant="destructive"
+      @update:open="value => { if (!value) closeDeleteChannelDialog() }"
+      @confirm="confirmDeleteChannel"
+      @cancel="closeDeleteChannelDialog"
     />
   </WorkspaceResizablePane>
 </template>

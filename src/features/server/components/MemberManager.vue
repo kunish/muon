@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import type { SpaceMember } from '@/matrix/spaces'
 import { Avatar } from '@muon/ui/avatar'
-import { Button } from '@muon/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@muon/ui/dialog'
 import { Input } from '@muon/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@muon/ui/select'
 import { Search, ShieldAlert, UserX } from 'lucide-vue-next'
@@ -11,6 +9,7 @@ import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import { getClient } from '@/matrix/client'
 import { getSpaceMembers, setSpacePowerLevel } from '@/matrix/spaces'
+import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
 import { useMemberActions } from '@/shared/composables/useMemberActions'
 
 const props = defineProps<{
@@ -304,52 +303,30 @@ onMounted(loadMembers)
       </p>
     </div>
 
-    <!-- Kick confirmation dialog -->
-    <Dialog v-model:open="showKickDialog">
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{{ t('member.kick_member') }}</DialogTitle>
-          <DialogDescription>
-            {{ t('member.kick_confirm_msg', { name: kickTarget?.displayName }) }}
-          </DialogDescription>
-        </DialogHeader>
-        <div class="flex justify-end gap-2">
-          <Button variant="ghost" @click="showKickDialog = false">
-            {{ t('common.cancel') }}
-          </Button>
-          <Button
-            variant="destructive"
-            :disabled="isKicking"
-            @click="handleKick"
-          >
-            {{ isKicking ? t('common.loading') : t('member.kick_title') }}
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+    <ConfirmDialog
+      v-model:open="showKickDialog"
+      :title="t('member.kick_member')"
+      :description="kickTarget ? t('member.kick_confirm_msg', { name: kickTarget.displayName }) : ''"
+      :confirm-label="t('member.kick_title')"
+      :cancel-label="t('common.cancel')"
+      :loading="isKicking"
+      :loading-label="t('common.loading')"
+      variant="destructive"
+      @confirm="handleKick"
+      @cancel="showKickDialog = false"
+    />
 
-    <!-- Ban confirmation dialog -->
-    <Dialog v-model:open="showBanDialog">
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{{ t('member.ban_member') }}</DialogTitle>
-          <DialogDescription>
-            {{ t('member.ban_confirm_msg', { name: banTarget?.displayName }) }}
-          </DialogDescription>
-        </DialogHeader>
-        <div class="flex justify-end gap-2">
-          <Button variant="ghost" @click="showBanDialog = false">
-            {{ t('common.cancel') }}
-          </Button>
-          <Button
-            variant="destructive"
-            :disabled="isBanning"
-            @click="handleBan"
-          >
-            {{ isBanning ? t('common.loading') : t('member.ban_title') }}
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+    <ConfirmDialog
+      v-model:open="showBanDialog"
+      :title="t('member.ban_member')"
+      :description="banTarget ? t('member.ban_confirm_msg', { name: banTarget.displayName }) : ''"
+      :confirm-label="t('member.ban_title')"
+      :cancel-label="t('common.cancel')"
+      :loading="isBanning"
+      :loading-label="t('common.loading')"
+      variant="destructive"
+      @confirm="handleBan"
+      @cancel="showBanDialog = false"
+    />
   </div>
 </template>

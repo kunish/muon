@@ -10,6 +10,7 @@ const saveDecisionCardMock = vi.fn()
 const updateSuggestionDispositionMock = vi.fn()
 const routerPush = vi.fn()
 const loadInboxEventContextMock = vi.fn()
+const toastErrorMock = vi.fn()
 
 vi.mock('vue-router', () => ({
   useRouter: () => ({
@@ -17,10 +18,10 @@ vi.mock('vue-router', () => ({
   }),
 }))
 
-vi.mock('vue-i18n', () => ({
-  useI18n: () => ({
-    t: (key: string) => key,
-  }),
+vi.mock('vue-sonner', () => ({
+  toast: {
+    error: (...args: unknown[]) => toastErrorMock(...args),
+  },
 }))
 
 vi.mock('@features/chat/lib/knowledgeDb', () => ({
@@ -56,6 +57,7 @@ describe('decisionPanel', () => {
     }))
     routerPush.mockReset()
     loadInboxEventContextMock.mockReset()
+    toastErrorMock.mockReset()
   })
 
   it('creates a decision card from panel inputs', async () => {
@@ -70,6 +72,21 @@ describe('decisionPanel', () => {
 
     expect(saveDecisionCardMock).toHaveBeenCalledTimes(1)
     expect(wrapper.text()).toContain('Ship digest panel')
+  })
+
+  it('shows all missing fields before saving a decision card', async () => {
+    const wrapper = mount(DecisionPanel)
+
+    await wrapper.get('[data-testid="decision-conclusion-input"]').setValue('确认发布窗口')
+    await wrapper.get('[data-testid="decision-save-button"]').trigger('click')
+
+    expect(saveDecisionCardMock).not.toHaveBeenCalled()
+    expect(toastErrorMock).toHaveBeenCalledTimes(1)
+    expect(toastErrorMock.mock.calls[0]?.[0]).toContain('上下文')
+    expect(toastErrorMock.mock.calls[0]?.[0]).toContain('负责人')
+    expect(toastErrorMock.mock.calls[0]?.[0]).toContain('房间 ID')
+    expect(toastErrorMock.mock.calls[0]?.[0]).toContain('事件 ID')
+    expect(toastErrorMock.mock.calls[0]?.[0]).not.toContain('结论')
   })
 
   it('accepts a suggestion through store action', async () => {
@@ -108,6 +125,40 @@ describe('decisionPanel', () => {
     await wrapper.get('[data-testid="decision-reject-suggestion-1"]').trigger('click')
 
     expect(updateSuggestionDispositionMock).toHaveBeenCalledWith('decision-1', 'suggestion-1', 'rejected', 'local-user', expect.any(Number))
+  })
+
+  it('localizes decision status and digest suggestion metadata', async () => {
+    listDecisionCardsMock.mockResolvedValue([{
+      id: 'decision-1',
+      conclusion: '确认发布窗口',
+      context: '需要沉淀上下文',
+      owner: '@alice:muon.dev',
+      status: 'confirmed',
+      citations: [{ roomId: '!room:muon.dev', eventId: '$event-1' }],
+      citationEventIds: ['$event-1'],
+      suggestions: [{
+        id: 'suggestion-1',
+        kind: 'action',
+        summary: '同步发布负责人',
+        disposition: 'accepted',
+        updatedAt: 100,
+        updatedBy: '@alice:muon.dev',
+        citations: [{ roomId: '!room:muon.dev', eventId: '$event-1' }],
+        citationEventIds: ['$event-1'],
+      }],
+      createdAt: 100,
+      updatedAt: 100,
+    }])
+
+    const wrapper = mount(DecisionPanel)
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('已确认')
+    expect(wrapper.text()).toContain('行动项')
+    expect(wrapper.text()).toContain('摘要建议')
+    expect(wrapper.text()).toContain('已接受')
+    expect(wrapper.text()).not.toContain('digest summary')
+    expect(wrapper.text()).not.toContain('accepted')
   })
 
   it('digest-backed suggestions are visible only from latest-session digest entries', async () => {
@@ -187,7 +238,7 @@ describe('decisionPanel', () => {
 
     expect(wrapper.text()).toContain('Keep current rollout window')
     expect(wrapper.text()).toContain('Follow up with release manager.')
-    expect(wrapper.text()).toContain('accepted')
+    expect(wrapper.text()).toContain('已接受')
     expect(wrapper.find('[data-testid="decision-linked-message-$event-1"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="decision-linked-message-$event-2"]').exists()).toBe(true)
 

@@ -836,6 +836,22 @@ function insertMention() {
   editor.value?.chain().focus().insertContent('@').run()
 }
 
+function insertQueuedMentions() {
+  const activeEditor = editor.value
+  if (!activeEditor || store.pendingMentionRequests.length === 0)
+    return
+
+  const mentions = store.consumePendingMentionRequests()
+  for (const mention of mentions) {
+    activeEditor.chain().focus().insertContent([
+      { type: 'mention', attrs: { id: mention.id, label: mention.label } },
+      { type: 'text', text: ' ' },
+    ]).run()
+  }
+  markComposeChanged()
+  startTyping()
+}
+
 function focusEditor() {
   editor.value?.commands.focus()
 }
@@ -914,6 +930,12 @@ watch(
 watch(
   () => [store.replyingTo, store.editingEvent],
   markComposeChanged,
+)
+
+watch(
+  [editor, () => store.pendingMentionRequests.length],
+  insertQueuedMentions,
+  { flush: 'post' },
 )
 
 watch(

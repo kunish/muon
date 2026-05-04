@@ -10,6 +10,9 @@ const loadInboxEventContextMock = vi.fn()
 const findOrCreateDmMock = vi.fn()
 const searchMock = vi.fn()
 const loadMoreMock = vi.fn()
+const localeMock = vi.hoisted(() => ({
+  value: 'en',
+}))
 
 const retrievalState = reactive({
   query: '',
@@ -31,7 +34,7 @@ const retrievalState = reactive({
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({
     t: (key: string) => key,
-    locale: { value: 'en' },
+    locale: localeMock,
   }),
 }))
 
@@ -99,6 +102,7 @@ describe('globalSearch', () => {
     retrievalState.hasSearched = false
     retrievalState.canLoadMore = false
     retrievalState.results = []
+    localeMock.value = 'en'
     const chatStore = useChatStore()
     chatStore.clearSidebarPromotions()
     chatStore.setFilter('all')
@@ -129,6 +133,26 @@ describe('globalSearch', () => {
     expect(wrapper.text()).toContain('@alice:muon.dev')
     expect(wrapper.text()).toContain('Result body')
     expect(wrapper.text()).toContain('Joined Room')
+  })
+
+  it('formats message result timestamps with the active locale', () => {
+    localeMock.value = 'zh'
+    retrievalState.results = [
+      {
+        roomId: '!joined:muon.dev',
+        eventId: '$event-1',
+        body: 'Result body',
+        sender: '@alice:muon.dev',
+        ts: 1700000000000,
+        rank: 1,
+      },
+    ]
+    retrievalState.hasSearched = true
+
+    const wrapper = mountGlobalSearch()
+
+    expect(wrapper.text()).toContain('11月15日')
+    expect(wrapper.text()).not.toContain('Nov 15')
   })
 
   it('excludes left-room results from rendering', async () => {

@@ -1,85 +1,76 @@
-import { mount } from '@vue/test-utils'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { nextTick } from 'vue'
+import { flushPromises, mount } from '@vue/test-utils'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import AttachmentMenu from '@/features/chat/components/AttachmentMenu.vue'
 
-vi.mock('@/electron/dialog', () => ({
+const dialogMocks = vi.hoisted(() => ({
   open: vi.fn(),
 }))
 
-vi.mock('@/electron/fs', () => ({
+const fsMocks = vi.hoisted(() => ({
   readFile: vi.fn(),
 }))
 
-const originalGetBoundingClientRect = HTMLElement.prototype.getBoundingClientRect
-let triggerElement: HTMLElement | null = null
+const toastMocks = vi.hoisted(() => ({
+  error: vi.fn(),
+}))
+
+vi.mock('@/electron/dialog', () => ({
+  open: dialogMocks.open,
+}))
+
+vi.mock('@/electron/fs', () => ({
+  readFile: fsMocks.readFile,
+}))
+
+vi.mock('vue-sonner', () => ({
+  toast: {
+    error: toastMocks.error,
+  },
+}))
+
+async function openAttachmentMenu(wrapper: ReturnType<typeof mount<InstanceType<typeof AttachmentMenu>>>) {
+  await wrapper.get('button').trigger('click')
+  await flushPromises()
+}
+
+function getMenuButton(text: string) {
+  const button = Array.from(document.body.querySelectorAll<HTMLButtonElement>('button'))
+    .find(element => element.textContent?.includes(text))
+  expect(button).not.toBeNull()
+  return button!
+}
 
 describe('attachmentMenu', () => {
   beforeEach(() => {
-    Object.defineProperty(window, 'innerWidth', {
-      configurable: true,
-      value: 1024,
-    })
-    Object.defineProperty(window, 'innerHeight', {
-      configurable: true,
-      value: 768,
-    })
-
-    HTMLElement.prototype.getBoundingClientRect = function getBoundingClientRectMock() {
-      const element = this as HTMLElement
-
-      if (element.classList.contains('fixed') && element.classList.contains('z-50')) {
-        return {
-          x: 0,
-          y: 0,
-          left: 0,
-          top: 0,
-          right: 160,
-          bottom: 120,
-          width: 160,
-          height: 120,
-          toJSON: () => {},
-        }
-      }
-
-      if (element === triggerElement) {
-        return {
-          x: 300,
-          y: 500,
-          left: 300,
-          top: 500,
-          right: 328,
-          bottom: 528,
-          width: 28,
-          height: 28,
-          toJSON: () => {},
-        }
-      }
-
-      return originalGetBoundingClientRect.call(this)
-    }
-  })
-
-  afterEach(() => {
-    HTMLElement.prototype.getBoundingClientRect = originalGetBoundingClientRect
-    triggerElement = null
     document.body.innerHTML = ''
+    dialogMocks.open.mockReset()
+    fsMocks.readFile.mockReset()
+    toastMocks.error.mockReset()
   })
 
-  it('positions the attachment panel next to the trigger after opening', async () => {
-    const wrapper = mount(AttachmentMenu, {
-      attachTo: document.body,
-    })
-    triggerElement = wrapper.element as HTMLElement
+  it('keeps file-dialog cancellation quiet', async () => {
+    dialogMocks.open.mockResolvedValueOnce(null)
+    const wrapper = mount(AttachmentMenu)
 
-    await wrapper.get('button').trigger('click')
-    await nextTick()
+    await openAttachmentMenu(wrapper)
+    getMenuButton('文件').click()
+    await flushPromises()
 
-    const panel = document.body.querySelector('.fixed.z-50') as HTMLElement | null
-    expect(panel).not.toBeNull()
-    expect(panel?.style.left).toBe('300px')
-    expect(panel?.style.top).toBe('372px')
+    expect(fsMocks.readFile).not.toHaveBeenCalled()
+    expect(toastMocks.error).not.toHaveBeenCalled()
+  })
 
-    wrapper.unmount()
+  it('shows a localized error when the selected attachment cannot be read', async () => {
+    dialogMocks.open.mockResolvedValueOnce('/tmp/report.pdf')
+    fsMocks.readFile.mockRejectedValueOnce(new Error('permission denied'))
+    const wrapper = mount(AttachmentMenu)
+
+    await openAttachmentMenu(wrapper)
+    getMenuButton('文件').click()
+    await flushPromises()
+
+    expect(fsMocks.readFile).toHaveBeenCalledWith('/tmp/report.pdf')
+    expect(toastMocks.error).toHaveBeenCalledWith('上传失败')
+    expect(wrapper.emitted('file')).toBeUndefined()
   })
 })

@@ -96,4 +96,16 @@ describe('chatHeader responsive layout', () => {
 
     expect(wrapper.get('[data-testid="chat-header-room-name"]').text()).toBe('设计评审')
   })
+
+  it('opens Feishu-style extended chat tabs from the add tab button', async () => {
+    const store = useChatStore()
+    const wrapper = mount(ChatHeader)
+
+    await wrapper.get('[data-testid="chat-tab-add-button"]').trigger('click')
+    expect(wrapper.get('[data-testid="chat-tab-add-menu"]').exists()).toBe(true)
+
+    await wrapper.get('[data-testid="chat-tab-add-tasks"]').trigger('click')
+    expect(store.activeSidePanel).toBe('tasks')
+    expect(wrapper.find('[data-testid="chat-tab-add-menu"]').exists()).toBe(false)
+  })
 })

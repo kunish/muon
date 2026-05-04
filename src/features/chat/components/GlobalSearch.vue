@@ -26,7 +26,7 @@ interface SearchRoomResult {
   name?: string
 }
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 const router = useRouter()
 const query = ref('')
@@ -125,7 +125,7 @@ function timeoutAfter(ms: number) {
 }
 
 function formatTime(ts: number): string {
-  return new Date(ts).toLocaleString('en', {
+  return new Date(ts).toLocaleString(locale.value, {
     month: 'short',
     day: 'numeric',
     hour: '2-digit',

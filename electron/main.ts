@@ -10,6 +10,8 @@ import { ENTERPRISE_AUTH_CALLBACK_CHANNEL, extractEnterpriseAuthCallbackUrl, isE
 let mainWindow: BrowserWindow | null = null
 const runtimeRequire = createRequire(__filename)
 let pendingAuthCallbackUrl: string | null = null
+let closeToTrayEnabled = false
+let isQuitting = false
 
 function getMainWindow(): BrowserWindow {
   if (!mainWindow || mainWindow.isDestroyed())
@@ -364,6 +366,16 @@ function registerFetchIpc(): void {
   })
 }
 
+function registerAppSettingsIpc(): void {
+  ipcMain.handle('muon:app:set-auto-launch', (_event, enabled: boolean) => {
+    app.setLoginItemSettings({ openAtLogin: Boolean(enabled) })
+  })
+
+  ipcMain.handle('muon:app:set-close-to-tray', (_event, enabled: boolean) => {
+    closeToTrayEnabled = Boolean(enabled)
+  })
+}
+
 function getAutoUpdater(): typeof import('electron-updater').autoUpdater {
   return runtimeRequire('electron-updater').autoUpdater
 }
@@ -393,6 +405,7 @@ function registerIpc(): void {
   registerFileIpc()
   registerShellIpc()
   registerFetchIpc()
+  registerAppSettingsIpc()
   registerUpdaterIpc()
 }
 
@@ -433,6 +446,13 @@ function createMainWindow(): void {
   mainWindow.on('blur', () => sendWindowFrameEvent('muon:window:blurred'))
   mainWindow.on('maximize', () => sendWindowFrameEvent('muon:window:resized'))
   mainWindow.on('unmaximize', () => sendWindowFrameEvent('muon:window:resized'))
+  mainWindow.on('close', (event) => {
+    if (!closeToTrayEnabled || isQuitting)
+      return
+
+    event.preventDefault()
+    mainWindow?.hide()
+  })
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url)
@@ -468,6 +488,10 @@ else {
     event.preventDefault()
     if (isEnterpriseAuthCallbackUrl(url))
       sendEnterpriseAuthCallbackUrl(url)
+  })
+
+  app.on('before-quit', () => {
+    isQuitting = true
   })
 
   app.whenReady().then(() => {

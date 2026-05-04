@@ -8,6 +8,14 @@ describe('settingsStore', () => {
     expect(store.theme).toBe('system')
     expect(store.locale).toBe('zh')
     expect(store.notificationsEnabled).toBe(true)
+    expect(store.notificationChannels).toEqual({
+      approvals: true,
+      calendar: true,
+      mentions: true,
+      messages: true,
+    })
+    expect(store.notificationSound).toBe(true)
+    expect(store.badgeCount).toBe(true)
     expect(store.closeToTray).toBe(true)
     expect(store.autoLaunch).toBe(false)
   })
@@ -31,5 +39,19 @@ describe('settingsStore', () => {
     store.notificationsEnabled = false
 
     expect(store.notificationsEnabled).toBe(false)
+  })
+
+  it('updates notification channel preferences without dropping other channels', () => {
+    const store = useSettingsStore()
+
+    store.setNotificationChannel('approvals', false)
+
+    expect(store.notificationChannels).toMatchObject({
+      approvals: false,
+      calendar: true,
+      mentions: true,
+      messages: true,
+    })
+    expect(store.activeNotificationChannelCount).toBe(3)
   })
 })

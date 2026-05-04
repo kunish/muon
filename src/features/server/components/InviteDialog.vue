@@ -6,6 +6,7 @@ import { Label } from '@muon/ui/label'
 import { Check, Copy, Link } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { toast } from 'vue-sonner'
 import { getClient } from '@/matrix/client'
 
 const props = defineProps<{
@@ -47,7 +48,7 @@ async function copyToClipboard() {
     }, 2000)
   }
   catch {
-    /* clipboard API unavailable — silently ignore in non-secure contexts */
+    toast.error(t('server.invite_copy_failed'))
   }
 }
 </script>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { DecisionStatus, DecisionSuggestion, SuggestionDisposition } from '../types/decision'
 import { Textarea } from '@muon/ui/textarea'
 import { onMounted, reactive } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -9,7 +10,7 @@ import { useDecisionStore } from '../stores/decisionStore'
 
 const decisionStore = useDecisionStore()
 const router = useRouter()
-const { t } = useI18n()
+const { locale, t } = useI18n()
 
 const form = reactive({
   conclusion: '',
@@ -25,13 +26,29 @@ onMounted(async () => {
 })
 
 async function saveDecisionCard() {
+  const missingFields = [
+    { label: t('chat.decision_conclusion'), value: form.conclusion },
+    { label: t('chat.decision_context'), value: form.context },
+    { label: t('chat.decision_owner'), value: form.owner },
+    { label: t('chat.decision_room_id'), value: form.roomId },
+    { label: t('chat.decision_event_id'), value: form.eventId },
+  ]
+    .filter(field => !field.value.trim())
+    .map(field => field.label)
+
+  if (missingFields.length > 0) {
+    const formatter = new Intl.ListFormat(locale.value, { type: 'conjunction' })
+    toast.error(t('chat.decision_missing_fields', { fields: formatter.format(missingFields) }))
+    return
+  }
+
   await decisionStore.createDecisionCard({
     id: `decision:${Date.now()}`,
-    conclusion: form.conclusion,
-    context: form.context,
-    owner: form.owner,
+    conclusion: form.conclusion.trim(),
+    context: form.context.trim(),
+    owner: form.owner.trim(),
     status: form.status,
-    citations: [{ roomId: form.roomId, eventId: form.eventId }],
+    citations: [{ roomId: form.roomId.trim(), eventId: form.eventId.trim() }],
   })
 }
 
@@ -55,6 +72,18 @@ async function rejectSuggestion(decisionId: string, suggestionId: string) {
 
 async function openLinkedMessage(roomId: string, eventId: string) {
   await preloadAndNavigate(router, roomId, eventId, 'DecisionPanel')
+}
+
+function decisionStatusLabel(status: DecisionStatus) {
+  return t(`chat.decision_status_${status}`)
+}
+
+function suggestionKindLabel(kind: DecisionSuggestion['kind']) {
+  return t(`chat.decision_suggestion_kind_${kind}`)
+}
+
+function suggestionDispositionLabel(disposition: SuggestionDisposition) {
+  return t(`chat.decision_suggestion_disposition_${disposition}`)
 }
 </script>
 
@@ -93,7 +122,7 @@ async function openLinkedMessage(roomId: string, eventId: string) {
           {{ card.context }}
         </p>
         <div class="mt-2 text-xs text-muted-foreground">
-          {{ card.owner }} · {{ card.status }}
+          {{ card.owner }} · {{ decisionStatusLabel(card.status) }}
         </div>
 
         <div v-if="card.citations.length" class="mt-3 space-y-2">
@@ -123,7 +152,7 @@ async function openLinkedMessage(roomId: string, eventId: string) {
               {{ suggestion.summary }}
             </div>
             <div class="mt-1 text-xs text-muted-foreground">
-              {{ suggestion.kind }} · digest summary · {{ suggestion.disposition }}
+              {{ suggestionKindLabel(suggestion.kind) }} · {{ t('chat.decision_suggestion_source_digest') }} · {{ suggestionDispositionLabel(suggestion.disposition) }}
             </div>
             <div class="mt-2 flex gap-2">
               <button class="rounded border border-border px-2 py-1 text-xs" :data-testid="`decision-accept-${suggestion.id}`" @click="acceptSuggestion(card.id, suggestion.id)">

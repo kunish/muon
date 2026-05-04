@@ -6,6 +6,7 @@ import { findOrCreateDm, getRoom } from '@matrix/rooms'
 import { AtSign, Ban, Hash, MessageCircle, Shield, X } from 'lucide-vue-next'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 import { ask } from '@/electron/dialog'
 import { useAuthMedia } from '@/shared/composables/useAuthMedia'
@@ -29,6 +30,7 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+const router = useRouter()
 
 const memberInfo = ref<{
   displayName: string
@@ -168,6 +170,7 @@ async function onSendMessage() {
         isDirect: true,
       },
     })
+    await router.push(`/dm/${encodeURIComponent(roomId)}`)
   }
   catch {
     toast.error(t('auth.error'))
@@ -346,6 +349,7 @@ async function onToggleBlock() {
         <!-- 操作按钮 -->
         <div class="space-y-1.5 px-3.5 pb-3.5 pt-1 animate-[panel-slide-in_0.32s_cubic-bezier(0.22,1,0.36,1)_both] [animation-delay:180ms]">
           <button
+            data-testid="user-info-send-message"
             class="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-primary text-primary-foreground text-[12px] font-semibold hover:brightness-110 active:scale-[0.98] transition-all duration-150 shadow-[0_2px_8px_rgba(0,0,0,0.1)]"
             @click="onSendMessage()"
           >

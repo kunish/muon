@@ -9,11 +9,25 @@ export interface Contact {
   presence: 'online' | 'offline' | 'unavailable'
 }
 
+export interface ContactProfileState {
+  isBlocked: boolean
+  isFavorite: boolean
+  note: string
+  tag: string
+}
+
 export interface GroupInfo {
   roomId: string
   name: string
   memberCount: number
   avatarUrl?: string
+}
+
+const DEFAULT_CONTACT_PROFILE: ContactProfileState = {
+  isBlocked: false,
+  isFavorite: false,
+  note: '',
+  tag: '',
 }
 
 function isSystemContact(userId: string): boolean {
@@ -22,6 +36,7 @@ function isSystemContact(userId: string): boolean {
 
 export const useContactStore = defineStore('contacts', () => {
   const contacts = ref<Contact[]>([])
+  const contactProfiles = ref<Record<string, ContactProfileState>>({})
   const groups = ref<GroupInfo[]>([])
   const searchQuery = ref('')
   const selectedContactId = ref<string | null>(null)
@@ -74,6 +89,30 @@ export const useContactStore = defineStore('contacts', () => {
     )
   })
 
+  function contactProfileFor(userId: string): ContactProfileState {
+    return contactProfiles.value[userId] ?? DEFAULT_CONTACT_PROFILE
+  }
+
+  function updateContactProfile(userId: string, patch: Partial<ContactProfileState>): void {
+    contactProfiles.value[userId] = {
+      ...DEFAULT_CONTACT_PROFILE,
+      ...contactProfiles.value[userId],
+      ...patch,
+    }
+  }
+
+  function toggleContactFavorite(userId: string): void {
+    updateContactProfile(userId, {
+      isFavorite: !contactProfileFor(userId).isFavorite,
+    })
+  }
+
+  function toggleContactBlocked(userId: string): void {
+    updateContactProfile(userId, {
+      isBlocked: !contactProfileFor(userId).isBlocked,
+    })
+  }
+
   const filteredGroups = computed(() => {
     const q = normalizedSearchQuery.value
     if (!q)
@@ -85,12 +124,17 @@ export const useContactStore = defineStore('contacts', () => {
 
   return {
     contacts,
+    contactProfiles,
     groups,
     searchQuery,
     selectedContactId,
+    contactProfileFor,
     filteredContacts,
     filteredGroups,
     loadContacts,
     loadGroups,
+    toggleContactBlocked,
+    toggleContactFavorite,
+    updateContactProfile,
   }
 })

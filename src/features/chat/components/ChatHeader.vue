@@ -2,7 +2,7 @@
 import type { SidePanelType } from '../stores/chatStore'
 import { getRoomTopic } from '@matrix/rooms'
 import { isDirectRoom } from '@matrix/roomUtils'
-import { AtSign, Bell, FileText, FolderOpen, Hash, Lock, MessageSquareText, MoreHorizontal, Pin, Plus, Search, Star, Timer, Users } from 'lucide-vue-next'
+import { AtSign, Bell, Brain, FileText, FolderOpen, Hash, ListTodo, Lock, MessageSquareText, MoreHorizontal, Pin, Plus, Search, Star, Timer, Users } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useCurrentRoom } from '../composables/useCurrentRoom'
@@ -26,6 +26,7 @@ const store = useChatStore()
 const { t } = useI18n()
 const showDisappearing = ref(false)
 const showMore = ref(false)
+const showAddTabMenu = ref(false)
 
 const roomPreview = computed(() =>
   currentRoomId.value ? store.getSidebarPromotionPreview(currentRoomId.value) : undefined,
@@ -65,15 +66,22 @@ const sidePanelActions = computed(() => [
   { id: 'members', label: t('chat.member_list'), icon: Users, panel: 'members' as const },
 ])
 
+const extendedTabActions = computed(() => [
+  { id: 'tasks', label: t('chat.tasks'), icon: ListTodo, panel: 'tasks' as const },
+  { id: 'knowledge', label: t('chat.knowledge'), icon: Brain, panel: 'knowledge' as const },
+])
+
 const isCompactHeader = computed(() => Boolean(store.activeSidePanel || store.activeThreadId))
 
 function toggleStarred() {
   showMore.value = false
+  showAddTabMenu.value = false
   store.toggleSidePanel('starred')
 }
 
 function openDisappearing() {
   showMore.value = false
+  showAddTabMenu.value = false
   showDisappearing.value = !showDisappearing.value
 }
 
@@ -83,6 +91,22 @@ function selectTab(tab: ChatContentTab) {
 
 function toggleSidePanelFromMenu(panel: SidePanelType) {
   showMore.value = false
+  showAddTabMenu.value = false
+  store.toggleSidePanel(panel)
+}
+
+function toggleMoreMenu() {
+  showAddTabMenu.value = false
+  showMore.value = !showMore.value
+}
+
+function toggleAddTabMenu() {
+  showMore.value = false
+  showAddTabMenu.value = !showAddTabMenu.value
+}
+
+function openExtendedTab(panel: SidePanelType) {
+  showAddTabMenu.value = false
   store.toggleSidePanel(panel)
 }
 </script>
@@ -152,7 +176,7 @@ function toggleSidePanelFromMenu(panel: SidePanelType) {
             data-testid="chat-header-more-button"
             aria-haspopup="menu"
             :aria-expanded="showMore"
-            @click="showMore = !showMore"
+            @click="toggleMoreMenu"
           >
             <MoreHorizontal :size="18" />
           </button>
@@ -196,30 +220,56 @@ function toggleSidePanelFromMenu(panel: SidePanelType) {
       <div v-if="showMore" class="fixed inset-0 z-20" @click="showMore = false" />
     </div>
 
-    <div class="muon-scrollbar-hidden flex h-9 items-center gap-1 overflow-x-auto border-t border-border px-4">
-      <button
-        v-for="tab in contentTabs"
-        :key="tab.id"
-        type="button"
-        class="flex h-7 shrink-0 select-none items-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        :class="props.activeTab === tab.id
-          ? 'bg-accent text-primary shadow-[inset_2px_0_0_var(--color-primary)]'
-          : 'text-muted-foreground hover:bg-accent hover:text-foreground'"
-        :data-testid="`chat-tab-${tab.id}`"
-        :aria-pressed="props.activeTab === tab.id"
-        @click="selectTab(tab.id)"
+    <div class="relative border-t border-border">
+      <div class="muon-scrollbar-hidden flex h-9 items-center gap-1 overflow-x-auto px-4">
+        <button
+          v-for="tab in contentTabs"
+          :key="tab.id"
+          type="button"
+          class="flex h-7 shrink-0 select-none items-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          :class="props.activeTab === tab.id
+            ? 'bg-accent text-primary shadow-[inset_2px_0_0_var(--color-primary)]'
+            : 'text-muted-foreground hover:bg-accent hover:text-foreground'"
+          :data-testid="`chat-tab-${tab.id}`"
+          :aria-pressed="props.activeTab === tab.id"
+          @click="selectTab(tab.id)"
+        >
+          <component :is="tab.icon" :size="14" class="shrink-0" />
+          <span>{{ tab.label }}</span>
+        </button>
+        <button
+          type="button"
+          class="ml-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-foreground"
+          :title="t('chat.tab_add')"
+          data-testid="chat-tab-add-button"
+          aria-haspopup="menu"
+          :aria-expanded="showAddTabMenu"
+          @click="toggleAddTabMenu"
+        >
+          <Plus :size="14" />
+        </button>
+      </div>
+      <div
+        v-if="showAddTabMenu"
+        data-testid="chat-tab-add-menu"
+        role="menu"
+        class="workspace-menu absolute left-4 top-[calc(100%+2px)] z-30 min-w-[156px]"
       >
-        <component :is="tab.icon" :size="14" class="shrink-0" />
-        <span>{{ tab.label }}</span>
-      </button>
-      <button
-        type="button"
-        class="ml-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-foreground"
-        :title="t('chat.tab_add')"
-      >
-        <Plus :size="14" />
-      </button>
+        <button
+          v-for="action in extendedTabActions"
+          :key="action.id"
+          role="menuitem"
+          class="flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-muted-foreground transition-colors duration-[120ms] hover:bg-accent hover:text-accent-foreground"
+          :class="store.activeSidePanel === action.panel && 'bg-accent text-foreground'"
+          :data-testid="`chat-tab-add-${action.id}`"
+          @click="openExtendedTab(action.panel)"
+        >
+          <component :is="action.icon" :size="14" />
+          <span>{{ action.label }}</span>
+        </button>
+      </div>
     </div>
+    <div v-if="showAddTabMenu" class="fixed inset-0 z-20" @click="showAddTabMenu = false" />
 
     <DisappearingMessageSettings
       v-if="showDisappearing && currentRoomId"

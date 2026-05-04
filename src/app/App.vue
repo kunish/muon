@@ -5,12 +5,14 @@ import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
+import { isElectronRuntime } from '@/electron/bridge'
 import ErrorBoundary from './components/ErrorBoundary.vue'
 import WindowTitleBar from './components/window/WindowTitleBar.vue'
 
 const router = useRouter()
 const { t } = useI18n()
 const initializing = ref(true)
+const showWindowTitleBar = isElectronRuntime()
 
 function blockNativeContextMenu(event: MouseEvent) {
   event.preventDefault()
@@ -32,7 +34,7 @@ onMounted(async () => {
   catch (err) {
     if (err instanceof Error && (err.message?.includes('fetch') || err.message?.includes('network') || err.message?.includes('ECONNREFUSED') || err.name === 'TypeError')) {
       console.error('[App] Network error during session restore:', err)
-      toast.error('Network error. Please check your connection.')
+      toast.error(t('common.network_error'))
     }
     else {
       router.replace('/login')
@@ -50,7 +52,7 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="app-window-frame flex h-screen flex-col overflow-hidden bg-background text-foreground">
-    <WindowTitleBar />
+    <WindowTitleBar v-if="showWindowTitleBar" />
     <main class="min-h-0 flex-1 overflow-hidden">
       <ErrorBoundary>
         <div v-if="initializing" class="flex h-full items-center justify-center bg-background">

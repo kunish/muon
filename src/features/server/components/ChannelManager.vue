@@ -2,12 +2,17 @@
 import type { ChannelInfo } from '@/matrix/spaces'
 import { Button } from '@muon/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@muon/ui/dialog'
+import { Input } from '@muon/ui/input'
+import { Label } from '@muon/ui/label'
+import { Textarea } from '@muon/ui/textarea'
 import { GripVertical, Hash, Pencil, Trash2, Volume2 } from 'lucide-vue-next'
 import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import { useServerStore } from '@/features/server/stores/serverStore'
+import { setRoomName, setRoomTopic } from '@/matrix/rooms'
 import { getCategoryChannels, getSpaceHierarchy, removeRoomFromSpace } from '@/matrix/spaces'
+import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
 
 const props = defineProps<{
   serverId: string
@@ -27,6 +32,10 @@ interface ChannelGroup {
 // ── State ──
 
 const channelGroups = ref<ChannelGroup[]>([])
+const editTarget = ref<ChannelInfo | null>(null)
+const editChannelName = ref('')
+const editChannelTopic = ref('')
+const isSavingEdit = ref(false)
 const deleteTarget = ref<{ channel: ChannelInfo, categoryId: string | null } | null>(null)
 const showDeleteDialog = ref(false)
 const isDeleting = ref(false)
@@ -58,6 +67,48 @@ function loadChannels() {
 }
 
 // ── Actions ──
+
+function openEdit(channel: ChannelInfo) {
+  editTarget.value = channel
+  editChannelName.value = channel.name
+  editChannelTopic.value = channel.topic ?? ''
+}
+
+function closeEdit() {
+  editTarget.value = null
+  editChannelName.value = ''
+  editChannelTopic.value = ''
+}
+
+async function handleEdit() {
+  if (!editTarget.value || isSavingEdit.value)
+    return
+
+  const channel = editTarget.value
+  const name = editChannelName.value.trim()
+  if (!name)
+    return
+
+  isSavingEdit.value = true
+  try {
+    const topic = editChannelTopic.value.trim()
+    if (name !== channel.name)
+      await setRoomName(channel.roomId, name)
+    if (topic !== (channel.topic ?? ''))
+      await setRoomTopic(channel.roomId, topic)
+
+    loadChannels()
+    serverStore.loadChannelTree(props.serverId)
+    closeEdit()
+  }
+  catch (err) {
+    console.error('Failed to edit channel:', err)
+    toast.error(t('server.channel_failed'))
+  }
+  finally {
+    isSavingEdit.value = false
+  }
+}
 
 function confirmDelete(channel: ChannelInfo, categoryId: string | null) {
   deleteTarget.value = { channel, categoryId }
@@ -173,8 +224,10 @@ onMounted(loadChannels)
             <!-- Actions -->
             <div class="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
               <button
+                data-testid="channel-manager-edit"
                 class="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent/30 hover:text-foreground"
                 :title="t('channel.edit_channel')"
+                @click="openEdit(channel)"
               >
                 <Pencil :size="14" />
               </button>
@@ -191,28 +244,70 @@ onMounted(loadChannels)
       </div>
     </div>
 
-    <!-- Delete confirmation dialog -->
-    <Dialog v-model:open="showDeleteDialog">
-      <DialogContent>
+    <Dialog
+      :open="Boolean(editTarget)"
+      @update:open="value => { if (!value) closeEdit() }"
+    >
+      <DialogContent v-if="editTarget">
         <DialogHeader>
-          <DialogTitle>{{ t('channel.delete_channel') }}</DialogTitle>
+          <DialogTitle>{{ t('channel.edit_channel') }}</DialogTitle>
           <DialogDescription>
-            {{ t('channel.delete_channel_confirm', { name: deleteTarget?.channel.name }) }}
+            {{ editTarget.name }}
           </DialogDescription>
         </DialogHeader>
+
+        <div class="space-y-2">
+          <Label for="channel-manager-edit-name" class="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+            {{ t('channel.channel_name') }}
+          </Label>
+          <Input
+            id="channel-manager-edit-name"
+            v-model="editChannelName"
+            data-testid="channel-manager-edit-name"
+            :placeholder="t('channel.channel_name_placeholder')"
+            @keydown.enter="handleEdit"
+          />
+        </div>
+
+        <div class="space-y-2">
+          <Label for="channel-manager-edit-topic" class="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+            {{ t('channel.channel_topic') }}
+          </Label>
+          <Textarea
+            id="channel-manager-edit-topic"
+            v-model="editChannelTopic"
+            data-testid="channel-manager-edit-topic"
+            class="min-h-20"
+            :placeholder="t('channel.channel_topic_placeholder')"
+          />
+        </div>
+
         <div class="flex justify-end gap-2">
-          <Button variant="ghost" @click="showDeleteDialog = false">
+          <Button variant="ghost" @click="closeEdit">
             {{ t('common.cancel') }}
           </Button>
           <Button
-            variant="destructive"
-            :disabled="isDeleting"
-            @click="handleDelete"
+            data-testid="channel-manager-edit-save"
+            :disabled="!editChannelName.trim() || isSavingEdit"
+            @click="handleEdit"
           >
-            {{ isDeleting ? t('server.deleting') : t('channel.delete_channel') }}
+            {{ isSavingEdit ? t('server.saving') : t('common.save') }}
           </Button>
         </div>
       </DialogContent>
     </Dialog>
+
+    <ConfirmDialog
+      v-model:open="showDeleteDialog"
+      :title="t('channel.delete_channel')"
+      :description="deleteTarget ? t('channel.delete_channel_confirm', { name: deleteTarget.channel.name }) : ''"
+      :confirm-label="t('channel.delete_channel')"
+      :cancel-label="t('common.cancel')"
+      :loading="isDeleting"
+      :loading-label="t('server.deleting')"
+      variant="destructive"
+      @confirm="handleDelete"
+      @cancel="showDeleteDialog = false"
+    />
   </div>
 </template>

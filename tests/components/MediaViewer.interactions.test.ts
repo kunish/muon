@@ -101,4 +101,15 @@ describe('media viewer interactions', () => {
     await nextTick()
     expect(image.style.transform).toContain('translate(0px, 0px) scale(1) rotate(0deg)')
   })
+
+  it('uses localized toolbar labels', async () => {
+    await openMountedImage()
+
+    const labels = [...document.body.querySelectorAll<HTMLButtonElement>('[aria-label]')]
+      .map(button => button.getAttribute('aria-label'))
+
+    expect(labels).toEqual(['放大', '缩小', '旋转', '下载', '关闭'])
+    expect(document.body.textContent).not.toContain('Zoom in')
+    expect(document.body.querySelector('[title="Zoom in"]')).toBeNull()
+  })
 })

@@ -2,6 +2,7 @@
 import { Camera, FileUp, Image, ImagePlus, MapPin, Plus, Sticker, UserCircle, Video } from 'lucide-vue-next'
 import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { toast } from 'vue-sonner'
 import { open as openDialog } from '@/electron/dialog'
 import { readFile } from '@/electron/fs'
 import { getFloatingPosition } from '../composables/useFloatingPosition'
@@ -83,7 +84,7 @@ async function pickFile(filters: FileFilter[] | undefined, type: 'image' | 'vide
       emit('file', file)
   }
   catch {
-    // File dialog cancelled or read failed — no user notification needed
+    toast.error(t('chat.upload_failed'))
   }
 }
 

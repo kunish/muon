@@ -45,7 +45,7 @@ import { useAuthMedia } from '@/shared/composables/useAuthMedia'
 import { isFullEmojiText } from '@/shared/lib/emoji'
 import { handleMatrixLinkClick } from '@/shared/lib/matrixLinks'
 import { getSystemLanguage, translateText } from '@/shared/lib/translate'
-import { copyMessageContentToClipboard } from '../lib/messageClipboard'
+import { useMessageClipboardFeedback } from '../composables/useMessageClipboardFeedback'
 import { useChatStore } from '../stores/chatStore'
 import AnimatedEmoji from './AnimatedEmoji.vue'
 import ForwardDialog from './ForwardDialog.vue'
@@ -72,6 +72,7 @@ const emit = defineEmits<{
 const store = useChatStore()
 const settingsStore = useSettingsStore()
 const { t } = useI18n()
+const { copyMessageContentWithFeedback } = useMessageClipboardFeedback()
 const triggerEmojiEffect
   = inject<(emoji: string, rect: DOMRect) => void>('triggerEmojiEffect')
 const showMore = ref(false)
@@ -251,7 +252,7 @@ const isSenderBlocked = computed(() => {
 })
 
 function copyText() {
-  void copyMessageContentToClipboard(props.event.getContent() ?? {})
+  void copyMessageContentWithFeedback(props.event.getContent() ?? {})
 }
 
 /** 拦截 rich-content 中的 matrix.to mention 链接点击，打开用户卡片 */

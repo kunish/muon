@@ -11,8 +11,13 @@ import { useContactStore } from '@/features/contacts/stores/contactStore'
 type OrganizationSection = 'overview' | 'members' | 'groups'
 
 type OrganizationSource = 'account' | 'matrix' | 'local'
+type OrganizationAccountStatus = '正常' | '已停用'
+type OrganizationPermissionRole = '普通成员' | '协作管理员' | '超级管理员'
 
 interface OrganizationMember extends Contact {
+  accountStatus: OrganizationAccountStatus
+  department: string
+  permissionRole: OrganizationPermissionRole
   role: string
   source: OrganizationSource
 }
@@ -48,6 +53,7 @@ const savedGroups = ref<OrganizationGroup[]>([])
 const deletedGroupIds = ref<string[]>([])
 const memberEditorOpen = ref(false)
 const editingMemberId = ref<string | null>(null)
+const selectedGovernanceMemberId = ref<string | null>(null)
 const memberDraft = ref({
   displayName: '',
   role: '成员',
@@ -70,6 +76,27 @@ const sections: Array<{
   { id: 'groups', label: '团队群组', icon: GitBranch },
 ]
 
+function normalizeAccountStatus(value: unknown): OrganizationAccountStatus {
+  return value === '已停用' ? '已停用' : '正常'
+}
+
+function normalizePermissionRole(value: unknown): OrganizationPermissionRole {
+  if (value === '协作管理员' || value === '超级管理员')
+    return value
+  return '普通成员'
+}
+
+function normalizeMember(member: Partial<OrganizationMember> & Contact, source: OrganizationSource): OrganizationMember {
+  return {
+    ...member,
+    accountStatus: normalizeAccountStatus(member.accountStatus),
+    department: member.department || (source === 'account' ? '组织管理部' : '默认部门'),
+    permissionRole: normalizePermissionRole(member.permissionRole),
+    role: member.role || (source === 'account' ? '当前账号' : '成员'),
+    source,
+  }
+}
+
 function titleCase(value: string): string {
   return value.length === 0 ? value : `${value[0].toUpperCase()}${value.slice(1)}`
 }
@@ -85,7 +112,9 @@ function readPersistedDirectory(): void {
       return
 
     const parsed = JSON.parse(raw) as Partial<PersistedOrganizationDirectory>
-    savedMembers.value = Array.isArray(parsed.members) ? parsed.members : []
+    savedMembers.value = Array.isArray(parsed.members)
+      ? parsed.members.map(member => normalizeMember(member, 'local'))
+      : []
     deletedMemberIds.value = Array.isArray(parsed.deletedMemberIds) ? parsed.deletedMemberIds : []
     savedGroups.value = Array.isArray(parsed.groups) ? parsed.groups : []
     deletedGroupIds.value = Array.isArray(parsed.deletedGroupIds) ? parsed.deletedGroupIds : []
@@ -136,20 +165,23 @@ const organizationProfile = computed(() => {
 
 const organizationMembers = computed<OrganizationMember[]>(() => {
   const currentMember: OrganizationMember = {
-    userId: currentUserId.value,
-    displayName: currentDisplayName.value,
-    avatarUrl: currentAvatarUrl.value,
-    presence: 'online',
-    role: '当前账号',
-    source: 'account',
+    ...normalizeMember({
+      userId: currentUserId.value,
+      displayName: currentDisplayName.value,
+      avatarUrl: currentAvatarUrl.value,
+      presence: 'online',
+      role: '当前账号',
+      department: '组织管理部',
+      permissionRole: '超级管理员',
+      accountStatus: '正常',
+    }, 'account'),
   }
   const memberMap = new Map<string, OrganizationMember>()
   const deleted = new Set(deletedMemberIds.value)
-  const members = [currentMember, ...contactStore.contacts.map(contact => ({
+  const members = [currentMember, ...contactStore.contacts.map(contact => normalizeMember({
     ...contact,
     role: '成员',
-    source: 'matrix' as const,
-  }))]
+  }, 'matrix'))]
 
   for (const member of members) {
     if (!deleted.has(member.userId))
@@ -158,11 +190,15 @@ const organizationMembers = computed<OrganizationMember[]>(() => {
 
   for (const member of savedMembers.value) {
     if (!deleted.has(member.userId))
-      memberMap.set(member.userId, { ...member, source: 'local' })
+      memberMap.set(member.userId, normalizeMember(member, 'local'))
   }
 
   return Array.from(memberMap.values())
 })
+
+const selectedGovernanceMember = computed(() =>
+  organizationMembers.value.find(member => member.userId === selectedGovernanceMemberId.value) ?? organizationMembers.value[0],
+)
 
 const organizationGroups = computed<OrganizationGroup[]>(() => {
   const groupMap = new Map<string, OrganizationGroup>()
@@ -194,7 +230,7 @@ const filteredMembers = computed(() => {
     return organizationMembers.value
 
   return organizationMembers.value.filter(member =>
-    [member.displayName, member.userId, member.role].some(value => value.toLowerCase().includes(query)),
+    [member.displayName, member.userId, member.role, member.department, member.permissionRole, member.accountStatus].some(value => value.toLowerCase().includes(query)),
   )
 })
 
@@ -233,8 +269,16 @@ function showGroups(): void {
   actionMessage.value = '已打开团队群组'
 }
 
+function showSecurityGovernance(): void {
+  activeSection.value = 'members'
+  searchQuery.value = ''
+  memberEditorOpen.value = false
+  selectedGovernanceMemberId.value = selectedGovernanceMember.value?.userId ?? null
+  actionMessage.value = '已打开成员治理'
+}
+
 function inviteMember(): void {
-  actionMessage.value = '邀请成员入口已就绪'
+  actionMessage.value = '正在邀请新成员'
   activeSection.value = 'members'
   memberEditorOpen.value = true
   editingMemberId.value = null
@@ -279,9 +323,12 @@ function saveMember(): void {
   const nextMember: OrganizationMember = {
     userId,
     displayName,
-    role: memberDraft.value.role.trim() || '成员',
+    accountStatus: existing?.accountStatus ?? '正常',
     avatarUrl: existing?.avatarUrl,
+    department: existing?.department ?? '默认部门',
+    permissionRole: existing?.permissionRole ?? '普通成员',
     presence: existing?.presence ?? 'offline',
+    role: memberDraft.value.role.trim() || '成员',
     source: 'local',
   }
 
@@ -293,6 +340,7 @@ function saveMember(): void {
   editingMemberId.value = null
   searchQuery.value = ''
   actionMessage.value = `已保存成员 ${nextMember.displayName}`
+  selectedGovernanceMemberId.value = nextMember.userId
   persistDirectory()
 }
 
@@ -303,8 +351,55 @@ function deleteMember(member: OrganizationMember): void {
   savedMembers.value = savedMembers.value.filter(item => item.userId !== member.userId)
   if (!deletedMemberIds.value.includes(member.userId))
     deletedMemberIds.value = [...deletedMemberIds.value, member.userId]
+  if (selectedGovernanceMemberId.value === member.userId)
+    selectedGovernanceMemberId.value = null
   actionMessage.value = '成员已删除'
   persistDirectory()
+}
+
+function selectGovernanceMember(member: OrganizationMember): void {
+  selectedGovernanceMemberId.value = member.userId
+  actionMessage.value = `已选择 ${member.displayName}`
+}
+
+function updateSelectedGovernance(updates: Partial<Pick<OrganizationMember, 'accountStatus' | 'department' | 'permissionRole'>>, message: string): void {
+  const member = selectedGovernanceMember.value
+  if (!member)
+    return
+
+  const nextMember = normalizeMember({
+    ...member,
+    ...updates,
+  }, 'local')
+
+  savedMembers.value = savedMembers.value
+    .filter(item => item.userId !== member.userId)
+    .concat(nextMember)
+  deletedMemberIds.value = deletedMemberIds.value.filter(id => id !== member.userId)
+  selectedGovernanceMemberId.value = member.userId
+  actionMessage.value = message
+  persistDirectory()
+}
+
+function transferSelectedMember(): void {
+  const member = selectedGovernanceMember.value
+  if (!member)
+    return
+  updateSelectedGovernance({ department: '产品研发部' }, `已调动：${member.displayName}`)
+}
+
+function promoteSelectedMember(): void {
+  const member = selectedGovernanceMember.value
+  if (!member)
+    return
+  updateSelectedGovernance({ permissionRole: '协作管理员' }, `已授权：${member.displayName}`)
+}
+
+function disableSelectedMember(): void {
+  const member = selectedGovernanceMember.value
+  if (!member)
+    return
+  updateSelectedGovernance({ accountStatus: '已停用' }, `已停用：${member.displayName}`)
 }
 
 function startNewGroup(): void {
@@ -366,6 +461,10 @@ function deleteGroup(group: OrganizationGroup): void {
 
 function openGroup(group: OrganizationGroup): void {
   actionMessage.value = `已选择 ${group.name}`
+}
+
+function openActivity(message: string): void {
+  actionMessage.value = message
 }
 
 watch(searchQuery, (value) => {
@@ -468,9 +567,10 @@ onMounted(async () => {
             <UsersRound :size="18" />
           </button>
           <button
+            data-testid="organization-security-shortcut"
             class="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             title="安全与权限"
-            @click="actionMessage = '安全与权限入口已就绪'"
+            @click="showSecurityGovernance"
           >
             <ShieldCheck :size="18" />
           </button>
@@ -657,12 +757,14 @@ onMounted(async () => {
                 >
                   <Avatar :alt="member.displayName" :src="member.avatarUrl" :color-id="member.userId" size="sm" />
                   <button
+                    :data-testid="`organization-select-member-${testIdFor(member.userId)}`"
                     type="button"
                     class="min-w-0 flex-1 text-left"
-                    @click="actionMessage = `已选择 ${member.displayName}`"
+                    @click="selectGovernanceMember(member)"
                   >
                     <span class="block truncate text-[13px] font-semibold">{{ member.displayName }}</span>
                     <span class="mt-0.5 block truncate text-[12px] text-muted-foreground">{{ member.userId }}</span>
+                    <span class="mt-0.5 block truncate text-[12px] text-muted-foreground">{{ member.department }} · {{ member.accountStatus }}</span>
                   </button>
                   <span class="shrink-0 rounded-md border border-border px-2 py-1 text-[11px] font-semibold text-muted-foreground">
                     {{ member.role }}
@@ -797,19 +899,62 @@ onMounted(async () => {
           <aside class="workspace-surface h-fit rounded-lg">
             <div class="flex h-12 items-center justify-between border-b border-border px-4">
               <h2 class="text-[15px] font-semibold">
+                成员治理
+              </h2>
+              <span class="text-[12px] text-muted-foreground">权限与状态</span>
+            </div>
+            <div v-if="selectedGovernanceMember" class="grid gap-3 border-b border-border p-4 text-[13px] leading-5">
+              <span class="font-semibold text-foreground">{{ selectedGovernanceMember.displayName }}</span>
+              <span class="text-muted-foreground">所属部门：{{ selectedGovernanceMember.department }}</span>
+              <span class="text-muted-foreground">组织权限：{{ selectedGovernanceMember.permissionRole }}</span>
+              <span class="text-muted-foreground">账号状态：{{ selectedGovernanceMember.accountStatus }}</span>
+              <div class="grid gap-2 pt-1">
+                <button
+                  data-testid="organization-transfer-member"
+                  class="h-8 rounded-md bg-primary px-3 text-[12px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+                  @click="transferSelectedMember"
+                >
+                  调入产品研发部
+                </button>
+                <button
+                  data-testid="organization-promote-member"
+                  class="h-8 rounded-md border border-border px-3 text-[12px] font-semibold text-foreground transition-colors hover:bg-accent"
+                  @click="promoteSelectedMember"
+                >
+                  授权协作管理员
+                </button>
+                <button
+                  data-testid="organization-disable-member"
+                  class="h-8 rounded-md border border-border px-3 text-[12px] font-semibold text-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                  @click="disableSelectedMember"
+                >
+                  停用账号
+                </button>
+              </div>
+            </div>
+            <div class="flex h-12 items-center justify-between border-b border-border px-4">
+              <h2 class="text-[15px] font-semibold">
                 组织动态
               </h2>
               <span class="text-[12px] text-muted-foreground">今天</span>
             </div>
             <div class="divide-y divide-border">
-              <button class="flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-accent">
+              <button
+                data-testid="organization-activity-directory-sync"
+                class="flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-accent"
+                @click="openActivity('已查看成员目录同步动态')"
+              >
                 <span class="mt-1 h-2 w-2 shrink-0 rounded-full bg-primary" />
                 <span class="min-w-0">
                   <span class="block truncate text-[13px] font-semibold">成员目录已同步</span>
                   <span class="mt-1 block text-[12px] leading-[18px] text-muted-foreground">联系人与组织视图保持一致</span>
                 </span>
               </button>
-              <button class="flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-accent">
+              <button
+                data-testid="organization-activity-groups-entry"
+                class="flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-accent"
+                @click="openActivity('已查看团队群组入口动态')"
+              >
                 <span class="mt-1 h-2 w-2 shrink-0 rounded-full bg-secondary" />
                 <span class="min-w-0">
                   <span class="block truncate text-[13px] font-semibold">团队群组可从组织页进入</span>

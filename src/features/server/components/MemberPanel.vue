@@ -2,6 +2,8 @@
 import type { SpaceMember } from '@/matrix/spaces'
 import { Search, X } from 'lucide-vue-next'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { useChatStore } from '@/features/chat/stores/chatStore'
 import { useServerStore } from '@/features/server/stores/serverStore'
 import { matrixEvents } from '@/matrix/events'
 import { getUserPresenceInfo } from '@/matrix/profile'
@@ -20,6 +22,8 @@ const emit = defineEmits<{
 }>()
 
 const serverStore = useServerStore()
+const chatStore = useChatStore()
+const { t } = useI18n()
 const searchQuery = ref('')
 
 // ── 成员数据 ──
@@ -63,17 +67,17 @@ const filteredMembers = computed(() => {
 
 interface RoleGroup {
   key: string
-  label: string
+  labelKey: string
   color: string
   minPower: number
   maxPower: number
 }
 
 const roleGroups: RoleGroup[] = [
-  { key: 'owner', label: 'OWNER', color: '#c08b2e', minPower: 100, maxPower: Infinity },
-  { key: 'admin', label: 'ADMIN', color: '#b85c4a', minPower: 75, maxPower: 99 },
-  { key: 'moderator', label: 'MODERATOR', color: '#4a9882', minPower: 50, maxPower: 74 },
-  { key: 'member', label: 'MEMBER', color: 'var(--color-foreground)', minPower: 0, maxPower: 49 },
+  { key: 'owner', labelKey: 'role.owner', color: '#c08b2e', minPower: 100, maxPower: Infinity },
+  { key: 'admin', labelKey: 'role.admin', color: '#b85c4a', minPower: 75, maxPower: 99 },
+  { key: 'moderator', labelKey: 'role.moderator', color: '#4a9882', minPower: 50, maxPower: 74 },
+  { key: 'member', labelKey: 'role.member', color: 'var(--color-foreground)', minPower: 0, maxPower: 49 },
 ]
 
 // ── 按角色分组 + 在线排前 ──
@@ -118,7 +122,7 @@ const groupedSections = computed<GroupedSection[]>(() => {
 
     sections.push({
       key: group.key,
-      label: group.label,
+      label: t(group.labelKey),
       color: group.color,
       count: members.length,
       onlineMembers: online,
@@ -155,6 +159,15 @@ function handleProfileFromContext(userId: string) {
     clientY: contextMenuPosition.value.y,
   }))
 }
+
+function handleMentionFromContext(userId: string) {
+  const member = rawMembers.value.find(item => item.userId === userId)
+  chatStore.requestMention({
+    id: userId,
+    label: member?.displayName || userId.split(':')[0]?.slice(1) || userId,
+  })
+  closeContextMenu()
+}
 </script>
 
 <template>
@@ -171,7 +184,7 @@ function handleProfileFromContext(userId: string) {
       <!-- Header -->
       <div class="flex items-center justify-between px-4 h-12 border-b border-border shrink-0">
         <span class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-          Members — {{ rawMembers.length }}
+          {{ t('member.members') }} — {{ rawMembers.length }}
         </span>
         <button
           class="p-1 rounded-md hover:bg-accent text-muted-foreground transition-colors"
@@ -191,7 +204,7 @@ function handleProfileFromContext(userId: string) {
           <input
             v-model="searchQuery"
             type="text"
-            placeholder="Search"
+            :placeholder="t('member.search_members_placeholder')"
             class="w-full h-7 pl-7 pr-2 text-xs rounded-md bg-background border border-transparent outline-none placeholder:text-muted-foreground/35 transition-all duration-150 focus:border-ring/30"
           >
         </div>
@@ -233,7 +246,7 @@ function handleProfileFromContext(userId: string) {
           v-if="filteredMembers.length === 0"
           class="flex flex-col items-center justify-center py-8 text-muted-foreground/40"
         >
-          <span class="text-xs">{{ searchQuery ? 'No matching members' : 'No members' }}</span>
+          <span class="text-xs">{{ searchQuery ? t('member.no_match') : t('member.no_members') }}</span>
         </div>
       </div>
 
@@ -242,7 +255,7 @@ function handleProfileFromContext(userId: string) {
         :server-id="serverStore.currentServerId ?? undefined"
         :position="contextMenuPosition"
         @close="closeContextMenu"
-        @mention="closeContextMenu"
+        @mention="handleMentionFromContext"
         @profile="handleProfileFromContext"
       />
     </aside>

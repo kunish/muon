@@ -60,7 +60,7 @@ async function openFile(item: DownloadItem) {
       await openPath(item.savePath)
     }
     catch {
-      toast.error('Could not open file — it may have been moved or deleted')
+      toast.error(t('downloads.open_file_failed'))
     }
   }
 }
@@ -71,7 +71,7 @@ async function openFolder(item: DownloadItem) {
       await revealItemInDir(item.savePath)
     }
     catch {
-      toast.error('Could not open folder')
+      toast.error(t('downloads.open_folder_failed'))
     }
   }
 }

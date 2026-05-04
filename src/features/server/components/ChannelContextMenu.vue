@@ -16,6 +16,7 @@ import {
 } from 'lucide-vue-next'
 import { computed, shallowRef } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { toast } from 'vue-sonner'
 import { useServerStore } from '@/features/server/stores/serverStore'
 import { useRoomPermissions } from '@/shared/composables/useRoomPermissions'
 
@@ -40,10 +41,22 @@ const open = shallowRef(false)
 
 const { isModerator: isAdmin } = useRoomPermissions(computed(() => serverStore.currentServerId))
 
-function handleCopyLink() {
-  const link = `${window.location.origin}/server/${encodeURIComponent(serverStore.currentServerId!)}/channel/${encodeURIComponent(props.channel.roomId)}`
-  navigator.clipboard.writeText(link)
-  emit('copyLink', props.channel.roomId)
+async function handleCopyLink() {
+  if (!serverStore.currentServerId || !navigator.clipboard?.writeText) {
+    toast.error(t('channel.copy_link_failed'))
+    return
+  }
+
+  const link = `${window.location.origin}/server/${encodeURIComponent(serverStore.currentServerId)}/channel/${encodeURIComponent(props.channel.roomId)}`
+
+  try {
+    await navigator.clipboard.writeText(link)
+    toast.success(t('channel.link_copied'))
+    emit('copyLink', props.channel.roomId)
+  }
+  catch {
+    toast.error(t('channel.copy_link_failed'))
+  }
 }
 </script>
 

@@ -294,6 +294,27 @@ export interface SystemEventInfo {
   parts: SystemEventPart[]
 }
 
+interface MergeableMemberEvent {
+  kind: 'invite' | 'invite_join'
+  key: string
+  roomId: string
+  sender: string
+  targetId: string
+  targetFallbackName: string
+  ts: number
+}
+
+interface RoomCreationSetupEvent {
+  kind: 'create' | 'creator_join' | 'room_name' | 'room_topic' | 'invite'
+  roomId: string
+  actor: string
+  targetId?: string
+  targetFallbackName?: string
+  name?: string
+  topic?: string
+  ts: number
+}
+
 export interface ReactionSummary {
   key: string
   count: number
@@ -307,7 +328,22 @@ export interface TimelineRelationSummaries {
 
 /** 获取系统事件的结构化描述（用于丰富渲染） */
 // TODO: migrate hardcoded Chinese strings to i18n
-export function getSystemEventInfo(ev: MatrixEvent): SystemEventInfo {
+export function getSystemEventInfo(eventOrEvents: MatrixEvent | MatrixEvent[]): SystemEventInfo {
+  const events = Array.isArray(eventOrEvents) ? eventOrEvents : [eventOrEvents]
+  const ev = events[0]
+  if (!ev) {
+    return {
+      kind: 'unknown',
+      parts: [],
+    }
+  }
+
+  if (events.length > 1) {
+    const mergedInfo = getMergedSystemEventInfo(events)
+    if (mergedInfo)
+      return mergedInfo
+  }
+
   const evType = ev.getType()
   const sender = ev.getSender() || ''
   const client = getClient()
@@ -443,6 +479,285 @@ export function getSystemEventInfo(ev: MatrixEvent): SystemEventInfo {
       { type: 'user', text: senderName, userId: sender },
       { type: 'text', text: ' 触发了一个事件' },
     ],
+  }
+}
+
+const SYSTEM_EVENT_MERGE_WINDOW_MS = 2 * 60 * 1000
+
+function fallbackNameFromUserId(userId: string): string {
+  return userId.split(':')[0]?.slice(1) || userId
+}
+
+function getMergeableMemberEvent(ev: MatrixEvent): MergeableMemberEvent | null {
+  if (ev.getType() !== 'm.room.member')
+    return null
+
+  const membership = ev.getContent()?.membership
+  const prevMembership = ev.getPrevContent()?.membership
+  const roomId = ev.getRoomId()
+  const sender = ev.getSender()
+  const targetId = ev.getStateKey()
+  if (!roomId || !sender || !targetId || sender === targetId)
+    return null
+
+  const kind = membership === 'invite'
+    ? 'invite'
+    : membership === 'join' && prevMembership === 'invite'
+      ? 'invite_join'
+      : null
+  if (!kind)
+    return null
+
+  const targetFallbackName = ev.getContent()?.displayname || fallbackNameFromUserId(targetId)
+
+  return {
+    kind,
+    key: `${kind}:${roomId}:${sender}`,
+    roomId,
+    sender,
+    targetId,
+    targetFallbackName,
+    ts: ev.getTs(),
+  }
+}
+
+function getRoomCreationSetupEvent(ev: MatrixEvent): RoomCreationSetupEvent | null {
+  const roomId = ev.getRoomId()
+  const actor = ev.getSender()
+  if (!roomId || !actor)
+    return null
+
+  const evType = ev.getType()
+  const ts = ev.getTs()
+
+  if (evType === 'm.room.create') {
+    return {
+      kind: 'create',
+      roomId,
+      actor,
+      ts,
+    }
+  }
+
+  if (evType === 'm.room.name') {
+    const name = ev.getContent()?.name
+    return {
+      kind: 'room_name',
+      roomId,
+      actor,
+      name: typeof name === 'string' ? name : '',
+      ts,
+    }
+  }
+
+  if (evType === 'm.room.topic') {
+    const topic = ev.getContent()?.topic
+    return {
+      kind: 'room_topic',
+      roomId,
+      actor,
+      topic: typeof topic === 'string' ? topic : '',
+      ts,
+    }
+  }
+
+  if (evType !== 'm.room.member')
+    return null
+
+  const membership = ev.getContent()?.membership
+  const prevMembership = ev.getPrevContent()?.membership
+  const targetId = ev.getStateKey()
+  if (!targetId)
+    return null
+
+  if (membership === 'join' && prevMembership !== 'join' && targetId === actor) {
+    return {
+      kind: 'creator_join',
+      roomId,
+      actor,
+      targetId,
+      targetFallbackName: ev.getContent()?.displayname || fallbackNameFromUserId(targetId),
+      ts,
+    }
+  }
+
+  if (membership === 'invite' && targetId !== actor) {
+    return {
+      kind: 'invite',
+      roomId,
+      actor,
+      targetId,
+      targetFallbackName: ev.getContent()?.displayname || fallbackNameFromUserId(targetId),
+      ts,
+    }
+  }
+
+  return null
+}
+
+function canMergeRoomCreationSetupEvents(previousEvents: MatrixEvent[], next: MatrixEvent): boolean {
+  const setupEvents = previousEvents.map(getRoomCreationSetupEvent)
+  if (setupEvents.includes(null))
+    return false
+
+  const first = setupEvents[0]
+  const nextSetup = getRoomCreationSetupEvent(next)
+  if (!first || first.kind !== 'create' || !nextSetup || nextSetup.kind === 'create')
+    return false
+
+  return [...setupEvents, nextSetup].every(item =>
+    item !== null
+    && item.roomId === first.roomId
+    && item.actor === first.actor
+    && Math.abs(item.ts - first.ts) <= SYSTEM_EVENT_MERGE_WINDOW_MS,
+  )
+}
+
+function findLastSetupEvent(
+  events: RoomCreationSetupEvent[],
+  predicate: (event: RoomCreationSetupEvent) => boolean,
+): RoomCreationSetupEvent | undefined {
+  for (let index = events.length - 1; index >= 0; index--) {
+    const event = events[index]
+    if (predicate(event))
+      return event
+  }
+  return undefined
+}
+
+export function canMergeSystemEvents(previous: MatrixEvent | MatrixEvent[], next: MatrixEvent): boolean {
+  const previousEvents = Array.isArray(previous) ? previous : [previous]
+  const prev = previousEvents.at(-1)
+  if (!prev)
+    return false
+
+  if (canMergeRoomCreationSetupEvents(previousEvents, next))
+    return true
+
+  const prevMerge = getMergeableMemberEvent(prev)
+  const nextMerge = getMergeableMemberEvent(next)
+  if (!prevMerge || !nextMerge || prevMerge.key !== nextMerge.key)
+    return false
+
+  return Math.abs(nextMerge.ts - prevMerge.ts) <= SYSTEM_EVENT_MERGE_WINDOW_MS
+}
+
+function getMergedSystemEventInfo(events: MatrixEvent[]): SystemEventInfo | null {
+  const roomCreationInfo = getMergedRoomCreationSystemEventInfo(events)
+  if (roomCreationInfo)
+    return roomCreationInfo
+
+  const first = getMergeableMemberEvent(events[0])
+  if (!first)
+    return null
+
+  const memberEvents = events
+    .map(getMergeableMemberEvent)
+    .filter((item): item is MergeableMemberEvent => item !== null && item.key === first.key)
+
+  if (memberEvents.length !== events.length || memberEvents.length < 2)
+    return null
+
+  const client = getClient()
+  const room = client.getRoom(first.roomId)
+  const senderMember = room?.getMember(first.sender)
+  const senderName = senderMember?.name || first.sender.split(':')[0]?.slice(1) || first.sender
+  const parts: SystemEventPart[] = [
+    { type: 'user', text: senderName, userId: first.sender },
+    { type: 'text', text: first.kind === 'invite' ? ' 邀请了 ' : ' 邀请 ' },
+  ]
+  const seenTargets = new Set<string>()
+
+  for (const memberEvent of memberEvents) {
+    if (seenTargets.has(memberEvent.targetId))
+      continue
+    seenTargets.add(memberEvent.targetId)
+    if (seenTargets.size > 1)
+      parts.push({ type: 'text', text: '、' })
+
+    const targetMember = room?.getMember(memberEvent.targetId)
+    const targetName = targetMember?.name || memberEvent.targetFallbackName
+    parts.push({ type: 'user', text: targetName, userId: memberEvent.targetId })
+  }
+
+  if (first.kind === 'invite_join')
+    parts.push({ type: 'text', text: ' 加入了群聊' })
+
+  return {
+    kind: first.kind === 'invite' ? 'invite' : 'join',
+    parts,
+  }
+}
+
+function getMergedRoomCreationSystemEventInfo(events: MatrixEvent[]): SystemEventInfo | null {
+  const setupEvents: RoomCreationSetupEvent[] = []
+  for (const event of events) {
+    const setupEvent = getRoomCreationSetupEvent(event)
+    if (!setupEvent)
+      return null
+    setupEvents.push(setupEvent)
+  }
+
+  const first = setupEvents[0]
+  if (!first || first.kind !== 'create' || setupEvents.length < 2)
+    return null
+
+  if (!setupEvents.every(item =>
+    item.roomId === first.roomId
+    && item.actor === first.actor
+    && Math.abs(item.ts - first.ts) <= SYSTEM_EVENT_MERGE_WINDOW_MS,
+  )) {
+    return null
+  }
+
+  const client = getClient()
+  const room = client.getRoom(first.roomId)
+  const actorMember = room?.getMember(first.actor)
+  const actorName = actorMember?.name || fallbackNameFromUserId(first.actor)
+  const roomName = findLastSetupEvent(setupEvents, item => item.kind === 'room_name' && !!item.name)?.name
+  const roomTopic = findLastSetupEvent(setupEvents, item => item.kind === 'room_topic' && !!item.topic)?.topic
+  const inviteEvents = setupEvents.filter(item => item.kind === 'invite' && item.targetId)
+
+  const parts: SystemEventPart[] = [
+    { type: 'user', text: actorName, userId: first.actor },
+  ]
+
+  if (roomName) {
+    parts.push(
+      { type: 'text', text: ' 创建了群聊 ' },
+      { type: 'highlight', text: `"${roomName}"` },
+    )
+  }
+  else {
+    parts.push({ type: 'text', text: ' 创建了此群聊' })
+  }
+
+  if (roomTopic) {
+    parts.push(
+      { type: 'text', text: '，话题为 ' },
+      { type: 'highlight', text: `"${roomTopic}"` },
+    )
+  }
+
+  const seenTargets = new Set<string>()
+  for (const inviteEvent of inviteEvents) {
+    if (!inviteEvent.targetId || seenTargets.has(inviteEvent.targetId))
+      continue
+    seenTargets.add(inviteEvent.targetId)
+
+    if (seenTargets.size === 1)
+      parts.push({ type: 'text', text: '，并邀请了 ' })
+    else
+      parts.push({ type: 'text', text: '、' })
+
+    const targetMember = room?.getMember(inviteEvent.targetId)
+    const targetName = targetMember?.name || inviteEvent.targetFallbackName || fallbackNameFromUserId(inviteEvent.targetId)
+    parts.push({ type: 'user', text: targetName, userId: inviteEvent.targetId })
+  }
+
+  return {
+    kind: 'room_create',
+    parts,
   }
 }
 

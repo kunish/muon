@@ -2,7 +2,7 @@
 import type { ReactionSummary } from '@matrix/index'
 import type { MatrixEvent } from 'matrix-js-sdk'
 import { getClient } from '@matrix/client'
-import { isSystemEvent } from '@matrix/index'
+import { canMergeSystemEvents, isSystemEvent } from '@matrix/index'
 import { computed } from 'vue'
 import { useSettingsStore } from '@/features/settings/stores/settingsStore'
 import ChatMessage from './ChatMessage.vue'
@@ -120,16 +120,20 @@ const messageGroups = computed((): MessageGroup[] => {
 
     // 系统事件总是独立一组
     if (isSystemEvent(ev)) {
+      if (currentGroup?.type === 'system' && canMergeSystemEvents(currentGroup.messages.map(item => item.event), ev)) {
+        currentGroup!.messages.push({ event: ev, idx: i, isFirst: false })
+        continue
+      }
+
       if (currentGroup) {
         groups.push(currentGroup)
-        currentGroup = null
       }
-      groups.push({
+      currentGroup = {
         type: 'system',
         senderId: '__system__',
         hasRichMediaEmbeds: false,
         messages: [{ event: ev, idx: i, isFirst: true }],
-      })
+      }
       continue
     }
 
@@ -170,23 +174,29 @@ const messageGroups = computed((): MessageGroup[] => {
     >
       <!-- 系统事件 -->
       <template v-if="group.type === 'system'">
-        <template v-for="item in group.messages" :key="item.event.getId()">
-          <!-- 时间分割线 -->
-          <TimeStamp
-            v-if="shouldShowTimeDivider(item.idx)"
-            :timestamp="item.event.getTs()"
+        <!-- 时间分割线 -->
+        <TimeStamp
+          v-if="shouldShowTimeDivider(group.messages[0].idx)"
+          :timestamp="group.messages[0].event.getTs()"
+        />
+        <!-- 未读分割线 -->
+        <NewMessageSeparator
+          v-if="unreadEventId && group.messages.some(item => item.event.getId() === unreadEventId)"
+        />
+        <div class="relative" :data-event-id="group.messages[0].event.getId()">
+          <span
+            v-for="item in group.messages.slice(1)"
+            :key="item.event.getId()"
+            :data-event-id="item.event.getId()"
+            class="pointer-events-none absolute left-0 top-0 h-px w-px overflow-hidden"
+            aria-hidden="true"
           />
-          <!-- 未读分割线 -->
-          <NewMessageSeparator
-            v-if="unreadEventId && item.event.getId() === unreadEventId"
+          <SystemMessage
+            :event="group.messages[0].event"
+            :events="group.messages.map(item => item.event)"
+            @user-click="(userId, e) => emit('userClick', userId, e)"
           />
-          <div :data-event-id="item.event.getId()">
-            <SystemMessage
-              :event="item.event"
-              @user-click="(userId, e) => emit('userClick', userId, e)"
-            />
-          </div>
-        </template>
+        </div>
       </template>
 
       <!-- 用户消息组 -->

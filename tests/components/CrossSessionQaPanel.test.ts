@@ -25,12 +25,6 @@ vi.mock('@features/chat/lib/knowledgeDb', () => ({
   }),
 }))
 
-vi.mock('vue-i18n', () => ({
-  useI18n: () => ({
-    t: (key: string) => key,
-  }),
-}))
-
 vi.mock('vue-router', () => ({
   useRouter: () => ({
     push: routerPush,
@@ -148,6 +142,20 @@ describe('crossSessionQaPanel', () => {
     })
     expect(warnSpy).toHaveBeenCalled()
     warnSpy.mockRestore()
+  })
+
+  it('shows a localized empty answer error when no cited answer is available', async () => {
+    listSavedQaSessionsMock.mockResolvedValue([])
+    askCrossSessionQuestionMock.mockRejectedValue(new Error('No cited answer available'))
+
+    const wrapper = mount(CrossSessionQaPanel)
+    await wrapper.get('[data-testid="qa-question-input"]').setValue('有没有上线结论？')
+    await wrapper.get('[data-testid="qa-submit-button"]').trigger('click')
+
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain('没有找到可引用的答案')
+    })
+    expect(wrapper.text()).not.toContain('No cited answer available')
   })
 
   it('integrates knowledge tabs and chat side-panel toggle', async () => {

@@ -21,9 +21,18 @@ onMounted(async () => {
     await qaStore.hydrateHistory()
   }
   catch (err) {
-    error.value = err instanceof Error ? err.message : String(err)
+    error.value = formatQaError(err)
   }
 })
+
+function formatQaError(err: unknown) {
+  const message = err instanceof Error ? err.message : String(err)
+  if (message === 'Question is required')
+    return t('chat.knowledge_question_required')
+  if (message === 'No cited answer available')
+    return t('chat.knowledge_no_cited_answer')
+  return message
+}
 
 async function submitQuestion() {
   loading.value = true
@@ -32,7 +41,7 @@ async function submitQuestion() {
     await qaStore.askQuestion(question.value)
   }
   catch (err) {
-    error.value = err instanceof Error ? err.message : String(err)
+    error.value = formatQaError(err)
   }
   finally {
     loading.value = false

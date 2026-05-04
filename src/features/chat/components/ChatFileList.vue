@@ -3,6 +3,7 @@ import { getClient } from '@matrix/client'
 import { Download, FileText, Film, Image, Music, Search } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { toast } from 'vue-sonner'
 import { downloadMediaFile } from '@/shared/lib/download'
 import { useChatStore } from '../stores/chatStore'
 
@@ -112,7 +113,7 @@ async function downloadFile(file: FileItem) {
     await downloadMediaFile(file.url, file.name)
   }
   catch {
-    /* download failure is shown via browser UI */
+    toast.error(t('chat.download_failed'))
   }
 }
 </script>

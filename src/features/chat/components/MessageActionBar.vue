@@ -29,7 +29,7 @@ import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import { ask } from '@/electron/dialog'
 import { getFloatingPosition } from '../composables/useFloatingPosition'
-import { copyMessageContentToClipboard } from '../lib/messageClipboard'
+import { useMessageClipboardFeedback } from '../composables/useMessageClipboardFeedback'
 import { useChatStore } from '../stores/chatStore'
 import { useDeferStore } from '../stores/deferStore'
 import { useTaskStore } from '../stores/taskStore'
@@ -50,6 +50,7 @@ const store = useChatStore()
 const deferStore = useDeferStore()
 const taskStore = useTaskStore()
 const { t } = useI18n()
+const { copyMessageContentWithFeedback } = useMessageClipboardFeedback()
 const showMore = ref(false)
 const showDeferMenu = ref(false)
 const customDeferValue = ref('')
@@ -143,14 +144,25 @@ async function onTogglePin() {
 }
 
 function onCopyText() {
-  void copyMessageContentToClipboard(content.value)
   showMore.value = false
+  void copyMessageContentWithFeedback(content.value)
 }
 
-function onCopyLink() {
-  const link = `https://matrix.to/#/${props.roomId}/${eventId.value}`
-  navigator.clipboard.writeText(link)
+async function onCopyLink() {
   showMore.value = false
+  if (!props.roomId || !eventId.value || !navigator.clipboard?.writeText) {
+    toast.error(t('chat.copy_message_link_failed'))
+    return
+  }
+
+  const link = `https://matrix.to/#/${props.roomId}/${eventId.value}`
+  try {
+    await navigator.clipboard.writeText(link)
+    toast.success(t('chat.message_link_copied'))
+  }
+  catch {
+    toast.error(t('chat.copy_message_link_failed'))
+  }
 }
 
 function onReact() {

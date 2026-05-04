@@ -15,12 +15,6 @@ vi.mock('vue-router', () => ({
   }),
 }))
 
-vi.mock('vue-i18n', () => ({
-  useI18n: () => ({
-    t: (key: string) => key,
-  }),
-}))
-
 vi.mock('@/shared/composables/useNetworkStatus', () => ({
   useNetworkStatus: () => ({
     status: { value: 'online' },
@@ -80,6 +74,20 @@ describe('offlineDigestPanel', () => {
     await flushPromises()
 
     expect(initializeSpy).toHaveBeenCalledTimes(1)
+  })
+
+  it('uses localized labels for filters and empty state', async () => {
+    const wrapper = mount(OfflineDigestPanel)
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('离线摘要')
+    expect(wrapper.text()).toContain('全部')
+    expect(wrapper.text()).toContain('责任')
+    expect(wrapper.text()).toContain('跟进')
+    expect(wrapper.text()).toContain('提及')
+    expect(wrapper.text()).toContain('暂无离线摘要')
+    expect(wrapper.text()).not.toContain('Offline Digest')
+    expect(wrapper.text()).not.toContain('No digest entries yet')
   })
 
   it('clicking citation preloads context before focusEventId navigation', async () => {

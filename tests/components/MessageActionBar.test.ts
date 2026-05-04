@@ -7,6 +7,15 @@ import TaskComposerDialog from '@/features/chat/components/TaskComposerDialog.vu
 import { resolveReminderDueAt, useDeferStore } from '@/features/chat/stores/deferStore'
 import { useTaskStore } from '@/features/chat/stores/taskStore'
 
+const clipboardMocks = vi.hoisted(() => ({
+  writeText: vi.fn(),
+}))
+
+const toastMocks = vi.hoisted(() => ({
+  error: vi.fn(),
+  success: vi.fn(),
+}))
+
 vi.mock('@matrix/client', () => ({
   getClient: vi.fn(() => ({
     getUserId: vi.fn(() => '@me:localhost'),
@@ -21,6 +30,13 @@ vi.mock('@matrix/rooms', () => ({
   isMessagePinned: vi.fn(() => false),
   pinMessage: vi.fn(async () => {}),
   unpinMessage: vi.fn(async () => {}),
+}))
+
+vi.mock('vue-sonner', () => ({
+  toast: {
+    error: toastMocks.error,
+    success: toastMocks.success,
+  },
 }))
 
 function createEventMock() {
@@ -43,6 +59,15 @@ async function clickBodyElement(selector: string) {
   await flushPromises()
 }
 
+async function clickBodyButtonByText(text: string) {
+  const button = Array.from(document.body.querySelectorAll<HTMLButtonElement>('button'))
+    .find(element => element.textContent?.includes(text))
+  expect(button).not.toBeNull()
+  button!.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+  await nextTick()
+  await flushPromises()
+}
+
 async function setBodyInputValue(selector: string, value: string) {
   const input = getBodyElement<HTMLInputElement>(selector)
   input.value = value
@@ -56,6 +81,16 @@ describe('messageActionBar', () => {
     setActivePinia(createPinia())
     localStorage.clear()
     document.body.innerHTML = ''
+    clipboardMocks.writeText.mockReset()
+    clipboardMocks.writeText.mockResolvedValue(undefined)
+    toastMocks.error.mockReset()
+    toastMocks.success.mockReset()
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        writeText: clipboardMocks.writeText,
+      },
+    })
   })
 
   it('opens the more menu without clipping it inside the toolbar', async () => {
@@ -212,6 +247,70 @@ describe('messageActionBar', () => {
     expect(submenu.classList.contains('origin-top-right')).toBe(true)
     expect(submenu.classList.contains('will-change-transform')).toBe(true)
     expect(submenu.classList.contains('transform-gpu')).toBe(true)
+  })
+
+  it('confirms when the message link is copied', async () => {
+    const wrapper = mount(MessageActionBar, {
+      props: {
+        event: createEventMock(),
+        roomId: '!room:test',
+      },
+    })
+
+    await wrapper.find('[data-testid="message-more-trigger"]').trigger('click')
+    await flushPromises()
+    await clickBodyButtonByText('复制消息链接')
+
+    expect(clipboardMocks.writeText).toHaveBeenCalledWith('https://matrix.to/#/!room:test/$event-1')
+    expect(toastMocks.success).toHaveBeenCalledWith('消息链接已复制')
+  })
+
+  it('confirms when the message text is copied', async () => {
+    const wrapper = mount(MessageActionBar, {
+      props: {
+        event: createEventMock(),
+        roomId: '!room:test',
+      },
+    })
+
+    await wrapper.find('[data-testid="message-more-trigger"]').trigger('click')
+    await flushPromises()
+    await clickBodyButtonByText('复制文本')
+
+    expect(clipboardMocks.writeText).toHaveBeenCalledWith('hello world')
+    expect(toastMocks.success).toHaveBeenCalledWith('消息文本已复制')
+  })
+
+  it('shows a visible error when the message link cannot be copied', async () => {
+    clipboardMocks.writeText.mockRejectedValueOnce(new Error('permission denied'))
+    const wrapper = mount(MessageActionBar, {
+      props: {
+        event: createEventMock(),
+        roomId: '!room:test',
+      },
+    })
+
+    await wrapper.find('[data-testid="message-more-trigger"]').trigger('click')
+    await flushPromises()
+    await clickBodyButtonByText('复制消息链接')
+
+    expect(toastMocks.error).toHaveBeenCalledWith('无法复制消息链接')
+  })
+
+  it('shows a visible error when the message text cannot be copied', async () => {
+    clipboardMocks.writeText.mockRejectedValueOnce(new Error('permission denied'))
+    const wrapper = mount(MessageActionBar, {
+      props: {
+        event: createEventMock(),
+        roomId: '!room:test',
+      },
+    })
+
+    await wrapper.find('[data-testid="message-more-trigger"]').trigger('click')
+    await flushPromises()
+    await clickBodyButtonByText('复制文本')
+
+    expect(toastMocks.error).toHaveBeenCalledWith('无法复制消息文本')
   })
 
   it('uses shared preset/custom defer time logic', async () => {
