@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed, onUnmounted } from 'vue'
 import { useDocSync } from '../../composables/useDocSync'
 import { useDocEditor } from '../../composables/useDocEditor'
 import { useDocCursor } from '../../composables/useDocCursor'
@@ -16,22 +16,22 @@ const props = defineProps<{
 }>()
 
 const currentUserId = 'current-user' // TODO: get from auth store when available
-const userName = props.userName ?? '我'
+const userName = computed(() => props.userName ?? '我')
 const color = userColor(currentUserId)
 
-const { ydoc, connected, error, connect, disconnect } = useDocSync(props.docId)
+const { ydoc, provider, connected, error, connect, disconnect } = useDocSync(props.docId)
 
 const elementRef = ref<HTMLElement>()
 const { editor } = useDocEditor(
   () => ydoc.value,
   elementRef,
-  { id: currentUserId, name: userName, color },
+  { id: currentUserId, name: userName.value, color },
 )
 
 const { others } = useDocCursor(
-  () => null,
+  () => provider.value,
   currentUserId,
-  userName,
+  userName.value,
 )
 
 const { comments, draftText, addComment, resolveComment } = useDocComments(
@@ -42,6 +42,10 @@ const { comments, draftText, addComment, resolveComment } = useDocComments(
 const showComments = ref(false)
 
 connect()
+
+onUnmounted(() => {
+  disconnect()
+})
 </script>
 
 <template>
