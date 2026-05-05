@@ -18,6 +18,9 @@ export type ProjectTemplate = typeof PROJECT_TEMPLATES[number]
 export const CUSTOM_FIELD_TYPES = ['text', 'number', 'select', 'multiSelect', 'date', 'user', 'url'] as const
 export type CustomFieldType = typeof CUSTOM_FIELD_TYPES[number]
 
+export const STATUS_CATEGORIES = ['todo', 'in_progress', 'done'] as const
+export type StatusCategory = typeof STATUS_CATEGORIES[number]
+
 // ---------------------------------------------------------------------------
 // Project
 // ---------------------------------------------------------------------------
@@ -67,7 +70,7 @@ export const workflowStatusSchema = z.object({
   key: z.string().min(1),
   name: z.string().min(1),
   color: z.string(),
-  category: z.enum(['todo', 'in_progress', 'done']),
+  category: z.enum(STATUS_CATEGORIES),
 })
 
 export const workflowTransitionSchema = z.object({
