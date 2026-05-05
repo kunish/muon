@@ -13,6 +13,7 @@ export class MatrixSyncProvider {
   private client: MatrixClient
   private lastEventId: string | null = null
   private pendingChunks = new Map<string, Uint8Array[]>()
+  private batchCounter = 0
 
   constructor(doc: Doc, roomId: string, client?: MatrixClient) {
     this.doc = doc
@@ -24,16 +25,12 @@ export class MatrixSyncProvider {
   }
 
   private handleYjsUpdate = (update: Uint8Array, origin: unknown): void => {
-    // Ignore updates that originated from us (avoid echo)
     if (origin === this) return
 
     const payload = this.uint8ToBase64(update)
     const chunks = this.splitPayload(payload)
-
-    // All chunks in a multi-chunk batch share the same prevEventId so the
-    // receiver can reassemble them. For single-chunk updates prevEventId
-    // is just the last known event id for causal ordering.
     const sharedPrevEventId = this.lastEventId
+    const batchId = `${this.roomId}--${++this.batchCounter}`
 
     for (let i = 0; i < chunks.length; i++) {
       const event: DocSyncEvent = {
@@ -43,9 +40,9 @@ export class MatrixSyncProvider {
         total: chunks.length,
         payload: chunks[i],
         prevEventId: sharedPrevEventId,
+        batchId,
       }
 
-      // Cast through any because custom event types are not in TimelineEvents
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ;(this.client as any).sendEvent(this.roomId, MATRIX_EVENT_TYPES.DOC_SYNC, event)
         .then((res: { event_id: string }) => {
@@ -53,7 +50,9 @@ export class MatrixSyncProvider {
             this.lastEventId = res.event_id
           }
         })
-        .catch(console.error)
+        .catch((err: unknown) => {
+          console.error('[MatrixSyncProvider] Failed to send sync event:', err)
+        })
     }
   }
 
@@ -72,31 +71,31 @@ export class MatrixSyncProvider {
     const content = event.event.content
     if (!content?.payload) return
 
-    if (content.total > 1) {
-      // Use prevEventId as the chunk-grouping key. All chunks from the
-      // same batch share the same prevEventId; different batches have
-      // different prevEventIds. Fall back to docId for the initial batch
-      // where prevEventId is null.
-      const batchKey = content.prevEventId ?? `${content.docId}--initial`
+    try {
+      if (content.total > 1) {
+        const batchKey = content.batchId
 
-      if (!this.pendingChunks.has(batchKey)) {
-        this.pendingChunks.set(batchKey, [])
-      }
-      const chunks = this.pendingChunks.get(batchKey)!
-      chunks[content.seq] = this.base64ToUint8(content.payload)
+        if (!this.pendingChunks.has(batchKey)) {
+          this.pendingChunks.set(batchKey, [])
+        }
+        const chunks = this.pendingChunks.get(batchKey)!
+        chunks[content.seq] = this.base64ToUint8(content.payload)
 
-      const allReceived = chunks.filter(Boolean).length === content.total
-      if (allReceived) {
-        const merged = this.mergeChunks(chunks)
-        applyUpdate(this.doc, merged, this)
-        this.pendingChunks.delete(batchKey)
+        const allReceived = chunks.filter(Boolean).length === content.total
+        if (allReceived) {
+          const merged = this.mergeChunks(chunks)
+          applyUpdate(this.doc, merged, this)
+          this.pendingChunks.delete(batchKey)
+        }
+      } else {
+        const update = this.base64ToUint8(content.payload)
+        applyUpdate(this.doc, update, this)
       }
-    } else {
-      const update = this.base64ToUint8(content.payload)
-      applyUpdate(this.doc, update, this)
+
+      this.lastEventId = event.event.event_id
+    } catch (err) {
+      console.error('[MatrixSyncProvider] Failed to apply remote update:', err)
     }
-
-    this.lastEventId = event.event.event_id
   }
 
   sendSnapshot(): void {
@@ -111,18 +110,22 @@ export class MatrixSyncProvider {
       total: 1,
       payload,
       prevEventId: null,
-    }).catch(console.error)
+      batchId: `${this.roomId}--snapshot-${Date.now()}`,
+    }).catch((err: unknown) => {
+      console.error('[MatrixSyncProvider] Failed to send snapshot:', err)
+    })
   }
 
   sendCursor(cursor: DocCursorEvent): void {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ;(this.client as any).sendEvent(this.roomId, MATRIX_EVENT_TYPES.DOC_CURSOR, cursor)
-      .catch(() => {}) // Cursor events are ephemeral; silence errors
+      .catch(() => {}) // Cursor events are ephemeral; intentional noop
   }
 
   destroy(): void {
     this.doc.off('update', this.handleYjsUpdate)
     this.client.off(RoomEvent.Timeline, this.handleTimelineEvent)
+    this.pendingChunks.clear()
   }
 
   // --- Private helpers ---

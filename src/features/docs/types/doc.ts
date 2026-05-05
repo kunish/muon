@@ -49,6 +49,8 @@ export interface DocSyncEvent {
   payload: string
   /** 前一条事件的 ID，用于检测丢包 */
   prevEventId: string | null
+  /** 批次 ID，用于区分快速连续的多批次更新 */
+  batchId: string
 }
 
 export interface DocCursorEvent {
