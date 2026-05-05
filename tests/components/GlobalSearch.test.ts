@@ -13,6 +13,7 @@ const loadMoreMock = vi.fn()
 const localeMock = vi.hoisted(() => ({
   value: 'en',
 }))
+const NOVEMBER_15_NOON_UTC = Date.UTC(2023, 10, 15, 12, 13)
 
 const retrievalState = reactive({
   query: '',
@@ -117,7 +118,7 @@ describe('globalSearch', () => {
         eventId: '$event-1',
         body: 'Result body',
         sender: '@alice:muon.dev',
-        ts: 1700000000000,
+        ts: NOVEMBER_15_NOON_UTC,
         rank: 1,
       },
     ]
@@ -143,7 +144,7 @@ describe('globalSearch', () => {
         eventId: '$event-1',
         body: 'Result body',
         sender: '@alice:muon.dev',
-        ts: 1700000000000,
+        ts: NOVEMBER_15_NOON_UTC,
         rank: 1,
       },
     ]

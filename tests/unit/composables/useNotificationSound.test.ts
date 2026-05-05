@@ -81,7 +81,7 @@ describe('useNotificationSound', () => {
 
   it('suppresses sounds during do-not-disturb time windows', () => {
     vi.useFakeTimers()
-    vi.setSystemTime(new Date('2026-05-04T22:30:00+08:00'))
+    vi.setSystemTime(new Date(2026, 4, 4, 22, 30))
     const settings = useSettingsStore()
     settings.dndStart = '22:00'
     settings.dndEnd = '08:00'
