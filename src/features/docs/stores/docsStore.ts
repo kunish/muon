@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { shallowRef, computed } from 'vue'
 import { getClient } from '@matrix/client'
+import { Visibility } from 'matrix-js-sdk'
 import type { DocEntry, DocSectionId } from '../types/doc'
 
 export const useDocsStore = defineStore('docs', () => {
@@ -61,7 +62,7 @@ export const useDocsStore = defineStore('docs', () => {
     const client = getClient()
     const result = await client.createRoom({
       name: title,
-      visibility: 'private' as any,
+      visibility: Visibility.Private,
       initial_state: [{
         type: 'org.muon.doc.metadata',
         content: {

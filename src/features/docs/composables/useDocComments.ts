@@ -1,4 +1,4 @@
-import { computed, shallowRef } from 'vue'
+import { computed, shallowRef, onUnmounted } from 'vue'
 import type { Doc } from 'yjs'
 import type { DocComment } from '../types/doc'
 import { nanoid } from 'nanoid'
@@ -13,11 +13,13 @@ export function useDocComments(ydoc: () => Doc, currentUserId: string) {
     comments.value = ycomments.toArray()
   }
 
-  ycomments.observe(() => {
-    syncFromYjs()
-  })
+  ycomments.observe(syncFromYjs)
 
   syncFromYjs()
+
+  onUnmounted(() => {
+    ycomments.unobserve(syncFromYjs)
+  })
 
   const resolvedCount = computed(() =>
     comments.value.filter(c => c.resolved).length,
