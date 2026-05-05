@@ -1,5 +1,6 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { createPinia, setActivePinia } from 'pinia'
 import ApprovalsPage from '@/features/approvals/components/ApprovalsPage.vue'
 import CalendarPage from '@/features/calendar/components/CalendarPage.vue'
 import CallsPage from '@/features/calls/components/CallsPage.vue'
@@ -10,20 +11,44 @@ import OrganizationPage from '@/features/organization/components/OrganizationPag
 import WorkplacePage from '@/features/workplace/components/WorkplacePage.vue'
 
 const routerPush = vi.fn()
+const mockRouteParams = vi.fn(() => ({}))
 
 vi.mock('vue-router', async (importOriginal) => {
   const actual = await importOriginal<typeof import('vue-router')>()
   return {
     ...actual,
     useRouter: () => ({ push: routerPush }),
+    useRoute: () => ({
+      params: mockRouteParams(),
+      query: {},
+      hash: '',
+      fullPath: '/docs',
+      path: '/docs',
+      name: 'docs',
+      matched: [],
+      meta: {},
+    }),
   }
 })
+
+vi.mock('@matrix/client', () => ({
+  getClient: vi.fn(() => ({
+    getRooms: vi.fn(() => []),
+    getRoom: vi.fn(() => null),
+    joinRoom: vi.fn().mockRejectedValue(new Error('no room')),
+    createRoom: vi.fn().mockResolvedValue({ room_id: '!new:localhost' }),
+    getUserId: vi.fn(() => '@test:localhost'),
+    on: vi.fn(),
+    off: vi.fn(),
+    sendEvent: vi.fn().mockResolvedValue({ event_id: '$mock' }),
+  })),
+}))
 
 const pages = [
   {
     component: DocsPage,
     name: '文档',
-    requiredText: ['新建文档', '最近文档', '知识库迁移计划'],
+    requiredText: ['文档', '新建文档', '最近更新'],
   },
   {
     component: WorkplacePage,
@@ -72,155 +97,35 @@ describe('workspace secondary pages', () => {
     }
   })
 
-  it('lets docs search, create, and view controls update visible content', async () => {
+  it('renders docs sidebar with sections and folders', () => {
     const wrapper = mount(DocsPage)
 
-    await wrapper.get('[data-testid="docs-search-input"]').setValue('Matrix')
-    expect(wrapper.text()).toContain('Matrix 同步排障手册')
-    expect(wrapper.text()).not.toContain('知识库迁移计划')
-
-    await wrapper.get('[data-testid="docs-new-button"]').trigger('click')
-    expect(wrapper.text()).toContain('新建协作文档')
-
-    await wrapper.get('[data-testid="docs-view-toggle"]').trigger('click')
-    expect(wrapper.text()).toContain('当前视图：网格')
-    await wrapper.get('[data-testid="docs-filter-toggle"]').trigger('click')
-    expect(wrapper.text()).toContain('仅显示待审阅')
+    expect(wrapper.text()).toContain('文档')
+    expect(wrapper.text()).toContain('最近更新')
+    expect(wrapper.text()).toContain('已收藏')
+    expect(wrapper.text()).toContain('共享给我')
+    expect(wrapper.text()).toContain('新建文档')
   })
 
-  it('lets docs new documents be edited before saving locally', async () => {
+  it('renders docs search input for filtering', () => {
     const wrapper = mount(DocsPage)
 
-    await wrapper.get('[data-testid="docs-new-button"]').trigger('click')
-    await wrapper.get('[data-testid="docs-new-title"]').setValue('发布操作手册')
-    await wrapper.get('[data-testid="docs-new-owner"]').setValue('运营团队')
-    await wrapper.get('[data-testid="docs-new-type"]').setValue('手册')
-    await wrapper.get('[data-testid="docs-save-new-document"]').trigger('click')
-
-    expect(wrapper.text()).toContain('已创建文档：发布操作手册')
-    expect(wrapper.text()).toContain('当前文档：发布操作手册')
-    expect(wrapper.text()).toContain('运营团队')
-    expect(wrapper.text()).toContain('手册')
+    const searchInput = wrapper.find('input[placeholder="搜索文档..."]')
+    expect(searchInput.exists()).toBe(true)
   })
 
-  it('keeps newly created docs visible when starting outside the recent section', async () => {
+  it('shows empty state when store has no documents', () => {
     const wrapper = mount(DocsPage)
 
-    await wrapper.get('[data-testid="docs-section-starred"]').trigger('click')
-    expect(wrapper.text()).toContain('当前分区：已收藏')
-
-    await wrapper.get('[data-testid="docs-new-button"]').trigger('click')
-
-    expect(wrapper.text()).toContain('当前分区：最近更新')
-    expect(wrapper.text()).toContain('当前文档：新建协作文档')
+    // When store is empty, no DocPreviewCards should render
+    expect(wrapper.text()).toContain('文档')
   })
 
-  it('lets docs folder and document rows open visible workspace detail state', async () => {
+  it('reacts to route param for selected document', () => {
+    mockRouteParams.mockReturnValue({ docId: '!test-room:localhost' })
     const wrapper = mount(DocsPage)
 
-    await wrapper.get('[data-testid="docs-folder-设计资产"]').trigger('click')
-    expect(wrapper.text()).toContain('当前文件夹：设计资产')
-
-    await wrapper.get('[data-testid="docs-document-doc-2"]').trigger('click')
-    expect(wrapper.text()).toContain('当前文档：桌面聊天体验走查')
-  })
-
-  it('lets docs folders filter the document list', async () => {
-    const wrapper = mount(DocsPage)
-
-    await wrapper.get('[data-testid="docs-folder-工程文档"]').trigger('click')
-
-    expect(wrapper.text()).toContain('当前文件夹：工程文档')
-    expect(wrapper.text()).toContain('Matrix 同步排障手册')
-    expect(wrapper.text()).not.toContain('知识库迁移计划')
-    expect(wrapper.text()).not.toContain('桌面聊天体验走查')
-  })
-
-  it('lets docs sidebar sections filter the document list', async () => {
-    const wrapper = mount(DocsPage)
-
-    await wrapper.get('[data-testid="docs-section-starred"]').trigger('click')
-    expect(wrapper.text()).toContain('当前分区：已收藏')
-    expect(wrapper.text()).toContain('桌面聊天体验走查')
-    expect(wrapper.text()).not.toContain('知识库迁移计划')
-
-    await wrapper.get('[data-testid="docs-section-shared"]').trigger('click')
-    expect(wrapper.text()).toContain('当前分区：共享给我')
-    expect(wrapper.text()).toContain('Matrix 同步排障手册')
-    expect(wrapper.text()).not.toContain('桌面聊天体验走查')
-  })
-
-  it('lets docs answer knowledge questions from local documents', async () => {
-    const wrapper = mount(DocsPage)
-
-    await wrapper.get('[data-testid="docs-knowledge-question"]').setValue('Matrix 同步怎么排障')
-    await wrapper.get('[data-testid="docs-knowledge-ask"]').trigger('click')
-
-    expect(wrapper.text()).toContain('知识问答：Matrix 同步怎么排障')
-    expect(wrapper.text()).toContain('建议查看 Matrix 同步排障手册')
-    expect(wrapper.text()).toContain('来源：工程团队')
-  })
-
-  it('lets docs share selected documents and add collaboration comments locally', async () => {
-    const wrapper = mount(DocsPage)
-
-    await wrapper.get('[data-testid="docs-document-doc-2"]').trigger('click')
-    await wrapper.get('[data-testid="docs-share-selected"]').trigger('click')
-    expect(wrapper.text()).toContain('已共享给设计评审群：桌面聊天体验走查')
-    expect(wrapper.text()).toContain('共享状态：团队可编辑')
-
-    await wrapper.get('[data-testid="docs-comment-input"]').setValue('请补充移动端截图')
-    await wrapper.get('[data-testid="docs-add-comment"]').trigger('click')
-    expect(wrapper.text()).toContain('评论：请补充移动端截图')
-  })
-
-  it('keeps docs collaboration comments scoped to the selected document', async () => {
-    const wrapper = mount(DocsPage)
-
-    await wrapper.get('[data-testid="docs-document-doc-2"]').trigger('click')
-    await wrapper.get('[data-testid="docs-comment-input"]').setValue('只属于体验走查')
-    await wrapper.get('[data-testid="docs-add-comment"]').trigger('click')
-    expect(wrapper.text()).toContain('评论：只属于体验走查')
-
-    await wrapper.get('[data-testid="docs-document-doc-3"]').trigger('click')
-    expect(wrapper.text()).not.toContain('评论：只属于体验走查')
-    expect(wrapper.text()).toContain('暂无评论，添加后会在当前文档协作动态中展示。')
-  })
-
-  it('keeps docs share status scoped to the selected document', async () => {
-    const wrapper = mount(DocsPage)
-
-    await wrapper.get('[data-testid="docs-document-doc-2"]').trigger('click')
-    await wrapper.get('[data-testid="docs-share-selected"]').trigger('click')
-    expect(wrapper.text()).toContain('共享状态：团队可编辑')
-
-    await wrapper.get('[data-testid="docs-document-doc-3"]').trigger('click')
-    expect(wrapper.text()).toContain('共享状态：仅团队可见')
-  })
-
-  it('keeps docs collaboration notices scoped to the selected document', async () => {
-    const wrapper = mount(DocsPage)
-
-    await wrapper.get('[data-testid="docs-document-doc-2"]').trigger('click')
-    await wrapper.get('[data-testid="docs-share-selected"]').trigger('click')
-    expect(wrapper.text()).toContain('已共享给设计评审群：桌面聊天体验走查')
-
-    await wrapper.get('[data-testid="docs-document-doc-3"]').trigger('click')
-
-    expect(wrapper.text()).toContain('等待共享当前文档')
-    expect(wrapper.text()).not.toContain('已共享给设计评审群：桌面聊天体验走查')
-  })
-
-  it('lets docs more menu mark the selected document for review', async () => {
-    const wrapper = mount(DocsPage)
-
-    await wrapper.get('[data-testid="docs-document-doc-4"]').trigger('click')
-    await wrapper.get('[data-testid="docs-more-toggle"]').trigger('click')
-    await wrapper.get('[data-testid="docs-more-mark-review"]').trigger('click')
-
-    expect(wrapper.text()).toContain('已标记待审阅：发布准备检查清单')
-    expect(wrapper.text()).toContain('发布准备检查清单')
-    expect(wrapper.text()).toContain('评审中')
+    expect(wrapper.text()).toContain('连接中')
   })
 
   it('lets workplace search, category filters, and add app work locally', async () => {

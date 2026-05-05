@@ -14,10 +14,10 @@ const route = useRoute()
 const store = useDocsStore()
 
 const selectedDocId = computed(() =>
-  (route.params.docId as string) || (store.filteredDocuments[0]?.id ?? ''),
+  (route.params?.docId as string) ?? (store.filteredDocuments[0]?.id ?? ''),
 )
 const selectedDoc = computed(() =>
-  store.filteredDocuments.find(d => d.id === selectedDocId.value),
+  selectedDocId.value ? store.filteredDocuments.find(d => d.id === selectedDocId.value) : undefined,
 )
 
 store.loadDocuments()
