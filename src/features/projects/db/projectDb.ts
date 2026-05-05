@@ -7,7 +7,7 @@ export const PROJECT_DB_NAME = 'MuonProjectDB'
 
 export const PROJECT_DB_STORES = {
   projects: 'id, createdBy, createdAt, updatedAt',
-  workItems: 'id, projectId, parentId, type, status, priority, assignee, dueDate, order, createdAt, updatedAt, projectId+status',
+  workItems: 'id, projectId, parentId, type, status, priority, assignee, dueDate, order, createdAt, updatedAt, [projectId+status]',
   workflows: 'id, projectId',
   customFields: 'id, projectId',
 } as const
@@ -47,10 +47,12 @@ export function createProjectRepository(db = projectDb) {
     },
 
     async deleteProject(id: string) {
-      await db.projects.delete(id)
-      await db.workItems.where('projectId').equals(id).delete()
-      await db.workflows.where('projectId').equals(id).delete()
-      await db.customFields.where('projectId').equals(id).delete()
+      await db.transaction('rw', db.projects, db.workItems, db.workflows, db.customFields, async () => {
+        await db.projects.delete(id)
+        await db.workItems.where('projectId').equals(id).delete()
+        await db.workflows.where('projectId').equals(id).delete()
+        await db.customFields.where('projectId').equals(id).delete()
+      })
     },
 
     // ---- Work Items ----
