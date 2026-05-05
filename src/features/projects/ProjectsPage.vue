@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import { computed, defineAsyncComponent } from 'vue'
+import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import ProjectList from './components/ProjectList.vue'
 import ProjectDetail from './components/ProjectDetail.vue'
-
-const ProjectSettings = defineAsyncComponent(() => import('./components/ProjectSettings.vue'))
+import ProjectSettings from './components/ProjectSettings.vue'
 
 const route = useRoute()
 const { t } = useI18n()
