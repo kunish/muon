@@ -2,6 +2,28 @@ export { completeEnterpriseLogin, isEnterpriseAuthConfigured, login, logout, par
 export { blockUser, getBlockedUsers, isUserBlocked, unblockUser } from './blocking'
 export { createClient, destroyClient, getClient } from './client'
 export { createEncryptedRoom, initCrypto } from './crypto'
+export { materializeOfflineDigest } from './digest'
+export { isProjectSyncEvent, parseProjectSyncPayload, sendProjectSyncEvent } from './projects'
+export {
+  citationRefSchema,
+  compareDigestEntries,
+  createDigestCitation,
+  deriveDigestRelevance,
+  DIGEST_RELEVANCE,
+  DIGEST_RELEVANCE_PRIORITY,
+  digestEntrySchema,
+  toCitationEventIds,
+  toDigestEntry,
+} from './digestTypes'
+export type {
+  CitationRef,
+  DigestEntry,
+  DigestFilter,
+  DigestRelevance,
+  DigestRoomSignal,
+  DigestSession,
+  DigestSourceEvent,
+} from './digestTypes'
 export { bindClientEvents, matrixEvents, unbindClientEvents } from './events'
 export { loadInboxEventContext } from './inbox'
 export type { InboxEventContext } from './inbox'
@@ -38,6 +60,7 @@ export { getReadMarkerEventId, getReadUsers, sendReadReceipt } from './receipts'
 export { backPaginateRoomEventsSearch, searchRoomEvents } from './retrieval'
 export type { RetrievalItem, RetrievalPage, RetrievalSession } from './retrieval'
 export { findOrCreateDm, getRoom, getRoomAnnouncement, getRoomSummaries, getRoomTopic, invalidateRoomSummariesCache, isMessagePinned, isMessageStarred, leaveRoom, markRoomAsRead, pinMessage, setRoomAnnouncement, setRoomName, setRoomTopic, starMessage, toggleRoomMute, toggleRoomPin, unpinMessage, unstarMessage } from './rooms'
+export { isDirectRoom, normalizeRoomId } from './roomUtils'
 export {
   addRoomToSpace,
   buildChannelInfo,
