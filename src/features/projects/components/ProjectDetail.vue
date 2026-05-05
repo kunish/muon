@@ -1,15 +1,15 @@
 <script setup lang="ts">
 import type { ProjectView } from '../types'
-import { computed, onMounted } from 'vue'
+import { computed, defineAsyncComponent, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { Kanban, LayoutList, Settings, Trash2 } from 'lucide-vue-next'
 import { Button } from '@muon/ui/button'
 import { useProjectStore } from '../composables/useProjectStore'
 import { useWorkItemStore } from '../composables/useWorkItemStore'
-import BoardView from './view/BoardView.vue'
-import ListView from './view/ListView.vue'
-import GanttView from './view/GanttView.vue'
+const BoardView = defineAsyncComponent(() => import('./view/BoardView.vue'))
+const ListView = defineAsyncComponent(() => import('./view/ListView.vue'))
+const GanttView = defineAsyncComponent(() => import('./view/GanttView.vue'))
 
 const props = defineProps<{ projectId: string }>()
 
