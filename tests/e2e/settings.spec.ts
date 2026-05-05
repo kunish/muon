@@ -1,23 +1,104 @@
 import { expect, test } from '@playwright/test'
 
 const matrixSession = {
-  serverUrl: process.env.E2E_MATRIX_SERVER_URL,
-  userId: process.env.E2E_MATRIX_USER_ID,
-  accessToken: process.env.E2E_MATRIX_ACCESS_TOKEN,
-  deviceId: process.env.E2E_MATRIX_DEVICE_ID,
+  serverUrl: 'https://matrix.localhost',
+  userId: '@tester:localhost',
+  accessToken: 'mock_token',
+  deviceId: 'MOCK_DEVICE',
 }
-const hasMatrixSession = Object.values(matrixSession).every(Boolean)
 const matrixSessionJson = JSON.stringify(matrixSession)
+const defaultPushRules = {
+  override: [
+    '.m.rule.master',
+    '.m.rule.suppress_notices',
+    '.m.rule.invite_for_me',
+    '.m.rule.member_event',
+    '.m.rule.is_user_mention',
+    '.m.rule.is_room_mention',
+    '.m.rule.contains_display_name',
+    '.m.rule.roomnotif',
+    '.m.rule.tombstone',
+    '.m.rule.reaction',
+    '.m.rule.room.server_acl',
+    '.m.rule.suppress_edits',
+  ],
+  underride: [
+    '.m.rule.call',
+    '.m.rule.encrypted_room_one_to_one',
+    '.m.rule.room_one_to_one',
+    '.m.rule.message',
+    '.m.rule.encrypted',
+  ],
+}
 
-// Settings pages require an authenticated Matrix session and a live Matrix
-// homeserver. Browser-only Playwright runs skip these by default.
+function pushRule(ruleId: string) {
+  return {
+    actions: ['notify'],
+    default: true,
+    enabled: true,
+    rule_id: ruleId,
+  }
+}
+
+async function mockMatrixHomeserver(page: import('@playwright/test').Page) {
+  await page.route(`${matrixSession.serverUrl}/**`, async (route) => {
+    const { pathname } = new URL(route.request().url())
+
+    if (pathname.endsWith('/versions')) {
+      await route.fulfill({
+        contentType: 'application/json',
+        json: { versions: ['v1.11'], unstable_features: {} },
+      })
+      return
+    }
+
+    if (pathname.includes('/pushrules')) {
+      await route.fulfill({
+        contentType: 'application/json',
+        json: {
+          global: {
+            content: [],
+            override: defaultPushRules.override.map(pushRule),
+            room: [],
+            sender: [],
+            underride: defaultPushRules.underride.map(pushRule),
+          },
+        },
+      })
+      return
+    }
+
+    if (pathname.endsWith('/capabilities')) {
+      await route.fulfill({
+        contentType: 'application/json',
+        json: { capabilities: {} },
+      })
+      return
+    }
+
+    if (pathname.endsWith('/sync')) {
+      await route.fulfill({
+        contentType: 'application/json',
+        json: {
+          next_batch: 'mock_batch_1',
+          rooms: { invite: {}, join: {}, leave: {} },
+          account_data: { events: [] },
+          presence: { events: [] },
+        },
+      })
+      return
+    }
+
+    await route.fulfill({
+      contentType: 'application/json',
+      json: {},
+    })
+  })
+}
+
 test.describe('Settings', () => {
-  test.skip(
-    process.env.ELECTRON_E2E !== '1' || !hasMatrixSession,
-    'set ELECTRON_E2E=1 plus E2E_MATRIX_SERVER_URL, E2E_MATRIX_USER_ID, E2E_MATRIX_ACCESS_TOKEN, and E2E_MATRIX_DEVICE_ID; requires Electron runtime and Matrix homeserver',
-  )
-
   test.beforeEach(async ({ page }) => {
+    await mockMatrixHomeserver(page)
     await page.addInitScript((sessionJson) => {
       localStorage.setItem('muon_auth', sessionJson)
     }, matrixSessionJson)

@@ -1,6 +1,9 @@
 import { mount } from '@vue/test-utils'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { createI18n } from 'vue-i18n'
 import LoginPage from '@/features/auth/components/LoginPage.vue'
+import en from '@/locales/en.json'
+import zh from '@/locales/zh.json'
 
 const mocks = vi.hoisted(() => ({
   bindClientEvents: vi.fn(),
@@ -56,6 +59,25 @@ describe('loginPage enterprise login', () => {
     expect(wrapper.text()).toContain('企业登录')
   })
 
+  it('localizes the enterprise login button for English users', () => {
+    vi.stubEnv('VITE_MUON_API_BASE_URL', 'http://127.0.0.1:8787')
+    const wrapper = mount(LoginPage, {
+      global: {
+        plugins: [
+          createI18n({
+            fallbackLocale: 'zh',
+            legacy: false,
+            locale: 'en',
+            messages: { en, zh },
+          }),
+        ],
+      },
+    })
+
+    expect(wrapper.text()).toContain('Enterprise login')
+    expect(wrapper.text()).not.toContain('企业登录')
+  })
+
   it('starts enterprise login from the SSO button', async () => {
     vi.stubEnv('VITE_MUON_API_BASE_URL', 'http://127.0.0.1:8787')
     const wrapper = mount(LoginPage)
@@ -83,6 +105,19 @@ describe('loginPage enterprise login', () => {
     expect(mocks.bindClientEvents).toHaveBeenCalledOnce()
     expect(mocks.startSync).toHaveBeenCalledOnce()
     expect(mocks.routerPush).toHaveBeenCalledWith('/dm')
+  })
+
+  it('localizes enterprise callback errors instead of exposing internal English strings', async () => {
+    vi.stubEnv('VITE_MUON_API_BASE_URL', 'http://127.0.0.1:8787')
+    mocks.completeEnterpriseLogin.mockRejectedValueOnce(new Error('Enterprise login state does not match this device'))
+    const wrapper = mount(LoginPage)
+
+    mocks.desktopCallbacks[0]('muon://auth/callback?code=oauth-code&state=wrong-state')
+
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain('企业登录状态已过期，请重新发起登录。')
+    })
+    expect(wrapper.text()).not.toContain('Enterprise login state does not match this device')
   })
 
   it('unsubscribes from desktop deeplink callbacks on unmount', () => {

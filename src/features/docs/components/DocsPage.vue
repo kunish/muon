@@ -108,6 +108,7 @@ function createDocument(): void {
   documentDraftType.value = '文档'
   searchQuery.value = ''
   reviewOnly.value = false
+  activeSection.value = 'recent'
   documents.value = [
     {
       id: documentId,

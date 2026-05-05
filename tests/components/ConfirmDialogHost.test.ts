@@ -57,4 +57,39 @@ describe('confirmDialogHost', () => {
 
     await expect(result).resolves.toBe(false)
   })
+
+  it('queues confirmation requests and shows the next request after the active one settles', async () => {
+    wrapper = mount(ConfirmDialogHost, {
+      attachTo: document.body,
+    })
+
+    const first = requestConfirmDialog('Delete the first item?', {
+      okLabel: 'Delete first',
+      title: 'First request',
+    })
+    const second = requestConfirmDialog('Delete the second item?', {
+      okLabel: 'Delete second',
+      title: 'Second request',
+    })
+
+    await flushPromises()
+
+    expect(document.body.textContent).toContain('First request')
+    expect(document.body.textContent).not.toContain('Second request')
+
+    Array.from(document.body.querySelectorAll('button'))
+      .find(button => button.textContent?.trim() === 'Delete first')
+      ?.click()
+    await flushPromises()
+
+    await expect(first).resolves.toBe(true)
+    expect(document.body.textContent).toContain('Second request')
+
+    Array.from(document.body.querySelectorAll('button'))
+      .find(button => button.textContent?.trim() === 'Delete second')
+      ?.click()
+    await flushPromises()
+
+    await expect(second).resolves.toBe(true)
+  })
 })

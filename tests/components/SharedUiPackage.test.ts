@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { Button } from '@muon/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@muon/ui/card'
 import { FieldInput, Input } from '@muon/ui/input'
@@ -63,5 +65,14 @@ describe('shared ui package', () => {
     await wrapper.get('input').setValue('Muon Enterprise')
 
     expect((wrapper.vm as unknown as { name: string }).name).toBe('Muon Enterprise')
+  })
+
+  it('keeps public component exports on package entry points instead of direct Vue files', () => {
+    const packageJson = JSON.parse(readFileSync(resolve(process.cwd(), 'packages/ui/package.json'), 'utf8')) as {
+      exports: Record<string, string>
+    }
+
+    expect(Object.keys(packageJson.exports)).not.toContain('./avatar/Avatar.vue')
+    expect(Object.values(packageJson.exports).some(path => path.endsWith('.vue'))).toBe(false)
   })
 })

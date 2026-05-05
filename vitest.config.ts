@@ -35,9 +35,6 @@ export default defineConfig({
       '@muon/rich-text/markdown': resolve(__dirname, 'packages/rich-text/src/markdown.ts'),
       '@muon/rich-text/message-content': resolve(__dirname, 'packages/rich-text/src/components/RichMessageContent.vue'),
       '@muon/rich-text': resolve(__dirname, 'packages/rich-text/src/index.ts'),
-      '@muon/ui/media': resolve(__dirname, 'packages/ui/src/composables/useAuthMedia.ts'),
-      '@muon/ui/avatar/Avatar.vue': resolve(__dirname, 'packages/ui/src/components/ui/avatar/Avatar.vue'),
-      '@muon/ui': resolve(__dirname, 'packages/ui/src/components/ui'),
     },
   },
 })

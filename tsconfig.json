@@ -16,10 +16,7 @@
       "@muon/rich-text/html": ["./packages/rich-text/src/htmlSanitizer.ts"],
       "@muon/rich-text/linkify": ["./packages/rich-text/src/linkify.ts"],
       "@muon/rich-text/markdown": ["./packages/rich-text/src/markdown.ts"],
-      "@muon/rich-text/message-content": ["./packages/rich-text/src/components/RichMessageContent.vue"],
-      "@muon/ui/media": ["./packages/ui/src/composables/useAuthMedia.ts"],
-      "@muon/ui/avatar/Avatar.vue": ["./packages/ui/src/components/ui/avatar/Avatar.vue"],
-      "@muon/ui/*": ["./packages/ui/src/components/ui/*/index.ts"]
+      "@muon/rich-text/message-content": ["./packages/rich-text/src/components/RichMessageContent.vue"]
     },
     "resolveJsonModule": true,
     "strict": true,

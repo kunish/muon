@@ -8,7 +8,6 @@
     "./media": "./src/composables/useAuthMedia.ts",
     "./alert-dialog": "./src/components/ui/alert-dialog/index.ts",
     "./avatar": "./src/components/ui/avatar/index.ts",
-    "./avatar/Avatar.vue": "./src/components/ui/avatar/Avatar.vue",
     "./badge": "./src/components/ui/badge/index.ts",
     "./button": "./src/components/ui/button/index.ts",
     "./card": "./src/components/ui/card/index.ts",

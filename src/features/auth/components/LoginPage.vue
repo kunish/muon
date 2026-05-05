@@ -23,6 +23,13 @@ const enterpriseEnabled = computed(() => isEnterpriseAuthConfigured())
 let unsubscribeEnterpriseCallback: (() => void) | undefined
 
 const USER_ID_TAKEN_RE = /M_USER_IN_USE|desired user id is already taken/i
+const ENTERPRISE_ERROR_KEYS: Array<[RegExp, string]> = [
+  [/enterprise auth is not configured/i, 'auth.enterprise_not_configured'],
+  [/invalid enterprise auth callback/i, 'auth.enterprise_invalid_callback'],
+  [/enterprise login was not started on this device/i, 'auth.enterprise_not_started'],
+  [/enterprise login state does not match this device/i, 'auth.enterprise_state_mismatch'],
+  [/enterprise login failed/i, 'auth.enterprise_failed'],
+]
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
@@ -49,6 +56,24 @@ function getAuthErrorMessage(value: unknown): string {
     return t('auth.user_id_taken')
 
   return value instanceof Error ? value.message : t('auth.error')
+}
+
+function getEnterpriseAuthErrorMessage(value: unknown): string {
+  if (value instanceof Error) {
+    const match = ENTERPRISE_ERROR_KEYS.find(([pattern]) => pattern.test(value.message))
+    if (match)
+      return t(match[1])
+
+    return value.message
+  }
+
+  if (typeof value === 'string') {
+    const match = ENTERPRISE_ERROR_KEYS.find(([pattern]) => pattern.test(value))
+    if (match)
+      return t(match[1])
+  }
+
+  return t('auth.enterprise_failed')
 }
 
 function validateServerUrl(url: string): boolean {
@@ -107,7 +132,7 @@ async function handleEnterpriseLogin() {
     await startEnterpriseLogin()
   }
   catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : t('auth.error')
+    error.value = getEnterpriseAuthErrorMessage(e)
   }
   finally {
     enterpriseLoading.value = false
@@ -124,7 +149,7 @@ async function handleEnterpriseCallback(url: string) {
     router.push('/dm')
   }
   catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : t('auth.error')
+    error.value = getEnterpriseAuthErrorMessage(e)
   }
   finally {
     enterpriseLoading.value = false
@@ -156,7 +181,7 @@ onBeforeUnmount(() => {
         class="mb-4 w-full h-9 rounded-md border border-border bg-card text-sm font-medium hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
         @click="handleEnterpriseLogin"
       >
-        {{ enterpriseLoading ? t('auth.processing') : '企业登录' }}
+        {{ enterpriseLoading ? t('auth.processing') : t('auth.enterprise_login') }}
       </button>
 
       <!-- Tabs -->

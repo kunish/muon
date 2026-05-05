@@ -103,6 +103,18 @@ describe('workspace secondary pages', () => {
     expect(wrapper.text()).toContain('手册')
   })
 
+  it('keeps newly created docs visible when starting outside the recent section', async () => {
+    const wrapper = mount(DocsPage)
+
+    await wrapper.get('[data-testid="docs-section-starred"]').trigger('click')
+    expect(wrapper.text()).toContain('当前分区：已收藏')
+
+    await wrapper.get('[data-testid="docs-new-button"]').trigger('click')
+
+    expect(wrapper.text()).toContain('当前分区：最近更新')
+    expect(wrapper.text()).toContain('当前文档：新建协作文档')
+  })
+
   it('lets docs folder and document rows open visible workspace detail state', async () => {
     const wrapper = mount(DocsPage)
 

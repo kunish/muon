@@ -4,6 +4,7 @@ import type { VideoInfo } from 'matrix-js-sdk/lib/@types/media'
 import { htmlToPlainText, sanitizeMatrixHtml } from '@muon/rich-text'
 import { EventTimeline, EventType, MsgType, RelationType } from 'matrix-js-sdk'
 import { fetch as desktopFetch } from '@/electron/http'
+import { localizedText } from '@/shared/lib/localizedText'
 import { getClient } from './client'
 import { extractImageMeta, uploadMedia } from './media'
 
@@ -294,6 +295,10 @@ export interface SystemEventInfo {
   parts: SystemEventPart[]
 }
 
+function systemEventText(key: string): SystemEventPart {
+  return { type: 'text', text: localizedText(`system_events.${key}`) }
+}
+
 interface MergeableMemberEvent {
   kind: 'invite' | 'invite_join'
   key: string
@@ -327,7 +332,6 @@ export interface TimelineRelationSummaries {
 }
 
 /** 获取系统事件的结构化描述（用于丰富渲染） */
-// TODO: migrate hardcoded Chinese strings to i18n
 export function getSystemEventInfo(eventOrEvents: MatrixEvent | MatrixEvent[]): SystemEventInfo {
   const events = Array.isArray(eventOrEvents) ? eventOrEvents : [eventOrEvents]
   const ev = events[0]
@@ -366,7 +370,7 @@ export function getSystemEventInfo(eventOrEvents: MatrixEvent | MatrixEvent[]): 
           kind: 'join',
           parts: [
             { type: 'user', text: targetName, userId: targetId },
-            { type: 'text', text: ' 加入了群聊' },
+            systemEventText('joined_group'),
           ],
         }
       }
@@ -375,9 +379,9 @@ export function getSystemEventInfo(eventOrEvents: MatrixEvent | MatrixEvent[]): 
         kind: 'join',
         parts: [
           { type: 'user', text: senderName, userId: sender },
-          { type: 'text', text: ' 邀请 ' },
+          systemEventText('invited_to_join'),
           { type: 'user', text: targetName, userId: targetId },
-          { type: 'text', text: ' 加入了群聊' },
+          systemEventText('to_join_group'),
         ],
       }
     }
@@ -389,7 +393,7 @@ export function getSystemEventInfo(eventOrEvents: MatrixEvent | MatrixEvent[]): 
           kind: 'leave',
           parts: [
             { type: 'user', text: targetName, userId: targetId },
-            { type: 'text', text: ' 退出了群聊' },
+            systemEventText('left_group'),
           ],
         }
       }
@@ -398,9 +402,9 @@ export function getSystemEventInfo(eventOrEvents: MatrixEvent | MatrixEvent[]): 
         kind: 'kick',
         parts: [
           { type: 'user', text: senderName, userId: sender },
-          { type: 'text', text: ' 将 ' },
+          systemEventText('removed'),
           { type: 'user', text: targetName, userId: targetId },
-          { type: 'text', text: ' 移出了群聊' },
+          systemEventText('from_group'),
         ],
       }
     }
@@ -411,9 +415,9 @@ export function getSystemEventInfo(eventOrEvents: MatrixEvent | MatrixEvent[]): 
         kind: 'ban',
         parts: [
           { type: 'user', text: senderName, userId: sender },
-          { type: 'text', text: ' 将 ' },
+          systemEventText('banned'),
           { type: 'user', text: targetName, userId: targetId },
-          { type: 'text', text: ' 禁止加入群聊' },
+          systemEventText('from_joining_group'),
         ],
       }
     }
@@ -424,7 +428,7 @@ export function getSystemEventInfo(eventOrEvents: MatrixEvent | MatrixEvent[]): 
         kind: 'invite',
         parts: [
           { type: 'user', text: senderName, userId: sender },
-          { type: 'text', text: ' 邀请了 ' },
+          systemEventText('invited'),
           { type: 'user', text: targetName, userId: targetId },
         ],
       }
@@ -434,7 +438,7 @@ export function getSystemEventInfo(eventOrEvents: MatrixEvent | MatrixEvent[]): 
       kind: 'unknown',
       parts: [
         { type: 'user', text: targetName, userId: targetId },
-        { type: 'text', text: ' 的成员状态已变更' },
+        systemEventText('membership_changed'),
       ],
     }
   }
@@ -445,7 +449,7 @@ export function getSystemEventInfo(eventOrEvents: MatrixEvent | MatrixEvent[]): 
       kind: 'room_name',
       parts: [
         { type: 'user', text: senderName, userId: sender },
-        { type: 'text', text: ' 将群名改为 ' },
+        systemEventText('renamed_group_to'),
         { type: 'highlight', text: `"${newName}"` },
       ],
     }
@@ -457,7 +461,7 @@ export function getSystemEventInfo(eventOrEvents: MatrixEvent | MatrixEvent[]): 
       kind: 'room_topic',
       parts: [
         { type: 'user', text: senderName, userId: sender },
-        { type: 'text', text: ' 将群话题改为 ' },
+        systemEventText('changed_topic_to'),
         { type: 'highlight', text: `"${newTopic}"` },
       ],
     }
@@ -468,7 +472,7 @@ export function getSystemEventInfo(eventOrEvents: MatrixEvent | MatrixEvent[]): 
       kind: 'room_create',
       parts: [
         { type: 'user', text: senderName, userId: sender },
-        { type: 'text', text: ' 创建了此群聊' },
+        systemEventText('created_this_group'),
       ],
     }
   }
@@ -477,7 +481,7 @@ export function getSystemEventInfo(eventOrEvents: MatrixEvent | MatrixEvent[]): 
     kind: 'unknown',
     parts: [
       { type: 'user', text: senderName, userId: sender },
-      { type: 'text', text: ' 触发了一个事件' },
+      systemEventText('triggered_event'),
     ],
   }
 }
@@ -664,7 +668,7 @@ function getMergedSystemEventInfo(events: MatrixEvent[]): SystemEventInfo | null
   const senderName = senderMember?.name || first.sender.split(':')[0]?.slice(1) || first.sender
   const parts: SystemEventPart[] = [
     { type: 'user', text: senderName, userId: first.sender },
-    { type: 'text', text: first.kind === 'invite' ? ' 邀请了 ' : ' 邀请 ' },
+    systemEventText(first.kind === 'invite' ? 'invited' : 'invited_to_join'),
   ]
   const seenTargets = new Set<string>()
 
@@ -673,7 +677,7 @@ function getMergedSystemEventInfo(events: MatrixEvent[]): SystemEventInfo | null
       continue
     seenTargets.add(memberEvent.targetId)
     if (seenTargets.size > 1)
-      parts.push({ type: 'text', text: '、' })
+      parts.push(systemEventText('list_separator'))
 
     const targetMember = room?.getMember(memberEvent.targetId)
     const targetName = targetMember?.name || memberEvent.targetFallbackName
@@ -681,7 +685,7 @@ function getMergedSystemEventInfo(events: MatrixEvent[]): SystemEventInfo | null
   }
 
   if (first.kind === 'invite_join')
-    parts.push({ type: 'text', text: ' 加入了群聊' })
+    parts.push(systemEventText('to_join_group'))
 
   return {
     kind: first.kind === 'invite' ? 'invite' : 'join',
@@ -724,17 +728,17 @@ function getMergedRoomCreationSystemEventInfo(events: MatrixEvent[]): SystemEven
 
   if (roomName) {
     parts.push(
-      { type: 'text', text: ' 创建了群聊 ' },
+      systemEventText('created_group_named'),
       { type: 'highlight', text: `"${roomName}"` },
     )
   }
   else {
-    parts.push({ type: 'text', text: ' 创建了此群聊' })
+    parts.push(systemEventText('created_this_group'))
   }
 
   if (roomTopic) {
     parts.push(
-      { type: 'text', text: '，话题为 ' },
+      systemEventText('with_topic'),
       { type: 'highlight', text: `"${roomTopic}"` },
     )
   }
@@ -746,9 +750,9 @@ function getMergedRoomCreationSystemEventInfo(events: MatrixEvent[]): SystemEven
     seenTargets.add(inviteEvent.targetId)
 
     if (seenTargets.size === 1)
-      parts.push({ type: 'text', text: '，并邀请了 ' })
+      parts.push(systemEventText('and_invited'))
     else
-      parts.push({ type: 'text', text: '、' })
+      parts.push(systemEventText('list_separator'))
 
     const targetMember = room?.getMember(inviteEvent.targetId)
     const targetName = targetMember?.name || inviteEvent.targetFallbackName || fallbackNameFromUserId(inviteEvent.targetId)

@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { createMemoryHistory } from 'vue-router'
-import { createAdminRouter } from '../../apps/admin/src/router'
+import { createAdminRouter, normalizeLegacyAdminHash } from '../../apps/admin/src/router'
 
 const root = process.cwd()
 
@@ -27,6 +27,23 @@ describe('admin router', () => {
       '/users',
       '/audit',
     ]))
+  })
+
+  it('normalizes legacy admin hashes before the router mounts', () => {
+    window.history.replaceState(null, '', '/admin#users')
+
+    normalizeLegacyAdminHash()
+
+    expect(window.location.pathname).toBe('/admin')
+    expect(window.location.hash).toBe('#/users')
+  })
+
+  it('leaves unknown legacy admin hashes unchanged', () => {
+    window.history.replaceState(null, '', '/admin#settings')
+
+    normalizeLegacyAdminHash()
+
+    expect(window.location.hash).toBe('#settings')
   })
 
   it('mounts the admin app with the router plugin', () => {

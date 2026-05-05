@@ -25,6 +25,7 @@ vi.mock('@/matrix/media', () => ({
 describe('messages', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    localStorage.clear()
   })
 
   it('should send a text message', async () => {
@@ -284,6 +285,26 @@ describe('messages', () => {
     const events = getTimeline('!room:localhost', 50)
 
     expect(events.map(event => event.getId())).toEqual(['$join'])
+  })
+
+  it('localizes system event copy for the active locale', async () => {
+    localStorage.setItem('muon_locale', JSON.stringify('en'))
+    const joinEvent = {
+      getType: () => 'm.room.member',
+      getContent: () => ({ membership: 'join', displayname: 'Alice' }),
+      getPrevContent: () => ({ membership: 'invite' }),
+      getSender: () => '@alice:localhost',
+      getStateKey: () => '@alice:localhost',
+      getRoomId: () => '!room:localhost',
+    }
+    mockGetRoom.mockReturnValue({
+      getMember: () => ({ name: 'Alice' }),
+    })
+
+    const { getSystemEventInfo } = await import('@/matrix/messages')
+    const text = getSystemEventInfo(joinEvent as any).parts.map(part => part.text).join('')
+
+    expect(text).toBe('Alice joined the group chat')
   })
 
   it('summarizes timeline reactions and thread counts in one linked timeline pass', async () => {
