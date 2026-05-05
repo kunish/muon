@@ -51,7 +51,9 @@
     "enterprise_invalid_callback": "The enterprise login callback is invalid. Please start login again.",
     "enterprise_not_started": "Enterprise login was not started on this device. Please start login again.",
     "enterprise_state_mismatch": "The enterprise login session expired. Please start login again.",
-    "enterprise_failed": "Enterprise login failed. Please try again."
+    "enterprise_failed": "Enterprise login failed. Please try again.",
+    "insecure_connection": "You are using an insecure connection. The server URL should start with https://.",
+    "invalid_url": "Please enter a valid server URL"
   },
   "system_events": {
     "joined_group": " joined the group chat",
@@ -421,7 +423,9 @@
     "upload_failed": "Upload failed",
     "forward_failed": "Failed to forward message",
     "record_failed": "Failed to start recording",
-    "link_open_failed": "Could not open link"
+    "link_open_failed": "Could not open link",
+    "file_too_large": "File is too large",
+    "invalid_file_type": "Unsupported file type"
   },
   "contacts": {
     "contacts": "Contacts",
@@ -622,6 +626,7 @@
     "approvals": "Approvals",
     "email": "Mail",
     "calls": "Calls",
+    "projects": "Projects",
     "contacts": "Contacts",
     "organization": "Organization",
     "settings": "Settings",
@@ -816,6 +821,8 @@
     "kick_reason_label": "Reason (optional)",
     "ban_reason_label": "Reason (optional)",
     "confirm": "Confirm",
-    "missing_server_id": "Missing server context"
+    "missing_server_id": "Missing server context",
+    "ban": "Ban",
+    "kick": "Kick"
   }
 }

@@ -51,7 +51,9 @@
     "enterprise_invalid_callback": "企业登录回调无效，请重新发起登录。",
     "enterprise_not_started": "此设备尚未发起企业登录，请重新开始。",
     "enterprise_state_mismatch": "企业登录状态已过期，请重新发起登录。",
-    "enterprise_failed": "企业登录失败，请重试。"
+    "enterprise_failed": "企业登录失败，请重试。",
+    "insecure_connection": "您正在使用不安全的连接，服务器地址应以 https:// 开头。",
+    "invalid_url": "请输入有效的服务器地址"
   },
   "system_events": {
     "joined_group": " 加入了群聊",
@@ -421,7 +423,9 @@
     "upload_failed": "上传失败",
     "forward_failed": "转发消息失败",
     "record_failed": "启动录音失败",
-    "link_open_failed": "无法打开链接"
+    "link_open_failed": "无法打开链接",
+    "file_too_large": "文件过大",
+    "invalid_file_type": "不支持的文件类型"
   },
   "contacts": {
     "contacts": "联系人",
@@ -622,6 +626,7 @@
     "approvals": "审批",
     "email": "邮件",
     "calls": "通话",
+    "projects": "项目",
     "contacts": "联系人",
     "organization": "组织",
     "settings": "设置",
@@ -816,6 +821,8 @@
     "kick_reason_label": "原因（可选）",
     "ban_reason_label": "原因（可选）",
     "confirm": "确认",
-    "missing_server_id": "缺少服务器上下文"
+    "missing_server_id": "缺少服务器上下文",
+    "ban": "封禁",
+    "kick": "踢出"
   }
 }

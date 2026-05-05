@@ -1,7 +1,7 @@
 import type { Component } from 'vue'
-import { Building2, CalendarDays, CheckSquare, FileText, Grid3X3, Mail, MessageCircle, Phone, Settings, Users } from 'lucide-vue-next'
+import { Building2, CalendarDays, CheckSquare, FileText, FolderKanban, Grid3X3, Mail, MessageCircle, Phone, Settings, Users } from 'lucide-vue-next'
 
-export type WorkspaceAppId = 'messages' | 'contacts' | 'organization' | 'calendar' | 'docs' | 'workplace' | 'approvals' | 'email' | 'calls' | 'settings'
+export type WorkspaceAppId = 'messages' | 'contacts' | 'organization' | 'calendar' | 'docs' | 'workplace' | 'approvals' | 'email' | 'calls' | 'projects' | 'settings'
 
 export interface WorkspaceApp {
   id: WorkspaceAppId
@@ -29,6 +29,7 @@ export const workspaceApps: WorkspaceApp[] = [
   { id: 'approvals', labelKey: 'sidebar.approvals', path: '/approvals', icon: CheckSquare, match: path => matchesPrefix(path, '/approvals') },
   { id: 'email', labelKey: 'sidebar.email', path: '/email', icon: Mail, match: path => matchesPrefix(path, '/email') },
   { id: 'calls', labelKey: 'sidebar.calls', path: '/calls', icon: Phone, match: path => matchesPrefix(path, '/calls') },
+  { id: 'projects', labelKey: 'sidebar.projects', path: '/projects', icon: FolderKanban, match: path => matchesPrefix(path, '/projects') },
   { id: 'settings', labelKey: 'sidebar.settings', path: '/settings', icon: Settings, match: path => matchesPrefix(path, '/settings') },
 ]
 
