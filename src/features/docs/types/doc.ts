@@ -8,36 +8,37 @@ export interface DocComment {
   createdAt: number
 }
 
+/** 本地光标状态，用于 Tiptap CollaborationCursor 渲染 */
 export interface CursorData {
   userId: string
   name: string
-  /** 用户颜色，用于光标渲染 */
   color: string
   from: number
   to: number
 }
 
 export interface DocMetadata {
+  /** Unix 毫秒时间戳 */
   createdAt: number
   updatedAt: number
   createdBy: string
   folder: string
 }
 
+export type DocSectionId = 'recent' | 'starred' | 'shared'
+
 export interface DocEntry {
   /** 文档 ID，同时是 Matrix 房间 ID */
   id: string
   title: string
   owner: string
+  /** 显示用更新时间，如 "刚刚"、"昨天" */
   updated: string
   type: string
   status: '草稿' | '进行中' | '评审中' | '稳定'
   folder: string
   sectionIds: DocSectionId[]
-  roomId: string
 }
-
-export type DocSectionId = 'recent' | 'starred' | 'shared'
 
 export interface DocSyncEvent {
   type: 'full' | 'delta'
