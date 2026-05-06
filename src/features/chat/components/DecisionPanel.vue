@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import type { DecisionStatus, DecisionSuggestion, SuggestionDisposition } from '../types/decision'
 import { Textarea } from '@muon/ui/textarea'
-import { onMounted, reactive } from 'vue'
+import { onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
+import GroupMemberPicker from '@/features/contacts/components/GroupMemberPicker.vue'
 import { preloadAndNavigate } from '@/shared/lib/contextPreload'
 import { useDecisionStore } from '../stores/decisionStore'
 
@@ -20,9 +21,18 @@ const form = reactive({
   roomId: '',
   eventId: '',
 })
+const ownerIds = ref<string[]>([])
 
 onMounted(async () => {
   await decisionStore.hydrateCards()
+})
+
+watch(ownerIds, (ids) => {
+  if (ids.length > 1) {
+    ownerIds.value = [ids[ids.length - 1]!]
+    return
+  }
+  form.owner = ids[0] ?? ''
 })
 
 async function saveDecisionCard() {
@@ -98,7 +108,10 @@ function suggestionDispositionLabel(disposition: SuggestionDisposition) {
     <div class="space-y-3 border-b border-border px-4 py-3">
       <input v-model="form.conclusion" data-testid="decision-conclusion-input" class="w-full rounded-md border border-border px-3 py-2 text-sm" :placeholder="t('chat.decision_conclusion')">
       <Textarea v-model="form.context" data-testid="decision-context-input" class="min-h-20 w-full rounded-md border border-border px-3 py-2 text-sm" :placeholder="t('chat.decision_context')" />
-      <input v-model="form.owner" data-testid="decision-owner-input" class="w-full rounded-md border border-border px-3 py-2 text-sm" :placeholder="t('chat.decision_owner')">
+      <GroupMemberPicker
+        v-model="ownerIds"
+        :label="t('chat.decision_owner')"
+      />
       <div class="grid grid-cols-2 gap-3">
         <input v-model="form.roomId" data-testid="decision-room-input" class="rounded-md border border-border px-3 py-2 text-sm" :placeholder="t('chat.decision_room_id')">
         <input v-model="form.eventId" data-testid="decision-event-input" class="rounded-md border border-border px-3 py-2 text-sm" :placeholder="t('chat.decision_event_id')">

@@ -11,6 +11,50 @@ interface MatrixSendEventResult { event_id: string }
 interface MatrixEventClient extends MatrixClient {
   sendEvent: (roomId: string, eventType: string, content: unknown) => Promise<MatrixSendEventResult>
 }
+interface MatrixDocRoom {
+  getLiveTimeline?: () => {
+    getEvents?: () => unknown[]
+  }
+}
+
+interface MatrixDocEventLike {
+  getType?: () => string
+  getContent?: () => unknown
+  getRoomId?: () => string | undefined
+  getId?: () => string | undefined
+  event?: {
+    type?: string
+    content?: unknown
+    room_id?: string
+    event_id?: string
+  }
+}
+
+interface ExtractedDocSyncEvent {
+  content: DocSyncEvent
+  eventId: string
+}
+
+type DocCursorHandler = (cursor: DocCursorEvent) => void
+
+function isDocSyncEventContent(value: unknown): value is DocSyncEvent {
+  return typeof value === 'object'
+    && value !== null
+    && typeof (value as DocSyncEvent).docId === 'string'
+    && typeof (value as DocSyncEvent).payload === 'string'
+    && typeof (value as DocSyncEvent).seq === 'number'
+    && typeof (value as DocSyncEvent).total === 'number'
+}
+
+function isDocCursorEventContent(value: unknown): value is DocCursorEvent {
+  return typeof value === 'object'
+    && value !== null
+    && typeof (value as DocCursorEvent).userId === 'string'
+    && typeof (value as DocCursorEvent).name === 'string'
+    && typeof (value as DocCursorEvent).color === 'string'
+    && typeof (value as DocCursorEvent).from === 'number'
+    && typeof (value as DocCursorEvent).to === 'number'
+}
 
 export class MatrixSyncProvider {
   private doc: Doc
@@ -18,6 +62,7 @@ export class MatrixSyncProvider {
   private client: MatrixClient
   private lastEventId: string | null = null
   private pendingChunks = new Map<string, Uint8Array[]>()
+  private cursorHandlers = new Set<DocCursorHandler>()
   private batchCounter = 0
 
   constructor(doc: Doc, roomId: string, client?: MatrixClient) {
@@ -25,6 +70,7 @@ export class MatrixSyncProvider {
     this.roomId = roomId
     this.client = client ?? getClient()
 
+    this.applyStoredTimelineEvents()
     this.doc.on('update', this.handleYjsUpdate)
     this.client.on(RoomEvent.Timeline, this.handleTimelineEvent)
   }
@@ -60,50 +106,17 @@ export class MatrixSyncProvider {
   }
 
   private handleTimelineEvent = (roomEvent: unknown): void => {
-    const event = roomEvent as {
-      event: {
-        type: string
-        content: DocSyncEvent
-        room_id: string
-        event_id: string
-      }
-    }
-    if (event.event?.type !== MATRIX_EVENT_TYPES.DOC_SYNC)
+    const cursor = this.extractDocCursorEvent(roomEvent)
+    if (cursor) {
+      this.emitCursorEvent(cursor)
       return
-    if (event.event?.room_id !== this.roomId)
+    }
+
+    const event = this.extractDocSyncEvent(roomEvent)
+    if (!event)
       return
 
-    const content = event.event.content
-    if (!content?.payload)
-      return
-
-    try {
-      if (content.total > 1) {
-        const batchKey = content.batchId
-
-        if (!this.pendingChunks.has(batchKey)) {
-          this.pendingChunks.set(batchKey, [])
-        }
-        const chunks = this.pendingChunks.get(batchKey)!
-        chunks[content.seq] = this.base64ToUint8(content.payload)
-
-        const allReceived = chunks.filter(Boolean).length === content.total
-        if (allReceived) {
-          const merged = this.mergeChunks(chunks)
-          applyUpdate(this.doc, merged, this)
-          this.pendingChunks.delete(batchKey)
-        }
-      }
-      else {
-        const update = this.base64ToUint8(content.payload)
-        applyUpdate(this.doc, update, this)
-      }
-
-      this.lastEventId = event.event.event_id
-    }
-    catch (err) {
-      console.error('[MatrixSyncProvider] Failed to apply remote update:', err)
-    }
+    this.applyDocSyncEvent(event)
   }
 
   sendSnapshot(): void {
@@ -127,10 +140,18 @@ export class MatrixSyncProvider {
     ;(this.client as MatrixEventClient).sendEvent(this.roomId, MATRIX_EVENT_TYPES.DOC_CURSOR, cursor).catch(() => {}) // Cursor events are ephemeral; intentional noop
   }
 
+  onCursor(handler: DocCursorHandler): () => void {
+    this.cursorHandlers.add(handler)
+    return () => {
+      this.cursorHandlers.delete(handler)
+    }
+  }
+
   destroy(): void {
     this.doc.off('update', this.handleYjsUpdate)
     this.client.off(RoomEvent.Timeline, this.handleTimelineEvent)
     this.pendingChunks.clear()
+    this.cursorHandlers.clear()
   }
 
   // --- Private helpers ---
@@ -171,5 +192,92 @@ export class MatrixSyncProvider {
       uint8[i] = binary.charCodeAt(i)
     }
     return uint8
+  }
+
+  private applyStoredTimelineEvents(): void {
+    const room = this.client.getRoom?.(this.roomId) as MatrixDocRoom | null | undefined
+    const events = room?.getLiveTimeline?.()?.getEvents?.() ?? []
+    for (const event of events) {
+      const syncEvent = this.extractDocSyncEvent(event)
+      if (syncEvent)
+        this.applyDocSyncEvent(syncEvent)
+    }
+  }
+
+  private extractDocCursorEvent(roomEvent: unknown): DocCursorEvent | null {
+    const event = roomEvent as MatrixDocEventLike
+    const eventType = event.getType?.() ?? event.event?.type
+    if (eventType !== MATRIX_EVENT_TYPES.DOC_CURSOR)
+      return null
+
+    const eventRoomId = event.getRoomId?.() ?? event.event?.room_id
+    if (eventRoomId && eventRoomId !== this.roomId)
+      return null
+
+    const content = event.getContent?.() ?? event.event?.content
+    if (!isDocCursorEventContent(content))
+      return null
+
+    return content
+  }
+
+  private emitCursorEvent(cursor: DocCursorEvent): void {
+    this.cursorHandlers.forEach((handler) => {
+      handler(cursor)
+    })
+  }
+
+  private extractDocSyncEvent(roomEvent: unknown): ExtractedDocSyncEvent | null {
+    const event = roomEvent as MatrixDocEventLike
+    const eventType = event.getType?.() ?? event.event?.type
+    if (eventType !== MATRIX_EVENT_TYPES.DOC_SYNC)
+      return null
+
+    const eventRoomId = event.getRoomId?.() ?? event.event?.room_id
+    if (eventRoomId && eventRoomId !== this.roomId)
+      return null
+
+    const content = event.getContent?.() ?? event.event?.content
+    if (!isDocSyncEventContent(content))
+      return null
+    if (content.docId !== this.roomId)
+      return null
+
+    return {
+      content,
+      eventId: event.getId?.() ?? event.event?.event_id ?? `${content.batchId}:${content.seq}`,
+    }
+  }
+
+  private applyDocSyncEvent(event: ExtractedDocSyncEvent): void {
+    const { content, eventId } = event
+
+    try {
+      if (content.total > 1) {
+        const batchKey = content.batchId || `${content.docId}:${content.prevEventId ?? eventId}:${content.total}`
+
+        if (!this.pendingChunks.has(batchKey)) {
+          this.pendingChunks.set(batchKey, [])
+        }
+        const chunks = this.pendingChunks.get(batchKey)!
+        chunks[content.seq] = this.base64ToUint8(content.payload)
+
+        const allReceived = chunks.filter(Boolean).length === content.total
+        if (allReceived) {
+          const merged = this.mergeChunks(chunks)
+          applyUpdate(this.doc, merged, this)
+          this.pendingChunks.delete(batchKey)
+        }
+      }
+      else {
+        const update = this.base64ToUint8(content.payload)
+        applyUpdate(this.doc, update, this)
+      }
+
+      this.lastEventId = eventId
+    }
+    catch (err) {
+      console.error('[MatrixSyncProvider] Failed to apply remote update:', err)
+    }
   }
 }

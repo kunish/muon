@@ -120,6 +120,36 @@ describe('docsStore', () => {
     expect(store.filteredDocuments).toHaveLength(0)
   })
 
+  it('filters documents by review status when reviewOnly is enabled', () => {
+    const store = useDocsStore()
+    store.documents = [
+      {
+        id: 'review-doc',
+        title: '接口评审',
+        owner: '用户',
+        updated: '刚刚',
+        type: '文档',
+        status: '评审中',
+        folder: '',
+        sectionIds: ['recent'],
+      },
+      {
+        id: 'draft-doc',
+        title: '草稿',
+        owner: '用户',
+        updated: '刚刚',
+        type: '文档',
+        status: '草稿',
+        folder: '',
+        sectionIds: ['recent'],
+      },
+    ]
+
+    store.reviewOnly = true
+
+    expect(store.filteredDocuments.map(doc => doc.id)).toEqual(['review-doc'])
+  })
+
   it('creates document and returns room id', async () => {
     const store = useDocsStore()
     const roomId = await store.createDocument('新文档', '工程文档')
@@ -174,6 +204,87 @@ describe('docsStore', () => {
     expect(store.folderTree.children.map(folder => folder.name)).not.toContain('产品规划')
   })
 
+  it('loads legacy object-form folders as id-keyed records', async () => {
+    const store = useDocsStore()
+    mockClient.getAccountData.mockReturnValue({
+      getContent: () => ({
+        folders: {
+          'folder:parent': { id: 'folder:parent', name: '团队文档', parentId: '', createdAt: 1, updatedAt: 1 },
+          'folder:child': { id: 'folder:child', name: '方案', parentId: 'folder:parent', createdAt: 2, updatedAt: 2 },
+        },
+      }),
+    })
+
+    await store.loadFolders()
+
+    expect(store.folderTree.children.map(folder => folder.name)).toEqual(['团队文档'])
+    expect(store.folderTree.children[0]?.children.map(folder => folder.name)).toEqual(['方案'])
+  })
+
+  it('loads legacy simple object-form folders as name-only records', async () => {
+    const store = useDocsStore()
+    mockClient.getAccountData.mockReturnValue({
+      getContent: () => ({
+        folders: {
+          'folder:parent': '团队文档',
+          'folder:child': '方案',
+        },
+      }),
+    })
+
+    await store.loadFolders()
+
+    expect(store.folderTree.children.map(folder => folder.name)).toEqual(expect.arrayContaining(['团队文档', '方案']))
+    expect(store.folderTree.children.find(folder => folder.name === '团队文档')?.children.map(folder => folder.name)).toEqual([])
+  })
+
+  it('loads legacy folders array of strings as records', async () => {
+    const store = useDocsStore()
+    mockClient.getAccountData.mockReturnValue({
+      getContent: () => ({
+        folders: ['工程文档', '方案'],
+      }),
+    })
+
+    await store.loadFolders()
+
+    expect(store.folderTree.children.map(folder => folder.name)).toEqual(expect.arrayContaining(['工程文档', '方案']))
+  })
+
+  it('loads legacy folders with title field as name', async () => {
+    const store = useDocsStore()
+    mockClient.getAccountData.mockReturnValue({
+      getContent: () => ({
+        folders: [
+          { id: 'folder:parent', title: '团队文档', parentId: '', createdAt: 1, updatedAt: 1 },
+          { id: 'folder:child', title: '方案', parentId: 'folder:parent', createdAt: 2, updatedAt: 2 },
+        ],
+      }),
+    })
+
+    await store.loadFolders()
+
+    expect(store.folderTree.children.map(folder => folder.name)).toEqual(['团队文档'])
+    expect(store.folderTree.children[0]?.children.map(folder => folder.name)).toEqual(['方案'])
+  })
+
+  it('uses readable folderName when a folder record name is a generated id', async () => {
+    const store = useDocsStore()
+    const folderId = 'folder:46309ed8-5518-473a-8a4b-1ac909c2f20a'
+    mockClient.getAccountData.mockReturnValue({
+      getContent: () => ({
+        folders: [
+          { id: folderId, name: folderId, folderName: '项目资料', parentId: '', createdAt: 1, updatedAt: 1 },
+        ],
+      }),
+    })
+
+    await store.loadFolders()
+
+    expect(store.folderTree.children.map(folder => folder.name)).toEqual(['项目资料'])
+    expect(store.folderTree.children.map(folder => folder.name)).not.toContain(folderId)
+  })
+
   it('derives legacy folder paths from document metadata as nested folders', () => {
     const store = useDocsStore()
     store.documents = [{
@@ -191,6 +302,26 @@ describe('docsStore', () => {
     expect(store.folderTree.children[0]?.children[0]?.name).toBe('接口')
     expect(store.folderTree.children[0]?.count).toBe(1)
     expect(store.folderTree.children[0]?.children[0]?.count).toBe(1)
+  })
+
+  it('derives generated folder nodes from document folderName metadata instead of showing ids', () => {
+    const store = useDocsStore()
+    const folderId = 'folder:46309ed8-5518-473a-8a4b-1ac909c2f20a'
+    store.documents = [{
+      id: '!doc:localhost',
+      title: '接口设计',
+      owner: '@test:localhost',
+      updated: '刚刚',
+      type: '文档',
+      status: '草稿',
+      folder: folderId,
+      folderName: '项目资料',
+      sectionIds: ['recent'],
+    }]
+
+    expect(store.folderTree.children[0]?.name).toBe('项目资料')
+    expect(store.folderTree.children[0]?.name).not.toBe(folderId)
+    expect(store.folderTree.children[0]?.count).toBe(1)
   })
 
   it('filters documents by selected folder including descendant folders', () => {
@@ -272,6 +403,41 @@ describe('docsStore', () => {
     await store.loadDocuments()
 
     expect(store.documents[0]?.title).toBe('保存后的标题')
+  })
+
+  it('derives shared documents from owner metadata for the current user', async () => {
+    const store = useDocsStore()
+    mockClient.getRooms.mockReturnValue([
+      makeDocRoom({
+        title: '别人共享的方案',
+        owner: '@alice:localhost',
+        updated: '刚刚',
+        type: '文档',
+        status: '草稿',
+        folder: '',
+        sectionIds: ['recent'],
+        updatedAt: 2,
+      }),
+      {
+        ...makeDocRoom({
+          title: '我的草稿',
+          owner: '@test:localhost',
+          updated: '刚刚',
+          type: '文档',
+          status: '草稿',
+          folder: '',
+          sectionIds: ['recent'],
+          updatedAt: 2,
+        }),
+        roomId: '!own-doc:localhost',
+      },
+    ])
+
+    await store.loadDocuments()
+    store.activeSection = 'shared'
+
+    expect(store.documents.find(doc => doc.id === '!doc:localhost')?.sectionIds).toContain('shared')
+    expect(store.filteredDocuments.map(doc => doc.title)).toEqual(['别人共享的方案'])
   })
 
   it('falls back to the newest metadata timeline event when current state is unavailable', async () => {
@@ -419,6 +585,101 @@ describe('docsStore', () => {
       }),
     )
     expect(store.documents[0]?.folder).toBe('folder:target')
+  })
+
+  it('stores readable folderName metadata when moving a document into a persisted folder', async () => {
+    const store = useDocsStore()
+    store.folders = [
+      { id: 'folder:target', name: '团队资料', parentId: '', createdAt: 1, updatedAt: 1 },
+    ]
+    store.documents = [{
+      id: '!doc:localhost',
+      title: '旧标题',
+      owner: '@test:localhost',
+      updated: '昨天',
+      type: '文档',
+      status: '草稿',
+      folder: '',
+      sectionIds: ['recent'],
+    }]
+
+    await store.updateDocumentFolder('!doc:localhost', 'folder:target')
+
+    expect(mockClient.sendStateEvent).toHaveBeenCalledWith(
+      '!doc:localhost',
+      MATRIX_EVENT_TYPES.DOC_METADATA,
+      expect.objectContaining({
+        folder: 'folder:target',
+        folderName: '团队资料',
+      }),
+    )
+    expect(store.documents[0]).toMatchObject({
+      folder: 'folder:target',
+      folderName: '团队资料',
+    })
+  })
+
+  it('stars and unstars documents through metadata section ids', async () => {
+    const store = useDocsStore()
+    store.documents = [{
+      id: '!doc:localhost',
+      title: '收藏测试',
+      owner: '@test:localhost',
+      updated: '昨天',
+      type: '文档',
+      status: '草稿',
+      folder: '',
+      sectionIds: ['recent'],
+    }]
+
+    await store.setDocumentStarred('!doc:localhost', true)
+
+    expect(mockClient.sendStateEvent).toHaveBeenCalledWith(
+      '!doc:localhost',
+      MATRIX_EVENT_TYPES.DOC_METADATA,
+      expect.objectContaining({
+        title: '收藏测试',
+        sectionIds: ['recent', 'starred'],
+      }),
+    )
+    expect(store.documents[0]?.sectionIds).toEqual(['recent', 'starred'])
+
+    store.activeSection = 'starred'
+    expect(store.filteredDocuments.map(doc => doc.title)).toEqual(['收藏测试'])
+
+    await store.setDocumentStarred('!doc:localhost', false)
+
+    expect(store.documents[0]?.sectionIds).toEqual(['recent'])
+    expect(store.filteredDocuments).toEqual([])
+  })
+
+  it('updates document status in metadata and the local list', async () => {
+    const store = useDocsStore()
+    store.documents = [{
+      id: '!doc:localhost',
+      title: '状态测试',
+      owner: '@test:localhost',
+      updated: '昨天',
+      type: '文档',
+      status: '草稿',
+      folder: '',
+      sectionIds: ['recent'],
+    }]
+
+    await store.setDocumentStatus('!doc:localhost', '评审中')
+
+    expect(mockClient.sendStateEvent).toHaveBeenCalledWith(
+      '!doc:localhost',
+      MATRIX_EVENT_TYPES.DOC_METADATA,
+      expect.objectContaining({
+        title: '状态测试',
+        status: '评审中',
+      }),
+    )
+    expect(store.documents[0]?.status).toBe('评审中')
+
+    store.reviewOnly = true
+    expect(store.filteredDocuments.map(doc => doc.id)).toEqual(['!doc:localhost'])
   })
 
   it('falls back to a timeline metadata event when moving a document without state permission', async () => {

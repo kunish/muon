@@ -65,4 +65,23 @@ describe('create group dialog', () => {
     expect(wrapper.find('[data-testid="group-member-row-@bob:localhost"]').exists()).toBe(true)
     expect(wrapper.get('[data-testid="selected-member-chip-@alice:localhost"]').text()).toContain('Alice Chen')
   })
+
+  it('allows a direct Matrix ID member when the directory has no result', async () => {
+    mockClient.searchUserDirectory.mockResolvedValueOnce({ results: [] })
+    const wrapper = mountCreateGroupDialog()
+
+    await wrapper.get('input[placeholder="输入群名称"]').setValue('设计讨论')
+    await wrapper.get('[data-testid="group-member-search"]').setValue('@zoe:localhost')
+    await flushPromises()
+    await wrapper.get('[data-testid="group-member-row-@zoe:localhost"]').trigger('click')
+
+    expect(wrapper.get('[data-testid="selected-member-chip-@zoe:localhost"]').text()).toContain('zoe')
+
+    await wrapper.get('[data-testid="create-group-submit"]').trigger('click')
+    await flushPromises()
+
+    expect(mockClient.createRoom).toHaveBeenCalledWith(expect.objectContaining({
+      invite: ['@zoe:localhost'],
+    }))
+  })
 })

@@ -12,6 +12,7 @@ interface DocMetadataContent {
   type?: string
   status?: DocEntry['status']
   folder?: string
+  folderName?: string
   sectionIds?: DocSectionId[]
   createdAt?: number
   updatedAt?: number
@@ -30,6 +31,17 @@ interface MatrixAccountDataEvent {
   getContent: () => DocFoldersAccountContent
 }
 
+interface RawFolderRecord {
+  id?: unknown
+  name?: unknown
+  title?: unknown
+  label?: unknown
+  folderName?: unknown
+  parentId?: unknown
+  createdAt?: unknown
+  updatedAt?: unknown
+}
+
 interface MatrixDocRoom {
   roomId: string
   currentState?: {
@@ -43,6 +55,7 @@ interface MatrixDocRoom {
 interface LocalDocMetadataOverride {
   title?: string
   folder?: string
+  folderName?: string
   updated: string
   updatedAt: number
 }
@@ -116,8 +129,32 @@ function normalizeFolderId(folder?: string): string {
   return normalized === ROOT_DOC_FOLDER_NAME ? ROOT_DOC_FOLDER_ID : normalized
 }
 
+function isLikelyFolderId(name: string): boolean {
+  return /^folder:[0-9a-fA-F-]{6,}$/.test(name)
+    || /^folder:[a-z0-9]+:[a-z0-9]+$/i.test(name)
+    || (name.startsWith('folder:') && name.length > 40)
+}
+
+function readableFolderName(value: unknown): string | undefined {
+  if (typeof value !== 'string')
+    return undefined
+
+  const trimmed = value.trim()
+  if (!trimmed || isLikelyFolderId(trimmed))
+    return undefined
+
+  return trimmed
+}
+
 function sanitizeFolderName(name: string): string {
-  return name.trim() || '新建文件夹'
+  const trimmed = name.trim()
+  if (!trimmed)
+    return '新建文件夹'
+
+  if (isLikelyFolderId(trimmed))
+    return '未命名文件夹'
+
+  return trimmed
 }
 
 function createFolderId(): string {
@@ -126,15 +163,34 @@ function createFolderId(): string {
   return `folder:${Date.now().toString(36)}:${Math.random().toString(36).slice(2)}`
 }
 
-function isDocFolderRecord(value: unknown): value is DocFolderRecord {
+function isRawFolderRecord(value: unknown): value is RawFolderRecord & { id: string } {
   return typeof value === 'object'
     && value !== null
-    && typeof (value as DocFolderRecord).id === 'string'
-    && typeof (value as DocFolderRecord).name === 'string'
+    && typeof (value as RawFolderRecord).id === 'string'
+}
+
+function resolveFolderRecordName(record: RawFolderRecord): string {
+  return [
+    record.name,
+    record.title,
+    record.label,
+    record.folderName,
+  ].map(readableFolderName).find((name): name is string => name !== undefined) ?? ''
+}
+
+function folderNameFromId(id: string): string {
+  const segments = normalizeFolderId(id).split('/').filter(Boolean)
+  const leaf = readableFolderName(segments.at(-1))
+  return leaf ?? '未命名文件夹'
+}
+
+function folderNameForMetadataValue(value: unknown): string | undefined {
+  const name = readableFolderName(value)
+  return name ? sanitizeFolderName(name) : undefined
 }
 
 function normalizeFolderRecord(value: unknown): DocFolderRecord | null {
-  if (!isDocFolderRecord(value))
+  if (!isRawFolderRecord(value))
     return null
 
   const id = normalizeFolderId(value.id)
@@ -144,11 +200,84 @@ function normalizeFolderRecord(value: unknown): DocFolderRecord | null {
   const now = Date.now()
   return {
     id,
-    name: sanitizeFolderName(value.name),
-    parentId: normalizeFolderId(value.parentId),
+    name: sanitizeFolderName(resolveFolderRecordName(value) || folderNameFromId(id)),
+    parentId: normalizeFolderId(typeof value.parentId === 'string' ? value.parentId : undefined),
     createdAt: typeof value.createdAt === 'number' ? value.createdAt : now,
     updatedAt: typeof value.updatedAt === 'number' ? value.updatedAt : now,
   }
+}
+
+function normalizeFolderRecords(value: unknown): DocFolderRecord[] {
+  if (Array.isArray(value)) {
+    return value
+      .map((entry) => {
+        if (typeof entry === 'string') {
+          return {
+            id: entry,
+            name: entry,
+            parentId: ROOT_DOC_FOLDER_ID,
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+          } as RawFolderRecord
+        }
+
+        if (typeof entry === 'object' && entry !== null) {
+          const record = entry as RawFolderRecord
+          return {
+            ...record,
+            id: record.id ?? '',
+          } as RawFolderRecord
+        }
+
+        return null
+      })
+      .map(normalizeFolderRecord)
+      .filter((folder): folder is DocFolderRecord => folder !== null)
+  }
+
+  if (value && typeof value === 'object') {
+    const rawEntries = value instanceof Map
+      ? [...value.entries()]
+      : Object.entries(value as Record<string, unknown>)
+
+    return rawEntries
+      .map(([id, entry]) => {
+        if (typeof entry === 'string') {
+          return {
+            id,
+            name: entry,
+            parentId: ROOT_DOC_FOLDER_ID,
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+          } as RawFolderRecord
+        }
+
+        if (entry && typeof entry === 'object') {
+          const record = { ...(entry as RawFolderRecord), id: id as RawFolderRecord['id'] }
+          return record
+        }
+
+        return null
+      })
+      .map((entry) => {
+        if (entry === null)
+          return null
+
+        let record = entry
+        if (!record.name) {
+          const fallbackName = typeof record.id === 'string' && record.id.includes('/')
+            ? record.id.split('/').slice(-1)[0]
+            : ''
+          if (fallbackName)
+            record = { ...record, name: fallbackName }
+        }
+
+        return normalizeFolderRecord(record)
+      })
+      .filter((folder): folder is DocFolderRecord => folder !== null)
+  }
+
+  return []
 }
 
 function createFolderNode(
@@ -169,7 +298,7 @@ function createFolderNode(
   }
 }
 
-function ensureLegacyFolderPath(folderId: string, nodesById: Map<string, MutableDocFolderNode>): void {
+function ensureLegacyFolderPath(folderId: string, nodesById: Map<string, MutableDocFolderNode>, terminalName?: string): void {
   const normalized = normalizeFolderId(folderId)
   if (!normalized)
     return
@@ -180,7 +309,9 @@ function ensureLegacyFolderPath(folderId: string, nodesById: Map<string, Mutable
   segments.forEach((segment, index) => {
     path = path ? `${path}/${segment}` : segment
     if (!nodesById.has(path)) {
-      nodesById.set(path, createFolderNode(path, segment, parentId, index + 1, false))
+      const isTerminal = index === segments.length - 1
+      const folderName = isTerminal && terminalName ? terminalName : segment
+      nodesById.set(path, createFolderNode(path, sanitizeFolderName(folderName), parentId, index + 1, false))
     }
     parentId = path
   })
@@ -241,8 +372,15 @@ function buildFolderTree(documents: DocEntry[], folders: DocFolderRecord[]): Doc
     const folderId = normalizeFolderId(doc.folder)
     if (!folderId)
       return
-    if (!nodesById.has(folderId))
-      ensureLegacyFolderPath(folderId, nodesById)
+    const readableDocFolderName = folderNameForMetadataValue(doc.folderName)
+    if (!nodesById.has(folderId)) {
+      ensureLegacyFolderPath(folderId, nodesById, readableDocFolderName)
+      return
+    }
+
+    const node = nodesById.get(folderId)
+    if (node && !node.isPersisted && node.name === '未命名文件夹' && readableDocFolderName)
+      node.name = readableDocFolderName
   })
 
   attachFolderNodes(nodesById, root)
@@ -262,6 +400,13 @@ function buildFolderTree(documents: DocEntry[], folders: DocFolderRecord[]): Doc
 
   sortFolderTree(root)
   return root
+}
+
+function deriveDocumentSectionIds(sectionIds: DocSectionId[] | undefined, owner: string, currentUserId: string | null): DocSectionId[] {
+  const sections = new Set<DocSectionId>(sectionIds?.length ? sectionIds : ['recent'])
+  if (currentUserId && owner && owner !== currentUserId)
+    sections.add('shared')
+  return [...sections]
 }
 
 export const useDocsStore = defineStore('docs', () => {
@@ -289,6 +434,18 @@ export const useDocsStore = defineStore('docs', () => {
     return folderIds
   })
 
+  function resolveFolderNameForMetadata(folderId: string, fallback?: unknown): string | undefined {
+    const normalizedFolderId = normalizeFolderId(folderId)
+    if (!normalizedFolderId)
+      return undefined
+
+    const readableFallback = folderNameForMetadataValue(fallback)
+    if (readableFallback)
+      return readableFallback
+
+    return folderNameForMetadataValue(findFolderNode(folderTree.value, normalizedFolderId)?.name)
+  }
+
   function mergeLocalOverride(roomId: string, content: DocMetadataContent): DocMetadataContent {
     const override = localMetadataOverrides.get(roomId)
     if (!override)
@@ -296,7 +453,8 @@ export const useDocsStore = defineStore('docs', () => {
 
     const titleSynced = !override.title || content.title === override.title
     const folderSynced = override.folder === undefined || normalizeFolderId(content.folder) === override.folder
-    if ((titleSynced && folderSynced) || getMetadataTimestamp(content) > override.updatedAt) {
+    const folderNameSynced = !override.folderName || content.folderName === override.folderName
+    if ((titleSynced && folderSynced && folderNameSynced) || getMetadataTimestamp(content) > override.updatedAt) {
       localMetadataOverrides.delete(roomId)
       return content
     }
@@ -305,6 +463,7 @@ export const useDocsStore = defineStore('docs', () => {
       ...content,
       title: override.title ?? content.title,
       folder: override.folder ?? content.folder,
+      folderName: override.folderName ?? content.folderName,
       updated: override.updated,
       updatedAt: override.updatedAt,
     }
@@ -385,10 +544,7 @@ export const useDocsStore = defineStore('docs', () => {
     try {
       const client = getClient() as unknown as MatrixDocAccountClient
       const content = client.getAccountData?.(MATRIX_EVENT_TYPES.DOC_FOLDERS)?.getContent()
-      const rawFolders = Array.isArray(content?.folders) ? content.folders : []
-      folders.value = rawFolders
-        .map(normalizeFolderRecord)
-        .filter((folder): folder is DocFolderRecord => folder !== null)
+      folders.value = normalizeFolderRecords(content?.folders)
     }
     catch {
       folders.value = []
@@ -399,6 +555,7 @@ export const useDocsStore = defineStore('docs', () => {
     isLoading.value = true
     try {
       const client = getClient()
+      const currentUserId = client.getUserId()
       const rooms = client.getRooms()
       const docRooms = rooms.filter((r) => {
         return !!getDocMetadataEvent(r as MatrixDocRoom)
@@ -407,15 +564,18 @@ export const useDocsStore = defineStore('docs', () => {
       documents.value = docRooms.map((room) => {
         const metaEvent = getDocMetadataEvent(room as MatrixDocRoom)
         const content = mergeLocalOverride(room.roomId, metaEvent?.getContent() ?? {})
+        const owner = content.owner || '未知'
+        const folder = normalizeFolderId(content.folder)
         return {
           id: room.roomId,
           title: content.title || '无标题文档',
-          owner: content.owner || '未知',
+          owner,
           updated: content.updated || '',
           type: content.type || '文档',
           status: content.status || '草稿',
-          folder: normalizeFolderId(content.folder),
-          sectionIds: content.sectionIds || ['recent'],
+          folder,
+          folderName: resolveFolderNameForMetadata(folder, content.folderName),
+          sectionIds: deriveDocumentSectionIds(content.sectionIds, owner, currentUserId),
         }
       })
     }
@@ -432,6 +592,7 @@ export const useDocsStore = defineStore('docs', () => {
     const now = Date.now()
     const owner = client.getUserId()!
     const folderId = normalizeFolderId(folder)
+    const folderName = resolveFolderNameForMetadata(folderId)
     const metadataContent: DocMetadataContent = {
       title,
       owner,
@@ -439,6 +600,7 @@ export const useDocsStore = defineStore('docs', () => {
       type: '文档',
       status: '草稿',
       folder: folderId,
+      folderName,
       sectionIds: ['recent'],
       createdAt: now,
     }
@@ -470,6 +632,7 @@ export const useDocsStore = defineStore('docs', () => {
       type: '文档',
       status: '草稿',
       folder: folderId,
+      folderName,
       sectionIds: ['recent'],
     }
     await loadDocuments()
@@ -487,6 +650,7 @@ export const useDocsStore = defineStore('docs', () => {
     const room = client.getRoom(docId)
     const metaEvent = room ? getDocMetadataEvent(room as MatrixDocRoom) : undefined
     const currentContent = metaEvent?.getContent() ?? {}
+    const folder = normalizeFolderId(currentContent.folder || existing?.folder)
     const nextContent = {
       ...currentContent,
       title: nextTitle,
@@ -494,7 +658,8 @@ export const useDocsStore = defineStore('docs', () => {
       updated: '刚刚',
       type: currentContent.type || existing?.type || '文档',
       status: currentContent.status || existing?.status || '草稿',
-      folder: normalizeFolderId(currentContent.folder || existing?.folder),
+      folder,
+      folderName: resolveFolderNameForMetadata(folder, currentContent.folderName || existing?.folderName),
       sectionIds: currentContent.sectionIds || existing?.sectionIds || ['recent'],
       updatedAt: now,
       createdAt: currentContent.createdAt || now,
@@ -517,6 +682,7 @@ export const useDocsStore = defineStore('docs', () => {
           type: nextContent.type,
           status: nextContent.status,
           folder: nextContent.folder,
+          folderName: nextContent.folderName,
           sectionIds: nextContent.sectionIds,
         }
       : doc)
@@ -524,6 +690,7 @@ export const useDocsStore = defineStore('docs', () => {
 
   async function updateDocumentFolder(docId: string, folder: string): Promise<void> {
     const nextFolder = normalizeFolderId(folder)
+    const nextFolderName = resolveFolderNameForMetadata(nextFolder)
     const now = Date.now()
     const client = getClient()
     const existing = documents.value.find(doc => doc.id === docId)
@@ -538,6 +705,7 @@ export const useDocsStore = defineStore('docs', () => {
       type: currentContent.type || existing?.type || '文档',
       status: currentContent.status || existing?.status || '草稿',
       folder: nextFolder,
+      folderName: nextFolderName,
       sectionIds: currentContent.sectionIds || existing?.sectionIds || ['recent'],
       updatedAt: now,
       createdAt: currentContent.createdAt || now,
@@ -547,6 +715,7 @@ export const useDocsStore = defineStore('docs', () => {
 
     updateLocalMetadataOverride(docId, {
       folder: nextFolder,
+      folderName: nextFolderName,
       updated: '刚刚',
       updatedAt: now,
     })
@@ -558,6 +727,92 @@ export const useDocsStore = defineStore('docs', () => {
           type: nextContent.type,
           status: nextContent.status,
           folder: nextFolder,
+          folderName: nextFolderName,
+          sectionIds: nextContent.sectionIds,
+        }
+      : doc)
+  }
+
+  async function setDocumentStarred(docId: string, starred: boolean): Promise<void> {
+    const now = Date.now()
+    const client = getClient()
+    const existing = documents.value.find(doc => doc.id === docId)
+    const room = client.getRoom(docId)
+    const metaEvent = room ? getDocMetadataEvent(room as MatrixDocRoom) : undefined
+    const currentContent = metaEvent?.getContent() ?? {}
+    const currentSections = new Set<DocSectionId>(currentContent.sectionIds || existing?.sectionIds || ['recent'])
+
+    if (starred)
+      currentSections.add('starred')
+    else
+      currentSections.delete('starred')
+
+    if (currentSections.size === 0)
+      currentSections.add('recent')
+
+    const sectionIds = [...currentSections]
+    const folder = normalizeFolderId(existing?.folder || currentContent.folder)
+    const nextContent = {
+      ...currentContent,
+      title: existing?.title || currentContent.title || '无标题文档',
+      owner: currentContent.owner || existing?.owner || client.getUserId() || '未知',
+      updated: '刚刚',
+      type: currentContent.type || existing?.type || '文档',
+      status: currentContent.status || existing?.status || '草稿',
+      folder,
+      folderName: resolveFolderNameForMetadata(folder, existing?.folderName || currentContent.folderName),
+      sectionIds,
+      updatedAt: now,
+      createdAt: currentContent.createdAt || now,
+    }
+
+    await sendDocMetadataEvent(docId, nextContent)
+
+    documents.value = documents.value.map(doc => doc.id === docId
+      ? {
+          ...doc,
+          updated: '刚刚',
+          type: nextContent.type,
+          status: nextContent.status,
+          folder: nextContent.folder,
+          folderName: nextContent.folderName,
+          sectionIds,
+        }
+      : doc)
+  }
+
+  async function setDocumentStatus(docId: string, status: DocEntry['status']): Promise<void> {
+    const now = Date.now()
+    const client = getClient()
+    const existing = documents.value.find(doc => doc.id === docId)
+    const room = client.getRoom(docId)
+    const metaEvent = room ? getDocMetadataEvent(room as MatrixDocRoom) : undefined
+    const currentContent = metaEvent?.getContent() ?? {}
+    const folder = normalizeFolderId(existing?.folder || currentContent.folder)
+    const nextContent = {
+      ...currentContent,
+      title: existing?.title || currentContent.title || '无标题文档',
+      owner: currentContent.owner || existing?.owner || client.getUserId() || '未知',
+      updated: '刚刚',
+      type: currentContent.type || existing?.type || '文档',
+      status,
+      folder,
+      folderName: resolveFolderNameForMetadata(folder, existing?.folderName || currentContent.folderName),
+      sectionIds: currentContent.sectionIds || existing?.sectionIds || ['recent'],
+      updatedAt: now,
+      createdAt: currentContent.createdAt || now,
+    }
+
+    await sendDocMetadataEvent(docId, nextContent)
+
+    documents.value = documents.value.map(doc => doc.id === docId
+      ? {
+          ...doc,
+          updated: '刚刚',
+          type: nextContent.type,
+          status,
+          folder: nextContent.folder,
+          folderName: nextContent.folderName,
           sectionIds: nextContent.sectionIds,
         }
       : doc)
@@ -628,6 +883,8 @@ export const useDocsStore = defineStore('docs', () => {
     createDocument,
     updateDocumentTitle,
     updateDocumentFolder,
+    setDocumentStarred,
+    setDocumentStatus,
     deleteDocument,
     createFolder,
     renameFolder,

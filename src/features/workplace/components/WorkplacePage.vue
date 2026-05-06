@@ -23,7 +23,7 @@ const hiddenAppIds = shallowRef<string[]>([])
 const appEditorOpen = shallowRef(false)
 const appDraftId = shallowRef('')
 const appDraftName = shallowRef('自定义流程')
-const appDraftDesc = shallowRef('用于补齐团队内部审批和自动化入口')
+const appDraftDesc = shallowRef('连接团队审批、自动化和数据看板')
 const baseFilter = shallowRef<'all' | 'risks'>('all')
 const projectFilter = shallowRef<'all' | 'risks'>('all')
 const projectStage = shallowRef('设计联调')
@@ -101,6 +101,12 @@ const filteredProjectRecords = computed(() => {
     return projectRecords.value.filter(record => record.status === '风险项')
   return projectRecords.value
 })
+const enabledAppsCount = computed(() => apps.value.filter(app => !hiddenAppIds.value.includes(app.id)).length)
+const todayUsedAppCount = computed(() => new Set(workItems.map(item => item.appId).filter(appId => !hiddenAppIds.value.includes(appId))).size)
+const blockedWorkItemCount = computed(() => workItems.filter(item => item.status === '受阻').length)
+const calendarWorkItemCount = computed(() => workItems.filter(item => item.appId === 'calendar').length)
+const meetingWorkItemCount = computed(() => workItems.filter(item => item.appId === 'meet').length)
+const meetingScheduleCount = computed(() => calendarWorkItemCount.value + meetingWorkItemCount.value)
 
 function selectCategory(categoryId: string): void {
   activeCategory.value = categoryId
@@ -111,11 +117,11 @@ function addCustomApp(): void {
   appEditorOpen.value = true
   appDraftId.value = appId
   appDraftName.value = '自定义流程'
-  appDraftDesc.value = '用于补齐团队内部审批和自动化入口'
+  appDraftDesc.value = '连接团队审批、自动化和数据看板'
   searchQuery.value = ''
   activeCategory.value = 'all'
   apps.value = [
-    { id: appId, name: '自定义流程', desc: '用于补齐团队内部审批和自动化入口', category: 'operations', icon: AppWindow, accent: 'text-primary', moduleLabel: '工作台', path: '/workplace', actionLabel: '配置流程' },
+    { id: appId, name: '自定义流程', desc: '连接团队审批、自动化和数据看板', category: 'operations', icon: AppWindow, accent: 'text-primary', moduleLabel: '工作台', path: '/workplace', actionLabel: '配置流程' },
     ...apps.value,
   ]
   selectedAppId.value = appId
@@ -128,7 +134,7 @@ function saveDraftApp(): void {
 
   const appId = appDraftId.value
   const name = appDraftName.value.trim() || '自定义流程'
-  const desc = appDraftDesc.value.trim() || '用于补齐团队内部审批和自动化入口'
+  const desc = appDraftDesc.value.trim() || '连接团队审批、自动化和数据看板'
 
   apps.value = apps.value.map(app => app.id === appId
     ? {
@@ -316,33 +322,51 @@ function hideAppEntry(appId: string): void {
                 <div class="text-[11px] font-bold uppercase leading-4 tracking-[0.05em] text-muted-foreground">
                   已启用应用
                 </div>
-                <div class="mt-3 text-2xl font-semibold leading-8">
-                  24
+                <div
+                  class="mt-3 text-2xl font-semibold leading-8"
+                  data-testid="workplace-stat-enabled-apps"
+                >
+                  {{ enabledAppsCount }}
                 </div>
-                <p class="mt-1 text-[13px] text-muted-foreground">
-                  今日使用 6 个
+                <p
+                  class="mt-1 text-[13px] text-muted-foreground"
+                  data-testid="workplace-stat-used-apps"
+                >
+                  今日使用 {{ todayUsedAppCount }} 个
                 </p>
               </div>
               <div class="workspace-surface rounded-lg p-4">
                 <div class="text-[11px] font-bold uppercase leading-4 tracking-[0.05em] text-muted-foreground">
                   待办事项
                 </div>
-                <div class="mt-3 text-2xl font-semibold leading-8">
-                  17
+                <div
+                  class="mt-3 text-2xl font-semibold leading-8"
+                  data-testid="workplace-stat-priority-items"
+                >
+                  {{ workItems.length }}
                 </div>
-                <p class="mt-1 text-[13px] text-muted-foreground">
-                  4 项周五前到期
+                <p
+                  class="mt-1 text-[13px] text-muted-foreground"
+                  data-testid="workplace-stat-blocked-items"
+                >
+                  {{ blockedWorkItemCount }} 项需跟进
                 </p>
               </div>
               <div class="workspace-surface rounded-lg p-4">
                 <div class="text-[11px] font-bold uppercase leading-4 tracking-[0.05em] text-muted-foreground">
                   会议安排
                 </div>
-                <div class="mt-3 text-2xl font-semibold leading-8">
-                  5
+                <div
+                  class="mt-3 text-2xl font-semibold leading-8"
+                  data-testid="workplace-stat-meetings"
+                >
+                  {{ meetingScheduleCount }}
                 </div>
-                <p class="mt-1 text-[13px] text-muted-foreground">
-                  已保护 2 段专注时间
+                <p
+                  class="mt-1 text-[13px] text-muted-foreground"
+                  data-testid="workplace-stat-meeting-breakdown"
+                >
+                  日程 {{ calendarWorkItemCount }} 个 · 通话 {{ meetingWorkItemCount }} 个
                 </p>
               </div>
             </div>

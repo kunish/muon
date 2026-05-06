@@ -65,7 +65,8 @@ describe('decisionPanel', () => {
 
     await wrapper.get('[data-testid="decision-conclusion-input"]').setValue('Ship digest panel')
     await wrapper.get('[data-testid="decision-context-input"]').setValue('Offline catch-up is missing')
-    await wrapper.get('[data-testid="decision-owner-input"]').setValue('@alice:muon.dev')
+    await wrapper.get('[data-testid="group-member-search"]').setValue('@alice:muon.dev')
+    await wrapper.get('[data-testid="group-member-row-@alice:muon.dev"]').trigger('click')
     await wrapper.get('[data-testid="decision-room-input"]').setValue('!room:muon.dev')
     await wrapper.get('[data-testid="decision-event-input"]').setValue('$event-1')
     await wrapper.get('[data-testid="decision-save-button"]').trigger('click')

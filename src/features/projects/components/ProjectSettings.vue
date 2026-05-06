@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import { Button } from '@muon/ui/button'
+import { Input } from '@muon/ui/input'
+import { Label } from '@muon/ui/label'
+import { Textarea } from '@muon/ui/textarea'
 import { ArrowLeft } from 'lucide-vue-next'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -16,6 +19,19 @@ const store = useProjectStore()
 const project = computed(() => store.projects.find(p => p.id === props.projectId))
 
 const activeTab = ref<'general' | 'workflow' | 'fields'>('general')
+const editName = ref('')
+const editDescription = ref('')
+const savingGeneral = ref(false)
+
+const canSaveGeneral = computed(() => {
+  if (!project.value || savingGeneral.value)
+    return false
+  return editName.value.trim().length > 0
+    && (
+      editName.value.trim() !== project.value.name
+      || editDescription.value.trim() !== project.value.description
+    )
+})
 
 watch(
   () => props.projectId,
@@ -27,8 +43,33 @@ watch(
   { immediate: true },
 )
 
+watch(
+  project,
+  (value) => {
+    editName.value = value?.name ?? ''
+    editDescription.value = value?.description ?? ''
+  },
+  { immediate: true },
+)
+
 function goBack() {
   router.push(`/projects/${props.projectId}`)
+}
+
+async function saveGeneralSettings() {
+  if (!project.value || !canSaveGeneral.value)
+    return
+
+  savingGeneral.value = true
+  try {
+    await store.updateProject(project.value.id, {
+      name: editName.value.trim(),
+      description: editDescription.value.trim(),
+    })
+  }
+  finally {
+    savingGeneral.value = false
+  }
 }
 </script>
 
@@ -57,9 +98,33 @@ function goBack() {
 
     <div class="min-h-0 flex-1 overflow-y-auto">
       <div v-if="activeTab === 'general'" class="max-w-md space-y-4 p-6">
-        <p class="text-sm text-muted-foreground">
-          {{ t('projects.project_name') }}: {{ project.name }}
-        </p>
+        <div class="grid gap-2">
+          <Label for="project-settings-name">{{ t('projects.project_name') }}</Label>
+          <Input
+            id="project-settings-name"
+            v-model="editName"
+            data-testid="project-settings-name-input"
+            :placeholder="t('projects.project_name_placeholder')"
+          />
+        </div>
+        <div class="grid gap-2">
+          <Label for="project-settings-description">{{ t('projects.project_description') }}</Label>
+          <Textarea
+            id="project-settings-description"
+            v-model="editDescription"
+            data-testid="project-settings-description-input"
+            rows="4"
+            :placeholder="t('projects.project_description_placeholder')"
+          />
+        </div>
+        <Button
+          data-testid="project-settings-save-general"
+          :disabled="!canSaveGeneral"
+          :loading="savingGeneral"
+          @click="saveGeneralSettings()"
+        >
+          {{ t('common.save') }}
+        </Button>
       </div>
       <WorkflowEditor v-else-if="activeTab === 'workflow'" :project-id="projectId" />
       <CustomFieldEditor v-else :project-id="projectId" />

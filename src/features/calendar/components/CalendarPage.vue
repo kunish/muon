@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { CalendarDays, ChevronLeft, ChevronRight, Plus } from 'lucide-vue-next'
-import { computed, onMounted, shallowRef } from 'vue'
+import { computed, onMounted, ref, shallowRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import WorkspacePageFrame from '@/app/components/workspace/WorkspacePageFrame.vue'
+import GroupMemberPicker from '@/features/contacts/components/GroupMemberPicker.vue'
 import { projectRepo } from '@/features/projects/db/projectDb'
+import { useContactList } from '@/shared/composables/useContactList'
 
 const { t } = useI18n()
+const contactList = useContactList()
 
 const weekIndex = shallowRef(0)
 const selectedDayName = shallowRef('周三')
@@ -15,6 +18,7 @@ const eventEditorOpen = shallowRef(false)
 const eventDraftId = shallowRef('')
 const eventDraftTitle = shallowRef('临时日程')
 const eventDraftTeam = shallowRef('我')
+const eventDraftParticipantIds = ref<string[]>([])
 const eventDraftTime = shallowRef('17:30')
 
 const weekRanges = ['4月20日 - 4月24日', '4月27日 - 5月1日', '5月4日 - 5月8日']
@@ -48,6 +52,7 @@ const events = shallowRef<CalendarEventEntry[]>([
 const projectTaskEvents = shallowRef<CalendarEventEntry[]>([])
 
 onMounted(async () => {
+  contactList.ensureContactsLoaded()
   try {
     const projects = await projectRepo.listProjects()
     const results: CalendarEventEntry[] = []
@@ -92,8 +97,13 @@ const weekDays = computed(() => {
 })
 
 const selectedDay = computed(() => weekDays.value.find(day => day.day === selectedDayName.value) ?? weekDays.value[0])
+const selectedDayLabel = computed(() => t('calendar.day_label', { weekday: selectedDay.value.day, date: selectedDay.value.date }))
 const selectedDayEvents = computed(() => allEvents.value.filter(event => event.dayName === selectedDayName.value))
 const selectedEvent = computed(() => selectedDayEvents.value.find(event => event.id === selectedEventId.value) ?? selectedDayEvents.value[0] ?? allEvents.value[0])
+const eventsNeedingPreparationCount = computed(() => allEvents.value.filter(event => event.rsvpStatus === '待回复').length)
+const focusEventCount = computed(() => allEvents.value.filter(event => event.title === '专注时间').length)
+const focusHours = computed(() => `${focusEventCount.value * 4}h`)
+const conflictEventCount = computed(() => allEvents.value.filter(event => event.suggestion && !['无冲突', '固定时段'].includes(event.suggestion)).length)
 const selectedEventActionNotice = computed(() => {
   const event = selectedEvent.value
   if (!event)
@@ -115,7 +125,9 @@ function createEvent(): void {
   eventDraftId.value = eventId
   eventDraftTitle.value = '临时日程'
   eventDraftTeam.value = '我'
+  eventDraftParticipantIds.value = []
   eventDraftTime.value = '17:30'
+  contactList.ensureContactsLoaded()
   events.value = [
     { id: eventId, dayName: selectedDayName.value, time: '17:30', title: '临时日程', team: '我', tone: 'bg-primary', rsvpStatus: '已创建', suggestion: '无冲突' },
     ...events.value,
@@ -154,13 +166,23 @@ function rescheduleSelectedEvent(): void {
   eventActionNotices.value = { ...eventActionNotices.value, [event.id]: `已改期：${event.title}` }
 }
 
+function fallbackNameFromUserId(userId: string): string {
+  return userId.split(':')[0]?.replace(/^@/, '') || userId
+}
+
+function displayNameForUserId(userId: string): string {
+  return contactList.contacts.find(contact => contact.userId === userId)?.displayName ?? fallbackNameFromUserId(userId)
+}
+
 function saveDraftEvent(): void {
   if (!eventEditorOpen.value)
     return
 
   const eventId = eventDraftId.value
   const title = eventDraftTitle.value.trim() || '临时日程'
-  const team = eventDraftTeam.value.trim() || '我'
+  const team = eventDraftParticipantIds.value.length > 0
+    ? eventDraftParticipantIds.value.map(displayNameForUserId).join('、')
+    : eventDraftTeam.value.trim() || '我'
   const time = eventDraftTime.value.trim() || '17:30'
 
   events.value = events.value.map(item => item.id === eventId
@@ -175,20 +197,21 @@ function saveDraftEvent(): void {
   selectedEventId.value = eventId
   eventActionNotices.value = { ...eventActionNotices.value, [eventId]: `已新建日程：${title}` }
   eventEditorOpen.value = false
+  eventDraftParticipantIds.value = []
 }
 </script>
 
 <template>
   <WorkspacePageFrame
     :title="t('sidebar.calendar')"
-    subtitle="团队日程与专注时间"
+    :subtitle="t('calendar.subtitle')"
     :icon="CalendarDays"
   >
     <template #actions>
       <button
         data-testid="calendar-prev-week"
         class="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-        title="上一周"
+        :title="t('calendar.prev_week')"
         @click="previousWeek"
       >
         <ChevronLeft :size="18" />
@@ -196,7 +219,7 @@ function saveDraftEvent(): void {
       <button
         data-testid="calendar-next-week"
         class="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-        title="下一周"
+        :title="t('calendar.next_week')"
         @click="nextWeek"
       >
         <ChevronRight :size="18" />
@@ -207,42 +230,60 @@ function saveDraftEvent(): void {
         @click="createEvent"
       >
         <Plus :size="16" />
-        <span>新建日程</span>
+        <span>{{ t('calendar.new_event') }}</span>
       </button>
     </template>
 
     <div class="grid gap-3 md:grid-cols-3">
       <div class="workspace-surface rounded-lg p-4">
         <div class="text-[11px] font-bold uppercase leading-4 tracking-[0.05em] text-muted-foreground">
-          会议数量
+          {{ t('calendar.stat_meetings') }}
         </div>
-        <div class="mt-3 text-2xl font-semibold leading-8">
+        <div
+          class="mt-3 text-2xl font-semibold leading-8"
+          data-testid="calendar-stat-meetings"
+        >
           {{ allEvents.length }}
         </div>
-        <p class="mt-1 text-[13px] text-muted-foreground">
-          2 个需要准备材料
+        <p
+          class="mt-1 text-[13px] text-muted-foreground"
+          data-testid="calendar-stat-meetings-hint"
+        >
+          {{ t('calendar.stat_meetings_hint', { count: eventsNeedingPreparationCount }) }}
         </p>
       </div>
       <div class="workspace-surface rounded-lg p-4">
         <div class="text-[11px] font-bold uppercase leading-4 tracking-[0.05em] text-muted-foreground">
-          专注时间
+          {{ t('calendar.stat_focus') }}
         </div>
-        <div class="mt-3 text-2xl font-semibold leading-8">
-          4h
+        <div
+          class="mt-3 text-2xl font-semibold leading-8"
+          data-testid="calendar-stat-focus-hours"
+        >
+          {{ focusHours }}
         </div>
-        <p class="mt-1 text-[13px] text-muted-foreground">
-          本周已保护
+        <p
+          class="mt-1 text-[13px] text-muted-foreground"
+          data-testid="calendar-stat-focus-hint"
+        >
+          {{ t('calendar.stat_focus_hint', { count: focusEventCount }) }}
         </p>
       </div>
       <div class="workspace-surface rounded-lg p-4">
         <div class="text-[11px] font-bold uppercase leading-4 tracking-[0.05em] text-muted-foreground">
-          日程冲突
+          {{ t('calendar.stat_conflicts') }}
         </div>
-        <div class="mt-3 text-2xl font-semibold leading-8">
-          1
+        <div
+          class="mt-3 text-2xl font-semibold leading-8"
+          data-testid="calendar-stat-conflicts"
+        >
+          {{ conflictEventCount }}
         </div>
-        <p class="mt-1 text-[13px] text-muted-foreground">
-          需要调整安排
+        <p
+          class="mt-1 text-[13px] text-muted-foreground"
+          data-testid="calendar-stat-conflicts-hint"
+        >
+          {{ t('calendar.stat_conflicts_hint', { count: conflictEventCount }) }}
         </p>
       </div>
     </div>
@@ -251,10 +292,10 @@ function saveDraftEvent(): void {
       <section class="workspace-surface overflow-hidden rounded-lg">
         <div class="flex h-11 items-center justify-between border-b border-border px-4">
           <h2 class="text-[15px] font-semibold">
-            本周视图
+            {{ t('calendar.week_view') }}
           </h2>
           <span class="text-[12px] text-muted-foreground">
-            {{ weekRange }} · 已选择：{{ selectedDay.day }} {{ selectedDay.date }}日
+            {{ weekRange }} · {{ t('calendar.day_selected', { day: selectedDayLabel }) }}
           </span>
         </div>
         <div class="grid grid-cols-5 gap-px bg-border">
@@ -272,7 +313,7 @@ function saveDraftEvent(): void {
                 {{ day.date }}
               </span>
             </span>
-            <span class="mt-4 block text-[12px] text-muted-foreground">{{ day.busy }} 个日程</span>
+            <span class="mt-4 block text-[12px] text-muted-foreground">{{ t('calendar.events_count', { count: day.busy }) }}</span>
           </button>
         </div>
       </section>
@@ -280,10 +321,10 @@ function saveDraftEvent(): void {
       <aside class="workspace-surface h-fit overflow-hidden rounded-lg">
         <div class="flex h-11 items-center justify-between border-b border-border px-4">
           <h2 class="text-[15px] font-semibold">
-            今日
+            {{ t('calendar.today') }}
           </h2>
           <span class="text-[12px] text-muted-foreground">
-            {{ selectedDayEvents.length }} 个日程 · 当前日程：{{ selectedEvent.title }}
+            {{ t('calendar.events_count', { count: selectedDayEvents.length }) }} · {{ t('calendar.current_event', { title: selectedEvent.title }) }}
           </span>
         </div>
         <div class="divide-y divide-border">
@@ -316,13 +357,10 @@ function saveDraftEvent(): void {
               placeholder="日程标题"
               class="h-8 rounded-md border border-border bg-background px-3 text-[12px] text-foreground outline-none focus:border-primary"
             >
-            <input
-              v-model="eventDraftTeam"
-              data-testid="calendar-new-team"
-              type="text"
-              placeholder="团队或参与人"
-              class="h-8 rounded-md border border-border bg-background px-3 text-[12px] text-foreground outline-none focus:border-primary"
-            >
+            <GroupMemberPicker
+              v-model="eventDraftParticipantIds"
+              label="参与人"
+            />
             <input
               v-model="eventDraftTime"
               data-testid="calendar-new-time"

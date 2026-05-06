@@ -7,6 +7,7 @@ import { useContactList } from '@shared/composables/useContactList'
 import { Building2, GitBranch, MessageSquare, Pencil, Plus, Search, ShieldCheck, Trash2, UserPlus, UsersRound, X } from 'lucide-vue-next'
 import { computed, onMounted, ref, watch } from 'vue'
 import WorkspaceResizablePane from '@/app/components/workspace/WorkspaceResizablePane.vue'
+import GroupMemberPicker from '@/features/contacts/components/GroupMemberPicker.vue'
 
 type OrganizationSection = 'overview' | 'members' | 'groups'
 
@@ -52,7 +53,9 @@ const deletedMemberIds = ref<string[]>([])
 const savedGroups = ref<OrganizationGroup[]>([])
 const deletedGroupIds = ref<string[]>([])
 const memberEditorOpen = ref(false)
+const memberInviteOpen = ref(false)
 const editingMemberId = ref<string | null>(null)
+const invitedMemberIds = ref<string[]>([])
 const selectedGovernanceMemberId = ref<string | null>(null)
 const memberDraft = ref({
   displayName: '',
@@ -246,6 +249,7 @@ const filteredGroups = computed(() => {
 
 const activeSectionLabel = computed(() => sections.find(section => section.id === activeSection.value)?.label ?? '组织概览')
 const resizeLabel = computed(() => '调整组织侧边栏宽度')
+const organizationMemberIds = computed(() => organizationMembers.value.map(member => member.userId))
 
 const overviewHighlights = computed(() => [
   { label: '组织成员', value: organizationMembers.value.length, hint: '含当前账号与联系人目录' },
@@ -278,8 +282,18 @@ function showSecurityGovernance(): void {
 }
 
 function inviteMember(): void {
-  actionMessage.value = '正在邀请新成员'
+  actionMessage.value = '选择要邀请的新成员'
   activeSection.value = 'members'
+  memberInviteOpen.value = true
+  memberEditorOpen.value = false
+  editingMemberId.value = null
+  invitedMemberIds.value = []
+}
+
+function startNewMember(): void {
+  actionMessage.value = '正在新增成员'
+  activeSection.value = 'members'
+  memberInviteOpen.value = false
   memberEditorOpen.value = true
   editingMemberId.value = null
   memberDraft.value = {
@@ -300,8 +314,48 @@ function normalizeUserId(value: string): string {
   return `@${trimmed}:${organizationProfile.value.domain}`
 }
 
+function fallbackNameFromUserId(userId: string): string {
+  return userId.split(':')[0]?.replace(/^@/, '') || userId
+}
+
+function closeMemberInvite(): void {
+  invitedMemberIds.value = []
+  memberInviteOpen.value = false
+}
+
+function saveInvitedMembers(): void {
+  const targetIds = [...invitedMemberIds.value]
+  if (targetIds.length === 0)
+    return
+
+  const nextMembers = targetIds.map((userId) => {
+    const contact = contactList.contacts.find(item => item.userId === userId)
+    return normalizeMember({
+      userId,
+      displayName: contact?.displayName ?? fallbackNameFromUserId(userId),
+      avatarUrl: contact?.avatarUrl,
+      presence: contact?.presence ?? 'offline',
+      role: '成员',
+    }, 'local')
+  })
+  const targetIdSet = new Set(targetIds)
+
+  savedMembers.value = savedMembers.value
+    .filter(member => !targetIdSet.has(member.userId))
+    .concat(nextMembers)
+  deletedMemberIds.value = deletedMemberIds.value.filter(id => !targetIdSet.has(id))
+  selectedGovernanceMemberId.value = targetIds[0] ?? null
+  actionMessage.value = targetIds.length === 1
+    ? `已邀请：${nextMembers[0]?.displayName}`
+    : `已邀请 ${targetIds.length} 位成员`
+  closeMemberInvite()
+  searchQuery.value = ''
+  persistDirectory()
+}
+
 function editMember(member: OrganizationMember): void {
   activeSection.value = 'members'
+  memberInviteOpen.value = false
   memberEditorOpen.value = true
   editingMemberId.value = member.userId
   memberDraft.value = {
@@ -633,7 +687,7 @@ onMounted(async () => {
                     </div>
                   </div>
                   <p class="text-[13px] leading-5 text-muted-foreground">
-                    参考飞书的组织入口，把组织、成员和协作群组放在客户端主导航中，便于从日常沟通直接进入组织视图。
+                    组织、成员和协作群组集中在一个入口，便于从日常沟通直接进入组织视图。
                   </p>
                   <div>
                     <div class="mb-2 text-[12px] font-semibold text-muted-foreground">
@@ -690,11 +744,40 @@ onMounted(async () => {
                 <div class="flex items-center gap-2">
                   <span class="text-[12px] text-muted-foreground">{{ filteredMembers.length }} 人</span>
                   <button
+                    data-testid="organization-new-member"
                     class="flex h-8 items-center gap-1 rounded-md border border-border px-2 text-[12px] font-semibold text-foreground transition-colors hover:bg-accent"
-                    @click="inviteMember"
+                    @click="startNewMember"
                   >
                     <Plus :size="14" />
                     <span>新增成员</span>
+                  </button>
+                </div>
+              </div>
+              <div
+                v-if="memberInviteOpen"
+                class="border-b border-border bg-muted/30 p-4"
+                data-testid="organization-member-invite-panel"
+              >
+                <GroupMemberPicker
+                  v-model="invitedMemberIds"
+                  :exclude-ids="organizationMemberIds"
+                />
+                <div class="mt-3 flex justify-end gap-2">
+                  <button
+                    type="button"
+                    class="h-9 rounded-md px-3 text-[13px] font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                    @click="closeMemberInvite"
+                  >
+                    取消
+                  </button>
+                  <button
+                    type="button"
+                    data-testid="organization-member-invite-save"
+                    class="h-9 rounded-md bg-primary px-3 text-[13px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+                    :disabled="invitedMemberIds.length === 0"
+                    @click="saveInvitedMembers"
+                  >
+                    邀请
                   </button>
                 </div>
               </div>

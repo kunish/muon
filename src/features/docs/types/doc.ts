@@ -55,6 +55,7 @@ export interface DocEntry {
   type: string
   status: '草稿' | '进行中' | '评审中' | '稳定'
   folder: string
+  folderName?: string
   sectionIds: DocSectionId[]
 }
 

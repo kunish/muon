@@ -56,4 +56,43 @@ describe('rich text list markers', () => {
     expect(input).toContain('<VoiceRecorder @send="handleVoiceSend" />')
     expect(input).not.toContain('VoiceToTextButton')
   })
+
+  it('keeps document editor lists compact without carrying paragraph spacing into list items', () => {
+    const editor = readFileSync(resolve(root, 'src/features/docs/components/editor/DocEditor.vue'), 'utf8')
+    const useEditor = readFileSync(resolve(root, 'src/features/docs/composables/useDocEditor.ts'), 'utf8')
+
+    expect(editor).toContain('.doc-editor-body :deep(.ProseMirror li > p)')
+    expect(editor).toContain('margin: 0.2em 0 0.45em;')
+    expect(editor).toContain('padding-left: 1.2em;')
+    expect(editor).toContain('margin: 0.08em 0;')
+    expect(editor).toContain('margin-top: 0.35em;')
+    expect(useEditor).toContain('isSelectionInEmptyListItem')
+    expect(useEditor).toContain('liftListItem(\'listItem\')')
+  })
+
+  it('keeps document headings close to adjacent paragraphs and lists', () => {
+    const editor = readFileSync(resolve(root, 'src/features/docs/components/editor/DocEditor.vue'), 'utf8')
+
+    expect(editor).toContain('margin: 0.72em 0 0.2em;')
+    expect(editor).toContain('margin: 0.64em 0 0.18em;')
+    expect(editor).toContain('.doc-editor-body :deep(.ProseMirror h1 + p)')
+    expect(editor).toContain('.doc-editor-body :deep(.ProseMirror h1 + ul)')
+    expect(editor).toContain('.doc-editor-body :deep(.ProseMirror ul + h2)')
+    expect(editor).toContain('margin-top: 0.05em;')
+    expect(editor).toContain('margin-top: 0.56em;')
+  })
+
+  it('keeps document table headers left aligned', () => {
+    const editor = readFileSync(resolve(root, 'src/features/docs/components/editor/DocEditor.vue'), 'utf8')
+
+    expect(editor).toContain('.doc-editor-body :deep(.ProseMirror th)')
+    expect(editor).toContain('text-align: left;')
+  })
+
+  it('marks document images as previewable', () => {
+    const editor = readFileSync(resolve(root, 'src/features/docs/components/editor/DocEditor.vue'), 'utf8')
+
+    expect(editor).toContain('.doc-editor-body :deep(.ProseMirror img)')
+    expect(editor).toContain('cursor: zoom-in;')
+  })
 })

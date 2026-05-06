@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { Archive, Inbox, Mail, PencilLine, Reply, Search, Send, Star } from 'lucide-vue-next'
-import { computed, shallowRef } from 'vue'
+import { computed, onMounted, ref, shallowRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import WorkspaceResizablePane from '@/app/components/workspace/WorkspaceResizablePane.vue'
+import GroupMemberPicker from '@/features/contacts/components/GroupMemberPicker.vue'
+import { useContactList } from '@/shared/composables/useContactList'
 
 const { t } = useI18n()
+const contactList = useContactList()
 
 const EMAIL_WIDTH_STORAGE_KEY = 'muon_email_sidebar_width'
 const DEFAULT_EMAIL_WIDTH = 240
@@ -20,8 +23,8 @@ const messageActionNotices = shallowRef<Record<string, string>>({})
 const replyDraftSubjects = shallowRef<Record<string, string>>({})
 const composeOpen = shallowRef(false)
 const composeDraftId = shallowRef('')
-const composeRecipient = shallowRef('')
-const composeSubject = shallowRef('草稿：新邮件')
+const composeRecipientIds = ref<string[]>([])
+const composeSubject = shallowRef('')
 const composeBody = shallowRef('')
 
 interface EmailMessage {
@@ -32,36 +35,39 @@ interface EmailMessage {
   preview: string
   time: string
   unread: boolean
+  starred?: boolean
   to?: string
 }
 
-const folderConfig = [
-  { id: 'inbox', label: '收件箱', icon: Inbox },
-  { id: 'starred', label: '星标邮件', icon: Star },
-  { id: 'sent', label: '已发送', icon: Send },
-  { id: 'archive', label: '归档', icon: Archive },
-]
+const folderConfig = computed(() => [
+  { id: 'inbox', label: t('email.folder_inbox'), icon: Inbox },
+  { id: 'starred', label: t('email.folder_starred'), icon: Star },
+  { id: 'sent', label: t('email.folder_sent'), icon: Send },
+  { id: 'archive', label: t('email.folder_archive'), icon: Archive },
+])
 
 const messages = shallowRef<EmailMessage[]>([
   { id: 'mail-1', folder: 'inbox', from: '上线团队', subject: '上线评审纪要', preview: '最终检查清单已准备好，请完成签核。', time: '09:48', unread: true },
   { id: 'mail-2', folder: 'inbox', from: '设计运营', subject: '桌面工作区稿件已更新', preview: '最新一轮体验走查稿已共享给你评审。', time: '昨天', unread: false },
   { id: 'mail-3', folder: 'inbox', from: '安全团队', subject: '访问申请已通过', preview: '你的生产访问申请已完成审批。', time: '周一', unread: false },
   { id: 'mail-4', folder: 'sent', from: '我', subject: '项目周报', preview: '本周项目状态已同步给核心团队。', time: '周五', unread: false },
-  { id: 'mail-5', folder: 'starred', from: '产品团队', subject: '重点需求确认', preview: '请优先确认下周规划中的关键需求。', time: '周四', unread: false },
+  { id: 'mail-5', folder: 'inbox', from: '产品团队', subject: '重点需求确认', preview: '请优先确认下周规划中的关键需求。', time: '周四', unread: false, starred: true },
   { id: 'mail-6', folder: 'archive', from: '运营团队', subject: '历史活动归档', preview: '活动复盘资料已归档。', time: '4月20日', unread: false },
 ])
 
-const folders = computed(() => folderConfig.map(folder => ({
+const defaultComposeSubject = computed(() => t('email.default_subject'))
+
+const folders = computed(() => folderConfig.value.map(folder => ({
   ...folder,
-  count: messages.value.filter(message => message.folder === folder.id).length,
+  count: messages.value.filter(message => messageBelongsToFolder(message, folder.id)).length,
 })))
 
-const activeFolderLabel = computed(() => folders.value.find(folder => folder.id === activeFolder.value)?.label ?? '收件箱')
+const activeFolderLabel = computed(() => folders.value.find(folder => folder.id === activeFolder.value)?.label ?? t('email.folder_inbox'))
 
 const filteredMessages = computed(() => {
   const query = searchQuery.value.trim().toLowerCase()
   return messages.value.filter((message) => {
-    const matchesFolder = message.folder === activeFolder.value
+    const matchesFolder = messageBelongsToFolder(message, activeFolder.value)
     const matchesQuery = !query || [message.from, message.subject, message.preview].some(value => value.toLowerCase().includes(query))
     return matchesFolder && matchesQuery
   })
@@ -71,8 +77,8 @@ const selectedMessage = computed(() => filteredMessages.value.find(message => me
 const selectedMessageActionNotice = computed(() => {
   const message = selectedMessage.value
   if (!message)
-    return '等待处理当前邮件'
-  return messageActionNotices.value[message.id] ?? '等待处理当前邮件'
+    return t('email.notice_pending')
+  return messageActionNotices.value[message.id] ?? t('email.notice_pending')
 })
 const selectedReplyDraftSubject = computed(() => {
   const message = selectedMessage.value
@@ -81,27 +87,45 @@ const selectedReplyDraftSubject = computed(() => {
   return replyDraftSubjects.value[message.id] ?? ''
 })
 
+onMounted(() => {
+  composeSubject.value = defaultComposeSubject.value
+  contactList.ensureContactsLoaded()
+})
+
 function selectFolder(folderId: string): void {
   activeFolder.value = folderId
   searchQuery.value = ''
-  selectedMessageId.value = messages.value.find(message => message.folder === folderId)?.id ?? ''
+  selectedMessageId.value = messages.value.find(message => messageBelongsToFolder(message, folderId))?.id ?? ''
 }
 
 function composeMessage(): void {
   const messageId = `mail-${Date.now()}`
   composeOpen.value = true
   composeDraftId.value = messageId
-  composeRecipient.value = ''
-  composeSubject.value = '草稿：新邮件'
+  composeRecipientIds.value = []
+  composeSubject.value = defaultComposeSubject.value
   composeBody.value = ''
+  contactList.ensureContactsLoaded()
   activeFolder.value = 'inbox'
   searchQuery.value = ''
   messages.value = [
-    { id: messageId, folder: 'inbox', from: '我', subject: '草稿：新邮件', preview: '已创建本地草稿，可继续完善后发送。', time: '刚刚', unread: false },
+    { id: messageId, folder: 'inbox', from: '我', subject: defaultComposeSubject.value, preview: t('email.notice_editing'), time: '刚刚', unread: false },
     ...messages.value,
   ]
   selectedMessageId.value = messageId
-  messageActionNotices.value = { ...messageActionNotices.value, [messageId]: '正在编辑新邮件' }
+  messageActionNotices.value = { ...messageActionNotices.value, [messageId]: t('email.notice_editing') }
+}
+
+function fallbackNameFromUserId(userId: string): string {
+  return userId.split(':')[0]?.replace(/^@/, '') || userId
+}
+
+function displayNameForRecipient(userId: string): string {
+  return contactList.contacts.find(contact => contact.userId === userId)?.displayName ?? fallbackNameFromUserId(userId)
+}
+
+function messageBelongsToFolder(message: EmailMessage, folderId: string): boolean {
+  return folderId === 'starred' ? !!message.starred : message.folder === folderId
 }
 
 function selectMessage(messageId: string): void {
@@ -114,8 +138,8 @@ function createReplyDraft(): void {
   if (!message)
     return
 
-  replyDraftSubjects.value = { ...replyDraftSubjects.value, [message.id]: `回复草稿：${message.subject}` }
-  messageActionNotices.value = { ...messageActionNotices.value, [message.id]: `已生成回复草稿：${message.subject}` }
+  replyDraftSubjects.value = { ...replyDraftSubjects.value, [message.id]: t('email.reply_draft', { subject: message.subject }) }
+  messageActionNotices.value = { ...messageActionNotices.value, [message.id]: t('email.notice_reply_generated', { subject: message.subject }) }
 }
 
 function starSelectedMessage(): void {
@@ -123,11 +147,9 @@ function starSelectedMessage(): void {
   if (!message)
     return
 
-  messages.value = messages.value.map(item => item.id === message.id ? { ...item, folder: 'starred', unread: false } : item)
-  activeFolder.value = 'starred'
-  searchQuery.value = ''
+  messages.value = messages.value.map(item => item.id === message.id ? { ...item, starred: true, unread: false } : item)
   selectedMessageId.value = message.id
-  messageActionNotices.value = { ...messageActionNotices.value, [message.id]: `已星标：${message.subject}` }
+  messageActionNotices.value = { ...messageActionNotices.value, [message.id]: t('email.notice_starred', { subject: message.subject }) }
 }
 
 function archiveSelectedMessage(): void {
@@ -139,16 +161,18 @@ function archiveSelectedMessage(): void {
   activeFolder.value = 'archive'
   searchQuery.value = ''
   selectedMessageId.value = message.id
-  messageActionNotices.value = { ...messageActionNotices.value, [message.id]: `已归档：${message.subject}` }
+  messageActionNotices.value = { ...messageActionNotices.value, [message.id]: t('email.notice_archived', { subject: message.subject }) }
 }
 
 function sendComposeDraft(): void {
   if (!composeOpen.value)
     return
 
-  const subject = composeSubject.value.trim() || '无主题邮件'
-  const body = composeBody.value.trim() || '已发送本地邮件。'
-  const recipient = composeRecipient.value.trim() || '未填写收件人'
+  const subject = composeSubject.value.trim() || t('email.default_subject')
+  const body = composeBody.value.trim() || t('email.default_body')
+  const recipient = composeRecipientIds.value.length > 0
+    ? composeRecipientIds.value.map(displayNameForRecipient).join('、')
+    : t('email.no_recipients')
   const messageId = composeDraftId.value || `mail-${Date.now()}`
   const sentMessage: EmailMessage = {
     id: messageId,
@@ -170,7 +194,7 @@ function sendComposeDraft(): void {
   selectedMessageId.value = messageId
   composeOpen.value = false
   composeDraftId.value = ''
-  messageActionNotices.value = { ...messageActionNotices.value, [messageId]: `已发送：${subject}` }
+  messageActionNotices.value = { ...messageActionNotices.value, [messageId]: t('email.notice_sent', { subject }) }
 }
 </script>
 
@@ -193,23 +217,25 @@ function sendComposeDraft(): void {
           {{ t('sidebar.email') }}
         </h1>
         <p class="mt-1 text-[13px] leading-[18px] text-muted-foreground">
-          团队邮件中心
+          {{ t('email.subtitle') }}
         </p>
       </div>
 
       <button
+        type="button"
         data-testid="email-compose"
         class="mx-2 mb-4 flex h-9 items-center justify-center gap-2 rounded-md bg-primary px-3 text-[13px] font-semibold text-primary-foreground transition-opacity hover:opacity-90"
         @click="composeMessage"
       >
         <PencilLine :size="16" />
-        <span>写邮件</span>
+        <span>{{ t('email.compose') }}</span>
       </button>
 
       <div class="flex flex-col gap-1">
         <button
           v-for="folder in folders"
           :key="folder.id"
+          type="button"
           :data-testid="`email-folder-${folder.id}`"
           class="workspace-row gap-3 px-3 py-2 text-left text-muted-foreground"
           :class="activeFolder === folder.id ? 'workspace-row-active' : ''"
@@ -217,7 +243,13 @@ function sendComposeDraft(): void {
         >
           <component :is="folder.icon" :size="18" />
           <span class="min-w-0 flex-1 truncate text-[13px] font-semibold">{{ folder.label }}</span>
-          <span v-if="folder.count" class="rounded-md bg-primary/12 px-1.5 py-0.5 text-[11px] font-semibold text-primary">{{ folder.count }}</span>
+          <span
+            v-if="folder.count"
+            class="rounded-md bg-primary/12 px-1.5 py-0.5 text-[11px] font-semibold text-primary"
+            :data-testid="`email-folder-count-${folder.id}`"
+          >
+            {{ folder.count }}
+          </span>
         </button>
       </div>
     </WorkspaceResizablePane>
@@ -230,7 +262,7 @@ function sendComposeDraft(): void {
             v-model="searchQuery"
             data-testid="email-search-input"
             type="text"
-            placeholder="搜索邮件、联系人或主题..."
+            :placeholder="t('email.search_placeholder')"
             class="h-full min-w-0 flex-1 bg-transparent text-[13px] text-foreground outline-none placeholder:text-muted-foreground"
           >
         </label>
@@ -240,27 +272,37 @@ function sendComposeDraft(): void {
         <div class="mx-auto grid w-full max-w-[1180px] gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
           <section class="workspace-surface overflow-hidden rounded-lg">
             <div class="flex h-11 items-center justify-between border-b border-border px-4">
-              <h2 class="text-[15px] font-semibold">
+              <h2
+                class="text-[15px] font-semibold"
+                data-testid="email-active-folder-title"
+              >
                 {{ activeFolderLabel }}
               </h2>
               <span class="text-[12px] text-muted-foreground">
-                实时更新
-                <span v-if="selectedMessage"> · 当前邮件：{{ selectedMessage.subject }}</span>
+                {{ t('email.real_time') }}
+                <span v-if="selectedMessage"> · {{ t('email.current_message') }}：{{ selectedMessage.subject }}</span>
               </span>
             </div>
             <div class="divide-y divide-border">
               <button
                 v-for="message in filteredMessages"
                 :key="message.id"
+                type="button"
                 :data-testid="`email-message-${message.id}`"
                 class="grid w-full grid-cols-[minmax(0,1fr)_84px] items-start gap-4 px-4 py-3 text-left transition-colors hover:bg-accent"
-                :class="selectedMessage?.id === message.id ? 'bg-primary/8' : ''"
+                :class="selectedMessage?.id === message.id ? 'bg-primary/10' : ''"
                 @click="selectMessage(message.id)"
               >
                 <span class="min-w-0">
                   <span class="flex items-center gap-2">
                     <span v-if="message.unread" class="size-2 rounded-full bg-primary" />
                     <span class="truncate text-[13px] font-semibold">{{ message.from }}</span>
+                    <Star
+                      v-if="message.starred"
+                      :size="12"
+                      class="shrink-0 fill-current text-warning"
+                      aria-label="已星标"
+                    />
                   </span>
                   <span class="mt-1 block truncate text-[13px] text-foreground">{{ message.subject }}</span>
                   <span class="mt-1 block truncate text-[12px] text-muted-foreground">{{ message.preview }}</span>
@@ -275,7 +317,7 @@ function sendComposeDraft(): void {
               <Mail :size="22" />
             </span>
             <h2 class="mt-4 text-[15px] font-semibold">
-              智能分拣
+              {{ t('email.smart_sort') }}
             </h2>
             <template v-if="selectedMessage">
               <h3 class="mt-4 text-[14px] font-semibold">
@@ -292,13 +334,10 @@ function sendComposeDraft(): void {
                 {{ selectedMessage.preview }}
               </p>
               <div v-if="composeOpen" class="mt-4 grid gap-2 rounded-lg border border-border p-3">
-                <input
-                  v-model="composeRecipient"
-                  data-testid="email-compose-recipient"
-                  type="text"
-                  placeholder="收件人"
-                  class="h-8 rounded-md border border-border bg-background px-3 text-[12px] text-foreground outline-none focus:border-primary"
-                >
+                <GroupMemberPicker
+                  v-model="composeRecipientIds"
+                  label="收件人"
+                />
                 <input
                   v-model="composeSubject"
                   data-testid="email-compose-subject"

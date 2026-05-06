@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { WorkflowStatus } from '../../types'
+import type { Workflow, WorkflowStatus } from '../../types'
 import { Button } from '@muon/ui/button'
 import { Plus } from 'lucide-vue-next'
 import { onMounted, ref } from 'vue'
@@ -14,15 +14,17 @@ const props = defineProps<{ projectId: string }>()
 
 const { t } = useI18n()
 const itemStore = useWorkItemStore()
-const { loadWorkflow } = useWorkflow(() => props.projectId)
+const { loadWorkflow, canTransition } = useWorkflow(() => props.projectId)
 
 const statuses = ref<WorkflowStatus[]>([])
+const workflow = ref<Workflow | null>(null)
 const showCreateDialog = ref(false)
 const selectedItemId = ref<string | null>(null)
 const createDefaultStatus = ref('')
 
 onMounted(async () => {
   const wf = await loadWorkflow()
+  workflow.value = wf
   statuses.value = wf.statuses
 })
 
@@ -54,6 +56,11 @@ async function onDrop(event: DragEvent, targetStatus: string) {
   const itemId = event.dataTransfer?.getData('text/plain')
   if (!itemId)
     return
+  const item = itemStore.currentItems.find(current => current.id === itemId)
+  if (!item)
+    return
+  if (item.status !== targetStatus && workflow.value && !canTransition(workflow.value, item.status, targetStatus))
+    return
   const items = itemsForStatus(targetStatus)
   const newOrder = items.length > 0 ? Math.max(...items.map(i => i.order)) + 1 : 0
   await itemStore.reorderItem(itemId, props.projectId, newOrder, targetStatus)
@@ -66,6 +73,7 @@ async function onDrop(event: DragEvent, targetStatus: string) {
       <div
         v-for="status in statuses"
         :key="status.key"
+        :data-testid="`project-board-column-${status.key}`"
         class="flex h-full min-w-[18rem] flex-1 basis-72 flex-col rounded-lg bg-muted/50"
         @dragover="onDragOver"
         @drop="onDrop($event, status.key)"
@@ -89,6 +97,7 @@ async function onDrop(event: DragEvent, targetStatus: string) {
             v-for="item in itemsForStatus(status.key)"
             :key="item.id"
             :item="item"
+            :status-category="status.category"
             draggable="true"
             @dragstart="onDragStart($event, item.id)"
             @click="selectedItemId = item.id"

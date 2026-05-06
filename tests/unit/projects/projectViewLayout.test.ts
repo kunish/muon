@@ -34,7 +34,7 @@ describe('project view layout', () => {
     const gantt = readSource('src/features/projects/components/view/GanttView.vue')
 
     expect(list).toContain('class="min-h-0 flex-1 overflow-auto"')
-    expect(list).toContain('class="min-w-[720px] w-full"')
+    expect(list).toContain('class="min-w-[840px] w-full"')
     expect(list).toContain('class="sticky top-0 z-10 bg-background"')
     expect(gantt).toContain('const titleColumnWidth = 256')
     expect(gantt).toMatch(/width: `\$\{titleColumnWidth \+ totalDays\(\) \* columnWidth\}px`/)

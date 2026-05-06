@@ -1,5 +1,27 @@
 @import '@muon/ui/styles.css';
 
+@layer base {
+  :where(button, [role='button'], a, input, textarea, select, [tabindex]:not([tabindex='-1'])):focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+
+  :where(button, [role='button'], a):focus-visible {
+    @apply transition-colors;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-delay: 0ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 @layer components {
   .workspace-surface {
     @apply border border-border bg-card;
@@ -17,7 +39,7 @@
   }
 
   .workspace-row {
-    @apply flex w-full select-none items-center rounded-md text-sm transition-colors duration-150 hover:bg-sidebar-accent hover:text-foreground;
+    @apply flex w-full select-none items-center rounded-md text-sm transition-colors duration-150 hover:bg-sidebar-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background;
   }
 
   .workspace-row-active {
@@ -31,7 +53,7 @@
   }
 
   .workspace-menu-item {
-    @apply relative flex cursor-default select-none items-center gap-2.5 rounded-md px-3 py-2 text-[13px] outline-none transition-colors duration-100 hover:bg-accent focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&>svg]:size-4 [&>svg]:shrink-0;
+    @apply relative flex cursor-default select-none items-center gap-2.5 rounded-md px-3 py-2 text-[13px] outline-none transition-colors duration-100 hover:bg-accent focus-visible:bg-accent focus-visible:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&>svg]:size-4 [&>svg]:shrink-0;
   }
 
   .workspace-menu-item-destructive {

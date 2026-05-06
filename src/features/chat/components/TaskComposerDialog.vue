@@ -4,6 +4,7 @@ import { Label } from '@muon/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@muon/ui/select'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import GroupMemberPicker from '@/features/contacts/components/GroupMemberPicker.vue'
 
 const props = defineProps<{
   open: boolean
@@ -19,20 +20,21 @@ const emit = defineEmits<{
 const { t } = useI18n()
 
 const title = ref('')
-const assignee = ref('')
+const assigneeIds = ref<string[]>([])
 const dueAt = ref('')
 const status = ref<TaskStatus>('todo')
+const selectedAssigneeId = computed(() => assigneeIds.value[0] ?? '')
 
 const canSubmit = computed(() => {
   return !!title.value.trim()
-    && !!assignee.value.trim()
+    && !!selectedAssigneeId.value
     && !!dueAt.value
     && !props.submitting
 })
 
 function resetForm() {
   title.value = props.initialTitle?.trim() || ''
-  assignee.value = ''
+  assigneeIds.value = []
   dueAt.value = ''
   status.value = 'todo'
 }
@@ -43,7 +45,13 @@ watch(
     if (open)
       resetForm()
   },
+  { immediate: true },
 )
+
+watch(assigneeIds, (ids) => {
+  if (ids.length > 1)
+    assigneeIds.value = [ids[ids.length - 1]!]
+})
 
 function onSubmit() {
   if (!canSubmit.value)
@@ -51,7 +59,7 @@ function onSubmit() {
 
   emit('submit', {
     title: title.value.trim(),
-    assignee: assignee.value.trim(),
+    assignee: selectedAssigneeId.value,
     dueAt: dueAt.value,
     status: status.value,
   })
@@ -77,15 +85,13 @@ function onSubmit() {
             >
           </Label>
 
-          <Label class="block">
+          <div class="block">
             <span class="mb-1 block text-xs text-muted-foreground">{{ t('chat.task_assignee') }}</span>
-            <input
-              v-model="assignee"
-              type="text"
-              class="h-9 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-1 focus:ring-primary/40"
-              data-testid="task-assignee-input"
-            >
-          </Label>
+            <GroupMemberPicker
+              v-model="assigneeIds"
+              label="负责人"
+            />
+          </div>
 
           <Label class="block">
             <span class="mb-1 block text-xs text-muted-foreground">{{ t('chat.task_due_at') }}</span>

@@ -4,6 +4,11 @@ import { onUnmounted, shallowRef } from 'vue'
 import { Doc } from 'yjs'
 import { MatrixSyncProvider } from '../services/matrixSyncProvider'
 
+interface MatrixJoinRoomResult {
+  roomId?: string
+  room_id?: string
+}
+
 export function useDocSync(docId: string) {
   const ydoc = shallowRef(new Doc())
   const provider = shallowRef<MatrixSyncProvider | null>(null)
@@ -14,13 +19,16 @@ export function useDocSync(docId: string) {
     try {
       const client: MatrixClient = getClient()
 
-      let room = client.getRoom(docId)
-      if (!room) {
-        const result = await client.joinRoom(docId)
-        room = client.getRoom(result.roomId)!
+      const cachedRoom = client.getRoom(docId)
+      let roomId = cachedRoom?.roomId ?? docId
+      if (!cachedRoom) {
+        const result = await client.joinRoom(docId) as MatrixJoinRoomResult
+        roomId = result.roomId ?? result.room_id ?? docId
+        roomId = client.getRoom(roomId)?.roomId ?? roomId
       }
 
-      provider.value = new MatrixSyncProvider(ydoc.value, room.roomId, client)
+      provider.value = new MatrixSyncProvider(ydoc.value, roomId, client)
+      provider.value.sendSnapshot()
       connected.value = true
       error.value = null
     }

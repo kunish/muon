@@ -48,11 +48,25 @@ function handleAdd(): void {
           <span class="text-[11px] font-semibold text-muted-foreground">{{ comment.userId }}</span>
           <button
             v-if="!comment.resolved"
-            class="flex size-5 items-center justify-center rounded text-muted-foreground hover:text-green-600"
+            class="flex size-5 items-center justify-center rounded text-muted-foreground hover:text-green-600 dark:hover:text-green-400"
             @click="emit('resolve', comment.id)"
           >
             <CheckCircle2 :size="12" />
           </button>
+        </div>
+        <div class="mt-1">
+          <span
+            v-if="comment.selection"
+            class="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary"
+          >
+            选区评论 {{ comment.selection.from }}-{{ comment.selection.to }}
+          </span>
+          <span
+            v-else
+            class="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground"
+          >
+            全文评论
+          </span>
         </div>
         <p class="mt-1 text-[12px] leading-5">
           {{ comment.text }}

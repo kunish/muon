@@ -60,6 +60,13 @@ export const useProjectStore = defineStore('projects', () => {
       throw new Error(`Project ${id} not found`)
 
     const updated = projectSchema.parse({ ...existing, ...changes, updatedAt: Date.now() })
+    const client = getClient()
+
+    if (changes.name !== undefined && updated.name !== existing.name)
+      await client.setRoomName(id, updated.name)
+    if (changes.description !== undefined && updated.description !== existing.description)
+      await client.setRoomTopic(id, updated.description)
+
     await projectRepo.saveProject(updated)
 
     const idx = projects.value.findIndex(p => p.id === id)

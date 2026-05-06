@@ -167,6 +167,25 @@ describe('workspace secondary pages', () => {
     expect(wrapper.text()).toContain('自定义流程')
   })
 
+  it('keeps workplace summary metrics derived from current state', async () => {
+    const wrapper = mount(WorkplacePage)
+
+    expect(wrapper.get('[data-testid="workplace-stat-enabled-apps"]').text()).toBe('7')
+    expect(wrapper.get('[data-testid="workplace-stat-used-apps"]').text()).toBe('今日使用 3 个')
+    expect(wrapper.get('[data-testid="workplace-stat-priority-items"]').text()).toBe('3')
+    expect(wrapper.get('[data-testid="workplace-stat-blocked-items"]').text()).toBe('1 项需跟进')
+    expect(wrapper.get('[data-testid="workplace-stat-meetings"]').text()).toBe('2')
+    expect(wrapper.get('[data-testid="workplace-stat-meeting-breakdown"]').text()).toBe('日程 1 个 · 通话 1 个')
+
+    await wrapper.get('[data-testid="workplace-add-app"]').trigger('click')
+    expect(wrapper.get('[data-testid="workplace-stat-enabled-apps"]').text()).toBe('8')
+
+    await wrapper.get('[data-testid="workplace-manage-apps"]').trigger('click')
+    await wrapper.get('[data-testid="workplace-hide-standup"]').trigger('click')
+    expect(wrapper.get('[data-testid="workplace-stat-enabled-apps"]').text()).toBe('7')
+    expect(wrapper.get('[data-testid="workplace-stat-used-apps"]').text()).toBe('今日使用 3 个')
+  })
+
   it('lets workplace added apps be edited before saving locally', async () => {
     const wrapper = mount(WorkplacePage)
 
@@ -317,9 +336,15 @@ describe('workspace secondary pages', () => {
     expect(wrapper.text()).toContain('技术交流群')
 
     await wrapper.get('[data-testid="organization-invite-member"]').trigger('click')
-    expect(wrapper.text()).toContain('正在邀请新成员')
-    expect(wrapper.get('[data-testid="organization-member-name-input"]').exists()).toBe(true)
-    expect(wrapper.get('[data-testid="organization-member-role-input"]').element).toHaveProperty('value', '成员')
+    expect(wrapper.text()).toContain('选择要邀请的新成员')
+    expect(wrapper.get('[data-testid="organization-member-invite-panel"]').exists()).toBe(true)
+
+    await wrapper.get('[data-testid="group-member-search"]').setValue('@new-member:localhost')
+    await wrapper.get('[data-testid="group-member-row-@new-member:localhost"]').trigger('click')
+    await wrapper.get('[data-testid="organization-member-invite-save"]').trigger('click')
+
+    expect(wrapper.text()).toContain('已邀请：new-member')
+    expect(wrapper.text()).toContain('@new-member:localhost')
   })
 
   it('lets organization security shortcut focus the member governance panel', async () => {
@@ -336,7 +361,8 @@ describe('workspace secondary pages', () => {
   it('lets organization members be created, edited, and deleted locally', async () => {
     const wrapper = mount(OrganizationPage)
 
-    await wrapper.get('[data-testid="organization-invite-member"]').trigger('click')
+    await wrapper.get('[data-testid="organization-section-members"]').trigger('click')
+    await wrapper.get('[data-testid="organization-new-member"]').trigger('click')
     await wrapper.get('[data-testid="organization-member-name-input"]').setValue('新成员')
     await wrapper.get('[data-testid="organization-member-id-input"]').setValue('@new-member:localhost')
     await wrapper.get('[data-testid="organization-member-role-input"]').setValue('产品负责人')
@@ -394,7 +420,8 @@ describe('workspace secondary pages', () => {
   it('lets organization manage member department, permissions, and account status locally', async () => {
     const wrapper = mount(OrganizationPage)
 
-    await wrapper.get('[data-testid="organization-invite-member"]').trigger('click')
+    await wrapper.get('[data-testid="organization-section-members"]').trigger('click')
+    await wrapper.get('[data-testid="organization-new-member"]').trigger('click')
     await wrapper.get('[data-testid="organization-member-name-input"]').setValue('协作成员')
     await wrapper.get('[data-testid="organization-member-id-input"]').setValue('@ops-member:localhost')
     await wrapper.get('[data-testid="organization-member-role-input"]').setValue('成员')
@@ -425,18 +452,33 @@ describe('workspace secondary pages', () => {
     expect(wrapper.text()).toContain('临时日程')
   })
 
+  it('keeps calendar summary metrics derived from visible schedule data', async () => {
+    const wrapper = mount(CalendarPage)
+
+    expect(wrapper.get('[data-testid="calendar-stat-meetings"]').text()).toBe('4')
+    expect(wrapper.get('[data-testid="calendar-stat-meetings-hint"]').text()).toBe('3 个需要准备材料')
+    expect(wrapper.get('[data-testid="calendar-stat-focus-hours"]').text()).toBe('4h')
+    expect(wrapper.get('[data-testid="calendar-stat-focus-hint"]').text()).toBe('已保护 1 段')
+    expect(wrapper.get('[data-testid="calendar-stat-conflicts"]').text()).toBe('2')
+    expect(wrapper.get('[data-testid="calendar-stat-conflicts-hint"]').text()).toBe('2 个需要调整')
+
+    await wrapper.get('[data-testid="calendar-new-event"]').trigger('click')
+    expect(wrapper.get('[data-testid="calendar-stat-meetings"]').text()).toBe('5')
+    expect(wrapper.get('[data-testid="calendar-stat-meetings-hint"]').text()).toBe('3 个需要准备材料')
+  })
+
   it('lets calendar new events be edited before saving locally', async () => {
     const wrapper = mount(CalendarPage)
 
     await wrapper.get('[data-testid="calendar-new-event"]').trigger('click')
     await wrapper.get('[data-testid="calendar-new-title"]').setValue('客户同步会')
-    await wrapper.get('[data-testid="calendar-new-team"]').setValue('客户成功团队')
+    await wrapper.get('[data-testid="group-member-row-@alice:localhost"]').trigger('click')
     await wrapper.get('[data-testid="calendar-new-time"]').setValue('10:30')
     await wrapper.get('[data-testid="calendar-save-new-event"]').trigger('click')
 
     expect(wrapper.text()).toContain('已新建日程：客户同步会')
     expect(wrapper.text()).toContain('当前日程：客户同步会')
-    expect(wrapper.text()).toContain('客户成功团队 - 10:30')
+    expect(wrapper.text()).toContain('小红 - 10:30')
   })
 
   it('lets calendar day and event rows expose selection detail', async () => {
@@ -506,13 +548,13 @@ describe('workspace secondary pages', () => {
 
     await wrapper.get('[data-testid="approvals-new-request"]').trigger('click')
     await wrapper.get('[data-testid="approvals-new-title"]').setValue('权限开通申请')
-    await wrapper.get('[data-testid="approvals-new-requester"]').setValue('安全团队')
+    await wrapper.get('[data-testid="group-member-row-@alice:localhost"]').trigger('click')
     await wrapper.get('[data-testid="approvals-new-due"]').setValue('今日')
     await wrapper.get('[data-testid="approvals-save-new-request"]').trigger('click')
 
     expect(wrapper.text()).toContain('已新建申请：权限开通申请')
     expect(wrapper.text()).toContain('权限开通申请')
-    expect(wrapper.text()).toContain('安全团队')
+    expect(wrapper.text()).toContain('小红')
     expect(wrapper.text()).toContain('今日')
   })
 
@@ -551,8 +593,10 @@ describe('workspace secondary pages', () => {
     expect(wrapper.text()).toContain('审批意见：请补充安全负责人确认')
 
     await wrapper.get('[data-testid="approvals-transfer-selected"]').trigger('click')
+    await wrapper.get('[data-testid="group-member-row-@alice:localhost"]').trigger('click')
+    await wrapper.get('[data-testid="approvals-transfer-confirm"]').trigger('click')
     expect(wrapper.text()).toContain('已转交：生产访问申请')
-    expect(wrapper.text()).toContain('当前处理人：法务复核')
+    expect(wrapper.text()).toContain('当前处理人：小红')
   })
 
   it('keeps approval decision notices scoped to the selected request', async () => {
@@ -560,6 +604,8 @@ describe('workspace secondary pages', () => {
 
     await wrapper.get('[data-testid="approvals-request-request-2"]').trigger('click')
     await wrapper.get('[data-testid="approvals-transfer-selected"]').trigger('click')
+    await wrapper.get('[data-testid="group-member-row-@bob:localhost"]').trigger('click')
+    await wrapper.get('[data-testid="approvals-transfer-confirm"]').trigger('click')
     expect(wrapper.text()).toContain('已转交：生产访问申请')
 
     await wrapper.get('[data-testid="approvals-request-request-3"]').trigger('click')
@@ -586,13 +632,14 @@ describe('workspace secondary pages', () => {
     const wrapper = mount(EmailPage)
 
     await wrapper.get('[data-testid="email-compose"]').trigger('click')
-    await wrapper.get('[data-testid="email-compose-recipient"]').setValue('launch-team@example.com')
+    await wrapper.get('[data-testid="group-member-row-@alice:localhost"]').trigger('click')
     await wrapper.get('[data-testid="email-compose-subject"]').setValue('发布确认')
     await wrapper.get('[data-testid="email-compose-body"]').setValue('请确认今晚发布窗口。')
     await wrapper.get('[data-testid="email-compose-send"]').trigger('click')
 
     expect(wrapper.text()).toContain('已发送：发布确认')
     expect(wrapper.text()).toContain('发布确认')
+    expect(wrapper.text()).toContain('→ 小红')
     expect(wrapper.text()).toContain('请确认今晚发布窗口。')
     expect(wrapper.text()).toContain('当前邮件：发布确认')
   })
@@ -608,6 +655,9 @@ describe('workspace secondary pages', () => {
   it('lets mail selected messages reply, star, and archive locally', async () => {
     const wrapper = mount(EmailPage)
 
+    expect(wrapper.get('[data-testid="email-folder-count-inbox"]').text()).toBe('4')
+    expect(wrapper.get('[data-testid="email-folder-count-starred"]').text()).toBe('1')
+
     await wrapper.get('[data-testid="email-message-mail-1"]').trigger('click')
     await wrapper.get('[data-testid="email-reply-selected"]').trigger('click')
     expect(wrapper.text()).toContain('已生成回复草稿：上线评审纪要')
@@ -615,8 +665,14 @@ describe('workspace secondary pages', () => {
 
     await wrapper.get('[data-testid="email-star-selected"]').trigger('click')
     expect(wrapper.text()).toContain('已星标：上线评审纪要')
-    expect(wrapper.text()).toContain('星标邮件')
     expect(wrapper.text()).toContain('上线评审纪要')
+    expect(wrapper.get('[data-testid="email-active-folder-title"]').text()).toBe('收件箱')
+    expect(wrapper.get('[data-testid="email-folder-count-inbox"]').text()).toBe('4')
+    expect(wrapper.get('[data-testid="email-folder-count-starred"]').text()).toBe('2')
+
+    await wrapper.get('[data-testid="email-folder-starred"]').trigger('click')
+    expect(wrapper.text()).toContain('上线评审纪要')
+    expect(wrapper.text()).toContain('重点需求确认')
 
     await wrapper.get('[data-testid="email-folder-inbox"]').trigger('click')
     await wrapper.get('[data-testid="email-message-mail-2"]').trigger('click')
@@ -624,6 +680,7 @@ describe('workspace secondary pages', () => {
     expect(wrapper.text()).toContain('已归档：桌面工作区稿件已更新')
     expect(wrapper.text()).toContain('归档')
     expect(wrapper.text()).toContain('桌面工作区稿件已更新')
+    expect(wrapper.get('[data-testid="email-folder-count-inbox"]').text()).toBe('3')
   })
 
   it('keeps mail reply drafts scoped to the selected message', async () => {
@@ -636,6 +693,24 @@ describe('workspace secondary pages', () => {
     await wrapper.get('[data-testid="email-message-mail-2"]').trigger('click')
     expect(wrapper.text()).not.toContain('回复草稿：上线评审纪要')
     expect(wrapper.text()).toContain('等待处理当前邮件')
+  })
+
+  it('keeps calls summary metrics derived from call records', async () => {
+    const wrapper = mount(CallsPage)
+
+    expect(wrapper.get('[data-testid="calls-stat-today"]').text()).toBe('3')
+    expect(wrapper.get('[data-testid="calls-stat-today-hint"]').text()).toBe('0 个进行中')
+    expect(wrapper.get('[data-testid="calls-stat-duration"]').text()).toBe('18m')
+    expect(wrapper.get('[data-testid="calls-stat-recordings"]').text()).toBe('1')
+
+    await wrapper.get('[data-testid="calls-start"]').trigger('click')
+    expect(wrapper.get('[data-testid="calls-stat-today"]').text()).toBe('4')
+    expect(wrapper.get('[data-testid="calls-stat-today-hint"]').text()).toBe('1 个进行中')
+    expect(wrapper.get('[data-testid="calls-stat-duration"]').text()).toBe('18m')
+
+    await wrapper.get('[data-testid="calls-end-call"]').trigger('click')
+    expect(wrapper.get('[data-testid="calls-stat-today"]').text()).toBe('4')
+    expect(wrapper.get('[data-testid="calls-stat-today-hint"]').text()).toBe('0 个进行中')
   })
 
   it('lets calls switch mode and start a local call record', async () => {
@@ -679,6 +754,8 @@ describe('workspace secondary pages', () => {
 
     expect(wrapper.text()).toContain('会议纪要：设计评审')
     expect(wrapper.text()).toContain('待办提炼：同步评审结论')
+    expect(wrapper.text()).toContain('已生成纪要')
+    expect(wrapper.get('[data-testid="calls-stat-recordings"]').text()).toBe('1')
   })
 
   it('keeps generated call notes scoped to the selected call record', async () => {
@@ -690,10 +767,11 @@ describe('workspace secondary pages', () => {
 
     await wrapper.get('[data-testid="calls-record-call-2"]').trigger('click')
     expect(wrapper.text()).not.toContain('会议纪要：设计评审')
-    expect(wrapper.text()).toContain('选择一条通话记录后生成本地会议纪要')
+    expect(wrapper.text()).toContain('选择一条通话记录后生成会议纪要')
 
     await wrapper.get('[data-testid="calls-generate-notes"]').trigger('click')
     expect(wrapper.text()).toContain('会议纪要：故障复盘跟进')
+    expect(wrapper.text()).toContain('已生成纪要')
   })
 
   it('lets calls control an active meeting locally', async () => {
@@ -709,8 +787,10 @@ describe('workspace secondary pages', () => {
     expect(wrapper.text()).toContain('共享屏幕：正在共享')
 
     await wrapper.get('[data-testid="calls-invite-member"]').trigger('click')
-    expect(wrapper.text()).toContain('已邀请：产品团队')
-    expect(wrapper.text()).toContain('参会人：我、产品团队')
+    await wrapper.get('[data-testid="group-member-row-@alice:localhost"]').trigger('click')
+    await wrapper.get('[data-testid="calls-invite-selected"]').trigger('click')
+    expect(wrapper.text()).toContain('已邀请：小红')
+    expect(wrapper.text()).toContain('参会人：我、小红')
   })
 
   it('keeps call control state scoped to the selected call record', async () => {
@@ -719,8 +799,10 @@ describe('workspace secondary pages', () => {
     await wrapper.get('[data-testid="calls-start"]').trigger('click')
     await wrapper.get('[data-testid="calls-toggle-mute"]').trigger('click')
     await wrapper.get('[data-testid="calls-invite-member"]').trigger('click')
-    expect(wrapper.text()).toContain('已邀请：产品团队')
-    expect(wrapper.text()).toContain('参会人：我、产品团队')
+    await wrapper.get('[data-testid="group-member-row-@bob:localhost"]').trigger('click')
+    await wrapper.get('[data-testid="calls-invite-selected"]').trigger('click')
+    expect(wrapper.text()).toContain('已邀请：小明')
+    expect(wrapper.text()).toContain('参会人：我、小明')
 
     await wrapper.get('[data-testid="calls-record-call-1"]').trigger('click')
 
@@ -729,8 +811,8 @@ describe('workspace secondary pages', () => {
     expect(wrapper.text()).toContain('麦克风：已开启')
     expect(wrapper.text()).toContain('共享屏幕：未共享')
     expect(wrapper.text()).toContain('参会人：我')
-    expect(wrapper.text()).not.toContain('已邀请：产品团队')
-    expect(wrapper.text()).not.toContain('参会人：我、产品团队')
+    expect(wrapper.text()).not.toContain('已邀请：小明')
+    expect(wrapper.text()).not.toContain('参会人：我、小明')
   })
 
   it('lets calls end an active meeting locally', async () => {

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Doc } from 'yjs'
-import { onMounted, onUnmounted, shallowRef, watch } from 'vue'
+import { nextTick, onMounted, onUnmounted, shallowRef, watch } from 'vue'
 
 const props = defineProps<{ ydoc: Doc, initialTitle?: string }>()
 const emit = defineEmits<{ updateTitle: [title: string] }>()
@@ -8,17 +8,23 @@ const emit = defineEmits<{ updateTitle: [title: string] }>()
 const title = shallowRef('')
 
 let ytitle: ReturnType<Doc['getText']> | null = null
+let applyingExternalTitle = false
+
+function setTitleFromExternal(value: string): void {
+  applyingExternalTitle = true
+  title.value = value
+  void nextTick(() => {
+    applyingExternalTitle = false
+  })
+}
 
 function handleYjsUpdate(): void {
-  title.value = ytitle!.toString()
+  setTitleFromExternal(ytitle!.toString())
 }
 
 onMounted(() => {
   ytitle = props.ydoc.getText('title')
-  if (ytitle.length === 0 && props.initialTitle) {
-    ytitle.insert(0, props.initialTitle)
-  }
-  title.value = ytitle.toString()
+  setTitleFromExternal(ytitle.toString() || props.initialTitle || '')
   ytitle.observe(handleYjsUpdate)
 })
 
@@ -27,16 +33,16 @@ onUnmounted(() => {
 })
 
 watch(title, (val) => {
-  if (!ytitle || val === ytitle.toString())
+  if (applyingExternalTitle || !ytitle || val === ytitle.toString())
     return
   ytitle.delete(0, ytitle.length)
   ytitle.insert(0, val)
 })
 
 watch(() => props.initialTitle, (val) => {
-  if (!ytitle || !val || ytitle.length > 0)
+  if (!ytitle || ytitle.length > 0)
     return
-  ytitle.insert(0, val)
+  setTitleFromExternal(val || '')
 })
 
 function commitTitle(): void {
@@ -47,9 +53,10 @@ function commitTitle(): void {
 <template>
   <input
     v-model="title"
+    data-testid="doc-title-input"
     type="text"
     placeholder="无标题文档"
-    class="w-full border-none bg-transparent px-4 pt-6 pb-2 text-2xl font-bold text-foreground outline-none placeholder:text-muted-foreground"
+    class="mb-4 w-full border-none bg-transparent px-0 pb-3 pt-0 text-[32px] font-bold leading-10 text-foreground outline-none placeholder:text-muted-foreground"
     @blur="commitTitle"
     @keydown.enter.prevent="commitTitle"
   >

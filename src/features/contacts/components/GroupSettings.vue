@@ -20,6 +20,7 @@ import { ask } from '@/electron/dialog'
 import { useRoomPermissions } from '@/shared/composables/useRoomPermissions'
 import { useConversations } from '../../chat/composables/useConversations'
 import { useGroupManagement } from '../composables/useGroupManagement'
+import GroupMemberPicker from './GroupMemberPicker.vue'
 
 const props = defineProps<{
   roomId: string
@@ -39,8 +40,21 @@ const room = computed(() => client.getRoom(props.roomId))
 const members = computed(() => room.value?.getJoinedMembers() || [])
 const myUserId = client.getUserId()!
 
-const inviteId = ref('')
+const inviteIds = ref<string[]>([])
 const showInvite = ref(false)
+
+function closeInvitePicker(): void {
+  inviteIds.value = []
+  showInvite.value = false
+}
+
+function toggleInvitePicker(): void {
+  if (showInvite.value) {
+    closeInvitePicker()
+    return
+  }
+  showInvite.value = true
+}
 
 // --- 群名称编辑 ---
 const editingName = ref(false)
@@ -136,16 +150,16 @@ async function handleLeave() {
 }
 
 async function handleInvite() {
-  if (!inviteId.value.trim())
+  const targetIds = [...inviteIds.value]
+  if (targetIds.length === 0)
     return
   try {
-    await inviteUser(props.roomId, inviteId.value.trim())
+    await Promise.all(targetIds.map(userId => inviteUser(props.roomId, userId)))
+    closeInvitePicker()
   }
   catch {
     toast.error(t('server.invite_failed'))
   }
-  inviteId.value = ''
-  showInvite.value = false
 }
 
 function getPowerLevel(userId: string): number {
@@ -162,6 +176,7 @@ function getRoleLabel(level: number): string {
 }
 
 const { isModerator: isAdmin } = useRoomPermissions(toRef(props, 'roomId'))
+const memberUserIds = computed(() => members.value.map(member => member.userId))
 </script>
 
 <template>
@@ -278,25 +293,35 @@ const { isModerator: isAdmin } = useRoomPermissions(toRef(props, 'roomId'))
         <span class="text-sm font-medium">{{ t('contacts.members') }}</span>
         <button
           v-if="isAdmin"
+          data-testid="group-settings-toggle-invite"
           class="p-1 rounded hover:bg-accent text-primary"
-          @click="showInvite = !showInvite"
+          @click="toggleInvitePicker"
         >
           <UserPlus :size="14" />
         </button>
       </div>
 
-      <div v-if="showInvite" class="flex gap-2 mb-2">
-        <input
-          v-model="inviteId"
-          placeholder="@user:server"
-          class="flex-1 h-8 px-2 text-sm rounded border border-border bg-background outline-none"
-        >
-        <button
-          class="px-3 h-8 text-xs rounded bg-primary text-primary-foreground"
-          @click="handleInvite"
-        >
-          {{ t('contacts.invite') }}
-        </button>
+      <div v-if="showInvite" class="mb-2 space-y-2 rounded-lg border border-border bg-muted/20 p-2">
+        <GroupMemberPicker
+          v-model="inviteIds"
+          :exclude-ids="memberUserIds"
+        />
+        <div class="flex justify-end gap-2">
+          <button
+            class="h-8 px-3 text-xs rounded hover:bg-accent"
+            @click="closeInvitePicker"
+          >
+            {{ t('common.cancel') }}
+          </button>
+          <button
+            data-testid="group-settings-invite-submit"
+            class="px-3 h-8 text-xs rounded bg-primary text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
+            :disabled="inviteIds.length === 0"
+            @click="handleInvite"
+          >
+            {{ t('contacts.invite') }}
+          </button>
+        </div>
       </div>
 
       <div class="space-y-1">

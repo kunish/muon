@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { getClient } from '@matrix/client'
 import { Avatar } from '@muon/ui/avatar'
 import { Checkbox } from '@muon/ui/checkbox'
 import { Label } from '@muon/ui/label'
@@ -12,8 +13,16 @@ interface MemberOption {
   userId: string
   displayName: string
   avatarUrl?: string
+  source?: 'contact' | 'directory' | 'direct'
 }
 
+const props = withDefaults(defineProps<{
+  excludeIds?: string[]
+  label?: string
+}>(), {
+  excludeIds: () => [],
+  label: undefined,
+})
 const selectedIds = defineModel<string[]>({ default: () => [] })
 
 const { t } = useI18n()
@@ -59,6 +68,7 @@ watch(query, (value) => {
         userId: user.user_id,
         displayName: user.display_name || fallbackName(user.user_id),
         avatarUrl: user.avatar_url || undefined,
+        source: 'directory',
       }))
     }
     catch {
@@ -72,12 +82,18 @@ watch(query, (value) => {
   }, 250)
 })
 
+const selectedIdSet = computed(() => new Set(selectedIds.value))
+const excludedIdSet = computed(() => new Set(props.excludeIds))
+
 const contactOptions = computed<MemberOption[]>(() =>
-  contactStore.contacts.map(contact => ({
-    userId: contact.userId,
-    displayName: contact.displayName,
-    avatarUrl: contact.avatarUrl,
-  })),
+  contactStore.contacts
+    .filter(contact => !excludedIdSet.value.has(contact.userId))
+    .map(contact => ({
+      userId: contact.userId,
+      displayName: contact.displayName,
+      avatarUrl: contact.avatarUrl,
+      source: 'contact',
+    })),
 )
 
 const optionById = computed(() => {
@@ -86,8 +102,6 @@ const optionById = computed(() => {
     map.set(option.userId, option)
   return map
 })
-
-const selectedIdSet = computed(() => new Set(selectedIds.value))
 
 const selectedMembers = computed<MemberOption[]>(() =>
   selectedIds.value.map(userId =>
@@ -108,7 +122,13 @@ const visibleMembers = computed<MemberOption[]>(() => {
   }
 
   if (term) {
+    const directOption = createDirectMemberOption(query.value)
+    if (directOption && !excludedIdSet.value.has(directOption.userId))
+      options.set(directOption.userId, directOption)
+
     for (const option of directoryResults.value) {
+      if (excludedIdSet.value.has(option.userId))
+        continue
       if (!options.has(option.userId))
         options.set(option.userId, option)
     }
@@ -125,7 +145,43 @@ function fallbackName(userId: string): string {
   return userId.split(':')[0]?.replace(/^@/, '') || userId
 }
 
+function normalizePotentialMatrixId(input: string): string | null {
+  const value = input.trim()
+  if (!value)
+    return null
+
+  if (value.startsWith('@') && value.includes(':'))
+    return value
+
+  const domain = getClient().getDomain?.()
+  if (!domain)
+    return null
+
+  if (value.startsWith('@'))
+    return `${value}:${domain}`
+
+  if (/^[\w.=/-]+$/.test(value))
+    return `@${value}:${domain}`
+
+  return null
+}
+
+function createDirectMemberOption(input: string): MemberOption | null {
+  const userId = normalizePotentialMatrixId(input)
+  if (!userId)
+    return null
+
+  return {
+    userId,
+    displayName: fallbackName(userId),
+    source: 'direct',
+  }
+}
+
 function toggleMember(userId: string): void {
+  if (excludedIdSet.value.has(userId))
+    return
+
   if (selectedIdSet.value.has(userId)) {
     selectedIds.value = selectedIds.value.filter(id => id !== userId)
     return
@@ -143,7 +199,7 @@ function removeMember(userId: string): void {
   <div class="space-y-2.5">
     <div class="flex items-center justify-between gap-3">
       <Label class="text-sm text-muted-foreground">
-        {{ t('contacts.invite_members') }}
+        {{ label || t('contacts.invite_members') }}
       </Label>
       <span
         data-testid="selected-members-count"
@@ -235,6 +291,12 @@ function removeMember(userId: string): void {
               {{ member.userId }}
             </div>
           </div>
+          <span
+            v-if="member.source === 'direct'"
+            class="shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground"
+          >
+            ID
+          </span>
           <Check
             v-if="selectedIdSet.has(member.userId)"
             :size="15"

@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { CheckSquare, Clock3, FileCheck2, Plus, ShieldCheck, XCircle } from 'lucide-vue-next'
-import { computed, shallowRef } from 'vue'
+import { computed, onMounted, ref, shallowRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import WorkspacePageFrame from '@/app/components/workspace/WorkspacePageFrame.vue'
+import GroupMemberPicker from '@/features/contacts/components/GroupMemberPicker.vue'
+import { useContactList } from '@/shared/composables/useContactList'
 
 const { t } = useI18n()
+const contactList = useContactList()
 
 const activeQueue = shallowRef('pending')
 const selectedRequestId = shallowRef('request-2')
@@ -13,14 +16,17 @@ const approvalCommentDraft = shallowRef('')
 const requestEditorOpen = shallowRef(false)
 const requestDraftId = shallowRef('')
 const requestDraftTitle = shallowRef('临时审批申请')
-const requestDraftRequester = shallowRef('我')
+const requestDraftRequester = shallowRef(t('approvals.default_requester'))
+const requestDraftRequesterIds = ref<string[]>([])
 const requestDraftDue = shallowRef('刚刚')
+const transferPickerOpen = shallowRef(false)
+const transferMemberIds = ref<string[]>([])
 
 const approvalQueues = [
-  { id: 'pending', label: '待处理', hint: '3 项今日到期', icon: Clock3 },
-  { id: 'approved', label: '已通过', hint: '本月累计', icon: CheckSquare },
-  { id: 'compliance', label: '合规检查', hint: '需要复核', icon: ShieldCheck },
-  { id: 'rejected', label: '已驳回', hint: '需申请人补充', icon: XCircle },
+  { id: 'pending', label: t('approvals.queue_pending'), hint: t('approvals.queue_pending_hint'), icon: Clock3 },
+  { id: 'approved', label: t('approvals.queue_approved'), hint: t('approvals.queue_approved_hint'), icon: CheckSquare },
+  { id: 'compliance', label: t('approvals.queue_compliance'), hint: t('approvals.queue_compliance_hint'), icon: ShieldCheck },
+  { id: 'rejected', label: t('approvals.queue_rejected'), hint: t('approvals.queue_rejected_hint'), icon: XCircle },
 ]
 
 interface ApprovalRequest {
@@ -41,7 +47,7 @@ const requests = shallowRef<ApprovalRequest[]>([
   { id: 'request-4', queue: 'approved', title: '设计资源采购', requester: '设计团队', stage: '已归档', due: '已通过', currentHandler: '已归档', comments: ['采购合同已归档'] },
 ])
 
-const activeQueueLabel = computed(() => approvalQueues.find(queue => queue.id === activeQueue.value)?.label ?? '待处理')
+const activeQueueLabel = computed(() => approvalQueues.find(queue => queue.id === activeQueue.value)?.label ?? t('approvals.queue_pending'))
 
 const queueCards = computed(() => approvalQueues.map(queue => ({
   ...queue,
@@ -53,20 +59,39 @@ const selectedRequest = computed(() => filteredRequests.value.find(request => re
 const selectedRequestDecisionNotice = computed(() => {
   const request = selectedRequest.value
   if (!request)
-    return '等待处理当前申请'
+    return t('approvals.waiting_notice')
 
-  return decisionNotices.value[request.id] ?? '等待处理当前申请'
+  return decisionNotices.value[request.id] ?? t('approvals.waiting_notice')
+})
+
+onMounted(() => {
+  contactList.ensureContactsLoaded()
+})
+
+watch(requestDraftRequesterIds, (ids) => {
+  if (ids.length > 1) {
+    requestDraftRequesterIds.value = [ids[ids.length - 1]!]
+    return
+  }
+
+  requestDraftRequester.value = ids[0] ? displayNameForUserId(ids[0]) : t('approvals.default_requester')
 })
 
 function createRequest(): void {
   const requestId = `request-${Date.now()}`
+  const title = t('approvals.default_request_title')
+  const requester = t('approvals.default_requester')
+  const submittedStatus = t('approvals.status_submitted')
+  const due = t('calls.call_just_now')
+  contactList.ensureContactsLoaded()
   requestEditorOpen.value = true
   requestDraftId.value = requestId
-  requestDraftTitle.value = '临时审批申请'
-  requestDraftRequester.value = '我'
-  requestDraftDue.value = '刚刚'
+  requestDraftTitle.value = title
+  requestDraftRequester.value = requester
+  requestDraftRequesterIds.value = []
+  requestDraftDue.value = due
   requests.value = [
-    { id: requestId, queue: activeQueue.value, title: '临时审批申请', requester: '我', stage: '待提交', due: '刚刚', currentHandler: '我', comments: [] },
+    { id: requestId, queue: activeQueue.value, title, requester, stage: submittedStatus, due, currentHandler: submittedStatus, comments: [] },
     ...requests.value,
   ]
   selectedRequestId.value = requestId
@@ -74,6 +99,7 @@ function createRequest(): void {
 
 function selectRequest(requestId: string): void {
   selectedRequestId.value = requestId
+  closeTransferPicker()
 }
 
 function decideSelectedRequest(queue: 'approved' | 'rejected'): void {
@@ -86,16 +112,16 @@ function decideSelectedRequest(queue: 'approved' | 'rejected'): void {
     ? {
         ...item,
         queue,
-        stage: approved ? '已通过' : '已驳回',
-        due: approved ? '已通过' : '已驳回',
-        currentHandler: approved ? '已归档' : '申请人补充',
+        stage: approved ? t('approvals.status_approved') : t('approvals.status_rejected'),
+        due: approved ? t('approvals.status_approved') : t('approvals.status_rejected'),
+        currentHandler: approved ? t('approvals.status_archived') : t('approvals.status_follow_up'),
       }
     : item)
   activeQueue.value = queue
   selectedRequestId.value = request.id
   decisionNotices.value = {
     ...decisionNotices.value,
-    [request.id]: `${approved ? '已同意' : '已驳回'}：${request.title}`,
+    [request.id]: approved ? t('approvals.approved_notice', { title: request.title }) : t('approvals.rejected_notice', { title: request.title }),
   }
 }
 
@@ -111,22 +137,47 @@ function addApprovalComment(): void {
   approvalCommentDraft.value = ''
   decisionNotices.value = {
     ...decisionNotices.value,
-    [request.id]: `已记录意见：${request.title}`,
+    [request.id]: t('approvals.comment_recorded_notice', { title: request.title }),
   }
+}
+
+function fallbackNameFromUserId(userId: string): string {
+  return userId.split(':')[0]?.replace(/^@/, '') || userId
+}
+
+function displayNameForUserId(userId: string): string {
+  return contactList.contacts.find(contact => contact.userId === userId)?.displayName ?? fallbackNameFromUserId(userId)
+}
+
+function openTransferPicker(): void {
+  const request = selectedRequest.value
+  if (!request)
+    return
+  contactList.ensureContactsLoaded()
+  transferMemberIds.value = []
+  transferPickerOpen.value = true
+}
+
+function closeTransferPicker(): void {
+  transferMemberIds.value = []
+  transferPickerOpen.value = false
 }
 
 function transferSelectedRequest(): void {
   const request = selectedRequest.value
-  if (!request)
+  if (!request || transferMemberIds.value.length === 0)
     return
 
+  const nextHandler = transferMemberIds.value.map(displayNameForUserId).join('、')
+
   requests.value = requests.value.map(item => item.id === request.id
-    ? { ...item, stage: '法务复核', currentHandler: '法务复核' }
+    ? { ...item, stage: nextHandler, currentHandler: nextHandler }
     : item)
   decisionNotices.value = {
     ...decisionNotices.value,
-    [request.id]: `已转交：${request.title}`,
+    [request.id]: t('approvals.transferred_notice', { title: request.title }),
   }
+  closeTransferPicker()
 }
 
 function saveDraftRequest(): void {
@@ -134,24 +185,24 @@ function saveDraftRequest(): void {
     return
 
   const requestId = requestDraftId.value
-  const title = requestDraftTitle.value.trim() || '临时审批申请'
-  const requester = requestDraftRequester.value.trim() || '我'
-  const due = requestDraftDue.value.trim() || '刚刚'
+  const title = requestDraftTitle.value.trim() || t('approvals.default_request_title')
+  const requester = requestDraftRequester.value.trim() || t('approvals.default_requester')
+  const due = requestDraftDue.value.trim() || t('calls.call_just_now')
 
   requests.value = requests.value.map(item => item.id === requestId
     ? {
         ...item,
         title,
         requester,
-        stage: '主管审批',
+        stage: t('approvals.status_manager'),
         due,
-        currentHandler: '主管审批',
+        currentHandler: t('approvals.status_manager'),
       }
     : item)
   selectedRequestId.value = requestId
   decisionNotices.value = {
     ...decisionNotices.value,
-    [requestId]: `已新建申请：${title}`,
+    [requestId]: t('approvals.created_notice', { title }),
   }
   requestEditorOpen.value = false
 }
@@ -160,7 +211,7 @@ function saveDraftRequest(): void {
 <template>
   <WorkspacePageFrame
     :title="t('sidebar.approvals')"
-    subtitle="集中处理申请、合规检查和团队决策"
+    :subtitle="t('approvals.subtitle')"
     :icon="FileCheck2"
   >
     <template #actions>
@@ -170,7 +221,7 @@ function saveDraftRequest(): void {
         @click="createRequest"
       >
         <Plus :size="16" />
-        <span>新建申请</span>
+        <span>{{ t('approvals.new_request') }}</span>
       </button>
     </template>
 
@@ -199,11 +250,11 @@ function saveDraftRequest(): void {
     <section class="workspace-surface overflow-hidden rounded-lg">
       <div class="flex h-11 items-center justify-between border-b border-border px-4">
         <h2 class="text-[15px] font-semibold">
-          审批收件箱
+          {{ t('approvals.inbox_title') }}
         </h2>
         <span class="text-[12px] text-muted-foreground">
-          当前队列：{{ activeQueueLabel }}
-          <span v-if="selectedRequest"> · 当前申请：{{ selectedRequest.title }}</span>
+          {{ t('approvals.current_queue') }}：{{ activeQueueLabel }}
+          <span v-if="selectedRequest"> · {{ t('approvals.current_request') }}：{{ selectedRequest.title }}</span>
         </span>
       </div>
       <div class="divide-y divide-border">
@@ -212,7 +263,7 @@ function saveDraftRequest(): void {
           :key="request.id"
           :data-testid="`approvals-request-${request.id}`"
           class="grid w-full grid-cols-[minmax(0,1fr)_150px_96px] items-center gap-4 px-4 py-3 text-left transition-colors hover:bg-accent"
-          :class="selectedRequest?.id === request.id ? 'bg-primary/8' : ''"
+          :class="selectedRequest?.id === request.id ? 'bg-primary/10' : ''"
           @click="selectRequest(request.id)"
         >
           <span class="min-w-0">
@@ -226,26 +277,23 @@ function saveDraftRequest(): void {
         </button>
       </div>
       <div v-if="requestEditorOpen" class="border-t border-border p-4">
-        <div class="grid gap-3 md:grid-cols-[minmax(0,1fr)_160px_120px_auto]">
+        <div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(240px,1fr)_120px_auto]">
           <input
             v-model="requestDraftTitle"
             data-testid="approvals-new-title"
             type="text"
-            placeholder="申请标题"
+            :placeholder="t('approvals.request_title_placeholder')"
             class="h-8 rounded-md border border-border bg-background px-3 text-[12px] text-foreground outline-none focus:border-primary"
           >
-          <input
-            v-model="requestDraftRequester"
-            data-testid="approvals-new-requester"
-            type="text"
-            placeholder="申请人"
-            class="h-8 rounded-md border border-border bg-background px-3 text-[12px] text-foreground outline-none focus:border-primary"
-          >
+          <GroupMemberPicker
+            v-model="requestDraftRequesterIds"
+            :label="t('approvals.requester_placeholder')"
+          />
           <input
             v-model="requestDraftDue"
             data-testid="approvals-new-due"
             type="text"
-            placeholder="到期时间"
+            :placeholder="t('approvals.due_placeholder')"
             class="h-8 rounded-md border border-border bg-background px-3 text-[12px] text-foreground outline-none focus:border-primary"
           >
           <button
@@ -253,7 +301,7 @@ function saveDraftRequest(): void {
             class="h-8 rounded-md bg-primary px-3 text-[12px] font-semibold text-primary-foreground transition-opacity hover:opacity-90"
             @click="saveDraftRequest"
           >
-            保存申请
+            {{ t('approvals.save_request') }}
           </button>
         </div>
       </div>
@@ -261,31 +309,57 @@ function saveDraftRequest(): void {
         <div class="flex flex-wrap items-center justify-between gap-3">
           <span class="grid gap-1 text-[12px] font-semibold text-muted-foreground">
             <span>{{ selectedRequestDecisionNotice }}</span>
-            <span>当前处理人：{{ selectedRequest.currentHandler }}</span>
+            <span>{{ t('approvals.handler_label') }}：{{ selectedRequest.currentHandler }}</span>
           </span>
           <span class="flex flex-wrap gap-2">
             <button
               data-testid="approvals-transfer-selected"
               class="h-8 rounded-md border border-border px-3 text-[12px] font-semibold text-foreground transition-colors hover:bg-accent"
-              @click="transferSelectedRequest"
+              @click="openTransferPicker"
             >
-              转交
+              {{ t('approvals.transfer') }}
             </button>
             <button
               data-testid="approvals-reject-selected"
               class="h-8 rounded-md border border-border px-3 text-[12px] font-semibold text-foreground transition-colors hover:bg-accent"
               @click="decideSelectedRequest('rejected')"
             >
-              驳回
+              {{ t('approvals.reject') }}
             </button>
             <button
               data-testid="approvals-approve-selected"
               class="h-8 rounded-md bg-primary px-3 text-[12px] font-semibold text-primary-foreground transition-opacity hover:opacity-90"
               @click="decideSelectedRequest('approved')"
             >
-              同意
+              {{ t('approvals.approve') }}
             </button>
           </span>
+        </div>
+        <div
+          v-if="transferPickerOpen"
+          class="mt-3 rounded-lg border border-border bg-muted/30 p-3"
+          data-testid="approvals-transfer-picker"
+        >
+          <GroupMemberPicker
+            v-model="transferMemberIds"
+            :label="t('approvals.transfer_to')"
+          />
+          <div class="mt-3 flex justify-end gap-2">
+            <button
+              class="h-8 rounded-md px-3 text-xs font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              @click="closeTransferPicker"
+            >
+              {{ t('common.cancel') }}
+            </button>
+            <button
+              data-testid="approvals-transfer-confirm"
+              class="h-8 rounded-md bg-primary px-3 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+              :disabled="transferMemberIds.length === 0"
+              @click="transferSelectedRequest"
+            >
+              {{ t('approvals.confirm_transfer') }}
+            </button>
+          </div>
         </div>
         <div class="mt-3 grid gap-2 rounded-lg border border-border p-3">
           <div class="flex items-center gap-2">
@@ -293,7 +367,7 @@ function saveDraftRequest(): void {
               v-model="approvalCommentDraft"
               data-testid="approvals-comment-input"
               type="text"
-              placeholder="填写审批意见..."
+              :placeholder="t('approvals.comment_placeholder')"
               class="h-8 min-w-0 flex-1 rounded-md border border-border bg-background px-3 text-[12px] text-foreground outline-none focus:border-primary"
             >
             <button
@@ -301,12 +375,12 @@ function saveDraftRequest(): void {
               class="h-8 rounded-md bg-primary px-3 text-[12px] font-semibold text-primary-foreground transition-opacity hover:opacity-90"
               @click="addApprovalComment"
             >
-              添加意见
+              {{ t('approvals.add_comment') }}
             </button>
           </div>
           <div class="grid gap-1 text-[12px] text-muted-foreground">
-            <span v-for="comment in selectedRequest.comments" :key="comment">审批意见：{{ comment }}</span>
-            <span v-if="selectedRequest.comments.length === 0">暂无审批意见</span>
+            <span v-for="comment in selectedRequest.comments" :key="comment">{{ t('approvals.comment_prefix') }}：{{ comment }}</span>
+            <span v-if="selectedRequest.comments.length === 0">{{ t('approvals.no_comments') }}</span>
           </div>
         </div>
       </div>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Priority, WorkItemType } from '../types'
+import type { CustomField, Priority, Workflow, WorkItemType } from '../types'
 import { Button } from '@muon/ui/button'
 import { Input } from '@muon/ui/input'
 import { Label } from '@muon/ui/label'
@@ -10,7 +10,9 @@ import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useWorkflow } from '../composables/useWorkflow'
 import { useWorkItemStore } from '../composables/useWorkItemStore'
+import { projectRepo } from '../db/projectDb'
 import { PRIORITIES, WORK_ITEM_TYPES } from '../types'
+import WorkItemAssigneePicker from './WorkItemAssigneePicker.vue'
 
 const props = defineProps<{ itemId: string }>()
 const emit = defineEmits<{ close: [] }>()
@@ -19,23 +21,43 @@ const { t } = useI18n()
 const store = useWorkItemStore()
 const item = computed(() => store.currentItems.find(i => i.id === props.itemId))
 
-const { loadWorkflow, getAvailableTransitions, changeStatus } = useWorkflow(
+interface AvailableTransition {
+  toStatus: string
+  label: string
+}
+
+const { loadWorkflow, changeStatus } = useWorkflow(
   () => item.value?.projectId ?? '',
 )
 
-const availableTransitions = ref<string[]>([])
+const availableTransitions = ref<AvailableTransition[]>([])
 const editing = ref(false)
 const editTitle = ref('')
 const editDescription = ref('')
+const customFields = ref<CustomField[]>([])
 
 watch(() => props.itemId, async () => {
-  if (!item.value)
+  const current = item.value
+  if (!current) {
+    customFields.value = []
     return
+  }
   const wf = await loadWorkflow()
-  availableTransitions.value = getAvailableTransitions(wf, item.value.status)
-  editTitle.value = item.value.title
-  editDescription.value = item.value.description
+  availableTransitions.value = buildAvailableTransitions(wf, current.status)
+  customFields.value = await projectRepo.listCustomFields(current.projectId)
+  editTitle.value = current.title
+  editDescription.value = current.description
 }, { immediate: true })
+
+function buildAvailableTransitions(wf: Workflow, currentStatus: string): AvailableTransition[] {
+  const statusByKey = new Map(wf.statuses.map(status => [status.key, status]))
+  return wf.transitions
+    .filter(transition => transition.from === currentStatus)
+    .map(transition => ({
+      toStatus: transition.to,
+      label: transition.name?.trim() || statusByKey.get(transition.to)?.name || transition.to,
+    }))
+}
 
 async function handleSave() {
   if (!item.value)
@@ -90,6 +112,84 @@ async function updateDueDate(value: string | number) {
   const dateValue = String(value)
   await store.updateItem(current.id, { dueDate: dateValue ? new Date(dateValue).getTime() : undefined })
 }
+
+async function updateAssignee(value: string | undefined) {
+  const current = item.value
+  if (!current)
+    return
+
+  await store.updateItem(current.id, { assignee: value })
+}
+
+function customFieldInputType(field: CustomField): string {
+  if (field.type === 'number')
+    return 'number'
+  if (field.type === 'date')
+    return 'date'
+  if (field.type === 'url')
+    return 'url'
+  return 'text'
+}
+
+function customFieldStringValue(field: CustomField): string {
+  const value = item.value?.customFields?.[field.id]
+  if (Array.isArray(value))
+    return value.map(String).join(', ')
+  return value == null ? '' : String(value)
+}
+
+function customFieldArrayValue(field: CustomField): string[] {
+  const value = item.value?.customFields?.[field.id]
+  if (Array.isArray(value))
+    return value.map(String)
+  if (typeof value === 'string' && value.trim())
+    return value.split(',').map(option => option.trim()).filter(Boolean)
+  return []
+}
+
+function normalizeCustomFieldValue(field: CustomField, value: string | number | string[] | undefined): unknown {
+  if (field.type === 'multiSelect') {
+    const selected = Array.isArray(value)
+      ? value.map(option => option.trim()).filter(Boolean)
+      : String(value ?? '').split(',').map(option => option.trim()).filter(Boolean)
+    return selected.length > 0 ? selected : undefined
+  }
+
+  if (value == null || String(value).trim() === '')
+    return undefined
+
+  if (field.type === 'number') {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : undefined
+  }
+
+  return String(value).trim()
+}
+
+async function updateCustomField(field: CustomField, value: string | number | string[] | undefined) {
+  const current = item.value
+  if (!current)
+    return
+
+  const normalized = normalizeCustomFieldValue(field, value)
+  const nextCustomFields = { ...(current.customFields ?? {}) }
+
+  if (normalized === undefined)
+    delete nextCustomFields[field.id]
+  else
+    nextCustomFields[field.id] = normalized
+
+  await store.updateItem(current.id, { customFields: nextCustomFields })
+}
+
+function toggleMultiSelectCustomField(field: CustomField, option: string, checked: boolean) {
+  const selected = new Set(customFieldArrayValue(field))
+  if (checked)
+    selected.add(option)
+  else
+    selected.delete(option)
+  void updateCustomField(field, [...selected])
+}
 </script>
 
 <template>
@@ -134,7 +234,7 @@ async function updateDueDate(value: string | number) {
 
         <!-- Priority -->
         <div class="grid gap-1.5">
-          <Label class="text-xs text-muted-foreground">{{ t('assignee') }}</Label>
+          <Label class="text-xs text-muted-foreground">{{ t('projects.priority') }}</Label>
           <Select
             :model-value="item.priority"
             @update:model-value="updatePriority"
@@ -148,9 +248,19 @@ async function updateDueDate(value: string | number) {
           </Select>
         </div>
 
+        <!-- Assignee -->
+        <div class="grid gap-1.5">
+          <Label class="text-xs text-muted-foreground">{{ t('projects.assignee') }}</Label>
+          <WorkItemAssigneePicker
+            data-testid="project-task-assignee-picker"
+            :model-value="item.assignee"
+            @update:model-value="updateAssignee"
+          />
+        </div>
+
         <!-- Type -->
         <div class="grid gap-1.5">
-          <Label class="text-xs text-muted-foreground">{{ t('projects.type_task') }}</Label>
+          <Label class="text-xs text-muted-foreground">{{ t('projects.type') }}</Label>
           <Select
             :model-value="item.type"
             @update:model-value="updateType"
@@ -174,18 +284,81 @@ async function updateDueDate(value: string | number) {
           />
         </div>
 
+        <!-- Custom Fields -->
+        <div v-if="customFields.length > 0" class="grid gap-2">
+          <Label class="text-xs text-muted-foreground">{{ t('projects.custom_fields') }}</Label>
+          <div class="grid gap-2">
+            <div
+              v-for="field in customFields"
+              :key="field.id"
+              class="grid gap-1.5"
+            >
+              <Label class="text-xs text-muted-foreground">
+                {{ field.name || t('projects.field_name') }}
+              </Label>
+              <WorkItemAssigneePicker
+                v-if="field.type === 'user'"
+                :model-value="customFieldStringValue(field)"
+                :data-testid="`project-task-custom-field-${field.id}`"
+                @update:model-value="updateCustomField(field, $event)"
+              />
+              <select
+                v-else-if="field.type === 'select'"
+                :value="customFieldStringValue(field)"
+                :data-testid="`project-task-custom-field-${field.id}`"
+                class="rounded-md border border-input bg-background px-3 py-2 text-sm"
+                @change="updateCustomField(field, ($event.target as HTMLSelectElement).value)"
+              >
+                <option value="">
+                  {{ t('projects.field_empty_option') }}
+                </option>
+                <option v-for="option in field.options" :key="option" :value="option">
+                  {{ option }}
+                </option>
+              </select>
+              <div
+                v-else-if="field.type === 'multiSelect'"
+                :data-testid="`project-task-custom-field-${field.id}`"
+                class="flex flex-wrap gap-1.5"
+              >
+                <label
+                  v-for="(option, optionIndex) in field.options"
+                  :key="option"
+                  class="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs"
+                >
+                  <input
+                    type="checkbox"
+                    :checked="customFieldArrayValue(field).includes(option)"
+                    :data-testid="`project-task-custom-field-${field.id}-option-${optionIndex}`"
+                    @change="toggleMultiSelectCustomField(field, option, ($event.target as HTMLInputElement).checked)"
+                  >
+                  {{ option }}
+                </label>
+              </div>
+              <Input
+                v-else
+                :type="customFieldInputType(field)"
+                :model-value="customFieldStringValue(field)"
+                :data-testid="`project-task-custom-field-${field.id}`"
+                @update:model-value="updateCustomField(field, $event)"
+              />
+            </div>
+          </div>
+        </div>
+
         <!-- Transitions -->
         <div v-if="availableTransitions.length > 0" class="grid gap-1.5">
           <Label class="text-xs text-muted-foreground">{{ t('projects.status') }}</Label>
           <div class="flex flex-wrap gap-2">
             <Button
-              v-for="tStatus in availableTransitions"
-              :key="tStatus"
+              v-for="transition in availableTransitions"
+              :key="transition.toStatus"
               size="sm"
               variant="outline"
-              @click="handleTransition(tStatus)"
+              :data-testid="`project-task-transition-${transition.toStatus}`"
+              @click="handleTransition(transition.toStatus)"
             >
-              {{ tStatus }}
+              {{ transition.label }}
             </Button>
           </div>
         </div>

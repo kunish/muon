@@ -112,6 +112,29 @@ describe('docsPage navigation', () => {
     expect(wrapper.text()).not.toContain('发布复盘')
   })
 
+  it('shows a useful empty state when search filters out every document', async () => {
+    const wrapper = mountDocsPage()
+
+    await wrapper.get('input[placeholder="搜索文档..."]').setValue('不存在')
+
+    expect(wrapper.get('[data-testid="docs-empty-state"]').text()).toContain('没有找到匹配文档')
+    expect(wrapper.find('[data-testid="docs-empty-create"]').exists()).toBe(false)
+  })
+
+  it('lets the empty state create a document from an empty normal list', async () => {
+    const wrapper = mountDocsPage()
+
+    await wrapper.get('[data-testid="docs-review-filter"]').trigger('click')
+    await wrapper.get('[data-testid="docs-status-select"]').setValue('草稿')
+    await flushPromises()
+
+    expect(wrapper.get('[data-testid="docs-empty-state"]').text()).toContain('暂无评审中文档')
+    await wrapper.get('[data-testid="docs-empty-create"]').trigger('click')
+    await flushPromises()
+
+    expect(routerPush).toHaveBeenCalledWith('/docs/!new:localhost')
+  })
+
   it('opens the editor only for an explicit document route', () => {
     routeParams.mockReturnValue({ docId: '!doc:localhost' })
 
@@ -136,6 +159,26 @@ describe('docsPage navigation', () => {
     await wrapper.get('[data-testid="docs-open"]').trigger('click')
 
     expect(routerPush).toHaveBeenCalledWith('/docs/!doc:localhost')
+  })
+
+  it('toggles the review-status filter from the docs list header', async () => {
+    const wrapper = mountDocsPage()
+    const filter = wrapper.get('[data-testid="docs-review-filter"]')
+
+    expect(filter.attributes('aria-pressed')).toBe('false')
+    await filter.trigger('click')
+
+    expect(filter.attributes('aria-pressed')).toBe('true')
+    expect(wrapper.text()).toContain('接口设计评审')
+  })
+
+  it('updates document status from the list row', async () => {
+    const wrapper = mountDocsPage()
+
+    await wrapper.get('[data-testid="docs-status-select"]').setValue('稳定')
+    await flushPromises()
+
+    expect((wrapper.get('[data-testid="docs-status-select"]').element as HTMLSelectElement).value).toBe('稳定')
   })
 
   it('renames documents from the list quick action', async () => {
@@ -170,6 +213,16 @@ describe('docsPage navigation', () => {
     await flushPromises()
 
     expect(wrapper.text()).not.toContain('接口设计评审')
+  })
+
+  it('lets documents be collected into the starred section from the list row', async () => {
+    const wrapper = mountDocsPage()
+
+    await wrapper.get('[data-testid="docs-star"]').trigger('click')
+    await flushPromises()
+    await wrapper.findAll('button').find(button => button.text().includes('已收藏'))!.trigger('click')
+
+    expect(wrapper.text()).toContain('接口设计评审')
   })
 
   it('navigates to a newly created document', async () => {

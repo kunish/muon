@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { WorkItem } from '../types'
+import type { StatusCategory, WorkItem } from '../types'
 import { CalendarDays, User } from 'lucide-vue-next'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -7,6 +7,7 @@ import { useI18n } from 'vue-i18n'
 const props = defineProps<{
   item: WorkItem
   isDragging?: boolean
+  statusCategory?: StatusCategory
 }>()
 
 const emit = defineEmits<{
@@ -29,7 +30,7 @@ const priorityColor = computed(() => {
 const isOverdue = computed(() => {
   if (!props.item.dueDate)
     return false
-  return props.item.dueDate < Date.now() && props.item.status !== 'done'
+  return props.item.dueDate < Date.now() && props.statusCategory !== 'done'
 })
 </script>
 

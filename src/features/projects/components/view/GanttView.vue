@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useWorkItemStore } from '../../composables/useWorkItemStore'
+import WorkItemDetail from '../WorkItemDetail.vue'
 
 defineProps<{ projectId: string }>()
 
@@ -9,6 +10,7 @@ const { t } = useI18n()
 const store = useWorkItemStore()
 const monthsBack = ref(1)
 const monthsForward = ref(3)
+const selectedItemId = ref<string | null>(null)
 
 const itemsWithDates = computed(() =>
   store.currentItems.filter(i => i.dueDate).sort((a, b) => (a.dueDate ?? 0) - (b.dueDate ?? 0)),
@@ -86,7 +88,9 @@ const titleColumnWidth = 256
       <div
         v-for="item in itemsWithDates"
         :key="item.id"
-        class="flex min-h-10 border-b text-sm hover:bg-muted/50"
+        :data-testid="`project-gantt-row-${item.id}`"
+        class="flex min-h-10 cursor-pointer border-b text-sm hover:bg-muted/50"
+        @click="selectedItemId = item.id"
       >
         <div class="w-64 shrink-0 truncate border-r px-3 py-2.5">
           {{ item.title }}
@@ -105,5 +109,10 @@ const titleColumnWidth = 256
         </div>
       </div>
     </div>
+    <WorkItemDetail
+      v-if="selectedItemId"
+      :item-id="selectedItemId"
+      @close="selectedItemId = null"
+    />
   </div>
 </template>
