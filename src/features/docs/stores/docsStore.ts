@@ -77,24 +77,143 @@ interface MutableDocFolderNode extends DocFolderNode {
 
 export const ROOT_DOC_FOLDER_ID = ''
 const ROOT_DOC_FOLDER_NAME = '全部文档'
+const LOCAL_DOC_METADATA_OVERRIDES_STORAGE_KEY = 'muon_docs_metadata_overrides_v1'
+const DELETED_DOC_FOLDERS_STORAGE_KEY = 'muon_docs_deleted_folders_v1'
+
+function readStorageItem(key: string): string | null {
+  try {
+    return globalThis.localStorage?.getItem(key) ?? null
+  }
+  catch {
+    return null
+  }
+}
+
+function writeStorageItem(key: string, value: string): void {
+  try {
+    globalThis.localStorage?.setItem(key, value)
+  }
+  catch {
+    // Local persistence is best effort; in-memory state still keeps this session correct.
+  }
+}
+
+function removeStorageItem(key: string): void {
+  try {
+    globalThis.localStorage?.removeItem(key)
+  }
+  catch {
+    // Ignore unavailable storage.
+  }
+}
 
 function getDocMetadataEvent(room: MatrixDocRoom): MatrixDocEvent | undefined {
+  const candidates: MatrixDocEvent[] = []
   const stateEvent = room.currentState?.getStateEvents(MATRIX_EVENT_TYPES.DOC_METADATA, '')
-  if (Array.isArray(stateEvent) && stateEvent.length > 0)
-    return stateEvent[0]
+  if (Array.isArray(stateEvent))
+    candidates.push(...stateEvent)
   if (!Array.isArray(stateEvent) && stateEvent)
-    return stateEvent
+    candidates.push(stateEvent)
 
   const events = room.getLiveTimeline().getEvents()
-  for (let i = events.length - 1; i >= 0; i--) {
-    const event = events[i]
+  for (const event of events) {
     if (event?.getType() === MATRIX_EVENT_TYPES.DOC_METADATA)
-      return event
+      candidates.push(event)
   }
+
+  return candidates.reduce<MatrixDocEvent | undefined>((latest, event) => {
+    if (!latest)
+      return event
+
+    return getMetadataTimestamp(event.getContent()) > getMetadataTimestamp(latest.getContent())
+      ? event
+      : latest
+  }, undefined)
 }
 
 function getMetadataTimestamp(content: DocMetadataContent): number {
   return content.updatedAt ?? content.createdAt ?? 0
+}
+
+function normalizeLocalMetadataOverride(value: unknown): LocalDocMetadataOverride | null {
+  if (typeof value !== 'object' || value === null)
+    return null
+
+  const override = value as Partial<LocalDocMetadataOverride>
+  if (typeof override.updated !== 'string' || typeof override.updatedAt !== 'number')
+    return null
+
+  return {
+    ...(typeof override.title === 'string' ? { title: override.title } : {}),
+    ...(typeof override.folder === 'string' ? { folder: normalizeFolderId(override.folder) } : {}),
+    ...(typeof override.folderName === 'string' ? { folderName: sanitizeFolderName(override.folderName) } : {}),
+    updated: override.updated,
+    updatedAt: override.updatedAt,
+  }
+}
+
+function readLocalMetadataOverrides(): Map<string, LocalDocMetadataOverride> {
+  const raw = readStorageItem(LOCAL_DOC_METADATA_OVERRIDES_STORAGE_KEY)
+  if (!raw)
+    return new Map()
+
+  try {
+    const parsed = JSON.parse(raw) as unknown
+    const entries = Array.isArray(parsed)
+      ? parsed
+      : Object.entries(parsed as Record<string, unknown>)
+    return new Map(
+      entries
+        .map((entry) => {
+          if (!Array.isArray(entry) || typeof entry[0] !== 'string')
+            return null
+
+          const override = normalizeLocalMetadataOverride(entry[1])
+          return override ? [entry[0], override] as const : null
+        })
+        .filter((entry): entry is readonly [string, LocalDocMetadataOverride] => entry !== null),
+    )
+  }
+  catch {
+    return new Map()
+  }
+}
+
+function writeLocalMetadataOverrides(overrides: Map<string, LocalDocMetadataOverride>): void {
+  if (overrides.size === 0) {
+    removeStorageItem(LOCAL_DOC_METADATA_OVERRIDES_STORAGE_KEY)
+    return
+  }
+
+  writeStorageItem(LOCAL_DOC_METADATA_OVERRIDES_STORAGE_KEY, JSON.stringify(Object.fromEntries(overrides)))
+}
+
+function readDeletedFolderIds(): Set<string> {
+  const raw = readStorageItem(DELETED_DOC_FOLDERS_STORAGE_KEY)
+  if (!raw)
+    return new Set()
+
+  try {
+    const parsed = JSON.parse(raw) as unknown
+    if (!Array.isArray(parsed))
+      return new Set()
+
+    return new Set(parsed
+      .map(value => typeof value === 'string' ? normalizeFolderId(value) : '')
+      .filter(Boolean))
+  }
+  catch {
+    return new Set()
+  }
+}
+
+function writeDeletedFolderIds(folderIds: Set<string>): void {
+  if (folderIds.size === 0) {
+    removeStorageItem(DELETED_DOC_FOLDERS_STORAGE_KEY)
+    return
+  }
+
+  writeStorageItem(DELETED_DOC_FOLDERS_STORAGE_KEY, JSON.stringify([...folderIds]))
 }
 
 function isForbiddenMatrixError(err: unknown): boolean {
@@ -354,13 +473,13 @@ function collectFolderIds(node: DocFolderNode, folderIds: Set<string>): void {
   node.children.forEach(child => collectFolderIds(child, folderIds))
 }
 
-function buildFolderTree(documents: DocEntry[], folders: DocFolderRecord[]): DocFolderNode {
+function buildFolderTree(documents: DocEntry[], folders: DocFolderRecord[], deletedFolderIds: Set<string>): DocFolderNode {
   const root = createFolderNode(ROOT_DOC_FOLDER_ID, ROOT_DOC_FOLDER_NAME, ROOT_DOC_FOLDER_ID, 0, true)
   const nodesById = new Map<string, MutableDocFolderNode>([[ROOT_DOC_FOLDER_ID, root]])
 
   folders.forEach((folder) => {
     const id = normalizeFolderId(folder.id)
-    if (!id)
+    if (!id || deletedFolderIds.has(id))
       return
     const parentId = normalizeFolderId(folder.parentId)
     if (parentId && parentId.includes('/'))
@@ -370,7 +489,7 @@ function buildFolderTree(documents: DocEntry[], folders: DocFolderRecord[]): Doc
 
   documents.forEach((doc) => {
     const folderId = normalizeFolderId(doc.folder)
-    if (!folderId)
+    if (!folderId || deletedFolderIds.has(folderId))
       return
     const readableDocFolderName = folderNameForMetadataValue(doc.folderName)
     if (!nodesById.has(folderId)) {
@@ -388,7 +507,7 @@ function buildFolderTree(documents: DocEntry[], folders: DocFolderRecord[]): Doc
   documents.forEach((doc) => {
     root.count += 1
     const folderId = normalizeFolderId(doc.folder)
-    if (!folderId)
+    if (!folderId || deletedFolderIds.has(folderId))
       return
 
     let node = nodesById.get(folderId)
@@ -417,9 +536,10 @@ export const useDocsStore = defineStore('docs', () => {
   const searchQuery = shallowRef('')
   const reviewOnly = shallowRef(false)
   const isLoading = shallowRef(false)
-  const localMetadataOverrides = new Map<string, LocalDocMetadataOverride>()
+  const localMetadataOverrides = readLocalMetadataOverrides()
+  const deletedFolderIds = shallowRef(readDeletedFolderIds())
 
-  const folderTree = computed(() => buildFolderTree(documents.value, folders.value))
+  const folderTree = computed(() => buildFolderTree(documents.value, folders.value, deletedFolderIds.value))
   const selectedFolderIds = computed(() => {
     const folderId = normalizeFolderId(activeFolder.value)
     if (!folderId)
@@ -456,6 +576,7 @@ export const useDocsStore = defineStore('docs', () => {
     const folderNameSynced = !override.folderName || content.folderName === override.folderName
     if ((titleSynced && folderSynced && folderNameSynced) || getMetadataTimestamp(content) > override.updatedAt) {
       localMetadataOverrides.delete(roomId)
+      writeLocalMetadataOverrides(localMetadataOverrides)
       return content
     }
 
@@ -474,6 +595,29 @@ export const useDocsStore = defineStore('docs', () => {
       ...(localMetadataOverrides.get(docId) ?? {}),
       ...patch,
     })
+    writeLocalMetadataOverrides(localMetadataOverrides)
+  }
+
+  function rememberDeletedFolderIds(folderIds: Set<string>): void {
+    const next = new Set(deletedFolderIds.value)
+    folderIds.forEach((folderId) => {
+      const normalized = normalizeFolderId(folderId)
+      if (normalized)
+        next.add(normalized)
+    })
+    deletedFolderIds.value = next
+    writeDeletedFolderIds(next)
+  }
+
+  function forgetDeletedFolderId(folderId: string): void {
+    const normalized = normalizeFolderId(folderId)
+    if (!normalized || !deletedFolderIds.value.has(normalized))
+      return
+
+    const next = new Set(deletedFolderIds.value)
+    next.delete(normalized)
+    deletedFolderIds.value = next
+    writeDeletedFolderIds(next)
   }
 
   const filteredDocuments = computed(() => {
@@ -545,6 +689,7 @@ export const useDocsStore = defineStore('docs', () => {
       const client = getClient() as unknown as MatrixDocAccountClient
       const content = client.getAccountData?.(MATRIX_EVENT_TYPES.DOC_FOLDERS)?.getContent()
       folders.value = normalizeFolderRecords(content?.folders)
+        .filter(folder => !deletedFolderIds.value.has(folder.id))
     }
     catch {
       folders.value = []
@@ -822,6 +967,7 @@ export const useDocsStore = defineStore('docs', () => {
     const client = getClient()
     await client.leave(docId)
     localMetadataOverrides.delete(docId)
+    writeLocalMetadataOverrides(localMetadataOverrides)
     documents.value = documents.value.filter(doc => doc.id !== docId)
   }
 
@@ -837,6 +983,7 @@ export const useDocsStore = defineStore('docs', () => {
     }
 
     folders.value = [...folders.value, folder]
+    forgetDeletedFolderId(folder.id)
     await persistFolders()
     return folder.id
   }
@@ -849,6 +996,7 @@ export const useDocsStore = defineStore('docs', () => {
     const nextName = sanitizeFolderName(name)
     const now = Date.now()
     const existingFolder = folders.value.find(folder => folder.id === targetFolderId)
+    forgetDeletedFolderId(targetFolderId)
     if (existingFolder) {
       folders.value = folders.value.map(folder => folder.id === targetFolderId
         ? { ...folder, name: nextName, updatedAt: now }
@@ -883,6 +1031,7 @@ export const useDocsStore = defineStore('docs', () => {
     collectFolderIds(node, folderIds)
     const documentsToMove = documents.value.filter(doc => folderIds.has(normalizeFolderId(doc.folder)))
     await Promise.all(documentsToMove.map(doc => updateDocumentFolder(doc.id, ROOT_DOC_FOLDER_ID)))
+    rememberDeletedFolderIds(folderIds)
 
     folders.value = folders.value.filter(folder => !folderIds.has(folder.id))
     if (selectedFolderIds.value?.has(targetFolderId))

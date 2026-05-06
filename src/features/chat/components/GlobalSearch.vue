@@ -318,20 +318,20 @@ onUnmounted(() => {
 
 <template>
   <div class="flex h-full w-full flex-col" @keydown.capture="onSearchKeydown">
-    <div class="flex shrink-0 items-center gap-3 border-b border-border px-3 py-3">
+    <div class="flex shrink-0 items-center gap-3 border-b border-border px-4 py-3">
       <Search :size="16" class="text-muted-foreground shrink-0" />
-      <form data-testid="global-search-form" class="flex-1 flex items-center gap-2" @submit.prevent="submitSearch">
+      <form data-testid="global-search-form" class="flex min-w-0 flex-1 items-center gap-2" @submit.prevent="submitSearch">
         <input
           ref="searchInput"
           v-model="query"
           data-testid="global-search-input"
           type="text"
           :placeholder="t('chat.global_search_placeholder')"
-          class="flex-1 bg-transparent text-sm outline-none"
+          class="h-9 min-w-0 flex-1 appearance-none border-0 bg-transparent p-0 text-sm leading-9 outline-none placeholder:text-muted-foreground focus:border-transparent focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
         >
         <button
           type="submit"
-          class="text-xs rounded-md px-2 py-1 bg-primary text-primary-foreground disabled:opacity-50"
+          class="inline-flex h-8 shrink-0 items-center justify-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
           :disabled="!query.trim() || retrievalStore.loading"
         >
           {{ t('chat.search_btn') }}

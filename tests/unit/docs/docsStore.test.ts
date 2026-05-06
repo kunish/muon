@@ -81,6 +81,7 @@ function makeForbiddenMatrixErrorObject(): { errcode: string, httpStatus: number
 describe('docsStore', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    localStorage.clear()
     mockClient.getRooms.mockReturnValue([])
     mockClient.getRoom.mockReturnValue({
       roomId: '!doc:localhost',
@@ -382,6 +383,90 @@ describe('docsStore', () => {
     expect(store.folderTree.children).toEqual([])
   })
 
+  it('keeps deleted folder records hidden when stale account data returns after reload', async () => {
+    const folderId = 'folder:46309ed8-5518-473a-8a4b-1ac909c2f20a'
+    const store = useDocsStore()
+    store.folders = [
+      { id: folderId, name: '项目资料', parentId: '', createdAt: 1, updatedAt: 1 },
+    ]
+    mockClient.setAccountData.mockRejectedValueOnce(makeForbiddenMatrixErrorObject())
+
+    await store.deleteFolder(folderId)
+
+    expect(store.folderTree.children).toEqual([])
+
+    setActivePinia(createPinia())
+    mockClient.getAccountData.mockReturnValue({
+      getContent: () => ({
+        folders: [
+          { id: folderId, name: '项目资料', parentId: '', createdAt: 1, updatedAt: 1 },
+        ],
+      }),
+    })
+    const reloadedStore = useDocsStore()
+    await reloadedStore.loadFolders()
+
+    expect(reloadedStore.folders).toEqual([])
+    expect(reloadedStore.folderTree.children).toEqual([])
+  })
+
+  it('keeps document folder deletion after reload when remote metadata is still stale', async () => {
+    const folderId = 'folder:46309ed8-5518-473a-8a4b-1ac909c2f20a'
+    const store = useDocsStore()
+    store.folders = [
+      { id: folderId, name: '项目资料', parentId: '', createdAt: 1, updatedAt: 1 },
+    ]
+    store.documents = [{
+      id: '!doc:localhost',
+      title: '接口设计',
+      owner: '@test:localhost',
+      updated: '刚刚',
+      type: '文档',
+      status: '草稿',
+      folder: folderId,
+      folderName: '项目资料',
+      sectionIds: ['recent'],
+    }]
+    mockClient.sendStateEvent.mockRejectedValueOnce(makeForbiddenMatrixErrorObject())
+    mockClient.sendEvent.mockRejectedValueOnce(makeForbiddenMatrixErrorObject())
+    mockClient.setAccountData.mockRejectedValueOnce(makeForbiddenMatrixErrorObject())
+
+    await store.deleteFolder(folderId)
+
+    expect(store.documents[0]?.folder).toBe('')
+    expect(store.folderTree.children).toEqual([])
+
+    setActivePinia(createPinia())
+    mockClient.getAccountData.mockReturnValue({
+      getContent: () => ({
+        folders: [
+          { id: folderId, name: '项目资料', parentId: '', createdAt: 1, updatedAt: 1 },
+        ],
+      }),
+    })
+    mockClient.getRooms.mockReturnValue([
+      makeDocRoom({
+        title: '接口设计',
+        owner: '@test:localhost',
+        updated: '昨天',
+        type: '文档',
+        status: '草稿',
+        folder: folderId,
+        folderName: '项目资料',
+        sectionIds: ['recent'],
+        createdAt: 1,
+      }),
+    ])
+
+    const reloadedStore = useDocsStore()
+    await reloadedStore.loadFolders()
+    await reloadedStore.loadDocuments()
+
+    expect(reloadedStore.documents[0]?.folder).toBe('')
+    expect(reloadedStore.folders).toEqual([])
+    expect(reloadedStore.folderTree.children).toEqual([])
+  })
+
   it('filters documents by selected folder including descendant folders', () => {
     const store = useDocsStore()
     store.folders = [
@@ -461,6 +546,56 @@ describe('docsStore', () => {
     await store.loadDocuments()
 
     expect(store.documents[0]?.title).toBe('保存后的标题')
+  })
+
+  it('prefers newer fallback timeline metadata over stale room state after folder deletion', async () => {
+    const store = useDocsStore()
+    const folderId = 'folder:46309ed8-5518-473a-8a4b-1ac909c2f20a'
+    mockClient.getRooms.mockReturnValue([
+      makeDocRoom(
+        {
+          title: '接口设计',
+          owner: '@test:localhost',
+          updated: '昨天',
+          type: '文档',
+          status: '草稿',
+          folder: folderId,
+          folderName: '项目资料',
+          sectionIds: ['recent'],
+          createdAt: 1,
+        },
+        [
+          {
+            title: '接口设计',
+            owner: '@test:localhost',
+            updated: '昨天',
+            type: '文档',
+            status: '草稿',
+            folder: folderId,
+            folderName: '项目资料',
+            sectionIds: ['recent'],
+            createdAt: 1,
+          },
+          {
+            title: '接口设计',
+            owner: '@test:localhost',
+            updated: '刚刚',
+            type: '文档',
+            status: '草稿',
+            folder: '',
+            sectionIds: ['recent'],
+            createdAt: 1,
+            updatedAt: 2,
+          },
+        ],
+      ),
+    ])
+
+    await store.loadDocuments()
+
+    expect(store.documents[0]?.folder).toBe('')
+    expect(store.documents[0]?.folderName).toBeUndefined()
+    expect(store.folderTree.children).toEqual([])
   })
 
   it('derives shared documents from owner metadata for the current user', async () => {

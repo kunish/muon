@@ -115,6 +115,19 @@ describe('globalSearch', () => {
     useContactStore().contacts = []
   })
 
+  it('resets native input chrome in the search header', () => {
+    const wrapper = mountGlobalSearch()
+    const input = wrapper.get('[data-testid="global-search-input"]')
+    const submit = wrapper.get('[data-testid="global-search-form"] button[type="submit"]')
+
+    expect(input.classes()).toContain('border-0')
+    expect(input.classes()).toContain('focus:ring-0')
+    expect(input.classes()).toContain('focus:ring-offset-0')
+    expect(input.classes()).toContain('focus-visible:ring-0')
+    expect(input.classes()).toContain('focus-visible:ring-offset-0')
+    expect(submit.classes()).toContain('h-8')
+  })
+
   it('renders cross-conversation message results after search submit', async () => {
     retrievalState.results = [
       {
