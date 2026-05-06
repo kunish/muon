@@ -45,4 +45,26 @@ describe('docsFolderTree layout', () => {
     expect(wrapper.get('[data-testid="docs-folder-rename"]').text()).toContain('重命名')
     expect(wrapper.get('[data-testid="docs-folder-delete"]').text()).toContain('删除')
   })
+
+  it('keeps inferred folders editable and deletable', async () => {
+    const tree = makeFolderTree()
+    const inferredFolder = tree.children[0]!
+    tree.children[0] = {
+      ...inferredFolder,
+      name: '未命名文件夹',
+      count: 1,
+      isPersisted: false,
+    }
+    const wrapper = mount(DocsFolderTree, {
+      props: {
+        root: tree,
+        activeFolder: 'folder:long',
+      },
+    })
+
+    await wrapper.get('[data-testid="docs-folder-more"]').trigger('click')
+
+    expect(wrapper.get('[data-testid="docs-folder-rename"]').text()).toContain('重命名')
+    expect(wrapper.get('[data-testid="docs-folder-delete"]').attributes('disabled')).toBeUndefined()
+  })
 })

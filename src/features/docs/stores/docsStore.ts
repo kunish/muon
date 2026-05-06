@@ -843,11 +843,30 @@ export const useDocsStore = defineStore('docs', () => {
 
   async function renameFolder(folderId: string, name: string): Promise<void> {
     const targetFolderId = normalizeFolderId(folderId)
+    if (!targetFolderId)
+      return
+
     const nextName = sanitizeFolderName(name)
     const now = Date.now()
-    folders.value = folders.value.map(folder => folder.id === targetFolderId
-      ? { ...folder, name: nextName, updatedAt: now }
-      : folder)
+    const existingFolder = folders.value.find(folder => folder.id === targetFolderId)
+    if (existingFolder) {
+      folders.value = folders.value.map(folder => folder.id === targetFolderId
+        ? { ...folder, name: nextName, updatedAt: now }
+        : folder)
+    }
+    else {
+      const node = findFolderNode(folderTree.value, targetFolderId)
+      folders.value = [
+        ...folders.value,
+        {
+          id: targetFolderId,
+          name: nextName,
+          parentId: normalizeFolderId(node?.parentId),
+          createdAt: now,
+          updatedAt: now,
+        },
+      ]
+    }
     await persistFolders()
   }
 
@@ -857,11 +876,14 @@ export const useDocsStore = defineStore('docs', () => {
       return
 
     const node = findFolderNode(folderTree.value, targetFolderId)
-    if (!node || node.count > 0)
+    if (!node)
       return
 
     const folderIds = new Set<string>()
     collectFolderIds(node, folderIds)
+    const documentsToMove = documents.value.filter(doc => folderIds.has(normalizeFolderId(doc.folder)))
+    await Promise.all(documentsToMove.map(doc => updateDocumentFolder(doc.id, ROOT_DOC_FOLDER_ID)))
+
     folders.value = folders.value.filter(folder => !folderIds.has(folder.id))
     if (selectedFolderIds.value?.has(targetFolderId))
       activeFolder.value = ROOT_DOC_FOLDER_ID

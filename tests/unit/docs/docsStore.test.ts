@@ -324,6 +324,64 @@ describe('docsStore', () => {
     expect(store.folderTree.children[0]?.count).toBe(1)
   })
 
+  it('renames inferred generated folders by creating a persisted folder record', async () => {
+    const store = useDocsStore()
+    const folderId = 'folder:46309ed8-5518-473a-8a4b-1ac909c2f20a'
+    store.documents = [{
+      id: '!doc:localhost',
+      title: '接口设计',
+      owner: '@test:localhost',
+      updated: '刚刚',
+      type: '文档',
+      status: '草稿',
+      folder: folderId,
+      sectionIds: ['recent'],
+    }]
+
+    await store.renameFolder(folderId, '项目资料')
+
+    expect(store.folders).toEqual([
+      expect.objectContaining({ id: folderId, name: '项目资料', parentId: '' }),
+    ])
+    expect(store.folderTree.children[0]?.name).toBe('项目资料')
+    expect(mockClient.setAccountData).toHaveBeenCalledWith(
+      MATRIX_EVENT_TYPES.DOC_FOLDERS,
+      expect.objectContaining({
+        folders: [expect.objectContaining({ id: folderId, name: '项目资料', parentId: '' })],
+      }),
+    )
+  })
+
+  it('deletes inferred generated folders by moving contained documents back to root', async () => {
+    const store = useDocsStore()
+    const folderId = 'folder:46309ed8-5518-473a-8a4b-1ac909c2f20a'
+    store.documents = [{
+      id: '!doc:localhost',
+      title: '接口设计',
+      owner: '@test:localhost',
+      updated: '刚刚',
+      type: '文档',
+      status: '草稿',
+      folder: folderId,
+      folderName: '项目资料',
+      sectionIds: ['recent'],
+    }]
+    store.activeFolder = folderId
+
+    await store.deleteFolder(folderId)
+
+    expect(mockClient.sendStateEvent).toHaveBeenCalledWith(
+      '!doc:localhost',
+      MATRIX_EVENT_TYPES.DOC_METADATA,
+      expect.objectContaining({
+        folder: '',
+      }),
+    )
+    expect(store.documents[0]?.folder).toBe('')
+    expect(store.activeFolder).toBe('')
+    expect(store.folderTree.children).toEqual([])
+  })
+
   it('filters documents by selected folder including descendant folders', () => {
     const store = useDocsStore()
     store.folders = [

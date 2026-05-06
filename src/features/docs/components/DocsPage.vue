@@ -145,8 +145,8 @@ async function deleteDocument(doc: DocEntry): Promise<void> {
 
     <!-- No document selected: show list -->
     <section v-if="!selectedDocId" class="flex min-w-0 flex-1 flex-col bg-background">
-      <header class="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-border bg-sidebar px-6">
-        <label class="flex h-9 min-w-[240px] flex-1 max-w-2xl items-center gap-2 rounded-md border border-border bg-input px-3 text-muted-foreground focus-within:border-primary">
+      <header class="flex h-14 min-w-0 shrink-0 items-center justify-between gap-3 overflow-hidden border-b border-border bg-sidebar px-6">
+        <label class="flex h-9 min-w-0 flex-1 max-w-2xl items-center gap-2 rounded-md border border-border bg-input px-3 text-muted-foreground focus-within:border-primary">
           <Search :size="18" />
           <input
             v-model="store.searchQuery"
@@ -155,24 +155,24 @@ async function deleteDocument(doc: DocEntry): Promise<void> {
             class="h-full min-w-0 flex-1 bg-transparent text-[13px] text-foreground outline-none placeholder:text-muted-foreground"
           >
         </label>
-        <div class="flex shrink-0 items-center gap-3">
+        <div class="flex min-w-0 shrink items-center gap-2">
           <button
             data-testid="docs-review-filter"
-            class="inline-flex h-9 shrink-0 items-center gap-2 rounded-md border px-3 text-[13px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            class="inline-flex h-9 min-w-0 max-w-[142px] shrink items-center gap-2 rounded-md border px-3 text-[13px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             :class="store.reviewOnly ? 'border-primary/30 bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:bg-accent hover:text-foreground'"
             :aria-pressed="store.reviewOnly"
             @click="store.reviewOnly = !store.reviewOnly"
           >
-            <SlidersHorizontal :size="15" />
-            <span>只看评审中</span>
+            <SlidersHorizontal :size="15" class="shrink-0" />
+            <span class="min-w-0 truncate">只看评审中</span>
           </button>
           <button
             data-testid="docs-list-create"
-            class="inline-flex h-9 shrink-0 items-center gap-2 rounded-md bg-primary px-3 text-[13px] font-semibold text-primary-foreground transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            class="inline-flex h-9 min-w-0 max-w-[136px] shrink items-center gap-2 rounded-md bg-primary px-3 text-[13px] font-semibold text-primary-foreground transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             @click="createDocument"
           >
-            <Plus :size="16" />
-            <span>新建文档</span>
+            <Plus :size="16" class="shrink-0" />
+            <span class="min-w-0 truncate">新建文档</span>
           </button>
         </div>
       </header>

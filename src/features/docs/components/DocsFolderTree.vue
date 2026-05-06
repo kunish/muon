@@ -112,7 +112,7 @@ function submitCreate(): void {
 }
 
 function beginRename(node: DocFolderNode): void {
-  if (!node.id || !node.isPersisted)
+  if (!node.id)
     return
 
   renamingFolderId.value = node.id
@@ -257,7 +257,7 @@ function requestDelete(folderId: string): void {
               <FolderPlus :size="15" />
             </button>
             <button
-              v-if="folder.id && folder.isPersisted"
+              v-if="folder.id"
               type="button"
               data-testid="docs-folder-more"
               class="inline-flex size-7 items-center justify-center rounded-md text-muted-foreground transition hover:bg-sidebar-accent hover:text-foreground"
@@ -289,7 +289,6 @@ function requestDelete(folderId: string): void {
               type="button"
               class="workspace-menu-item workspace-menu-item-destructive w-full disabled:pointer-events-none disabled:opacity-50"
               data-testid="docs-folder-delete"
-              :disabled="folder.count > 0"
               @click="requestDelete(folder.id)"
             >
               <Trash2 :size="15" />
