@@ -57,7 +57,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="app-window-frame flex h-screen flex-col overflow-hidden bg-background text-foreground">
+  <div class="flex h-screen flex-col overflow-hidden bg-background text-foreground">
     <WindowTitleBar v-if="showWindowTitleBar" />
     <main class="min-h-0 flex-1 overflow-hidden">
       <ErrorBoundary>

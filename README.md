@@ -45,6 +45,7 @@ A modern [Matrix](https://matrix.org) chat client built with [Electron](https://
 - Web favicon: `index.html` points to the primary SVG logo
 - Workspace rail brand mark: `src/app/components/workspace/WorkspaceAppRail.vue`
 - Window title bar brand mark: `src/app/components/window/WindowTitleBar.vue`
+- Native desktop window controls: `electron/main.ts`
 - Electron platform icons: `build/icons/`
 
 ## Download

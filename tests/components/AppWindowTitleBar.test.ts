@@ -46,7 +46,7 @@ function mountApp() {
   })
 }
 
-describe('app window title bar runtime', () => {
+describe('app native window frame runtime', () => {
   beforeEach(() => {
     routerReplace.mockClear()
     matrixMocks.restoreSession.mockReset()
@@ -65,12 +65,15 @@ describe('app window title bar runtime', () => {
     expect(wrapper.find('[data-testid="window-titlebar"]').exists()).toBe(false)
   })
 
-  it('keeps the custom window title bar in Electron', () => {
+  it('keeps the custom title bar style in Electron without custom window controls', () => {
     window.muonDesktop = { isElectron: true, platform: 'darwin' } as never
 
     const wrapper = mountApp()
 
     expect(wrapper.find('[data-testid="window-titlebar"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="window-close"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="window-minimize"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="window-maximize"]').exists()).toBe(false)
   })
 
   it('shows a localized network error when session restore cannot reach the server', async () => {

@@ -1,21 +1,6 @@
 @import '@muon/ui/styles.css';
 
 @layer components {
-  .app-window-frame {
-    border: 1px solid color-mix(in srgb, var(--color-border) 72%, transparent);
-    border-radius: 8px;
-    overflow: hidden;
-    background: var(--color-background);
-    box-shadow: 0 14px 36px color-mix(in srgb, #000000 28%, transparent);
-  }
-
-  .muon-window-maximized .app-window-frame,
-  .muon-window-flush-frame .app-window-frame {
-    border-color: transparent;
-    border-radius: 0;
-    box-shadow: none;
-  }
-
   .workspace-surface {
     @apply border border-border bg-card;
     box-shadow: none;

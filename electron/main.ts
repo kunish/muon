@@ -4,7 +4,7 @@ import { readFile, writeFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { join } from 'node:path'
 import process from 'node:process'
-import { app, BrowserWindow, dialog, ipcMain, net, safeStorage, screen, shell } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, net, safeStorage, shell } from 'electron'
 import { ENTERPRISE_AUTH_CALLBACK_CHANNEL, extractEnterpriseAuthCallbackUrl, isEnterpriseAuthCallbackUrl } from './authCallback.js'
 
 let mainWindow: BrowserWindow | null = null
@@ -50,13 +50,6 @@ function applyRuntimeAppIcon(): void {
     app.dock.setIcon(appIconPath)
 }
 
-function sendWindowFrameEvent(channel: string): void {
-  if (!mainWindow || mainWindow.isDestroyed())
-    return
-
-  mainWindow.webContents.send(channel)
-}
-
 function sendEnterpriseAuthCallbackUrl(url: string): void {
   if (!mainWindow || mainWindow.isDestroyed()) {
     pendingAuthCallbackUrl = url
@@ -73,33 +66,6 @@ function registerEnterpriseProtocol(): void {
   }
 
   app.setAsDefaultProtocolClient('muon')
-}
-
-function toSize(size: Electron.Size): { height: number, width: number } {
-  return {
-    height: size.height,
-    width: size.width,
-  }
-}
-
-function toPosition(position: Electron.Point): { x: number, y: number } {
-  return {
-    x: position.x,
-    y: position.y,
-  }
-}
-
-function toMonitor(display: Electron.Display) {
-  return {
-    name: String(display.id),
-    position: toPosition(display.bounds),
-    scaleFactor: display.scaleFactor,
-    size: toSize(display.bounds),
-    workArea: {
-      position: toPosition(display.workArea),
-      size: toSize(display.workArea),
-    },
-  }
 }
 
 function normalizeFilters(filters: unknown): Electron.FileFilter[] | undefined {
@@ -273,26 +239,9 @@ function fetchManualRedirectResponse(fetchRequest: MainFetchRequest): Promise<Ma
 }
 
 function registerWindowIpc(): void {
-  ipcMain.handle('muon:window:minimize', () => getMainWindow().minimize())
-  ipcMain.handle('muon:window:close', () => getMainWindow().close())
   ipcMain.handle('muon:window:hide', () => getMainWindow().hide())
   ipcMain.handle('muon:window:show', () => getMainWindow().show())
   ipcMain.handle('muon:window:focus', () => getMainWindow().focus())
-  ipcMain.handle('muon:window:is-focused', () => getMainWindow().isFocused())
-  ipcMain.handle('muon:window:is-maximized', () => getMainWindow().isMaximized())
-  ipcMain.handle('muon:window:maximize', () => getMainWindow().maximize())
-  ipcMain.handle('muon:window:unmaximize', () => getMainWindow().unmaximize())
-  ipcMain.handle('muon:window:outer-position', () => toPosition(getMainWindow().getBounds()))
-  ipcMain.handle('muon:window:outer-size', () => toSize(getMainWindow().getBounds()))
-  ipcMain.handle('muon:window:set-position', (_event, position: { x: number, y: number }) => {
-    getMainWindow().setPosition(Math.round(position.x), Math.round(position.y))
-  })
-  ipcMain.handle('muon:window:set-size', (_event, size: { height: number, width: number }) => {
-    getMainWindow().setSize(Math.round(size.width), Math.round(size.height))
-  })
-  ipcMain.handle('muon:window:current-monitor', () => {
-    return toMonitor(screen.getDisplayMatching(getMainWindow().getBounds()))
-  })
 }
 
 function registerDialogIpc(): void {
@@ -462,15 +411,20 @@ function createMainWindow(): void {
 
   mainWindow = new BrowserWindow({
     ...(appIconPath ? { icon: appIconPath } : {}),
-    backgroundColor: '#00000000',
-    frame: false,
+    backgroundColor: '#ffffff',
+    frame: true,
     height: 768,
     minHeight: 600,
     minWidth: 800,
     resizable: true,
     show: false,
     title: 'Muon',
-    transparent: true,
+    titleBarOverlay: {
+      color: '#00000000',
+      height: 36,
+    },
+    titleBarStyle: 'hidden',
+    trafficLightPosition: { x: 14, y: 12 },
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
@@ -495,12 +449,6 @@ function createMainWindow(): void {
     }
   })
 
-  mainWindow.on('move', () => sendWindowFrameEvent('muon:window:moved'))
-  mainWindow.on('resize', () => sendWindowFrameEvent('muon:window:resized'))
-  mainWindow.on('focus', () => sendWindowFrameEvent('muon:window:focused'))
-  mainWindow.on('blur', () => sendWindowFrameEvent('muon:window:blurred'))
-  mainWindow.on('maximize', () => sendWindowFrameEvent('muon:window:resized'))
-  mainWindow.on('unmaximize', () => sendWindowFrameEvent('muon:window:resized'))
   mainWindow.on('close', (event) => {
     if (!closeToTrayEnabled || isQuitting)
       return

@@ -7,38 +7,25 @@ function readSource(path: string): string {
 }
 
 describe('windowTitleBarStyle', () => {
-  it('prevents the title bar text from showing an input cursor', () => {
+  it('keeps the custom title bar style and drag region', () => {
     const source = readSource('src/app/components/window/WindowTitleBar.vue')
 
-    expect(source).toContain('.window-titlebar *')
-    expect(source).toContain('cursor: default')
+    expect(source).toContain('.window-titlebar')
+    expect(source).toContain('background-image: linear-gradient')
+    expect(source).toContain('.window-titlebar__brand')
+    expect(source).toContain('.window-titlebar__drag-region')
+    expect(source).toContain('-webkit-app-region: drag')
   })
 
-  it('styles the inactive Electron window state', () => {
-    const source = readSource('src/app/components/window/WindowTitleBar.vue')
-
-    expect(source).toContain('window-titlebar--inactive')
-    expect(source).toContain('.window-titlebar--inactive .window-titlebar__brand')
-    expect(source).toContain('.window-titlebar--inactive .window-titlebar__control--button')
-    expect(source).not.toContain('.window-titlebar--inactive .window-titlebar__control--dot')
-  })
-
-  it('keeps macOS traffic light hover feedback on each dot control', () => {
-    const source = readSource('src/app/components/window/WindowTitleBar.vue')
-
-    expect(source).toContain('.window-titlebar__control--dot:hover .window-titlebar__dot-icon')
-    expect(source).toContain('.window-titlebar__control--dot:active')
-  })
-
-  it('keeps Electron drag regions from covering window controls', () => {
+  it('reserves space for native system window controls without styling custom buttons', () => {
     const source = readSource('src/app/components/window/WindowTitleBar.vue')
 
     expect(source).toContain('--window-titlebar-mac-controls-width')
     expect(source).toContain('--window-titlebar-default-controls-width')
     expect(source).toContain('.window-titlebar--mac .window-titlebar__drag-region')
-    expect(source).toContain('margin-left: var(--window-titlebar-mac-controls-width)')
-    expect(source).toContain('margin-right: var(--window-titlebar-default-controls-width)')
-    expect(source).toContain('.window-titlebar__controls')
-    expect(source).toContain('-webkit-app-region: no-drag')
+    expect(source).not.toContain('.window-titlebar__control')
+    expect(source).not.toContain('data-testid="window-close"')
+    expect(source).not.toContain('data-testid="window-minimize"')
+    expect(source).not.toContain('data-testid="window-maximize"')
   })
 })

@@ -7,17 +7,14 @@ function readSource(path: string): string {
 }
 
 describe('window frame style', () => {
-  it('keeps the transparent native window clipped by the rounded app frame', () => {
+  it('keeps the custom title bar while relying on the native window frame', () => {
     const app = readSource('src/app/App.vue')
     const css = `${readSource('packages/ui/src/styles.css')}\n${readSource('src/app/main.css')}`
 
-    expect(app).toContain('app-window-frame')
-    expect(css).toContain('background: transparent')
-    expect(css).toContain('.app-window-frame')
-    expect(css).toContain('border-radius: 8px')
-    expect(css).toContain('overflow: hidden')
-    expect(css).toContain('box-shadow: 0 14px 36px')
-    expect(css).toContain('.muon-window-maximized .app-window-frame')
-    expect(css).toContain('.muon-window-flush-frame .app-window-frame')
+    expect(app).toContain('WindowTitleBar')
+    expect(app).not.toContain('app-window-frame')
+    expect(css).not.toContain('.app-window-frame')
+    expect(css).not.toContain('.muon-window-maximized .app-window-frame')
+    expect(css).not.toContain('.muon-window-flush-frame .app-window-frame')
   })
 })

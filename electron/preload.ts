@@ -1,12 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { ENTERPRISE_AUTH_CALLBACK_CHANNEL } from './authCallback.js'
 
-function subscribe(channel: string, callback: () => void): () => void {
-  const listener = (): void => callback()
-  ipcRenderer.on(channel, listener)
-  return () => ipcRenderer.removeListener(channel, listener)
-}
-
 function subscribeValue<T>(channel: string, callback: (value: T) => void): () => void {
   const listener = (_event: Electron.IpcRendererEvent, value: T): void => callback(value)
   ipcRenderer.on(channel, listener)
@@ -49,23 +43,8 @@ contextBridge.exposeInMainWorld('muonDesktop', {
     install: () => ipcRenderer.invoke('muon:updater:install'),
   },
   window: {
-    close: () => ipcRenderer.invoke('muon:window:close'),
-    currentMonitor: () => ipcRenderer.invoke('muon:window:current-monitor'),
     hide: () => ipcRenderer.invoke('muon:window:hide'),
-    isFocused: () => ipcRenderer.invoke('muon:window:is-focused'),
-    isMaximized: () => ipcRenderer.invoke('muon:window:is-maximized'),
-    maximize: () => ipcRenderer.invoke('muon:window:maximize'),
-    minimize: () => ipcRenderer.invoke('muon:window:minimize'),
-    onBlurred: (callback: () => void) => subscribe('muon:window:blurred', callback),
-    onFocused: (callback: () => void) => subscribe('muon:window:focused', callback),
-    onMoved: (callback: () => void) => subscribe('muon:window:moved', callback),
-    onResized: (callback: () => void) => subscribe('muon:window:resized', callback),
-    outerPosition: () => ipcRenderer.invoke('muon:window:outer-position'),
-    outerSize: () => ipcRenderer.invoke('muon:window:outer-size'),
     setFocus: () => ipcRenderer.invoke('muon:window:focus'),
-    setPosition: (position: unknown) => ipcRenderer.invoke('muon:window:set-position', position),
-    setSize: (size: unknown) => ipcRenderer.invoke('muon:window:set-size', size),
     show: () => ipcRenderer.invoke('muon:window:show'),
-    unmaximize: () => ipcRenderer.invoke('muon:window:unmaximize'),
   },
 })

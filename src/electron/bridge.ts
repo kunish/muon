@@ -21,27 +21,6 @@ export interface DesktopDialogAskOptions {
   cancelLabel?: string
 }
 
-export interface DesktopPosition {
-  x: number
-  y: number
-}
-
-export interface DesktopSize {
-  height: number
-  width: number
-}
-
-export interface DesktopMonitor {
-  name: string
-  position: DesktopPosition
-  scaleFactor: number
-  size: DesktopSize
-  workArea: {
-    position: DesktopPosition
-    size: DesktopSize
-  }
-}
-
 export type UnlistenFn = () => void
 
 export interface SerializedFetchBody {
@@ -102,24 +81,9 @@ export interface MuonDesktopBridge {
     install: () => Promise<void>
   }
   window: {
-    close: () => Promise<void>
-    currentMonitor: () => Promise<DesktopMonitor | null>
     hide: () => Promise<void>
-    isFocused: () => Promise<boolean>
-    isMaximized: () => Promise<boolean>
-    maximize: () => Promise<void>
-    minimize: () => Promise<void>
-    onBlurred: (callback: () => void) => UnlistenFn
-    onFocused: (callback: () => void) => UnlistenFn
-    onMoved: (callback: () => void) => UnlistenFn
-    onResized: (callback: () => void) => UnlistenFn
-    outerPosition: () => Promise<DesktopPosition>
-    outerSize: () => Promise<DesktopSize>
     setFocus: () => Promise<void>
-    setPosition: (position: DesktopPosition) => Promise<void>
-    setSize: (size: DesktopSize) => Promise<void>
     show: () => Promise<void>
-    unmaximize: () => Promise<void>
   }
 }
 

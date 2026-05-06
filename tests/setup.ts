@@ -75,34 +75,9 @@ const i18n = createI18n({
 config.global.plugins = [i18n]
 
 vi.mock('@/electron/window', () => ({
-  PhysicalPosition: class PhysicalPosition {
-    readonly type = 'Physical'
-
-    constructor(public x: number, public y: number) {}
-  },
-  PhysicalSize: class PhysicalSize {
-    readonly type = 'Physical'
-
-    constructor(public width: number, public height: number) {}
-  },
-  currentMonitor: vi.fn().mockResolvedValue(null),
-  getDesktopPlatform: vi.fn(() => undefined),
   getCurrentWindow: vi.fn(() => ({
-    close: vi.fn(),
-    isMaximized: vi.fn().mockResolvedValue(false),
-    isFocused: vi.fn().mockResolvedValue(true),
-    maximize: vi.fn(),
-    minimize: vi.fn(),
-    onBlurred: vi.fn().mockResolvedValue(vi.fn()),
-    onFocused: vi.fn().mockResolvedValue(vi.fn()),
-    onMoved: vi.fn().mockResolvedValue(vi.fn()),
-    onResized: vi.fn().mockResolvedValue(vi.fn()),
-    outerPosition: vi.fn().mockResolvedValue({ x: 0, y: 0 }),
-    outerSize: vi.fn().mockResolvedValue({ height: 768, width: 1024 }),
-    setPosition: vi.fn(),
-    setSize: vi.fn(),
     show: vi.fn(),
     setFocus: vi.fn(),
-    unmaximize: vi.fn(),
+    hide: vi.fn(),
   })),
 }))

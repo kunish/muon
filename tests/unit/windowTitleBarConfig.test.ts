@@ -10,31 +10,40 @@ function readSource(path: string): string {
   return readFileSync(resolve(process.cwd(), path), 'utf8')
 }
 
-describe('custom window title bar configuration', () => {
-  it('uses a transparent frameless Electron BrowserWindow with a preload bridge', () => {
+describe('native window frame configuration', () => {
+  it('uses the Electron native frame so the OS provides window controls', () => {
     const source = readSource('electron/main.ts')
 
-    expect(source).toContain('frame: false')
-    expect(source).toContain('backgroundColor: \'#00000000\'')
-    expect(source).toContain('transparent: true')
+    expect(source).toContain('frame: true')
+    expect(source).toContain('titleBarStyle: \'hidden\'')
+    expect(source).toContain('titleBarOverlay:')
+    expect(source).toContain('trafficLightPosition:')
+    expect(source).toContain('backgroundColor: \'#ffffff\'')
+    expect(source).not.toContain('frame: false')
+    expect(source).not.toContain('transparent: true')
     expect(source).toContain('contextIsolation: true')
     expect(source).toContain('nodeIntegration: false')
     expect(source).toContain('preload: getPreloadEntry()')
   })
 
-  it('routes window controls through the Electron preload bridge', () => {
+  it('does not expose renderer-driven close, minimize, or maximize controls', () => {
+    const mainSource = readSource('electron/main.ts')
     const preloadSource = readSource('electron/preload.ts')
     const rendererSource = readSource('src/electron/window.ts')
 
-    expect(preloadSource).toContain('ipcRenderer.invoke(\'muon:window:minimize\')')
-    expect(preloadSource).toContain('ipcRenderer.invoke(\'muon:window:close\')')
-    expect(preloadSource).toContain('ipcRenderer.invoke(\'muon:window:is-focused\')')
-    expect(preloadSource).toContain('ipcRenderer.invoke(\'muon:window:current-monitor\')')
-    expect(preloadSource).toContain('subscribe(\'muon:window:focused\'')
-    expect(preloadSource).toContain('subscribe(\'muon:window:blurred\'')
-    expect(preloadSource).toContain('subscribe(\'muon:window:moved\'')
+    expect(mainSource).not.toContain('muon:window:minimize')
+    expect(mainSource).not.toContain('muon:window:close')
+    expect(mainSource).not.toContain('muon:window:maximize')
+    expect(preloadSource).not.toContain('muon:window:minimize')
+    expect(preloadSource).not.toContain('muon:window:close')
+    expect(preloadSource).not.toContain('muon:window:maximize')
+    expect(preloadSource).toContain('ipcRenderer.invoke(\'muon:window:hide\')')
+    expect(preloadSource).toContain('ipcRenderer.invoke(\'muon:window:show\')')
+    expect(preloadSource).toContain('ipcRenderer.invoke(\'muon:window:focus\')')
     expect(rendererSource).toContain('getDesktopBridge()?.window')
-    expect(rendererSource).toContain('getDesktopBridge()?.platform')
+    expect(rendererSource).not.toContain('close:')
+    expect(rendererSource).not.toContain('minimize:')
+    expect(rendererSource).not.toContain('maximize:')
   })
 
   it('keeps the sandboxed Electron preload compatible with limited Node APIs', () => {
