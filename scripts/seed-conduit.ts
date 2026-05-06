@@ -1,4 +1,4 @@
-#!/usr/bin/env npx tsx
+#!/usr/bin/env tsx
 import type { LocalServiceChannel, LocalServiceMessage, LocalServiceSpace } from '../src/shared/data/localServiceMock'
 import process from 'node:process'
 import { LOCAL_SERVICE_MOCK_DATA } from '../src/shared/data/localServiceMock'

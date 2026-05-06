@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 
 function readJson(path: string): {
   scripts?: Record<string, string>
+  devDependencies?: Record<string, string>
 } {
   return JSON.parse(readFileSync(resolve(process.cwd(), path), 'utf8'))
 }
@@ -47,9 +48,14 @@ describe('monorepo scripts', () => {
   })
 
   it('keeps local services focused on infrastructure', () => {
+    const root = readJson('package.json')
     const startScript = readSource('docker/start.sh')
 
+    expect(root.scripts?.['services:seed']).toBe('tsx scripts/seed-conduit.ts')
+    expect(root.devDependencies?.tsx).toBeDefined()
     expect(startScript).toContain('compose up -d postgres conduit livekit minio')
+    expect(startScript).toContain('pnpm services:seed')
+    expect(startScript).not.toContain('npx')
     expect(startScript).not.toContain('compose up -d api')
     expect(startScript).not.toContain('compose up -d admin')
   })

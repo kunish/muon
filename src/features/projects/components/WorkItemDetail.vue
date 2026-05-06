@@ -93,8 +93,8 @@ async function updateDueDate(value: string | number) {
 </script>
 
 <template>
-  <div v-if="item" class="fixed inset-y-0 right-0 z-40 w-96 border-l bg-background shadow-xl">
-    <div class="flex items-center justify-between border-b px-4 py-3">
+  <div v-if="item" class="absolute inset-y-0 right-0 z-40 flex w-96 max-w-full flex-col border-l bg-background shadow-xl">
+    <div class="flex shrink-0 items-center justify-between border-b px-4 py-3">
       <h2 class="font-semibold">
         {{ t('projects.task_title') }}
       </h2>
@@ -103,97 +103,99 @@ async function updateDueDate(value: string | number) {
       </Button>
     </div>
 
-    <div class="flex flex-col gap-4 overflow-y-auto p-4">
-      <!-- Title & Description -->
-      <div v-if="editing" class="grid gap-2">
-        <Label>{{ t('projects.task_title') }}</Label>
-        <Input v-model="editTitle" />
-        <Label>{{ t('projects.project_description') }}</Label>
-        <Textarea v-model="editDescription" rows="4" />
-        <div class="flex gap-2">
-          <Button size="sm" @click="handleSave()">
-            {{ t('common.save') }}
-          </Button>
-          <Button size="sm" variant="outline" @click="editing = false">
-            {{ t('common.cancel') }}
+    <div class="min-h-0 flex-1 overflow-y-auto p-4">
+      <div class="flex flex-col gap-4">
+        <!-- Title & Description -->
+        <div v-if="editing" class="grid gap-2">
+          <Label>{{ t('projects.task_title') }}</Label>
+          <Input v-model="editTitle" />
+          <Label>{{ t('projects.project_description') }}</Label>
+          <Textarea v-model="editDescription" rows="4" />
+          <div class="flex gap-2">
+            <Button size="sm" @click="handleSave()">
+              {{ t('common.save') }}
+            </Button>
+            <Button size="sm" variant="outline" @click="editing = false">
+              {{ t('common.cancel') }}
+            </Button>
+          </div>
+        </div>
+        <div v-else>
+          <h3 class="text-lg font-medium" @dblclick="editing = true">
+            {{ item.title }}
+          </h3>
+          <p v-if="item.description" class="mt-2 text-sm text-muted-foreground">
+            {{ item.description }}
+          </p>
+          <Button variant="ghost" size="sm" class="mt-1" @click="editing = true">
+            {{ t('common.edit') }}
           </Button>
         </div>
-      </div>
-      <div v-else>
-        <h3 class="text-lg font-medium" @dblclick="editing = true">
-          {{ item.title }}
-        </h3>
-        <p v-if="item.description" class="mt-2 text-sm text-muted-foreground">
-          {{ item.description }}
-        </p>
-        <Button variant="ghost" size="sm" class="mt-1" @click="editing = true">
-          {{ t('common.edit') }}
+
+        <!-- Priority -->
+        <div class="grid gap-1.5">
+          <Label class="text-xs text-muted-foreground">{{ t('assignee') }}</Label>
+          <Select
+            :model-value="item.priority"
+            @update:model-value="updatePriority"
+          >
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem v-for="p in priorityOptions" :key="p" :value="p">
+                {{ t(`projects.priority_${p}`) }}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <!-- Type -->
+        <div class="grid gap-1.5">
+          <Label class="text-xs text-muted-foreground">{{ t('projects.type_task') }}</Label>
+          <Select
+            :model-value="item.type"
+            @update:model-value="updateType"
+          >
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem v-for="tp in typeOptions" :key="tp" :value="tp">
+                {{ t(`projects.type_${tp}`) }}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <!-- Due Date -->
+        <div class="grid gap-1.5">
+          <Label class="text-xs text-muted-foreground">{{ t('projects.due_date') }}</Label>
+          <Input
+            type="date"
+            :model-value="item.dueDate ? new Date(item.dueDate).toISOString().slice(0, 10) : ''"
+            @update:model-value="updateDueDate"
+          />
+        </div>
+
+        <!-- Transitions -->
+        <div v-if="availableTransitions.length > 0" class="grid gap-1.5">
+          <Label class="text-xs text-muted-foreground">{{ t('projects.status') }}</Label>
+          <div class="flex flex-wrap gap-2">
+            <Button
+              v-for="tStatus in availableTransitions"
+              :key="tStatus"
+              size="sm"
+              variant="outline"
+              @click="handleTransition(tStatus)"
+            >
+              {{ tStatus }}
+            </Button>
+          </div>
+        </div>
+
+        <!-- Delete -->
+        <Button variant="destructive" size="sm" @click="handleDelete()">
+          <Trash2 class="mr-1 h-3.5 w-3.5" />
+          {{ t('common.delete') }}
         </Button>
       </div>
-
-      <!-- Priority -->
-      <div class="grid gap-1.5">
-        <Label class="text-xs text-muted-foreground">{{ t('assignee') }}</Label>
-        <Select
-          :model-value="item.priority"
-          @update:model-value="updatePriority"
-        >
-          <SelectTrigger><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem v-for="p in priorityOptions" :key="p" :value="p">
-              {{ t(`projects.priority_${p}`) }}
-            </SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      <!-- Type -->
-      <div class="grid gap-1.5">
-        <Label class="text-xs text-muted-foreground">{{ t('projects.type_task') }}</Label>
-        <Select
-          :model-value="item.type"
-          @update:model-value="updateType"
-        >
-          <SelectTrigger><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem v-for="tp in typeOptions" :key="tp" :value="tp">
-              {{ t(`projects.type_${tp}`) }}
-            </SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      <!-- Due Date -->
-      <div class="grid gap-1.5">
-        <Label class="text-xs text-muted-foreground">{{ t('projects.due_date') }}</Label>
-        <Input
-          type="date"
-          :model-value="item.dueDate ? new Date(item.dueDate).toISOString().slice(0, 10) : ''"
-          @update:model-value="updateDueDate"
-        />
-      </div>
-
-      <!-- Transitions -->
-      <div v-if="availableTransitions.length > 0" class="grid gap-1.5">
-        <Label class="text-xs text-muted-foreground">{{ t('projects.status') }}</Label>
-        <div class="flex flex-wrap gap-2">
-          <Button
-            v-for="tStatus in availableTransitions"
-            :key="tStatus"
-            size="sm"
-            variant="outline"
-            @click="handleTransition(tStatus)"
-          >
-            {{ tStatus }}
-          </Button>
-        </div>
-      </div>
-
-      <!-- Delete -->
-      <Button variant="destructive" size="sm" @click="handleDelete()">
-        <Trash2 class="mr-1 h-3.5 w-3.5" />
-        {{ t('common.delete') }}
-      </Button>
     </div>
   </div>
 </template>

@@ -61,43 +61,45 @@ async function onDrop(event: DragEvent, targetStatus: string) {
 </script>
 
 <template>
-  <div class="flex h-full gap-3 overflow-x-auto p-4">
-    <div
-      v-for="status in statuses"
-      :key="status.key"
-      class="flex w-72 shrink-0 flex-col rounded-lg bg-muted/50"
-      @dragover="onDragOver"
-      @drop="onDrop($event, status.key)"
-    >
-      <div class="flex items-center justify-between px-3 py-2.5">
-        <div class="flex items-center gap-2">
-          <div
-            class="h-2.5 w-2.5 rounded-full"
-            :style="{ backgroundColor: status.color }"
-          />
-          <span class="text-sm font-medium">{{ status.name }}</span>
-          <span class="text-xs text-muted-foreground">{{ itemsForStatus(status.key).length }}</span>
+  <div class="relative h-full min-h-0 min-w-0">
+    <div class="flex h-full min-h-0 w-full min-w-0 gap-3 overflow-x-auto p-4">
+      <div
+        v-for="status in statuses"
+        :key="status.key"
+        class="flex h-full min-w-[18rem] flex-1 basis-72 flex-col rounded-lg bg-muted/50"
+        @dragover="onDragOver"
+        @drop="onDrop($event, status.key)"
+      >
+        <div class="flex shrink-0 items-center justify-between px-3 py-2.5">
+          <div class="flex min-w-0 items-center gap-2">
+            <div
+              class="h-2.5 w-2.5 shrink-0 rounded-full"
+              :style="{ backgroundColor: status.color }"
+            />
+            <span class="truncate text-sm font-medium">{{ status.name }}</span>
+            <span class="shrink-0 text-xs text-muted-foreground">{{ itemsForStatus(status.key).length }}</span>
+          </div>
+          <Button variant="ghost" size="icon" class="h-6 w-6 shrink-0" @click="openCreate(status.key)">
+            <Plus class="h-3.5 w-3.5" />
+          </Button>
         </div>
-        <Button variant="ghost" size="icon" class="h-6 w-6" @click="openCreate(status.key)">
-          <Plus class="h-3.5 w-3.5" />
-        </Button>
-      </div>
 
-      <div class="flex flex-col gap-2 overflow-y-auto px-2 pb-2">
-        <WorkItemCard
-          v-for="item in itemsForStatus(status.key)"
-          :key="item.id"
-          :item="item"
-          draggable="true"
-          @dragstart="onDragStart($event, item.id)"
-          @click="selectedItemId = item.id"
-        />
-        <p
-          v-if="itemsForStatus(status.key).length === 0"
-          class="py-6 text-center text-xs text-muted-foreground"
-        >
-          {{ t('projects.no_tasks') }}
-        </p>
+        <div class="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-2 pb-2">
+          <WorkItemCard
+            v-for="item in itemsForStatus(status.key)"
+            :key="item.id"
+            :item="item"
+            draggable="true"
+            @dragstart="onDragStart($event, item.id)"
+            @click="selectedItemId = item.id"
+          />
+          <p
+            v-if="itemsForStatus(status.key).length === 0"
+            class="py-6 text-center text-xs text-muted-foreground"
+          >
+            {{ t('projects.no_tasks') }}
+          </p>
+        </div>
       </div>
     </div>
 

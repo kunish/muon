@@ -2,7 +2,7 @@
 import type { ProjectView } from '../types'
 import { Button } from '@muon/ui/button'
 import { Kanban, LayoutList, Settings, Trash2 } from 'lucide-vue-next'
-import { computed, onMounted } from 'vue'
+import { computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { ask } from '@/electron/dialog'
@@ -31,13 +31,17 @@ const currentView = computed<ProjectView>(() => {
   return 'board'
 })
 
-onMounted(async () => {
-  projectStore.setCurrentProject(props.projectId)
-  itemStore.setCurrentProject(props.projectId)
-  if (!project.value)
-    await projectStore.loadProjects()
-  await itemStore.loadItems(props.projectId)
-})
+watch(
+  () => props.projectId,
+  async (projectId) => {
+    projectStore.setCurrentProject(projectId)
+    itemStore.setCurrentProject(projectId)
+    if (!project.value)
+      await projectStore.loadProjects()
+    await itemStore.loadItems(projectId)
+  },
+  { immediate: true },
+)
 
 function setView(view: ProjectView) {
   router.replace({ query: { view } })
@@ -60,17 +64,17 @@ async function deleteProject() {
 </script>
 
 <template>
-  <div v-if="project" class="flex h-full flex-col">
-    <div class="flex items-center justify-between border-b px-6 py-3">
-      <div class="flex items-center gap-3">
-        <h1 class="text-lg font-semibold">
+  <div v-if="project" class="flex h-full min-h-0 min-w-0 flex-1 flex-col">
+    <div class="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b px-6 py-3">
+      <div class="flex min-w-0 items-center gap-3">
+        <h1 class="truncate text-lg font-semibold">
           {{ project.name }}
         </h1>
-        <span class="rounded bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+        <span class="shrink-0 rounded bg-muted px-2 py-0.5 text-xs text-muted-foreground">
           {{ t(`projects.template_${project.template}`) }}
         </span>
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex shrink-0 items-center gap-2">
         <div class="flex rounded-lg border bg-muted/50 p-0.5">
           <button
             v-for="v in (['board', 'list', 'gantt'] as ProjectView[])"
@@ -94,7 +98,7 @@ async function deleteProject() {
       </div>
     </div>
 
-    <div class="flex-1 overflow-hidden">
+    <div class="relative min-h-0 min-w-0 flex-1 overflow-hidden">
       <BoardView v-if="currentView === 'board'" :project-id="props.projectId" />
       <ListView v-else-if="currentView === 'list'" :project-id="props.projectId" />
       <GanttView v-else :project-id="props.projectId" />

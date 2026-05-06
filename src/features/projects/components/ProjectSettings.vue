@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Button } from '@muon/ui/button'
 import { ArrowLeft } from 'lucide-vue-next'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useProjectStore } from '../composables/useProjectStore'
@@ -17,13 +17,23 @@ const project = computed(() => store.projects.find(p => p.id === props.projectId
 
 const activeTab = ref<'general' | 'workflow' | 'fields'>('general')
 
+watch(
+  () => props.projectId,
+  async (projectId) => {
+    store.setCurrentProject(projectId)
+    if (!project.value)
+      await store.loadProjects()
+  },
+  { immediate: true },
+)
+
 function goBack() {
   router.push(`/projects/${props.projectId}`)
 }
 </script>
 
 <template>
-  <div v-if="project" class="flex h-full flex-col">
+  <div v-if="project" class="flex h-full min-h-0 min-w-0 flex-1 flex-col">
     <div class="flex items-center gap-3 border-b px-6 py-3">
       <Button variant="ghost" size="icon" @click="goBack()">
         <ArrowLeft class="h-4 w-4" />
@@ -45,7 +55,7 @@ function goBack() {
       </button>
     </div>
 
-    <div class="flex-1 overflow-y-auto">
+    <div class="min-h-0 flex-1 overflow-y-auto">
       <div v-if="activeTab === 'general'" class="max-w-md space-y-4 p-6">
         <p class="text-sm text-muted-foreground">
           {{ t('projects.project_name') }}: {{ project.name }}

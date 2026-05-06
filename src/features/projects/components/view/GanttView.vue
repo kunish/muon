@@ -57,17 +57,18 @@ const dayLabels = computed(() => {
 })
 
 const columnWidth = 24
+const titleColumnWidth = 256
 </script>
 
 <template>
-  <div class="flex h-full flex-col overflow-auto">
+  <div class="flex h-full min-h-0 min-w-0 flex-col overflow-auto">
     <div v-if="itemsWithDates.length === 0" class="flex flex-1 items-center justify-center text-muted-foreground">
       {{ t('projects.no_tasks') }}
     </div>
 
-    <div v-else class="flex flex-1 flex-col" :style="{ width: `${totalDays() * columnWidth}px` }">
-      <div class="flex border-b bg-muted/50 text-xs">
-        <div class="w-64 shrink-0 px-3 py-2 font-medium">
+    <div v-else class="flex min-h-full flex-col" :style="{ width: `${titleColumnWidth + totalDays() * columnWidth}px` }">
+      <div class="sticky top-0 z-10 flex shrink-0 border-b bg-background text-xs">
+        <div class="w-64 shrink-0 border-r px-3 py-2 font-medium">
           {{ t('projects.task_title') }}
         </div>
         <div class="flex">
@@ -85,9 +86,9 @@ const columnWidth = 24
       <div
         v-for="item in itemsWithDates"
         :key="item.id"
-        class="flex border-b text-sm hover:bg-muted/50"
+        class="flex min-h-10 border-b text-sm hover:bg-muted/50"
       >
-        <div class="w-64 shrink-0 truncate px-3 py-2.5">
+        <div class="w-64 shrink-0 truncate border-r px-3 py-2.5">
           {{ item.title }}
         </div>
         <div class="relative flex-1">

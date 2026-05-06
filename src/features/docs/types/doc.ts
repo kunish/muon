@@ -27,6 +27,24 @@ export interface DocMetadata {
 
 export type DocSectionId = 'recent' | 'starred' | 'shared'
 
+export interface DocFolderRecord {
+  id: string
+  name: string
+  parentId: string
+  createdAt: number
+  updatedAt: number
+}
+
+export interface DocFolderNode {
+  id: string
+  name: string
+  parentId: string
+  depth: number
+  count: number
+  isPersisted: boolean
+  children: DocFolderNode[]
+}
+
 export interface DocEntry {
   /** 文档 ID，同时是 Matrix 房间 ID */
   id: string
@@ -65,6 +83,7 @@ export const MATRIX_EVENT_TYPES = {
   DOC_SYNC: 'org.muon.doc.sync',
   DOC_CURSOR: 'org.muon.doc.cursor',
   DOC_METADATA: 'org.muon.doc.metadata',
+  DOC_FOLDERS: 'org.muon.docs.folders',
 } as const
 
 export function userColor(userId: string): string {

@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { Clock3, Star, Users } from 'lucide-vue-next'
+import { useRouter } from 'vue-router'
 import { useDocsStore } from '../stores/docsStore'
 import DocsCreateButton from './DocsCreateButton.vue'
 import DocsFolderTree from './DocsFolderTree.vue'
 import DocsSidebarNav from './DocsSidebarNav.vue'
 
 const store = useDocsStore()
+const router = useRouter()
 
 const sections = [
   { id: 'recent' as const, label: '最近更新', icon: Clock3 },
@@ -13,20 +15,37 @@ const sections = [
   { id: 'shared' as const, label: '共享给我', icon: Users },
 ]
 
-const folders = ['全部文档', '产品规划', '设计资产', '工程文档', '发布复盘']
-
 function selectSection(id: typeof sections[number]['id']): void {
   store.activeSection = id
   store.searchQuery = ''
+  void router.push('/docs')
 }
 
-function selectFolder(folder: string): void {
-  store.activeFolder = folder
+function selectFolder(folderId: string): void {
+  store.activeFolder = folderId
   store.searchQuery = ''
+  void router.push('/docs')
 }
 
 async function handleCreate(): Promise<void> {
-  await store.createDocument('新建协作文档', store.activeFolder)
+  const docId = await store.createDocument('新建协作文档', store.activeFolder)
+  await router.push(`/docs/${docId}`)
+}
+
+async function createFolder(parentId: string, name: string): Promise<void> {
+  const folderId = await store.createFolder(name, parentId)
+  store.activeFolder = folderId
+  store.searchQuery = ''
+  await router.push('/docs')
+}
+
+async function renameFolder(folderId: string, name: string): Promise<void> {
+  await store.renameFolder(folderId, name)
+}
+
+async function deleteFolder(folderId: string): Promise<void> {
+  await store.deleteFolder(folderId)
+  await router.push('/docs')
 }
 </script>
 
@@ -54,9 +73,12 @@ async function handleCreate(): Promise<void> {
     </div>
 
     <DocsFolderTree
-      :folders="folders"
+      :root="store.folderTree"
       :active-folder="store.activeFolder"
       @select="selectFolder"
+      @create="createFolder"
+      @rename="renameFolder"
+      @delete="deleteFolder"
     />
   </div>
 </template>

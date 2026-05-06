@@ -17,6 +17,9 @@ describe('app router', () => {
       '/approvals',
       '/email',
       '/calls',
+      '/projects',
+      '/projects/:projectId',
+      '/projects/:projectId/settings',
       '/settings',
     ]))
     expect(routePaths).not.toEqual(expect.arrayContaining([

@@ -57,17 +57,17 @@ function toggleSort(field: typeof sortBy.value) {
 </script>
 
 <template>
-  <div class="flex h-full flex-col">
-    <div class="flex items-center border-b px-4 py-2">
+  <div class="flex h-full min-h-0 min-w-0 flex-col">
+    <div class="flex shrink-0 items-center border-b px-4 py-2">
       <Button size="sm" @click="showCreateDialog = true">
         <Plus class="mr-1 h-3.5 w-3.5" />
         {{ t('projects.create_task') }}
       </Button>
     </div>
 
-    <div class="flex-1 overflow-auto">
-      <table class="w-full">
-        <thead>
+    <div class="min-h-0 flex-1 overflow-auto">
+      <table class="min-w-[720px] w-full">
+        <thead class="sticky top-0 z-10 bg-background">
           <tr class="border-b text-left text-xs text-muted-foreground">
             <th class="cursor-pointer px-4 py-2 font-medium" @click="toggleSort('title')">
               {{ t('projects.task_title') }}
@@ -87,8 +87,8 @@ function toggleSort(field: typeof sortBy.value) {
         </thead>
         <tbody>
           <tr v-for="item in sortedItems" :key="item.id" class="border-b text-sm hover:bg-muted/50">
-            <td class="px-4 py-2.5">
-              <span class="font-medium">{{ item.title }}</span>
+            <td class="max-w-0 px-4 py-2.5">
+              <span class="block truncate font-medium">{{ item.title }}</span>
             </td>
             <td class="px-4 py-2.5 text-muted-foreground">
               {{ item.assignee ? item.assignee.split(':')[0] : '-' }}

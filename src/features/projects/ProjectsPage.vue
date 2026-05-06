@@ -12,7 +12,7 @@ const showSettings = computed(() => route.path.endsWith('/settings'))
 </script>
 
 <template>
-  <div class="flex h-full flex-col">
+  <div class="flex h-full min-h-0 min-w-0 flex-1 flex-col">
     <ProjectSettings v-if="showSettings && projectId" :project-id="projectId" />
     <ProjectDetail v-else-if="projectId" :project-id="projectId" />
     <ProjectList v-else />
