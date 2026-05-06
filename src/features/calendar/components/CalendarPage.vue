@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { CalendarDays, ChevronLeft, ChevronRight, Plus } from 'lucide-vue-next'
-import { computed, shallowRef } from 'vue'
+import { computed, onMounted, shallowRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import WorkspacePageFrame from '@/app/components/workspace/WorkspacePageFrame.vue'
+import { projectRepo } from '@/features/projects/db/projectDb'
 
 const { t } = useI18n()
 
@@ -44,6 +45,40 @@ const events = shallowRef<CalendarEventEntry[]>([
   { id: 'event-4', dayName: '周五', time: '16:00', title: '专注时间', team: '个人', tone: 'bg-muted-foreground', rsvpStatus: '无需回复', suggestion: '固定时段' },
 ])
 
+const projectTaskEvents = shallowRef<CalendarEventEntry[]>([])
+
+onMounted(async () => {
+  try {
+    const projects = await projectRepo.listProjects()
+    const results: CalendarEventEntry[] = []
+    for (const p of projects) {
+      const items = await projectRepo.listWorkItems(p.id)
+      for (const item of items) {
+        if (item.dueDate) {
+          const d = new Date(item.dueDate)
+          const dayMap = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+          results.push({
+            id: `project-task-${item.id}`,
+            dayName: dayMap[d.getDay()],
+            time: `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`,
+            title: `${p.name}: ${item.title}`,
+            team: '项目任务',
+            tone: 'bg-violet-500',
+            rsvpStatus: item.status,
+            suggestion: '',
+          })
+        }
+      }
+    }
+    projectTaskEvents.value = results
+  }
+  catch {
+    // Dexie may not be available (e.g., in tests or SSR)
+  }
+})
+
+const allEvents = computed(() => [...events.value, ...projectTaskEvents.value])
+
 const weekRange = computed(() => weekRanges[weekIndex.value] ?? weekRanges[0])
 
 const weekDays = computed(() => {
@@ -57,8 +92,8 @@ const weekDays = computed(() => {
 })
 
 const selectedDay = computed(() => weekDays.value.find(day => day.day === selectedDayName.value) ?? weekDays.value[0])
-const selectedDayEvents = computed(() => events.value.filter(event => event.dayName === selectedDayName.value))
-const selectedEvent = computed(() => selectedDayEvents.value.find(event => event.id === selectedEventId.value) ?? selectedDayEvents.value[0] ?? events.value[0])
+const selectedDayEvents = computed(() => allEvents.value.filter(event => event.dayName === selectedDayName.value))
+const selectedEvent = computed(() => selectedDayEvents.value.find(event => event.id === selectedEventId.value) ?? selectedDayEvents.value[0] ?? allEvents.value[0])
 const selectedEventActionNotice = computed(() => {
   const event = selectedEvent.value
   if (!event)
@@ -90,7 +125,7 @@ function createEvent(): void {
 
 function selectDay(dayName: string): void {
   selectedDayName.value = dayName
-  selectedEventId.value = events.value.find(event => event.dayName === dayName)?.id ?? ''
+  selectedEventId.value = allEvents.value.find(event => event.dayName === dayName)?.id ?? ''
 }
 
 function selectEvent(eventId: string): void {
@@ -182,7 +217,7 @@ function saveDraftEvent(): void {
           会议数量
         </div>
         <div class="mt-3 text-2xl font-semibold leading-8">
-          {{ events.length }}
+          {{ allEvents.length }}
         </div>
         <p class="mt-1 text-[13px] text-muted-foreground">
           2 个需要准备材料
