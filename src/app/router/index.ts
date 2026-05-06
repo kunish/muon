@@ -56,6 +56,11 @@ const router = createRouter({
           component: () => import('@features/docs/components/DocsPage.vue'),
         },
         {
+          path: 'docs/:docId',
+          name: 'doc-editor',
+          component: () => import('@features/docs/components/DocsPage.vue'),
+        },
+        {
           path: 'workplace',
           name: 'workplace',
           component: () => import('@features/workplace/components/WorkplacePage.vue'),

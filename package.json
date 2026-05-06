@@ -96,10 +96,13 @@
     "@tanstack/vue-query": "^5.100.6",
     "@tanstack/vue-virtual": "^3.13.24",
     "@tiptap/core": "^3.22.5",
+    "@tiptap/extension-collaboration": "3.22.5",
+    "@tiptap/extension-collaboration-cursor": "3.0.0",
     "@tiptap/extension-image": "^3.22.5",
     "@tiptap/extension-link": "^3.22.5",
     "@tiptap/extension-mention": "^3.22.5",
     "@tiptap/extension-placeholder": "^3.22.5",
+    "@tiptap/extension-table": "3.22.5",
     "@tiptap/extension-underline": "^3.22.5",
     "@tiptap/pm": "^3.22.5",
     "@tiptap/starter-kit": "^3.22.5",
@@ -133,6 +136,7 @@
     "vue-i18n": "^11.4.0",
     "vue-router": "^5.0.6",
     "vue-sonner": "^2.0.9",
+    "yjs": "^13.6.30",
     "zod": "^4.4.1"
   },
   "devDependencies": {
