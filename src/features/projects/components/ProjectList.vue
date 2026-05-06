@@ -1,9 +1,9 @@
 <script setup lang="ts">
+import { Button } from '@muon/ui/button'
+import { Plus } from 'lucide-vue-next'
 import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { Plus } from 'lucide-vue-next'
-import { Button } from '@muon/ui/button'
 import { useProjectStore } from '../composables/useProjectStore'
 import ProjectCreateDialog from './ProjectCreateDialog.vue'
 
@@ -25,7 +25,9 @@ function openProject(id: string) {
 <template>
   <div class="flex h-full flex-col">
     <div class="flex items-center justify-between border-b px-6 py-4">
-      <h1 class="text-xl font-semibold">{{ t('sidebar.projects') }}</h1>
+      <h1 class="text-xl font-semibold">
+        {{ t('sidebar.projects') }}
+      </h1>
       <Button size="sm" @click="showCreateDialog = true">
         <Plus class="mr-1 h-4 w-4" />
         {{ t('projects.create_project') }}
@@ -51,13 +53,15 @@ function openProject(id: string) {
         @click="openProject(project.id)"
       >
         <div>
-          <h3 class="font-semibold text-foreground">{{ project.name }}</h3>
+          <h3 class="font-semibold text-foreground">
+            {{ project.name }}
+          </h3>
           <p v-if="project.description" class="mt-1 line-clamp-2 text-sm text-muted-foreground">
             {{ project.description }}
           </p>
         </div>
         <div class="flex items-center gap-2 text-xs text-muted-foreground">
-          <span>{{ t('projects.template_' + project.template) }}</span>
+          <span>{{ t(`projects.template_${project.template}`) }}</span>
           <span>·</span>
           <span>{{ new Date(project.updatedAt).toLocaleDateString() }}</span>
         </div>

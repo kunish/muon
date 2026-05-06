@@ -1,7 +1,7 @@
-import { computed, shallowRef, onUnmounted } from 'vue'
 import type { Doc } from 'yjs'
 import type { DocComment } from '../types/doc'
 import { nanoid } from 'nanoid'
+import { computed, onUnmounted, shallowRef } from 'vue'
 
 export function useDocComments(ydoc: () => Doc, currentUserId: string) {
   const draftText = shallowRef('')
@@ -42,14 +42,19 @@ export function useDocComments(ydoc: () => Doc, currentUserId: string) {
 
   function resolveComment(commentId: string): void {
     const idx = ycomments.toArray().findIndex(c => c.id === commentId)
-    if (idx === -1) return
+    if (idx === -1)
+      return
     const updated = { ...ycomments.get(idx), resolved: true }
     ycomments.delete(idx, 1)
     ycomments.insert(idx, [updated])
   }
 
   return {
-    draftText, comments, resolvedCount, unresolvedCount,
-    addComment, resolveComment,
+    draftText,
+    comments,
+    resolvedCount,
+    unresolvedCount,
+    addComment,
+    resolveComment,
   }
 }

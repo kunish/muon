@@ -1,9 +1,9 @@
 import type { MatrixEvent } from 'matrix-js-sdk'
 import { getClient } from '@matrix/client'
 import { matrixEvents } from '@matrix/index'
+import { useSettingsStore } from '@shared/stores/settingsStore'
 import { onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useSettingsStore } from '@/features/settings/stores/settingsStore'
 import { playNotificationSound } from '@/shared/lib/audio'
 import { useChatStore } from '../stores/chatStore'
 

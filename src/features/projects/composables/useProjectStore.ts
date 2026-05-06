@@ -1,14 +1,10 @@
 import type { Project, ProjectTemplate, ProjectVisibility } from '../types'
+import { Preset } from 'matrix-js-sdk'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { getClient } from '@/matrix'
-import { sendProjectSyncEvent } from '@/matrix/projects'
 import { projectRepo } from '../db/projectDb'
 import { projectSchema } from '../types'
-
-function generateId(): string {
-  return crypto.randomUUID()
-}
 
 export const useProjectStore = defineStore('projects', () => {
   const projects = ref<Project[]>([])
@@ -38,7 +34,7 @@ export const useProjectStore = defineStore('projects', () => {
     const { room_id: roomId } = await client.createRoom({
       name: data.name,
       topic: data.description ?? '',
-      preset: data.visibility === 'public' ? 'public_chat' : 'private_chat',
+      preset: data.visibility === 'public' ? Preset.PublicChat : Preset.PrivateChat,
     })
 
     const now = Date.now()
@@ -60,13 +56,15 @@ export const useProjectStore = defineStore('projects', () => {
 
   async function updateProject(id: string, changes: Partial<Project>): Promise<Project> {
     const existing = await projectRepo.getProject(id)
-    if (!existing) throw new Error(`Project ${id} not found`)
+    if (!existing)
+      throw new Error(`Project ${id} not found`)
 
     const updated = projectSchema.parse({ ...existing, ...changes, updatedAt: Date.now() })
     await projectRepo.saveProject(updated)
 
     const idx = projects.value.findIndex(p => p.id === id)
-    if (idx !== -1) projects.value.splice(idx, 1, updated)
+    if (idx !== -1)
+      projects.value.splice(idx, 1, updated)
 
     return updated
   }

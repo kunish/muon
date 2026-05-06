@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { ContactCallMode } from '@/features/calls/stores/callLaunchStore'
 import { findOrCreateDm } from '@matrix/index'
+import { useRoomNavigation } from '@shared/composables/useRoomNavigation'
 import { Plus } from 'lucide-vue-next'
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -9,7 +10,6 @@ import { toast } from 'vue-sonner'
 import WorkspaceResizablePane from '@/app/components/workspace/WorkspaceResizablePane.vue'
 import { launchContactCall } from '@/features/calls/stores/callLaunchStore'
 import { useConversations } from '../../chat/composables/useConversations'
-import { useChatStore } from '../../chat/stores/chatStore'
 import { useContactStore } from '../stores/contactStore'
 import ContactList from './ContactList.vue'
 import CreateGroupDialog from './CreateGroupDialog.vue'
@@ -19,7 +19,7 @@ import UserProfile from './UserProfile.vue'
 const { t } = useI18n()
 const router = useRouter()
 const store = useContactStore()
-const chatStore = useChatStore()
+const chatStore = useRoomNavigation()
 const { restoreRoom } = useConversations()
 
 const showCreateGroup = ref(false)
@@ -56,7 +56,7 @@ async function handleOpenMessage(userId: string): Promise<void> {
     const contact = store.contacts.find(item => item.userId === userId)
     const roomId = await findOrCreateDm(userId)
     restoreRoom(roomId)
-    chatStore.setCurrentRoom(roomId, {
+    chatStore.navigateToRoom(roomId, {
       sidebarPlacement: 'promote',
       sidebarPreview: {
         name: contact?.displayName,

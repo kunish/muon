@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import { ref, computed, onUnmounted } from 'vue'
-import { useDocSync } from '../../composables/useDocSync'
-import { useDocEditor } from '../../composables/useDocEditor'
-import { useDocCursor } from '../../composables/useDocCursor'
+import { computed, onUnmounted, ref } from 'vue'
 import { useDocComments } from '../../composables/useDocComments'
+import { useDocCursor } from '../../composables/useDocCursor'
+import { useDocEditor } from '../../composables/useDocEditor'
+import { useDocSync } from '../../composables/useDocSync'
 import { userColor } from '../../types/doc'
-import DocEditorToolbar from './DocEditorToolbar.vue'
-import DocTitleInput from './DocTitleInput.vue'
 import CollaboratorAvatars from '../collaboration/CollaboratorAvatars.vue'
 import CommentsPanel from '../collaboration/CommentsPanel.vue'
+import DocEditorToolbar from './DocEditorToolbar.vue'
+import DocTitleInput from './DocTitleInput.vue'
 
 const props = defineProps<{
   docId: string
@@ -93,6 +93,8 @@ onUnmounted(() => {
       />
     </div>
 
-    <p v-if="error" class="px-4 py-2 text-xs text-red-500">{{ error }}</p>
+    <p v-if="error" class="px-4 py-2 text-xs text-red-500">
+      {{ error }}
+    </p>
   </div>
 </template>

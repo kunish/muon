@@ -37,6 +37,19 @@ describe('custom window title bar configuration', () => {
     expect(rendererSource).toContain('getDesktopBridge()?.platform')
   })
 
+  it('keeps the sandboxed Electron preload compatible with limited Node APIs', () => {
+    const preloadSource = readSource('electron/preload.ts')
+
+    expect(preloadSource).not.toMatch(/(?:from\s+['"]node:process['"]|require\(['"]node:process['"]\))/)
+  })
+
+  it('does not require process to exist before exposing the desktop bridge', () => {
+    const preloadSource = readSource('electron/preload.ts')
+
+    expect(preloadSource).not.toContain('globalThis.process.platform')
+    expect(preloadSource).toContain('globalThis.process?.platform')
+  })
+
   it('uses electron-vite as the desktop build chain', () => {
     const pkg = readJson('package.json') as {
       main?: string

@@ -1,6 +1,6 @@
 import { getRoom } from '@matrix/index'
+import { useContactList } from '@shared/composables/useContactList'
 import { computed } from 'vue'
-import { useContactStore } from '@/features/contacts/stores/contactStore'
 import { useChatStore } from '../stores/chatStore'
 
 interface MentionMember {
@@ -13,10 +13,10 @@ interface MentionMember {
 
 export function useMention() {
   const store = useChatStore()
-  const contactStore = useContactStore()
+  const contactList = useContactList()
 
-  if (contactStore.contacts.length === 0) {
-    void contactStore.loadContacts().catch(() => {})
+  if (contactList.contacts.length === 0) {
+    void contactList.loadContacts().catch(() => {})
   }
 
   const mentionCandidates = computed<MentionMember[]>(() => {
@@ -36,7 +36,7 @@ export function useMention() {
       }
     }
 
-    for (const contact of contactStore.contacts) {
+    for (const contact of contactList.contacts) {
       if (candidates.has(contact.userId))
         continue
       candidates.set(contact.userId, {

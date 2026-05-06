@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useRoute } from 'vue-router'
-import { useI18n } from 'vue-i18n'
 import { Search } from 'lucide-vue-next'
-import { useDocsStore } from '../stores/docsStore'
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { useRoute } from 'vue-router'
 import WorkspaceResizablePane from '@/app/components/workspace/WorkspaceResizablePane.vue'
+import { useDocsStore } from '../stores/docsStore'
+import DocPreviewCard from './DocPreviewCard.vue'
 import DocsSidebar from './DocsSidebar.vue'
 import DocEditor from './editor/DocEditor.vue'
-import DocPreviewCard from './DocPreviewCard.vue'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -15,9 +15,6 @@ const store = useDocsStore()
 
 const selectedDocId = computed(() =>
   (route.params?.docId as string) ?? (store.filteredDocuments[0]?.id ?? ''),
-)
-const selectedDoc = computed(() =>
-  selectedDocId.value ? store.filteredDocuments.find(d => d.id === selectedDocId.value) : undefined,
 )
 
 store.loadDocuments()

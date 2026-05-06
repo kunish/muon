@@ -17,9 +17,16 @@ const slotRefs = ref<HTMLElement[]>([])
 const bouncing = ref(false)
 
 const animations: (AnimationItem | null)[] = []
+const timers: ReturnType<typeof setTimeout>[] = []
 const loaded = ref<boolean[]>(emojis.map(() => false))
 const failed = ref<boolean[]>(emojis.map(() => false))
 const entered = ref(false)
+
+function clearAllTimers() {
+  for (const t of timers)
+    clearTimeout(t)
+  timers.length = 0
+}
 
 onMounted(async () => {
   const lottieModule = await import('lottie-web')
@@ -44,15 +51,15 @@ onMounted(async () => {
       renderer: 'svg',
       loop: false,
       autoplay: false,
-      animationData: JSON.parse(JSON.stringify(data)),
+      animationData: data,
     })
 
     animations.push(anim)
     loaded.value[i] = true
 
-    setTimeout(() => {
+    timers.push(setTimeout(() => {
       anim.goToAndPlay(0, true)
-    }, i * 120)
+    }, i * 120))
   }
 
   requestAnimationFrame(() => {
@@ -90,7 +97,7 @@ function onTap() {
   for (let i = 0; i < animations.length; i++) {
     const anim = animations[i]
     if (anim) {
-      setTimeout(() => anim.goToAndPlay(0, true), i * 80)
+      timers.push(setTimeout(() => anim.goToAndPlay(0, true), i * 80))
     }
   }
 
@@ -106,6 +113,7 @@ function onTap() {
 }
 
 onBeforeUnmount(() => {
+  clearAllTimers()
   for (const anim of animations) anim?.destroy()
   animations.length = 0
 })

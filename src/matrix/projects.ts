@@ -1,30 +1,27 @@
 import type { MatrixEvent } from 'matrix-js-sdk'
 import type { ProjectSyncPayload } from '@/features/projects/types'
-import { EventType } from 'matrix-js-sdk'
 import { getClient } from './client'
 
-const SYNC_EVENT_TYPE = EventType.RoomMessage
+const SYNC_EVENT_TYPE = 'muon.project.sync'
+interface ProjectSyncClient {
+  sendEvent: (roomId: string, eventType: string, content: ProjectSyncPayload) => Promise<unknown>
+}
 
 export async function sendProjectSyncEvent(
   roomId: string,
   payload: ProjectSyncPayload,
 ): Promise<void> {
   const client = getClient()
-  await client.sendEvent(roomId, SYNC_EVENT_TYPE, {
-    msgtype: 'muon.project.sync',
-    body: JSON.stringify(payload),
-  })
+  await (client as unknown as ProjectSyncClient).sendEvent(roomId, SYNC_EVENT_TYPE, payload)
 }
 
 export function isProjectSyncEvent(event: MatrixEvent): boolean {
-  const content = event.getContent()
-  return content.msgtype === 'muon.project.sync'
+  return event.getType() === SYNC_EVENT_TYPE
 }
 
 export function parseProjectSyncPayload(event: MatrixEvent): ProjectSyncPayload | null {
   try {
-    const content = event.getContent<{ body: string }>()
-    return JSON.parse(content.body) as ProjectSyncPayload
+    return event.getContent<ProjectSyncPayload>()
   }
   catch {
     return null

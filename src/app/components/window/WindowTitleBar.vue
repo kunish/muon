@@ -405,13 +405,17 @@ onUnmounted(() => {
   overflow: hidden;
   cursor: default;
   user-select: none;
-  background: linear-gradient(
+  /* Split background into longhands so background-color survives if the gradient
+     (which depends on @theme CSS variables) fails to resolve. Without this, an
+     invalid gradient makes the entire background shorthand transparent. */
+  background-color: var(--color-card, #e5e7eb);
+  background-image: linear-gradient(
     180deg,
     color-mix(in srgb, var(--color-card) 92%, var(--color-background)) 0%,
     color-mix(in srgb, var(--color-background) 94%, var(--color-card)) 100%
   );
   border-bottom: 1px solid color-mix(in srgb, var(--color-border) 78%, transparent);
-  color: var(--color-foreground);
+  color: var(--color-foreground, #111827);
 }
 
 .window-titlebar * {

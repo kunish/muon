@@ -1,7 +1,6 @@
-import type { DigestSession, DigestSourceEvent } from '@/features/chat/types/digest'
-import type { DigestEntry } from '@/features/chat/types/knowledge'
-import { compareDigestEntries, deriveDigestRelevance, toDigestEntry } from '@/features/chat/types/digest'
+import type { DigestEntry, DigestSession, DigestSourceEvent } from './digestTypes'
 import { getClient } from './client'
+import { compareDigestEntries, deriveDigestRelevance, toDigestEntry } from './digestTypes'
 import { getRoomSummaries } from './rooms'
 
 interface MaterializeOptions {

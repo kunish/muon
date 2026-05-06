@@ -1,5 +1,5 @@
 import type { MatrixClient, MatrixEvent } from 'matrix-js-sdk'
-import { getClient } from '@matrix/client'
+import { getClient } from './client'
 
 export interface InboxEventContext {
   roomId: string

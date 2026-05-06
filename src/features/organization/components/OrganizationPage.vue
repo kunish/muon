@@ -3,10 +3,10 @@ import type { Component } from 'vue'
 import type { Contact, GroupInfo } from '@/features/contacts/stores/contactStore'
 import { getClient } from '@matrix/client'
 import { Avatar } from '@muon/ui/avatar'
+import { useContactList } from '@shared/composables/useContactList'
 import { Building2, GitBranch, MessageSquare, Pencil, Plus, Search, ShieldCheck, Trash2, UserPlus, UsersRound, X } from 'lucide-vue-next'
 import { computed, onMounted, ref, watch } from 'vue'
 import WorkspaceResizablePane from '@/app/components/workspace/WorkspaceResizablePane.vue'
-import { useContactStore } from '@/features/contacts/stores/contactStore'
 
 type OrganizationSection = 'overview' | 'members' | 'groups'
 
@@ -40,7 +40,7 @@ const DEFAULT_ORGANIZATION_WIDTH = 248
 const MIN_ORGANIZATION_WIDTH = 220
 const MAX_ORGANIZATION_WIDTH = 360
 
-const contactStore = useContactStore()
+const contactList = useContactList()
 const activeSection = ref<OrganizationSection>('overview')
 const searchQuery = ref('')
 const actionMessage = ref('组织入口已就绪')
@@ -178,7 +178,7 @@ const organizationMembers = computed<OrganizationMember[]>(() => {
   }
   const memberMap = new Map<string, OrganizationMember>()
   const deleted = new Set(deletedMemberIds.value)
-  const members = [currentMember, ...contactStore.contacts.map(contact => normalizeMember({
+  const members = [currentMember, ...contactList.contacts.map(contact => normalizeMember({
     ...contact,
     role: '成员',
   }, 'matrix'))]
@@ -204,7 +204,7 @@ const organizationGroups = computed<OrganizationGroup[]>(() => {
   const groupMap = new Map<string, OrganizationGroup>()
   const deleted = new Set(deletedGroupIds.value)
 
-  for (const group of contactStore.groups) {
+  for (const group of contactList.groups) {
     if (deleted.has(group.roomId))
       continue
     groupMap.set(group.roomId, {
@@ -476,8 +476,8 @@ onMounted(async () => {
   readPersistedDirectory()
   readCurrentUser()
   await Promise.all([
-    contactStore.loadContacts(),
-    contactStore.loadGroups(),
+    contactList.loadContacts(),
+    contactList.loadGroups(),
   ])
 })
 </script>

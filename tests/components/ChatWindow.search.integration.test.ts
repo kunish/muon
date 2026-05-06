@@ -12,6 +12,10 @@ const backPaginateRoomEventsSearchMock = vi.fn()
 const resetStateMock = vi.fn()
 
 vi.mock('vue-i18n', () => ({
+  createI18n: () => ({
+    global: { t: (key: string) => key },
+    install: vi.fn(),
+  }),
   useI18n: () => ({
     t: (key: string) => key,
     locale: { value: 'en' },

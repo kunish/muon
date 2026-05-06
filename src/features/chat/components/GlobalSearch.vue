@@ -2,6 +2,7 @@
 import type { SidebarPreviewInput } from '@/features/chat/stores/chatStore'
 import { getClient } from '@matrix/client'
 import { findOrCreateDm, loadInboxEventContext } from '@matrix/index'
+import { useContactList } from '@shared/composables/useContactList'
 import { useVirtualizer } from '@tanstack/vue-virtual'
 import { Search } from 'lucide-vue-next'
 import { computed, nextTick, onMounted, onUnmounted, ref, useTemplateRef, watch } from 'vue'
@@ -10,7 +11,6 @@ import { useRouter } from 'vue-router'
 import { workspaceApps } from '@/app/components/workspace/navigation'
 import { useChatStore } from '@/features/chat/stores/chatStore'
 import { useRetrievalStore } from '@/features/chat/stores/retrievalStore'
-import { useContactStore } from '@/features/contacts/stores/contactStore'
 
 const emit = defineEmits<{
   close: []
@@ -32,7 +32,7 @@ const router = useRouter()
 const query = ref('')
 const client = getClient()
 const chatStore = useChatStore()
-const contactStore = useContactStore()
+const contactList = useContactList()
 const retrievalStore = useRetrievalStore()
 const resultsScrollRef = ref<HTMLElement | null>(null)
 const searchInputRef = useTemplateRef<HTMLInputElement>('searchInput')
@@ -81,9 +81,9 @@ const rooms = computed(() => {
 const contactResults = computed(() => {
   const q = normalizedQuery.value
   if (!q)
-    return contactStore.contacts.slice(0, 8)
+    return contactList.contacts.slice(0, 8)
 
-  return contactStore.contacts
+  return contactList.contacts
     .filter(contact =>
       contact.displayName.toLowerCase().includes(q) || contact.userId.toLowerCase().includes(q),
     )
@@ -303,8 +303,8 @@ onMounted(() => {
   // Reset retrieval state on open so stale results are never shown
   retrievalStore.resetState()
   query.value = ''
-  void contactStore.loadContacts().catch(() => {})
-  void contactStore.loadGroups().catch(() => {})
+  void contactList.loadContacts().catch(() => {})
+  void contactList.loadGroups().catch(() => {})
   void nextTick(() => searchInputRef.value?.focus())
   document.addEventListener('keydown', onKeydown)
 })

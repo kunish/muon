@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { SpaceMember } from '@/matrix/spaces'
 import { Avatar } from '@muon/ui/avatar'
+import { useRoomNavigation } from '@shared/composables/useRoomNavigation'
 import { MessageCircle, X } from 'lucide-vue-next'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -8,7 +9,6 @@ import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 import { useConversations } from '@/features/chat/composables/useConversations'
 import { avatarGradient } from '@/features/chat/lib/format'
-import { useChatStore } from '@/features/chat/stores/chatStore'
 import { getClient } from '@/matrix/client'
 import { getUserPresenceInfo } from '@/matrix/profile'
 import { findOrCreateDm } from '@/matrix/rooms'
@@ -24,7 +24,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const router = useRouter()
-const chatStore = useChatStore()
+const chatStore = useRoomNavigation()
 const { restoreRoom } = useConversations()
 const isVisible = computed(() => !!props.member)
 
@@ -128,7 +128,7 @@ async function onMessage() {
   try {
     const roomId = await findOrCreateDm(props.member.userId)
     restoreRoom(roomId)
-    chatStore.setCurrentRoom(roomId, {
+    chatStore.navigateToRoom(roomId, {
       sidebarPlacement: 'promote',
       sidebarPreview: {
         name: props.member.displayName,

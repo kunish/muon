@@ -91,6 +91,26 @@ export function createMockMatrixClient() {
     invite: vi.fn().mockResolvedValue(undefined),
     kick: vi.fn().mockResolvedValue(undefined),
     setPowerLevel: vi.fn().mockResolvedValue(undefined),
+
+    // ---- Typing ----
+    sendTyping: vi.fn().mockResolvedValue(undefined),
+
+    // ---- Devices / Crypto ----
+    getDevices: vi.fn().mockResolvedValue({ devices: [] }),
+    getDeviceId: vi.fn().mockReturnValue('MOCK_DEVICE'),
+    initRustCrypto: vi.fn().mockResolvedValue(undefined),
+    getCrypto: vi.fn().mockReturnValue({ setTrustCrossSignedDevices: vi.fn().mockResolvedValue(undefined) }),
+
+    // ---- Read Receipts ----
+    sendReadReceipt: vi.fn().mockResolvedValue(undefined),
+
+    // ---- Profile ----
+    setDisplayName: vi.fn().mockResolvedValue(undefined),
+    setAvatarUrl: vi.fn().mockResolvedValue(undefined),
+
+    // ---- Misc ----
+    getDomain: vi.fn().mockReturnValue('localhost'),
+    baseUrl: 'https://matrix.localhost',
   }
 }
 

@@ -3,8 +3,8 @@ import type { ReactionSummary } from '@matrix/index'
 import type { MatrixEvent } from 'matrix-js-sdk'
 import { getClient } from '@matrix/client'
 import { canMergeSystemEvents, isSystemEvent } from '@matrix/index'
+import { useSettingsStore } from '@shared/stores/settingsStore'
 import { computed } from 'vue'
-import { useSettingsStore } from '@/features/settings/stores/settingsStore'
 import ChatMessage from './ChatMessage.vue'
 import MessageGroupAvatar from './MessageGroupAvatar.vue'
 import NewMessageSeparator from './NewMessageSeparator.vue'
@@ -66,9 +66,8 @@ function messageHasRichMediaEmbed(event: MatrixEvent): boolean {
   if (typeof document === 'undefined')
     return /<img[\s>]/i.test(formattedBody)
 
-  const template = document.createElement('template')
-  template.innerHTML = formattedBody
-  return template.content.querySelector('img') !== null
+  const doc = new DOMParser().parseFromString(formattedBody, 'text/html')
+  return doc.body.querySelector('img') !== null
 }
 
 /**

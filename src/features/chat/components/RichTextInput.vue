@@ -23,26 +23,17 @@ import { EditorContent } from '@tiptap/vue-3'
 import {
   ALargeSmall,
   AtSign,
-  Bold,
-  Braces,
   ChevronDown,
-  Italic,
-  Link2,
-  List,
-  ListOrdered,
   Maximize2,
   Minimize2,
-  Quote,
   SendHorizontal,
   Smile,
-  Strikethrough,
-  Underline,
-  X,
 } from 'lucide-vue-next'
 import { computed, nextTick, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
+import { escapeHtml } from '@/shared/lib/utils'
 import { useCurrentRoom } from '../composables/useCurrentRoom'
 import { getFloatingPosition } from '../composables/useFloatingPosition'
 import { useMediaUpload } from '../composables/useMediaUpload'
@@ -55,6 +46,8 @@ import ContactCardPicker from './ContactCardPicker.vue'
 import ExpressionPicker from './ExpressionPicker.vue'
 import LocationPicker from './LocationPicker.vue'
 import MentionList from './MentionList.vue'
+import ReplyPreviewBar from './ReplyPreviewBar.vue'
+import RichTextToolbar from './RichTextToolbar.vue'
 import ScreenshotButton from './ScreenshotButton.vue'
 import StickerPackManager from './StickerPackManager.vue'
 import UploadProgress from './UploadProgress.vue'
@@ -426,15 +419,6 @@ async function sendTextContent(
     toast.error(t('chat.send_failed'))
     return { ok: false, sentPlainText: false }
   }
-}
-
-function escapeHtml(value: string): string {
-  return value
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll('\'', '&#39;')
 }
 
 function createSubmitPayload(html: string, text: string) {
@@ -825,8 +809,6 @@ function onInput() {
 }
 
 const showFormatBar = ref(false)
-const showLinkEditor = shallowRef(false)
-const linkUrl = shallowRef('')
 
 function toggleFormatBar() {
   showFormatBar.value = !showFormatBar.value
@@ -854,35 +836,6 @@ function insertQueuedMentions() {
 
 function focusEditor() {
   editor.value?.commands.focus()
-}
-
-function toggleLinkEditor() {
-  const activeEditor = editor.value
-  if (!activeEditor)
-    return
-
-  linkUrl.value = activeEditor.getAttributes('link').href as string | undefined || ''
-  showLinkEditor.value = !showLinkEditor.value
-}
-
-function applyLink() {
-  const activeEditor = editor.value
-  if (!activeEditor)
-    return
-
-  const nextHref = linkUrl.value.trim()
-  if (!nextHref) {
-    activeEditor.chain().focus().extendMarkRange('link').unsetLink().run()
-    showLinkEditor.value = false
-    return
-  }
-
-  activeEditor.chain().focus().extendMarkRange('link').setLink({ href: nextHref }).run()
-  showLinkEditor.value = false
-}
-
-function closeLinkEditor() {
-  showLinkEditor.value = false
 }
 
 watch(
@@ -973,45 +926,14 @@ onUnmounted(() => {
   <div class="px-4 pb-4">
     <UploadProgress :progress="progress" :visible="uploading" />
     <!-- 回复/编辑 指示栏 -->
-    <div v-if="store.replyingTo || composeLabel" class="pt-2">
-      <div
-        v-if="store.replyingTo"
-        class="flex items-start justify-between gap-2 rounded-md border border-primary/20 bg-primary/5 px-2.5 py-2"
-      >
-        <button class="min-w-0 text-left" @click="jumpToReplyTarget">
-          <div class="text-xs font-medium text-primary">
-            {{ t('chat.reply_label', { sender: replyingToSenderName }) }}
-          </div>
-          <div class="truncate text-xs text-muted-foreground">
-            {{ replyingToPreview }}
-          </div>
-        </button>
-        <button
-          class="shrink-0 rounded p-0.5 text-muted-foreground hover:bg-accent"
-          @click="
-            store.clearCompose();
-            clear();
-          "
-        >
-          <X :size="14" />
-        </button>
-      </div>
-      <div
-        v-else-if="composeLabel"
-        class="flex items-center justify-between text-xs text-muted-foreground"
-      >
-        <span>{{ composeLabel }}</span>
-        <button
-          class="p-0.5 rounded hover:bg-accent"
-          @click="
-            store.clearCompose();
-            clear();
-          "
-        >
-          <X :size="14" />
-        </button>
-      </div>
-    </div>
+    <ReplyPreviewBar
+      :replying-to-sender-name="replyingToSenderName"
+      :replying-to-preview="replyingToPreview"
+      :compose-label="composeLabel"
+      :is-replying="!!store.replyingTo"
+      @clear="store.clearCompose(); clear()"
+      @jump-to-reply-target="jumpToReplyTarget"
+    />
 
     <!-- 主输入容器 -->
     <div v-if="!editorExpanded" data-testid="compact-composer" class="flex items-center gap-0 rounded-lg bg-input" @input="onInput">
@@ -1043,97 +965,7 @@ onUnmounted(() => {
             v-if="editor && showFormatBar"
             class="flex items-center gap-0.5 border-b border-border/30 px-2 pb-1 pt-1.5"
           >
-            <button
-              class="cursor-pointer rounded p-1 text-muted-foreground transition-all duration-[120ms] hover:bg-accent hover:text-foreground"
-              :class="editor.isActive('bold') && 'bg-primary text-primary-foreground hover:opacity-90'"
-              :title="t('chat.format_bold')"
-              @click="editor.chain().focus().toggleBold().run()"
-            >
-              <Bold :size="14" />
-            </button>
-            <button
-              class="cursor-pointer rounded p-1 text-muted-foreground transition-all duration-[120ms] hover:bg-accent hover:text-foreground"
-              :class="editor.isActive('italic') && 'bg-primary text-primary-foreground hover:opacity-90'"
-              :title="t('chat.format_italic')"
-              @click="editor.chain().focus().toggleItalic().run()"
-            >
-              <Italic :size="14" />
-            </button>
-            <button
-              class="cursor-pointer rounded p-1 text-muted-foreground transition-all duration-[120ms] hover:bg-accent hover:text-foreground"
-              :class="editor.isActive('underline') && 'bg-primary text-primary-foreground hover:opacity-90'"
-              :title="t('chat.format_underline')"
-              @click="editor.chain().focus().toggleUnderline().run()"
-            >
-              <Underline :size="14" />
-            </button>
-            <button
-              class="cursor-pointer rounded p-1 text-muted-foreground transition-all duration-[120ms] hover:bg-accent hover:text-foreground"
-              :class="editor.isActive('strike') && 'bg-primary text-primary-foreground hover:opacity-90'"
-              :title="t('chat.format_strike')"
-              @click="editor.chain().focus().toggleStrike().run()"
-            >
-              <Strikethrough :size="14" />
-            </button>
-            <button
-              class="cursor-pointer rounded p-1 text-muted-foreground transition-all duration-[120ms] hover:bg-accent hover:text-foreground"
-              :class="editor.isActive('code') && 'bg-primary text-primary-foreground hover:opacity-90'"
-              :title="t('chat.format_code')"
-              @click="editor.chain().focus().toggleCode().run()"
-            >
-              <Braces :size="14" />
-            </button>
-            <div class="w-px h-4 bg-border/60 mx-0.5" />
-            <button
-              class="cursor-pointer rounded p-1 text-muted-foreground transition-all duration-[120ms] hover:bg-accent hover:text-foreground"
-              :class="editor.isActive('bulletList') && 'bg-primary text-primary-foreground hover:opacity-90'"
-              :title="t('chat.format_ul')"
-              @click="editor.chain().focus().toggleBulletList().run()"
-            >
-              <List :size="14" />
-            </button>
-            <button
-              class="cursor-pointer rounded p-1 text-muted-foreground transition-all duration-[120ms] hover:bg-accent hover:text-foreground"
-              :class="editor.isActive('orderedList') && 'bg-primary text-primary-foreground hover:opacity-90'"
-              :title="t('chat.format_ol')"
-              @click="editor.chain().focus().toggleOrderedList().run()"
-            >
-              <ListOrdered :size="14" />
-            </button>
-            <button
-              class="cursor-pointer rounded p-1 text-muted-foreground transition-all duration-[120ms] hover:bg-accent hover:text-foreground"
-              :class="editor.isActive('blockquote') && 'bg-primary text-primary-foreground hover:opacity-90'"
-              :title="t('chat.format_quote')"
-              @click="editor.chain().focus().toggleBlockquote().run()"
-            >
-              <Quote :size="14" />
-            </button>
-            <button
-              class="cursor-pointer rounded p-1 text-muted-foreground transition-all duration-[120ms] hover:bg-accent hover:text-foreground"
-              :class="editor.isActive('link') && 'bg-primary text-primary-foreground hover:opacity-90'"
-              :title="t('chat.format_link')"
-              @click="toggleLinkEditor"
-            >
-              <Link2 :size="14" />
-            </button>
-            <form
-              v-if="showLinkEditor"
-              class="ml-1 flex h-8 items-center gap-0.5 rounded-md border border-border/60 bg-background px-1"
-              @submit.prevent="applyLink"
-            >
-              <input
-                v-model="linkUrl"
-                class="h-6 w-40 bg-transparent px-1 text-xs outline-none placeholder:text-muted-foreground"
-                :placeholder="t('chat.format_link_prompt')"
-                @keydown.stop
-              >
-              <button type="submit" class="inline-flex h-6 w-6 items-center justify-center rounded hover:bg-accent">
-                <Link2 :size="13" />
-              </button>
-              <button type="button" class="inline-flex h-6 w-6 items-center justify-center rounded hover:bg-accent" @click="closeLinkEditor">
-                <X :size="13" />
-              </button>
-            </form>
+            <RichTextToolbar :editor="editor" variant="compact" />
           </div>
         </Transition>
 
@@ -1207,96 +1039,7 @@ onUnmounted(() => {
           data-testid="expanded-format-toolbar"
           class="flex items-center gap-1 text-muted-foreground"
         >
-          <button
-            class="inline-flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-accent hover:text-foreground"
-            :class="editor.isActive('bold') && 'bg-primary text-primary-foreground hover:opacity-90'"
-            :title="t('chat.format_bold')"
-            @click="editor.chain().focus().toggleBold().run()"
-          >
-            <Bold :size="17" />
-          </button>
-          <button
-            class="inline-flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-accent hover:text-foreground"
-            :class="editor.isActive('strike') && 'bg-primary text-primary-foreground hover:opacity-90'"
-            :title="t('chat.format_strike')"
-            @click="editor.chain().focus().toggleStrike().run()"
-          >
-            <Strikethrough :size="17" />
-          </button>
-          <button
-            class="inline-flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-accent hover:text-foreground"
-            :class="editor.isActive('italic') && 'bg-primary text-primary-foreground hover:opacity-90'"
-            :title="t('chat.format_italic')"
-            @click="editor.chain().focus().toggleItalic().run()"
-          >
-            <Italic :size="17" />
-          </button>
-          <button
-            class="inline-flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-accent hover:text-foreground"
-            :class="editor.isActive('underline') && 'bg-primary text-primary-foreground hover:opacity-90'"
-            :title="t('chat.format_underline')"
-            @click="editor.chain().focus().toggleUnderline().run()"
-          >
-            <Underline :size="17" />
-          </button>
-          <button
-            class="inline-flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-accent hover:text-foreground"
-            :class="editor.isActive('orderedList') && 'bg-primary text-primary-foreground hover:opacity-90'"
-            :title="t('chat.format_ol')"
-            @click="editor.chain().focus().toggleOrderedList().run()"
-          >
-            <ListOrdered :size="17" />
-          </button>
-          <button
-            class="inline-flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-accent hover:text-foreground"
-            :class="editor.isActive('bulletList') && 'bg-primary text-primary-foreground hover:opacity-90'"
-            :title="t('chat.format_ul')"
-            @click="editor.chain().focus().toggleBulletList().run()"
-          >
-            <List :size="17" />
-          </button>
-          <button
-            class="inline-flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-accent hover:text-foreground"
-            :class="editor.isActive('blockquote') && 'bg-primary text-primary-foreground hover:opacity-90'"
-            :title="t('chat.format_quote')"
-            @click="editor.chain().focus().toggleBlockquote().run()"
-          >
-            <Quote :size="17" />
-          </button>
-          <button
-            class="inline-flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-accent hover:text-foreground"
-            :class="editor.isActive('link') && 'bg-primary text-primary-foreground hover:opacity-90'"
-            :title="t('chat.format_link')"
-            @click="toggleLinkEditor"
-          >
-            <Link2 :size="17" />
-          </button>
-          <form
-            v-if="showLinkEditor"
-            class="ml-1 flex h-8 items-center gap-0.5 rounded-md border border-border/60 bg-background px-1"
-            @submit.prevent="applyLink"
-          >
-            <input
-              v-model="linkUrl"
-              class="h-6 w-44 bg-transparent px-1 text-xs outline-none placeholder:text-muted-foreground"
-              :placeholder="t('chat.format_link_prompt')"
-              @keydown.stop
-            >
-            <button type="submit" class="inline-flex h-6 w-6 items-center justify-center rounded hover:bg-accent">
-              <Link2 :size="13" />
-            </button>
-            <button type="button" class="inline-flex h-6 w-6 items-center justify-center rounded hover:bg-accent" @click="closeLinkEditor">
-              <X :size="13" />
-            </button>
-          </form>
-          <button
-            class="inline-flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-accent hover:text-foreground"
-            :class="editor.isActive('code') && 'bg-primary text-primary-foreground hover:opacity-90'"
-            :title="t('chat.format_code')"
-            @click="editor.chain().focus().toggleCode().run()"
-          >
-            <Braces :size="17" />
-          </button>
+          <RichTextToolbar :editor="editor" variant="expanded" />
         </div>
         <button
           class="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"

@@ -24,6 +24,7 @@ describe('electron security config', () => {
 
     expect(mainProcess).toContain('contextIsolation: true')
     expect(mainProcess).toContain('nodeIntegration: false')
+    expect(mainProcess).toContain('sandbox: true')
     expect(mainProcess).toContain('preload: getPreloadEntry()')
   })
 
@@ -34,5 +35,37 @@ describe('electron security config', () => {
     expect(mainProcess).toContain('request.init?.redirect === \'manual\'')
     expect(mainProcess).toContain('manualRequest.on(\'redirect\'')
     expect(mainProcess).not.toContain('net.fetch(request.url, normalizeFetchInit(request.init))')
+  })
+
+  it('validates external URLs and blocks dangerous protocols', () => {
+    const mainProcess = readSource('electron/main.ts')
+
+    expect(mainProcess).toContain('isValidExternalUrl')
+    expect(mainProcess).toContain('http:')
+    expect(mainProcess).toContain('https:')
+    expect(mainProcess).toContain('Blocked opening URL with disallowed protocol')
+  })
+
+  it('validates file paths against path traversal', () => {
+    const mainProcess = readSource('electron/main.ts')
+
+    expect(mainProcess).toContain('validateFilePath')
+    expect(mainProcess).toContain('Path traversal is not allowed')
+  })
+
+  it('disables DevTools in production', () => {
+    const mainProcess = readSource('electron/main.ts')
+
+    expect(mainProcess).toContain('devtools-opened')
+    expect(mainProcess).toContain('closeDevTools()')
+  })
+
+  it('enforces session-level CSP in production', () => {
+    const mainProcess = readSource('electron/main.ts')
+
+    expect(mainProcess).toContain('content-security-policy')
+    expect(mainProcess).toContain('object-src')
+    expect(mainProcess).toContain('frame-src')
+    expect(mainProcess).toContain('onHeadersReceived')
   })
 })

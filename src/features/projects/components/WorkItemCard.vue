@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import type { WorkItem } from '../types'
+import { CalendarDays, User } from 'lucide-vue-next'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { CalendarDays, User } from 'lucide-vue-next'
 
 const props = defineProps<{
   item: WorkItem
@@ -27,7 +27,8 @@ const priorityColor = computed(() => {
 })
 
 const isOverdue = computed(() => {
-  if (!props.item.dueDate) return false
+  if (!props.item.dueDate)
+    return false
   return props.item.dueDate < Date.now() && props.item.status !== 'done'
 })
 </script>
@@ -49,7 +50,7 @@ const isOverdue = computed(() => {
 
     <div class="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
       <span class="rounded bg-muted px-1.5 py-0.5">
-        {{ t('projects.type_' + item.type) }}
+        {{ t(`projects.type_${item.type}`) }}
       </span>
 
       <span

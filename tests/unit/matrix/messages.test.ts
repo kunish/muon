@@ -26,6 +26,11 @@ describe('messages', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     localStorage.clear()
+    // Ensure i18n initializes with English locale when the module is first loaded.
+    // Without this, the barrel file structure causes i18n to be loaded during the
+    // first test (when localStorage is empty), and subsequent locale changes have
+    // no effect because i18n reads locale only at module init time.
+    localStorage.setItem('muon_locale', JSON.stringify('en'))
   })
 
   it('should send a text message', async () => {

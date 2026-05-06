@@ -1,9 +1,21 @@
 <script setup lang="ts">
 import type { Editor } from '@tiptap/core'
 import {
-  Bold, Italic, Underline as UnderlineIcon, Strikethrough,
-  List, ListOrdered, Quote, Code2, Heading1, Heading2, Heading3,
-  Image as ImageIcon, Table, Undo2, Redo2,
+  Bold,
+  Code2,
+  Heading1,
+  Heading2,
+  Heading3,
+  Image as ImageIcon,
+  Italic,
+  List,
+  ListOrdered,
+  Quote,
+  Redo2,
+  Strikethrough,
+  Table,
+  Underline as UnderlineIcon,
+  Undo2,
 } from 'lucide-vue-next'
 
 defineProps<{ editor: Editor | null }>()

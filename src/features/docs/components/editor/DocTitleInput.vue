@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { shallowRef, watch, onMounted, onUnmounted } from 'vue'
 import type { Doc } from 'yjs'
+import { onMounted, onUnmounted, shallowRef, watch } from 'vue'
 
 const props = defineProps<{ ydoc: Doc }>()
 
@@ -23,7 +23,8 @@ onUnmounted(() => {
 })
 
 watch(title, (val) => {
-  if (!ytitle || val === ytitle.toString()) return
+  if (!ytitle || val === ytitle.toString())
+    return
   ytitle.delete(0, ytitle.length)
   ytitle.insert(0, val)
 })

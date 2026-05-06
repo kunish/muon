@@ -1,15 +1,16 @@
 <script setup lang="ts">
 import type { ProjectView } from '../types'
+import { Button } from '@muon/ui/button'
+import { Kanban, LayoutList, Settings, Trash2 } from 'lucide-vue-next'
 import { computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
-import { Kanban, LayoutList, Settings, Trash2 } from 'lucide-vue-next'
-import { Button } from '@muon/ui/button'
+import { ask } from '@/electron/dialog'
 import { useProjectStore } from '../composables/useProjectStore'
 import { useWorkItemStore } from '../composables/useWorkItemStore'
 import BoardView from './view/BoardView.vue'
-import ListView from './view/ListView.vue'
 import GanttView from './view/GanttView.vue'
+import ListView from './view/ListView.vue'
 
 const props = defineProps<{ projectId: string }>()
 
@@ -25,14 +26,16 @@ const project = computed(() =>
 
 const currentView = computed<ProjectView>(() => {
   const v = route.query.view as string
-  if (v === 'list' || v === 'gantt') return v
+  if (v === 'list' || v === 'gantt')
+    return v
   return 'board'
 })
 
 onMounted(async () => {
   projectStore.setCurrentProject(props.projectId)
   itemStore.setCurrentProject(props.projectId)
-  if (!project.value) await projectStore.loadProjects()
+  if (!project.value)
+    await projectStore.loadProjects()
   await itemStore.loadItems(props.projectId)
 })
 
@@ -45,7 +48,12 @@ function openSettings() {
 }
 
 async function deleteProject() {
-  if (!confirm(t('projects.delete_project_confirm'))) return
+  const confirmed = await ask(t('projects.delete_project_confirm'), {
+    title: t('projects.delete_project'),
+    kind: 'warning',
+  })
+  if (!confirmed)
+    return
   await projectStore.deleteProject(props.projectId)
   router.push('/projects')
 }
@@ -55,9 +63,11 @@ async function deleteProject() {
   <div v-if="project" class="flex h-full flex-col">
     <div class="flex items-center justify-between border-b px-6 py-3">
       <div class="flex items-center gap-3">
-        <h1 class="text-lg font-semibold">{{ project.name }}</h1>
+        <h1 class="text-lg font-semibold">
+          {{ project.name }}
+        </h1>
         <span class="rounded bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-          {{ t('projects.template_' + project.template) }}
+          {{ t(`projects.template_${project.template}`) }}
         </span>
       </div>
       <div class="flex items-center gap-2">
@@ -72,7 +82,7 @@ async function deleteProject() {
             <Kanban v-if="v === 'board'" class="inline h-3.5 w-3.5" />
             <LayoutList v-else-if="v === 'list'" class="inline h-3.5 w-3.5" />
             <span v-else class="inline h-3.5 w-3.5">📅</span>
-            <span class="ml-1">{{ t('projects.view_' + v) }}</span>
+            <span class="ml-1">{{ t(`projects.view_${v}`) }}</span>
           </button>
         </div>
         <Button variant="ghost" size="icon" @click="openSettings()">

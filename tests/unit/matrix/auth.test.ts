@@ -116,14 +116,14 @@ describe('auth', () => {
     }))
 
     const { restoreSession } = await import('@/matrix/auth')
-    const result = restoreSession()
+    const result = await restoreSession()
 
     expect(result).toBe(true)
   })
 
   it('should return false when no stored session', async () => {
     const { restoreSession } = await import('@/matrix/auth')
-    const result = restoreSession()
+    const result = await restoreSession()
 
     expect(result).toBe(false)
   })

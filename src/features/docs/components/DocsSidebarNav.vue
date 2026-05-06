@@ -9,6 +9,7 @@ defineProps<{
 
 const emit = defineEmits<{ select: [id: DocSectionId] }>()
 </script>
+
 <template>
   <div class="flex flex-col gap-1">
     <button

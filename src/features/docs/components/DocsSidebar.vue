@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { Clock3, Star, Users } from 'lucide-vue-next'
 import { useDocsStore } from '../stores/docsStore'
-import DocsSidebarNav from './DocsSidebarNav.vue'
-import DocsFolderTree from './DocsFolderTree.vue'
 import DocsCreateButton from './DocsCreateButton.vue'
+import DocsFolderTree from './DocsFolderTree.vue'
+import DocsSidebarNav from './DocsSidebarNav.vue'
 
 const store = useDocsStore()
 
@@ -33,8 +33,12 @@ async function handleCreate(): Promise<void> {
 <template>
   <div class="flex h-full min-h-0 flex-col overflow-hidden px-2 py-6">
     <div class="mb-6 px-3">
-      <h1 class="text-[18px] font-semibold leading-6 text-foreground">文档</h1>
-      <p class="mt-1 text-[13px] leading-[18px] text-muted-foreground">团队资料与项目文档</p>
+      <h1 class="text-[18px] font-semibold leading-6 text-foreground">
+        文档
+      </h1>
+      <p class="mt-1 text-[13px] leading-[18px] text-muted-foreground">
+        团队资料与项目文档
+      </p>
     </div>
 
     <DocsCreateButton @create="handleCreate" />

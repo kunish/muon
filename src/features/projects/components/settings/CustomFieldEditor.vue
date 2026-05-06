@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import type { CustomField } from '../../types'
-import { onMounted, ref } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { Plus, Trash2 } from 'lucide-vue-next'
 import { Button } from '@muon/ui/button'
 import { Input } from '@muon/ui/input'
+import { Plus, Trash2 } from 'lucide-vue-next'
+import { onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { projectRepo } from '../../db/projectDb'
 
 const props = defineProps<{ projectId: string }>()
@@ -22,6 +22,7 @@ async function addField() {
     projectId: props.projectId,
     name: '',
     type: 'text',
+    options: [],
     required: false,
     order: fields.value.length,
   }
@@ -42,7 +43,9 @@ async function saveField(field: CustomField) {
 <template>
   <div class="space-y-4 p-6">
     <div class="flex items-center justify-between">
-      <h3 class="font-medium">{{ t('projects.custom_fields') }}</h3>
+      <h3 class="font-medium">
+        {{ t('projects.custom_fields') }}
+      </h3>
       <Button size="sm" variant="outline" @click="addField()">
         <Plus class="mr-1 h-3.5 w-3.5" /> {{ t('projects.add_field') }}
       </Button>
@@ -65,20 +68,34 @@ async function saveField(field: CustomField) {
           class="rounded border bg-background px-2 py-1.5 text-sm"
           @change="saveField(field)"
         >
-          <option value="text">Text</option>
-          <option value="number">Number</option>
-          <option value="select">Select</option>
-          <option value="multiSelect">Multi-select</option>
-          <option value="date">Date</option>
-          <option value="user">User</option>
-          <option value="url">URL</option>
+          <option value="text">
+            Text
+          </option>
+          <option value="number">
+            Number
+          </option>
+          <option value="select">
+            Select
+          </option>
+          <option value="multiSelect">
+            Multi-select
+          </option>
+          <option value="date">
+            Date
+          </option>
+          <option value="user">
+            User
+          </option>
+          <option value="url">
+            URL
+          </option>
         </select>
         <label class="flex items-center gap-1 text-sm">
           <input
             type="checkbox"
             :checked="field.required"
             @change="field.required = !field.required; saveField(field)"
-          />
+          >
           {{ t('projects.field_required') }}
         </label>
         <Button variant="ghost" size="icon" @click="removeField(field.id)">

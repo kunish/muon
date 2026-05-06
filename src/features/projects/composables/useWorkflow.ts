@@ -55,10 +55,10 @@ export function useWorkflow(projectId: () => string) {
   }
 
   async function changeStatus(itemId: string, toStatus: string): Promise<void> {
-    const pid = projectId()
     const wf = await loadWorkflow()
     const item = await projectRepo.getWorkItem(itemId)
-    if (!item) throw new Error('Work item not found')
+    if (!item)
+      throw new Error('Work item not found')
 
     if (!canTransition(wf, item.status, toStatus)) {
       throw new Error(`Cannot transition from "${item.status}" to "${toStatus}"`)

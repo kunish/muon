@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
 import { Button } from '@muon/ui/button'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@muon/ui/dialog'
 import { Input } from '@muon/ui/input'
 import { Label } from '@muon/ui/label'
+import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 import { useProjectStore } from '../composables/useProjectStore'
 
-const props = defineProps<{
+defineProps<{
   open: boolean
 }>()
 
@@ -29,7 +29,8 @@ const error = ref('')
 const canSubmit = computed(() => name.value.trim().length > 0 && !creating.value)
 
 async function submit() {
-  if (!canSubmit.value) return
+  if (!canSubmit.value)
+    return
   creating.value = true
   error.value = ''
   try {
@@ -77,10 +78,14 @@ async function submit() {
             @keyup.enter="submit()"
           />
         </div>
-        <p v-if="error" class="text-sm text-destructive">{{ error }}</p>
+        <p v-if="error" class="text-sm text-destructive">
+          {{ error }}
+        </p>
       </div>
       <DialogFooter>
-        <Button variant="outline" @click="emit('update:open', false)">{{ t('common.cancel') }}</Button>
+        <Button variant="outline" @click="emit('update:open', false)">
+          {{ t('common.cancel') }}
+        </Button>
         <Button :disabled="!canSubmit" :loading="creating" @click="submit()">
           {{ t('projects.create') }}
         </Button>

@@ -11,14 +11,18 @@ const pkg = JSON.parse(readFileSync(resolve(__dirname, 'package.json'), 'utf8'))
 function rendererManualChunks(id: string): string | undefined {
   if (!id.includes('node_modules'))
     return undefined
+  // 大体积 SDK 独立分块，利用浏览器并行加载 + 长效缓存
   if (id.includes('matrix-js-sdk'))
     return 'matrix-sdk'
   if (id.includes('@tiptap/'))
     return 'editor'
   if (id.includes('lottie-web'))
     return 'lottie'
-  if (id.includes('plyr') || id.includes('viewerjs'))
-    return 'media'
+  if (id.includes('livekit-client'))
+    return 'livekit'
+  // 框架运行时合并为 vendor chunk（vue, pinia, vue-router, vue-i18n）
+  if (id.includes('vue') || id.includes('pinia') || id.includes('vue-router') || id.includes('vue-i18n') || id.includes('@vue'))
+    return 'vendor'
   return undefined
 }
 
@@ -90,10 +94,16 @@ export default defineConfig({
     build: {
       chunkSizeWarningLimit: 1400,
       minify: !process.env.ELECTRON_DEBUG ? 'esbuild' : false,
+      cssMinify: !process.env.ELECTRON_DEBUG,
+      cssCodeSplit: true,
+      reportCompressedSize: false,
       rollupOptions: {
         input: resolve(__dirname, 'index.html'),
         output: {
           manualChunks: rendererManualChunks,
+          chunkFileNames: 'assets/[name]-[hash].js',
+          entryFileNames: 'assets/[name]-[hash].js',
+          assetFileNames: 'assets/[name]-[hash].[ext]',
         },
       },
       sourcemap: !!process.env.ELECTRON_DEBUG,

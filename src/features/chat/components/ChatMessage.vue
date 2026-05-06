@@ -7,11 +7,10 @@ import { fetchMediaBlobUrl } from '@matrix/media'
 import { hasPlainUrl, linkifyPlainText, sanitizeMatrixHtml } from '@muon/rich-text'
 import RichMessageContent from '@muon/rich-text/message-content'
 import { Avatar } from '@muon/ui/avatar'
-import { Copy, MessageSquare, Reply, Trash2 } from 'lucide-vue-next'
+import { useSettingsStore } from '@shared/stores/settingsStore'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ask } from '@/electron/dialog'
-import { useSettingsStore } from '@/features/settings/stores/settingsStore'
 import { useAuthMedia } from '@/shared/composables/useAuthMedia'
 import { useContextMenuScrollLock } from '@/shared/composables/useContextMenuScrollLock'
 import { useViewportClampedFloating } from '@/shared/composables/useViewportClampedFloating'
@@ -25,12 +24,14 @@ import { getMediaFrameStyle } from '../lib/mediaFrame'
 import { useChatStore } from '../stores/chatStore'
 import LinkPreview from './LinkPreview.vue'
 import MessageActionBar from './MessageActionBar.vue'
+import MessageContextMenu from './MessageContextMenu.vue'
 import AudioMessage from './messages/AudioMessage.vue'
 import ContactCardMessage from './messages/ContactCardMessage.vue'
 import FileMessage from './messages/FileMessage.vue'
 import ImageMessage from './messages/ImageMessage.vue'
 import VideoMessage from './messages/VideoMessage.vue'
 import ReactionBar from './ReactionBar.vue'
+import ReplyReference from './ReplyReference.vue'
 
 /**
  * 单条消息组件
@@ -88,6 +89,7 @@ const { isAnyMessageContextMenuOpen } = useMessageContextMenuState(showContextMe
 const isVisuallyHovered = computed(() => hovered.value || showContextMenu.value || actionMenuOpen.value || actionBarHovered.value)
 const shouldShowActionBar = computed(() => !isAnyMessageContextMenuOpen.value && (hovered.value || actionMenuOpen.value || actionBarHovered.value))
 let hoverCloseTimer: ReturnType<typeof setTimeout> | null = null
+let contextMenuListenerTimer: ReturnType<typeof setTimeout> | null = null
 let richMediaHydrationRun = 0
 
 useContextMenuScrollLock(showContextMenu)
@@ -323,16 +325,6 @@ const replySenderMxcAvatar = computed(() => {
   const room = client.getRoom(props.roomId)
   const member = room?.getMember(replySender.value)
   return member?.getMxcAvatarUrl() || undefined
-})
-
-const replySenderColor = computed(() => {
-  if (!replySender.value)
-    return NAME_COLORS[0]
-  let hash = 0
-  for (const ch of replySender.value) {
-    hash = ch.charCodeAt(0) + ((hash << 5) - hash)
-  }
-  return NAME_COLORS[Math.abs(hash) % NAME_COLORS.length]
 })
 
 // --- HTML 内容 ---
@@ -576,12 +568,20 @@ function onDocumentPointerDown(event: MouseEvent) {
 
 watch(showContextMenu, (open) => {
   if (open) {
-    setTimeout(() => document.addEventListener('mousedown', onDocumentPointerDown), 0)
+    contextMenuListenerTimer = setTimeout(() => document.addEventListener('mousedown', onDocumentPointerDown), 0)
   }
   else {
-    document.removeEventListener('mousedown', onDocumentPointerDown)
+    clearContextMenuListener()
   }
 })
+
+function clearContextMenuListener() {
+  if (contextMenuListenerTimer) {
+    clearTimeout(contextMenuListenerTimer)
+    contextMenuListenerTimer = null
+  }
+  document.removeEventListener('mousedown', onDocumentPointerDown)
+}
 
 watch(shouldShowActionBar, (visible) => {
   if (!visible || isRedacted.value) {
@@ -604,7 +604,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   clearHoverCloseTimer()
-  document.removeEventListener('mousedown', onDocumentPointerDown)
+  clearContextMenuListener()
   document.removeEventListener('pointerdown', onDocumentActionBarPointerDown, true)
   window.removeEventListener('resize', onViewportChange)
   document.removeEventListener('scroll', onViewportChange, true)
@@ -685,30 +685,14 @@ onUnmounted(() => {
       </div>
 
       <!-- 引用回复 -->
-      <div
+      <ReplyReference
         v-if="replyEvent"
-        class="flex items-center gap-1.5 mb-1 text-[13px] leading-snug cursor-pointer hover:opacity-80"
-        :class="isRightAligned ? 'self-end' : ''"
-      >
-        <!-- 竖线 -->
-        <div class="w-[2px] h-3 rounded-full bg-muted-foreground/30 shrink-0 ml-0.5" />
-        <!-- 小头像 -->
-        <Avatar
-          :src="replySenderMxcAvatar"
-          :alt="replySenderName"
-          :color-id="replySender"
-          size="xs"
-          class="shrink-0"
-        />
-        <!-- 用户名 -->
-        <span class="font-medium text-[12px] shrink-0" :style="{ color: replySenderColor }">
-          {{ replySenderName }}
-        </span>
-        <!-- 截断的消息文本 -->
-        <span class="text-[12px] text-muted-foreground/60 truncate">
-          {{ replyBody }}
-        </span>
-      </div>
+        :reply-sender-name="replySenderName"
+        :reply-body="replyBody"
+        :reply-sender="replySender"
+        :reply-sender-mxc-avatar="replySenderMxcAvatar"
+        :is-right-aligned="isRightAligned"
+      />
 
       <!-- 消息内容 -->
       <div v-if="isRedacted" class="text-[13px] italic text-muted-foreground/40">
@@ -834,30 +818,16 @@ onUnmounted(() => {
         <div
           v-if="showContextMenu"
           ref="contextMenuRef"
-          class="fixed z-[220] min-w-[180px] rounded-xl border border-border/60 bg-popover/95 py-1.5 shadow-[0_8px_30px_rgba(0,0,0,0.12),0_2px_8px_rgba(0,0,0,0.06)] backdrop-blur-xl"
+          class="fixed z-[220]"
           :style="contextMenuStyle"
-          @contextmenu.prevent
         >
-          <button class="mx-1 flex w-[calc(100%-8px)] items-center gap-2.5 rounded-md px-3.5 py-[7px] text-[13px] text-foreground transition-all duration-[120ms] hover:bg-accent" @click="onReplyFromContextMenu">
-            <Reply :size="14" />
-            <span>{{ t('chat.action_reply') }}</span>
-          </button>
-          <button class="mx-1 flex w-[calc(100%-8px)] items-center gap-2.5 rounded-md px-3.5 py-[7px] text-[13px] text-foreground transition-all duration-[120ms] hover:bg-accent" @click="onCopyFromContextMenu">
-            <Copy :size="14" />
-            <span>{{ t('chat.action_copy') }}</span>
-          </button>
-          <button class="mx-1 flex w-[calc(100%-8px)] items-center gap-2.5 rounded-md px-3.5 py-[7px] text-[13px] text-foreground transition-all duration-[120ms] hover:bg-accent" @click="onOpenThreadFromContextMenu">
-            <MessageSquare :size="14" />
-            <span>{{ t('chat.thread') }}</span>
-          </button>
-          <button
-            v-if="isMine"
-            class="mx-1 flex w-[calc(100%-8px)] items-center gap-2.5 rounded-md px-3.5 py-[7px] text-[13px] text-destructive transition-all duration-[120ms] hover:bg-[color-mix(in_srgb,var(--color-destructive)_10%,transparent)]"
-            @click="onDeleteFromContextMenu"
-          >
-            <Trash2 :size="14" />
-            <span>{{ t('chat.delete_message') }}</span>
-          </button>
+          <MessageContextMenu
+            :is-mine="isMine"
+            @reply="onReplyFromContextMenu"
+            @copy="onCopyFromContextMenu"
+            @open-thread="onOpenThreadFromContextMenu"
+            @delete="onDeleteFromContextMenu"
+          />
         </div>
       </Transition>
     </Teleport>

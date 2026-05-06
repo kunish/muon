@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { useI18n } from 'vue-i18n'
 import { Button } from '@muon/ui/button'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@muon/ui/dialog'
 import { Input } from '@muon/ui/input'
 import { Label } from '@muon/ui/label'
 import { Textarea } from '@muon/ui/textarea'
+import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useWorkItemStore } from '../composables/useWorkItemStore'
 
 const props = defineProps<{
@@ -30,7 +30,8 @@ const creating = ref(false)
 const canSubmit = computed(() => title.value.trim().length > 0 && !creating.value)
 
 async function submit() {
-  if (!canSubmit.value) return
+  if (!canSubmit.value)
+    return
   creating.value = true
   try {
     await store.createItem(props.projectId, {

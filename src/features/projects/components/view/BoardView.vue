@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import type { WorkflowStatus } from '../../types'
+import { Button } from '@muon/ui/button'
+import { Plus } from 'lucide-vue-next'
 import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Plus } from 'lucide-vue-next'
-import { Button } from '@muon/ui/button'
-import { useWorkItemStore } from '../../composables/useWorkItemStore'
 import { useWorkflow } from '../../composables/useWorkflow'
+import { useWorkItemStore } from '../../composables/useWorkItemStore'
 import WorkItemCard from '../WorkItemCard.vue'
 import WorkItemCreateDialog from '../WorkItemCreateDialog.vue'
 import WorkItemDetail from '../WorkItemDetail.vue'
@@ -36,21 +36,24 @@ function openCreate(statusKey: string) {
 }
 
 function onDragStart(event: DragEvent, itemId: string) {
-  if (!event.dataTransfer) return
+  if (!event.dataTransfer)
+    return
   event.dataTransfer.setData('text/plain', itemId)
   event.dataTransfer.effectAllowed = 'move'
 }
 
 function onDragOver(event: DragEvent) {
   event.preventDefault()
-  if (!event.dataTransfer) return
+  if (!event.dataTransfer)
+    return
   event.dataTransfer.dropEffect = 'move'
 }
 
 async function onDrop(event: DragEvent, targetStatus: string) {
   event.preventDefault()
   const itemId = event.dataTransfer?.getData('text/plain')
-  if (!itemId) return
+  if (!itemId)
+    return
   const items = itemsForStatus(targetStatus)
   const newOrder = items.length > 0 ? Math.max(...items.map(i => i.order)) + 1 : 0
   await itemStore.reorderItem(itemId, props.projectId, newOrder, targetStatus)

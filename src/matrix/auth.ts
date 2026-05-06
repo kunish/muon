@@ -1,6 +1,7 @@
 import type { LoginCredentials, RegisterParams } from './types'
 import { oauthTokenResponseSchema } from '@muon/enterprise-contracts'
 import { z } from 'zod'
+import { getDesktopBridge, isElectronRuntime } from '@/electron/bridge'
 import { openUrl } from '@/electron/opener'
 import { createClient, destroyClient, getClient } from './client'
 import { unbindClientEvents } from './events'
@@ -24,8 +25,89 @@ interface StoredSession {
   deviceId: string
 }
 
-function persistSession(session: StoredSession): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(session))
+// --- SafeStorage helpers ---
+
+let safeStorageAvailable: boolean | null = null
+
+async function isSafeStorageAvailable(): Promise<boolean> {
+  if (safeStorageAvailable !== null)
+    return safeStorageAvailable
+
+  if (!isElectronRuntime()) {
+    safeStorageAvailable = false
+    return false
+  }
+
+  try {
+    safeStorageAvailable = await getDesktopBridge()!.safeStorage.isAvailable()
+  }
+  catch {
+    safeStorageAvailable = false
+  }
+
+  if (!safeStorageAvailable) {
+    console.warn('[auth] safeStorage encryption is not available, falling back to plaintext token storage')
+  }
+
+  return safeStorageAvailable
+}
+
+async function encryptSensitive(value: string): Promise<string> {
+  if (!(await isSafeStorageAvailable()))
+    return value
+
+  try {
+    return await getDesktopBridge()!.safeStorage.encrypt(value)
+  }
+  catch (err) {
+    console.warn('[auth] safeStorage encrypt failed, falling back to plaintext:', err)
+    return value
+  }
+}
+
+async function decryptSensitive(value: string, isEncrypted: boolean): Promise<string> {
+  if (!isEncrypted)
+    return value
+
+  if (!(await isSafeStorageAvailable()))
+    return value
+
+  try {
+    return await getDesktopBridge()!.safeStorage.decrypt(value)
+  }
+  catch (err) {
+    console.warn('[auth] safeStorage decrypt failed, returning stored value as-is:', err)
+    return value
+  }
+}
+
+// --- Session persistence ---
+
+interface PersistedSessionPayload {
+  serverUrl: string
+  userId: string
+  accessToken: string
+  deviceId: string
+  /** When true, accessToken and deviceId are encrypted with safeStorage */
+  _enc?: boolean
+}
+
+async function persistSession(session: StoredSession): Promise<void> {
+  const encryptedToken = await encryptSensitive(session.accessToken)
+  const encryptedDeviceId = await encryptSensitive(session.deviceId)
+  const isEncrypted = encryptedToken !== session.accessToken || encryptedDeviceId !== session.deviceId
+
+  const payload: PersistedSessionPayload = {
+    serverUrl: session.serverUrl,
+    userId: session.userId,
+    accessToken: encryptedToken,
+    deviceId: encryptedDeviceId,
+  }
+
+  if (isEncrypted)
+    payload._enc = true
+
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(payload))
 }
 
 function clearSession(): void {
@@ -56,7 +138,7 @@ export async function login(serverUrl: string, credentials: LoginCredentials): P
     deviceId: response.device_id,
   }
 
-  persistSession(session)
+  await persistSession(session)
   createClient(session)
   return session
 }
@@ -78,7 +160,7 @@ export async function register(serverUrl: string, params: RegisterParams): Promi
     deviceId: response.device_id!,
   }
 
-  persistSession(session)
+  await persistSession(session)
   createClient(session)
 
   if (params.displayName) {
@@ -199,8 +281,16 @@ export async function completeEnterpriseLogin(callbackUrl: string, apiBaseUrl = 
     accessToken: tokenResponse.matrixSession.accessToken,
     deviceId: tokenResponse.matrixSession.deviceId,
   }
-  persistSession(session)
-  localStorage.setItem(ENTERPRISE_SESSION_KEY, JSON.stringify(tokenResponse.muonSession))
+  await persistSession(session)
+
+  // Encrypt the enterprise muonSession (contains accessToken + refreshToken)
+  const muonSessionJson = JSON.stringify(tokenResponse.muonSession)
+  const encryptedMuonSession = await encryptSensitive(muonSessionJson)
+  const muonPayload = encryptedMuonSession !== muonSessionJson
+    ? JSON.stringify({ _enc: true, data: encryptedMuonSession })
+    : muonSessionJson
+  localStorage.setItem(ENTERPRISE_SESSION_KEY, muonPayload)
+
   localStorage.removeItem(ENTERPRISE_PKCE_KEY)
   createClient(session)
   return session
@@ -235,14 +325,26 @@ export async function logout(): Promise<void> {
   }
 }
 
-export function restoreSession(): boolean {
+export async function restoreSession(): Promise<boolean> {
   const raw = localStorage.getItem(STORAGE_KEY)
   if (!raw)
     return false
 
   try {
     const parsed = JSON.parse(raw)
-    const result = sessionSchema.safeParse(parsed)
+    const pay = parsed as PersistedSessionPayload
+
+    // Decrypt sensitive fields if they were encrypted
+    const accessToken = await decryptSensitive(pay.accessToken, pay._enc === true)
+    const deviceId = await decryptSensitive(pay.deviceId, pay._enc === true)
+
+    const result = sessionSchema.safeParse({
+      serverUrl: pay.serverUrl,
+      userId: pay.userId,
+      accessToken,
+      deviceId,
+    })
+
     if (!result.success) {
       clearSession()
       return false

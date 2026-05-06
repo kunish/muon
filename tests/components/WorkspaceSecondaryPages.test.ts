@@ -1,6 +1,5 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { createPinia, setActivePinia } from 'pinia'
 import ApprovalsPage from '@/features/approvals/components/ApprovalsPage.vue'
 import CalendarPage from '@/features/calendar/components/CalendarPage.vue'
 import CallsPage from '@/features/calls/components/CallsPage.vue'
@@ -33,8 +32,34 @@ vi.mock('vue-router', async (importOriginal) => {
 
 vi.mock('@matrix/client', () => ({
   getClient: vi.fn(() => ({
-    getRooms: vi.fn(() => []),
+    getRooms: vi.fn(() => [
+      {
+        roomId: '!dm-alice:localhost',
+        name: '小红',
+        getJoinedMembers: () => [
+          { userId: '@test:localhost', name: '我', getMxcAvatarUrl: () => null },
+          { userId: '@alice:localhost', name: '小红', getMxcAvatarUrl: () => 'mxc://localhost/avatar_alice' },
+        ],
+        getJoinedMemberCount: () => 2,
+      },
+      {
+        roomId: '!dm-bob:localhost',
+        name: '小明',
+        getJoinedMembers: () => [
+          { userId: '@test:localhost', name: '我', getMxcAvatarUrl: () => null },
+          { userId: '@bob:localhost', name: '小明', getMxcAvatarUrl: () => 'mxc://localhost/avatar_bob' },
+        ],
+        getJoinedMemberCount: () => 2,
+      },
+      {
+        roomId: '!tech:localhost',
+        name: '技术交流群',
+        getJoinedMembers: () => [],
+        getJoinedMemberCount: () => 4,
+      },
+    ]),
     getRoom: vi.fn(() => null),
+    getUser: vi.fn(() => ({ displayName: '我', avatarUrl: undefined })),
     joinRoom: vi.fn().mockRejectedValue(new Error('no room')),
     createRoom: vi.fn().mockResolvedValue({ room_id: '!new:localhost' }),
     getUserId: vi.fn(() => '@test:localhost'),

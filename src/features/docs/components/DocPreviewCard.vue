@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { FileText } from 'lucide-vue-next'
 import type { DocEntry } from '../types/doc'
+import { FileText } from 'lucide-vue-next'
 
 defineProps<{ doc: DocEntry, isSelected: boolean }>()
 const emit = defineEmits<{ select: [id: string] }>()

@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import type { SpaceMember } from '@/matrix/spaces'
+import { useRoomNavigation } from '@shared/composables/useRoomNavigation'
 import { Search, X } from 'lucide-vue-next'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useChatStore } from '@/features/chat/stores/chatStore'
 import { useServerStore } from '@/features/server/stores/serverStore'
 import { matrixEvents } from '@/matrix/events'
 import { getUserPresenceInfo } from '@/matrix/profile'
@@ -22,7 +22,7 @@ const emit = defineEmits<{
 }>()
 
 const serverStore = useServerStore()
-const chatStore = useChatStore()
+const chatStore = useRoomNavigation()
 const { t } = useI18n()
 const searchQuery = ref('')
 

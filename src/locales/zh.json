@@ -823,8 +823,7 @@
     "confirm": "确认",
     "missing_server_id": "缺少服务器上下文",
     "ban": "封禁",
-    "kick": "踢出",
-    "ban": "封禁"
+    "kick": "踢出"
   },
   "projects": {
     "create_project": "新建项目",

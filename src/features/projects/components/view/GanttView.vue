@@ -14,26 +14,28 @@ const itemsWithDates = computed(() =>
   store.currentItems.filter(i => i.dueDate).sort((a, b) => (a.dueDate ?? 0) - (b.dueDate ?? 0)),
 )
 
+const MS_PER_DAY = 86_400_000
+
 const range = computed(() => {
   const now = new Date()
   const start = new Date(now.getFullYear(), now.getMonth() - monthsBack.value, 1)
   const end = new Date(now.getFullYear(), now.getMonth() + monthsForward.value + 1, 0)
+  const endTime = end.getTime()
   const days: Date[] = []
-  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-    days.push(new Date(d))
+  for (let time = start.getTime(); time <= endTime; time += MS_PER_DAY) {
+    days.push(new Date(time))
   }
   return { start, end, days }
 })
 
 function dateToColumnX(dateMs: number): number {
-  const msPerDay = 86_400_000
-  return Math.round((dateMs - range.value.start.getTime()) / msPerDay)
+  return Math.round((dateMs - range.value.start.getTime()) / MS_PER_DAY)
 }
 
 const todayX = computed(() => dateToColumnX(Date.now()))
 
 function totalDays(): number {
-  return Math.round((range.value.end.getTime() - range.value.start.getTime()) / 86_400_000) + 1
+  return Math.round((range.value.end.getTime() - range.value.start.getTime()) / MS_PER_DAY) + 1
 }
 
 const dayLabels = computed(() => {
@@ -63,15 +65,17 @@ const columnWidth = 24
       {{ t('projects.no_tasks') }}
     </div>
 
-    <div v-else class="flex flex-1 flex-col" :style="{ width: totalDays() * columnWidth + 'px' }">
+    <div v-else class="flex flex-1 flex-col" :style="{ width: `${totalDays() * columnWidth}px` }">
       <div class="flex border-b bg-muted/50 text-xs">
-        <div class="w-64 shrink-0 px-3 py-2 font-medium">{{ t('projects.task_title') }}</div>
+        <div class="w-64 shrink-0 px-3 py-2 font-medium">
+          {{ t('projects.task_title') }}
+        </div>
         <div class="flex">
           <div
             v-for="(m, i) in dayLabels"
             :key="i"
             class="border-r px-2 py-2 text-center font-medium"
-            :style="{ width: m.span * columnWidth + 'px' }"
+            :style="{ width: `${m.span * columnWidth}px` }"
           >
             {{ m.label }}
           </div>
@@ -83,17 +87,19 @@ const columnWidth = 24
         :key="item.id"
         class="flex border-b text-sm hover:bg-muted/50"
       >
-        <div class="w-64 shrink-0 truncate px-3 py-2.5">{{ item.title }}</div>
+        <div class="w-64 shrink-0 truncate px-3 py-2.5">
+          {{ item.title }}
+        </div>
         <div class="relative flex-1">
           <div
             class="absolute top-1.5 h-6 rounded bg-primary/80 px-2 text-xs leading-6 text-primary-foreground"
-            :style="{ left: dateToColumnX(item.dueDate!) * columnWidth + 'px' }"
+            :style="{ left: `${dateToColumnX(item.dueDate!) * columnWidth}px` }"
           >
             {{ new Date(item.dueDate!).toLocaleDateString() }}
           </div>
           <div
             class="absolute top-0 h-full w-px bg-red-500"
-            :style="{ left: todayX * columnWidth + 'px' }"
+            :style="{ left: `${todayX * columnWidth}px` }"
           />
         </div>
       </div>

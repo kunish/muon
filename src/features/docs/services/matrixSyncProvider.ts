@@ -1,11 +1,16 @@
 import type { MatrixClient } from 'matrix-js-sdk'
-import { RoomEvent } from 'matrix-js-sdk'
-import { Doc, applyUpdate, encodeStateAsUpdate } from 'yjs'
-import type { DocSyncEvent, DocCursorEvent } from '../types/doc'
-import { MATRIX_EVENT_TYPES } from '../types/doc'
+import type { Doc } from 'yjs'
+import type { DocCursorEvent, DocSyncEvent } from '../types/doc'
 import { getClient } from '@matrix/client'
+import { RoomEvent } from 'matrix-js-sdk'
+import { applyUpdate, encodeStateAsUpdate } from 'yjs'
+import { MATRIX_EVENT_TYPES } from '../types/doc'
 
 const MAX_CHUNK_SIZE = 60 * 1024
+interface MatrixSendEventResult { event_id: string }
+interface MatrixEventClient extends MatrixClient {
+  sendEvent: (roomId: string, eventType: string, content: unknown) => Promise<MatrixSendEventResult>
+}
 
 export class MatrixSyncProvider {
   private doc: Doc
@@ -25,7 +30,8 @@ export class MatrixSyncProvider {
   }
 
   private handleYjsUpdate = (update: Uint8Array, origin: unknown): void => {
-    if (origin === this) return
+    if (origin === this)
+      return
 
     const payload = this.uint8ToBase64(update)
     const chunks = this.splitPayload(payload)
@@ -43,16 +49,13 @@ export class MatrixSyncProvider {
         batchId,
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ;(this.client as any).sendEvent(this.roomId, MATRIX_EVENT_TYPES.DOC_SYNC, event)
-        .then((res: { event_id: string }) => {
-          if (i === chunks.length - 1) {
-            this.lastEventId = res.event_id
-          }
-        })
-        .catch((err: unknown) => {
-          console.error('[MatrixSyncProvider] Failed to send sync event:', err)
-        })
+      ;(this.client as MatrixEventClient).sendEvent(this.roomId, MATRIX_EVENT_TYPES.DOC_SYNC, event).then((res) => {
+        if (i === chunks.length - 1) {
+          this.lastEventId = res.event_id
+        }
+      }).catch((err: unknown) => {
+        console.error('[MatrixSyncProvider] Failed to send sync event:', err)
+      })
     }
   }
 
@@ -65,11 +68,14 @@ export class MatrixSyncProvider {
         event_id: string
       }
     }
-    if (event.event?.type !== MATRIX_EVENT_TYPES.DOC_SYNC) return
-    if (event.event?.room_id !== this.roomId) return
+    if (event.event?.type !== MATRIX_EVENT_TYPES.DOC_SYNC)
+      return
+    if (event.event?.room_id !== this.roomId)
+      return
 
     const content = event.event.content
-    if (!content?.payload) return
+    if (!content?.payload)
+      return
 
     try {
       if (content.total > 1) {
@@ -87,13 +93,15 @@ export class MatrixSyncProvider {
           applyUpdate(this.doc, merged, this)
           this.pendingChunks.delete(batchKey)
         }
-      } else {
+      }
+      else {
         const update = this.base64ToUint8(content.payload)
         applyUpdate(this.doc, update, this)
       }
 
       this.lastEventId = event.event.event_id
-    } catch (err) {
+    }
+    catch (err) {
       console.error('[MatrixSyncProvider] Failed to apply remote update:', err)
     }
   }
@@ -102,8 +110,7 @@ export class MatrixSyncProvider {
     const snapshot = encodeStateAsUpdate(this.doc)
     const payload = this.uint8ToBase64(snapshot)
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ;(this.client as any).sendEvent(this.roomId, MATRIX_EVENT_TYPES.DOC_SYNC, {
+    ;(this.client as MatrixEventClient).sendEvent(this.roomId, MATRIX_EVENT_TYPES.DOC_SYNC, {
       type: 'full',
       docId: this.roomId,
       seq: 0,
@@ -117,9 +124,7 @@ export class MatrixSyncProvider {
   }
 
   sendCursor(cursor: DocCursorEvent): void {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ;(this.client as any).sendEvent(this.roomId, MATRIX_EVENT_TYPES.DOC_CURSOR, cursor)
-      .catch(() => {}) // Cursor events are ephemeral; intentional noop
+    ;(this.client as MatrixEventClient).sendEvent(this.roomId, MATRIX_EVENT_TYPES.DOC_CURSOR, cursor).catch(() => {}) // Cursor events are ephemeral; intentional noop
   }
 
   destroy(): void {
@@ -131,7 +136,8 @@ export class MatrixSyncProvider {
   // --- Private helpers ---
 
   private splitPayload(payload: string): string[] {
-    if (payload.length <= MAX_CHUNK_SIZE) return [payload]
+    if (payload.length <= MAX_CHUNK_SIZE)
+      return [payload]
     const chunks: string[] = []
     for (let i = 0; i < payload.length; i += MAX_CHUNK_SIZE) {
       chunks.push(payload.slice(i, i + MAX_CHUNK_SIZE))

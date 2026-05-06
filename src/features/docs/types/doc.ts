@@ -69,8 +69,14 @@ export const MATRIX_EVENT_TYPES = {
 
 export function userColor(userId: string): string {
   const colors = [
-    '#2563eb', '#dc2626', '#16a34a', '#ca8a04',
-    '#9333ea', '#0891b2', '#db2777', '#ea580c',
+    '#2563eb',
+    '#dc2626',
+    '#16a34a',
+    '#ca8a04',
+    '#9333ea',
+    '#0891b2',
+    '#db2777',
+    '#ea580c',
   ]
   let hash = 0
   for (let i = 0; i < userId.length; i++) {

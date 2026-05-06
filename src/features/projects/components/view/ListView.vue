@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import type { Priority } from '../../types'
+import { Button } from '@muon/ui/button'
+import { ArrowDown, ArrowUp, Plus } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ArrowDown, ArrowUp, Plus } from 'lucide-vue-next'
-import { Button } from '@muon/ui/button'
 import { useWorkItemStore } from '../../composables/useWorkItemStore'
 import WorkItemCreateDialog from '../WorkItemCreateDialog.vue'
 
@@ -17,7 +17,11 @@ const sortDir = ref<'asc' | 'desc'>('desc')
 const showCreateDialog = ref(false)
 
 const priorityOrder: Record<Priority, number> = {
-  urgent: 0, high: 1, medium: 2, low: 3, none: 4,
+  urgent: 0,
+  high: 1,
+  medium: 2,
+  low: 3,
+  none: 4,
 }
 
 const sortedItems = computed(() => {
@@ -26,11 +30,14 @@ const sortedItems = computed(() => {
     let cmp = 0
     if (sortBy.value === 'priority') {
       cmp = (priorityOrder[a.priority] ?? 4) - (priorityOrder[b.priority] ?? 4)
-    } else if (sortBy.value === 'dueDate') {
+    }
+    else if (sortBy.value === 'dueDate') {
       cmp = (a.dueDate ?? Infinity) - (b.dueDate ?? Infinity)
-    } else if (sortBy.value === 'title') {
+    }
+    else if (sortBy.value === 'title') {
       cmp = a.title.localeCompare(b.title)
-    } else {
+    }
+    else {
       cmp = a.createdAt - b.createdAt
     }
     return sortDir.value === 'desc' ? -cmp : cmp
@@ -41,7 +48,8 @@ const sortedItems = computed(() => {
 function toggleSort(field: typeof sortBy.value) {
   if (sortBy.value === field) {
     sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
-  } else {
+  }
+  else {
     sortBy.value = field
     sortDir.value = 'asc'
   }
@@ -66,11 +74,15 @@ function toggleSort(field: typeof sortBy.value) {
               <ArrowUp v-if="sortBy === 'title' && sortDir === 'asc'" class="inline h-3 w-3" />
               <ArrowDown v-else-if="sortBy === 'title'" class="inline h-3 w-3" />
             </th>
-            <th class="px-4 py-2 font-medium">{{ t('projects.assignee') }}</th>
+            <th class="px-4 py-2 font-medium">
+              {{ t('projects.assignee') }}
+            </th>
             <th class="cursor-pointer px-4 py-2 font-medium" @click="toggleSort('dueDate')">
               {{ t('projects.due_date') }}
             </th>
-            <th class="px-4 py-2 font-medium">{{ t('projects.status') }}</th>
+            <th class="px-4 py-2 font-medium">
+              {{ t('projects.status') }}
+            </th>
           </tr>
         </thead>
         <tbody>

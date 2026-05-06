@@ -1,5 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { Doc } from 'yjs'
+
+import { MatrixSyncProvider } from '@/features/docs/services/matrixSyncProvider'
 
 // Mock the matrix client before importing the provider
 vi.mock('@matrix/client', () => ({
@@ -9,8 +11,6 @@ vi.mock('@matrix/client', () => ({
     off: vi.fn(),
   })),
 }))
-
-import { MatrixSyncProvider } from '@/features/docs/services/matrixSyncProvider'
 
 describe('matrixSyncProvider', () => {
   it('creates a provider for a Yjs doc and room', () => {

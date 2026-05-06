@@ -17,7 +17,8 @@ export const useWorkItemStore = defineStore('workItems', () => {
   const currentProjectId = ref<string | null>(null)
 
   const currentItems = computed(() => {
-    if (!currentProjectId.value) return []
+    if (!currentProjectId.value)
+      return []
     return itemsByProject.value[currentProjectId.value] ?? []
   })
 
@@ -25,7 +26,8 @@ export const useWorkItemStore = defineStore('workItems', () => {
     const grouped: Record<string, WorkItem[]> = {}
     for (const item of currentItems.value) {
       const key = item.status
-      if (!grouped[key]) grouped[key] = []
+      if (!grouped[key])
+        grouped[key] = []
       grouped[key].push(item)
     }
     return grouped
@@ -100,7 +102,8 @@ export const useWorkItemStore = defineStore('workItems', () => {
     const list = itemsByProject.value[updated.projectId]
     if (list) {
       const idx = list.findIndex(i => i.id === id)
-      if (idx !== -1) list.splice(idx, 1, updated)
+      if (idx !== -1)
+        list.splice(idx, 1, updated)
     }
 
     const client = getClient()
@@ -141,7 +144,8 @@ export const useWorkItemStore = defineStore('workItems', () => {
     const list = itemsByProject.value[projectId]
     if (list) {
       const idx = list.findIndex(i => i.id === id)
-      if (idx !== -1) list.splice(idx, 1, updated)
+      if (idx !== -1)
+        list.splice(idx, 1, updated)
     }
 
     const client = getClient()

@@ -19,12 +19,11 @@ function scheduleRetry() {
   if (retryTimer)
     return
   errorCount++
-  // 指数退避：2s, 4s, 8s, 16s, 最大 30s
+  // Exponential backoff: 2s, 4s, 8s, 16s, max 30s
   const delay = Math.min(2000 * 2 ** (errorCount - 1), 30_000)
   if (import.meta.env.DEV)
     // eslint-disable-next-line no-console
-    console.debug(`[sync] 将在 ${delay}ms 后重试 (第 ${errorCount} 次失败)`)
-
+    console.debug(`[sync] retrying in ${delay}ms (attempt ${errorCount})`)
   retryTimer = setTimeout(() => {
     retryTimer = null
     try {
@@ -32,7 +31,7 @@ function scheduleRetry() {
       client.retryImmediately()
     }
     catch {
-      // client 可能已销毁
+      // Client may have been destroyed
     }
   }, delay)
 }

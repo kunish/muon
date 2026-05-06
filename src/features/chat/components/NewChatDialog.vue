@@ -3,6 +3,7 @@ import { findOrCreateDm } from '@matrix/rooms'
 import { Avatar } from '@muon/ui/avatar'
 import { Label } from '@muon/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@muon/ui/tabs'
+import { useContactList } from '@shared/composables/useContactList'
 import { Search, Users, X } from 'lucide-vue-next'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -11,7 +12,6 @@ import { toast } from 'vue-sonner'
 import GroupMemberPicker from '@/features/contacts/components/GroupMemberPicker.vue'
 import { useContacts } from '@/features/contacts/composables/useContacts'
 import { useGroupManagement } from '@/features/contacts/composables/useGroupManagement'
-import { useContactStore } from '@/features/contacts/stores/contactStore'
 import { useChatStore } from '../stores/chatStore'
 
 const emit = defineEmits<{
@@ -21,7 +21,7 @@ const emit = defineEmits<{
 const { t } = useI18n()
 const router = useRouter()
 const store = useChatStore()
-const contactStore = useContactStore()
+const contactList = useContactList()
 const { searchUsers } = useContacts()
 
 // --- 状态 ---
@@ -47,7 +47,7 @@ function onKeydown(event: KeyboardEvent): void {
 }
 
 onMounted(() => {
-  contactStore.loadContacts()
+  contactList.loadContacts()
   document.addEventListener('keydown', onKeydown)
 })
 
@@ -87,7 +87,7 @@ const dmList = computed(() => {
 
   // 无搜索词时，显示已有联系人
   if (!q) {
-    return contactStore.contacts.map(c => ({
+    return contactList.contacts.map(c => ({
       userId: c.userId,
       displayName: c.displayName,
       avatarMxc: c.avatarUrl || undefined,
@@ -99,7 +99,7 @@ const dmList = computed(() => {
   const result: { userId: string, displayName: string, avatarMxc?: string }[] = []
 
   // 先放匹配的已有联系人
-  for (const c of contactStore.contacts) {
+  for (const c of contactList.contacts) {
     if (c.displayName.toLowerCase().includes(q) || c.userId.toLowerCase().includes(q)) {
       seen.add(c.userId)
       result.push({ userId: c.userId, displayName: c.displayName, avatarMxc: c.avatarUrl || undefined })

@@ -68,19 +68,22 @@ export function createProjectRepository(db = projectDb) {
 
     async listWorkItems(projectId: string) {
       return db.workItems
-        .where('projectId').equals(projectId)
+        .where('projectId')
+        .equals(projectId)
         .sortBy('order')
     },
 
     async listWorkItemsByStatus(projectId: string, status: string) {
       return db.workItems
-        .where('[projectId+status]').equals([projectId, status])
+        .where('[projectId+status]')
+        .equals([projectId, status])
         .sortBy('order')
     },
 
     async updateWorkItem(id: string, changes: Partial<WorkItem>) {
       const existing = await db.workItems.get(id)
-      if (!existing) throw new Error(`WorkItem ${id} not found`)
+      if (!existing)
+        throw new Error(`WorkItem ${id} not found`)
       const updated = workItemSchema.parse({ ...existing, ...changes, updatedAt: Date.now() })
       await db.workItems.update(id, updated)
       return updated
@@ -92,7 +95,8 @@ export function createProjectRepository(db = projectDb) {
 
     async reorderWorkItem(id: string, newOrder: number, status: string) {
       const existing = await db.workItems.get(id)
-      if (!existing) throw new Error(`WorkItem ${id} not found`)
+      if (!existing)
+        throw new Error(`WorkItem ${id} not found`)
       const updated = workItemSchema.parse({ ...existing, order: newOrder, status, updatedAt: Date.now() })
       await db.workItems.update(id, updated)
       return updated
@@ -118,7 +122,8 @@ export function createProjectRepository(db = projectDb) {
 
     async listCustomFields(projectId: string) {
       return db.customFields
-        .where('projectId').equals(projectId)
+        .where('projectId')
+        .equals(projectId)
         .sortBy('order')
     },
 

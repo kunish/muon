@@ -1,4 +1,3 @@
-import process from 'node:process'
 import { contextBridge, ipcRenderer } from 'electron'
 import { ENTERPRISE_AUTH_CALLBACK_CHANNEL } from './authCallback.js'
 
@@ -33,7 +32,13 @@ contextBridge.exposeInMainWorld('muonDesktop', {
     writeFile: (filePath: string, bytes: Uint8Array | ArrayBuffer) => ipcRenderer.invoke('muon:fs:write-file', filePath, bytes),
   },
   isElectron: true,
-  platform: process.platform,
+  // eslint-disable-next-line node/prefer-global/process -- Electron sandbox preloads may not expose process at all.
+  platform: globalThis.process?.platform,
+  safeStorage: {
+    isAvailable: () => ipcRenderer.invoke('muon:safe-storage:is-available'),
+    encrypt: (plaintext: string) => ipcRenderer.invoke('muon:safe-storage:encrypt', plaintext),
+    decrypt: (base64: string) => ipcRenderer.invoke('muon:safe-storage:decrypt', base64),
+  },
   shell: {
     openPath: (targetPath: string) => ipcRenderer.invoke('muon:shell:open-path', targetPath),
     openUrl: (url: string) => ipcRenderer.invoke('muon:shell:open-url', url),

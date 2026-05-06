@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { Avatar } from '@muon/ui/avatar'
+import { useContactList } from '@shared/composables/useContactList'
 import { Search } from 'lucide-vue-next'
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useContactStore } from '@/features/contacts/stores/contactStore'
 
 const emit = defineEmits<{
   select: [contact: { userId: string, displayName: string, avatarUrl?: string }]
@@ -11,18 +11,18 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
-const contactStore = useContactStore()
+const contactList = useContactList()
 const query = ref('')
 
 onMounted(() => {
-  contactStore.loadContacts()
+  contactList.loadContacts()
 })
 
 const filtered = computed(() => {
   if (!query.value)
-    return contactStore.contacts
+    return contactList.contacts
   const q = query.value.toLowerCase()
-  return contactStore.contacts.filter(c =>
+  return contactList.contacts.filter(c =>
     c.displayName.toLowerCase().includes(q) || c.userId.toLowerCase().includes(q),
   )
 })

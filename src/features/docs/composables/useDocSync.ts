@@ -1,8 +1,8 @@
-import { Doc } from 'yjs'
-import { shallowRef, onUnmounted } from 'vue'
-import { MatrixSyncProvider } from '../services/matrixSyncProvider'
-import { getClient } from '@matrix/client'
 import type { MatrixClient } from 'matrix-js-sdk'
+import { getClient } from '@matrix/client'
+import { onUnmounted, shallowRef } from 'vue'
+import { Doc } from 'yjs'
+import { MatrixSyncProvider } from '../services/matrixSyncProvider'
 
 export function useDocSync(docId: string) {
   const ydoc = shallowRef(new Doc())
@@ -23,7 +23,8 @@ export function useDocSync(docId: string) {
       provider.value = new MatrixSyncProvider(ydoc.value, room.roomId, client)
       connected.value = true
       error.value = null
-    } catch (e) {
+    }
+    catch (e) {
       error.value = e instanceof Error ? e.message : 'Failed to connect'
       connected.value = false
     }

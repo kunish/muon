@@ -5,20 +5,26 @@ import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
-import { isElectronRuntime } from '@/electron/bridge'
+import { getDesktopBridge, isElectronRuntime } from '@/electron/bridge'
 import ErrorBoundary from './components/ErrorBoundary.vue'
 import WindowTitleBar from './components/window/WindowTitleBar.vue'
 
 const router = useRouter()
 const { t } = useI18n()
 const initializing = ref(true)
-const showWindowTitleBar = isElectronRuntime()
+const showWindowTitleBar = ref(isElectronRuntime())
 
 function blockNativeContextMenu(event: MouseEvent) {
   event.preventDefault()
 }
 
 onMounted(async () => {
+  // Double-check in onMounted: the contextBridge may have been unavailable
+  // during <script setup> if a build tool or HMR caused a re-evaluation race.
+  if (!showWindowTitleBar.value && getDesktopBridge()?.isElectron === true) {
+    showWindowTitleBar.value = true
+  }
+
   document.addEventListener('contextmenu', blockNativeContextMenu, { capture: true })
 
   try {

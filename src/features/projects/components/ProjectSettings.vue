@@ -1,12 +1,12 @@
 <script setup lang="ts">
+import { Button } from '@muon/ui/button'
+import { ArrowLeft } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { ArrowLeft } from 'lucide-vue-next'
-import { Button } from '@muon/ui/button'
 import { useProjectStore } from '../composables/useProjectStore'
-import WorkflowEditor from './settings/WorkflowEditor.vue'
 import CustomFieldEditor from './settings/CustomFieldEditor.vue'
+import WorkflowEditor from './settings/WorkflowEditor.vue'
 
 const props = defineProps<{ projectId: string }>()
 
@@ -28,7 +28,9 @@ function goBack() {
       <Button variant="ghost" size="icon" @click="goBack()">
         <ArrowLeft class="h-4 w-4" />
       </Button>
-      <h1 class="text-lg font-semibold">{{ project.name }} — {{ t('projects.settings') }}</h1>
+      <h1 class="text-lg font-semibold">
+        {{ project.name }} — {{ t('projects.settings') }}
+      </h1>
     </div>
 
     <div class="flex border-b">

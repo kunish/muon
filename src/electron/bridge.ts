@@ -69,7 +69,7 @@ export interface SerializedFetchResponse {
 
 export interface MuonDesktopBridge {
   isElectron: true
-  platform: string
+  platform?: string
   app: {
     setAutoLaunch: (enabled: boolean) => Promise<void>
     setCloseToTray: (enabled: boolean) => Promise<void>
@@ -86,6 +86,11 @@ export interface MuonDesktopBridge {
   fs: {
     readFile: (path: string) => Promise<ArrayBuffer>
     writeFile: (path: string, bytes: Uint8Array | ArrayBuffer) => Promise<void>
+  }
+  safeStorage: {
+    isAvailable: () => Promise<boolean>
+    encrypt: (plaintext: string) => Promise<string>
+    decrypt: (base64: string) => Promise<string>
   }
   shell: {
     openPath: (path: string) => Promise<string>

@@ -3,7 +3,6 @@ export { blockUser, getBlockedUsers, isUserBlocked, unblockUser } from './blocki
 export { createClient, destroyClient, getClient } from './client'
 export { createEncryptedRoom, initCrypto } from './crypto'
 export { materializeOfflineDigest } from './digest'
-export { isProjectSyncEvent, parseProjectSyncPayload, sendProjectSyncEvent } from './projects'
 export {
   citationRefSchema,
   compareDigestEntries,
@@ -56,6 +55,7 @@ export {
 } from './messages'
 export type { ReactionSummary, SystemEventInfo, TimelineRelationSummaries } from './messages'
 export { clearMyStatus, getMyAvatarUrl, getMyDisplayName, getMyStatus, getUserPresenceInfo, setMyAvatar, setMyDisplayName, setMyStatus } from './profile'
+export { isProjectSyncEvent, parseProjectSyncPayload, sendProjectSyncEvent } from './projects'
 export { getReadMarkerEventId, getReadUsers, sendReadReceipt } from './receipts'
 export { backPaginateRoomEventsSearch, searchRoomEvents } from './retrieval'
 export type { RetrievalItem, RetrievalPage, RetrievalSession } from './retrieval'

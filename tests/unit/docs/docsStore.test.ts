@@ -1,5 +1,7 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { setActivePinia, createPinia } from 'pinia'
+import { createPinia, setActivePinia } from 'pinia'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+import { useDocsStore } from '@/features/docs/stores/docsStore'
 
 vi.mock('@matrix/client', () => ({
   getClient: vi.fn(() => ({
@@ -10,8 +12,6 @@ vi.mock('@matrix/client', () => ({
     getUserId: vi.fn(() => '@test:localhost'),
   })),
 }))
-
-import { useDocsStore } from '@/features/docs/stores/docsStore'
 
 describe('docsStore', () => {
   beforeEach(() => {

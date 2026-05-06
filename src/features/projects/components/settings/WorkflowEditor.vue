@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import type { Workflow } from '../../types'
-import { onMounted, ref } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { Plus, Trash2 } from 'lucide-vue-next'
 import { Button } from '@muon/ui/button'
 import { Input } from '@muon/ui/input'
+import { Plus, Trash2 } from 'lucide-vue-next'
+import { onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useWorkflow } from '../../composables/useWorkflow'
 
 const props = defineProps<{ projectId: string }>()
@@ -19,7 +19,8 @@ onMounted(async () => {
 })
 
 function addStatus() {
-  if (!workflow.value) return
+  if (!workflow.value)
+    return
   workflow.value.statuses.push({
     key: `status_${workflow.value.statuses.length + 1}`,
     name: 'New Status',
@@ -29,12 +30,14 @@ function addStatus() {
 }
 
 function removeStatus(index: number) {
-  if (!workflow.value) return
+  if (!workflow.value)
+    return
   workflow.value.statuses.splice(index, 1)
 }
 
 function addTransition() {
-  if (!workflow.value || workflow.value.statuses.length < 2) return
+  if (!workflow.value || workflow.value.statuses.length < 2)
+    return
   workflow.value.transitions.push({
     from: workflow.value.statuses[0].key,
     to: workflow.value.statuses[1].key,
@@ -43,16 +46,19 @@ function addTransition() {
 }
 
 function removeTransition(index: number) {
-  if (!workflow.value) return
+  if (!workflow.value)
+    return
   workflow.value.transitions.splice(index, 1)
 }
 
 async function handleSave() {
-  if (!workflow.value) return
+  if (!workflow.value)
+    return
   saving.value = true
   try {
     await saveWorkflow(workflow.value)
-  } finally {
+  }
+  finally {
     saving.value = false
   }
 }
@@ -62,7 +68,9 @@ async function handleSave() {
   <div v-if="workflow" class="space-y-6 p-6">
     <div>
       <div class="mb-3 flex items-center justify-between">
-        <h3 class="font-medium">{{ t('projects.status') }}</h3>
+        <h3 class="font-medium">
+          {{ t('projects.status') }}
+        </h3>
         <Button size="sm" variant="outline" @click="addStatus()">
           <Plus class="mr-1 h-3.5 w-3.5" /> {{ t('projects.add_status') }}
         </Button>
@@ -81,7 +89,9 @@ async function handleSave() {
 
     <div>
       <div class="mb-3 flex items-center justify-between">
-        <h3 class="font-medium">{{ t('projects.workflow') }}</h3>
+        <h3 class="font-medium">
+          {{ t('projects.workflow') }}
+        </h3>
         <Button
           size="sm" variant="outline"
           :disabled="workflow.statuses.length < 2"
@@ -93,11 +103,15 @@ async function handleSave() {
       <div class="space-y-2">
         <div v-for="(tr, i) in workflow.transitions" :key="i" class="flex items-center gap-2">
           <select v-model="tr.from" class="rounded border bg-background px-2 py-1.5 text-sm">
-            <option v-for="s in workflow.statuses" :key="s.key" :value="s.key">{{ s.name }}</option>
+            <option v-for="s in workflow.statuses" :key="s.key" :value="s.key">
+              {{ s.name }}
+            </option>
           </select>
           <span class="text-muted-foreground">→</span>
           <select v-model="tr.to" class="rounded border bg-background px-2 py-1.5 text-sm">
-            <option v-for="s in workflow.statuses" :key="s.key" :value="s.key">{{ s.name }}</option>
+            <option v-for="s in workflow.statuses" :key="s.key" :value="s.key">
+              {{ s.name }}
+            </option>
           </select>
           <Input v-model="tr.name" class="w-32" :placeholder="t('projects.transition_name')" />
           <Button variant="ghost" size="icon" @click="removeTransition(i)">
@@ -107,6 +121,8 @@ async function handleSave() {
       </div>
     </div>
 
-    <Button :loading="saving" @click="handleSave()">{{ t('common.save') }}</Button>
+    <Button :loading="saving" @click="handleSave()">
+      {{ t('common.save') }}
+    </Button>
   </div>
 </template>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { MessageSquare, X, CheckCircle2 } from 'lucide-vue-next'
 import type { DocComment } from '../../types/doc'
+import { CheckCircle2, MessageSquare, X } from 'lucide-vue-next'
 import { shallowRef } from 'vue'
 
 defineProps<{
@@ -18,7 +18,8 @@ const localDraft = shallowRef('')
 
 function handleAdd(): void {
   const text = localDraft.value.trim()
-  if (!text) return
+  if (!text)
+    return
   emit('addComment', text)
   localDraft.value = ''
 }
@@ -53,7 +54,9 @@ function handleAdd(): void {
             <CheckCircle2 :size="12" />
           </button>
         </div>
-        <p class="mt-1 text-[12px] leading-5">{{ comment.text }}</p>
+        <p class="mt-1 text-[12px] leading-5">
+          {{ comment.text }}
+        </p>
       </div>
     </div>
 

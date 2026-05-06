@@ -13,6 +13,7 @@ describe('workspace navigation', () => {
       'approvals',
       'email',
       'calls',
+      'projects',
       'settings',
     ])
   })
@@ -32,6 +33,8 @@ describe('workspace navigation', () => {
     ['/approvals', 'approvals'],
     ['/email', 'email'],
     ['/calls', 'calls'],
+    ['/projects', 'projects'],
+    ['/projects/demo', 'projects'],
     ['/settings', 'settings'],
   ])('maps %s to %s', (path, appId) => {
     expect(getWorkspaceAppForPath(path)?.id).toBe(appId)

@@ -1,7 +1,7 @@
 import type { WatchStopHandle } from 'vue'
+import { useSettingsStore } from '@shared/stores/settingsStore'
 import { watch } from 'vue'
 import { setAutoLaunchEnabled, setCloseToTrayEnabled } from '@/electron/app'
-import { useSettingsStore } from '@/features/settings/stores/settingsStore'
 
 let stopDesktopSettingsSync: WatchStopHandle | undefined
 

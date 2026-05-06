@@ -1,8 +1,8 @@
-import { defineStore } from 'pinia'
-import { shallowRef, computed } from 'vue'
+import type { DocEntry, DocSectionId } from '../types/doc'
 import { getClient } from '@matrix/client'
 import { Visibility } from 'matrix-js-sdk'
-import type { DocEntry, DocSectionId } from '../types/doc'
+import { defineStore } from 'pinia'
+import { computed, shallowRef } from 'vue'
 
 export const useDocsStore = defineStore('docs', () => {
   const documents = shallowRef<DocEntry[]>([])
@@ -31,14 +31,13 @@ export const useDocsStore = defineStore('docs', () => {
     try {
       const client = getClient()
       const rooms = client.getRooms()
-      const docRooms = rooms.filter(r => {
+      const docRooms = rooms.filter((r) => {
         const events = r.getLiveTimeline().getEvents()
         return events.some(e => e.getType() === 'org.muon.doc.metadata')
       })
 
-      documents.value = docRooms.map(room => {
-        const metaEvent = room.getLiveTimeline().getEvents()
-          .find(e => e.getType() === 'org.muon.doc.metadata')
+      documents.value = docRooms.map((room) => {
+        const metaEvent = room.getLiveTimeline().getEvents().find(e => e.getType() === 'org.muon.doc.metadata')
         const content = metaEvent?.getContent() || {}
         return {
           id: room.roomId,
@@ -51,9 +50,11 @@ export const useDocsStore = defineStore('docs', () => {
           sectionIds: content.sectionIds || ['recent'],
         }
       })
-    } catch {
+    }
+    catch {
       documents.value = []
-    } finally {
+    }
+    finally {
       isLoading.value = false
     }
   }
@@ -82,8 +83,14 @@ export const useDocsStore = defineStore('docs', () => {
   }
 
   return {
-    documents, activeSection, activeFolder, searchQuery, reviewOnly,
-    isLoading, filteredDocuments,
-    loadDocuments, createDocument,
+    documents,
+    activeSection,
+    activeFolder,
+    searchQuery,
+    reviewOnly,
+    isLoading,
+    filteredDocuments,
+    loadDocuments,
+    createDocument,
   }
 })

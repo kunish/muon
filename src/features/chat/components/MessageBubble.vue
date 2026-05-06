@@ -18,29 +18,19 @@ import {
   unstarMessage,
 } from '@matrix/rooms'
 import RichMessageContent from '@muon/rich-text/message-content'
+import { useSettingsStore } from '@shared/stores/settingsStore'
 import {
-  CheckSquare,
   Copy,
-  Edit,
-  EyeOff,
   Forward,
-  Languages,
   MessageSquare,
   MoreHorizontal,
-  Pin,
-  PinOff,
   RefreshCw,
   Reply,
-  SmilePlus,
-  Star,
-  StarOff,
-  Trash2,
 } from 'lucide-vue-next'
 import { computed, inject, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import { ask } from '@/electron/dialog'
-import { useSettingsStore } from '@/features/settings/stores/settingsStore'
 import { useAuthMedia } from '@/shared/composables/useAuthMedia'
 import { isFullEmojiText } from '@/shared/lib/emoji'
 import { handleMatrixLinkClick } from '@/shared/lib/matrixLinks'
@@ -50,12 +40,15 @@ import { useChatStore } from '../stores/chatStore'
 import AnimatedEmoji from './AnimatedEmoji.vue'
 import ForwardDialog from './ForwardDialog.vue'
 import LinkPreview from './LinkPreview.vue'
+import MessageMoreMenu from './MessageMoreMenu.vue'
 import AudioMessage from './messages/AudioMessage.vue'
 import ContactCardMessage from './messages/ContactCardMessage.vue'
 import FileMessage from './messages/FileMessage.vue'
 import ImageMessage from './messages/ImageMessage.vue'
 import LocationMessage from './messages/LocationMessage.vue'
 import VideoMessage from './messages/VideoMessage.vue'
+import ReactionPickerPopover from './ReactionPickerPopover.vue'
+import ReadReceiptsBar from './ReadReceiptsBar.vue'
 
 const props = defineProps<{
   event: MatrixEvent
@@ -364,49 +357,6 @@ const extractedUrls = computed((): string[] => {
 })
 
 // --- Reactions ---
-const QUICK_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🎉']
-const EMOJI_GRID = [
-  '👍',
-  '👏',
-  '🙏',
-  '🤝',
-  '💪',
-  '🫡',
-  '👋',
-  '✌️',
-  '😀',
-  '😊',
-  '😄',
-  '😁',
-  '😆',
-  '🥰',
-  '😂',
-  '🥲',
-  '😎',
-  '🤩',
-  '😏',
-  '🤔',
-  '🙄',
-  '😮',
-  '😢',
-  '😡',
-  '❤️',
-  '🔥',
-  '🎉',
-  '✅',
-  '💯',
-  '⭐',
-  '🙌',
-  '🤗',
-  '👀',
-  '💡',
-  '📌',
-  '🚀',
-  '🎯',
-  '💬',
-  '👌',
-  '🆗',
-]
 const showEmojiPicker = ref(false)
 
 const reactions = computed(() => {
@@ -646,52 +596,11 @@ function onOpenThread() {
               <Forward :size="14" />
             </button>
             <div class="w-px h-4 bg-border/40 mx-0.5" />
-            <div class="relative">
-              <button
-                class="cursor-pointer rounded-lg p-[5px] text-muted-foreground transition-all duration-150 hover:bg-accent hover:text-foreground"
-                :title="t('chat.action_emoji')"
-                @click.stop="showEmojiPicker = !showEmojiPicker"
-              >
-                <SmilePlus :size="14" />
-              </button>
-              <Transition
-                enter-active-class="transition-all duration-150 ease-[cubic-bezier(0.16,1,0.3,1)]"
-                leave-active-class="transition-all duration-100 ease-in"
-                enter-from-class="opacity-0 -translate-y-1 scale-95"
-                leave-to-class="opacity-0 -translate-y-1 scale-95"
-              >
-                <div
-                  v-if="showEmojiPicker"
-                  class="absolute bottom-full right-0 mb-1 bg-popover/95 backdrop-blur-xl border border-border/50 rounded-xl shadow-[0_8px_30px_rgba(0,0,0,0.15)] z-20 w-[280px]"
-                  @click.stop
-                >
-                  <!-- Quick reactions row -->
-                  <div class="flex gap-1 p-2 border-b border-border/30">
-                    <button
-                      v-for="emoji in QUICK_EMOJIS"
-                      :key="emoji"
-                      class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-accent text-base transition-transform hover:scale-125 cursor-pointer"
-                      @click.stop="onReact(emoji)"
-                    >
-                      {{ emoji }}
-                    </button>
-                  </div>
-                  <!-- Full emoji grid -->
-                  <div class="max-h-[200px] overflow-y-auto p-2">
-                    <div class="grid grid-cols-8 gap-0.5">
-                      <button
-                        v-for="emoji in EMOJI_GRID"
-                        :key="emoji"
-                        class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-accent text-base transition-transform hover:scale-110 cursor-pointer"
-                        @click.stop="onReact(emoji)"
-                      >
-                        {{ emoji }}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </Transition>
-            </div>
+            <ReactionPickerPopover
+              :show-emoji-picker="showEmojiPicker"
+              @toggle="showEmojiPicker = !showEmojiPicker"
+              @react="onReact"
+            />
             <div class="relative">
               <button
                 class="cursor-pointer rounded-lg p-[5px] text-muted-foreground transition-all duration-150 hover:bg-accent hover:text-foreground"
@@ -706,77 +615,22 @@ function onOpenThread() {
                 enter-from-class="opacity-0 -translate-y-1 scale-95"
                 leave-to-class="opacity-0 -translate-y-1 scale-95"
               >
-                <div
+                <MessageMoreMenu
                   v-if="showMore"
-                  class="absolute top-full right-0 mt-1 bg-popover/95 backdrop-blur-xl border border-border/50 rounded-xl shadow-[0_8px_30px_rgba(0,0,0,0.15)] py-1 z-20 min-w-[140px]"
-                >
-                  <!-- Group 1: Edit / Delete (own messages) -->
-                  <template v-if="isMine">
-                    <button
-                      class="flex w-full cursor-pointer items-center gap-2 whitespace-nowrap px-3 py-[7px] text-xs transition-colors duration-100 hover:bg-accent"
-                      @click.stop="
-                        onEdit();
-                        showMore = false;
-                      "
-                    >
-                      <Edit :size="13" /> {{ t("chat.edit_message") }}
-                    </button>
-                    <button
-                      class="flex w-full cursor-pointer items-center gap-2 whitespace-nowrap px-3 py-[7px] text-xs text-destructive transition-colors duration-100 hover:bg-accent"
-                      @click.stop="
-                        onRedact();
-                        showMore = false;
-                      "
-                    >
-                      <Trash2 :size="13" /> {{ t("chat.recall") }}
-                    </button>
-                    <div class="h-px bg-border/40 my-1 mx-2" />
-                  </template>
-
-                  <!-- Group 2: Pin / Star -->
-                  <button class="flex w-full cursor-pointer items-center gap-2 whitespace-nowrap px-3 py-[7px] text-xs transition-colors duration-100 hover:bg-accent" @click.stop="onTogglePin">
-                    <component :is="isPinned ? PinOff : Pin" :size="13" />
-                    {{
-                      isPinned ? t("chat.unpin_message") : t("chat.pin_message")
-                    }}
-                  </button>
-                  <button class="flex w-full cursor-pointer items-center gap-2 whitespace-nowrap px-3 py-[7px] text-xs transition-colors duration-100 hover:bg-accent" @click.stop="onToggleStar">
-                    <component :is="isStarred ? StarOff : Star" :size="13" />
-                    {{
-                      isStarred
-                        ? t("chat.unstar_message")
-                        : t("chat.star_message")
-                    }}
-                  </button>
-
-                  <!-- Group 3: Translate (text only) -->
-                  <template v-if="isTextMessage">
-                    <div class="h-px bg-border/40 my-1 mx-2" />
-                    <button
-                      class="flex w-full cursor-pointer items-center gap-2 whitespace-nowrap px-3 py-[7px] text-xs transition-colors duration-100 hover:bg-accent"
-                      @click.stop="onTranslate"
-                    >
-                      <Languages :size="13" />
-                      {{
-                        translatedText
-                          ? t("chat.hide_translation")
-                          : t("chat.translate")
-                      }}
-                    </button>
-                  </template>
-
-                  <!-- Group 4: Hide / Multi-select -->
-                  <div class="h-px bg-border/40 my-1 mx-2" />
-                  <button
-                    class="flex w-full cursor-pointer items-center gap-2 whitespace-nowrap px-3 py-[7px] text-xs text-muted-foreground transition-colors duration-100 hover:bg-accent"
-                    @click.stop="onHideForMe"
-                  >
-                    <EyeOff :size="13" /> {{ t("chat.hide_for_me") }}
-                  </button>
-                  <button class="flex w-full cursor-pointer items-center gap-2 whitespace-nowrap px-3 py-[7px] text-xs transition-colors duration-100 hover:bg-accent" @click.stop="onMultiSelect">
-                    <CheckSquare :size="13" /> {{ t("chat.multi_select") }}
-                  </button>
-                </div>
+                  :is-mine="isMine"
+                  :is-pinned="isPinned"
+                  :is-starred="isStarred"
+                  :is-text-message="isTextMessage"
+                  :translated-text="translatedText"
+                  @close="showMore = false"
+                  @edit="onEdit"
+                  @redact="onRedact"
+                  @toggle-pin="onTogglePin"
+                  @toggle-star="onToggleStar"
+                  @translate="onTranslate"
+                  @hide-for-me="onHideForMe"
+                  @multi-select="onMultiSelect"
+                />
               </Transition>
             </div>
           </div>
@@ -853,33 +707,7 @@ function onOpenThread() {
         class="h-5 flex items-start pt-1"
         :class="isRightAligned ? 'justify-end' : 'justify-start'"
       >
-        <div class="flex items-center gap-1 whitespace-nowrap">
-          <div class="flex -space-x-1.5">
-            <template v-for="u in readUsers.slice(0, 5)" :key="u.userId">
-              <img
-                v-if="u.avatar"
-                :src="u.avatar"
-                :alt="u.name"
-                :title="u.name"
-                class="w-3.5 h-3.5 rounded-full ring-1 ring-background object-cover"
-              >
-              <div
-                v-else
-                :title="u.name"
-                class="w-3.5 h-3.5 rounded-full ring-1 ring-background bg-muted flex items-center justify-center text-[7px] font-medium text-muted-foreground"
-              >
-                {{ u.name.slice(0, 1) }}
-              </div>
-            </template>
-          </div>
-          <span class="text-[10px] text-muted-foreground/50">
-            {{
-              readUsers.length > 5
-                ? t("chat.read_by_n", { n: readUsers.length })
-                : t("chat.read")
-            }}
-          </span>
-        </div>
+        <ReadReceiptsBar :read-users="readUsers" />
       </div>
     </div>
 

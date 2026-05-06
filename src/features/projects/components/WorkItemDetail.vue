@@ -1,15 +1,16 @@
 <script setup lang="ts">
 import type { Priority, WorkItemType } from '../types'
-import { computed, ref, watch } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { Trash2, X } from 'lucide-vue-next'
 import { Button } from '@muon/ui/button'
 import { Input } from '@muon/ui/input'
 import { Label } from '@muon/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@muon/ui/select'
 import { Textarea } from '@muon/ui/textarea'
-import { useWorkItemStore } from '../composables/useWorkItemStore'
+import { Trash2, X } from 'lucide-vue-next'
+import { computed, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useWorkflow } from '../composables/useWorkflow'
+import { useWorkItemStore } from '../composables/useWorkItemStore'
+import { PRIORITIES, WORK_ITEM_TYPES } from '../types'
 
 const props = defineProps<{ itemId: string }>()
 const emit = defineEmits<{ close: [] }>()
@@ -28,7 +29,8 @@ const editTitle = ref('')
 const editDescription = ref('')
 
 watch(() => props.itemId, async () => {
-  if (!item.value) return
+  if (!item.value)
+    return
   const wf = await loadWorkflow()
   availableTransitions.value = getAvailableTransitions(wf, item.value.status)
   editTitle.value = item.value.title
@@ -36,7 +38,8 @@ watch(() => props.itemId, async () => {
 }, { immediate: true })
 
 async function handleSave() {
-  if (!item.value) return
+  if (!item.value)
+    return
   await store.updateItem(item.value.id, {
     title: editTitle.value,
     description: editDescription.value,
@@ -49,19 +52,52 @@ async function handleTransition(toStatus: string) {
 }
 
 async function handleDelete() {
-  if (!item.value) return
+  if (!item.value)
+    return
   await store.deleteItem(item.value.id, item.value.projectId)
   emit('close')
 }
 
-const priorityOptions: Priority[] = ['none', 'low', 'medium', 'high', 'urgent']
-const typeOptions: WorkItemType[] = ['task', 'bug', 'milestone', 'epic']
+const priorityOptions = PRIORITIES
+const typeOptions = WORK_ITEM_TYPES
+
+function isPriority(value: string | number): value is Priority {
+  return typeof value === 'string' && priorityOptions.includes(value as Priority)
+}
+
+function isWorkItemType(value: string | number): value is WorkItemType {
+  return typeof value === 'string' && typeOptions.includes(value as WorkItemType)
+}
+
+async function updatePriority(value: string | number) {
+  const current = item.value
+  if (!current || !isPriority(value))
+    return
+  await store.updateItem(current.id, { priority: value })
+}
+
+async function updateType(value: string | number) {
+  const current = item.value
+  if (!current || !isWorkItemType(value))
+    return
+  await store.updateItem(current.id, { type: value })
+}
+
+async function updateDueDate(value: string | number) {
+  const current = item.value
+  if (!current)
+    return
+  const dateValue = String(value)
+  await store.updateItem(current.id, { dueDate: dateValue ? new Date(dateValue).getTime() : undefined })
+}
 </script>
 
 <template>
   <div v-if="item" class="fixed inset-y-0 right-0 z-40 w-96 border-l bg-background shadow-xl">
     <div class="flex items-center justify-between border-b px-4 py-3">
-      <h2 class="font-semibold">{{ t('projects.task_title') }}</h2>
+      <h2 class="font-semibold">
+        {{ t('projects.task_title') }}
+      </h2>
       <Button variant="ghost" size="icon" @click="emit('close')">
         <X class="h-4 w-4" />
       </Button>
@@ -75,14 +111,24 @@ const typeOptions: WorkItemType[] = ['task', 'bug', 'milestone', 'epic']
         <Label>{{ t('projects.project_description') }}</Label>
         <Textarea v-model="editDescription" rows="4" />
         <div class="flex gap-2">
-          <Button size="sm" @click="handleSave()">{{ t('common.save') }}</Button>
-          <Button size="sm" variant="outline" @click="editing = false">{{ t('common.cancel') }}</Button>
+          <Button size="sm" @click="handleSave()">
+            {{ t('common.save') }}
+          </Button>
+          <Button size="sm" variant="outline" @click="editing = false">
+            {{ t('common.cancel') }}
+          </Button>
         </div>
       </div>
       <div v-else>
-        <h3 class="text-lg font-medium" @dblclick="editing = true">{{ item.title }}</h3>
-        <p v-if="item.description" class="mt-2 text-sm text-muted-foreground">{{ item.description }}</p>
-        <Button variant="ghost" size="sm" class="mt-1" @click="editing = true">{{ t('common.edit') }}</Button>
+        <h3 class="text-lg font-medium" @dblclick="editing = true">
+          {{ item.title }}
+        </h3>
+        <p v-if="item.description" class="mt-2 text-sm text-muted-foreground">
+          {{ item.description }}
+        </p>
+        <Button variant="ghost" size="sm" class="mt-1" @click="editing = true">
+          {{ t('common.edit') }}
+        </Button>
       </div>
 
       <!-- Priority -->
@@ -90,7 +136,7 @@ const typeOptions: WorkItemType[] = ['task', 'bug', 'milestone', 'epic']
         <Label class="text-xs text-muted-foreground">{{ t('assignee') }}</Label>
         <Select
           :model-value="item.priority"
-          @update:model-value="(v: Priority) => store.updateItem(item.id, { priority: v })"
+          @update:model-value="updatePriority"
         >
           <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
@@ -106,7 +152,7 @@ const typeOptions: WorkItemType[] = ['task', 'bug', 'milestone', 'epic']
         <Label class="text-xs text-muted-foreground">{{ t('projects.type_task') }}</Label>
         <Select
           :model-value="item.type"
-          @update:model-value="(v: WorkItemType) => store.updateItem(item.id, { type: v })"
+          @update:model-value="updateType"
         >
           <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
@@ -123,7 +169,7 @@ const typeOptions: WorkItemType[] = ['task', 'bug', 'milestone', 'epic']
         <Input
           type="date"
           :model-value="item.dueDate ? new Date(item.dueDate).toISOString().slice(0, 10) : ''"
-          @update:model-value="(v: string) => store.updateItem(item.id, { dueDate: v ? new Date(v).getTime() : undefined })"
+          @update:model-value="updateDueDate"
         />
       </div>
 

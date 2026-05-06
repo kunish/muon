@@ -1,6 +1,6 @@
-import { computed, shallowRef } from 'vue'
 import type { MatrixSyncProvider } from '../services/matrixSyncProvider'
 import type { CursorData } from '../types/doc'
+import { computed, shallowRef } from 'vue'
 import { userColor } from '../types/doc'
 
 export function useDocCursor(

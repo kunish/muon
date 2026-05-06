@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { SpaceMember } from '@/matrix/spaces'
+import { useRoomNavigation } from '@shared/composables/useRoomNavigation'
 import { onClickOutside } from '@vueuse/core'
 import {
   AtSign,
@@ -17,7 +18,6 @@ import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 import { ask } from '@/electron/dialog'
 import { useConversations } from '@/features/chat/composables/useConversations'
-import { useChatStore } from '@/features/chat/stores/chatStore'
 import { blockUser } from '@/matrix/blocking'
 import { getClient } from '@/matrix/client'
 import { findOrCreateDm } from '@/matrix/rooms'
@@ -42,7 +42,7 @@ const menuRef = ref<HTMLElement | null>(null)
 const isOpen = computed(() => !!props.member)
 const { t } = useI18n()
 const router = useRouter()
-const chatStore = useChatStore()
+const chatStore = useRoomNavigation()
 const { restoreRoom } = useConversations()
 const { kickMember, banMember } = useMemberActions()
 
@@ -90,7 +90,7 @@ async function onMessage() {
   try {
     const roomId = await findOrCreateDm(props.member.userId)
     restoreRoom(roomId)
-    chatStore.setCurrentRoom(roomId, {
+    chatStore.navigateToRoom(roomId, {
       sidebarPlacement: 'promote',
       sidebarPreview: {
         name: props.member.displayName,

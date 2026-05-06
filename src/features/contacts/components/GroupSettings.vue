@@ -2,6 +2,7 @@
 import { getClient } from '@matrix/client'
 import { getRoomAnnouncement, getRoomTopic, leaveRoom, setRoomAnnouncement, setRoomName, setRoomTopic } from '@matrix/index'
 import { Textarea } from '@muon/ui/textarea'
+import { useRoomNavigation } from '@shared/composables/useRoomNavigation'
 import {
   Check,
   LogOut,
@@ -18,7 +19,6 @@ import { toast } from 'vue-sonner'
 import { ask } from '@/electron/dialog'
 import { useRoomPermissions } from '@/shared/composables/useRoomPermissions'
 import { useConversations } from '../../chat/composables/useConversations'
-import { useChatStore } from '../../chat/stores/chatStore'
 import { useGroupManagement } from '../composables/useGroupManagement'
 
 const props = defineProps<{
@@ -32,7 +32,7 @@ const emit = defineEmits<{
 const { t } = useI18n()
 const { inviteUser, kickUser, setUserPowerLevel } = useGroupManagement()
 const { removeRoom } = useConversations()
-const chatStore = useChatStore()
+const chatStore = useRoomNavigation()
 
 const client = getClient()
 const room = computed(() => client.getRoom(props.roomId))
@@ -124,8 +124,8 @@ async function handleLeave() {
     return
   try {
     await leaveRoom(props.roomId)
-    if (chatStore.currentRoomId === props.roomId) {
-      chatStore.setCurrentRoom(null)
+    if (chatStore.currentRoomId.value === props.roomId) {
+      chatStore.navigateToRoom(null)
     }
     removeRoom(props.roomId)
     emit('leave')
