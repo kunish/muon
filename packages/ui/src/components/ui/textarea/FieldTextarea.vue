@@ -4,7 +4,7 @@ import { useVModel } from '@vueuse/core'
 import { computed } from 'vue'
 import { cn } from '../../../utils'
 import Label from '../label/Label.vue'
-import Textarea from './Textarea.vue'
+import { Textarea } from '../../../atoms/textarea'
 
 defineOptions({
   inheritAttrs: false,
@@ -36,6 +36,12 @@ const generatedId = `muon-textarea-${Math.random().toString(36).slice(2)}`
 const controlId = computed(() => props.id || generatedId)
 const descriptionId = computed(() => `${controlId.value}-description`)
 const hasDescription = computed(() => Boolean(props.error || props.hint))
+
+// Cast modelValue to string for the Textarea atom
+const textareaModelValue = computed({
+  get: () => String(modelValue.value ?? ''),
+  set: (val: string) => { modelValue.value = val },
+})
 </script>
 
 <template>
@@ -44,7 +50,7 @@ const hasDescription = computed(() => Boolean(props.error || props.hint))
     <Textarea
       v-bind="$attrs"
       :id="controlId"
-      v-model="modelValue"
+      v-model="textareaModelValue"
       :aria-describedby="hasDescription ? descriptionId : undefined"
       :aria-invalid="error ? 'true' : undefined"
       :class="cn(error && 'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20', props.controlClass)"
