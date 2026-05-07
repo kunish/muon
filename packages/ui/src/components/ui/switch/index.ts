@@ -1,1 +1,1 @@
-export { default as Switch } from './Switch.vue'
+export * from '../../../atoms/switch'
