@@ -27,6 +27,7 @@ const rowStateClass = computed(() => {
 const hoverAffordanceClass = computed(() =>
   props.contextMenuOpen === true ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
 )
+const badgeStyle = 'solid' as const
 
 function navigate(): void {
   serverStore.selectChannel(props.channel.roomId)
@@ -53,7 +54,8 @@ function navigate(): void {
       <div class="ml-auto flex items-center">
         <Badge
           v-if="hasMentions"
-          variant="destructive"
+          tone="danger"
+          :style="badgeStyle"
           class="h-4 min-w-4 px-1 text-[10px] leading-none"
         >
           {{ channel.highlightCount > 99 ? '99+' : channel.highlightCount }}
