@@ -24,6 +24,7 @@
     "./scroll-area": "./src/components/ui/scroll-area/index.ts",
     "./select": "./src/components/ui/select/index.ts",
     "./separator": "./src/components/ui/separator/index.ts",
+    "./spinner": "./src/atoms/spinner/index.ts",
     "./sheet": "./src/components/ui/sheet/index.ts",
     "./skeleton": "./src/components/ui/skeleton/index.ts",
     "./sonner": "./src/components/ui/sonner/index.ts",
