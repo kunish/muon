@@ -1,3 +1,15 @@
+/*
+ * Motion tokens.
+ *
+ * --duration-* values are consumed via CSS var() (or Tailwind arbitrary
+ * `duration-[var(--duration-fast)]` syntax). Tailwind v4's theme namespace
+ * does not auto-generate `duration-fast` shortcut utilities — that's
+ * intentional: we want explicit motion declarations, not opaque utilities.
+ *
+ * --ease-* and --animate-* ARE recognized Tailwind v4 namespaces, so
+ * `ease-standard` and `animate-typing-bounce` work as utility classes.
+ */
+
 @theme {
   --duration-fast:    120ms;
   --duration-base:    180ms;

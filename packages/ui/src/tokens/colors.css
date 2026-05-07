@@ -82,29 +82,29 @@
 /* Role layer — semantic aliases, light mode */
 @theme {
   --color-background: #ffffff;
-  --color-foreground: #111827;
+  --color-foreground: #111827; /* off-palette: pre-existing muon body text — finer than gray-900 (#14181d) */
   --color-muted: var(--gray-100);
   --color-muted-foreground: var(--gray-500);
   --color-primary: var(--brand-500);
   --color-primary-foreground: #ffffff;
   --color-accent: var(--gray-100);
-  --color-accent-foreground: #111827;
+  --color-accent-foreground: #111827; /* off-palette: matches --color-foreground */
   --color-destructive: var(--red-500);
   --color-destructive-foreground: #ffffff;
   --color-border: var(--gray-200);
   --color-input: var(--gray-300);
   --color-ring: var(--brand-500);
   --color-card: #ffffff;
-  --color-card-foreground: #111827;
+  --color-card-foreground: #111827; /* off-palette: matches --color-foreground for surface text */
   --color-secondary: var(--cyan-500);
   --color-secondary-foreground: #ffffff;
   --color-popover: #ffffff;
-  --color-popover-foreground: #111827;
+  --color-popover-foreground: #111827; /* off-palette: matches --color-foreground for surface text */
   --color-sidebar: var(--gray-50);
-  --color-sidebar-foreground: #111827;
+  --color-sidebar-foreground: #111827; /* off-palette: matches --color-foreground */
   --color-sidebar-border: var(--gray-200);
   --color-sidebar-accent: var(--gray-100);
-  --color-sidebar-accent-foreground: #111827;
+  --color-sidebar-accent-foreground: #111827; /* off-palette: matches --color-foreground */
   --color-sidebar-primary: var(--brand-500);
   --color-sidebar-primary-foreground: #ffffff;
   --color-sidebar-ring: var(--brand-500);
@@ -122,29 +122,29 @@
 /* Role layer — dark overrides */
 .dark {
   --color-background: #17181c;
-  --color-foreground: #e1e2e8;
+  --color-foreground: #e1e2e8; /* off-palette: pre-existing muon dark body text */
   --color-muted: #1f1f23;
   --color-muted-foreground: var(--gray-400);
   --color-primary: var(--brand-500);
   --color-primary-foreground: #ffffff;
   --color-accent: #25262b;
-  --color-accent-foreground: #e1e2e8;
+  --color-accent-foreground: #e1e2e8; /* off-palette: matches --color-foreground */
   --color-destructive: var(--red-400);
   --color-destructive-foreground: #ffffff;
   --color-border: color-mix(in srgb, var(--gray-700) 60%, transparent);
   --color-input: #0f1113;
   --color-ring: var(--brand-500);
   --color-card: #1f1f23;
-  --color-card-foreground: #e1e2e8;
+  --color-card-foreground: #e1e2e8; /* off-palette: matches --color-foreground */
   --color-secondary: var(--cyan-400);
-  --color-secondary-foreground: #003543;
+  --color-secondary-foreground: #003543; /* off-palette: contrast text on dark cyan, derived from --cyan-950 */
   --color-popover: #25262b;
-  --color-popover-foreground: #e1e2e8;
+  --color-popover-foreground: #e1e2e8; /* off-palette: matches --color-foreground */
   --color-sidebar: #1a1d21;
-  --color-sidebar-foreground: #e1e2e8;
+  --color-sidebar-foreground: #e1e2e8; /* off-palette: matches --color-foreground */
   --color-sidebar-border: color-mix(in srgb, var(--gray-700) 60%, transparent);
   --color-sidebar-accent: #25262b;
-  --color-sidebar-accent-foreground: #e1e2e8;
+  --color-sidebar-accent-foreground: #e1e2e8; /* off-palette: matches --color-foreground */
   --color-sidebar-primary: var(--brand-500);
   --color-sidebar-primary-foreground: #ffffff;
   --color-sidebar-ring: var(--brand-500);
