@@ -1,0 +1,11 @@
+@theme {
+  --duration-fast:    120ms;
+  --duration-base:    180ms;
+  --duration-slow:    240ms;
+  --duration-slower:  320ms;
+
+  --ease-standard:    cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-emphasized:  cubic-bezier(0.2, 0, 0, 1);
+  --ease-decelerate:  cubic-bezier(0, 0, 0.2, 1);
+  --ease-accelerate:  cubic-bezier(0.4, 0, 1, 1);
+}

@@ -1,0 +1,160 @@
+/* Palette layer (raw scales, no semantics) */
+@theme {
+  /* brand — muon identity preserved (#2d5af7 ≠ Feishu #3370FF, locked by spec §0) */
+  --brand-50:  #eef2ff;
+  --brand-100: #dee5fd;
+  --brand-200: #b8c8fb;
+  --brand-300: #8aa4f8;
+  --brand-400: #5b80f7;
+  --brand-500: #2d5af7;
+  --brand-600: #2249d2;
+  --brand-700: #1c3aa7;
+  --brand-800: #182f85;
+  --brand-900: #14266b;
+  --brand-950: #0a1542;
+
+  /* gray — Feishu-leaning cool neutral */
+  --gray-50:  #f8f9fa;
+  --gray-100: #f1f3f5;
+  --gray-200: #e5e7eb;
+  --gray-300: #ced3da;
+  --gray-400: #9da3af;
+  --gray-500: #5f6673;
+  --gray-600: #464d59;
+  --gray-700: #2f343d;
+  --gray-800: #1f242b;
+  --gray-900: #14181d;
+  --gray-950: #0a0c10;
+
+  /* red — destructive */
+  --red-50:  #fff1f1;
+  --red-100: #ffdede;
+  --red-200: #ffbcbc;
+  --red-300: #ff9090;
+  --red-400: #ff6868;
+  --red-500: #e54545;
+  --red-600: #c93535;
+  --red-700: #a52828;
+  --red-800: #802020;
+  --red-900: #631a1a;
+  --red-950: #390e0e;
+
+  /* green — success */
+  --green-50:  #ecfdf3;
+  --green-100: #cdf9dd;
+  --green-200: #98f0bb;
+  --green-300: #5fe293;
+  --green-400: #2bcd6e;
+  --green-500: #00b42a;
+  --green-600: #009122;
+  --green-700: #00731f;
+  --green-800: #00591b;
+  --green-900: #034317;
+  --green-950: #00280c;
+
+  /* orange — warning */
+  --orange-50:  #fff7e8;
+  --orange-100: #ffeac4;
+  --orange-200: #ffd28a;
+  --orange-300: #ffb44a;
+  --orange-400: #ff971f;
+  --orange-500: #ff7d00;
+  --orange-600: #d96400;
+  --orange-700: #ad4e00;
+  --orange-800: #823a00;
+  --orange-900: #5e2a00;
+  --orange-950: #321400;
+
+  /* cyan — info */
+  --cyan-50:  #ecfdfd;
+  --cyan-100: #cdfafa;
+  --cyan-200: #94f2f1;
+  --cyan-300: #56e3e2;
+  --cyan-400: #1fcfcd;
+  --cyan-500: #0fc6c2;
+  --cyan-600: #0aa19e;
+  --cyan-700: #0a7e7c;
+  --cyan-800: #0c625f;
+  --cyan-900: #0a4948;
+  --cyan-950: #002827;
+}
+
+/* Role layer — semantic aliases, light mode */
+@theme {
+  --color-background: #ffffff;
+  --color-foreground: #111827;
+  --color-muted: var(--gray-100);
+  --color-muted-foreground: var(--gray-500);
+  --color-primary: var(--brand-500);
+  --color-primary-foreground: #ffffff;
+  --color-accent: var(--gray-100);
+  --color-accent-foreground: #111827;
+  --color-destructive: var(--red-500);
+  --color-destructive-foreground: #ffffff;
+  --color-border: var(--gray-200);
+  --color-input: var(--gray-300);
+  --color-ring: var(--brand-500);
+  --color-card: #ffffff;
+  --color-card-foreground: #111827;
+  --color-secondary: var(--cyan-500);
+  --color-secondary-foreground: #ffffff;
+  --color-popover: #ffffff;
+  --color-popover-foreground: #111827;
+  --color-sidebar: var(--gray-50);
+  --color-sidebar-foreground: #111827;
+  --color-sidebar-border: var(--gray-200);
+  --color-sidebar-accent: var(--gray-100);
+  --color-sidebar-accent-foreground: #111827;
+  --color-sidebar-primary: var(--brand-500);
+  --color-sidebar-primary-foreground: #ffffff;
+  --color-sidebar-ring: var(--brand-500);
+  --color-server-bar: var(--gray-100);
+  --color-success: var(--green-500);
+  --color-warning: var(--orange-500);
+  --color-info: var(--cyan-500);
+  --color-chart-1: var(--brand-500);
+  --color-chart-2: var(--cyan-500);
+  --color-chart-3: var(--green-500);
+  --color-chart-4: var(--orange-500);
+  --color-chart-5: var(--gray-500);
+}
+
+/* Role layer — dark overrides */
+.dark {
+  --color-background: #17181c;
+  --color-foreground: #e1e2e8;
+  --color-muted: #1f1f23;
+  --color-muted-foreground: var(--gray-400);
+  --color-primary: var(--brand-500);
+  --color-primary-foreground: #ffffff;
+  --color-accent: #25262b;
+  --color-accent-foreground: #e1e2e8;
+  --color-destructive: var(--red-400);
+  --color-destructive-foreground: #ffffff;
+  --color-border: color-mix(in srgb, var(--gray-700) 60%, transparent);
+  --color-input: #0f1113;
+  --color-ring: var(--brand-500);
+  --color-card: #1f1f23;
+  --color-card-foreground: #e1e2e8;
+  --color-secondary: var(--cyan-400);
+  --color-secondary-foreground: #003543;
+  --color-popover: #25262b;
+  --color-popover-foreground: #e1e2e8;
+  --color-sidebar: #1a1d21;
+  --color-sidebar-foreground: #e1e2e8;
+  --color-sidebar-border: color-mix(in srgb, var(--gray-700) 60%, transparent);
+  --color-sidebar-accent: #25262b;
+  --color-sidebar-accent-foreground: #e1e2e8;
+  --color-sidebar-primary: var(--brand-500);
+  --color-sidebar-primary-foreground: #ffffff;
+  --color-sidebar-ring: var(--brand-500);
+  --color-server-bar: #0f1113;
+  --color-success: var(--green-400);
+  --color-warning: var(--orange-400);
+  --color-info: var(--cyan-400);
+  --color-chart-1: var(--brand-500);
+  --color-chart-2: var(--cyan-400);
+  --color-chart-3: var(--green-400);
+  --color-chart-4: var(--orange-400);
+  --color-chart-5: var(--gray-400);
+}

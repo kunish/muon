@@ -1,0 +1,18 @@
+@theme {
+  --control-h-sm: 1.75rem;   /* 28px */
+  --control-h-md: 2rem;      /* 32px */
+  --control-h-lg: 2.25rem;   /* 36px */
+  --control-h-xl: 2.5rem;    /* 40px */
+
+  --list-item-h:  2rem;      /* 32px */
+  --toolbar-h:    2.5rem;    /* 40px */
+  --sidebar-rail: 3.5rem;    /* 56px */
+}
+
+[data-density='compact'] {
+  --control-h-sm: 1.5rem;    /* 24px */
+  --control-h-md: 1.75rem;   /* 28px */
+  --control-h-lg: 2rem;      /* 32px */
+  --control-h-xl: 2.25rem;   /* 36px */
+  --list-item-h:  1.75rem;   /* 28px */
+}
