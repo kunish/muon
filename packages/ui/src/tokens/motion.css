@@ -9,3 +9,13 @@
   --ease-decelerate:  cubic-bezier(0, 0, 0.2, 1);
   --ease-accelerate:  cubic-bezier(0.4, 0, 1, 1);
 }
+
+@theme {
+  /* Tailwind v4 utility registrations for project-specific keyframes.
+     Keyframes themselves are defined in src/app/main.css. */
+  --animate-separator-fade-in: separator-fade-in 0.3s ease both;
+  --animate-sys-fade-in: sys-fade-in 0.2s ease both;
+  --animate-typing-bounce: typing-bounce 1.4s infinite ease-in-out;
+  --animate-focused-event-pulse: focused-event-pulse 1.2s ease;
+  --animate-emoji-bounce: emoji-bounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
