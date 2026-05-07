@@ -21,6 +21,7 @@
     "./label": "./src/components/ui/label/index.ts",
     "./popover": "./src/components/ui/popover/index.ts",
     "./progress": "./src/components/ui/progress/index.ts",
+    "./radio": "./src/atoms/radio/index.ts",
     "./scroll-area": "./src/components/ui/scroll-area/index.ts",
     "./select": "./src/components/ui/select/index.ts",
     "./separator": "./src/components/ui/separator/index.ts",
