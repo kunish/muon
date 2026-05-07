@@ -60,7 +60,7 @@ async function deleteFolder(folderId: string): Promise<void> {
       </p>
     </div>
 
-    <DocsCreateButton @create="handleCreate" />
+    <DocsCreateButton @create-doc="handleCreate" @create-folder="createFolder('', '新建文件夹')" />
 
     <DocsSidebarNav
       :sections="sections"

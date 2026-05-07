@@ -1,6 +1,7 @@
 import { useChatStore } from '@features/chat/stores/chatStore'
 import { onBeforeUnmount, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { workspaceApps } from '../components/workspace/navigation'
 import { useGlobalUiStore } from '../stores/globalUiStore'
 
 function isEditableTarget(target: EventTarget | null): boolean {
@@ -79,6 +80,17 @@ export function useGlobalShortcuts(): void {
     if (isPlainModifier(event) && key === 'n') {
       event.preventDefault()
       globalUi.openNewChat()
+      return
+    }
+
+    // 飞书风格 Cmd/Ctrl+数字键 切换应用
+    if (isPlainModifier(event) && key >= '1' && key <= '9') {
+      event.preventDefault()
+      const primaryApps = workspaceApps.filter(a => a.id !== 'settings')
+      const index = Number.parseInt(key, 10) - 1
+      if (index < primaryApps.length) {
+        router.push(primaryApps[index].path)
+      }
       return
     }
 

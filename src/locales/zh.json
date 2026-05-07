@@ -1035,7 +1035,15 @@
     "next_week": "下一周",
     "default_event": "新建日程",
     "default_time": "刚刚",
-    "default_status": "待回复"
+    "default_status": "待回复",
+    "month_view": "月",
+    "day_view": "日",
+    "prev_month": "上个月",
+    "next_month": "下个月",
+    "no_events": "暂无日程",
+    "all_day": "全天",
+    "add_event": "添加日程",
+    "event_detail": "日程详情"
   },
   "email": {
     "subtitle": "团队邮件中心",

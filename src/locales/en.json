@@ -1035,7 +1035,15 @@
     "next_week": "Next week",
     "default_event": "New calendar event",
     "default_time": "Just now",
-    "default_status": "Pending"
+    "default_status": "Pending",
+    "month_view": "Month",
+    "day_view": "Day",
+    "prev_month": "Previous month",
+    "next_month": "Next month",
+    "no_events": "No events",
+    "all_day": "All day",
+    "add_event": "Add event",
+    "event_detail": "Event detail"
   },
   "email": {
     "subtitle": "Team email center",
