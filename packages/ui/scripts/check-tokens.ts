@@ -35,13 +35,22 @@ function readAllSource(): string {
 }
 
 const tokens = readAllTokens()
+
+if (!tokens.trim()) {
+  console.error(`Token completeness check FAILED: no .css files found in ${TOKENS_DIR}`)
+  process.exit(1)
+}
+
 const errors: string[] = []
 
 for (const role of REQUIRED_ROLES) {
+  // Match e.g. `--color-foreground:` (with optional whitespace before the colon).
   if (!new RegExp(`--color-${role}\\s*:`).test(tokens))
     errors.push(`Missing role token: --color-${role}`)
 }
 
+// Collect every distinct --color-* token name appearing anywhere in the token files.
+// Char class includes 0-9 to capture suffixes like --color-chart-1.
 const lightRoles = (tokens.match(/--color-[a-z0-9-]+/g) ?? []).filter((v, i, a) => a.indexOf(v) === i)
 const darkBlock = tokens.split('.dark').slice(1).join('.dark')
 for (const role of lightRoles) {
@@ -49,9 +58,10 @@ for (const role of lightRoles) {
     errors.push(`Missing dark override: ${role}`)
 }
 
+// Collect every defined palette stop, e.g. --brand-500, --gray-200.
 const definedPalette = (tokens.match(/--(?:brand|gray|red|green|orange|cyan)-\d+/g) ?? [])
 const allSource = readAllSource()
-const unused = definedPalette.filter(p => !new RegExp(p.replace(/-/g, '\\-')).test(allSource + tokens))
+const unused = definedPalette.filter(p => !new RegExp(p).test(allSource + tokens))
 if (unused.length)
   console.warn(`[warn] Unused palette tokens: ${[...new Set(unused)].join(', ')}`)
 
