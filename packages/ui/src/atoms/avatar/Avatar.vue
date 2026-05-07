@@ -1,22 +1,22 @@
 <script setup lang="ts">
 /**
- * 统一 Avatar 组件
+ * Feishu-aligned Avatar atom.
  *
  * 支持功能：
  * - mxc:// URL 自动解析（通过 useAuthMedia）
  * - 普通 http(s):// / blob: URL 直接使用
- * - 渐变色 fallback（基于 userId 或 name 的确定性渐变）
- * - 多种尺寸：xs(20) / sm(32) / md(40) / lg(48) / xl(80) / 2xl(96)
- * - 多种形状：circle(正圆) / rounded(圆角矩形)
+ * - 渐变色 fallback（基于 colorId 或 alt 的确定性渐变）
+ * - 尺寸阶（飞书规范 §4.1）：xs(20) / sm(24) / md(32) / lg(40) / xl(56)
+ * - 形状：rounded(默认，radius-sm 4px) / circle(正圆)
  * - 可选在线状态指示器
  * - 可选 hover 效果
  */
 import type { HTMLAttributes } from 'vue'
 import { computed, ref } from 'vue'
-import { useAuthMedia } from '../../../composables/useAuthMedia'
-import { cn } from '../../../utils'
+import { useAuthMedia } from '../../composables/useAuthMedia'
+import { cn } from '../../utils'
 
-export type AvatarSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl'
+export type AvatarSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl'
 export type AvatarShape = 'circle' | 'rounded'
 export type AvatarPresence = 'online' | 'unavailable' | 'busy' | 'offline' | null
 
@@ -31,7 +31,7 @@ const props = withDefaults(defineProps<{
   colorId?: string
   /** 尺寸 */
   size?: AvatarSize
-  /** 形状 */
+  /** 形状（默认 rounded：飞书风方形） */
   shape?: AvatarShape
   /** 在线状态指示器 */
   presence?: AvatarPresence
@@ -41,34 +41,26 @@ const props = withDefaults(defineProps<{
   class?: HTMLAttributes['class']
 }>(), {
   size: 'md',
-  shape: 'circle',
+  shape: 'rounded',
   presence: null,
   clickable: false,
 })
 
-// --- 尺寸映射 ---
-const SIZE_PX: Record<AvatarSize, number> = {
-  'xs': 20,
-  'sm': 32,
-  'md': 40,
-  'lg': 48,
-  'xl': 80,
-  '2xl': 96,
-}
+// --- 尺寸映射（飞书规范 §4.1） ---
+const SIZE_PX: Record<AvatarSize, number> = { xs: 20, sm: 24, md: 32, lg: 40, xl: 56 }
 
 const SIZE_CLASSES: Record<AvatarSize, string> = {
-  'xs': 'h-5 w-5 text-[8px]',
-  'sm': 'h-8 w-8 text-[11px]',
-  'md': 'h-10 w-10 text-sm',
-  'lg': 'h-12 w-12 text-base',
-  'xl': 'h-20 w-20 text-2xl',
-  '2xl': 'h-24 w-24 text-3xl',
+  xs: 'h-5 w-5 text-[8px]',
+  sm: 'h-6 w-6 text-[10px]',
+  md: 'h-8 w-8 text-xs',
+  lg: 'h-10 w-10 text-sm',
+  xl: 'h-14 w-14 text-base',
 }
 
-// --- 形状 ---
+// --- 形状（飞书风：默认方形 4px 圆角） ---
 const SHAPE_CLASSES: Record<AvatarShape, string> = {
+  rounded: 'rounded-sm',
   circle: 'rounded-full',
-  rounded: 'rounded-2xl',
 }
 
 // --- 图片解析 ---
@@ -135,12 +127,11 @@ const PRESENCE_CLASSES: Record<string, string> = {
 const presenceDotSize = computed(() => {
   switch (props.size) {
     case 'xs': return 'w-1.5 h-1.5 ring-1'
-    case 'sm': return 'w-2.5 h-2.5 ring-[2px]'
-    case 'md': return 'w-3 h-3 ring-2'
+    case 'sm': return 'w-2 h-2 ring-[1.5px]'
+    case 'md': return 'w-2.5 h-2.5 ring-2'
     case 'lg': return 'w-3 h-3 ring-2'
-    case 'xl': return 'w-4 h-4 ring-[3px]'
-    case '2xl': return 'w-5 h-5 ring-[3px]'
-    default: return 'w-3 h-3 ring-2'
+    case 'xl': return 'w-3.5 h-3.5 ring-[3px]'
+    default: return 'w-2.5 h-2.5 ring-2'
   }
 })
 
