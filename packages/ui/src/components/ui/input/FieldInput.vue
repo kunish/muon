@@ -2,9 +2,9 @@
 import type { HTMLAttributes } from 'vue'
 import { useVModel } from '@vueuse/core'
 import { computed } from 'vue'
+import Input from '../../../atoms/input/Input.vue'
 import { cn } from '../../../utils'
 import Label from '../label/Label.vue'
-import Input from './Input.vue'
 
 defineOptions({
   inheritAttrs: false,

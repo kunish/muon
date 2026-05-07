@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import type { HTMLAttributes } from 'vue'
+import type { InputVariants } from '.'
 import { useVModel } from '@vueuse/core'
-import { cn } from '../../../utils'
+import { cn } from '../../utils'
+import { inputVariants } from '.'
 
 const props = withDefaults(defineProps<{
   class?: HTMLAttributes['class']
@@ -10,8 +12,12 @@ const props = withDefaults(defineProps<{
   disabled?: boolean
   defaultValue?: string | number
   modelValue?: string | number
+  variant?: InputVariants['variant']
+  size?: InputVariants['size']
 }>(), {
   type: 'text',
+  variant: 'default',
+  size: 'md',
 })
 
 const emits = defineEmits<{ 'update:modelValue': [value: string | number] }>()
@@ -25,10 +31,7 @@ const modelValue = useVModel(props, 'modelValue', emits, {
 <template>
   <input
     v-model="modelValue"
-    :class="cn(
-      'flex h-10 w-full rounded-xl border border-input bg-card px-3 py-2 text-sm text-foreground shadow-[inset_0_1px_0_color-mix(in_srgb,var(--color-foreground)_4%,transparent)] transition-all placeholder:text-muted-foreground/70 focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-50 file:border-0 file:bg-transparent file:text-sm file:font-medium',
-      props.class,
-    )"
+    :class="cn(inputVariants({ variant, size }), props.class)"
     :type="type"
     :placeholder="placeholder"
     :disabled="disabled"
