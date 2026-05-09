@@ -26,28 +26,20 @@ const statusMsg = computed(() => {
     @click="$emit('click')"
     @dblclick="$emit('dblclick')"
   >
-    <div class="relative">
-      <Avatar
-        :src="contact.avatarUrl"
-        :alt="contact.displayName"
-        :fallback="contact.displayName.slice(0, 1)"
-        :color-id="contact.userId"
-        size="sm"
-      />
-      <div
-        class="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-sidebar"
-        :class="contact.presence === 'online' ? 'bg-success' : 'bg-muted-foreground/30'"
-      />
-    </div>
+    <Avatar
+      :src="contact.avatarUrl"
+      :alt="contact.displayName"
+      :fallback="contact.displayName.slice(0, 1)"
+      :color-id="contact.userId"
+      :presence="contact.presence === 'online' ? 'online' : 'offline'"
+      size="sm"
+    />
     <div class="min-w-0 flex-1">
-      <div class="truncate text-[13px] font-semibold text-foreground">
+      <div class="truncate text-sm font-semibold text-foreground">
         {{ contact.displayName }}
       </div>
-      <div v-if="statusMsg" class="truncate text-[12px] text-muted-foreground">
-        {{ statusMsg }}
-      </div>
-      <div v-else class="truncate text-[12px] text-muted-foreground">
-        {{ contact.userId }}
+      <div class="truncate text-xs text-muted-foreground">
+        {{ statusMsg || contact.userId }}
       </div>
     </div>
   </div>
