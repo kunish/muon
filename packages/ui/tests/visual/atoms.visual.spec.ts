@@ -29,6 +29,13 @@ for (const id of STORY_IDS) {
     await page.waitForLoadState('domcontentloaded')
     await page.evaluate(() => document.fonts.ready)
     await page.waitForTimeout(300)
-    await expect(page).toHaveScreenshot(`${id}.png`, { maxDiffPixelRatio: 0.001 })
+    // Screenshot the storybook root, not the whole viewport — the centered
+    // story is a tiny fraction of 1280×720, so single-token changes (e.g.
+    // 4→6px radius) drown in white-canvas noise and slip past
+    // maxDiffPixelRatio. Cropping to #storybook-root makes the ratio
+    // meaningful: the same 4-corner radius diff is now ~5% of pixels, well
+    // above the 0.001 threshold.
+    const root = page.locator('#storybook-root')
+    await expect(root).toHaveScreenshot(`${id}.png`, { maxDiffPixelRatio: 0.001 })
   })
 }
