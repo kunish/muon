@@ -70,6 +70,8 @@
   "components-dialog--confirm",
   "components-dialog--form-prompt",
   "components-dialog--minimal",
+  "components-dropdownmenu--message-actions",
+  "components-dropdownmenu--with-label",
   "components-tabs--default",
   "components-tabs--two-tabs",
   "components-tabs--underline",

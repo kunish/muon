@@ -22,12 +22,15 @@ if (STORY_IDS.length === 0)
 // aria-hidden, so cropping to root captures nothing and times out. For these
 // we screenshot the full viewport instead (the fixed-positioned overlay +
 // content fills it deterministically anyway).
+// Storybook lowercases CamelCase title parts without inserting hyphens —
+// e.g., `Components/DropdownMenu` becomes `components-dropdownmenu`, not
+// `components-dropdown-menu`. Match the ids Storybook actually generates.
 const PORTAL_PREFIXES = [
   'components-dialog',
-  'components-alert-dialog',
+  'components-alertdialog',
   'components-popover',
-  'components-dropdown-menu',
-  'components-context-menu',
+  'components-dropdownmenu',
+  'components-contextmenu',
   'components-tooltip',
   'components-sheet',
   'components-select',
