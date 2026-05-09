@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Button } from '@muon/ui/button'
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { checkForUpdates, installUpdate, updateAvailable, updateVersion, updating } from '@/electron/updater'
@@ -49,24 +50,22 @@ async function handleCheck() {
       <div class="text-sm font-medium">
         {{ t('settings.update') }}
       </div>
-      <div v-if="updateAvailable" class="text-sm text-primary">
-        {{ t('settings.new_version') }} {{ updateVersion }}
-        <button
-          class="ml-2 px-3 py-1 text-xs rounded bg-primary text-primary-foreground disabled:opacity-50"
-          :disabled="updating"
-          @click="installUpdate"
-        >
+      <div v-if="updateAvailable" class="flex items-center gap-2 text-sm text-primary">
+        <span>{{ t('settings.new_version') }} {{ updateVersion }}</span>
+        <Button size="sm" :disabled="updating" :loading="updating" @click="installUpdate">
           {{ updating ? t('settings.updating') : t('settings.update_now') }}
-        </button>
+        </Button>
       </div>
-      <button
+      <Button
         v-else
-        class="px-3 py-1.5 text-sm rounded-lg border border-border hover:bg-accent disabled:opacity-50"
+        variant="outline"
+        size="sm"
         :disabled="checking"
+        :loading="checking"
         @click="handleCheck"
       >
         {{ checking ? t('settings.checking') : t('settings.check_update') }}
-      </button>
+      </Button>
     </div>
 
     <div class="text-xs text-muted-foreground space-y-1">
