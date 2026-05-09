@@ -45,3 +45,22 @@ export const TwoTabs: Story = {
     `,
   }),
 }
+
+export const Underline: Story = {
+  render: () => ({
+    components: { Tabs, TabsList, TabsTrigger, TabsContent },
+    template: `
+      <Tabs default-value="details" class="w-[420px]">
+        <TabsList variant="underline">
+          <TabsTrigger value="details">Details</TabsTrigger>
+          <TabsTrigger value="record">Approval Record</TabsTrigger>
+          <TabsTrigger value="comments">Comments</TabsTrigger>
+        </TabsList>
+        <TabsContent value="details" class="mt-3 text-sm">
+          <p>App: 石林's Feishu CLI</p>
+          <p>Submitted: 2026-05-07 23:45</p>
+        </TabsContent>
+      </Tabs>
+    `,
+  }),
+}
