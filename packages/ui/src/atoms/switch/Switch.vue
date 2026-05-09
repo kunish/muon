@@ -43,7 +43,7 @@ function onUpdate(value: boolean) {
     v-bind="rootProps"
     :class="cn(
       'inline-flex shrink-0 cursor-pointer items-center rounded-full transition-colors',
-      'data-[state=checked]:bg-primary data-[state=unchecked]:bg-gray-300',
+      'data-[state=checked]:bg-primary data-[state=unchecked]:bg-gray-300 dark:data-[state=unchecked]:bg-gray-700',
       'disabled:cursor-not-allowed disabled:opacity-50',
       'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-ring)]',
       SIZE_ROOT[props.size],
