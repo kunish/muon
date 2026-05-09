@@ -78,6 +78,7 @@
   "components-popover--settings",
   "components-progress--default",
   "components-progress--steps",
+  "components-scrollarea--chat-list",
   "components-select--closed",
   "components-select--language",
   "components-sheet--settings-panel",
