@@ -47,23 +47,9 @@
     box-shadow: inset 2px 0 0 var(--color-primary);
   }
 
-  .workspace-menu {
-    @apply z-50 min-w-44 select-none overflow-hidden rounded-lg border border-border bg-popover/95 p-1.5 text-popover-foreground backdrop-blur-xl;
-    box-shadow: 0 18px 45px color-mix(in srgb, #000000 28%, transparent);
-  }
-
-  .workspace-menu-item {
-    @apply relative flex cursor-default select-none items-center gap-2.5 rounded-md px-3 py-2 text-[13px] outline-none transition-colors duration-100 hover:bg-accent focus-visible:bg-accent focus-visible:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&>svg]:size-4 [&>svg]:shrink-0;
-  }
-
-  .workspace-menu-item-destructive {
-    @apply text-destructive focus:text-destructive;
-  }
-
-  .workspace-menu-item-destructive:hover,
-  .workspace-menu-item-destructive:focus {
-    background: color-mix(in srgb, var(--color-destructive) 10%, transparent);
-  }
+  /* workspace-menu / workspace-menu-item / -destructive moved to
+   * @muon/ui's styles.css (commit 302974f) so the UI package can render
+   * its ContextMenu component without depending on app-level CSS. */
 
   .workspace-empty-state {
     @apply flex flex-col items-center justify-center rounded-lg border border-border bg-card text-muted-foreground;
