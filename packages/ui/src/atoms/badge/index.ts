@@ -4,7 +4,7 @@ import { cva } from 'class-variance-authority'
 export { default as Badge } from './Badge.vue'
 
 export const badgeVariants = cva(
-  'inline-flex items-center rounded-xs px-1.5 py-0.5 text-xs font-medium leading-none transition-colors',
+  'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium leading-none transition-colors',
   {
     variants: {
       tone: {
