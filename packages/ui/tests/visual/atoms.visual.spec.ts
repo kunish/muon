@@ -35,6 +35,7 @@ const PORTAL_PREFIXES = [
   'components-sheet',
   'components-select',
   'components-sonner',
+  'components-contextmenu',
 ]
 
 function isPortalStory(id: string): boolean {

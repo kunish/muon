@@ -149,4 +149,29 @@
   .muon-scrollbar-thumb:hover {
     background: var(--muon-scrollbar-thumb-hover);
   }
+
+  /* workspace-menu — shared by ContextMenu component AND by app-level
+   * inline context-menu (src/features/chat/.../ConversationContextMenu.vue).
+   * Originally lived in src/app/main.css, which made the UI package's
+   * ContextMenu component depend on app-level CSS — leaking layering and
+   * leaving Storybook's renders unstyled. Lifted here so the package is
+   * self-contained.
+   */
+  .workspace-menu {
+    @apply z-50 min-w-44 select-none overflow-hidden rounded-lg border border-border bg-popover/95 p-1.5 text-popover-foreground backdrop-blur-xl;
+    box-shadow: 0 18px 45px color-mix(in srgb, #000000 28%, transparent);
+  }
+
+  .workspace-menu-item {
+    @apply relative flex cursor-default select-none items-center gap-2.5 rounded-md px-3 py-2 text-[13px] outline-none transition-colors duration-100 hover:bg-accent focus-visible:bg-accent focus-visible:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&>svg]:size-4 [&>svg]:shrink-0;
+  }
+
+  .workspace-menu-item-destructive {
+    @apply text-destructive focus:text-destructive;
+  }
+
+  .workspace-menu-item-destructive:hover,
+  .workspace-menu-item-destructive:focus {
+    background: color-mix(in srgb, var(--color-destructive) 10%, transparent);
+  }
 }

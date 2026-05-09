@@ -68,6 +68,7 @@
   "components-card--default",
   "components-card--with-action",
   "components-card--with-footer",
+  "components-contextmenu--message-bubble",
   "components-dialog--confirm",
   "components-dialog--form-prompt",
   "components-dialog--minimal",
