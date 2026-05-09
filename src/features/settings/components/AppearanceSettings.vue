@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { MessageAlignment, ThemeMode } from '../stores/settingsStore'
-import { Tabs, TabsList, TabsTrigger } from '@muon/ui/tabs'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@muon/ui/select'
+import { Check } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import { useSettingsStore } from '../stores/settingsStore'
 
@@ -30,43 +31,102 @@ const alignmentOptions: { value: MessageAlignment, label: () => string, desc: ()
       {{ t('settings.appearance_title') }}
     </h2>
 
+    <!-- Theme — Feishu-style card grid with mini preview per option -->
     <div class="space-y-2">
       <div class="text-sm">
         {{ t('settings.theme') }}
       </div>
-      <Tabs :model-value="store.theme" @update:model-value="v => store.theme = v as ThemeMode">
-        <TabsList>
-          <TabsTrigger v-for="opt in themeOptions" :key="opt.value" :value="opt.value">
-            {{ opt.label() }}
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
+      <div class="grid grid-cols-3 gap-3">
+        <button
+          v-for="opt in themeOptions"
+          :key="opt.value"
+          type="button"
+          class="group relative flex flex-col gap-2 rounded-lg border bg-card p-3 text-left transition-colors hover:bg-accent focus-visible:outline-none focus-visible:border-primary"
+          :class="store.theme === opt.value ? 'border-primary ring-1 ring-primary' : 'border-border'"
+          @click="store.theme = opt.value"
+        >
+          <!-- preview: stylized mini app frame in this theme -->
+          <div
+            class="h-16 w-full overflow-hidden rounded border border-border/60 flex"
+            :class="opt.value === 'system' ? 'bg-gradient-to-r from-white to-[#17181c]' : opt.value === 'dark' ? 'bg-[#17181c]' : 'bg-white'"
+          >
+            <!-- sidebar -->
+            <div
+              class="h-full w-[18%]"
+              :class="opt.value === 'system' ? 'bg-gray-100' : opt.value === 'dark' ? 'bg-[#1a1d21]' : 'bg-gray-100'"
+            />
+            <!-- content -->
+            <div class="flex-1 p-1.5 flex flex-col gap-1">
+              <div
+                class="h-1.5 w-2/3 rounded-full"
+                :class="opt.value === 'dark' ? 'bg-gray-700' : 'bg-gray-300'"
+              />
+              <div
+                class="h-1.5 w-1/2 rounded-full"
+                :class="opt.value === 'dark' ? 'bg-gray-700' : 'bg-gray-300'"
+              />
+              <div class="h-2 w-12 rounded bg-primary mt-auto" />
+            </div>
+          </div>
+          <span class="text-xs font-medium">{{ opt.label() }}</span>
+          <Check
+            v-if="store.theme === opt.value"
+            :size="14"
+            class="absolute right-2 top-2 text-primary"
+          />
+        </button>
+      </div>
     </div>
 
+    <!-- Language — non-visual choice goes through Select dropdown -->
     <div class="space-y-2">
       <div class="text-sm">
         {{ t('settings.language') }}
       </div>
-      <Tabs :model-value="store.locale" @update:model-value="v => store.locale = v as string">
-        <TabsList>
-          <TabsTrigger v-for="opt in localeOptions" :key="opt.value" :value="opt.value">
+      <Select :model-value="store.locale" @update:model-value="v => store.locale = v as string">
+        <SelectTrigger class="w-56">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem v-for="opt in localeOptions" :key="opt.value" :value="opt.value">
             {{ opt.label() }}
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
+          </SelectItem>
+        </SelectContent>
+      </Select>
     </div>
 
+    <!-- Message alignment — Feishu-style preview cards (visible diff per choice) -->
     <div class="space-y-2">
       <div class="text-sm">
         {{ t('settings.msg_align') }}
       </div>
-      <Tabs :model-value="store.messageAlignment" @update:model-value="v => store.messageAlignment = v as MessageAlignment">
-        <TabsList>
-          <TabsTrigger v-for="opt in alignmentOptions" :key="opt.value" :value="opt.value" :title="opt.desc()">
-            {{ opt.label() }}
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
+      <div class="grid grid-cols-2 gap-3 max-w-[26rem]">
+        <button
+          v-for="opt in alignmentOptions"
+          :key="opt.value"
+          type="button"
+          :title="opt.desc()"
+          class="group relative flex flex-col gap-2 rounded-lg border bg-card p-3 text-left transition-colors hover:bg-accent focus-visible:outline-none focus-visible:border-primary"
+          :class="store.messageAlignment === opt.value ? 'border-primary ring-1 ring-primary' : 'border-border'"
+          @click="store.messageAlignment = opt.value"
+        >
+          <!-- bubble preview -->
+          <div class="flex flex-col gap-1.5 px-1">
+            <div class="h-2 w-2/3 rounded-full bg-muted self-start" />
+            <div
+              class="h-2 w-1/2 rounded-full bg-primary"
+              :class="opt.value === 'leftright' ? 'self-end' : 'self-start'"
+            />
+            <div class="h-2 w-3/5 rounded-full bg-muted self-start" />
+          </div>
+          <span class="text-xs font-medium">{{ opt.label() }}</span>
+          <Check
+            v-if="store.messageAlignment === opt.value"
+            :size="14"
+            class="absolute right-2 top-2 text-primary"
+          />
+        </button>
+      </div>
       <p class="text-xs text-muted-foreground">
         {{ alignmentOptions.find(o => o.value === store.messageAlignment)?.desc() }}
       </p>
