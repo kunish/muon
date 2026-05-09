@@ -72,6 +72,8 @@
   "components-dialog--minimal",
   "components-dropdownmenu--message-actions",
   "components-dropdownmenu--with-label",
+  "components-popover--calendar-event",
+  "components-popover--settings",
   "components-tabs--default",
   "components-tabs--two-tabs",
   "components-tabs--underline",
