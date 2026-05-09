@@ -35,7 +35,7 @@ function toggleWatermark() {
           <div class="text-xs text-muted-foreground">{{ t('settings.watermark_desc') }}</div>
         </div>
       </div>
-      <Switch :checked="store.watermarkEnabled" @update:checked="() => toggleWatermark()" />
+      <Switch :model-value="store.watermarkEnabled" @update:model-value="() => toggleWatermark()" />
     </Label>
 
     <!-- 已屏蔽用户 -->

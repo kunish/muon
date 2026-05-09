@@ -72,8 +72,8 @@ function setNotificationsEnabled(enabled: boolean): void {
       </div>
       <Switch
         data-testid="settings-enable-notifications"
-        :checked="store.notificationsEnabled"
-        @update:checked="setNotificationsEnabled"
+        :model-value="store.notificationsEnabled"
+        @update:model-value="setNotificationsEnabled"
       />
     </Label>
 
@@ -82,7 +82,7 @@ function setNotificationsEnabled(enabled: boolean): void {
         <div class="text-sm">{{ t('settings.message_preview') }}</div>
         <div class="text-xs text-muted-foreground">{{ t('settings.message_preview_desc') }}</div>
       </div>
-      <Switch :checked="store.notificationPreview" @update:checked="val => store.notificationPreview = val" />
+      <Switch v-model="store.notificationPreview" />
     </Label>
 
     <Label class="flex items-center justify-between">
@@ -94,9 +94,8 @@ function setNotificationsEnabled(enabled: boolean): void {
         </div>
       </div>
       <Switch
+        v-model="store.notificationSound"
         data-testid="settings-notification-sound"
-        :checked="store.notificationSound"
-        @update:checked="val => store.notificationSound = val"
       />
     </Label>
 
@@ -109,9 +108,8 @@ function setNotificationsEnabled(enabled: boolean): void {
         </div>
       </div>
       <Switch
+        v-model="store.badgeCount"
         data-testid="settings-badge-count"
-        :checked="store.badgeCount"
-        @update:checked="val => store.badgeCount = val"
       />
     </Label>
 
@@ -153,9 +151,9 @@ function setNotificationsEnabled(enabled: boolean): void {
           </div>
           <Switch
             :data-testid="`settings-channel-${channel.id}`"
-            :checked="store.notificationChannels[channel.id]"
+            :model-value="store.notificationChannels[channel.id]"
             :disabled="!store.notificationsEnabled"
-            @update:checked="val => store.setNotificationChannel(channel.id, val)"
+            @update:model-value="(val: boolean) => store.setNotificationChannel(channel.id, val)"
           />
         </Label>
       </div>

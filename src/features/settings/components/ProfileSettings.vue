@@ -3,6 +3,7 @@ import { getMyAvatarUrl, getMyDisplayName, getMyStatus, setMyAvatar, setMyDispla
 import { Avatar } from '@muon/ui/avatar'
 import { Input } from '@muon/ui/input'
 import { Label } from '@muon/ui/label'
+import { Popover, PopoverContent, PopoverTrigger } from '@muon/ui/popover'
 import { Camera, Check, Pencil, SmilePlus, X } from 'lucide-vue-next'
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -143,26 +144,21 @@ async function changeAvatar() {
     <!-- 自定义状态 -->
     <div>
       <Label class="text-sm font-medium text-muted-foreground mb-1.5 block">{{ t('settings.status') }}</Label>
-      <div class="relative">
-        <button
-          class="flex items-center gap-2 group text-sm text-muted-foreground hover:text-foreground transition-colors"
-          @click="showStatusPicker = !showStatusPicker"
-        >
-          <SmilePlus :size="14" class="opacity-60 group-hover:opacity-100" />
-          <span v-if="currentStatus" class="truncate max-w-[240px]">{{ currentStatus }}</span>
-          <span v-else class="italic opacity-60">{{ t('settings.status_placeholder') }}</span>
-        </button>
-        <!-- StatusPicker Popover -->
-        <div
-          v-if="showStatusPicker"
-          class="absolute left-0 top-full mt-2 z-50 bg-popover/95 backdrop-blur-xl border border-border/50 rounded-xl shadow-[0_8px_30px_rgba(0,0,0,0.12)]"
-        >
+      <Popover v-model:open="showStatusPicker">
+        <PopoverTrigger as-child>
+          <button class="flex items-center gap-2 group text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <SmilePlus :size="14" class="opacity-60 group-hover:opacity-100" />
+            <span v-if="currentStatus" class="truncate max-w-[240px]">{{ currentStatus }}</span>
+            <span v-else class="italic opacity-60">{{ t('settings.status_placeholder') }}</span>
+          </button>
+        </PopoverTrigger>
+        <PopoverContent align="start" class="p-0">
           <StatusPicker
             @close="showStatusPicker = false"
             @updated="onStatusUpdated"
           />
-        </div>
-      </div>
+        </PopoverContent>
+      </Popover>
     </div>
   </div>
 </template>

@@ -25,7 +25,7 @@ watch(() => store.analyticsEnabled, (val) => {
         <div class="text-sm">{{ t('settings.auto_launch') }}</div>
         <div class="text-xs text-muted-foreground">{{ t('settings.auto_launch_desc') }}</div>
       </div>
-      <Switch :checked="store.autoLaunch" @update:checked="val => store.autoLaunch = val" />
+      <Switch v-model="store.autoLaunch" />
     </Label>
 
     <Label class="flex items-center justify-between">
@@ -33,7 +33,7 @@ watch(() => store.analyticsEnabled, (val) => {
         <div class="text-sm">{{ t('settings.close_to_tray') }}</div>
         <div class="text-xs text-muted-foreground">{{ t('settings.close_to_tray_desc') }}</div>
       </div>
-      <Switch :checked="store.closeToTray" @update:checked="val => store.closeToTray = val" />
+      <Switch v-model="store.closeToTray" />
     </Label>
 
     <Label class="flex items-center justify-between">
@@ -41,7 +41,7 @@ watch(() => store.analyticsEnabled, (val) => {
         <div class="text-sm">{{ t('settings.analytics') }}</div>
         <div class="text-xs text-muted-foreground">{{ t('settings.analytics_desc') }}</div>
       </div>
-      <Switch :checked="store.analyticsEnabled" @update:checked="val => store.analyticsEnabled = val" />
+      <Switch v-model="store.analyticsEnabled" />
     </Label>
   </div>
 </template>
