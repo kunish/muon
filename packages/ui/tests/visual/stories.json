@@ -67,6 +67,9 @@
   "components-card--default",
   "components-card--with-action",
   "components-card--with-footer",
+  "components-dialog--confirm",
+  "components-dialog--form-prompt",
+  "components-dialog--minimal",
   "foundation-anchors--reference",
   "foundation-tokens--palette"
 ]

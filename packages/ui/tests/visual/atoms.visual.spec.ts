@@ -17,6 +17,26 @@ const STORY_IDS = JSON.parse(readFileSync(storiesPath, 'utf-8')) as string[]
 if (STORY_IDS.length === 0)
   throw new Error('tests/visual/stories.json is empty — run `pnpm refresh-stories`')
 
+// Components that render through a Portal (overlay/popper/teleport) escape
+// #storybook-root — their content lands in <body> and storybook-root gets
+// aria-hidden, so cropping to root captures nothing and times out. For these
+// we screenshot the full viewport instead (the fixed-positioned overlay +
+// content fills it deterministically anyway).
+const PORTAL_PREFIXES = [
+  'components-dialog',
+  'components-alert-dialog',
+  'components-popover',
+  'components-dropdown-menu',
+  'components-context-menu',
+  'components-tooltip',
+  'components-sheet',
+  'components-select',
+]
+
+function isPortalStory(id: string): boolean {
+  return PORTAL_PREFIXES.some(p => id.startsWith(p))
+}
+
 for (const id of STORY_IDS) {
   test(id, async ({ page }, testInfo) => {
     // Storybook's class-based dark mode is driven by the addon-themes toolbar
@@ -29,13 +49,12 @@ for (const id of STORY_IDS) {
     await page.waitForLoadState('domcontentloaded')
     await page.evaluate(() => document.fonts.ready)
     await page.waitForTimeout(300)
-    // Screenshot the storybook root, not the whole viewport — the centered
-    // story is a tiny fraction of 1280×720, so single-token changes (e.g.
-    // 4→6px radius) drown in white-canvas noise and slip past
-    // maxDiffPixelRatio. Cropping to #storybook-root makes the ratio
-    // meaningful: the same 4-corner radius diff is now ~5% of pixels, well
-    // above the 0.001 threshold.
-    const root = page.locator('#storybook-root')
-    await expect(root).toHaveScreenshot(`${id}.png`, { maxDiffPixelRatio: 0.001 })
+    // Screenshot the storybook root for inline atoms/components, but the
+    // whole viewport for portal-rendered ones (dialog, popover, etc.).
+    // Cropping to #storybook-root keeps single-token diffs (e.g. 4→6px
+    // radius) above the maxDiffPixelRatio noise floor by shrinking the
+    // denominator from the full 1280×720 viewport to component-sized pixels.
+    const target = isPortalStory(id) ? page : page.locator('#storybook-root')
+    await expect(target).toHaveScreenshot(`${id}.png`, { maxDiffPixelRatio: 0.001 })
   })
 }
