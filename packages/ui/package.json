@@ -65,7 +65,7 @@
     "storybook": "storybook dev -p 6006 --ci",
     "build-storybook": "storybook build -o storybook-static",
     "refresh-stories": "tsx scripts/refresh-stories.ts",
-    "test:visual": "playwright test",
-    "test:visual:update": "playwright test --update-snapshots"
+    "test:visual": "rm -rf ../../node_modules/.vite && playwright test",
+    "test:visual:update": "rm -rf ../../node_modules/.vite && playwright test --update-snapshots"
   }
 }
