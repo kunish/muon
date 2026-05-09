@@ -16,7 +16,7 @@ import { computed, ref } from 'vue'
 import { useAuthMedia } from '../../composables/useAuthMedia'
 import { cn } from '../../utils'
 
-export type AvatarSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl'
+export type AvatarSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl'
 export type AvatarShape = 'circle' | 'rounded'
 export type AvatarPresence = 'online' | 'unavailable' | 'busy' | 'offline' | null
 
@@ -46,8 +46,8 @@ const props = withDefaults(defineProps<{
   clickable: false,
 })
 
-// --- 尺寸映射（飞书规范 §4.1） ---
-const SIZE_PX: Record<AvatarSize, number> = { xs: 20, sm: 24, md: 32, lg: 40, xl: 56 }
+// --- 尺寸映射（飞书规范 §4.1；2xl 是 hero/profile-card 尺寸） ---
+const SIZE_PX: Record<AvatarSize, number> = { xs: 20, sm: 24, md: 32, lg: 40, xl: 56, '2xl': 64 }
 
 const SIZE_CLASSES: Record<AvatarSize, string> = {
   xs: 'h-5 w-5 text-[8px]',
@@ -55,6 +55,7 @@ const SIZE_CLASSES: Record<AvatarSize, string> = {
   md: 'h-8 w-8 text-xs',
   lg: 'h-10 w-10 text-sm',
   xl: 'h-14 w-14 text-base',
+  '2xl': 'h-16 w-16 text-lg',
 }
 
 // --- 形状（飞书风：默认方形 6px 圆角，与 Button/Input 同步） ---
@@ -131,6 +132,7 @@ const presenceDotSize = computed(() => {
     case 'md': return 'w-2.5 h-2.5 ring-2'
     case 'lg': return 'w-3 h-3 ring-2'
     case 'xl': return 'w-3.5 h-3.5 ring-[3px]'
+    case '2xl': return 'w-4 h-4 ring-[3px]'
     default: return 'w-2.5 h-2.5 ring-2'
   }
 })

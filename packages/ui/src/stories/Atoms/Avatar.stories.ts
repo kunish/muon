@@ -6,7 +6,7 @@ const meta: Meta<typeof Avatar> = {
   component: Avatar,
   tags: ['autodocs'],
   argTypes: {
-    size: { control: 'select', options: ['xs', 'sm', 'md', 'lg', 'xl'] },
+    size: { control: 'select', options: ['xs', 'sm', 'md', 'lg', 'xl', '2xl'] },
     shape: { control: 'select', options: ['rounded', 'circle'] },
     presence: { control: 'select', options: [null, 'online', 'unavailable', 'busy', 'offline'] },
     clickable: { control: 'boolean' },
@@ -57,6 +57,10 @@ export const Sizes: Story = {
         <div class="flex flex-col items-center gap-1">
           <Avatar alt="Eli" color-id="eli" size="xl" />
           <span class="text-[10px] text-muted-foreground">xl · 56</span>
+        </div>
+        <div class="flex flex-col items-center gap-1">
+          <Avatar alt="Fae" color-id="fae" size="2xl" />
+          <span class="text-[10px] text-muted-foreground">2xl · 64</span>
         </div>
       </div>
     `,

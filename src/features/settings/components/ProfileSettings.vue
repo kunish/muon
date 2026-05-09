@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { getMyAvatarUrl, getMyDisplayName, getMyStatus, setMyAvatar, setMyDisplayName } from '@matrix/index'
+import { Avatar } from '@muon/ui/avatar'
 import { Input } from '@muon/ui/input'
 import { Label } from '@muon/ui/label'
 import { Camera, Check, Pencil, SmilePlus, X } from 'lucide-vue-next'
@@ -84,22 +85,23 @@ async function changeAvatar() {
 
     <!-- 头像 -->
     <div class="flex items-center gap-4">
-      <div class="relative group cursor-pointer" @click="changeAvatar">
-        <img
-          v-if="avatarUrl"
+      <button
+        type="button"
+        class="relative group rounded-md cursor-pointer"
+        @click="changeAvatar"
+      >
+        <Avatar
           :src="avatarUrl"
-          class="w-16 h-16 rounded-xl object-cover"
-        >
-        <div
-          v-else
-          class="w-16 h-16 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-xl font-semibold"
-        >
-          {{ displayName.slice(0, 1).toUpperCase() }}
-        </div>
-        <div class="absolute inset-0 rounded-xl bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+          :alt="displayName"
+          :color-id="displayName"
+          :fallback="displayName.slice(0, 1).toUpperCase()"
+          size="2xl"
+          shape="rounded"
+        />
+        <div class="absolute inset-0 rounded-md bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
           <Camera :size="20" class="text-white" />
         </div>
-      </div>
+      </button>
       <div>
         <p class="text-sm font-medium">
           {{ t('settings.avatar_hint') }}
