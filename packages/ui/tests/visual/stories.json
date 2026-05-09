@@ -70,6 +70,8 @@
   "components-dialog--confirm",
   "components-dialog--form-prompt",
   "components-dialog--minimal",
+  "components-tabs--default",
+  "components-tabs--two-tabs",
   "foundation-anchors--reference",
   "foundation-tokens--palette"
 ]
