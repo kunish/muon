@@ -42,7 +42,11 @@ async function main() {
     const res = await waitForUrl(URL)
     const data = (await res.json()) as IndexFile
     const ids = Object.values(data.entries)
-      .filter(e => e.type === 'story' && (e.id.startsWith('atoms-') || e.id.startsWith('foundation-')))
+      .filter(e => e.type === 'story' && (
+        e.id.startsWith('atoms-')
+        || e.id.startsWith('foundation-')
+        || e.id.startsWith('components-')
+      ))
       .map(e => e.id)
       .sort()
 

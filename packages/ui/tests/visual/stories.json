@@ -63,6 +63,10 @@
   "atoms-textarea--rows",
   "atoms-textarea--states",
   "atoms-textarea--variants",
+  "components-card--compact",
+  "components-card--default",
+  "components-card--with-action",
+  "components-card--with-footer",
   "foundation-anchors--reference",
   "foundation-tokens--palette"
 ]
