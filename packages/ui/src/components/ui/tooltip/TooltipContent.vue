@@ -19,7 +19,10 @@ const props = withDefaults(defineProps<Props>(), {
     <TooltipContent
       v-bind="{ ...props, class: undefined }"
       :class="cn(
-        'z-50 overflow-hidden rounded-md bg-popover px-3 py-1.5 text-sm text-popover-foreground shadow-lg animate-in fade-in-0 zoom-in-95',
+        // Feishu tooltip pattern: inverse-of-surface — dark callout on light pages,
+        // light callout on dark pages. bg-foreground/text-background auto-inverts
+        // because both tokens flip with the theme.
+        'z-50 overflow-hidden rounded-md bg-foreground px-3 py-1.5 text-sm text-background shadow-md animate-in fade-in-0 zoom-in-95',
         props.class,
       )"
     >

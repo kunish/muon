@@ -75,6 +75,8 @@
   "components-tabs--default",
   "components-tabs--two-tabs",
   "components-tabs--underline",
+  "components-tooltip--hint",
+  "components-tooltip--icon-button",
   "foundation-anchors--reference",
   "foundation-tokens--palette"
 ]
