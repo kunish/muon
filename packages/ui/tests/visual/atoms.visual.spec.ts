@@ -18,12 +18,16 @@ if (STORY_IDS.length === 0)
   throw new Error('tests/visual/stories.json is empty — run `pnpm refresh-stories`')
 
 for (const id of STORY_IDS) {
-  test(id, async ({ page }) => {
-    await page.goto(`/iframe.html?id=${id}&viewMode=story`)
+  test(id, async ({ page }, testInfo) => {
+    // Storybook's class-based dark mode is driven by the addon-themes toolbar
+    // (`withThemeByClassName`), not by the browser's `prefers-color-scheme`.
+    // Map the Playwright project to the Storybook theme global so the dark
+    // project actually renders dark — without this, both projects produced
+    // byte-identical (light-only) snapshots and dark mode regressions slipped.
+    const theme = testInfo.project.name.includes('dark') ? 'dark' : 'light'
+    await page.goto(`/iframe.html?id=${id}&viewMode=story&globals=theme:${theme}`)
     await page.waitForLoadState('domcontentloaded')
-    // Wait for fonts so glyph metrics stabilize before snapshotting.
     await page.evaluate(() => document.fonts.ready)
-    // Brief settle for transitions/layout.
     await page.waitForTimeout(300)
     await expect(page).toHaveScreenshot(`${id}.png`, { maxDiffPixelRatio: 0.001 })
   })
