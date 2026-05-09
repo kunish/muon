@@ -57,9 +57,9 @@ const SIZE_CLASSES: Record<AvatarSize, string> = {
   xl: 'h-14 w-14 text-base',
 }
 
-// --- 形状（飞书风：默认方形 4px 圆角） ---
+// --- 形状（飞书风：默认方形 6px 圆角，与 Button/Input 同步） ---
 const SHAPE_CLASSES: Record<AvatarShape, string> = {
-  rounded: 'rounded-sm',
+  rounded: 'rounded-md',
   circle: 'rounded-full',
 }
 
