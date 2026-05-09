@@ -21,9 +21,9 @@ async function handleCheck() {
 
 <template>
   <div class="space-y-6">
-    <h3 class="text-base font-medium">
+    <h2 class="text-lg font-semibold">
       {{ t('settings.about_title') }}
-    </h3>
+    </h2>
 
     <div class="space-y-3">
       <div class="flex items-center gap-3">

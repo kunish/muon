@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { getMyAvatarUrl, getMyDisplayName, getMyStatus, setMyAvatar, setMyDisplayName } from '@matrix/index'
+import { Input } from '@muon/ui/input'
 import { Label } from '@muon/ui/label'
 import { Camera, Check, Pencil, SmilePlus, X } from 'lucide-vue-next'
 import { ref } from 'vue'
@@ -122,12 +123,12 @@ async function changeAvatar() {
         </button>
       </div>
       <div v-else class="flex items-center gap-2">
-        <input
+        <Input
           v-model="nameInput"
-          class="flex-1 h-8 px-2 text-sm rounded border border-border bg-background outline-none focus:ring-1 focus:ring-primary"
+          class="flex-1"
           @keydown.enter="saveName"
           @keydown.escape="editingName = false"
-        >
+        />
         <button class="p-1 rounded hover:bg-accent text-primary" :disabled="saving" @click="saveName">
           <Check :size="14" />
         </button>

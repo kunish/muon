@@ -22,7 +22,7 @@ function toggleWatermark() {
   <div class="space-y-6">
     <div class="flex items-center gap-2 mb-4">
       <Shield :size="20" class="text-primary" />
-      <h2 class="text-lg font-medium">
+      <h2 class="text-lg font-semibold">
         {{ t('settings.security_title') }}
       </h2>
     </div>

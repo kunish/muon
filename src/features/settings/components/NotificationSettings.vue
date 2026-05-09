@@ -61,9 +61,9 @@ function setNotificationsEnabled(enabled: boolean): void {
 
 <template>
   <div class="space-y-6">
-    <h3 class="text-base font-medium">
+    <h2 class="text-lg font-semibold">
       {{ t('settings.notification_title') }}
-    </h3>
+    </h2>
 
     <Label class="flex items-center justify-between">
       <div>

@@ -15,9 +15,9 @@ const shortcuts = [
 
 <template>
   <div class="space-y-6">
-    <h3 class="text-base font-medium">
+    <h2 class="text-lg font-semibold">
       {{ t('settings.shortcuts_title') }}
-    </h3>
+    </h2>
 
     <div class="space-y-1">
       <div

@@ -73,7 +73,7 @@ watch(activeTab, (tab) => {
     >
       <div class="mb-6 flex h-11 items-center gap-2 px-3">
         <Settings :size="20" class="text-primary" />
-        <h1 class="text-[18px] font-semibold leading-6">
+        <h1 class="text-xl font-semibold leading-6">
           {{ t('settings.settings') }}
         </h1>
       </div>
