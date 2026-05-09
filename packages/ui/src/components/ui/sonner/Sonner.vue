@@ -2,6 +2,10 @@
 import type { ToasterProps } from 'vue-sonner'
 import { CircleCheckIcon, InfoIcon, Loader2Icon, OctagonXIcon, TriangleAlertIcon, XIcon } from 'lucide-vue-next'
 import { Toaster as Sonner } from 'vue-sonner'
+// vue-sonner ships its layout/animation CSS via a side-effect import — without
+// it, toasts render as unstyled stacked text. Co-located here so any consumer
+// of <Toaster> automatically gets the styling.
+import 'vue-sonner/style.css'
 import { cn } from '../../../utils'
 
 const props = defineProps<ToasterProps>()

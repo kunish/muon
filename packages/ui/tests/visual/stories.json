@@ -84,6 +84,8 @@
   "components-sheet--settings-panel",
   "components-skeleton--card",
   "components-skeleton--list-item",
+  "components-sonner--error",
+  "components-sonner--success",
   "components-tabs--default",
   "components-tabs--two-tabs",
   "components-tabs--underline",
