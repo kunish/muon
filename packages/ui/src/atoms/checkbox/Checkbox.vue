@@ -39,7 +39,7 @@ function onUpdate(value: boolean | 'indeterminate') {
   <CheckboxRoot
     v-bind="rootProps"
     :class="cn(
-      'inline-flex shrink-0 items-center justify-center rounded-xs border border-gray-300 bg-card transition-colors',
+      'inline-flex shrink-0 items-center justify-center rounded-sm border border-gray-300 bg-card transition-colors',
       'data-[state=checked]:bg-primary data-[state=checked]:border-primary',
       'data-[state=indeterminate]:bg-primary data-[state=indeterminate]:border-primary',
       'disabled:cursor-not-allowed disabled:bg-gray-100 disabled:border-gray-200',
