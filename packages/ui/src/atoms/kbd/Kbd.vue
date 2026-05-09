@@ -37,7 +37,7 @@ const sizeClass = computed(() => props.size === 'sm' ? 'h-5 px-1 text-[10px]' : 
       v-for="(k, i) in keys"
       :key="i"
       :class="cn(
-        'inline-flex items-center justify-center rounded-sm border border-gray-300 bg-gray-100 font-mono text-gray-700',
+        'inline-flex items-center justify-center rounded-sm border border-border bg-muted font-mono text-foreground',
         sizeClass,
         props.class,
       )"
