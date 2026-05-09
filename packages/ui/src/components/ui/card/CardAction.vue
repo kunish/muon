@@ -8,6 +8,7 @@ const props = defineProps<{
 
 <template>
   <div
+    data-slot="card-action"
     :class="cn('text-muted-foreground flex items-center self-start', props.class)"
   >
     <slot />
