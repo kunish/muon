@@ -21,7 +21,12 @@ describe('desktop settings bridge', () => {
 
     expect(preload).toContain('setAutoLaunch: (enabled: boolean) => ipcRenderer.invoke(\'muon:app:set-auto-launch\', enabled)')
     expect(preload).toContain('setCloseToTray: (enabled: boolean) => ipcRenderer.invoke(\'muon:app:set-close-to-tray\', enabled)')
+    expect(preload).toContain('runtime: \'electron\'')
 
+    expect(bridge).toContain('export type DesktopRuntime = \'electron\' | \'electrobun\'')
+    expect(bridge).toContain('runtime: DesktopRuntime')
+    expect(bridge).toContain('export function getDesktopRuntime(): DesktopRuntime | undefined')
+    expect(bridge).toContain('export function isElectrobunRuntime(): boolean')
     expect(bridge).toContain('setAutoLaunch: (enabled: boolean) => Promise<void>')
     expect(bridge).toContain('setCloseToTray: (enabled: boolean) => Promise<void>')
   })

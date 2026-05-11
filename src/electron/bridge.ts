@@ -46,8 +46,11 @@ export interface SerializedFetchResponse {
   url: string
 }
 
+export type DesktopRuntime = 'electron' | 'electrobun'
+
 export interface MuonDesktopBridge {
   isElectron: true
+  runtime: DesktopRuntime
   platform?: string
   app: {
     setAutoLaunch: (enabled: boolean) => Promise<void>
@@ -100,6 +103,14 @@ export function getDesktopBridge(): MuonDesktopBridge | undefined {
   return window.muonDesktop
 }
 
+export function getDesktopRuntime(): DesktopRuntime | undefined {
+  return getDesktopBridge()?.runtime
+}
+
 export function isElectronRuntime(): boolean {
   return getDesktopBridge()?.isElectron === true
+}
+
+export function isElectrobunRuntime(): boolean {
+  return getDesktopRuntime() === 'electrobun'
 }

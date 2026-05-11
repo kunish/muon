@@ -26,6 +26,7 @@ contextBridge.exposeInMainWorld('muonDesktop', {
     writeFile: (filePath: string, bytes: Uint8Array | ArrayBuffer) => ipcRenderer.invoke('muon:fs:write-file', filePath, bytes),
   },
   isElectron: true,
+  runtime: 'electron',
   // eslint-disable-next-line node/prefer-global/process -- Electron sandbox preloads may not expose process at all.
   platform: globalThis.process?.platform,
   safeStorage: {

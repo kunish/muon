@@ -82,4 +82,12 @@ describe('native window frame configuration', () => {
     expect(source).toContain('mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL)')
     expect(source).not.toContain('openDevTools')
   })
+
+  it('marks the custom title bar drag region for both Electron and Electrobun', () => {
+    const source = readSource('src/app/components/window/WindowTitleBar.vue')
+
+    expect(source).toContain('data-electron-drag-region')
+    expect(source).toContain('electrobun-webkit-app-region-drag')
+    expect(source).toContain('-webkit-app-region: drag')
+  })
 })

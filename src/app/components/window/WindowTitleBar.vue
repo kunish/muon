@@ -23,7 +23,7 @@ function isMacPlatform(platform: string | undefined): boolean {
     data-testid="window-titlebar"
   >
     <div
-      class="window-titlebar__drag-region"
+      class="window-titlebar__drag-region electrobun-webkit-app-region-drag"
       data-electron-drag-region
       data-testid="window-titlebar-drag-region"
     >
