@@ -33,16 +33,17 @@
 ```
 F0-design-system (umbrella, 本文档)
 │
-├─ Spec 1 — Foundation & Atoms          ← 本文档 detail 这一份
+├─ Spec 1 — Foundation & Atoms          ✅ 落地 (本文档)
 │   Tokens (color/typography/spacing/shadow/radius/density/motion)
 │   Atom: button, input, textarea, badge, avatar, icon,
 │         separator, kbd, spinner, switch, checkbox, radio
 │   Storybook 脚手架 + 视觉回归基线 + 锚点视图协议
 │
-├─ Spec 2 — Molecules                    (后续 brainstorm)
+├─ Spec 2 — Molecules                    ✅ 落地 (2026-05-12)
 │   form-field, menu-item, list-item, tooltip, popover, tabs,
 │   breadcrumb, search-box, dropdown, segmented-control,
 │   color-swatch, file-chip
+│   详见 2026-05-12-feishu-design-system-molecules-design.md
 │
 ├─ Spec 3 — Organisms                    (后续 brainstorm)
 │   dialog, drawer, command-palette, empty-state, toast-center,
