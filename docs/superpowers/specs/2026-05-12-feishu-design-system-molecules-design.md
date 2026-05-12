@@ -129,7 +129,7 @@ packages/ui/src/
 - Leading slot：avatar (md 用 sm 24、lg 用 md 32)、或 16 icon
 - Body：两行栈 — title 13px gray-900 单行 truncate；meta 12px gray-500 单行 truncate
 - Trailing slot：badge / unread count / chevron / 任意 atom
-- Hover `bg-gray-50`、Selected `bg-gray-100` + 左侧 4px 色条 `bg-brand-500`
+- Hover `bg-gray-100`、Selected `bg-gray-100` + 左侧 4px 色条 `bg-brand-500`（hover 与 selected 共享底色，由 4px rail 区分）
 - 整行不能反白成 brand-500（飞书风约束）
 
 **Variants**: `size: sm/md/lg`
@@ -315,14 +315,14 @@ packages/ui/src/
 接续 Spec 1 §7 的 30 条：
 
 ```
-[ ] form-field: label-control 间距 6px，required * 与 label 间 2px
-[ ] form-field: error 出现时 helper 必须消失，不允许同时
-[ ] list-item: selected 用 4px 左色条 + bg-gray-100，不允许整行 brand-500 反白
-[ ] menu-item: 行高 32 与 list-item-sm 一致，但 hover 色 gray-50（区别 list-item gray-100）
-[ ] breadcrumb: 当前项不可点击，省略段用 "…" 单字符不用 "..."
-[ ] search-box: clear 仅在 input 有值时出现，不允许常驻
-[ ] segmented-control: active 态必有 shadow-xs，与 Tabs underline 视觉区分
-[ ] file-chip: 文件 icon 颜色按扩展名映射，固定 8 类 (doc/sheet/pdf/img/video/audio/zip/other)
+[x] form-field: label-control 间距 6px，required * 与 label 间 2px
+[x] form-field: error 出现时 helper 必须消失，不允许同时
+[x] list-item: selected 用 4px 左色条 + bg-gray-100，不允许整行 brand-500 反白
+[x] menu-item: 行高 32 与 list-item-sm 一致，但 hover 色 gray-50（区别 list-item gray-100）
+[x] breadcrumb: 当前项不可点击，省略段用 "…" 单字符不用 "..."
+[x] search-box: clear 仅在 input 有值时出现，不允许常驻
+[x] segmented-control: active 态必有 shadow-xs，与 Tabs underline 视觉区分
+[x] file-chip: 文件 icon 颜色按扩展名映射，固定 8 类 (doc/sheet/pdf/img/video/audio/zip/other)
 ```
 
 ### 3.6 G6 — 主 app 烟雾（重点页面）
