@@ -46,6 +46,7 @@ async function main() {
         e.id.startsWith('atoms-')
         || e.id.startsWith('foundation-')
         || e.id.startsWith('components-')
+        || e.id.startsWith('molecules-')
       ))
       .map(e => e.id)
       .sort()
