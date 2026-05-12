@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/vue3'
-import { Avatar, AvatarFallback } from '../../components/ui/avatar'
+import { Avatar } from '../../components/ui/avatar'
 import { Badge } from '../../components/ui/badge'
 import { ListItem } from '../../molecules/list-item'
 
@@ -23,14 +23,14 @@ export const Default: Story = {
 
 export const Variants: Story = {
   render: () => ({
-    components: { ListItem, Avatar, AvatarFallback, Badge },
+    components: { ListItem, Avatar, Badge },
     template: `
       <div class="w-80 flex flex-col">
         <ListItem title="No leading">
           <template #trailing><Badge variant="secondary">3</Badge></template>
         </ListItem>
         <ListItem title="With avatar" description="last message">
-          <template #leading><Avatar size="sm"><AvatarFallback>D</AvatarFallback></Avatar></template>
+          <template #leading><Avatar size="sm" fallback="D" color-id="daisy" /></template>
         </ListItem>
         <ListItem title="With trailing only">
           <template #trailing><Badge>!</Badge></template>
@@ -86,18 +86,18 @@ export const Density: Story = {
 
 export const Composed: Story = {
   render: () => ({
-    components: { ListItem, Avatar, AvatarFallback, Badge },
+    components: { ListItem, Avatar, Badge },
     template: `
       <div class="w-80 rounded-lg border border-border bg-card py-2">
         <ListItem title="Daisy Chen" description="Yes, the report is ready" selected>
-          <template #leading><Avatar size="sm"><AvatarFallback>D</AvatarFallback></Avatar></template>
+          <template #leading><Avatar size="sm" fallback="D" color-id="daisy" /></template>
           <template #trailing><Badge variant="secondary">2</Badge></template>
         </ListItem>
         <ListItem title="Eng team" description="Standup notes posted">
-          <template #leading><Avatar size="sm"><AvatarFallback>E</AvatarFallback></Avatar></template>
+          <template #leading><Avatar size="sm" fallback="E" color-id="eng" /></template>
         </ListItem>
         <ListItem title="Marcus Lee" description="Lunch?">
-          <template #leading><Avatar size="sm"><AvatarFallback>M</AvatarFallback></Avatar></template>
+          <template #leading><Avatar size="sm" fallback="M" color-id="marcus" /></template>
         </ListItem>
       </div>
     `,
