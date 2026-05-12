@@ -948,22 +948,9 @@ onUnmounted(() => {
     />
 
     <!-- 主输入容器 -->
-    <div v-if="!editorExpanded" data-testid="compact-composer" class="flex items-center gap-0 rounded-lg bg-input" @input="onInput">
-      <!-- 左侧: + 附件按钮 -->
-      <div class="flex h-10 items-center shrink-0 pl-1">
-        <AttachmentMenu
-          @image="uploadImage"
-          @video="uploadVideo"
-          @file="uploadFile"
-          @sticker="toggleStickerPicker"
-          @location="toggleLocationPicker"
-          @gif="toggleGifPicker"
-          @contact-card="toggleContactCardPicker"
-        />
-      </div>
-
-      <!-- 中间: 编辑区 (flex-1) -->
-      <div class="flex-1 min-w-0">
+    <div v-if="!editorExpanded" data-testid="compact-composer" class="flex flex-col rounded-lg bg-input" @input="onInput">
+      <!-- 顶部：编辑区（含可选格式栏） -->
+      <div class="min-w-0">
         <!-- 可折叠格式工具栏 — 聚焦 / 点击 Aa 时显示在输入区上方 -->
         <Transition
           enter-active-class="overflow-hidden transition-all duration-200 ease-out"
@@ -989,53 +976,66 @@ onUnmounted(() => {
         />
       </div>
 
-      <!-- 右侧: GIF / Sticker / Emoji — 简洁布局 -->
-      <div ref="expressionTriggerRef" class="flex h-10 items-center shrink-0 gap-0 pr-1">
-        <!-- @ 提及 -->
-        <button
-          class="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent"
-          :title="t('chat.mention_btn')"
-          @click="insertMention"
-        >
-          <AtSign :size="16" />
-        </button>
-        <!-- Aa 格式切换 — 仅当有内容或格式栏已展开时显示 -->
-        <button
-          v-if="showFormatBar || editor?.getText().trim()"
-          class="inline-flex h-8 w-8 items-center justify-center rounded-md transition-colors"
-          :class="
-            showFormatBar
-              ? 'bg-primary/10 text-primary'
-              : 'text-muted-foreground hover:bg-accent'
-          "
-          :title="t('chat.format_menu')"
-          @click="toggleFormatBar"
-        >
-          <ALargeSmall :size="16" />
-        </button>
-        <!-- GIF / Sticker / Emoji 整合入口 -->
-        <button
-          class="inline-flex h-8 items-center justify-center gap-1 rounded-md px-2 text-muted-foreground transition-colors hover:bg-accent"
-          :title="`${t('chat.gif')} / ${t('chat.sticker_btn')} / Emoji`"
-          @click="onExpressionButtonClick"
-        >
-          <Smile :size="16" />
-          <span class="text-[11px] font-semibold leading-none">GIF</span>
-        </button>
-        <!-- 展开/收起编辑器 -->
-        <button
-          class="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent"
-          :title="
-            editorExpanded
-              ? t('chat.collapse_editor')
-              : t('chat.expand_editor')
-          "
-          @click="editorExpanded = !editorExpanded"
-        >
-          <Minimize2 v-if="editorExpanded" :size="16" />
-          <Maximize2 v-else :size="16" />
-        </button>
-        <VoiceRecorder @send="handleVoiceSend" />
+      <!-- 底部：action row（+ 在左，@ Aa GIF 展开 麦克风 在右） -->
+      <div class="flex h-10 shrink-0 items-center justify-between px-1">
+        <div class="flex items-center shrink-0">
+          <AttachmentMenu
+            @image="uploadImage"
+            @video="uploadVideo"
+            @file="uploadFile"
+            @sticker="toggleStickerPicker"
+            @location="toggleLocationPicker"
+            @gif="toggleGifPicker"
+            @contact-card="toggleContactCardPicker"
+          />
+        </div>
+        <div ref="expressionTriggerRef" class="flex items-center shrink-0 gap-0">
+          <!-- @ 提及 -->
+          <button
+            class="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent"
+            :title="t('chat.mention_btn')"
+            @click="insertMention"
+          >
+            <AtSign :size="16" />
+          </button>
+          <!-- Aa 格式切换 — 仅当有内容或格式栏已展开时显示 -->
+          <button
+            v-if="showFormatBar || editor?.getText().trim()"
+            class="inline-flex h-8 w-8 items-center justify-center rounded-md transition-colors"
+            :class="
+              showFormatBar
+                ? 'bg-primary/10 text-primary'
+                : 'text-muted-foreground hover:bg-accent'
+            "
+            :title="t('chat.format_menu')"
+            @click="toggleFormatBar"
+          >
+            <ALargeSmall :size="16" />
+          </button>
+          <!-- GIF / Sticker / Emoji 整合入口 -->
+          <button
+            class="inline-flex h-8 items-center justify-center gap-1 rounded-md px-2 text-muted-foreground transition-colors hover:bg-accent"
+            :title="`${t('chat.gif')} / ${t('chat.sticker_btn')} / Emoji`"
+            @click="onExpressionButtonClick"
+          >
+            <Smile :size="16" />
+            <span class="text-[11px] font-semibold leading-none">GIF</span>
+          </button>
+          <!-- 展开/收起编辑器 -->
+          <button
+            class="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent"
+            :title="
+              editorExpanded
+                ? t('chat.collapse_editor')
+                : t('chat.expand_editor')
+            "
+            @click="editorExpanded = !editorExpanded"
+          >
+            <Minimize2 v-if="editorExpanded" :size="16" />
+            <Maximize2 v-else :size="16" />
+          </button>
+          <VoiceRecorder @send="handleVoiceSend" />
+        </div>
       </div>
     </div>
 
