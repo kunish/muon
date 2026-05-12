@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Avatar } from '@muon/ui/avatar'
-import { Search } from 'lucide-vue-next'
+import { SearchBox } from '@muon/ui/search-box'
 import { useI18n } from 'vue-i18n'
 import { useContactStore } from '../stores/contactStore'
 import ContactItem from './ContactItem.vue'
@@ -27,23 +27,11 @@ function handleSelectContact(userId: string): void {
 <template>
   <div class="flex h-full min-h-0 flex-col">
     <div class="shrink-0 p-3">
-      <label
+      <SearchBox
+        v-model="store.searchQuery"
         data-testid="contacts-search-control"
-        class="flex h-8 items-center gap-2 rounded-md border border-transparent bg-input px-3 text-muted-foreground focus-within:border-primary"
-      >
-        <Search
-          :size="16"
-          data-testid="contacts-search-icon"
-          class="size-4 shrink-0 text-muted-foreground"
-        />
-        <input
-          v-model="store.searchQuery"
-          data-testid="contacts-search-input"
-          type="text"
-          :placeholder="t('contacts.search')"
-          class="h-full min-w-0 flex-1 bg-transparent text-[13px] leading-5 text-foreground outline-none placeholder:text-muted-foreground"
-        >
-      </label>
+        :placeholder="t('contacts.search')"
+      />
     </div>
     <div
       data-testid="contacts-list-scroll-container"
