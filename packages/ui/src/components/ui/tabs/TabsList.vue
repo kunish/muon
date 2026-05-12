@@ -25,7 +25,7 @@ const forwardedProps = useForwardProps(() => {
     :class="cn(
       props.variant === 'underline'
         ? 'inline-flex w-fit items-center justify-start gap-4 border-b border-border'
-        : 'bg-muted text-muted-foreground inline-flex h-9 w-fit items-center justify-center rounded-lg p-[3px]',
+        : 'bg-muted text-muted-foreground inline-flex h-8 w-fit items-center justify-center rounded-lg p-[3px]',
       props.class,
     )"
   >
