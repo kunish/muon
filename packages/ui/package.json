@@ -23,6 +23,7 @@
     "./progress": "./src/components/ui/progress/index.ts",
     "./radio": "./src/atoms/radio/index.ts",
     "./scroll-area": "./src/components/ui/scroll-area/index.ts",
+    "./search-box": "./src/molecules/search-box/index.ts",
     "./select": "./src/components/ui/select/index.ts",
     "./separator": "./src/components/ui/separator/index.ts",
     "./spinner": "./src/atoms/spinner/index.ts",
