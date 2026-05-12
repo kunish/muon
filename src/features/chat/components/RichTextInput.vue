@@ -123,9 +123,9 @@ const editorHeightClass = computed(() => {
     return 'overflow-y-auto min-h-[320px] max-h-[60vh] [&_.tiptap]:min-h-[304px]'
 
   if (hasPendingPasteAttachments.value)
-    return 'overflow-y-auto min-h-[80px] max-h-[180px] [&_.tiptap]:min-h-[64px] [&_.tiptap]:overflow-visible [&_.tiptap]:whitespace-normal'
+    return 'overflow-y-auto min-h-[80px] max-h-[40vh] [&_.tiptap]:min-h-[64px]'
 
-  return 'overflow-hidden min-h-[40px] max-h-[40px] [&_.tiptap]:min-h-[24px] [&_.tiptap]:overflow-hidden [&_.tiptap]:whitespace-nowrap [&_.tiptap_p]:truncate'
+  return 'overflow-y-auto min-h-[40px] max-h-[40vh] [&_.tiptap]:min-h-[24px]'
 })
 
 const { editor, clear, insertEmoji, insertPendingMediaAttachment } = useRichTextEditor({

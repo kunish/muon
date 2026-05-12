@@ -104,13 +104,14 @@ describe('rich text input editor expansion', () => {
     })
 
     const editor = wrapper.get('[data-testid="rich-editor"]')
-    expect(editor.classes()).toContain('overflow-hidden')
+    expect(editor.classes()).toContain('overflow-y-auto')
     expect(editor.classes()).toContain('min-h-[40px]')
-    expect(editor.classes()).toContain('max-h-[40px]')
+    expect(editor.classes()).toContain('max-h-[40vh]')
     expect(editor.classes()).toContain('[&_.tiptap]:min-h-[24px]')
-    expect(editor.classes()).toContain('[&_.tiptap]:whitespace-nowrap')
-    expect(editor.classes()).toContain('[&_.tiptap_p]:truncate')
-    expect(editor.classes()).not.toContain('overflow-y-auto')
+    expect(editor.classes()).not.toContain('overflow-hidden')
+    expect(editor.classes()).not.toContain('max-h-[40px]')
+    expect(editor.classes()).not.toContain('[&_.tiptap]:whitespace-nowrap')
+    expect(editor.classes()).not.toContain('[&_.tiptap_p]:truncate')
 
     await wrapper.get('button[title="展开编辑器"]').trigger('click')
 
