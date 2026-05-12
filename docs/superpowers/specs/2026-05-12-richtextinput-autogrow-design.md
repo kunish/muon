@@ -101,6 +101,31 @@ const editorHeightClass = computed(() => {
 
 **为什么不监听 RichTextInput 的高度变化反向通知 MessageList**：跨组件 ref 耦合代价大；ResizeObserver 在容器上观察自身是同一现象的更本地化检测，且 `onChildResize` 已对 `pendingRestore` / `isPaginating` / `userInteracting` 做了完整闸门，不会产生额外回归风险。
 
+### 2.6 Compact composer 重排为 flex-col（追加于 G7/G8 手测发现）
+
+§2.1 - §2.5 落地后，G2/G3 暴露了**第三个**未在原 spec 范围内的视觉缺陷：
+
+**现象**：compact-composer 当前是 `flex items-center gap-0 rounded-lg bg-input` 三列布局——左 `+`（h-10）/ 中 editor (`flex-1`, 可达 `max-h-[40vh]` ≈ 444px) / 右工具栏 (h-10)。当 editor 撑到 444px 时，左右两列仍是 40px 的按钮、但 `items-center` 把它们落在垂直中线，于是按钮上下各空出 ~200px 的 `bg-input` 灰底——视觉上像"容器多出一块空白区"。
+
+**为什么 `items-end` 不能修**：等效于把空白从下面挪到上面，总空白量不变。
+
+**修法**：把 compact-composer 从三列水平布局改为两行垂直布局——
+
+- **顶部**：editor 区（含原有可折叠格式栏 Transition + EditorContent）。仍使用 §2.3 的 `editorHeightClass`（紧凑/粘贴附件/展开三档不变）。
+- **底部**：统一的 action row（`h-10 shrink-0` + `items-center justify-between`），左侧放 `AttachmentMenu`（即原 `+` 按钮）、右侧保留原右栏所有按钮（`@` / `Aa` / `GIF` / 展开 / 麦克风）。`expressionTriggerRef` 仍挂在右侧按钮组上。
+- **容器**：仍是 `rounded-lg bg-input`，但 `flex-col`，不再 `items-center`。
+
+**对其它部分的影响**：
+- `editorHeightClass` 不变（§2.3 三档保持）。
+- `editor.on('update')` 滚动同步（§2.5.1）不变。
+- MessageList 容器自观察（§2.5.2）不变。
+- 帖子模式（expanded-composer）不变。
+- `data-testid="compact-composer"` 保留在新外层 div 上，子项 `data-testid` 不变。
+
+**对 G1 的影响（重要）**：原 G1「空状态下输入框视觉与改前一致（40px 单行紧凑）」**不再成立**——新布局空状态 ≈ 80px（editor 40px + action row 40px）。这是已接受的取舍（视觉债换布局清洁）。G1 在 §4 中相应修订。
+
+**为什么不分情况切换 row/col**：基于 editor 行数动态切换布局会在多行/单行边界出现跳变 + transition 重启，对用户感知差。统一 flex-col 是更稳的状态机。
+
 ## §3 影响面
 
 ### 3.1 测试
@@ -126,7 +151,7 @@ const editorHeightClass = computed(() => {
 
 | G# | 验收项 | 验证方式 |
 |---|---|---|
-| G1 | 空状态下输入框视觉与改前一致（40px 单行紧凑） | 手测 + 视觉快照 |
+| G1 | ~~空状态下输入框视觉与改前一致（40px 单行紧凑）~~ → 空状态下 compact-composer 约 80px：editor 行（约 40px）+ action row（h-10，含 `+` / `@` / `Aa` / `GIF` / 展开 / 麦克风），两者共享一个 `rounded-lg bg-input` 容器，无侧栏异空 | 手测 |
 | G2 | 输入第 2 行起，外框跟随内容长高，且过渡有动画 | 手测 |
 | G3 | 内容超过 `40vh` 后，外框停止长高，内部出现滚动条 | 手测 |
 | G4 | 粘贴附件后，框 ≥ 80px；附件 + 多行文字时，可长高至 40vh | 手测 |
