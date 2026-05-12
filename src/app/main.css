@@ -1,7 +1,7 @@
 @import '@muon/ui/styles.css';
 
 @layer base {
-  :where(button, [role='button'], a, input, textarea, select, [tabindex]:not([tabindex='-1'])):focus-visible {
+  :where(button, [role='button'], a, input, textarea, select, [tabindex]:not([tabindex='-1'])):not([contenteditable]):focus-visible {
     @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
   }
 
