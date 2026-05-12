@@ -401,3 +401,54 @@ F0-design-system
 ```
 
 Spec 2 完成后，进入 Spec 3 organism 阶段，把 `workspace-*` 类迁回 organism 层并加上 `dialog/drawer/command-palette/empty-state/toast-center/data-table/tree/page-header/side-panel/top-bar/context-menu` 等组件。
+
+## 附录 B — Spec 2 收尾事项（2026-05-12 会话末快照）
+
+本 spec 主体在 2026-05-12 单会话内落地 21 个 commit（含设计/plan/实施/迁移/视觉基线）。剩余条目按"待用户决"与"工程余尾"分类：
+
+### B.1 验收门 G3 / G6（待用户介入）
+
+- **G3 — anchor 截图**：用户从飞书桌面端交付 2 张 PNG 入库 `packages/ui/.storybook/anchors/`
+  - `06-context-menu.png` (任意右键菜单)
+  - `07-message-attachment.png` (IM 含附件消息)
+- **G6 — 主 app 烟雾**：手动过 Settings/Approval/Messages/Docs 4 个高密度页，记录功能性破损（视觉等比变化不计为回归）
+
+### B.2 消费侧迁移 backlog（需设计判断）
+
+已迁：`ContactList.vue`（commit 3423569）使用默认 SearchBox。
+
+**视觉调子相同（可直接迁移，与 ContactList 风格一致）**：
+- `src/features/chat/components/ConversationList.vue:129`
+- `src/features/email/components/EmailPage.vue:265`
+- `src/features/contacts/components/GroupMemberPicker.vue:250`
+- `src/features/server/components/MemberManager.vue:196`
+- `src/features/server/components/MemberPanel.vue:207`
+
+**视觉调子"低调"（`h-[30px] bg-accent/40`，需先扩 SearchBox `variant: subtle` 才能迁）**：
+- `src/features/chat/components/ChatFileList.vue:133`
+- `src/features/chat/components/ChatDocsList.vue:151`
+- `src/features/chat/components/MemberListPanel.vue:119`
+- `src/features/chat/components/EmojiPicker.vue:153`
+- `src/features/chat/components/GifPicker.vue:81`
+- `src/features/chat/components/ContactCardPicker.vue:46`
+- `src/features/chat/components/ForwardDialog.vue:85`
+- `src/features/chat/components/NewChatDialog.vue:227`
+- `src/features/chat/components/GlobalSearch.vue:329`
+
+### B.3 spec §6.2 已决与未决
+
+| 项 | 状态 |
+| --- | --- |
+| 1 anchor 截图 | 仍未决（B.1） |
+| 2 inline-style ESLint | 仍延后到 Spec 3 |
+| 3 file-chip 8 类扩展名色 | ✅ 已定：doc=brand / sheet=green / pdf=red / img=orange / video=brand-400 / audio=cyan / zip/other=gray (commit a3997a7) |
+| 4 form-field provide/inject 与 atom 契约 | ✅ 已落（consumer 手动传 `:id="fieldId"`，未改 atom，commit c7c596a） |
+| 5 menu-item 注入 DropdownMenu | ✅ 已落（fallback 路线：DropdownMenuItem 样式 1:1 对齐而非组件注入，commit 5b8eb13） |
+
+### B.4 触发 Spec 3 brainstorm 的入参（让下次会话起步快）
+
+- Spec 3 组件清单（umbrella 已定）：dialog、drawer、command-palette、empty-state、toast-center、data-table、tree、page-header、side-panel、top-bar、context-menu
+- 含 `workspace-*` 共享 CSS 从 `src/app/main.css` 迁回 organism 层（Spec 1 §2.5 / Spec 2 §1.4 已约定）
+- 已存在 shadcn 实现：dialog / context-menu / sheet (≈drawer)。原位升级策略沿用 Spec 2 §1.4
+- 新建：command-palette / empty-state / toast-center / data-table / tree / page-header / side-panel / top-bar
+- Token 冻结契约继续生效（Spec 1）；如 Spec 3 需新增"语义别名"（如 `--color-toast-bg`），照 Spec 2 §3.1 模式做
