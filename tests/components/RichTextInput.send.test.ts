@@ -77,7 +77,10 @@ vi.mock('@muon/rich-text/editor', () => ({
         commands: {
           setContent: mocks.setContent,
           focus: vi.fn(),
+          scrollIntoView: vi.fn(),
         },
+        on: vi.fn(),
+        off: vi.fn(),
       }),
       clear: mocks.clear,
       insertEmoji: vi.fn(),

@@ -29,7 +29,7 @@ import {
   SendHorizontal,
   Smile,
 } from 'lucide-vue-next'
-import { computed, nextTick, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
@@ -144,6 +144,22 @@ const { editor, clear, insertEmoji, insertPendingMediaAttachment } = useRichText
   onMentionState: (state: MentionPopupState) => {
     mentionState.value = state
   },
+})
+
+const stopEditorScrollSync = watch(editor, (instance, _prev, onCleanup) => {
+  if (!instance)
+    return
+  const handler = () => {
+    instance.commands.scrollIntoView()
+  }
+  instance.on('update', handler)
+  onCleanup(() => {
+    instance.off('update', handler)
+  })
+}, { immediate: true })
+
+onBeforeUnmount(() => {
+  stopEditorScrollSync()
 })
 
 // 草稿缓存：roomId → HTML content

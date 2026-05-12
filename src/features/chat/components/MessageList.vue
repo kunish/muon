@@ -664,6 +664,7 @@ function setupResizeObserver() {
   for (const child of el.children) {
     resizeObs.observe(child)
   }
+  resizeObs.observe(el)
 
   mutationObs = new MutationObserver((mutations) => {
     for (const m of mutations) {
