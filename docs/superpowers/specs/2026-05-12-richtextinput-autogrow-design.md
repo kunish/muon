@@ -77,6 +77,30 @@ const editorHeightClass = computed(() => {
 - 占位符样式、`is-editor-empty` 占位符、提及、列表样式等 `[&_.tiptap_*]` 修饰类，全部保留。
 - `editorExpanded` ref、展开按钮、`submitOnEnter` 等逻辑不变。
 
+### 2.5 滚动同步（追加于 G1–G4 手测发现）
+
+落地紧凑档 auto-grow 后，G2/G3 暴露出两个"应该跟随滚动但没有"的隐性依赖：
+
+**2.5.1 编辑器内部：光标跟随滚动**
+
+当紧凑档内容超过 `max-h-[40vh]`、wrapper 切换到内部滚动后，连续 `Shift+Enter` 换行或长段文字会让 ProseMirror 的光标位置进入 wrapper viewport 下方不可见区。PM 默认会对 transaction 加 `scrollIntoView()` 标志，但在我们这种 wrapper 与 `view.dom` 隔一层、且光标位于新插入的最后一行时，浏览器实际滚动行为不够稳定。
+
+**修法**：在 `src/features/chat/components/RichTextInput.vue` 中，对从 `useRichTextEditor` 拿到的 `editor` ShallowRef 加 `update` 订阅，每次 doc 变更后调用 `editor.commands.scrollIntoView()` 强制将光标位置滚入可视区。该 command 派发一个 no-op transaction（doc/selection 不变，只置 scrollIntoView flag），不会重新触发 `update` 事件、不会和 `useRichTextEditor` 内部的其他事务冲突。
+
+订阅必须在 `editor` 被解析为非 undefined 后挂上，并在组件卸载时 `editor.off('update', ...)` 清理（Tiptap 的 `useEditor` 会在卸载时整体销毁 editor，事件订阅天然失效；显式清理更稳）。
+
+**为什么不放进 `@muon/rich-text` package**：该 package 是跨场景共享的（聊天、`DocEditor` 等），是否需要 caret-into-view 取决于宿主 wrapper 是否有自己的滚动容器——这是 RichTextInput 的特有需求，应在调用方装配。
+
+**2.5.2 消息列表：长高时保持底部锚定**
+
+`ChatWindow.vue:48-59` 布局为 `<div class="flex flex-col h-full"> { MessageList(flex-1 overflow-auto) + TypingIndicator + RichTextInput } </div>`。当 RichTextInput 长高（40px → 432px），作为 flex 兄弟的 MessageList `clientHeight` 被 flex 挤短；若用户原本停在底部（`isAtBottom === true`），新的 viewport 顶部不变、底部上移，结果"最后一条消息被输入框压出可视区"。
+
+`MessageList.vue:629-678` 已有完整的"粘底"机制：`onChildResize()` 内的 `if (isAtBottom.value) alignToBottom()` 是现成入口。问题在于 `setupResizeObserver()` 只对**容器子元素**（消息气泡）`observe`，没有 observe 容器自身——所以"容器被 flex 兄弟挤短"这件事不触发 callback。
+
+**修法**：在 `MessageList.vue` 的 `setupResizeObserver()` 内，紧挨着 `for (const child of el.children) resizeObs.observe(child)` 后追加一行 `resizeObs.observe(el)`。容器自身的 `contentBoxSize` 变化即可命中 `onChildResize`，复用现有的 `isAtBottom → alignToBottom()` 分支，无新逻辑。
+
+**为什么不监听 RichTextInput 的高度变化反向通知 MessageList**：跨组件 ref 耦合代价大；ResizeObserver 在容器上观察自身是同一现象的更本地化检测，且 `onChildResize` 已对 `pendingRestore` / `isPaginating` / `userInteracting` 做了完整闸门，不会产生额外回归风险。
+
 ## §3 影响面
 
 ### 3.1 测试
@@ -88,12 +112,15 @@ const editorHeightClass = computed(() => {
   - 第 122 行 `expect(expandedEditor.classes()).not.toContain('min-h-[40px]')` 保持不变（展开后 min 是 320px，仍成立）。
 - **不动**：该文件第 2、3 个用例（"展开布局"、"展开发送"）不受影响。
 - **视觉快照**：最近 commit `d38ec06 test(ui): baseline visual snapshots for Spec 2 molecules` 引入的快照若覆盖紧凑态 RichTextInput，需重新基线化；这是预期变化，不是回归。
+- **§2.5 滚动同步部分**：行为依赖真实浏览器/Electron 渲染（caret coords、flex 引起的容器 resize），jsdom 难以复现；主要靠 G7/G8 手测。可补一个轻量单元测试断言 `MessageList` 的 ResizeObserver 也观察了容器自身（间接断言修复），但若实现成本超过价值则不强求。
 
 ### 3.2 兼容性
 
 - 不改 `DocEditor` / `useRichTextEditor` package / mention / sticker 等其他用富文本的场景。
+- §2.5.1 的 `update` 订阅只在 `RichTextInput.vue` 加，不污染共享 package。
 - 不改 `editorExpanded` 状态机，不破坏「展开为帖子」流程。
 - 不改键盘行为（Enter 提交仅在紧凑模式生效的现有规则保留）。
+- §2.5.2 的 ResizeObserver 扩展只增加一个被观察目标（容器自身），不改 `onChildResize` 内部逻辑——`pendingRestore` / `isPaginating` / `userInteracting` 闸门继续生效，不引入新的滚动跳变路径。
 
 ## §4 验收门（G）
 
@@ -105,6 +132,8 @@ const editorHeightClass = computed(() => {
 | G4 | 粘贴附件后，框 ≥ 80px；附件 + 多行文字时，可长高至 40vh | 手测 |
 | G5 | 单元测试 `RichTextInput.expand.test.ts` 三个用例全部通过 | `vitest` |
 | G6 | 「展开编辑器」按钮仍可切换到帖子模式，且展开/收起行为不变 | 手测 + 测试 |
+| G7 | 紧凑档下连续 `Shift+Enter` 至内容超过 40vh，光标始终保持在可视区底部附近（不滚出视野） | 手测 |
+| G8 | 用户停在消息列表底部时，富文本输入框长高/缩回过程中最后一条消息始终保持可见、不被输入框压出可视区 | 手测 |
 
 ## §5 不在范围（YAGNI）
 
