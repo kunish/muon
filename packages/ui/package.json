@@ -18,6 +18,7 @@
     "./dialog": "./src/components/ui/dialog/index.ts",
     "./dropdown-menu": "./src/components/ui/dropdown-menu/index.ts",
     "./file-chip": "./src/molecules/file-chip/index.ts",
+    "./form-field": "./src/molecules/form-field/index.ts",
     "./icon": "./src/atoms/icon/index.ts",
     "./input": "./src/components/ui/input/index.ts",
     "./kbd": "./src/atoms/kbd/index.ts",
