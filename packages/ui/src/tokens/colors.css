@@ -119,7 +119,7 @@
   --color-chart-5: var(--gray-500);
 
   /* Spec 2 molecule semantic aliases */
-  --color-list-item-hover-bg: var(--gray-50);
+  --color-list-item-hover-bg: var(--gray-100);
   --color-list-item-selected-bg: var(--gray-100);
   --color-list-item-active-rail: var(--brand-500);
   --color-menu-item-hover-bg: var(--gray-50);
@@ -168,7 +168,7 @@
   --color-chart-5: var(--gray-400);
 
   /* Spec 2 molecule semantic aliases — dark */
-  --color-list-item-hover-bg: var(--gray-800);
+  --color-list-item-hover-bg: var(--gray-700);
   --color-list-item-selected-bg: var(--gray-700);
   --color-list-item-active-rail: var(--brand-400);
   --color-menu-item-hover-bg: var(--gray-800);
