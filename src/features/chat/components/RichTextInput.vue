@@ -146,7 +146,7 @@ const { editor, clear, insertEmoji, insertPendingMediaAttachment } = useRichText
   },
 })
 
-const stopEditorScrollSync = watch(editor, (instance, _prev, onCleanup) => {
+watch(editor, (instance, _prev, onCleanup) => {
   if (!instance)
     return
   const handler = () => {
@@ -978,7 +978,7 @@ onUnmounted(() => {
 
       <!-- 底部：action row（+ 在左，@ Aa GIF 展开 麦克风 在右） -->
       <div class="flex h-10 shrink-0 items-center justify-between px-1">
-        <div class="flex items-center shrink-0">
+        <div class="flex items-center">
           <AttachmentMenu
             @image="uploadImage"
             @video="uploadVideo"

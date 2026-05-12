@@ -34,7 +34,7 @@ describe('rich text list markers', () => {
     expect(input).toContain('[&_.tiptap_p]:leading-6')
   })
 
-  it('keeps composer action buttons vertically centered with the input line', () => {
+  it('keeps compact composer in two-row flex-col layout with action row below the editor', () => {
     const input = readFileSync(resolve(root, 'src/features/chat/components/RichTextInput.vue'), 'utf8')
     const attachment = readFileSync(resolve(root, 'src/features/chat/components/AttachmentMenu.vue'), 'utf8')
     const voiceRecorder = readFileSync(resolve(root, 'src/features/chat/components/VoiceRecorder.vue'), 'utf8')
