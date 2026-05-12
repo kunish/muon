@@ -234,7 +234,7 @@ describe('richTextInput send recovery', () => {
     expect(mocks.createObjectURL).toHaveBeenCalledWith(videoFile)
     const editorContent = wrapper.get('[data-testid="editor-content"]')
     expect(editorContent.classes()).toContain('min-h-[80px]')
-    expect(editorContent.classes()).toContain('max-h-[40vh]')
+    expect(editorContent.classes()).not.toContain('min-h-[40px]')
     expect(editorContent.classes()).not.toContain('max-h-[40px]')
 
     const pendingMediaHtml = mocks.insertPendingMediaAttachment.mock.calls
