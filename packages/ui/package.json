@@ -22,6 +22,7 @@
     "./input": "./src/components/ui/input/index.ts",
     "./kbd": "./src/atoms/kbd/index.ts",
     "./label": "./src/components/ui/label/index.ts",
+    "./list-item": "./src/molecules/list-item/index.ts",
     "./popover": "./src/components/ui/popover/index.ts",
     "./progress": "./src/components/ui/progress/index.ts",
     "./radio": "./src/atoms/radio/index.ts",
