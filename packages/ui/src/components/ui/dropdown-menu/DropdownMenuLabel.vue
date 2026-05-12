@@ -13,7 +13,7 @@ const props = defineProps<Props>()
 </script>
 
 <template>
-  <DropdownMenuLabel :class="cn('px-2 py-1.5 text-sm font-semibold', inset && 'pl-8', props.class)">
+  <DropdownMenuLabel :class="cn('px-2.5 py-1.5 text-[11px] font-medium uppercase tracking-wider text-gray-500', inset && 'pl-8', props.class)">
     <slot />
   </DropdownMenuLabel>
 </template>
