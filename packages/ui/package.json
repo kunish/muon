@@ -25,6 +25,7 @@
     "./radio": "./src/atoms/radio/index.ts",
     "./scroll-area": "./src/components/ui/scroll-area/index.ts",
     "./search-box": "./src/molecules/search-box/index.ts",
+    "./segmented-control": "./src/molecules/segmented-control/index.ts",
     "./select": "./src/components/ui/select/index.ts",
     "./separator": "./src/components/ui/separator/index.ts",
     "./spinner": "./src/atoms/spinner/index.ts",
