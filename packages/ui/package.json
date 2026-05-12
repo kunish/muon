@@ -13,6 +13,7 @@
     "./button": "./src/components/ui/button/index.ts",
     "./card": "./src/components/ui/card/index.ts",
     "./checkbox": "./src/components/ui/checkbox/index.ts",
+    "./color-swatch": "./src/molecules/color-swatch/index.ts",
     "./context-menu": "./src/components/ui/context-menu/index.ts",
     "./dialog": "./src/components/ui/dialog/index.ts",
     "./dropdown-menu": "./src/components/ui/dropdown-menu/index.ts",
