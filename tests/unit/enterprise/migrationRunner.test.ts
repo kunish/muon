@@ -1,13 +1,21 @@
-import { mkdtemp, writeFile } from 'node:fs/promises'
+import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import { loadMigrationFiles } from '../../../apps/api/src/db/postgresRepository'
 
 describe('loadMigrationFiles', () => {
+  let dir = ''
+
+  afterEach(async () => {
+    if (dir)
+      await rm(dir, { recursive: true, force: true })
+    dir = ''
+  })
+
   it('returns every .sql file in lexicographic order with its contents', async () => {
-    const dir = await mkdtemp(join(tmpdir(), 'muon-migrations-'))
+    dir = await mkdtemp(join(tmpdir(), 'muon-migrations-'))
     await writeFile(join(dir, '0002_second.sql'), '-- second')
     await writeFile(join(dir, '0001_first.sql'), '-- first')
     await writeFile(join(dir, 'README.md'), 'ignored')
