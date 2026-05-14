@@ -792,7 +792,8 @@ export const useDocsStore = defineStore('docs', () => {
     const trimmed = markdown.trim()
     if (!trimmed)
       return
-    await sendTextMessage(docId, trimmed)
+    // Imported markdown should land in the doc room without paging every member.
+    await sendTextMessage(docId, trimmed, undefined, { silent: true })
   }
 
   async function updateDocumentTitle(docId: string, title: string): Promise<void> {
