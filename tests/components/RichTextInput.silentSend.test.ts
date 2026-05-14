@@ -179,7 +179,7 @@ describe('richTextInput silent send', () => {
     await nextTick()
 
     // Expand the editor so the split-send button is rendered
-    await wrapper.get('button[title="展开编辑器"]').trigger('click')
+    await wrapper.get('[data-testid="toggle-editor-expanded"]').trigger('click')
     await nextTick()
 
     // Open the split-send menu
@@ -207,7 +207,7 @@ describe('richTextInput silent send', () => {
     const wrapper = mountInput()
     await nextTick()
 
-    await wrapper.get('button[title="展开编辑器"]').trigger('click')
+    await wrapper.get('[data-testid="toggle-editor-expanded"]').trigger('click')
     await nextTick()
 
     await wrapper.find('[data-testid="expanded-send"]').trigger('click')

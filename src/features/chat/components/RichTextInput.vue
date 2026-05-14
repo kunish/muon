@@ -1034,6 +1034,7 @@ onUnmounted(() => {
           </button>
           <!-- 展开/收起编辑器 -->
           <button
+            data-testid="toggle-editor-expanded"
             class="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent"
             :title="
               editorExpanded
