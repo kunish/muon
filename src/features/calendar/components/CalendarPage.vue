@@ -334,6 +334,44 @@ function acceptEvent(event: CalendarEvent) {
   )
 }
 
+interface RescheduleDraft {
+  date: string
+  time: string
+  endTime: string
+}
+
+const showReschedule = ref(false)
+const rescheduleDraft = ref<RescheduleDraft>({ date: '', time: '', endTime: '' })
+
+function openReschedule(event: CalendarEvent) {
+  rescheduleDraft.value = {
+    date: event.date,
+    time: event.time,
+    endTime: event.endTime ?? event.time,
+  }
+  showReschedule.value = true
+}
+
+function rescheduleConfirmDisabled(): boolean {
+  const { date, time, endTime } = rescheduleDraft.value
+  return !date || !time || !endTime || endTime <= time
+}
+
+function rescheduleEvent(event: CalendarEvent) {
+  if (rescheduleConfirmDisabled())
+    return
+  const { date, time, endTime } = rescheduleDraft.value
+  events.value = events.value.map(e =>
+    e.id === event.id ? { ...e, date, time, endTime } : e,
+  )
+  const parts = date.split('-').map(Number)
+  if (parts.length === 3 && parts.every(n => Number.isFinite(n))) {
+    selectedDate.value = new Date(parts[0], parts[1] - 1, parts[2])
+  }
+  selectedEventId.value = event.id
+  showReschedule.value = false
+}
+
 function colorBar(color: string): string {
   const map: Record<string, string> = {
     blue: 'bg-blue-500',
@@ -577,6 +615,7 @@ function colorBg(color: string): string {
           <button
             v-for="event in selectedDayEvents"
             :key="event.id"
+            :data-testid="`calendar-event-${event.id}`"
             class="flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-accent"
             :class="selectedEventId === event.id ? 'bg-primary/5' : ''"
             @click="selectedEventId = event.id"
@@ -611,7 +650,7 @@ function colorBg(color: string): string {
           <div class="mt-2 grid gap-1.5 text-[12px] text-muted-foreground">
             <div class="flex items-center gap-1.5">
               <Clock :size="12" />
-              <span>{{ selectedEvent.date }} {{ selectedEvent.time }}{{ selectedEvent.endTime ? ` - ${selectedEvent.endTime}` : '' }}</span>
+              <span data-testid="event-detail-time">{{ selectedEvent.date }} {{ selectedEvent.time }}{{ selectedEvent.endTime ? ` - ${selectedEvent.endTime}` : '' }}</span>
             </div>
             <div class="flex items-center gap-1.5">
               <Users :size="12" />
@@ -630,11 +669,56 @@ function colorBg(color: string): string {
             >
               {{ t('calendar.accept_attend') }}
             </button>
-            <button
-              class="h-8 rounded-md border border-border px-3 text-[12px] font-medium text-foreground transition-colors hover:bg-accent"
-            >
-              {{ t('calendar.reschedule') }}
-            </button>
+            <div class="relative">
+              <button
+                data-testid="event-reschedule-trigger"
+                class="h-8 rounded-md border border-border px-3 text-[12px] font-medium text-foreground transition-colors hover:bg-accent"
+                @click="openReschedule(selectedEvent)"
+              >
+                {{ t('calendar.reschedule') }}
+              </button>
+              <div
+                v-if="showReschedule"
+                class="absolute right-0 top-full z-20 mt-1 w-56 rounded-md border border-border bg-card p-3 shadow-lg"
+              >
+                <label class="mb-1 block text-[11px] text-muted-foreground">{{ t('calendar.date') }}</label>
+                <input
+                  v-model="rescheduleDraft.date"
+                  data-testid="reschedule-date"
+                  type="date"
+                  class="w-full rounded-md border border-border bg-background px-2 py-1 text-xs"
+                >
+                <div class="mt-2 grid grid-cols-2 gap-2">
+                  <div>
+                    <label class="mb-1 block text-[11px] text-muted-foreground">{{ t('calendar.start') }}</label>
+                    <input
+                      v-model="rescheduleDraft.time"
+                      data-testid="reschedule-start"
+                      type="time"
+                      class="w-full rounded-md border border-border bg-background px-2 py-1 text-xs"
+                    >
+                  </div>
+                  <div>
+                    <label class="mb-1 block text-[11px] text-muted-foreground">{{ t('calendar.end') }}</label>
+                    <input
+                      v-model="rescheduleDraft.endTime"
+                      data-testid="reschedule-end"
+                      type="time"
+                      class="w-full rounded-md border border-border bg-background px-2 py-1 text-xs"
+                    >
+                  </div>
+                </div>
+                <button
+                  :title="rescheduleConfirmDisabled() ? t('calendar.reschedule_invalid_time') : ''"
+                  :disabled="rescheduleConfirmDisabled() || undefined"
+                  data-testid="reschedule-confirm"
+                  class="mt-3 h-8 w-full rounded-md bg-primary px-3 text-[12px] font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
+                  @click="rescheduleEvent(selectedEvent)"
+                >
+                  {{ t('calendar.reschedule_confirm') }}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </aside>
