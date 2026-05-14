@@ -63,3 +63,42 @@ describe('admin session create + lookup', () => {
     expect(found).toBeNull()
   })
 })
+
+describe('touchAdminSession + revokeAdminSession', () => {
+  it('updates lastSeenAt when touched', async () => {
+    const { repository, install } = await setupInstalled()
+    const created = await repository.createAdminSession({
+      organizationId: install.organization.id,
+      userId: install.owner.id,
+      accessTokenHash: 'touch-access',
+      refreshTokenHash: 'touch-refresh',
+      expiresAt: new Date(Date.now() + 3600_000).toISOString(),
+    })
+
+    const originalLastSeenAt = created.lastSeenAt
+    await new Promise(resolve => setTimeout(resolve, 5))
+    await repository.touchAdminSession(created.id)
+
+    const after = await repository.findAdminSessionByTokenHash('touch-access')
+    expect(after?.lastSeenAt).not.toBe(originalLastSeenAt)
+  })
+
+  it('sets revokedAt when revoked, and is idempotent', async () => {
+    const { repository, install } = await setupInstalled()
+    const created = await repository.createAdminSession({
+      organizationId: install.organization.id,
+      userId: install.owner.id,
+      accessTokenHash: 'revoke-access',
+      refreshTokenHash: 'revoke-refresh',
+      expiresAt: new Date(Date.now() + 3600_000).toISOString(),
+    })
+
+    await repository.revokeAdminSession(created.id)
+    const afterFirstRevoke = await repository.findAdminSessionByTokenHash('revoke-access')
+    expect(afterFirstRevoke?.revokedAt).toBeTruthy()
+
+    await repository.revokeAdminSession(created.id)
+    await repository.revokeAdminSession('unknown-id')
+    // no throw, no change to other sessions
+  })
+})
