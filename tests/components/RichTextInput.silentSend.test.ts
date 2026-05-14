@@ -1,9 +1,7 @@
-import { downloadMedia, editMessage, replyToMessage, sendTextMessage } from '@matrix/index'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h, nextTick, ref } from 'vue'
-import { toast } from 'vue-sonner'
 import RichTextInput from '@/features/chat/components/RichTextInput.vue'
 import { useChatStore } from '@/features/chat/stores/chatStore'
 
@@ -145,25 +143,6 @@ vi.mock('@matrix/index', () => ({
   sendTextMessage: mocks.sendTextMessage,
   uploadMedia: mocks.uploadMedia,
 }))
-
-function createEvent(eventId: string | undefined) {
-  return {
-    getId: () => eventId,
-    getSender: () => '@alice:localhost',
-    getContent: () => ({ body: 'Original message' }),
-    getType: () => 'm.room.message',
-  } as any
-}
-
-function deferred<T>() {
-  let resolve!: (value: T) => void
-  let reject!: (reason?: unknown) => void
-  const promise = new Promise<T>((promiseResolve, promiseReject) => {
-    resolve = promiseResolve
-    reject = promiseReject
-  })
-  return { promise, resolve, reject }
-}
 
 function mountInput() {
   return mount(RichTextInput, {
