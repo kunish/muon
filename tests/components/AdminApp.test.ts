@@ -273,6 +273,22 @@ describe('adminApp', () => {
     expect(wrapper.text()).toContain('组织、用户与安全')
   })
 
+  it('does not call getAdminMe when there is no stored token', async () => {
+    expect(window.localStorage.getItem('muon_admin_token')).toBe(null)
+
+    const wrapper = mount(AdminApp, {
+      props: { initialInstalled: true },
+      global: {
+        plugins: [createAdminRouter(createMemoryHistory())],
+      },
+    })
+    await flushPromises()
+
+    expect(getAdminMe).not.toHaveBeenCalled()
+    expect(listOrganizations).not.toHaveBeenCalled()
+    expect(wrapper.find('input[autocomplete="organization"]').exists()).toBe(true)
+  })
+
   it('shows the user administration surface for signed-in admins', async () => {
     const { router, wrapper } = await mountAdminApp({
       props: {
