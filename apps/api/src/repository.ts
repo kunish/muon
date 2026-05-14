@@ -136,6 +136,7 @@ export interface EnterpriseRepository {
   findAuthorizationCodeByHash: (codeHash: string) => Promise<AuthorizationCodeRecord | null>
   findMatrixAccount: (organizationId: string, userId: string) => Promise<MatrixAccountRecord | null>
   findOrganizationBySlug: (slug: string) => Promise<Organization | null>
+  findUserById: (organizationId: string, userId: string) => Promise<EnterpriseUserRecord | null>
   findUserByUsername: (organizationId: string, username: string) => Promise<EnterpriseUserRecord | null>
   getPublicUser: (user: EnterpriseUserRecord) => EnterpriseUser
   isInstalled: () => Promise<boolean>
@@ -265,6 +266,10 @@ export function createInMemoryEnterpriseRepository(): EnterpriseRepository {
 
     async findOrganizationBySlug(slug) {
       return organizations.find(organization => organization.slug === slug) ?? null
+    },
+
+    async findUserById(organizationId, userId) {
+      return users.find(user => user.organizationId === organizationId && user.id === userId) ?? null
     },
 
     async findUserByUsername(organizationId, username) {
