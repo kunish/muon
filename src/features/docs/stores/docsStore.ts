@@ -1,5 +1,6 @@
 import type { DocEntry, DocFolderNode, DocFolderRecord, DocSectionId } from '../types/doc'
 import { getClient } from '@matrix/client'
+import { sendTextMessage } from '@matrix/index'
 import { Visibility } from 'matrix-js-sdk'
 import { defineStore } from 'pinia'
 import { computed, shallowRef } from 'vue'
@@ -787,6 +788,13 @@ export const useDocsStore = defineStore('docs', () => {
     return result.room_id
   }
 
+  async function appendMarkdown(docId: string, markdown: string): Promise<void> {
+    const trimmed = markdown.trim()
+    if (!trimmed)
+      return
+    await sendTextMessage(docId, trimmed)
+  }
+
   async function updateDocumentTitle(docId: string, title: string): Promise<void> {
     const nextTitle = title.trim() || '无标题文档'
     const now = Date.now()
@@ -1052,6 +1060,7 @@ export const useDocsStore = defineStore('docs', () => {
     loadFolders,
     loadDocuments,
     createDocument,
+    appendMarkdown,
     updateDocumentTitle,
     updateDocumentFolder,
     setDocumentStarred,
