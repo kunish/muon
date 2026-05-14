@@ -18,7 +18,9 @@ interface MatrixTextContent {
   'format'?: typeof MATRIX_HTML_FORMAT
   'formatted_body'?: string
   'm.mentions'?: { user_ids: string[] }
-  // Unstable: MSC4019. Servers that don't recognize this key MUST treat the message as normal.
+  // MSC4019 (unstable). Recognizing clients should suppress notifications and
+  // sound; others fall back to normal notifying behavior. Track stabilization at
+  // https://github.com/matrix-org/matrix-spec-proposals/pull/4019.
   'org.matrix.msc4019.silent'?: true
 }
 
