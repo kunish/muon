@@ -103,6 +103,26 @@ export interface CreateAuthorizationCodeInput {
   userId: string
 }
 
+export interface CreateAdminSessionInput {
+  organizationId: string
+  userId: string
+  accessTokenHash: string
+  refreshTokenHash: string
+  expiresAt: string
+}
+
+export interface AdminSessionRecord {
+  id: string
+  organizationId: string
+  userId: string
+  accessTokenHash: string
+  refreshTokenHash: string
+  expiresAt: string
+  revokedAt: string | null
+  createdAt: string
+  lastSeenAt: string
+}
+
 export interface CreateDeviceSessionInput {
   accessToken: string
   deviceName: string
@@ -122,6 +142,7 @@ function publicUser(user: EnterpriseUserRecord): EnterpriseUser {
 }
 
 export interface EnterpriseRepository {
+  adminSessions: AdminSessionRecord[]
   auditLogs: AuditLog[]
   authorizationCodes: AuthorizationCodeRecord[]
   deviceSessions: DeviceSessionRecord[]
@@ -129,10 +150,12 @@ export interface EnterpriseRepository {
   organizations: Organization[]
   users: EnterpriseUserRecord[]
   appendAuditLog: (input: AppendAuditLogInput) => Promise<AuditLog>
+  createAdminSession: (input: CreateAdminSessionInput) => Promise<AdminSessionRecord>
   createAuthorizationCode: (input: CreateAuthorizationCodeInput) => Promise<AuthorizationCodeRecord>
   createDeviceSession: (input: CreateDeviceSessionInput) => Promise<DeviceSessionRecord>
   createOrganization: (input: CreateOrganizationInput) => Promise<Organization>
   createUser: (input: CreateUserInput) => Promise<EnterpriseUserRecord>
+  findAdminSessionByTokenHash: (accessTokenHash: string) => Promise<AdminSessionRecord | null>
   findAuthorizationCodeByHash: (codeHash: string) => Promise<AuthorizationCodeRecord | null>
   findMatrixAccount: (organizationId: string, userId: string) => Promise<MatrixAccountRecord | null>
   findOrganizationBySlug: (slug: string) => Promise<Organization | null>
@@ -152,18 +175,41 @@ export interface EnterpriseRepository {
 export function createInMemoryEnterpriseRepository(): EnterpriseRepository {
   const organizations: Organization[] = []
   const users: EnterpriseUserRecord[] = []
+  const adminSessions: AdminSessionRecord[] = []
   const auditLogs: AuditLog[] = []
   const authorizationCodes: AuthorizationCodeRecord[] = []
   const deviceSessions: DeviceSessionRecord[] = []
   const matrixAccounts: MatrixAccountRecord[] = []
 
   return {
+    adminSessions,
     auditLogs,
     authorizationCodes,
     deviceSessions,
     matrixAccounts,
     organizations,
     users,
+
+    async createAdminSession(input) {
+      const nowTimestamp = nowIso()
+      const session: AdminSessionRecord = {
+        id: randomUUID(),
+        organizationId: input.organizationId,
+        userId: input.userId,
+        accessTokenHash: input.accessTokenHash,
+        refreshTokenHash: input.refreshTokenHash,
+        expiresAt: input.expiresAt,
+        revokedAt: null,
+        createdAt: nowTimestamp,
+        lastSeenAt: nowTimestamp,
+      }
+      adminSessions.push(session)
+      return session
+    },
+
+    async findAdminSessionByTokenHash(accessTokenHash) {
+      return adminSessions.find(session => session.accessTokenHash === accessTokenHash) ?? null
+    },
 
     async appendAuditLog(input) {
       const event: AuditLog = {
