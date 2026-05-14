@@ -131,3 +131,27 @@ describe('adminSessionService.validate', () => {
     expect(after?.lastSeenAt).not.toBe(originalLastSeenAt)
   })
 })
+
+describe('adminSessionService.revoke', () => {
+  it('makes a previously valid token fail validate', async () => {
+    const { repository } = await setupOwner()
+    const service = createAdminSessionService({ repository })
+    const { session } = await service.login({
+      organizationSlug: 'acme',
+      username: 'owner',
+      password: 'correct horse battery staple',
+    })
+
+    await service.revoke(session.accessToken)
+
+    await expect(service.validate(session.accessToken)).rejects.toMatchObject({
+      name: 'AdminAuthenticationError',
+    })
+  })
+
+  it('is a silent no-op for an unknown token', async () => {
+    const { repository } = await setupOwner()
+    const service = createAdminSessionService({ repository })
+    await expect(service.revoke('unknown-token')).resolves.toBeUndefined()
+  })
+})

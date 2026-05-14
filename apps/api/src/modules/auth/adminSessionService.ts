@@ -100,9 +100,13 @@ export function createAdminSessionService({ repository }: AdminSessionServiceDep
       return user
     },
 
-    async revoke(_token) {
-      // implemented in Task 10
-      throw new Error('revoke not implemented')
+    async revoke(token) {
+      if (!token)
+        return
+      const session = await repository.findAdminSessionByTokenHash(sha256(token))
+      if (!session)
+        return
+      await repository.revokeAdminSession(session.id)
     },
   }
 }
