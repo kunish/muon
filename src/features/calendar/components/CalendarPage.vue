@@ -681,7 +681,7 @@ function colorBg(color: string): string {
                 v-if="showReschedule"
                 class="absolute right-0 top-full z-20 mt-1 w-56 rounded-md border border-border bg-card p-3 shadow-lg"
               >
-                <label class="mb-1 block text-[11px] text-muted-foreground">{{ t('calendar.date') }}</label>
+                <label class="mb-1 block text-[11px] text-muted-foreground">{{ t('calendar.reschedule_date') }}</label>
                 <input
                   v-model="rescheduleDraft.date"
                   data-testid="reschedule-date"
@@ -690,7 +690,7 @@ function colorBg(color: string): string {
                 >
                 <div class="mt-2 grid grid-cols-2 gap-2">
                   <div>
-                    <label class="mb-1 block text-[11px] text-muted-foreground">{{ t('calendar.start') }}</label>
+                    <label class="mb-1 block text-[11px] text-muted-foreground">{{ t('calendar.reschedule_start') }}</label>
                     <input
                       v-model="rescheduleDraft.time"
                       data-testid="reschedule-start"
@@ -699,7 +699,7 @@ function colorBg(color: string): string {
                     >
                   </div>
                   <div>
-                    <label class="mb-1 block text-[11px] text-muted-foreground">{{ t('calendar.end') }}</label>
+                    <label class="mb-1 block text-[11px] text-muted-foreground">{{ t('calendar.reschedule_end') }}</label>
                     <input
                       v-model="rescheduleDraft.endTime"
                       data-testid="reschedule-end"
