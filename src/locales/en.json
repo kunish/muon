@@ -78,6 +78,7 @@
   },
   "chat": {
     "send": "Send",
+    "send_silent": "Send silently",
     "type_message": "Type a message...",
     "typing": "typing...",
     "typing_indicator": "Typing",

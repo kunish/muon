@@ -78,6 +78,7 @@
   },
   "chat": {
     "send": "发送",
+    "send_silent": "静默发送",
     "type_message": "输入消息...",
     "input_placeholder": "输入消息...",
     "typing": "正在输入...",

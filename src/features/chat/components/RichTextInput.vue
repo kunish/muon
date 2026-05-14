@@ -19,6 +19,12 @@ import {
 } from '@matrix/index'
 import { useRichTextEditor } from '@muon/rich-text/editor'
 import { htmlToPlainText } from '@muon/rich-text/markdown'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@muon/ui/dropdown-menu'
 import { EditorContent } from '@tiptap/vue-3'
 import {
   ALargeSmall,
@@ -284,13 +290,13 @@ function markComposeChanged() {
   composeVersion.value += 1
 }
 
-async function submitComposer(html: string, text: string): Promise<boolean> {
+async function submitComposer(html: string, text: string, options?: { silent?: boolean }): Promise<boolean> {
   const hasText = text.trim().length > 0
   if (!hasText && !hasPendingPasteAttachments.value)
     return false
 
   if (!hasPendingPasteAttachments.value)
-    return handleSend(html, text)
+    return handleSend(html, text, options)
 
   if (sendInFlight.value)
     return false
@@ -311,7 +317,7 @@ async function submitComposer(html: string, text: string): Promise<boolean> {
     richPayload = await createRichMediaSubmitPayload(html)
     if (!richPayload.html)
       return false
-    const result = await sendTextContent(roomId, richPayload.html, richPayload.text, editingEvent, replyingTo)
+    const result = await sendTextContent(roomId, richPayload.html, richPayload.text, editingEvent, replyingTo, options)
     if (!result.ok)
       return false
   }
@@ -351,7 +357,7 @@ async function submitComposer(html: string, text: string): Promise<boolean> {
   return true
 }
 
-async function handleSend(html: string, text: string): Promise<boolean> {
+async function handleSend(html: string, text: string, options?: { silent?: boolean }): Promise<boolean> {
   const roomId = store.currentRoomId
   if (!roomId || !text.trim())
     return false
@@ -366,7 +372,7 @@ async function handleSend(html: string, text: string): Promise<boolean> {
   let sentPlainText = false
 
   try {
-    const result = await sendTextContent(roomId, html, text, editingEvent, replyingTo)
+    const result = await sendTextContent(roomId, html, text, editingEvent, replyingTo, options)
     if (!result.ok)
       return false
     sentPlainText = result.sentPlainText
@@ -402,6 +408,7 @@ async function sendTextContent(
   text: string,
   editingEvent: typeof store.editingEvent,
   replyingTo: typeof store.replyingTo,
+  options?: { silent?: boolean },
 ): Promise<{ ok: boolean, sentPlainText: boolean }> {
   try {
     if (editingEvent) {
@@ -424,7 +431,10 @@ async function sendTextContent(
       return { ok: true, sentPlainText: false }
     }
 
-    await sendTextMessage(roomId, text, html)
+    if (options)
+      await sendTextMessage(roomId, text, html, options)
+    else
+      await sendTextMessage(roomId, text, html)
     return { ok: true, sentPlainText: true }
   }
   catch {
@@ -447,15 +457,19 @@ function createSubmitPayload(html: string, text: string) {
   }
 }
 
-async function submitEditor() {
+async function submitEditor(options?: { silent?: boolean }) {
   const html = editor.value?.getHTML() || ''
   const text = editor.value?.getText() || ''
   const payload = createSubmitPayload(html, text)
   if (!store.currentRoomId || (!payload.text.trim() && !hasPendingPasteAttachments.value))
     return
-  const submitted = await submitComposer(payload.html, payload.text)
+  const submitted = await submitComposer(payload.html, payload.text, options)
   if (submitted)
     postTitle.value = ''
+}
+
+function submitEditorSilent() {
+  void submitEditor({ silent: true })
 }
 
 function toggleStickerPicker() {
@@ -1114,17 +1128,27 @@ onUnmounted(() => {
           data-testid="expanded-send"
           class="inline-flex h-8 w-8 items-center justify-center rounded-md text-primary transition-colors hover:bg-primary/10"
           :title="t('chat.send')"
-          @click="submitEditor"
+          @click="() => submitEditor()"
         >
           <SendHorizontal :size="19" />
         </button>
         <div class="mx-1 h-5 w-px bg-border" />
-        <button
-          class="inline-flex h-8 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
-          :title="t('chat.action_more')"
-        >
-          <ChevronDown :size="14" />
-        </button>
+        <DropdownMenu>
+          <DropdownMenuTrigger as-child>
+            <button
+              data-testid="expanded-send-more-trigger"
+              class="inline-flex h-8 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
+              :title="t('chat.action_more')"
+            >
+              <ChevronDown :size="14" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem data-testid="expanded-send-silent" @click="submitEditorSilent">
+              {{ t('chat.send_silent') }}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </div>
 
