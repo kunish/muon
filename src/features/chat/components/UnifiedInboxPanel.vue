@@ -19,6 +19,7 @@ const { items, counts, isLoading } = useUnifiedInbox()
 
 const deferMenuItemId = ref<string | null>(null)
 const customInputByItemId = ref<Record<string, string>>({})
+const customDeferOpenByItemId = ref<Record<string, boolean>>({})
 const scrollRef = ref<HTMLElement | null>(null)
 
 const ITEM_HEIGHT = 88
@@ -83,7 +84,13 @@ function selectAllVisible() {
 }
 
 function toggleDeferMenu(itemId: string) {
-  deferMenuItemId.value = deferMenuItemId.value === itemId ? null : itemId
+  if (deferMenuItemId.value === itemId) {
+    deferMenuItemId.value = null
+    customDeferOpenByItemId.value[itemId] = false
+  }
+  else {
+    deferMenuItemId.value = itemId
+  }
 }
 
 function createDeferredByPreset(item: UnifiedInboxItem, preset: Exclude<ReminderPreset, 'custom'>, actionId: string) {
@@ -233,24 +240,27 @@ function submitCustomDefer(item: UnifiedInboxItem) {
                     type="button"
                     class="w-full rounded px-2 py-1 text-left text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
                     :data-testid="`inbox-defer-custom-toggle-${items[virtualItem.index]!.id}`"
+                    @click="customDeferOpenByItemId[items[virtualItem.index]!.id] = !customDeferOpenByItemId[items[virtualItem.index]!.id]"
                   >
                     {{ t('chat.defer_custom') }}
                   </button>
-                  <input
-                    v-model="customInputByItemId[items[virtualItem.index]!.id]"
-                    type="datetime-local"
-                    class="mt-1 w-full rounded-md border border-border bg-background px-2 py-1 text-xs"
-                    :data-testid="`inbox-defer-custom-input-${items[virtualItem.index]!.id}`"
-                  >
-                  <button
-                    type="button"
-                    class="mt-1 w-full rounded-md bg-primary px-2 py-1 text-xs text-primary-foreground disabled:opacity-50"
-                    :disabled="!customInputByItemId[items[virtualItem.index]!.id]"
-                    :data-testid="`inbox-defer-custom-submit-${items[virtualItem.index]!.id}`"
-                    @click="submitCustomDefer(items[virtualItem.index]!)"
-                  >
-                    {{ t('common.confirm') }}
-                  </button>
+                  <template v-if="customDeferOpenByItemId[items[virtualItem.index]!.id]">
+                    <input
+                      v-model="customInputByItemId[items[virtualItem.index]!.id]"
+                      type="datetime-local"
+                      class="mt-1 w-full rounded-md border border-border bg-background px-2 py-1 text-xs"
+                      :data-testid="`inbox-defer-custom-input-${items[virtualItem.index]!.id}`"
+                    >
+                    <button
+                      type="button"
+                      class="mt-1 w-full rounded-md bg-primary px-2 py-1 text-xs text-primary-foreground disabled:opacity-50"
+                      :disabled="!customInputByItemId[items[virtualItem.index]!.id]"
+                      :data-testid="`inbox-defer-custom-submit-${items[virtualItem.index]!.id}`"
+                      @click="submitCustomDefer(items[virtualItem.index]!)"
+                    >
+                      {{ t('common.confirm') }}
+                    </button>
+                  </template>
                 </div>
               </div>
             </div>
