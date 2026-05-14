@@ -13,7 +13,8 @@ import type {
   UpdateUserInput,
 } from '../repository'
 import { randomUUID } from 'node:crypto'
-import { readFile } from 'node:fs/promises'
+import { readdir, readFile } from 'node:fs/promises'
+import { fileURLToPath } from 'node:url'
 import { Pool } from 'pg'
 
 function nowIso(): string {
@@ -95,9 +96,25 @@ function matrixAccountFromRow(row: Record<string, unknown>): MatrixAccountRecord
   }
 }
 
+export interface MigrationFile {
+  name: string
+  sql: string
+}
+
+export async function loadMigrationFiles(dirUrl: URL): Promise<MigrationFile[]> {
+  const dirPath = fileURLToPath(dirUrl)
+  const entries = await readdir(dirPath)
+  const sqlFiles = entries.filter(entry => entry.endsWith('.sql')).sort()
+  return Promise.all(sqlFiles.map(async (name) => {
+    const sql = await readFile(new URL(name, dirUrl), 'utf8')
+    return { name, sql }
+  }))
+}
+
 export async function migratePostgres(pool: Pool): Promise<void> {
-  const migration = await readFile(new URL('./migrations/0001_enterprise_core.sql', import.meta.url), 'utf8')
-  await pool.query(migration)
+  const migrations = await loadMigrationFiles(new URL('./migrations/', import.meta.url))
+  for (const migration of migrations)
+    await pool.query(migration.sql)
 }
 
 export async function createPostgresEnterpriseRepository(databaseUrl: string): Promise<EnterpriseRepository> {
