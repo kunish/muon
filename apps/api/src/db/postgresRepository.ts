@@ -1,7 +1,9 @@
 import type { AuditLog, Organization } from '@muon/enterprise-contracts'
 import type {
+  AdminSessionRecord,
   AppendAuditLogInput,
   AuthorizationCodeRecord,
+  CreateAdminSessionInput,
   CreateAuthorizationCodeInput,
   CreateDeviceSessionInput,
   CreateOrganizationInput,
@@ -67,6 +69,20 @@ function auditLogFromRow(row: Record<string, unknown>): AuditLog {
   }
 }
 
+function adminSessionFromRow(row: Record<string, unknown>): AdminSessionRecord {
+  return {
+    id: String(row.id),
+    organizationId: String(row.organization_id),
+    userId: String(row.user_id),
+    accessTokenHash: String(row.access_token_hash),
+    refreshTokenHash: String(row.refresh_token_hash),
+    expiresAt: iso(row.expires_at as string | Date),
+    revokedAt: row.revoked_at ? iso(row.revoked_at as string | Date) : null,
+    createdAt: iso(row.created_at as string | Date),
+    lastSeenAt: iso(row.last_seen_at as string | Date),
+  }
+}
+
 function authorizationCodeFromRow(row: Record<string, unknown>): AuthorizationCodeRecord {
   return {
     id: String(row.id),
@@ -122,12 +138,33 @@ export async function createPostgresEnterpriseRepository(databaseUrl: string): P
   await migratePostgres(pool)
 
   return {
+    adminSessions: [],
     auditLogs: [],
     authorizationCodes: [],
     deviceSessions: [],
     matrixAccounts: [],
     organizations: [],
     users: [],
+
+    async createAdminSession(input: CreateAdminSessionInput) {
+      const createdAt = nowIso()
+      const result = await pool.query(
+        `INSERT INTO admin_sessions
+           (id, organization_id, user_id, access_token_hash, refresh_token_hash, expires_at, revoked_at, created_at, last_seen_at)
+         VALUES ($1, $2, $3, $4, $5, $6, NULL, $7, $7)
+         RETURNING *`,
+        [
+          randomUUID(),
+          input.organizationId,
+          input.userId,
+          input.accessTokenHash,
+          input.refreshTokenHash,
+          input.expiresAt,
+          createdAt,
+        ],
+      )
+      return adminSessionFromRow(result.rows[0])
+    },
 
     async appendAuditLog(input: AppendAuditLogInput) {
       const result = await pool.query(
@@ -234,6 +271,14 @@ export async function createPostgresEnterpriseRepository(databaseUrl: string): P
       return userFromRow(result.rows[0])
     },
 
+    async findAdminSessionByTokenHash(accessTokenHash: string) {
+      const result = await pool.query(
+        'SELECT * FROM admin_sessions WHERE access_token_hash = $1',
+        [accessTokenHash],
+      )
+      return result.rows[0] ? adminSessionFromRow(result.rows[0]) : null
+    },
+
     async findAuthorizationCodeByHash(codeHash: string) {
       const result = await pool.query('SELECT * FROM oauth_authorization_codes WHERE code_hash = $1', [codeHash])
       return result.rows[0] ? authorizationCodeFromRow(result.rows[0]) : null
@@ -247,6 +292,14 @@ export async function createPostgresEnterpriseRepository(databaseUrl: string): P
     async findOrganizationBySlug(slug: string) {
       const result = await pool.query('SELECT * FROM organizations WHERE slug = $1', [slug])
       return result.rows[0] ? organizationFromRow(result.rows[0]) : null
+    },
+
+    async findUserById(organizationId: string, userId: string) {
+      const result = await pool.query(
+        'SELECT * FROM users WHERE organization_id = $1 AND id = $2',
+        [organizationId, userId],
+      )
+      return result.rows[0] ? userFromRow(result.rows[0]) : null
     },
 
     async findUserByUsername(organizationId: string, username: string) {
@@ -289,6 +342,13 @@ export async function createPostgresEnterpriseRepository(databaseUrl: string): P
       return authorizationCodeFromRow(result.rows[0])
     },
 
+    async revokeAdminSession(id: string) {
+      await pool.query(
+        'UPDATE admin_sessions SET revoked_at = COALESCE(revoked_at, $2) WHERE id = $1',
+        [id, nowIso()],
+      )
+    },
+
     async resetUserPassword(organizationId: string, userId: string, input: ResetUserPasswordInput) {
       const result = await pool.query(
         `UPDATE users
@@ -300,6 +360,13 @@ export async function createPostgresEnterpriseRepository(databaseUrl: string): P
       if (!result.rows[0])
         throw new Error('User not found')
       return userFromRow(result.rows[0])
+    },
+
+    async touchAdminSession(id: string) {
+      await pool.query(
+        'UPDATE admin_sessions SET last_seen_at = $2 WHERE id = $1',
+        [id, nowIso()],
+      )
     },
 
     async updateUser(organizationId: string, userId: string, input: UpdateUserInput) {
