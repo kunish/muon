@@ -19,6 +19,8 @@ export interface AdminSession {
 
 export interface AdminSessionService {
   login: (input: AdminLoginRequest) => Promise<AdminSession>
+  validate: (token: string) => Promise<EnterpriseUserRecord>
+  revoke: (token: string) => Promise<void>
 }
 
 export interface AdminSessionServiceDeps {
@@ -77,6 +79,30 @@ export function createAdminSessionService({ repository }: AdminSessionServiceDep
         user,
         session: { accessToken, refreshToken, expiresAt },
       }
+    },
+
+    async validate(token) {
+      if (!token)
+        throw new AdminAuthenticationError()
+
+      const session = await repository.findAdminSessionByTokenHash(sha256(token))
+      if (!session || session.revokedAt)
+        throw new AdminAuthenticationError()
+
+      if (new Date(session.expiresAt).getTime() <= Date.now())
+        throw new AdminAuthenticationError()
+
+      const user = await repository.findUserById(session.organizationId, session.userId)
+      if (!user || user.status !== 'active')
+        throw new AdminAuthenticationError()
+
+      repository.touchAdminSession(session.id).catch(() => {})
+      return user
+    },
+
+    async revoke(_token) {
+      // implemented in Task 10
+      throw new Error('revoke not implemented')
     },
   }
 }
