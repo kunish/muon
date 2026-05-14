@@ -1,15 +1,19 @@
 <script setup lang="ts">
 import { FilePlus2, FolderPlus, Upload } from 'lucide-vue-next'
 import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 const emit = defineEmits<{
   createDoc: []
   createFolder: []
+  importDoc: [file: File]
 }>()
 
+const { t } = useI18n()
 const open = ref(false)
 const btnRef = ref<HTMLElement>()
 const menuRef = ref<HTMLElement>()
+const fileInput = ref<HTMLInputElement>()
 
 function toggle() {
   open.value = !open.value
@@ -23,6 +27,21 @@ function handleCreateDoc() {
 function handleCreateFolder() {
   open.value = false
   emit('createFolder')
+}
+
+function triggerImport() {
+  open.value = false
+  fileInput.value?.click()
+}
+
+function onFileChosen(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (file)
+    emit('importDoc', file)
+  // reset so selecting the same file twice still fires change
+  input.value = ''
+  open.value = false
 }
 
 function onClickOutside(e: MouseEvent) {
@@ -48,6 +67,14 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', onClickOutside
       <span>新建</span>
     </button>
 
+    <input
+      ref="fileInput"
+      type="file"
+      accept=".md,.markdown,.txt"
+      class="hidden"
+      @change="onFileChosen"
+    >
+
     <Teleport to="body">
       <div
         v-if="open"
@@ -71,10 +98,12 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', onClickOutside
         </button>
         <div class="mx-2 my-1 h-px bg-border" />
         <button
+          data-testid="docs-create-import"
           class="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-muted-foreground transition-colors hover:bg-accent"
+          @click="triggerImport"
         >
           <Upload :size="15" />
-          <span>导入文档</span>
+          <span>{{ t('docs.import_doc') }}</span>
         </button>
       </div>
     </Teleport>

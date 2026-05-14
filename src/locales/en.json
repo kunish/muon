@@ -1142,5 +1142,8 @@
   },
   "workplace": {
     "subtitle": "Apps & workflow center"
+  },
+  "docs": {
+    "import_doc": "Import document"
   }
 }

@@ -1142,5 +1142,8 @@
   },
   "workplace": {
     "subtitle": "应用与流程中心"
+  },
+  "docs": {
+    "import_doc": "导入文档"
   }
 }
