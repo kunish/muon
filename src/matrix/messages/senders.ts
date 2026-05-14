@@ -156,8 +156,14 @@ export async function sendAudioMessage(roomId: string, file: Blob, duration: num
   return res.event_id
 }
 
-export async function editMessage(roomId: string, eventId: string, newBody: string, html?: string): Promise<void> {
-  const newContent = createTextMessageContent(newBody, html)
+export async function editMessage(
+  roomId: string,
+  eventId: string,
+  newBody: string,
+  html?: string,
+  options?: SendTextOptions,
+): Promise<void> {
+  const newContent = createTextMessageContent(newBody, html, options)
   const replacementContent: MatrixTextContent = {
     ...newContent,
     body: `* ${newContent.body}`,
@@ -185,8 +191,14 @@ export async function redactMessage(roomId: string, eventId: string, reason?: st
   await getClient().redactEvent(roomId, eventId, undefined, reason ? { reason } : undefined)
 }
 
-export async function replyToMessage(roomId: string, eventId: string, body: string, html?: string): Promise<void> {
-  const content = createTextMessageContent(body, html)
+export async function replyToMessage(
+  roomId: string,
+  eventId: string,
+  body: string,
+  html?: string,
+  options?: SendTextOptions,
+): Promise<void> {
+  const content = createTextMessageContent(body, html, options)
   await getClient().sendMessage(roomId, {
     ...content,
     'm.relates_to': { 'm.in_reply_to': { event_id: eventId } },

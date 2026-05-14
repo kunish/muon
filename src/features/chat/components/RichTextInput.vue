@@ -417,7 +417,7 @@ async function sendTextContent(
         toast.error(t('chat.send_failed'))
         return { ok: false, sentPlainText: false }
       }
-      await editMessage(roomId, eventId, text, html)
+      await editMessage(roomId, eventId, text, html, options)
       return { ok: true, sentPlainText: false }
     }
 
@@ -427,7 +427,7 @@ async function sendTextContent(
         toast.error(t('chat.send_failed'))
         return { ok: false, sentPlainText: false }
       }
-      await replyToMessage(roomId, eventId, text, html)
+      await replyToMessage(roomId, eventId, text, html, options)
       return { ok: true, sentPlainText: false }
     }
 
