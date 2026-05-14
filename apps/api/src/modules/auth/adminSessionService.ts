@@ -5,6 +5,13 @@ import { adminLoginRequestSchema } from '@muon/enterprise-contracts'
 import { verifyPassword } from '../../security/password'
 import { assertAdminRole } from '../users/rbac'
 
+export class AdminAuthenticationError extends Error {
+  constructor(message = 'Admin authentication required') {
+    super(message)
+    this.name = 'AdminAuthenticationError'
+  }
+}
+
 export interface AdminSession {
   session: MuonSession
   user: EnterpriseUserRecord
