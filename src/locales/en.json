@@ -1144,6 +1144,8 @@
     "subtitle": "Apps & workflow center"
   },
   "docs": {
-    "import_doc": "Import document"
+    "import_doc": "Import document",
+    "import_too_large": "File too large; max 1 MB",
+    "untitled_import": "Imported document"
   }
 }

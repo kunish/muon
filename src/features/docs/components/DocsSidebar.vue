@@ -1,13 +1,18 @@
 <script setup lang="ts">
 import { Clock3, Star, Users } from 'lucide-vue-next'
+import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
+import { toast } from 'vue-sonner'
 import { useDocsStore } from '../stores/docsStore'
 import DocsCreateButton from './DocsCreateButton.vue'
 import DocsFolderTree from './DocsFolderTree.vue'
 import DocsSidebarNav from './DocsSidebarNav.vue'
 
+const { t } = useI18n()
 const store = useDocsStore()
 const router = useRouter()
+
+const IMPORT_DOC_MAX_BYTES = 1024 * 1024
 
 const sections = [
   { id: 'recent' as const, label: '最近更新', icon: Clock3 },
@@ -30,6 +35,17 @@ function selectFolder(folderId: string): void {
 async function handleCreate(): Promise<void> {
   const docId = await store.createDocument('新建协作文档', store.activeFolder)
   await router.push(`/docs/${docId}`)
+}
+
+async function importDoc(file: File): Promise<void> {
+  if (file.size > IMPORT_DOC_MAX_BYTES) {
+    toast.error(t('docs.import_too_large'))
+    return
+  }
+  const text = await file.text()
+  const title = file.name.replace(/\.(md|markdown|txt)$/i, '') || t('docs.untitled_import')
+  const docId = await store.createDocument(title, store.activeFolder)
+  await store.appendMarkdown(docId, text)
 }
 
 async function createFolder(parentId: string, name: string): Promise<void> {
@@ -60,7 +76,7 @@ async function deleteFolder(folderId: string): Promise<void> {
       </p>
     </div>
 
-    <DocsCreateButton @create-doc="handleCreate" @create-folder="createFolder('', '新建文件夹')" />
+    <DocsCreateButton @create-doc="handleCreate" @create-folder="createFolder('', '新建文件夹')" @import-doc="importDoc" />
 
     <DocsSidebarNav
       :sections="sections"
