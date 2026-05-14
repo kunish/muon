@@ -1,7 +1,7 @@
 import type { MatrixProvisioningAdapter } from './modules/matrix/provisioning'
 import type { EnterpriseRepository, EnterpriseUserRecord } from './repository'
 import { jsonResponse, readJsonBody } from './http'
-import { createAdminSessionService } from './modules/auth/adminSessionService'
+import { AdminAuthenticationError, createAdminSessionService } from './modules/auth/adminSessionService'
 import { createInstallService } from './modules/install/installService'
 import { createOAuthService } from './modules/oauth/oauthService'
 import { createOrganizationService } from './modules/organizations/organizationService'
@@ -40,6 +40,9 @@ function notFound(): Response {
 }
 
 function errorResponse(error: unknown): Response {
+  if (error instanceof AdminAuthenticationError)
+    return jsonResponse({ error: error.message }, { status: 401 })
+
   const message = error instanceof Error ? error.message : 'Unexpected error'
   const status = /credentials|not found|invalid/i.test(message) ? 400 : 409
   return jsonResponse({ error: message }, { status })
