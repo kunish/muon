@@ -18,6 +18,8 @@ interface MatrixTextContent {
   'format'?: typeof MATRIX_HTML_FORMAT
   'formatted_body'?: string
   'm.mentions'?: { user_ids: string[] }
+  // Unstable: MSC4019. Servers that don't recognize this key MUST treat the message as normal.
+  'org.matrix.msc4019.silent'?: true
 }
 
 /**
@@ -39,13 +41,23 @@ function convertMentionsToMatrix(html: string): { html: string, userIds: string[
   return { html: converted, userIds }
 }
 
-export async function sendTextMessage(roomId: string, body: string, html?: string): Promise<string> {
-  const content = createTextMessageContent(body, html)
+export interface SendTextOptions {
+  silent?: boolean
+}
+
+export async function sendTextMessage(
+  roomId: string,
+  body: string,
+  html?: string,
+  options?: SendTextOptions,
+): Promise<string> {
+  const content = createTextMessageContent(body, html, options)
   const res = await getClient().sendMessage(roomId, content as RoomMessageEventContent)
   return res.event_id
 }
 
-function createTextMessageContent(body: string, html?: string): MatrixTextContent {
+function createTextMessageContent(body: string, html?: string, options?: SendTextOptions): MatrixTextContent {
+  const silentTag = options?.silent ? ({ 'org.matrix.msc4019.silent': true } as const) : null
   if (html && !isPlainEditorHtml(html, body)) {
     const { html: matrixHtml, userIds } = convertMentionsToMatrix(html)
     const formattedBody = sanitizeMatrixHtml(matrixHtml)
@@ -56,10 +68,11 @@ function createTextMessageContent(body: string, html?: string): MatrixTextConten
       formatted_body: formattedBody,
       // 添加 m.mentions 用于通知被提及的用户
       ...(userIds.length > 0 ? { 'm.mentions': { user_ids: userIds } } : {}),
+      ...(silentTag ?? {}),
     }
   }
 
-  return { msgtype: MsgType.Text, body }
+  return { msgtype: MsgType.Text, body, ...(silentTag ?? {}) }
 }
 
 function isPlainEditorHtml(html: string, body: string): boolean {
