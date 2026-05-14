@@ -7,7 +7,7 @@ import { Label } from '@muon/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@muon/ui/select'
 import { computed, reactive, ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
-import { createAdminUser, createOrganization, installMuon, listAuditLogs, listOrganizations, listUsers, loginAdmin, resetAdminUserPassword, updateAdminUser } from './api'
+import { createAdminUser, createOrganization, getAdminMe, installMuon, listAuditLogs, listOrganizations, listUsers, loginAdmin, resetAdminUserPassword, updateAdminUser } from './api'
 import { adminSections, defaultAdminSection, isAdminSection } from './router'
 
 const props = withDefaults(defineProps<{
@@ -423,8 +423,23 @@ async function submitResetUserPassword(user: EnterpriseUser) {
   }
 }
 
-if (adminToken.value)
-  void refreshDashboard()
+async function bootstrap() {
+  const token = adminToken.value
+  if (!token)
+    return
+  try {
+    await getAdminMe(token)
+    await refreshDashboard()
+  }
+  catch (err) {
+    if (isAuthenticationError(err))
+      clearAdminToken()
+    else
+      userError.value = err instanceof Error ? err.message : '加载后台数据失败'
+  }
+}
+
+void bootstrap()
 </script>
 
 <template>

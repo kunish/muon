@@ -1,8 +1,8 @@
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMemoryHistory } from 'vue-router'
 import AdminApp from '../../apps/admin/src/AdminApp.vue'
-import { createAdminUser, createOrganization, listAuditLogs, listOrganizations, listUsers, loginAdmin, resetAdminUserPassword, updateAdminUser } from '../../apps/admin/src/api'
+import { createAdminUser, createOrganization, getAdminMe, listAuditLogs, listOrganizations, listUsers, loginAdmin, resetAdminUserPassword, updateAdminUser } from '../../apps/admin/src/api'
 import { createAdminRouter } from '../../apps/admin/src/router'
 
 vi.mock('../../apps/admin/src/api', () => ({
@@ -35,6 +35,20 @@ vi.mock('../../apps/admin/src/api', () => ({
       username: 'beta-owner',
       email: 'owner@beta.test',
       displayName: 'Beta Owner',
+      status: 'active',
+      mustChangePassword: false,
+      roles: ['owner'],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+  })),
+  getAdminMe: vi.fn(async () => ({
+    user: {
+      id: 'user-owner',
+      organizationId: 'org-1',
+      username: 'owner',
+      email: 'owner@muon.local',
+      displayName: 'Owner',
       status: 'active',
       mustChangePassword: false,
       roles: ['owner'],
@@ -561,5 +575,37 @@ describe('adminApp', () => {
         ownerPassword: 'correct horse battery staple',
       })
     })
+  })
+
+  it('validates a stored admin token on mount before showing the dashboard', async () => {
+    window.localStorage.setItem('muon_admin_token', 'stored-token')
+    const wrapper = mount(AdminApp, {
+      props: { initialInstalled: true },
+      global: {
+        plugins: [createAdminRouter(createMemoryHistory())],
+      },
+    })
+    await flushPromises()
+
+    expect(getAdminMe).toHaveBeenCalledWith('stored-token')
+    expect(listOrganizations).toHaveBeenCalled()
+    expect(wrapper.find('[data-testid="organizations-panel"]').exists()).toBe(true)
+  })
+
+  it('clears the stored token and falls back to the login form when getAdminMe rejects with auth error', async () => {
+    window.localStorage.setItem('muon_admin_token', 'stale-token')
+    ;(getAdminMe as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('Admin authentication required'))
+
+    const wrapper = mount(AdminApp, {
+      props: { initialInstalled: true },
+      global: {
+        plugins: [createAdminRouter(createMemoryHistory())],
+      },
+    })
+    await flushPromises()
+
+    expect(window.localStorage.getItem('muon_admin_token')).toBe(null)
+    expect(wrapper.find('input[autocomplete="organization"]').exists()).toBe(true)
+    expect(listOrganizations).not.toHaveBeenCalled()
   })
 })
