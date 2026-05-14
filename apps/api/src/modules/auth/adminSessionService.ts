@@ -1,6 +1,6 @@
 import type { AdminLoginRequest, MuonSession } from '@muon/enterprise-contracts'
 import type { EnterpriseRepository, EnterpriseUserRecord } from '../../repository'
-import { randomBytes } from 'node:crypto'
+import { createHash, randomBytes } from 'node:crypto'
 import { adminLoginRequestSchema } from '@muon/enterprise-contracts'
 import { verifyPassword } from '../../security/password'
 import { assertAdminRole } from '../users/rbac'
@@ -33,6 +33,10 @@ function sessionExpiry(): string {
   return new Date(Date.now() + 1000 * 60 * 60 * 8).toISOString()
 }
 
+function sha256(value: string): string {
+  return createHash('sha256').update(value).digest('hex')
+}
+
 export function createAdminSessionService({ repository }: AdminSessionServiceDeps): AdminSessionService {
   return {
     async login(input) {
@@ -58,13 +62,20 @@ export function createAdminSessionService({ repository }: AdminSessionServiceDep
         targetId: user.id,
       })
 
+      const accessToken = createToken()
+      const refreshToken = createToken()
+      const expiresAt = sessionExpiry()
+      await repository.createAdminSession({
+        organizationId: organization.id,
+        userId: user.id,
+        accessTokenHash: sha256(accessToken),
+        refreshTokenHash: sha256(refreshToken),
+        expiresAt,
+      })
+
       return {
         user,
-        session: {
-          accessToken: createToken(),
-          refreshToken: createToken(),
-          expiresAt: sessionExpiry(),
-        },
+        session: { accessToken, refreshToken, expiresAt },
       }
     },
   }
