@@ -109,3 +109,11 @@ export function listAuditLogs(token: string): Promise<{ auditLogs: AuditLog[] }>
     },
   })
 }
+
+export function getAdminMe(token: string): Promise<{ user: EnterpriseUser }> {
+  return request('/api/admin/me', {
+    headers: {
+      authorization: `Bearer ${token}`,
+    },
+  })
+}
