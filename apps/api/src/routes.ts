@@ -163,14 +163,11 @@ export function createEnterpriseHttpHandler(options: EnterpriseHttpHandlerOption
     matrix: options.matrix ?? defaultMatrixAdapter(),
     matrixServerUrl: options.matrixServerUrl ?? 'http://127.0.0.1:6167',
   })
-  const adminTokens = new Map<string, EnterpriseUserRecord>()
-
   async function requireAdmin(request: Request): Promise<EnterpriseUserRecord> {
     const token = bearerToken(request)
-    const user = token ? adminTokens.get(token) : null
-    if (!user)
-      throw new Error('Admin authentication required')
-    return user
+    if (!token)
+      throw new AdminAuthenticationError()
+    return adminSessionService.validate(token)
   }
 
   return {
@@ -202,7 +199,6 @@ export function createEnterpriseHttpHandler(options: EnterpriseHttpHandlerOption
           if (request.method !== 'POST')
             return methodNotAllowed()
           const result = await adminSessionService.login(await readRequestBody(request) as never)
-          adminTokens.set(result.session.accessToken, result.user)
           return withCors(jsonResponse({
             session: result.session,
             user: repository.getPublicUser(result.user),

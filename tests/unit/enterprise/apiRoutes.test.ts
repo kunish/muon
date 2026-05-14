@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { createInMemoryEnterpriseRepository } from '../../../apps/api/src/repository'
 import { createEnterpriseHttpHandler } from '../../../apps/api/src/routes'
 
 describe('enterprise api routes', () => {
@@ -175,5 +176,55 @@ describe('enterprise api routes', () => {
       }),
     }))
     expect(relogin.status).toBe(200)
+  })
+
+  it('rejects admin requests with no bearer token as 401', async () => {
+    const handler = createEnterpriseHttpHandler()
+    const response = await handler.fetch(new Request('http://muon.test/api/admin/organizations'))
+    expect(response.status).toBe(401)
+  })
+
+  it('rejects admin requests with an unknown bearer token as 401', async () => {
+    const handler = createEnterpriseHttpHandler()
+    const response = await handler.fetch(new Request('http://muon.test/api/admin/organizations', {
+      headers: { authorization: 'Bearer bogus-token' },
+    }))
+    expect(response.status).toBe(401)
+  })
+
+  it('keeps admin sessions valid across handler recreation when sharing a repository', async () => {
+    const repository = createInMemoryEnterpriseRepository()
+    const handlerA = createEnterpriseHttpHandler({ repository })
+
+    await handlerA.fetch(new Request('http://muon.test/api/install', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        organizationName: 'Acme',
+        organizationSlug: 'acme',
+        ownerUsername: 'owner',
+        ownerEmail: 'owner@acme.test',
+        ownerDisplayName: 'Owner',
+        ownerPassword: 'correct horse battery staple',
+      }),
+    }))
+
+    const login = await handlerA.fetch(new Request('http://muon.test/api/admin/login', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        organizationSlug: 'acme',
+        username: 'owner',
+        password: 'correct horse battery staple',
+      }),
+    }))
+    const loginPayload = await login.json() as { session: { accessToken: string } }
+
+    // Simulate a restart: same repository (= same DB), brand new HTTP handler instance.
+    const handlerB = createEnterpriseHttpHandler({ repository })
+    const me = await handlerB.fetch(new Request('http://muon.test/api/admin/me', {
+      headers: { authorization: `Bearer ${loginPayload.session.accessToken}` },
+    }))
+    expect(me.status).toBe(200)
   })
 })
