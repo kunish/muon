@@ -33,8 +33,13 @@ function selectFolder(folderId: string): void {
 }
 
 async function handleCreate(): Promise<void> {
-  const docId = await store.createDocument('新建协作文档', store.activeFolder)
-  await router.push(`/docs/${docId}`)
+  try {
+    const docId = await store.createDocument('新建协作文档', store.activeFolder)
+    await router.push(`/docs/${docId}`)
+  }
+  catch {
+    toast.error(t('docs.create_failed'))
+  }
 }
 
 async function importDoc(file: File): Promise<void> {
@@ -42,10 +47,15 @@ async function importDoc(file: File): Promise<void> {
     toast.error(t('docs.import_too_large'))
     return
   }
-  const text = await file.text()
-  const title = file.name.replace(/\.(md|markdown|txt)$/i, '') || t('docs.untitled_import')
-  const docId = await store.createDocument(title, store.activeFolder)
-  await store.appendMarkdown(docId, text)
+  try {
+    const text = await file.text()
+    const title = file.name.replace(/\.(md|markdown|txt)$/i, '') || t('docs.untitled_import')
+    const docId = await store.createDocument(title, store.activeFolder)
+    await store.appendMarkdown(docId, text)
+  }
+  catch {
+    toast.error(t('docs.import_failed'))
+  }
 }
 
 async function createFolder(parentId: string, name: string): Promise<void> {

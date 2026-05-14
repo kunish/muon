@@ -1146,6 +1146,8 @@
   "docs": {
     "import_doc": "导入文档",
     "import_too_large": "文件过大，最多支持 1 MB",
-    "untitled_import": "导入的文档"
+    "untitled_import": "导入的文档",
+    "create_failed": "新建文档失败",
+    "import_failed": "导入文档失败"
   }
 }
