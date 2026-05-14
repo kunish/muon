@@ -200,6 +200,7 @@ describe('rich text input editor expansion', () => {
       '!room:localhost',
       'Release notes\n\nHello body',
       '<p><strong>Release notes</strong></p><p>Hello body</p>',
+      undefined,
     )
 
     wrapper.unmount()

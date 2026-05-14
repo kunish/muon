@@ -275,6 +275,7 @@ describe('richTextInput send recovery', () => {
       '!room:localhost',
       'Bold caption\n[mixed.png]',
       '<p><strong>Bold caption</strong></p><p><img src="mxc://server/mixed.png" alt="mixed.png" title="mixed.png" data-width="640" data-height="360"></p>',
+      undefined,
     )
   })
 
@@ -309,7 +310,7 @@ describe('richTextInput send recovery', () => {
 
     await mocks.onSubmit?.('<p>Hello</p>', 'Hello')
 
-    expect(sendTextMessage).toHaveBeenCalledWith('!room:localhost', 'Hello', '<p>Hello</p>')
+    expect(sendTextMessage).toHaveBeenCalledWith('!room:localhost', 'Hello', '<p>Hello</p>', undefined)
     expect(mocks.clear).not.toHaveBeenCalled()
     expect(mocks.stopTyping).not.toHaveBeenCalled()
   })
@@ -324,7 +325,7 @@ describe('richTextInput send recovery', () => {
 
     await mocks.onSubmit?.('<p>Hello</p>', 'Hello')
 
-    expect(sendTextMessage).toHaveBeenCalledWith('!room:localhost', 'Hello', '<p>Hello</p>')
+    expect(sendTextMessage).toHaveBeenCalledWith('!room:localhost', 'Hello', '<p>Hello</p>', undefined)
     expect(mocks.clear).toHaveBeenCalledTimes(1)
     expect(mocks.stopTyping).toHaveBeenCalledTimes(1)
     expect(store.replyingTo).toBeNull()
@@ -383,7 +384,7 @@ describe('richTextInput send recovery', () => {
     pendingSend.resolve('$event-3')
     await submitPromise
 
-    expect(sendTextMessage).toHaveBeenCalledWith('!room:localhost', 'Original', '<p>Original</p>')
+    expect(sendTextMessage).toHaveBeenCalledWith('!room:localhost', 'Original', '<p>Original</p>', undefined)
     expect(mocks.clear).not.toHaveBeenCalled()
     expect(mocks.stopTyping).not.toHaveBeenCalled()
   })
@@ -406,7 +407,7 @@ describe('richTextInput send recovery', () => {
     await firstSubmit
     await secondSubmit
 
-    expect(sendTextMessage).toHaveBeenCalledWith('!room:localhost', 'Hello', '<p>Hello</p>')
+    expect(sendTextMessage).toHaveBeenCalledWith('!room:localhost', 'Hello', '<p>Hello</p>', undefined)
     expect(mocks.clear).toHaveBeenCalledTimes(1)
     expect(mocks.stopTyping).toHaveBeenCalledTimes(1)
   })
@@ -495,7 +496,7 @@ describe('richTextInput send recovery', () => {
     pendingSend.resolve('$event-9')
     await submitPromise
 
-    expect(sendTextMessage).toHaveBeenCalledWith('!room:localhost', 'Same room text', '<p>Same room text</p>')
+    expect(sendTextMessage).toHaveBeenCalledWith('!room:localhost', 'Same room text', '<p>Same room text</p>', undefined)
     expect(store.currentRoomId).toBe('!other:localhost')
     expect(mocks.clear).not.toHaveBeenCalled()
     expect(mocks.stopTyping).not.toHaveBeenCalled()
@@ -520,7 +521,7 @@ describe('richTextInput send recovery', () => {
     store.setCurrentRoom('!room-a:localhost')
     await nextTick()
 
-    expect(sendTextMessage).toHaveBeenCalledWith('!room-a:localhost', 'Hello', '<p>Hello</p>')
+    expect(sendTextMessage).toHaveBeenCalledWith('!room-a:localhost', 'Hello', '<p>Hello</p>', undefined)
     expect(mocks.setContent).not.toHaveBeenCalledWith('<p>Hello</p>')
   })
 
@@ -549,7 +550,7 @@ describe('richTextInput send recovery', () => {
     store.setCurrentRoom('!room-a:localhost')
     await nextTick()
 
-    expect(sendTextMessage).toHaveBeenCalledWith('!room-a:localhost', 'Hello', '<p>Hello</p>')
+    expect(sendTextMessage).toHaveBeenCalledWith('!room-a:localhost', 'Hello', '<p>Hello</p>', undefined)
     expect(mocks.setContent).toHaveBeenCalledWith('<p>Newer draft</p>')
     expect(mocks.setContent).not.toHaveBeenCalledWith('<p>Hello</p>')
   })
@@ -630,7 +631,7 @@ describe('richTextInput send recovery', () => {
     pendingSend.resolve('$event-10')
     await submitPromise
 
-    expect(sendTextMessage).toHaveBeenCalledWith('!room:localhost', 'Formatted text', '<p>Formatted text</p>')
+    expect(sendTextMessage).toHaveBeenCalledWith('!room:localhost', 'Formatted text', '<p>Formatted text</p>', undefined)
     expect(mocks.clear).not.toHaveBeenCalled()
     expect(mocks.stopTyping).not.toHaveBeenCalled()
   })
@@ -722,7 +723,7 @@ describe('richTextInput send recovery', () => {
     pendingSend.resolve('$event-19')
     await submitPromise
 
-    expect(sendTextMessage).toHaveBeenCalledWith('!room:localhost', 'Same text', '<p>Same text</p>')
+    expect(sendTextMessage).toHaveBeenCalledWith('!room:localhost', 'Same text', '<p>Same text</p>', undefined)
     expect(mocks.clear).not.toHaveBeenCalled()
     expect(mocks.stopTyping).not.toHaveBeenCalled()
   })

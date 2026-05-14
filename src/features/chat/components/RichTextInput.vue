@@ -431,10 +431,7 @@ async function sendTextContent(
       return { ok: true, sentPlainText: false }
     }
 
-    if (options)
-      await sendTextMessage(roomId, text, html, options)
-    else
-      await sendTextMessage(roomId, text, html)
+    await sendTextMessage(roomId, text, html, options)
     return { ok: true, sentPlainText: true }
   }
   catch {
