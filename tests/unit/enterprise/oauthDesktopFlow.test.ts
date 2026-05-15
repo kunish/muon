@@ -61,4 +61,45 @@ describe('desktop oauth flow', () => {
       deviceName: 'Muon Desktop',
     })).rejects.toThrow('Authorization code has already been used')
   })
+
+  it('refuses OAuth login when the user must change their password', async () => {
+    const repository = createInMemoryEnterpriseRepository()
+    const install = await createInstallService({ repository }).install({
+      organizationName: 'Acme',
+      organizationSlug: 'acme',
+      ownerUsername: 'owner',
+      ownerEmail: 'owner@acme.test',
+      ownerDisplayName: 'Owner',
+      ownerPassword: 'correct horse battery staple',
+    })
+
+    // installService creates owner with mustChangePassword=false; flip it.
+    const ownerRecord = repository.users.find(user => user.id === install.owner.id)
+    if (!ownerRecord) throw new Error('precondition: owner missing')
+    await repository.resetUserPassword(install.organization.id, install.owner.id, {
+      passwordHash: ownerRecord.passwordHash,
+      mustChangePassword: true,
+    })
+
+    const oauth = createOAuthService({
+      repository,
+      matrix: {
+        async ensureUser() {
+          return { matrixUserId: '@owner.acme:localhost', accessToken: 'mx', deviceId: 'D' }
+        },
+      },
+      matrixServerUrl: 'http://localhost',
+    })
+
+    await expect(oauth.loginAndCreateCode({
+      organizationSlug: 'acme',
+      username: 'owner',
+      password: 'correct horse battery staple',
+      clientId: 'muon-desktop',
+      redirectUri: 'muon://auth/callback',
+      codeChallenge: 'a'.repeat(43),
+      codeChallengeMethod: 'S256',
+      state: 'state-value',
+    })).rejects.toMatchObject({ name: 'MustChangePasswordError' })
+  })
 })

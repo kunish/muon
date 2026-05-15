@@ -9,6 +9,7 @@ import type { MatrixProvisioningAdapter } from '../matrix/provisioning'
 import { createHash, randomBytes } from 'node:crypto'
 import { oauthLoginRequestSchema, oauthTokenRequestSchema } from '@muon/enterprise-contracts'
 import { verifyPassword } from '../../security/password'
+import { MustChangePasswordError } from '../auth/adminSessionService'
 
 const DESKTOP_CLIENT_ID = 'muon-desktop'
 const DESKTOP_REDIRECT_URI = 'muon://auth/callback'
@@ -78,6 +79,9 @@ export function createOAuthService({ repository, matrix, matrixServerUrl }: OAut
         request.username,
         request.password,
       )
+
+      if (user.mustChangePassword)
+        throw new MustChangePasswordError()
 
       const existingMatrixAccount = await repository.findMatrixAccount(organizationId, user.id)
       const provisioned = existingMatrixAccount
