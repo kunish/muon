@@ -70,7 +70,7 @@ export interface AuthorizationCodeRecord {
 }
 
 export interface DeviceSessionRecord {
-  accessToken: string
+  accessTokenHash: string
   createdAt: string
   deviceName: string
   expiresAt: string
@@ -124,7 +124,7 @@ export interface AdminSessionRecord {
 }
 
 export interface CreateDeviceSessionInput {
-  accessToken: string
+  accessTokenHash: string
   deviceName: string
   expiresAt: string
   organizationId: string
@@ -295,7 +295,7 @@ export function createInMemoryEnterpriseRepository(): EnterpriseRepository {
         organizationId: input.organizationId,
         userId: input.userId,
         deviceName: input.deviceName,
-        accessToken: input.accessToken,
+        accessTokenHash: input.accessTokenHash,
         refreshTokenHash: input.refreshTokenHash,
         expiresAt: input.expiresAt,
         revokedAt: null,

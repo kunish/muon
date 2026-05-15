@@ -107,7 +107,7 @@ function deviceSessionFromRow(row: Record<string, unknown>): DeviceSessionRecord
     organizationId: String(row.organization_id),
     userId: String(row.user_id),
     deviceName: String(row.device_name),
-    accessToken: String(row.access_token),
+    accessTokenHash: String(row.access_token_hash),
     refreshTokenHash: String(row.refresh_token_hash),
     expiresAt: iso(row.expires_at as string | Date),
     revokedAt: row.revoked_at ? iso(row.revoked_at as string | Date) : null,
@@ -226,7 +226,7 @@ export async function createPostgresEnterpriseRepository(databaseUrl: string): P
 
     async createDeviceSession(input: CreateDeviceSessionInput) {
       const result = await pool.query(
-        `INSERT INTO device_sessions (id, organization_id, user_id, device_name, access_token, refresh_token_hash, expires_at, revoked_at, created_at)
+        `INSERT INTO device_sessions (id, organization_id, user_id, device_name, access_token_hash, refresh_token_hash, expires_at, revoked_at, created_at)
          VALUES ($1, $2, $3, $4, $5, $6, $7, NULL, $8)
          RETURNING *`,
         [
@@ -234,23 +234,13 @@ export async function createPostgresEnterpriseRepository(databaseUrl: string): P
           input.organizationId,
           input.userId,
           input.deviceName,
-          input.accessToken,
+          input.accessTokenHash,
           input.refreshTokenHash,
           input.expiresAt,
           nowIso(),
         ],
       )
-      return {
-        id: String(result.rows[0].id),
-        organizationId: String(result.rows[0].organization_id),
-        userId: String(result.rows[0].user_id),
-        deviceName: String(result.rows[0].device_name),
-        accessToken: String(result.rows[0].access_token),
-        refreshTokenHash: String(result.rows[0].refresh_token_hash),
-        expiresAt: iso(result.rows[0].expires_at),
-        revokedAt: result.rows[0].revoked_at ? iso(result.rows[0].revoked_at) : null,
-        createdAt: iso(result.rows[0].created_at),
-      }
+      return deviceSessionFromRow(result.rows[0])
     },
 
     async createOrganization(input: CreateOrganizationInput) {

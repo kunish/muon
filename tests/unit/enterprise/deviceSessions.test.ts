@@ -22,7 +22,7 @@ describe('device session repository methods', () => {
       organizationId: install.organization.id,
       userId: install.owner.id,
       deviceName: 'Muon Desktop',
-      accessToken: 'plain-access-1',
+      accessTokenHash: 'plain-access-1',
       refreshTokenHash: 'refresh-hash-1',
       expiresAt: new Date(Date.now() + 3600_000).toISOString(),
     })
@@ -41,7 +41,7 @@ describe('device session repository methods', () => {
       organizationId: install.organization.id,
       userId: install.owner.id,
       deviceName: 'Muon Desktop A',
-      accessToken: 'a',
+      accessTokenHash: 'a',
       refreshTokenHash: 'a-r',
       expiresAt: new Date(Date.now() + 3600_000).toISOString(),
     })
@@ -50,7 +50,7 @@ describe('device session repository methods', () => {
       organizationId: install.organization.id,
       userId: install.owner.id,
       deviceName: 'Muon Desktop B',
-      accessToken: 'b',
+      accessTokenHash: 'b',
       refreshTokenHash: 'b-r',
       expiresAt: new Date(Date.now() - 1000).toISOString(),
     })
@@ -59,7 +59,7 @@ describe('device session repository methods', () => {
       organizationId: install.organization.id,
       userId: install.owner.id,
       deviceName: 'Muon Desktop C',
-      accessToken: 'c',
+      accessTokenHash: 'c',
       refreshTokenHash: 'c-r',
       expiresAt: new Date(Date.now() + 3600_000).toISOString(),
     })
@@ -77,7 +77,7 @@ describe('device session repository methods', () => {
       organizationId: install.organization.id,
       userId: install.owner.id,
       deviceName: 'Muon Desktop',
-      accessToken: 'plain',
+      accessTokenHash: 'plain',
       refreshTokenHash: 'plain-r',
       expiresAt: new Date(Date.now() + 3600_000).toISOString(),
     })

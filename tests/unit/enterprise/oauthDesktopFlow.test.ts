@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { describe, expect, it, vi } from 'vitest'
 import { createInstallService } from '../../../apps/api/src/modules/install/installService'
 import { createOAuthService } from '../../../apps/api/src/modules/oauth/oauthService'
@@ -101,5 +102,53 @@ describe('desktop oauth flow', () => {
       codeChallengeMethod: 'S256',
       state: 'state-value',
     })).rejects.toMatchObject({ name: 'MustChangePasswordError' })
+  })
+
+  it('exchangeCode stores access_token as a hash, not plaintext', async () => {
+    const repository = createInMemoryEnterpriseRepository()
+    await createInstallService({ repository }).install({
+      organizationName: 'Acme',
+      organizationSlug: 'acme',
+      ownerUsername: 'owner',
+      ownerEmail: 'owner@acme.test',
+      ownerDisplayName: 'Owner',
+      ownerPassword: 'correct horse battery staple',
+    })
+    const oauth = createOAuthService({
+      repository,
+      matrix: {
+        async ensureUser() {
+          return { matrixUserId: '@acme.owner:localhost', accessToken: 'mx-1', deviceId: 'D1' }
+        },
+      },
+      matrixServerUrl: 'http://localhost:6167',
+    })
+
+    const verifier = 'a'.repeat(48)
+    const login = await oauth.loginAndCreateCode({
+      organizationSlug: 'acme',
+      username: 'owner',
+      password: 'correct horse battery staple',
+      clientId: 'muon-desktop',
+      redirectUri: 'muon://auth/callback',
+      codeChallenge: verifier,
+      codeChallengeMethod: 'plain',
+      state: 'st',
+    })
+    const exchanged = await oauth.exchangeCode({
+      code: login.code,
+      codeVerifier: verifier,
+      redirectUri: 'muon://auth/callback',
+      clientId: 'muon-desktop',
+      deviceName: 'Muon Desktop',
+    })
+
+    const stored = repository.deviceSessions[0]
+    expect(stored.accessTokenHash).not.toBe(exchanged.muonSession.accessToken)
+
+    const expectedHash = createHash('sha256')
+      .update(`access:${exchanged.muonSession.accessToken}`)
+      .digest('base64url')
+    expect(stored.accessTokenHash).toBe(expectedHash)
   })
 })

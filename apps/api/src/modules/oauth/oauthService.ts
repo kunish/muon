@@ -166,7 +166,7 @@ export function createOAuthService({ repository, matrix, matrixServerUrl }: OAut
         organizationId: authorizationCode.organizationId,
         userId: authorizationCode.userId,
         deviceName: request.deviceName,
-        accessToken,
+        accessTokenHash: sha256(`access:${accessToken}`),
         refreshTokenHash: sha256(`refresh:${refreshToken}`),
         expiresAt,
       })
