@@ -148,3 +148,9 @@ export const auditLogSchema = z.object({
   createdAt: z.string().datetime(),
 })
 export type AuditLog = z.infer<typeof auditLogSchema>
+
+export const changeOwnPasswordRequestSchema = z.object({
+  currentPassword: z.string().min(1),
+  newPassword: z.string().min(12),
+})
+export type ChangeOwnPasswordRequest = z.infer<typeof changeOwnPasswordRequestSchema>
