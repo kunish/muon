@@ -1,10 +1,14 @@
-import type { CreateUserRequest, EnterpriseUser, ResetPasswordRequest, UpdateUserRequest } from '@muon/enterprise-contracts'
+import type { ChangeOwnPasswordRequest, CreateUserRequest, EnterpriseUser, ResetPasswordRequest, UpdateUserRequest } from '@muon/enterprise-contracts'
 import type { EnterpriseRepository, EnterpriseUserRecord } from '../../repository'
-import { createUserRequestSchema, resetPasswordRequestSchema, updateUserRequestSchema } from '@muon/enterprise-contracts'
-import { hashPassword } from '../../security/password'
+import { changeOwnPasswordRequestSchema, createUserRequestSchema, resetPasswordRequestSchema, updateUserRequestSchema } from '@muon/enterprise-contracts'
+import { hashPassword, verifyPassword } from '../../security/password'
 import { assertAdminRole } from './rbac'
 
 export interface UserService {
+  changeOwnPassword: (
+    user: EnterpriseUserRecord,
+    input: ChangeOwnPasswordRequest,
+  ) => Promise<EnterpriseUser>
   createUser: (actor: EnterpriseUserRecord, input: CreateUserRequest) => Promise<EnterpriseUser>
   resetUserPassword: (actor: EnterpriseUserRecord, userId: string, input: ResetPasswordRequest) => Promise<EnterpriseUser>
   updateUser: (actor: EnterpriseUserRecord, userId: string, input: UpdateUserRequest) => Promise<EnterpriseUser>
@@ -16,6 +20,27 @@ export interface UserServiceDeps {
 
 export function createUserService({ repository }: UserServiceDeps): UserService {
   return {
+    async changeOwnPassword(user, input) {
+      const request = changeOwnPasswordRequestSchema.parse(input)
+      if (!await verifyPassword(request.currentPassword, user.passwordHash))
+        throw new Error('Invalid credentials')
+
+      const updated = await repository.resetUserPassword(user.organizationId, user.id, {
+        passwordHash: await hashPassword(request.newPassword),
+        mustChangePassword: false,
+      })
+
+      await repository.appendAuditLog({
+        organizationId: user.organizationId,
+        actorUserId: user.id,
+        action: 'user.password_changed',
+        targetType: 'user',
+        targetId: user.id,
+      })
+
+      return repository.getPublicUser(updated)
+    },
+
     async createUser(actor, input) {
       assertAdminRole(actor)
       const request = createUserRequestSchema.parse(input)
