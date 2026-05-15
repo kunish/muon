@@ -8,6 +8,7 @@ import type {
   CreateDeviceSessionInput,
   CreateOrganizationInput,
   CreateUserInput,
+  DeviceSessionRecord,
   EnterpriseRepository,
   EnterpriseUserRecord,
   MatrixAccountRecord,
@@ -96,6 +97,20 @@ function authorizationCodeFromRow(row: Record<string, unknown>): AuthorizationCo
     matrixSession: row.matrix_session as AuthorizationCodeRecord['matrixSession'],
     expiresAt: iso(row.expires_at as string | Date),
     usedAt: row.used_at ? iso(row.used_at as string | Date) : null,
+    createdAt: iso(row.created_at as string | Date),
+  }
+}
+
+function deviceSessionFromRow(row: Record<string, unknown>): DeviceSessionRecord {
+  return {
+    id: String(row.id),
+    organizationId: String(row.organization_id),
+    userId: String(row.user_id),
+    deviceName: String(row.device_name),
+    accessToken: String(row.access_token),
+    refreshTokenHash: String(row.refresh_token_hash),
+    expiresAt: iso(row.expires_at as string | Date),
+    revokedAt: row.revoked_at ? iso(row.revoked_at as string | Date) : null,
     createdAt: iso(row.created_at as string | Date),
   }
 }
@@ -271,6 +286,19 @@ export async function createPostgresEnterpriseRepository(databaseUrl: string): P
       return userFromRow(result.rows[0])
     },
 
+    async findActiveDeviceSessionsByUser(organizationId: string, userId: string) {
+      const result = await pool.query(
+        `SELECT * FROM device_sessions
+          WHERE organization_id = $1
+            AND user_id = $2
+            AND revoked_at IS NULL
+            AND expires_at > NOW()
+          ORDER BY created_at DESC`,
+        [organizationId, userId],
+      )
+      return result.rows.map(deviceSessionFromRow)
+    },
+
     async findAdminSessionByTokenHash(accessTokenHash: string) {
       const result = await pool.query(
         'SELECT * FROM admin_sessions WHERE access_token_hash = $1',
@@ -282,6 +310,14 @@ export async function createPostgresEnterpriseRepository(databaseUrl: string): P
     async findAuthorizationCodeByHash(codeHash: string) {
       const result = await pool.query('SELECT * FROM oauth_authorization_codes WHERE code_hash = $1', [codeHash])
       return result.rows[0] ? authorizationCodeFromRow(result.rows[0]) : null
+    },
+
+    async findDeviceSessionByRefreshTokenHash(refreshTokenHash: string) {
+      const result = await pool.query(
+        'SELECT * FROM device_sessions WHERE refresh_token_hash = $1',
+        [refreshTokenHash],
+      )
+      return result.rows[0] ? deviceSessionFromRow(result.rows[0]) : null
     },
 
     async findMatrixAccount(organizationId: string, userId: string) {
@@ -345,6 +381,13 @@ export async function createPostgresEnterpriseRepository(databaseUrl: string): P
     async revokeAdminSession(id: string) {
       await pool.query(
         'UPDATE admin_sessions SET revoked_at = COALESCE(revoked_at, $2) WHERE id = $1',
+        [id, nowIso()],
+      )
+    },
+
+    async revokeDeviceSession(id: string) {
+      await pool.query(
+        'UPDATE device_sessions SET revoked_at = COALESCE(revoked_at, $2) WHERE id = $1',
         [id, nowIso()],
       )
     },

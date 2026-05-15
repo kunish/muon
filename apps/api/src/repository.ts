@@ -155,8 +155,13 @@ export interface EnterpriseRepository {
   createDeviceSession: (input: CreateDeviceSessionInput) => Promise<DeviceSessionRecord>
   createOrganization: (input: CreateOrganizationInput) => Promise<Organization>
   createUser: (input: CreateUserInput) => Promise<EnterpriseUserRecord>
+  findActiveDeviceSessionsByUser: (
+    organizationId: string,
+    userId: string,
+  ) => Promise<DeviceSessionRecord[]>
   findAdminSessionByTokenHash: (accessTokenHash: string) => Promise<AdminSessionRecord | null>
   findAuthorizationCodeByHash: (codeHash: string) => Promise<AuthorizationCodeRecord | null>
+  findDeviceSessionByRefreshTokenHash: (refreshTokenHash: string) => Promise<DeviceSessionRecord | null>
   findMatrixAccount: (organizationId: string, userId: string) => Promise<MatrixAccountRecord | null>
   findOrganizationBySlug: (slug: string) => Promise<Organization | null>
   findUserById: (organizationId: string, userId: string) => Promise<EnterpriseUserRecord | null>
@@ -169,6 +174,7 @@ export interface EnterpriseRepository {
   markAuthorizationCodeUsed: (id: string) => Promise<AuthorizationCodeRecord>
   resetUserPassword: (organizationId: string, userId: string, input: ResetUserPasswordInput) => Promise<EnterpriseUserRecord>
   revokeAdminSession: (id: string) => Promise<void>
+  revokeDeviceSession: (id: string) => Promise<void>
   revokeAllAdminSessionsForUserExcept: (
     organizationId: string,
     userId: string,
@@ -226,6 +232,12 @@ export function createInMemoryEnterpriseRepository(): EnterpriseRepository {
 
     async revokeAdminSession(id) {
       const session = adminSessions.find(item => item.id === id)
+      if (session && !session.revokedAt)
+        session.revokedAt = nowIso()
+    },
+
+    async revokeDeviceSession(id) {
+      const session = deviceSessions.find(item => item.id === id)
       if (session && !session.revokedAt)
         session.revokedAt = nowIso()
     },
@@ -332,8 +344,22 @@ export function createInMemoryEnterpriseRepository(): EnterpriseRepository {
       return user
     },
 
+    async findActiveDeviceSessionsByUser(organizationId, userId) {
+      const now = Date.now()
+      return deviceSessions.filter(session =>
+        session.organizationId === organizationId
+        && session.userId === userId
+        && session.revokedAt === null
+        && Date.parse(session.expiresAt) > now,
+      )
+    },
+
     async findAuthorizationCodeByHash(codeHash) {
       return authorizationCodes.find(code => code.codeHash === codeHash) ?? null
+    },
+
+    async findDeviceSessionByRefreshTokenHash(refreshTokenHash) {
+      return deviceSessions.find(session => session.refreshTokenHash === refreshTokenHash) ?? null
     },
 
     async findMatrixAccount(organizationId, userId) {
