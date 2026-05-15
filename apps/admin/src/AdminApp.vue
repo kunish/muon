@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { AuditLog, EnterpriseUser, Organization, UserRole, UserStatus } from '@muon/enterprise-contracts'
+import type { AuditLog, DeviceSessionPublic, EnterpriseUser, Organization, UserRole, UserStatus } from '@muon/enterprise-contracts'
 import { Button } from '@muon/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@muon/ui/card'
 import { Input } from '@muon/ui/input'
@@ -7,7 +7,7 @@ import { Label } from '@muon/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@muon/ui/select'
 import { computed, reactive, ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
-import { changeOwnPassword, createAdminUser, createOrganization, getAdminMe, installMuon, listAuditLogs, listOrganizations, listUsers, loginAdmin, logoutAdmin, resetAdminUserPassword, updateAdminUser } from './api'
+import { changeOwnPassword, createAdminUser, createOrganization, getAdminMe, installMuon, listAuditLogs, listOrganizations, listUserDeviceSessions, listUsers, loginAdmin, logoutAdmin, resetAdminUserPassword, revokeUserDeviceSession, updateAdminUser } from './api'
 import { adminSections, defaultAdminSection, isAdminSection } from './router'
 
 const props = withDefaults(defineProps<{
@@ -60,6 +60,10 @@ const passwordDrafts = reactive<Record<string, string>>({})
 const passwordPolicies = reactive<Record<string, boolean>>({})
 const updatingUsers = reactive<Record<string, boolean>>({})
 const resettingPasswords = reactive<Record<string, boolean>>({})
+const expandedSessions = reactive<Record<string, boolean>>({})
+const userSessions = reactive<Record<string, DeviceSessionPublic[]>>({})
+const sessionLoading = reactive<Record<string, boolean>>({})
+const revokingSession = reactive<Record<string, boolean>>({})
 const form = reactive({
   organizationName: 'Muon',
   organizationSlug: 'muon',
@@ -467,6 +471,41 @@ async function submitResetUserPassword(user: EnterpriseUser) {
   }
 }
 
+async function toggleUserSessions(userId: string) {
+  if (!adminToken.value)
+    return
+  expandedSessions[userId] = !expandedSessions[userId]
+  if (expandedSessions[userId] && !userSessions[userId]) {
+    sessionLoading[userId] = true
+    try {
+      const { sessions } = await listUserDeviceSessions(adminToken.value, userId)
+      userSessions[userId] = sessions
+    }
+    catch (err) {
+      userError.value = err instanceof Error ? err.message : '加载会话失败'
+    }
+    finally {
+      sessionLoading[userId] = false
+    }
+  }
+}
+
+async function revokeSession(userId: string, sessionId: string) {
+  if (!adminToken.value || revokingSession[sessionId])
+    return
+  revokingSession[sessionId] = true
+  try {
+    await revokeUserDeviceSession(adminToken.value, userId, sessionId)
+    userSessions[userId] = (userSessions[userId] ?? []).filter(s => s.id !== sessionId)
+  }
+  catch (err) {
+    userError.value = err instanceof Error ? err.message : '吊销失败'
+  }
+  finally {
+    revokingSession[sessionId] = false
+  }
+}
+
 async function bootstrap() {
   const token = adminToken.value
   if (!token)
@@ -810,6 +849,44 @@ void bootstrap()
                     {{ resettingPasswords[user.id] ? '正在重置' : '重置密码' }}
                   </Button>
                 </form>
+                <details
+                  class="user-sessions"
+                  :open="expandedSessions[user.id]"
+                >
+                  <summary
+                    :data-testid="`user-sessions-summary-${user.id}`"
+                    @click.prevent="toggleUserSessions(user.id)"
+                  >
+                    活跃会话 <span v-if="userSessions[user.id]">({{ userSessions[user.id].length }})</span>
+                  </summary>
+                  <div v-if="sessionLoading[user.id]" class="user-sessions-loading">
+                    加载中…
+                  </div>
+                  <div v-else-if="userSessions[user.id]?.length === 0" class="empty-state">
+                    没有活跃会话
+                  </div>
+                  <div v-else-if="userSessions[user.id]" class="user-sessions-list">
+                    <div
+                      v-for="session in userSessions[user.id]"
+                      :key="session.id"
+                      class="user-sessions-row"
+                      :data-testid="`user-sessions-row-${session.id}`"
+                    >
+                      <strong>{{ session.deviceName }}</strong>
+                      <span>创建于 {{ formatDate(session.createdAt) }}</span>
+                      <span>过期于 {{ formatDate(session.expiresAt) }}</span>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        :data-testid="`user-sessions-revoke-${session.id}`"
+                        :disabled="revokingSession[session.id]"
+                        @click="revokeSession(user.id, session.id)"
+                      >
+                        {{ revokingSession[session.id] ? '正在吊销' : '吊销' }}
+                      </Button>
+                    </div>
+                  </div>
+                </details>
               </div>
               <div v-if="filteredUsers.length === 0" class="empty-state">
                 没有匹配的用户
@@ -1188,6 +1265,44 @@ void bootstrap()
 
 .organization-row {
   grid-template-columns: 1fr 0.8fr 0.7fr 1.3fr;
+}
+
+.user-sessions {
+  margin-top: 8px;
+  padding: 8px;
+  background: #f6f7f9;
+  border-radius: 6px;
+}
+
+.user-sessions summary {
+  cursor: pointer;
+  user-select: none;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.user-sessions-loading {
+  padding: 12px;
+  color: #667085;
+  font-size: 13px;
+}
+
+.user-sessions-list {
+  margin-top: 8px;
+  display: grid;
+  gap: 6px;
+}
+
+.user-sessions-row {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr auto;
+  gap: 8px;
+  align-items: center;
+  padding: 8px;
+  background: #fff;
+  border: 1px solid #edf0f4;
+  border-radius: 6px;
+  font-size: 13px;
 }
 
 .empty-state {

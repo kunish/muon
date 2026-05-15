@@ -2,7 +2,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMemoryHistory } from 'vue-router'
 import AdminApp from '../../apps/admin/src/AdminApp.vue'
-import { changeOwnPassword, createAdminUser, createOrganization, getAdminMe, listAuditLogs, listOrganizations, listUsers, loginAdmin, logoutAdmin, resetAdminUserPassword, updateAdminUser } from '../../apps/admin/src/api'
+import { changeOwnPassword, createAdminUser, createOrganization, getAdminMe, listAuditLogs, listOrganizations, listUserDeviceSessions, listUsers, loginAdmin, logoutAdmin, resetAdminUserPassword, revokeUserDeviceSession, updateAdminUser } from '../../apps/admin/src/api'
 import { createAdminRouter } from '../../apps/admin/src/router'
 
 vi.mock('../../apps/admin/src/api', () => ({
@@ -92,6 +92,16 @@ vi.mock('../../apps/admin/src/api', () => ({
       },
     ],
   })),
+  listUserDeviceSessions: vi.fn(async () => ({
+    sessions: [
+      {
+        id: 'session-1',
+        deviceName: 'Muon Desktop',
+        createdAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + 86_400_000).toISOString(),
+      },
+    ],
+  })),
   listUsers: vi.fn(async () => ({
     users: [
       {
@@ -154,6 +164,7 @@ vi.mock('../../apps/admin/src/api', () => ({
       updatedAt: new Date().toISOString(),
     },
   })),
+  revokeUserDeviceSession: vi.fn(async () => ({ ok: true })),
   updateAdminUser: vi.fn(async () => ({
     user: {
       id: 'user-owner',
@@ -853,5 +864,74 @@ describe('adminApp', () => {
     expect(logoutAdmin).toHaveBeenCalledWith('must-change-token')
     expect(window.localStorage.getItem('muon_admin_token')).toBe(null)
     expect(wrapper.find('input[autocomplete="organization"]').exists()).toBe(true)
+  })
+
+  it('expanding a user\'s sessions panel lazy-loads sessions and shows the device list', async () => {
+    window.localStorage.setItem('muon_admin_token', 'session-token')
+    const wrapper = mount(AdminApp, {
+      props: { initialInstalled: true },
+      global: {
+        plugins: [createAdminRouter(createMemoryHistory())],
+      },
+    })
+    await flushPromises()
+
+    // Navigate to users section (the sessions panel only exists inside the users panel)
+    await wrapper.find('a[data-section="users"]').trigger('click')
+    await flushPromises()
+
+    expect(listUserDeviceSessions).not.toHaveBeenCalled()
+
+    const summary = wrapper.find('[data-testid="user-sessions-summary-user-owner"]')
+    await summary.trigger('click')
+    await flushPromises()
+
+    expect(listUserDeviceSessions).toHaveBeenCalledWith('session-token', 'user-owner')
+    expect(wrapper.find('[data-testid="user-sessions-row-session-1"]').exists()).toBe(true)
+    expect(wrapper.text()).toContain('Muon Desktop')
+  })
+
+  it('toggling the sessions panel a second time does not refetch', async () => {
+    window.localStorage.setItem('muon_admin_token', 'session-token')
+    const wrapper = mount(AdminApp, {
+      props: { initialInstalled: true },
+      global: {
+        plugins: [createAdminRouter(createMemoryHistory())],
+      },
+    })
+    await flushPromises()
+    await wrapper.find('a[data-section="users"]').trigger('click')
+    await flushPromises()
+
+    const summary = wrapper.find('[data-testid="user-sessions-summary-user-owner"]')
+    await summary.trigger('click') // open, loads
+    await flushPromises()
+    await summary.trigger('click') // close
+    await flushPromises()
+    await summary.trigger('click') // open again, should NOT refetch
+    await flushPromises()
+
+    expect(listUserDeviceSessions).toHaveBeenCalledTimes(1)
+  })
+
+  it('clicking 吊销 on a session calls revokeUserDeviceSession and removes the row', async () => {
+    window.localStorage.setItem('muon_admin_token', 'session-token')
+    const wrapper = mount(AdminApp, {
+      props: { initialInstalled: true },
+      global: {
+        plugins: [createAdminRouter(createMemoryHistory())],
+      },
+    })
+    await flushPromises()
+    await wrapper.find('a[data-section="users"]').trigger('click')
+    await flushPromises()
+    await wrapper.find('[data-testid="user-sessions-summary-user-owner"]').trigger('click')
+    await flushPromises()
+
+    await wrapper.find('[data-testid="user-sessions-revoke-session-1"]').trigger('click')
+    await flushPromises()
+
+    expect(revokeUserDeviceSession).toHaveBeenCalledWith('session-token', 'user-owner', 'session-1')
+    expect(wrapper.find('[data-testid="user-sessions-row-session-1"]').exists()).toBe(false)
   })
 })
