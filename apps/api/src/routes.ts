@@ -238,6 +238,16 @@ export function createEnterpriseHttpHandler(options: EnterpriseHttpHandlerOption
           return withCors(jsonResponse({ ok: true }), request)
         }
 
+        if (url.pathname === '/api/admin/me/password') {
+          if (request.method !== 'POST')
+            return methodNotAllowed()
+          const user = await requireAdmin(request)
+          const updated = await userService.changeOwnPassword(user, await readRequestBody(request) as never)
+          const token = bearerToken(request) ?? ''
+          await adminSessionService.revokeOthersForUser(token)
+          return withCors(jsonResponse({ user: updated }), request)
+        }
+
         if (url.pathname === '/api/admin/organizations') {
           const actor = await requireFullyAuthorizedAdmin(request)
           if (request.method === 'GET') {

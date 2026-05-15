@@ -338,4 +338,87 @@ describe('enterprise api routes', () => {
     }))
     expect(logout.status).toBe(200)
   })
+
+  it('lets a must-change user change their own password, clears the flag, and unlocks gated endpoints', async () => {
+    const { handler, token } = await setupMustChangeOwner()
+
+    const change = await handler.fetch(new Request('http://muon.test/api/admin/me/password', {
+      method: 'POST',
+      headers: {
+        'authorization': `Bearer ${token}`,
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        currentPassword: 'correct horse battery staple',
+        newPassword: 'a much better passphrase!',
+      }),
+    }))
+    expect(change.status).toBe(200)
+    const changeBody = await change.json() as { user: { mustChangePassword: boolean } }
+    expect(changeBody.user.mustChangePassword).toBe(false)
+
+    // Gated endpoint now reachable.
+    const orgs = await handler.fetch(new Request('http://muon.test/api/admin/organizations', {
+      headers: { authorization: `Bearer ${token}` },
+    }))
+    expect(orgs.status).toBe(200)
+  })
+
+  it('rejects the wrong current password with 400', async () => {
+    const { handler, token } = await setupMustChangeOwner()
+
+    const response = await handler.fetch(new Request('http://muon.test/api/admin/me/password', {
+      method: 'POST',
+      headers: {
+        'authorization': `Bearer ${token}`,
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        currentPassword: 'totally wrong',
+        newPassword: 'a much better passphrase!',
+      }),
+    }))
+    expect(response.status).toBe(400)
+  })
+
+  it('revokes the user\'s other admin sessions on successful password change', async () => {
+    const { handler, token: tokenA } = await setupMustChangeOwner()
+
+    // Login again to create a second session for the same owner.
+    const secondLogin = await handler.fetch(new Request('http://muon.test/api/admin/login', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        organizationSlug: 'acme',
+        username: 'owner',
+        password: 'correct horse battery staple',
+      }),
+    }))
+    const tokenB = (await secondLogin.json() as { session: { accessToken: string } }).session.accessToken
+
+    // Change password using tokenA.
+    await handler.fetch(new Request('http://muon.test/api/admin/me/password', {
+      method: 'POST',
+      headers: {
+        'authorization': `Bearer ${tokenA}`,
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        currentPassword: 'correct horse battery staple',
+        newPassword: 'a much better passphrase!',
+      }),
+    }))
+
+    // tokenA still valid.
+    const meA = await handler.fetch(new Request('http://muon.test/api/admin/me', {
+      headers: { authorization: `Bearer ${tokenA}` },
+    }))
+    expect(meA.status).toBe(200)
+
+    // tokenB now invalid.
+    const meB = await handler.fetch(new Request('http://muon.test/api/admin/me', {
+      headers: { authorization: `Bearer ${tokenB}` },
+    }))
+    expect(meB.status).toBe(401)
+  })
 })
