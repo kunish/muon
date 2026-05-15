@@ -1,5 +1,6 @@
+import type { DeviceSessionPublic } from '@muon/enterprise-contracts'
 import type { MatrixProvisioningAdapter } from './modules/matrix/provisioning'
-import type { EnterpriseRepository, EnterpriseUserRecord } from './repository'
+import type { DeviceSessionRecord, EnterpriseRepository, EnterpriseUserRecord } from './repository'
 import { jsonResponse, readJsonBody } from './http'
 import { AdminAuthenticationError, createAdminSessionService, MustChangePasswordError } from './modules/auth/adminSessionService'
 import { createInstallService } from './modules/install/installService'
@@ -99,6 +100,25 @@ function adminUserRoute(pathname: string): { password: boolean, userId: string }
   return {
     userId: decodeURIComponent(match[1]),
     password: Boolean(match[2]),
+  }
+}
+
+function adminUserSessionsRoute(pathname: string): { userId: string, sessionId?: string } | null {
+  const match = /^\/api\/admin\/users\/([^/]+)\/sessions(?:\/([^/]+))?$/.exec(pathname)
+  if (!match)
+    return null
+  return {
+    userId: decodeURIComponent(match[1]),
+    sessionId: match[2] ? decodeURIComponent(match[2]) : undefined,
+  }
+}
+
+function toDeviceSessionPublic(record: DeviceSessionRecord): DeviceSessionPublic {
+  return {
+    id: record.id,
+    deviceName: record.deviceName,
+    createdAt: record.createdAt,
+    expiresAt: record.expiresAt,
   }
 }
 
@@ -290,6 +310,17 @@ export function createEnterpriseHttpHandler(options: EnterpriseHttpHandlerOption
             return methodNotAllowed()
           const user = await userService.updateUser(actor, userRoute.userId, await readRequestBody(request) as never)
           return withCors(jsonResponse({ user }), request)
+        }
+
+        const sessionsRoute = adminUserSessionsRoute(url.pathname)
+        if (sessionsRoute && !sessionsRoute.sessionId) {
+          const actor = await requireFullyAuthorizedAdmin(request)
+          if (request.method !== 'GET')
+            return methodNotAllowed()
+          const sessions = await repository.findActiveDeviceSessionsByUser(actor.organizationId, sessionsRoute.userId)
+          return withCors(jsonResponse({
+            sessions: sessions.map(toDeviceSessionPublic),
+          }), request)
         }
 
         if (url.pathname === '/api/admin/audit-logs') {

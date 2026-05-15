@@ -502,4 +502,107 @@ describe('enterprise api routes', () => {
     }))
     expect(response.status).toBe(400)
   })
+
+  async function setupAdminWithDeviceSession() {
+    const repository = createInMemoryEnterpriseRepository()
+    const handler = createEnterpriseHttpHandler({
+      repository,
+      matrix: {
+        async ensureUser() {
+          return { matrixUserId: '@acme.owner:localhost', accessToken: 'mx-1', deviceId: 'D1' }
+        },
+      },
+      matrixServerUrl: 'http://localhost:6167',
+    })
+
+    await handler.fetch(new Request('http://muon.test/api/install', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        organizationName: 'Acme',
+        organizationSlug: 'acme',
+        ownerUsername: 'owner',
+        ownerEmail: 'owner@acme.test',
+        ownerDisplayName: 'Owner',
+        ownerPassword: 'correct horse battery staple',
+      }),
+    }))
+
+    // Create a device session for the owner via the OAuth flow.
+    const loginRes = await handler.fetch(new Request('http://muon.test/api/oauth/login', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        organizationSlug: 'acme',
+        username: 'owner',
+        password: 'correct horse battery staple',
+        clientId: 'muon-desktop',
+        redirectUri: 'muon://auth/callback',
+        codeChallenge: 'a'.repeat(43),
+        codeChallengeMethod: 'plain',
+        state: 'st',
+      }),
+    }))
+    const code = (await loginRes.json() as { code: string }).code
+
+    await handler.fetch(new Request('http://muon.test/api/oauth/token', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        code,
+        codeVerifier: 'a'.repeat(43),
+        redirectUri: 'muon://auth/callback',
+        clientId: 'muon-desktop',
+        deviceName: 'Muon Desktop',
+      }),
+    }))
+
+    // Admin login.
+    const adminLogin = await handler.fetch(new Request('http://muon.test/api/admin/login', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        organizationSlug: 'acme',
+        username: 'owner',
+        password: 'correct horse battery staple',
+      }),
+    }))
+    const adminToken = (await adminLogin.json() as { session: { accessToken: string } }).session.accessToken
+
+    const meRes = await handler.fetch(new Request('http://muon.test/api/admin/me', {
+      headers: { authorization: `Bearer ${adminToken}` },
+    }))
+    const ownerId = (await meRes.json() as { user: { id: string } }).user.id
+
+    return { handler, adminToken, ownerId, repository }
+  }
+
+  it('GET /api/admin/users/:userId/sessions returns active desktop sessions without hashes', async () => {
+    const { handler, adminToken, ownerId } = await setupAdminWithDeviceSession()
+    const response = await handler.fetch(new Request(`http://muon.test/api/admin/users/${ownerId}/sessions`, {
+      headers: { authorization: `Bearer ${adminToken}` },
+    }))
+    expect(response.status).toBe(200)
+    const payload = await response.json() as {
+      sessions: Array<{
+        id: string
+        deviceName: string
+        createdAt: string
+        expiresAt: string
+      }>
+    }
+    expect(payload.sessions.length).toBe(1)
+    expect(payload.sessions[0].deviceName).toBe('Muon Desktop')
+    expect((payload.sessions[0] as Record<string, unknown>).accessTokenHash).toBeUndefined()
+    expect((payload.sessions[0] as Record<string, unknown>).refreshTokenHash).toBeUndefined()
+  })
+
+  it('GET /api/admin/users/:userId/sessions returns 403 for a must-change-password admin', async () => {
+    const { handler, token: mustChangeToken } = await setupMustChangeOwner()
+    // The actor's organizationId is implicit from the token; any user id works since the gate fires first.
+    const response = await handler.fetch(new Request('http://muon.test/api/admin/users/some-user/sessions', {
+      headers: { authorization: `Bearer ${mustChangeToken}` },
+    }))
+    expect(response.status).toBe(403)
+  })
 })
