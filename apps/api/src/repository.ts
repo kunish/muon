@@ -161,6 +161,7 @@ export interface EnterpriseRepository {
   ) => Promise<DeviceSessionRecord[]>
   findAdminSessionByTokenHash: (accessTokenHash: string) => Promise<AdminSessionRecord | null>
   findAuthorizationCodeByHash: (codeHash: string) => Promise<AuthorizationCodeRecord | null>
+  findDeviceSessionById: (id: string) => Promise<DeviceSessionRecord | null>
   findDeviceSessionByRefreshTokenHash: (refreshTokenHash: string) => Promise<DeviceSessionRecord | null>
   findMatrixAccount: (organizationId: string, userId: string) => Promise<MatrixAccountRecord | null>
   findOrganizationBySlug: (slug: string) => Promise<Organization | null>
@@ -174,7 +175,7 @@ export interface EnterpriseRepository {
   markAuthorizationCodeUsed: (id: string) => Promise<AuthorizationCodeRecord>
   resetUserPassword: (organizationId: string, userId: string, input: ResetUserPasswordInput) => Promise<EnterpriseUserRecord>
   revokeAdminSession: (id: string) => Promise<void>
-  revokeDeviceSession: (id: string) => Promise<void>
+  revokeDeviceSession: (id: string) => Promise<boolean>
   revokeAllAdminSessionsForUserExcept: (
     organizationId: string,
     userId: string,
@@ -238,8 +239,11 @@ export function createInMemoryEnterpriseRepository(): EnterpriseRepository {
 
     async revokeDeviceSession(id) {
       const session = deviceSessions.find(item => item.id === id)
-      if (session && !session.revokedAt)
+      if (session && !session.revokedAt) {
         session.revokedAt = nowIso()
+        return true
+      }
+      return false
     },
 
     async revokeAllAdminSessionsForUserExcept(organizationId, userId, exceptSessionId) {
@@ -356,6 +360,10 @@ export function createInMemoryEnterpriseRepository(): EnterpriseRepository {
 
     async findAuthorizationCodeByHash(codeHash) {
       return authorizationCodes.find(code => code.codeHash === codeHash) ?? null
+    },
+
+    async findDeviceSessionById(id) {
+      return deviceSessions.find(session => session.id === id) ?? null
     },
 
     async findDeviceSessionByRefreshTokenHash(refreshTokenHash) {

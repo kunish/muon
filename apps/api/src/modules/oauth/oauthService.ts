@@ -211,6 +211,10 @@ export function createOAuthService({ repository, matrix, matrixServerUrl }: OAut
       if (!matrixAccount)
         throw new Error('Matrix account not found')
 
+      const revoked = await repository.revokeDeviceSession(session.id)
+      if (!revoked)
+        throw new Error('Invalid refresh token')
+
       const accessToken = token()
       const refreshToken = token()
       const expiresAt = new Date(Date.now() + SESSION_TTL_MS).toISOString()
@@ -222,8 +226,6 @@ export function createOAuthService({ repository, matrix, matrixServerUrl }: OAut
         refreshTokenHash: sha256(`refresh:${refreshToken}`),
         expiresAt,
       })
-
-      await repository.revokeDeviceSession(session.id)
 
       await repository.appendAuditLog({
         organizationId: session.organizationId,

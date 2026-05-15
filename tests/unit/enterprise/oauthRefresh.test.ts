@@ -122,4 +122,22 @@ describe('oauthService.refresh', () => {
       deviceName: 'Muon Desktop',
     })).rejects.toThrow(/invalid oauth client/i)
   })
+
+  it('aborts and does not create a new session when the underlying revoke returns false (TOCTOU guard)', async () => {
+    const { repository, oauth, exchanged } = await setupOauthSession()
+    const oldSession = repository.deviceSessions[0]
+
+    // Simulate a concurrent request having already revoked the session.
+    oldSession.revokedAt = new Date().toISOString()
+
+    // Refresh must fail because the session is already revoked.
+    await expect(oauth.refresh({
+      refreshToken: exchanged.muonSession.refreshToken,
+      clientId: 'muon-desktop',
+      deviceName: 'Muon Desktop',
+    })).rejects.toThrow(/invalid refresh token/i)
+
+    // Only one session should exist (the pre-revoked one); no new session created.
+    expect(repository.deviceSessions.length).toBe(1)
+  })
 })

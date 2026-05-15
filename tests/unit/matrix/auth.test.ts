@@ -214,11 +214,51 @@ describe('refreshEnterpriseSession', () => {
     vi.resetModules()
   })
 
+  it('sends the stored deviceName in the refresh request body, not a hardcoded literal', async () => {
+    window.localStorage.setItem(ENTERPRISE_SESSION_KEY, JSON.stringify({
+      accessToken: 'old-access',
+      refreshToken: 'old-refresh',
+      expiresAt: new Date(Date.now() + 3600_000).toISOString(),
+      deviceName: 'Custom Device',
+    }))
+
+    const newPayload = {
+      muonSession: {
+        accessToken: 'new-access',
+        refreshToken: 'new-refresh',
+        expiresAt: new Date(Date.now() + 30 * 24 * 3600_000).toISOString(),
+      },
+      matrixSession: {
+        serverUrl: 'http://localhost:6167',
+        userId: '@acme.owner:localhost',
+        accessToken: 'mx-1',
+        deviceId: 'D1',
+      },
+    }
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify(newPayload), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { refreshEnterpriseSession } = await import('@/matrix/auth')
+    await refreshEnterpriseSession('http://muon.test')
+
+    const body = JSON.parse(String(fetchMock.mock.calls[0][1].body))
+    expect(body.deviceName).toBe('Custom Device')
+    expect(body.deviceName).not.toBe('Muon Desktop')
+
+    // The persisted session must carry the same deviceName forward.
+    const stored = JSON.parse(window.localStorage.getItem(ENTERPRISE_SESSION_KEY) ?? '{}')
+    expect(stored.deviceName).toBe('Custom Device')
+  })
+
   it('posts the stored refresh token and persists the new muon session', async () => {
     window.localStorage.setItem(ENTERPRISE_SESSION_KEY, JSON.stringify({
       accessToken: 'old-access',
       refreshToken: 'old-refresh',
       expiresAt: new Date(Date.now() + 3600_000).toISOString(),
+      deviceName: 'Muon Desktop',
     }))
 
     const newPayload = {

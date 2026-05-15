@@ -624,12 +624,84 @@ describe('enterprise api routes', () => {
     expect(payload.sessions.find(s => s.id === sessionId)).toBeUndefined()
   })
 
-  it('DELETE /api/admin/users/:userId/sessions/:sessionId is idempotent on unknown ids', async () => {
+  it('DELETE /api/admin/users/:userId/sessions/:sessionId returns 404 for an unknown session id', async () => {
     const { handler, adminToken, ownerId } = await setupAdminWithDeviceSession()
     const del = await handler.fetch(new Request(`http://muon.test/api/admin/users/${ownerId}/sessions/not-a-session`, {
       method: 'DELETE',
       headers: { authorization: `Bearer ${adminToken}` },
     }))
-    expect(del.status).toBe(200)
+    expect(del.status).toBe(404)
+  })
+
+  it('DELETE /api/admin/users/:userId/sessions/:sessionId returns 404 when session belongs to a different org (cross-org bypass prevention)', async () => {
+    // Create two organisations with separate installs sharing the same underlying repository.
+    const repository = createInMemoryEnterpriseRepository()
+
+    // Set up org A (has the admin actor).
+    const handlerA = createEnterpriseHttpHandler({
+      repository,
+      matrix: {
+        async ensureUser() {
+          return { matrixUserId: '@acme.owner:localhost', accessToken: 'mx-1', deviceId: 'D1' }
+        },
+      },
+      matrixServerUrl: 'http://localhost:6167',
+    })
+
+    await handlerA.fetch(new Request('http://muon.test/api/install', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        organizationName: 'Acme',
+        organizationSlug: 'acme',
+        ownerUsername: 'owner',
+        ownerEmail: 'owner@acme.test',
+        ownerDisplayName: 'Owner',
+        ownerPassword: 'correct horse battery staple',
+      }),
+    }))
+
+    const adminLoginA = await handlerA.fetch(new Request('http://muon.test/api/admin/login', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        organizationSlug: 'acme',
+        username: 'owner',
+        password: 'correct horse battery staple',
+      }),
+    }))
+    const adminTokenA = (await adminLoginA.json() as { session: { accessToken: string } }).session.accessToken
+
+    // Create a device session for org B by inserting it directly in the repository.
+    const orgB = await repository.createOrganization({ name: 'Beta', slug: 'beta', status: 'active' })
+    const userB = await repository.createUser({
+      organizationId: orgB.id,
+      username: 'beta-user',
+      email: 'user@beta.test',
+      displayName: 'Beta User',
+      passwordHash: 'some-hash',
+      mustChangePassword: false,
+      roles: ['owner'],
+      status: 'active',
+    })
+    const sessionB = await repository.createDeviceSession({
+      organizationId: orgB.id,
+      userId: userB.id,
+      deviceName: 'Beta Device',
+      accessTokenHash: 'beta-access-hash',
+      refreshTokenHash: 'beta-refresh-hash',
+      expiresAt: new Date(Date.now() + 3600_000).toISOString(),
+    })
+
+    // Admin from org A tries to delete a session from org B — must be rejected.
+    const del = await handlerA.fetch(new Request(`http://muon.test/api/admin/users/${userB.id}/sessions/${sessionB.id}`, {
+      method: 'DELETE',
+      headers: { authorization: `Bearer ${adminTokenA}` },
+    }))
+    expect(del.status).toBe(404)
+
+    // The session must still be alive.
+    const stillActive = await repository.findDeviceSessionById(sessionB.id)
+    expect(stillActive?.revokedAt).toBeNull()
   })
 })

@@ -302,6 +302,14 @@ export async function createPostgresEnterpriseRepository(databaseUrl: string): P
       return result.rows[0] ? authorizationCodeFromRow(result.rows[0]) : null
     },
 
+    async findDeviceSessionById(id: string) {
+      const result = await pool.query(
+        'SELECT * FROM device_sessions WHERE id = $1',
+        [id],
+      )
+      return result.rows[0] ? deviceSessionFromRow(result.rows[0]) : null
+    },
+
     async findDeviceSessionByRefreshTokenHash(refreshTokenHash: string) {
       const result = await pool.query(
         'SELECT * FROM device_sessions WHERE refresh_token_hash = $1',
@@ -376,10 +384,11 @@ export async function createPostgresEnterpriseRepository(databaseUrl: string): P
     },
 
     async revokeDeviceSession(id: string) {
-      await pool.query(
-        'UPDATE device_sessions SET revoked_at = COALESCE(revoked_at, $2) WHERE id = $1',
+      const result = await pool.query(
+        'UPDATE device_sessions SET revoked_at = COALESCE(revoked_at, $2) WHERE id = $1 AND revoked_at IS NULL RETURNING id',
         [id, nowIso()],
       )
+      return (result.rowCount ?? 0) > 0
     },
 
     async revokeAllAdminSessionsForUserExcept(organizationId: string, userId: string, exceptSessionId: string) {

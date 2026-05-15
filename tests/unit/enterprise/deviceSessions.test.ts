@@ -93,4 +93,44 @@ describe('device session repository methods', () => {
     const afterRevokedAt = (await repository.findDeviceSessionByRefreshTokenHash('plain-r'))?.revokedAt
     expect(afterRevokedAt).toBe(firstRevokedAt)
   })
+
+  it('findDeviceSessionById returns the matching row and null for unknown ids', async () => {
+    const { repository, install } = await setupInstalled()
+    const created = await repository.createDeviceSession({
+      organizationId: install.organization.id,
+      userId: install.owner.id,
+      deviceName: 'Muon Desktop',
+      accessTokenHash: 'hash-a',
+      refreshTokenHash: 'refresh-a',
+      expiresAt: new Date(Date.now() + 3600_000).toISOString(),
+    })
+
+    const found = await repository.findDeviceSessionById(created.id)
+    expect(found?.id).toBe(created.id)
+    expect(found?.organizationId).toBe(install.organization.id)
+
+    const missing = await repository.findDeviceSessionById('no-such-id')
+    expect(missing).toBeNull()
+  })
+
+  it('revokeDeviceSession returns true on first call and false on subsequent calls or unknown ids', async () => {
+    const { repository, install } = await setupInstalled()
+    const created = await repository.createDeviceSession({
+      organizationId: install.organization.id,
+      userId: install.owner.id,
+      deviceName: 'Muon Desktop',
+      accessTokenHash: 'hash-b',
+      refreshTokenHash: 'refresh-b',
+      expiresAt: new Date(Date.now() + 3600_000).toISOString(),
+    })
+
+    const first = await repository.revokeDeviceSession(created.id)
+    expect(first).toBe(true)
+
+    const second = await repository.revokeDeviceSession(created.id)
+    expect(second).toBe(false)
+
+    const unknown = await repository.revokeDeviceSession('nonexistent-id')
+    expect(unknown).toBe(false)
+  })
 })

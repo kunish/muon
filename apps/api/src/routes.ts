@@ -327,6 +327,9 @@ export function createEnterpriseHttpHandler(options: EnterpriseHttpHandlerOption
           const actor = await requireFullyAuthorizedAdmin(request)
           if (request.method !== 'DELETE')
             return methodNotAllowed()
+          const session = await repository.findDeviceSessionById(sessionsRoute.sessionId)
+          if (!session || session.organizationId !== actor.organizationId)
+            return withCors(notFound(), request)
           await repository.revokeDeviceSession(sessionsRoute.sessionId)
           await repository.appendAuditLog({
             organizationId: actor.organizationId,

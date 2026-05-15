@@ -87,6 +87,7 @@ interface MuonSessionStored {
   accessToken: string
   refreshToken: string
   expiresAt: string
+  deviceName: string
 }
 
 async function readStoredMuonSession(): Promise<MuonSessionStored | null> {
@@ -98,10 +99,16 @@ async function readStoredMuonSession(): Promise<MuonSessionStored | null> {
     const parsed = JSON.parse(raw) as { _enc?: boolean, data?: string } & Partial<MuonSessionStored>
     if (parsed?._enc === true && typeof parsed.data === 'string') {
       const decrypted = await decryptSensitive(parsed.data, true)
-      return JSON.parse(decrypted) as MuonSessionStored
+      const inner = JSON.parse(decrypted) as Partial<MuonSessionStored>
+      return {
+        accessToken: inner.accessToken ?? '',
+        refreshToken: inner.refreshToken ?? '',
+        expiresAt: inner.expiresAt ?? '',
+        deviceName: typeof inner.deviceName === 'string' ? inner.deviceName : 'Muon Desktop',
+      }
     }
     if (typeof parsed.accessToken === 'string' && typeof parsed.refreshToken === 'string' && typeof parsed.expiresAt === 'string')
-      return { accessToken: parsed.accessToken, refreshToken: parsed.refreshToken, expiresAt: parsed.expiresAt }
+      return { accessToken: parsed.accessToken, refreshToken: parsed.refreshToken, expiresAt: parsed.expiresAt, deviceName: typeof parsed.deviceName === 'string' ? parsed.deviceName : 'Muon Desktop' }
     return null
   }
   catch {
@@ -320,7 +327,7 @@ export async function completeEnterpriseLogin(callbackUrl: string, apiBaseUrl = 
   }
   await persistSession(session)
 
-  await persistMuonSession(tokenResponse.muonSession)
+  await persistMuonSession({ ...tokenResponse.muonSession, deviceName: 'Muon Desktop' })
 
   localStorage.removeItem(ENTERPRISE_PKCE_KEY)
   createClient(session)
@@ -375,7 +382,7 @@ export async function refreshEnterpriseSession(
       body: JSON.stringify({
         refreshToken: stored.refreshToken,
         clientId: 'muon-desktop',
-        deviceName: 'Muon Desktop',
+        deviceName: stored.deviceName,
       }),
     })
   }
@@ -390,7 +397,7 @@ export async function refreshEnterpriseSession(
   }
 
   const payload = oauthTokenResponseSchema.parse(await response.json())
-  await persistMuonSession(payload.muonSession)
+  await persistMuonSession({ ...payload.muonSession, deviceName: stored.deviceName })
 }
 
 const REFRESH_NEAR_EXPIRY_MS = 24 * 60 * 60 * 1000
