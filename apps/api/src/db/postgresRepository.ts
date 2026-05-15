@@ -349,6 +349,18 @@ export async function createPostgresEnterpriseRepository(databaseUrl: string): P
       )
     },
 
+    async revokeAllAdminSessionsForUserExcept(organizationId: string, userId: string, exceptSessionId: string) {
+      await pool.query(
+        `UPDATE admin_sessions
+            SET revoked_at = $4
+          WHERE organization_id = $1
+            AND user_id = $2
+            AND id <> $3
+            AND revoked_at IS NULL`,
+        [organizationId, userId, exceptSessionId, nowIso()],
+      )
+    },
+
     async resetUserPassword(organizationId: string, userId: string, input: ResetUserPasswordInput) {
       const result = await pool.query(
         `UPDATE users

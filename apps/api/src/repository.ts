@@ -169,6 +169,11 @@ export interface EnterpriseRepository {
   markAuthorizationCodeUsed: (id: string) => Promise<AuthorizationCodeRecord>
   resetUserPassword: (organizationId: string, userId: string, input: ResetUserPasswordInput) => Promise<EnterpriseUserRecord>
   revokeAdminSession: (id: string) => Promise<void>
+  revokeAllAdminSessionsForUserExcept: (
+    organizationId: string,
+    userId: string,
+    exceptSessionId: string,
+  ) => Promise<void>
   touchAdminSession: (id: string) => Promise<void>
   updateUser: (organizationId: string, userId: string, input: UpdateUserInput) => Promise<EnterpriseUserRecord>
   upsertMatrixAccount: (input: Omit<MatrixAccountRecord, 'lastProvisionedAt' | 'provisioningStatus'>) => Promise<MatrixAccountRecord>
@@ -223,6 +228,17 @@ export function createInMemoryEnterpriseRepository(): EnterpriseRepository {
       const session = adminSessions.find(item => item.id === id)
       if (session && !session.revokedAt)
         session.revokedAt = nowIso()
+    },
+
+    async revokeAllAdminSessionsForUserExcept(organizationId, userId, exceptSessionId) {
+      const nowTimestamp = nowIso()
+      for (const session of adminSessions) {
+        if (session.organizationId !== organizationId) continue
+        if (session.userId !== userId) continue
+        if (session.id === exceptSessionId) continue
+        if (session.revokedAt) continue
+        session.revokedAt = nowTimestamp
+      }
     },
 
     async appendAuditLog(input) {

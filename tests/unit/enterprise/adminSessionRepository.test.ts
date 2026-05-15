@@ -102,3 +102,94 @@ describe('touchAdminSession + revokeAdminSession', () => {
     // no throw, no change to other sessions
   })
 })
+
+describe('revokeAllAdminSessionsForUserExcept', () => {
+  it('revokes all matching sessions except the one to keep', async () => {
+    const { repository, install } = await setupInstalled()
+
+    const keep = await repository.createAdminSession({
+      organizationId: install.organization.id,
+      userId: install.owner.id,
+      accessTokenHash: 'keep-access',
+      refreshTokenHash: 'keep-refresh',
+      expiresAt: new Date(Date.now() + 3600_000).toISOString(),
+    })
+    const dropA = await repository.createAdminSession({
+      organizationId: install.organization.id,
+      userId: install.owner.id,
+      accessTokenHash: 'drop-a-access',
+      refreshTokenHash: 'drop-a-refresh',
+      expiresAt: new Date(Date.now() + 3600_000).toISOString(),
+    })
+    const dropB = await repository.createAdminSession({
+      organizationId: install.organization.id,
+      userId: install.owner.id,
+      accessTokenHash: 'drop-b-access',
+      refreshTokenHash: 'drop-b-refresh',
+      expiresAt: new Date(Date.now() + 3600_000).toISOString(),
+    })
+
+    await repository.revokeAllAdminSessionsForUserExcept(install.organization.id, install.owner.id, keep.id)
+
+    expect((await repository.findAdminSessionByTokenHash('keep-access'))?.revokedAt).toBeNull()
+    expect((await repository.findAdminSessionByTokenHash('drop-a-access'))?.revokedAt).toBeTruthy()
+    expect((await repository.findAdminSessionByTokenHash('drop-b-access'))?.revokedAt).toBeTruthy()
+
+    void dropA
+    void dropB
+  })
+
+  it('does not touch other users sessions', async () => {
+    const { repository, install } = await setupInstalled()
+
+    const otherUser = await repository.createUser({
+      organizationId: install.organization.id,
+      username: 'other',
+      email: 'other@acme.test',
+      displayName: 'Other',
+      passwordHash: 'fake-hash',
+      status: 'active',
+      mustChangePassword: false,
+      roles: ['member'],
+    })
+    const otherSession = await repository.createAdminSession({
+      organizationId: install.organization.id,
+      userId: otherUser.id,
+      accessTokenHash: 'other-access',
+      refreshTokenHash: 'other-refresh',
+      expiresAt: new Date(Date.now() + 3600_000).toISOString(),
+    })
+
+    const ownerSession = await repository.createAdminSession({
+      organizationId: install.organization.id,
+      userId: install.owner.id,
+      accessTokenHash: 'owner-keep-access',
+      refreshTokenHash: 'owner-keep-refresh',
+      expiresAt: new Date(Date.now() + 3600_000).toISOString(),
+    })
+
+    await repository.revokeAllAdminSessionsForUserExcept(install.organization.id, install.owner.id, ownerSession.id)
+
+    expect((await repository.findAdminSessionByTokenHash('other-access'))?.revokedAt).toBeNull()
+    void otherSession
+  })
+
+  it('is idempotent — already-revoked sessions keep their original revokedAt', async () => {
+    const { repository, install } = await setupInstalled()
+    const session = await repository.createAdminSession({
+      organizationId: install.organization.id,
+      userId: install.owner.id,
+      accessTokenHash: 'will-stay-revoked-access',
+      refreshTokenHash: 'will-stay-revoked-refresh',
+      expiresAt: new Date(Date.now() + 3600_000).toISOString(),
+    })
+    await repository.revokeAdminSession(session.id)
+    const firstRevokedAt = (await repository.findAdminSessionByTokenHash('will-stay-revoked-access'))?.revokedAt
+
+    await new Promise(resolve => setTimeout(resolve, 5))
+    await repository.revokeAllAdminSessionsForUserExcept(install.organization.id, install.owner.id, 'unrelated-id')
+
+    const afterRevokedAt = (await repository.findAdminSessionByTokenHash('will-stay-revoked-access'))?.revokedAt
+    expect(afterRevokedAt).toBe(firstRevokedAt)
+  })
+})
