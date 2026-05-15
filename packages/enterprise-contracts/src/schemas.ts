@@ -154,3 +154,18 @@ export const changeOwnPasswordRequestSchema = z.object({
   newPassword: z.string().min(12),
 })
 export type ChangeOwnPasswordRequest = z.infer<typeof changeOwnPasswordRequestSchema>
+
+export const oauthRefreshRequestSchema = z.object({
+  refreshToken: z.string().min(1),
+  clientId: z.string().min(1),
+  deviceName: z.string().trim().min(1),
+})
+export type OAuthRefreshRequest = z.infer<typeof oauthRefreshRequestSchema>
+
+export const deviceSessionSchema = z.object({
+  id: z.string().min(1),
+  deviceName: z.string().min(1),
+  createdAt: z.string().datetime(),
+  expiresAt: z.string().datetime(),
+})
+export type DeviceSessionPublic = z.infer<typeof deviceSessionSchema>
