@@ -323,6 +323,21 @@ export function createEnterpriseHttpHandler(options: EnterpriseHttpHandlerOption
           }), request)
         }
 
+        if (sessionsRoute && sessionsRoute.sessionId) {
+          const actor = await requireFullyAuthorizedAdmin(request)
+          if (request.method !== 'DELETE')
+            return methodNotAllowed()
+          await repository.revokeDeviceSession(sessionsRoute.sessionId)
+          await repository.appendAuditLog({
+            organizationId: actor.organizationId,
+            actorUserId: actor.id,
+            action: 'device_session.revoked',
+            targetType: 'device_session',
+            targetId: sessionsRoute.sessionId,
+          })
+          return withCors(jsonResponse({ ok: true }), request)
+        }
+
         if (url.pathname === '/api/admin/audit-logs') {
           if (request.method !== 'GET')
             return methodNotAllowed()

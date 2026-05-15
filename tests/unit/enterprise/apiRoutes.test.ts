@@ -605,4 +605,31 @@ describe('enterprise api routes', () => {
     }))
     expect(response.status).toBe(403)
   })
+
+  it('DELETE /api/admin/users/:userId/sessions/:sessionId revokes the session', async () => {
+    const { handler, adminToken, ownerId, repository } = await setupAdminWithDeviceSession()
+    const sessionId = repository.deviceSessions[0].id
+
+    const del = await handler.fetch(new Request(`http://muon.test/api/admin/users/${ownerId}/sessions/${sessionId}`, {
+      method: 'DELETE',
+      headers: { authorization: `Bearer ${adminToken}` },
+    }))
+    expect(del.status).toBe(200)
+    expect(await del.json()).toEqual({ ok: true })
+
+    const list = await handler.fetch(new Request(`http://muon.test/api/admin/users/${ownerId}/sessions`, {
+      headers: { authorization: `Bearer ${adminToken}` },
+    }))
+    const payload = await list.json() as { sessions: Array<{ id: string }> }
+    expect(payload.sessions.find(s => s.id === sessionId)).toBeUndefined()
+  })
+
+  it('DELETE /api/admin/users/:userId/sessions/:sessionId is idempotent on unknown ids', async () => {
+    const { handler, adminToken, ownerId } = await setupAdminWithDeviceSession()
+    const del = await handler.fetch(new Request(`http://muon.test/api/admin/users/${ownerId}/sessions/not-a-session`, {
+      method: 'DELETE',
+      headers: { authorization: `Bearer ${adminToken}` },
+    }))
+    expect(del.status).toBe(200)
+  })
 })
