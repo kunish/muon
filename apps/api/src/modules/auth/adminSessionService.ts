@@ -29,6 +29,7 @@ export interface AdminSessionService {
   login: (input: AdminLoginRequest) => Promise<AdminSession>
   validate: (token: string) => Promise<EnterpriseUserRecord>
   revoke: (token: string) => Promise<void>
+  revokeOthersForUser: (currentToken: string) => Promise<void>
 }
 
 export interface AdminSessionServiceDeps {
@@ -115,6 +116,15 @@ export function createAdminSessionService({ repository }: AdminSessionServiceDep
       if (!session)
         return
       await repository.revokeAdminSession(session.id)
+    },
+
+    async revokeOthersForUser(currentToken) {
+      if (!currentToken)
+        return
+      const session = await repository.findAdminSessionByTokenHash(sha256(currentToken))
+      if (!session)
+        return
+      await repository.revokeAllAdminSessionsForUserExcept(session.organizationId, session.userId, session.id)
     },
   }
 }

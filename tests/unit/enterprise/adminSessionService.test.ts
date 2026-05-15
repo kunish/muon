@@ -155,3 +155,35 @@ describe('adminSessionService.revoke', () => {
     await expect(service.revoke('unknown-token')).resolves.toBeUndefined()
   })
 })
+
+describe('adminSessionService.revokeOthersForUser', () => {
+  it('revokes the user\'s other sessions but keeps the one identified by the current token', async () => {
+    const { repository } = await setupOwner()
+    const service = createAdminSessionService({ repository })
+
+    const first = await service.login({
+      organizationSlug: 'acme',
+      username: 'owner',
+      password: 'correct horse battery staple',
+    })
+    const second = await service.login({
+      organizationSlug: 'acme',
+      username: 'owner',
+      password: 'correct horse battery staple',
+    })
+
+    await service.revokeOthersForUser(first.session.accessToken)
+
+    await expect(service.validate(first.session.accessToken)).resolves.toMatchObject({ username: 'owner' })
+
+    await expect(service.validate(second.session.accessToken)).rejects.toMatchObject({
+      name: 'AdminAuthenticationError',
+    })
+  })
+
+  it('is a silent no-op when the current token does not match any session', async () => {
+    const { repository } = await setupOwner()
+    const service = createAdminSessionService({ repository })
+    await expect(service.revokeOthersForUser('not-a-token')).resolves.toBeUndefined()
+  })
+})
