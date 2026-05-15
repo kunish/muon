@@ -270,8 +270,11 @@ async function submitForceChangePassword() {
     })
     changePasswordForm.currentPassword = ''
     changePasswordForm.newPassword = ''
-    mustChangePassword.value = false
-    await refreshDashboard()
+    const { user } = await getAdminMe(adminToken.value)
+    if (!user.mustChangePassword) {
+      mustChangePassword.value = false
+      await refreshDashboard()
+    }
   }
   catch (err) {
     changePasswordError.value = err instanceof Error ? err.message : '修改密码失败'

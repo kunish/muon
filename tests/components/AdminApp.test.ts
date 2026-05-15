@@ -715,6 +715,20 @@ describe('adminApp', () => {
           updatedAt: new Date().toISOString(),
         },
       })
+      .mockResolvedValueOnce({
+        user: {
+          id: 'user-must-change',
+          organizationId: 'org-1',
+          username: 'novice',
+          email: 'novice@muon.local',
+          displayName: 'Novice',
+          status: 'active',
+          mustChangePassword: false,
+          roles: ['member'],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      })
 
     const wrapper = mount(AdminApp, {
       props: { initialInstalled: true },
@@ -805,5 +819,39 @@ describe('adminApp', () => {
     await flushPromises()
 
     expect(window.localStorage.getItem('muon_admin_token')).toBe(null)
+  })
+
+  it('overlay escape button logs out via logoutAdmin and shows the login form', async () => {
+    window.localStorage.setItem('muon_admin_token', 'must-change-token')
+    ;(getAdminMe as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      user: {
+        id: 'user-must-change',
+        organizationId: 'org-1',
+        username: 'novice',
+        email: 'novice@muon.local',
+        displayName: 'Novice',
+        status: 'active',
+        mustChangePassword: true,
+        roles: ['member'],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+    })
+
+    const wrapper = mount(AdminApp, {
+      props: { initialInstalled: true },
+      global: {
+        plugins: [createAdminRouter(createMemoryHistory())],
+      },
+    })
+    await flushPromises()
+    expect(wrapper.find('[data-testid="force-change-password"]').exists()).toBe(true)
+
+    await wrapper.find('[data-testid="force-change-password-escape"]').trigger('click')
+    await flushPromises()
+
+    expect(logoutAdmin).toHaveBeenCalledWith('must-change-token')
+    expect(window.localStorage.getItem('muon_admin_token')).toBe(null)
+    expect(wrapper.find('input[autocomplete="organization"]').exists()).toBe(true)
   })
 })
