@@ -12,6 +12,14 @@ export class AdminAuthenticationError extends Error {
   }
 }
 
+export class MustChangePasswordError extends Error {
+  readonly code = 'must_change_password'
+  constructor(message = 'Password must be changed before continuing') {
+    super(message)
+    this.name = 'MustChangePasswordError'
+  }
+}
+
 export interface AdminSession {
   session: MuonSession
   user: EnterpriseUserRecord
