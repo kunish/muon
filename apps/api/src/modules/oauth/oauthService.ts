@@ -1,13 +1,14 @@
 import type {
   OAuthLoginRequest,
   OAuthLoginResponse,
+  OAuthRefreshRequest,
   OAuthTokenRequest,
   OAuthTokenResponse,
 } from '@muon/enterprise-contracts'
 import type { EnterpriseRepository, EnterpriseUserRecord } from '../../repository'
 import type { MatrixProvisioningAdapter } from '../matrix/provisioning'
 import { createHash, randomBytes } from 'node:crypto'
-import { oauthLoginRequestSchema, oauthTokenRequestSchema } from '@muon/enterprise-contracts'
+import { oauthLoginRequestSchema, oauthRefreshRequestSchema, oauthTokenRequestSchema } from '@muon/enterprise-contracts'
 import { verifyPassword } from '../../security/password'
 import { MustChangePasswordError } from '../auth/adminSessionService'
 
@@ -19,6 +20,7 @@ const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 30
 export interface OAuthService {
   exchangeCode: (input: OAuthTokenRequest) => Promise<OAuthTokenResponse>
   loginAndCreateCode: (input: OAuthLoginRequest) => Promise<OAuthLoginResponse>
+  refresh: (input: OAuthRefreshRequest) => Promise<OAuthTokenResponse>
 }
 
 export interface OAuthServiceDeps {
@@ -39,8 +41,14 @@ function codeHash(code: string): string {
   return sha256(`oauth-code:${code}`)
 }
 
+function assertDesktopClientId(clientId: string): void {
+  if (clientId !== DESKTOP_CLIENT_ID)
+    throw new Error('Invalid OAuth client')
+}
+
 function assertDesktopClient(clientId: string, redirectUri: string): void {
-  if (clientId !== DESKTOP_CLIENT_ID || redirectUri !== DESKTOP_REDIRECT_URI)
+  assertDesktopClientId(clientId)
+  if (redirectUri !== DESKTOP_REDIRECT_URI)
     throw new Error('Invalid OAuth client')
 }
 
@@ -186,6 +194,61 @@ export function createOAuthService({ repository, matrix, matrixServerUrl }: OAut
           expiresAt,
         },
         matrixSession: authorizationCode.matrixSession,
+      }
+    },
+
+    async refresh(input) {
+      const request = oauthRefreshRequestSchema.parse(input)
+      assertDesktopClientId(request.clientId)
+
+      const session = await repository.findDeviceSessionByRefreshTokenHash(sha256(`refresh:${request.refreshToken}`))
+      if (!session || session.revokedAt)
+        throw new Error('Invalid refresh token')
+      if (Date.parse(session.expiresAt) <= Date.now())
+        throw new Error('Invalid refresh token')
+
+      const matrixAccount = await repository.findMatrixAccount(session.organizationId, session.userId)
+      if (!matrixAccount)
+        throw new Error('Matrix account not found')
+
+      const accessToken = token()
+      const refreshToken = token()
+      const expiresAt = new Date(Date.now() + SESSION_TTL_MS).toISOString()
+      const newSession = await repository.createDeviceSession({
+        organizationId: session.organizationId,
+        userId: session.userId,
+        deviceName: request.deviceName,
+        accessTokenHash: sha256(`access:${accessToken}`),
+        refreshTokenHash: sha256(`refresh:${refreshToken}`),
+        expiresAt,
+      })
+
+      await repository.revokeDeviceSession(session.id)
+
+      await repository.appendAuditLog({
+        organizationId: session.organizationId,
+        actorUserId: session.userId,
+        action: 'oauth.token.refreshed',
+        targetType: 'device_session',
+        targetId: newSession.id,
+        metadata: {
+          previousSessionId: session.id,
+          deviceName: request.deviceName,
+        },
+      })
+
+      return {
+        muonSession: {
+          accessToken,
+          refreshToken,
+          expiresAt,
+        },
+        matrixSession: {
+          serverUrl: matrixServerUrl,
+          userId: matrixAccount.matrixUserId,
+          accessToken: matrixAccount.accessToken,
+          deviceId: matrixAccount.matrixDeviceId,
+        },
       }
     },
   }
