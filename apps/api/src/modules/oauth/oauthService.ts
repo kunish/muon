@@ -170,7 +170,7 @@ export function createOAuthService({ repository, matrix, matrixServerUrl }: OAut
       const accessToken = token()
       const refreshToken = token()
       const expiresAt = new Date(Date.now() + SESSION_TTL_MS).toISOString()
-      await repository.createDeviceSession({
+      const newSession = await repository.createDeviceSession({
         organizationId: authorizationCode.organizationId,
         userId: authorizationCode.userId,
         deviceName: request.deviceName,
@@ -182,9 +182,9 @@ export function createOAuthService({ repository, matrix, matrixServerUrl }: OAut
       await repository.appendAuditLog({
         organizationId: authorizationCode.organizationId,
         actorUserId: authorizationCode.userId,
-        action: 'oauth.token.exchanged',
+        action: 'oauth.token.issued',
         targetType: 'device_session',
-        targetId: request.deviceName,
+        targetId: newSession.id,
       })
 
       return {
