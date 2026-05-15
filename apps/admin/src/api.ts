@@ -4,6 +4,7 @@ import type {
   ChangeOwnPasswordRequest,
   CreateOrganizationRequest,
   CreateUserRequest,
+  DeviceSessionPublic,
   EnterpriseUser,
   InstallRequest,
   MuonSession,
@@ -131,5 +132,18 @@ export function changeOwnPassword(token: string, input: ChangeOwnPasswordRequest
     method: 'POST',
     headers: { authorization: `Bearer ${token}` },
     body: JSON.stringify(input),
+  })
+}
+
+export function listUserDeviceSessions(token: string, userId: string): Promise<{ sessions: DeviceSessionPublic[] }> {
+  return request(`/api/admin/users/${encodeURIComponent(userId)}/sessions`, {
+    headers: { authorization: `Bearer ${token}` },
+  })
+}
+
+export function revokeUserDeviceSession(token: string, userId: string, sessionId: string): Promise<{ ok: true }> {
+  return request(`/api/admin/users/${encodeURIComponent(userId)}/sessions/${encodeURIComponent(sessionId)}`, {
+    method: 'DELETE',
+    headers: { authorization: `Bearer ${token}` },
   })
 }
