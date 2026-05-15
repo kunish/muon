@@ -771,4 +771,39 @@ describe('adminApp', () => {
     expect(wrapper.find('[data-testid="force-change-password-error"]').text()).toMatch(/credentials/i)
     expect(wrapper.find('[data-testid="force-change-password"]').exists()).toBe(true)
   })
+
+  it('calls logoutAdmin before clearing the stored token when the user logs out', async () => {
+    window.localStorage.setItem('muon_admin_token', 'session-token')
+    const wrapper = mount(AdminApp, {
+      props: { initialInstalled: true },
+      global: {
+        plugins: [createAdminRouter(createMemoryHistory())],
+      },
+    })
+    await flushPromises()
+
+    await wrapper.find('[data-testid="logout-admin"]').trigger('click')
+    await flushPromises()
+
+    expect(logoutAdmin).toHaveBeenCalledWith('session-token')
+    expect(window.localStorage.getItem('muon_admin_token')).toBe(null)
+  })
+
+  it('clears the stored token even when logoutAdmin rejects', async () => {
+    window.localStorage.setItem('muon_admin_token', 'session-token')
+    ;(logoutAdmin as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('Network down'))
+
+    const wrapper = mount(AdminApp, {
+      props: { initialInstalled: true },
+      global: {
+        plugins: [createAdminRouter(createMemoryHistory())],
+      },
+    })
+    await flushPromises()
+
+    await wrapper.find('[data-testid="logout-admin"]').trigger('click')
+    await flushPromises()
+
+    expect(window.localStorage.getItem('muon_admin_token')).toBe(null)
+  })
 })

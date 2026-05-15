@@ -282,6 +282,15 @@ async function submitForceChangePassword() {
 }
 
 async function logout() {
+  const token = adminToken.value
+  if (token) {
+    try {
+      await logoutAdmin(token)
+    }
+    catch {
+      // Best-effort: server may already have invalidated the token.
+    }
+  }
   clearAdminToken()
 }
 
@@ -632,7 +641,7 @@ void bootstrap()
           <Button data-testid="refresh-dashboard" type="button" variant="outline" :disabled="dashboardLoading" @click="refreshDashboard">
             {{ dashboardLoading ? '刷新中' : '刷新数据' }}
           </Button>
-          <Button data-testid="logout-admin" type="button" variant="secondary" @click="clearAdminToken">
+          <Button data-testid="logout-admin" type="button" variant="secondary" @click="logout">
             退出登录
           </Button>
         </div>
