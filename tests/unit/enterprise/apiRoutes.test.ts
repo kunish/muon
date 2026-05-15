@@ -421,4 +421,85 @@ describe('enterprise api routes', () => {
     }))
     expect(meB.status).toBe(401)
   })
+
+  it('POST /api/oauth/refresh issues a new session pair', async () => {
+    const handler = createEnterpriseHttpHandler({
+      matrix: {
+        async ensureUser() {
+          return { matrixUserId: '@acme.owner:localhost', accessToken: 'mx-1', deviceId: 'D1' }
+        },
+      },
+      matrixServerUrl: 'http://localhost:6167',
+    })
+
+    await handler.fetch(new Request('http://muon.test/api/install', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        organizationName: 'Acme',
+        organizationSlug: 'acme',
+        ownerUsername: 'owner',
+        ownerEmail: 'owner@acme.test',
+        ownerDisplayName: 'Owner',
+        ownerPassword: 'correct horse battery staple',
+      }),
+    }))
+
+    const loginRes = await handler.fetch(new Request('http://muon.test/api/oauth/login', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        organizationSlug: 'acme',
+        username: 'owner',
+        password: 'correct horse battery staple',
+        clientId: 'muon-desktop',
+        redirectUri: 'muon://auth/callback',
+        codeChallenge: 'a'.repeat(43),
+        codeChallengeMethod: 'plain',
+        state: 'st',
+      }),
+    }))
+    const code = (await loginRes.json() as { code: string }).code
+
+    const exchangeRes = await handler.fetch(new Request('http://muon.test/api/oauth/token', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        code,
+        codeVerifier: 'a'.repeat(43),
+        redirectUri: 'muon://auth/callback',
+        clientId: 'muon-desktop',
+        deviceName: 'Muon Desktop',
+      }),
+    }))
+    const exchangePayload = await exchangeRes.json() as { muonSession: { accessToken: string, refreshToken: string } }
+
+    const refreshRes = await handler.fetch(new Request('http://muon.test/api/oauth/refresh', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        refreshToken: exchangePayload.muonSession.refreshToken,
+        clientId: 'muon-desktop',
+        deviceName: 'Muon Desktop',
+      }),
+    }))
+    expect(refreshRes.status).toBe(200)
+    const refreshPayload = await refreshRes.json() as { muonSession: { accessToken: string, refreshToken: string } }
+    expect(refreshPayload.muonSession.accessToken).not.toBe(exchangePayload.muonSession.accessToken)
+    expect(refreshPayload.muonSession.refreshToken).not.toBe(exchangePayload.muonSession.refreshToken)
+  })
+
+  it('POST /api/oauth/refresh rejects an unknown refresh token with 400', async () => {
+    const handler = createEnterpriseHttpHandler()
+    const response = await handler.fetch(new Request('http://muon.test/api/oauth/refresh', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        refreshToken: 'never-issued',
+        clientId: 'muon-desktop',
+        deviceName: 'Muon Desktop',
+      }),
+    }))
+    expect(response.status).toBe(400)
+  })
 })

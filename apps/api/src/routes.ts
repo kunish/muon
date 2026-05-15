@@ -326,6 +326,13 @@ export function createEnterpriseHttpHandler(options: EnterpriseHttpHandlerOption
           return withCors(jsonResponse(await oauthService.exchangeCode(await readRequestBody(request) as never)), request)
         }
 
+        if (url.pathname === '/api/oauth/refresh') {
+          if (request.method !== 'POST')
+            return methodNotAllowed()
+          const result = await oauthService.refresh(await readRequestBody(request) as never)
+          return withCors(jsonResponse(result), request)
+        }
+
         return withCors(notFound(), request)
       }
       catch (error) {
