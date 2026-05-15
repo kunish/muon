@@ -1,6 +1,7 @@
 import type {
   AdminLoginRequest,
   AuditLog,
+  ChangeOwnPasswordRequest,
   CreateOrganizationRequest,
   CreateUserRequest,
   EnterpriseUser,
@@ -115,5 +116,20 @@ export function getAdminMe(token: string): Promise<{ user: EnterpriseUser }> {
     headers: {
       authorization: `Bearer ${token}`,
     },
+  })
+}
+
+export function logoutAdmin(token: string): Promise<{ ok: true }> {
+  return request('/api/admin/logout', {
+    method: 'POST',
+    headers: { authorization: `Bearer ${token}` },
+  })
+}
+
+export function changeOwnPassword(token: string, input: ChangeOwnPasswordRequest): Promise<{ user: EnterpriseUser }> {
+  return request('/api/admin/me/password', {
+    method: 'POST',
+    headers: { authorization: `Bearer ${token}` },
+    body: JSON.stringify(input),
   })
 }
