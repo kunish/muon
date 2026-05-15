@@ -30,6 +30,7 @@ function readStoredAdminToken(): string {
 
 const installed = ref(props.initialInstalled)
 const adminToken = ref(props.initialAdminToken || readStoredAdminToken())
+const mustChangePassword = ref(false)
 const submitting = ref(false)
 const loginSubmitting = ref(false)
 const organizationSubmitting = ref(false)
@@ -428,7 +429,11 @@ async function bootstrap() {
   if (!token)
     return
   try {
-    await getAdminMe(token)
+    const { user } = await getAdminMe(token)
+    if (user.mustChangePassword) {
+      mustChangePassword.value = true
+      return
+    }
     await refreshDashboard()
   }
   catch (err) {

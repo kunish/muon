@@ -624,4 +624,33 @@ describe('adminApp', () => {
     expect(wrapper.find('input[autocomplete="organization"]').exists()).toBe(true)
     expect(listOrganizations).not.toHaveBeenCalled()
   })
+
+  it('does not call refreshDashboard when the bootstrap user has mustChangePassword=true', async () => {
+    window.localStorage.setItem('muon_admin_token', 'must-change-token')
+    ;(getAdminMe as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      user: {
+        id: 'user-must-change',
+        organizationId: 'org-1',
+        username: 'novice',
+        email: 'novice@muon.local',
+        displayName: 'Novice',
+        status: 'active',
+        mustChangePassword: true,
+        roles: ['member'],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+    })
+
+    mount(AdminApp, {
+      props: { initialInstalled: true },
+      global: {
+        plugins: [createAdminRouter(createMemoryHistory())],
+      },
+    })
+    await flushPromises()
+
+    expect(listOrganizations).not.toHaveBeenCalled()
+    expect(listUsers).not.toHaveBeenCalled()
+  })
 })
