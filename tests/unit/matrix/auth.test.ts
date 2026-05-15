@@ -285,3 +285,68 @@ describe('refreshEnterpriseSession', () => {
     expect(fetchMock).not.toHaveBeenCalled()
   })
 })
+
+describe('maybeRefreshOnStartup', () => {
+  beforeEach(() => {
+    window.localStorage.clear()
+    vi.restoreAllMocks()
+    vi.resetModules()
+  })
+
+  it('refreshes when expiry is within 24h', async () => {
+    window.localStorage.setItem(ENTERPRISE_SESSION_KEY, JSON.stringify({
+      accessToken: 'old-access',
+      refreshToken: 'old-refresh',
+      expiresAt: new Date(Date.now() + 1 * 60 * 60 * 1000).toISOString(),
+    }))
+
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({
+      muonSession: {
+        accessToken: 'new-access',
+        refreshToken: 'new-refresh',
+        expiresAt: new Date(Date.now() + 30 * 24 * 3600_000).toISOString(),
+      },
+      matrixSession: {
+        serverUrl: 'http://localhost:6167',
+        userId: '@acme.owner:localhost',
+        accessToken: 'mx-1',
+        deviceId: 'D1',
+      },
+    }), { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+    vi.stubEnv('VITE_MUON_API_BASE_URL', 'http://muon.test')
+
+    const { maybeRefreshOnStartup } = await import('@/matrix/auth')
+    await maybeRefreshOnStartup()
+
+    expect(fetchMock).toHaveBeenCalled()
+    const stored = JSON.parse(window.localStorage.getItem(ENTERPRISE_SESSION_KEY) ?? '{}')
+    expect(stored.accessToken).toBe('new-access')
+  })
+
+  it('does not refresh when expiry is far away', async () => {
+    window.localStorage.setItem(ENTERPRISE_SESSION_KEY, JSON.stringify({
+      accessToken: 'old-access',
+      refreshToken: 'old-refresh',
+      expiresAt: new Date(Date.now() + 25 * 24 * 3600_000).toISOString(),
+    }))
+
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { maybeRefreshOnStartup } = await import('@/matrix/auth')
+    await maybeRefreshOnStartup()
+
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('is a no-op when no enterprise session is stored', async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { maybeRefreshOnStartup } = await import('@/matrix/auth')
+    await maybeRefreshOnStartup()
+
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+})

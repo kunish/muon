@@ -393,7 +393,20 @@ export async function refreshEnterpriseSession(
   await persistMuonSession(payload.muonSession)
 }
 
+const REFRESH_NEAR_EXPIRY_MS = 24 * 60 * 60 * 1000
+
+export async function maybeRefreshOnStartup(apiBaseUrl = import.meta.env.VITE_MUON_API_BASE_URL): Promise<void> {
+  const stored = await readStoredMuonSession()
+  if (!stored)
+    return
+  const msUntilExpiry = Date.parse(stored.expiresAt) - Date.now()
+  if (msUntilExpiry < REFRESH_NEAR_EXPIRY_MS)
+    await refreshEnterpriseSession(apiBaseUrl).catch(() => {})
+}
+
 export async function restoreSession(): Promise<boolean> {
+  await maybeRefreshOnStartup()
+
   const raw = localStorage.getItem(STORAGE_KEY)
   if (!raw)
     return false
