@@ -222,6 +222,22 @@ export function createEnterpriseHttpHandler(options: EnterpriseHttpHandlerOption
           return withCors(jsonResponse({ user: repository.getPublicUser(user) }), request)
         }
 
+        if (url.pathname === '/api/admin/logout') {
+          if (request.method !== 'POST')
+            return methodNotAllowed()
+          const user = await requireAdmin(request)
+          const token = bearerToken(request) ?? ''
+          await adminSessionService.revoke(token)
+          await repository.appendAuditLog({
+            organizationId: user.organizationId,
+            actorUserId: user.id,
+            action: 'admin.logout',
+            targetType: 'user',
+            targetId: user.id,
+          })
+          return withCors(jsonResponse({ ok: true }), request)
+        }
+
         if (url.pathname === '/api/admin/organizations') {
           const actor = await requireFullyAuthorizedAdmin(request)
           if (request.method === 'GET') {

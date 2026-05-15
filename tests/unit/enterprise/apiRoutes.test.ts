@@ -2,6 +2,32 @@ import { describe, expect, it } from 'vitest'
 import { createInMemoryEnterpriseRepository } from '../../../apps/api/src/repository'
 import { createEnterpriseHttpHandler } from '../../../apps/api/src/routes'
 
+async function installAndLogin(handler: ReturnType<typeof createEnterpriseHttpHandler>) {
+  await handler.fetch(new Request('http://muon.test/api/install', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      organizationName: 'Acme',
+      organizationSlug: 'acme',
+      ownerUsername: 'owner',
+      ownerEmail: 'owner@acme.test',
+      ownerDisplayName: 'Owner',
+      ownerPassword: 'correct horse battery staple',
+    }),
+  }))
+
+  const login = await handler.fetch(new Request('http://muon.test/api/admin/login', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      organizationSlug: 'acme',
+      username: 'owner',
+      password: 'correct horse battery staple',
+    }),
+  }))
+  return (await login.json() as { session: { accessToken: string } }).session.accessToken
+}
+
 describe('enterprise api routes', () => {
   it('allows the standalone admin web origin to call the api', async () => {
     const handler = createEnterpriseHttpHandler()
@@ -285,5 +311,31 @@ describe('enterprise api routes', () => {
       headers: { authorization: `Bearer ${loginPayload.session.accessToken}` },
     }))
     expect(me.status).toBe(200)
+  })
+
+  it('logs out an admin session, then rejects further requests with that token', async () => {
+    const handler = createEnterpriseHttpHandler()
+    const token = await installAndLogin(handler)
+
+    const logout = await handler.fetch(new Request('http://muon.test/api/admin/logout', {
+      method: 'POST',
+      headers: { authorization: `Bearer ${token}` },
+    }))
+    expect(logout.status).toBe(200)
+    expect(await logout.json()).toEqual({ ok: true })
+
+    const me = await handler.fetch(new Request('http://muon.test/api/admin/me', {
+      headers: { authorization: `Bearer ${token}` },
+    }))
+    expect(me.status).toBe(401)
+  })
+
+  it('allows a must-change user to log out', async () => {
+    const { handler, token } = await setupMustChangeOwner()
+    const logout = await handler.fetch(new Request('http://muon.test/api/admin/logout', {
+      method: 'POST',
+      headers: { authorization: `Bearer ${token}` },
+    }))
+    expect(logout.status).toBe(200)
   })
 })
