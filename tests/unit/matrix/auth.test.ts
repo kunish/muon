@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mockLogin = vi.fn().mockResolvedValue({
   user_id: '@test:localhost',
@@ -202,5 +202,86 @@ describe('auth', () => {
       refreshToken: 'refresh-token',
     })
     expect(localStorage.getItem('muon_enterprise_pkce')).toBeNull()
+  })
+})
+
+const ENTERPRISE_SESSION_KEY = 'muon_enterprise_session'
+
+describe('refreshEnterpriseSession', () => {
+  beforeEach(() => {
+    window.localStorage.clear()
+    vi.restoreAllMocks()
+    vi.resetModules()
+  })
+
+  it('posts the stored refresh token and persists the new muon session', async () => {
+    window.localStorage.setItem(ENTERPRISE_SESSION_KEY, JSON.stringify({
+      accessToken: 'old-access',
+      refreshToken: 'old-refresh',
+      expiresAt: new Date(Date.now() + 3600_000).toISOString(),
+    }))
+
+    const newPayload = {
+      muonSession: {
+        accessToken: 'new-access',
+        refreshToken: 'new-refresh',
+        expiresAt: new Date(Date.now() + 30 * 24 * 3600_000).toISOString(),
+      },
+      matrixSession: {
+        serverUrl: 'http://localhost:6167',
+        userId: '@acme.owner:localhost',
+        accessToken: 'mx-1',
+        deviceId: 'D1',
+      },
+    }
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify(newPayload), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { refreshEnterpriseSession } = await import('@/matrix/auth')
+    await refreshEnterpriseSession('http://muon.test')
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://muon.test/api/oauth/refresh',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({
+          refreshToken: 'old-refresh',
+          clientId: 'muon-desktop',
+          deviceName: 'Muon Desktop',
+        }),
+      }),
+    )
+
+    const stored = JSON.parse(window.localStorage.getItem(ENTERPRISE_SESSION_KEY) ?? '{}')
+    expect(stored.accessToken).toBe('new-access')
+    expect(stored.refreshToken).toBe('new-refresh')
+  })
+
+  it('clears the enterprise session when refresh returns 400', async () => {
+    window.localStorage.setItem(ENTERPRISE_SESSION_KEY, JSON.stringify({
+      accessToken: 'old-access',
+      refreshToken: 'stale-refresh',
+      expiresAt: new Date(Date.now() + 3600_000).toISOString(),
+    }))
+
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ error: 'Invalid refresh token' }), { status: 400 })))
+
+    const { refreshEnterpriseSession } = await import('@/matrix/auth')
+    await refreshEnterpriseSession('http://muon.test')
+
+    expect(window.localStorage.getItem(ENTERPRISE_SESSION_KEY)).toBe(null)
+  })
+
+  it('is a no-op when no enterprise session is stored', async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { refreshEnterpriseSession } = await import('@/matrix/auth')
+    await refreshEnterpriseSession('http://muon.test')
+
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 })

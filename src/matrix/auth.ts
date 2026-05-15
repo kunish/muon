@@ -81,6 +81,43 @@ async function decryptSensitive(value: string, isEncrypted: boolean): Promise<st
   }
 }
 
+// --- Enterprise session helpers ---
+
+interface MuonSessionStored {
+  accessToken: string
+  refreshToken: string
+  expiresAt: string
+}
+
+async function readStoredMuonSession(): Promise<MuonSessionStored | null> {
+  const raw = localStorage.getItem(ENTERPRISE_SESSION_KEY)
+  if (!raw)
+    return null
+
+  try {
+    const parsed = JSON.parse(raw) as { _enc?: boolean, data?: string } & Partial<MuonSessionStored>
+    if (parsed?._enc === true && typeof parsed.data === 'string') {
+      const decrypted = await decryptSensitive(parsed.data, true)
+      return JSON.parse(decrypted) as MuonSessionStored
+    }
+    if (typeof parsed.accessToken === 'string' && typeof parsed.refreshToken === 'string' && typeof parsed.expiresAt === 'string')
+      return { accessToken: parsed.accessToken, refreshToken: parsed.refreshToken, expiresAt: parsed.expiresAt }
+    return null
+  }
+  catch {
+    return null
+  }
+}
+
+async function persistMuonSession(session: MuonSessionStored): Promise<void> {
+  const json = JSON.stringify(session)
+  const encrypted = await encryptSensitive(json)
+  const payload = encrypted !== json
+    ? JSON.stringify({ _enc: true, data: encrypted })
+    : json
+  localStorage.setItem(ENTERPRISE_SESSION_KEY, payload)
+}
+
 // --- Session persistence ---
 
 interface PersistedSessionPayload {
@@ -283,13 +320,7 @@ export async function completeEnterpriseLogin(callbackUrl: string, apiBaseUrl = 
   }
   await persistSession(session)
 
-  // Encrypt the enterprise muonSession (contains accessToken + refreshToken)
-  const muonSessionJson = JSON.stringify(tokenResponse.muonSession)
-  const encryptedMuonSession = await encryptSensitive(muonSessionJson)
-  const muonPayload = encryptedMuonSession !== muonSessionJson
-    ? JSON.stringify({ _enc: true, data: encryptedMuonSession })
-    : muonSessionJson
-  localStorage.setItem(ENTERPRISE_SESSION_KEY, muonPayload)
+  await persistMuonSession(tokenResponse.muonSession)
 
   localStorage.removeItem(ENTERPRISE_PKCE_KEY)
   createClient(session)
@@ -323,6 +354,43 @@ export async function logout(): Promise<void> {
     localStorage.removeItem(ENTERPRISE_PKCE_KEY)
     destroyClient()
   }
+}
+
+export async function refreshEnterpriseSession(
+  apiBaseUrl = import.meta.env.VITE_MUON_API_BASE_URL,
+): Promise<void> {
+  const baseUrl = enterpriseApiBaseUrl(apiBaseUrl)
+  if (!baseUrl)
+    return
+
+  const stored = await readStoredMuonSession()
+  if (!stored?.refreshToken)
+    return
+
+  let response: Response
+  try {
+    response = await fetch(`${baseUrl}/api/oauth/refresh`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        refreshToken: stored.refreshToken,
+        clientId: 'muon-desktop',
+        deviceName: 'Muon Desktop',
+      }),
+    })
+  }
+  catch {
+    // Network error — keep the existing session, try again next startup.
+    return
+  }
+
+  if (!response.ok) {
+    localStorage.removeItem(ENTERPRISE_SESSION_KEY)
+    return
+  }
+
+  const payload = oauthTokenResponseSchema.parse(await response.json())
+  await persistMuonSession(payload.muonSession)
 }
 
 export async function restoreSession(): Promise<boolean> {
