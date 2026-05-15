@@ -7,7 +7,7 @@ import { Label } from '@muon/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@muon/ui/select'
 import { computed, reactive, ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
-import { createAdminUser, createOrganization, getAdminMe, installMuon, listAuditLogs, listOrganizations, listUsers, loginAdmin, resetAdminUserPassword, updateAdminUser } from './api'
+import { changeOwnPassword, createAdminUser, createOrganization, getAdminMe, installMuon, listAuditLogs, listOrganizations, listUsers, loginAdmin, logoutAdmin, resetAdminUserPassword, updateAdminUser } from './api'
 import { adminSections, defaultAdminSection, isAdminSection } from './router'
 
 const props = withDefaults(defineProps<{
@@ -31,6 +31,9 @@ function readStoredAdminToken(): string {
 const installed = ref(props.initialInstalled)
 const adminToken = ref(props.initialAdminToken || readStoredAdminToken())
 const mustChangePassword = ref(false)
+const changePasswordForm = reactive({ currentPassword: '', newPassword: '' })
+const changePasswordSubmitting = ref(false)
+const changePasswordError = ref('')
 const submitting = ref(false)
 const loginSubmitting = ref(false)
 const organizationSubmitting = ref(false)
@@ -254,6 +257,34 @@ async function refreshDashboard() {
   }
 }
 
+async function submitForceChangePassword() {
+  if (!adminToken.value || changePasswordSubmitting.value)
+    return
+
+  changePasswordSubmitting.value = true
+  changePasswordError.value = ''
+  try {
+    await changeOwnPassword(adminToken.value, {
+      currentPassword: changePasswordForm.currentPassword,
+      newPassword: changePasswordForm.newPassword,
+    })
+    changePasswordForm.currentPassword = ''
+    changePasswordForm.newPassword = ''
+    mustChangePassword.value = false
+    await refreshDashboard()
+  }
+  catch (err) {
+    changePasswordError.value = err instanceof Error ? err.message : '修改密码失败'
+  }
+  finally {
+    changePasswordSubmitting.value = false
+  }
+}
+
+async function logout() {
+  clearAdminToken()
+}
+
 async function submitLogin() {
   if (!canLogin.value || loginSubmitting.value)
     return
@@ -449,6 +480,59 @@ void bootstrap()
 
 <template>
   <main class="admin-shell">
+    <section
+      v-if="mustChangePassword"
+      class="force-change-password-overlay"
+      data-testid="force-change-password-overlay"
+    >
+      <form
+        class="force-change-password-form"
+        data-testid="force-change-password"
+        @submit.prevent="submitForceChangePassword"
+      >
+        <div class="page-heading">
+          <p>首次登录</p>
+          <h1>请修改初始密码</h1>
+        </div>
+        <Label class="grid gap-1.5">
+          当前密码
+          <Input
+            v-model="changePasswordForm.currentPassword"
+            data-testid="force-change-password-current"
+            type="password"
+            autocomplete="current-password"
+          />
+        </Label>
+        <Label class="grid gap-1.5">
+          新密码,至少 12 位
+          <Input
+            v-model="changePasswordForm.newPassword"
+            data-testid="force-change-password-new"
+            type="password"
+            autocomplete="new-password"
+          />
+        </Label>
+        <p
+          v-if="changePasswordError"
+          class="error"
+          data-testid="force-change-password-error"
+        >
+          {{ changePasswordError }}
+        </p>
+        <Button class="w-fit" type="submit" :disabled="changePasswordSubmitting">
+          {{ changePasswordSubmitting ? '正在保存' : '保存新密码' }}
+        </Button>
+        <button
+          type="button"
+          class="force-change-password-escape"
+          data-testid="force-change-password-escape"
+          @click="logout"
+        >
+          退出登录
+        </button>
+      </form>
+    </section>
+
     <aside class="admin-sidebar">
       <div class="brand">
         Muon Admin
@@ -538,7 +622,7 @@ void bootstrap()
       </form>
     </section>
 
-    <section v-else class="admin-content dashboard-layout">
+    <section v-else-if="!mustChangePassword" class="admin-content dashboard-layout">
       <div class="dashboard-header">
         <div class="page-heading">
           <p>组织后台</p>
@@ -1100,6 +1184,36 @@ void bootstrap()
   border-radius: 8px;
   color: #667085;
   text-align: center;
+}
+
+.force-change-password-overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(15, 23, 42, 0.55);
+  z-index: 50;
+  padding: 24px;
+}
+
+.force-change-password-form {
+  width: min(420px, calc(100vw - 48px));
+  background: #fff;
+  border-radius: 8px;
+  padding: 24px;
+  display: grid;
+  gap: 14px;
+  box-shadow: 0 18px 42px rgba(16, 24, 40, 0.18);
+}
+
+.force-change-password-escape {
+  align-self: flex-start;
+  border: 0;
+  background: transparent;
+  color: #2563eb;
+  font: inherit;
+  padding: 0;
+  cursor: pointer;
 }
 
 @media (max-width: 900px) {

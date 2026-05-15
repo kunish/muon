@@ -2,10 +2,24 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMemoryHistory } from 'vue-router'
 import AdminApp from '../../apps/admin/src/AdminApp.vue'
-import { createAdminUser, createOrganization, getAdminMe, listAuditLogs, listOrganizations, listUsers, loginAdmin, resetAdminUserPassword, updateAdminUser } from '../../apps/admin/src/api'
+import { changeOwnPassword, createAdminUser, createOrganization, getAdminMe, listAuditLogs, listOrganizations, listUsers, loginAdmin, logoutAdmin, resetAdminUserPassword, updateAdminUser } from '../../apps/admin/src/api'
 import { createAdminRouter } from '../../apps/admin/src/router'
 
 vi.mock('../../apps/admin/src/api', () => ({
+  changeOwnPassword: vi.fn(async () => ({
+    user: {
+      id: 'user-owner',
+      organizationId: 'org-1',
+      username: 'owner',
+      email: 'owner@muon.local',
+      displayName: 'Owner',
+      status: 'active',
+      mustChangePassword: false,
+      roles: ['owner'],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+  })),
   createAdminUser: vi.fn(async () => ({
     user: {
       id: 'user-alice',
@@ -125,6 +139,7 @@ vi.mock('../../apps/admin/src/api', () => ({
       updatedAt: new Date().toISOString(),
     },
   })),
+  logoutAdmin: vi.fn(async () => ({ ok: true })),
   resetAdminUserPassword: vi.fn(async () => ({
     user: {
       id: 'user-owner',
@@ -652,5 +667,108 @@ describe('adminApp', () => {
 
     expect(listOrganizations).not.toHaveBeenCalled()
     expect(listUsers).not.toHaveBeenCalled()
+  })
+
+  it('shows the forced-change-password overlay when bootstrap sees mustChangePassword=true', async () => {
+    window.localStorage.setItem('muon_admin_token', 'must-change-token')
+    ;(getAdminMe as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      user: {
+        id: 'user-must-change',
+        organizationId: 'org-1',
+        username: 'novice',
+        email: 'novice@muon.local',
+        displayName: 'Novice',
+        status: 'active',
+        mustChangePassword: true,
+        roles: ['member'],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+    })
+
+    const wrapper = mount(AdminApp, {
+      props: { initialInstalled: true },
+      global: {
+        plugins: [createAdminRouter(createMemoryHistory())],
+      },
+    })
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="force-change-password"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="organizations-panel"]').exists()).toBe(false)
+  })
+
+  it('submitting the overlay form changes the password and loads the dashboard', async () => {
+    window.localStorage.setItem('muon_admin_token', 'must-change-token')
+    ;(getAdminMe as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce({
+        user: {
+          id: 'user-must-change',
+          organizationId: 'org-1',
+          username: 'novice',
+          email: 'novice@muon.local',
+          displayName: 'Novice',
+          status: 'active',
+          mustChangePassword: true,
+          roles: ['member'],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      })
+
+    const wrapper = mount(AdminApp, {
+      props: { initialInstalled: true },
+      global: {
+        plugins: [createAdminRouter(createMemoryHistory())],
+      },
+    })
+    await flushPromises()
+
+    await wrapper.find('[data-testid="force-change-password-current"]').setValue('correct horse battery staple')
+    await wrapper.find('[data-testid="force-change-password-new"]').setValue('a much better passphrase!')
+    await wrapper.find('[data-testid="force-change-password"]').trigger('submit.prevent')
+    await flushPromises()
+
+    expect(changeOwnPassword).toHaveBeenCalledWith('must-change-token', {
+      currentPassword: 'correct horse battery staple',
+      newPassword: 'a much better passphrase!',
+    })
+    expect(wrapper.find('[data-testid="force-change-password"]').exists()).toBe(false)
+    expect(listOrganizations).toHaveBeenCalled()
+  })
+
+  it('shows an inline error when changeOwnPassword fails', async () => {
+    window.localStorage.setItem('muon_admin_token', 'must-change-token')
+    ;(getAdminMe as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      user: {
+        id: 'user-must-change',
+        organizationId: 'org-1',
+        username: 'novice',
+        email: 'novice@muon.local',
+        displayName: 'Novice',
+        status: 'active',
+        mustChangePassword: true,
+        roles: ['member'],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+    })
+    ;(changeOwnPassword as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('Invalid credentials'))
+
+    const wrapper = mount(AdminApp, {
+      props: { initialInstalled: true },
+      global: {
+        plugins: [createAdminRouter(createMemoryHistory())],
+      },
+    })
+    await flushPromises()
+
+    await wrapper.find('[data-testid="force-change-password-current"]').setValue('wrong')
+    await wrapper.find('[data-testid="force-change-password-new"]').setValue('a much better passphrase!')
+    await wrapper.find('[data-testid="force-change-password"]').trigger('submit.prevent')
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="force-change-password-error"]').text()).toMatch(/credentials/i)
+    expect(wrapper.find('[data-testid="force-change-password"]').exists()).toBe(true)
   })
 })
