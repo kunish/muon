@@ -173,6 +173,13 @@ export function createEnterpriseHttpHandler(options: EnterpriseHttpHandlerOption
     return adminSessionService.validate(token)
   }
 
+  async function requireFullyAuthorizedAdmin(request: Request): Promise<EnterpriseUserRecord> {
+    const user = await requireAdmin(request)
+    if (user.mustChangePassword)
+      throw new MustChangePasswordError()
+    return user
+  }
+
   return {
     repository,
 
@@ -216,7 +223,7 @@ export function createEnterpriseHttpHandler(options: EnterpriseHttpHandlerOption
         }
 
         if (url.pathname === '/api/admin/organizations') {
-          const actor = await requireAdmin(request)
+          const actor = await requireFullyAuthorizedAdmin(request)
           if (request.method === 'GET') {
             return withCors(jsonResponse({
               organizations: await repository.listOrganizations(),
@@ -230,7 +237,7 @@ export function createEnterpriseHttpHandler(options: EnterpriseHttpHandlerOption
         }
 
         if (url.pathname === '/api/admin/users') {
-          const actor = await requireAdmin(request)
+          const actor = await requireFullyAuthorizedAdmin(request)
           if (request.method === 'GET') {
             return withCors(jsonResponse({
               users: (await repository.listUsersByOrganization(actor.organizationId))
@@ -246,7 +253,7 @@ export function createEnterpriseHttpHandler(options: EnterpriseHttpHandlerOption
 
         const userRoute = adminUserRoute(url.pathname)
         if (userRoute) {
-          const actor = await requireAdmin(request)
+          const actor = await requireFullyAuthorizedAdmin(request)
           if (userRoute.password) {
             if (request.method !== 'POST')
               return methodNotAllowed()
@@ -262,7 +269,7 @@ export function createEnterpriseHttpHandler(options: EnterpriseHttpHandlerOption
         if (url.pathname === '/api/admin/audit-logs') {
           if (request.method !== 'GET')
             return methodNotAllowed()
-          const actor = await requireAdmin(request)
+          const actor = await requireFullyAuthorizedAdmin(request)
           return withCors(jsonResponse({
             auditLogs: await repository.listAuditLogsByOrganization(actor.organizationId),
           }), request)

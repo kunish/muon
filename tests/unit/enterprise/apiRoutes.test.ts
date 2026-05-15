@@ -192,6 +192,65 @@ describe('enterprise api routes', () => {
     expect(response.status).toBe(401)
   })
 
+  async function setupMustChangeOwner() {
+    const repository = createInMemoryEnterpriseRepository()
+    const handler = createEnterpriseHttpHandler({ repository })
+
+    const install = await handler.fetch(new Request('http://muon.test/api/install', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        organizationName: 'Acme',
+        organizationSlug: 'acme',
+        ownerUsername: 'owner',
+        ownerEmail: 'owner@acme.test',
+        ownerDisplayName: 'Owner',
+        ownerPassword: 'correct horse battery staple',
+      }),
+    }))
+    const installPayload = await install.json() as { organization: { id: string }, owner: { id: string } }
+
+    // installService sets mustChangePassword=false for the owner. Flip it to true
+    // so we can exercise the must-change-password gating path.
+    const ownerRecord = repository.users.find(user => user.id === installPayload.owner.id)
+    if (!ownerRecord) throw new Error('precondition: owner missing')
+    await repository.resetUserPassword(installPayload.organization.id, installPayload.owner.id, {
+      passwordHash: ownerRecord.passwordHash,
+      mustChangePassword: true,
+    })
+
+    const login = await handler.fetch(new Request('http://muon.test/api/admin/login', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        organizationSlug: 'acme',
+        username: 'owner',
+        password: 'correct horse battery staple',
+      }),
+    }))
+    const token = (await login.json() as { session: { accessToken: string } }).session.accessToken
+    return { repository, handler, token, organizationId: installPayload.organization.id, ownerId: installPayload.owner.id }
+  }
+
+  it('returns 403 must_change_password when a must-change user calls a gated admin endpoint', async () => {
+    const { handler, token } = await setupMustChangeOwner()
+    const response = await handler.fetch(new Request('http://muon.test/api/admin/organizations', {
+      headers: { authorization: `Bearer ${token}` },
+    }))
+    expect(response.status).toBe(403)
+    expect(await response.json()).toEqual({ error: 'must_change_password' })
+  })
+
+  it('lets a must-change user still hit /api/admin/me', async () => {
+    const { handler, token } = await setupMustChangeOwner()
+    const response = await handler.fetch(new Request('http://muon.test/api/admin/me', {
+      headers: { authorization: `Bearer ${token}` },
+    }))
+    expect(response.status).toBe(200)
+    const body = await response.json() as { user: { mustChangePassword: boolean } }
+    expect(body.user.mustChangePassword).toBe(true)
+  })
+
   it('keeps admin sessions valid across handler recreation when sharing a repository', async () => {
     const repository = createInMemoryEnterpriseRepository()
     const handlerA = createEnterpriseHttpHandler({ repository })
