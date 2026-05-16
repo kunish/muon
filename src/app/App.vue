@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { bindClientEvents, restoreSession, startSync, syncState } from '@matrix/index'
+import { syncState } from '@matrix/index'
 import { Toaster } from '@muon/ui/sonner'
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
+import { bootstrap } from '@/auth/lifecycle'
 import { getDesktopBridge, isElectronRuntime } from '@/electron/bridge'
 import ErrorBoundary from './components/ErrorBoundary.vue'
 import WindowTitleBar from './components/window/WindowTitleBar.vue'
@@ -28,14 +29,9 @@ onMounted(async () => {
   document.addEventListener('contextmenu', blockNativeContextMenu, { capture: true })
 
   try {
-    const restored = await restoreSession()
-    if (restored) {
-      bindClientEvents()
-      startSync()
-    }
-    else {
+    const { restored } = await bootstrap()
+    if (!restored)
       router.replace('/login')
-    }
   }
   catch (err) {
     if (err instanceof Error && (err.message?.includes('fetch') || err.message?.includes('network') || err.message?.includes('ECONNREFUSED') || err.name === 'TypeError')) {
