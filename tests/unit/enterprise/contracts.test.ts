@@ -64,4 +64,14 @@ describe('muonSessionSchema', () => {
     })
     expect(result.success).toBe(true)
   })
+
+  it('rejects a whitespace-only deviceName', () => {
+    const result = muonSessionSchema.safeParse({
+      accessToken: 'a',
+      refreshToken: 'r',
+      expiresAt: '2030-01-01T00:00:00.000Z',
+      deviceName: '   ',
+    })
+    expect(result.success).toBe(false)
+  })
 })
