@@ -115,3 +115,60 @@ describe('auth', () => {
     expect(result).toBeNull()
   })
 })
+
+describe('activateMatrixSession', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    vi.clearAllMocks()
+  })
+
+  it('persists the session to muon_auth and creates the client', async () => {
+    const { activateMatrixSession } = await import('@/matrix/auth')
+    const { createClient } = await import('@matrix/client')
+    const session = {
+      serverUrl: 'https://matrix.example.com',
+      userId: '@u:example.com',
+      accessToken: 'at',
+      deviceId: 'DEV',
+    }
+
+    await activateMatrixSession(session)
+
+    expect(localStorage.getItem('muon_auth')).not.toBeNull()
+    const stored = JSON.parse(localStorage.getItem('muon_auth')!)
+    expect(stored).toEqual(session)
+    expect(createClient).toHaveBeenCalledTimes(1)
+    expect(createClient).toHaveBeenCalledWith(session)
+  })
+})
+
+describe('readMatrixSessionFromStore', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    vi.clearAllMocks()
+  })
+
+  it('returns null when no session is stored', async () => {
+    const { readMatrixSessionFromStore } = await import('@/matrix/auth')
+    const { createClient } = await import('@matrix/client')
+    expect(await readMatrixSessionFromStore()).toBeNull()
+    expect(createClient).not.toHaveBeenCalled()
+  })
+
+  it('returns the stored session without creating a client', async () => {
+    const { activateMatrixSession, readMatrixSessionFromStore } = await import('@/matrix/auth')
+    const { createClient } = await import('@matrix/client')
+    const session = {
+      serverUrl: 'https://matrix.example.com',
+      userId: '@u:example.com',
+      accessToken: 'at',
+      deviceId: 'DEV',
+    }
+    await activateMatrixSession(session)
+    vi.clearAllMocks()
+
+    const read = await readMatrixSessionFromStore()
+    expect(read).toEqual(session)
+    expect(createClient).not.toHaveBeenCalled()
+  })
+})

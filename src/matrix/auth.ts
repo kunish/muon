@@ -97,15 +97,15 @@ export async function logoutMatrix(): Promise<void> {
   try {
     await getClient().logout(true)
   }
-  catch {
-    // ignore — homeserver may be unreachable; continue with local teardown.
+  catch (err) {
+    console.warn('[auth] matrix logout against homeserver failed; continuing local teardown', err)
   }
 
   try {
     unbindClientEvents()
   }
-  catch {
-    // continue
+  catch (err) {
+    console.warn('[auth] unbindClientEvents failed during logout', err)
   }
 
   matrixSessionStore().clear()
