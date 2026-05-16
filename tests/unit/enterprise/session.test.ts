@@ -64,3 +64,79 @@ describe('enterpriseSession.start', () => {
     expect(pkce!.state).toBe(openedUrl.searchParams.get('state'))
   })
 })
+
+describe('enterpriseSession.complete', () => {
+  beforeEach(() => {
+    localStorage.clear()
+  })
+
+  it('rejects an invalid callback URL', async () => {
+    const deps = makeDeps()
+    await expect(complete('not-a-url', deps)).rejects.toBeInstanceOf(EnterpriseSessionError)
+  })
+
+  it('rejects when no PKCE state was started', async () => {
+    const deps = makeDeps()
+    await expect(complete('muon://auth/callback?code=c&state=s', deps)).rejects.toThrow(/PKCE/i)
+  })
+
+  it('rejects when callback state does not match stored state', async () => {
+    const deps = makeDeps()
+    await deps.pkceStore.write({ codeVerifier: 'v', state: 'expected' })
+    await expect(complete('muon://auth/callback?code=c&state=wrong', deps)).rejects.toThrow(/state/i)
+  })
+
+  it('exchanges the code and persists both sessions, clearing PKCE state', async () => {
+    const http = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        muonSession: {
+          accessToken: 'mat',
+          refreshToken: 'mrt',
+          expiresAt: '2030-01-01T00:00:00.000Z',
+          deviceName: 'Muon Desktop',
+        },
+        matrixSession: {
+          serverUrl: 'https://matrix.example.com',
+          userId: '@u:example.com',
+          accessToken: 'xat',
+          deviceId: 'DEV',
+        },
+      }),
+    }) as unknown as typeof fetch
+
+    const deps = makeDeps({ http })
+    await deps.pkceStore.write({ codeVerifier: 'verifier', state: 'st' })
+
+    const session = await complete('muon://auth/callback?code=abc&state=st', deps)
+
+    expect(session.muon.accessToken).toBe('mat')
+    expect(session.muon.deviceName).toBe('Muon Desktop')
+    expect(session.matrix.userId).toBe('@u:example.com')
+
+    // EnterpriseSession persists ONLY the MuonSession; the returned MatrixSession is the lifecycle orchestrator's job to activate.
+    expect(await deps.muonStore.read()).toEqual(session.muon)
+    expect(await deps.pkceStore.read()).toBeNull()
+
+    const [calledUrl, calledInit] = (http as unknown as ReturnType<typeof vi.fn>).mock.calls[0]!
+    expect(String(calledUrl)).toBe('https://api.example.com/api/oauth/token')
+    const body = JSON.parse((calledInit as RequestInit).body as string)
+    expect(body.code).toBe('abc')
+    expect(body.codeVerifier).toBe('verifier')
+    expect(body.clientId).toBe('muon-desktop')
+    expect(body.redirectUri).toBe('muon://auth/callback')
+    expect(body.deviceName).toBe('Muon Desktop')
+  })
+
+  it('throws on non-ok response and does not persist anything', async () => {
+    const http = vi.fn().mockResolvedValue({
+      ok: false,
+      json: async () => ({ error: 'bad_request' }),
+    }) as unknown as typeof fetch
+    const deps = makeDeps({ http })
+    await deps.pkceStore.write({ codeVerifier: 'v', state: 's' })
+
+    await expect(complete('muon://auth/callback?code=c&state=s', deps)).rejects.toThrow()
+    expect(await deps.muonStore.read()).toBeNull()
+  })
+})

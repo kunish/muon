@@ -53,6 +53,8 @@ async function sha256Base64Url(value: string): Promise<string> {
     .replace(/=+$/g, '')
 }
 
+const DEFAULT_DEVICE_NAME = 'Muon Desktop'
+
 // Implementations added in subsequent tasks
 export async function start(deps: EnterpriseSessionDeps): Promise<void> {
   const codeVerifier = randomUrlToken()
@@ -72,8 +74,44 @@ export async function start(deps: EnterpriseSessionDeps): Promise<void> {
   await deps.openUrl(authorizeUrl.toString())
 }
 
-export async function complete(_callbackUrl: string, _deps: EnterpriseSessionDeps): Promise<EnterpriseSession> {
-  throw new Error('not implemented')
+export async function complete(callbackUrl: string, deps: EnterpriseSessionDeps): Promise<EnterpriseSession> {
+  const callback = parseEnterpriseAuthCallback(callbackUrl)
+  if (!callback)
+    throw new EnterpriseSessionError('invalid-callback', 'Invalid enterprise auth callback')
+
+  const pkce = await deps.pkceStore.read()
+  if (!pkce)
+    throw new EnterpriseSessionError('no-pkce-state', 'Enterprise login was not started on this device (no PKCE state)')
+
+  if (pkce.state !== callback.state)
+    throw new EnterpriseSessionError('state-mismatch', 'Enterprise login state does not match this device')
+
+  const response = await deps.http(`${deps.apiBaseUrl}/api/oauth/token`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      code: callback.code,
+      codeVerifier: pkce.codeVerifier,
+      redirectUri: deps.redirectUri,
+      clientId: deps.clientId,
+      deviceName: DEFAULT_DEVICE_NAME,
+    }),
+  })
+
+  const payload = await response.json()
+  if (!response.ok)
+    throw new EnterpriseSessionError('exchange-failed', payload?.error ?? 'Enterprise login failed')
+
+  const tokenResponse = oauthTokenResponseSchema.parse(payload)
+  const muon = tokenResponse.muonSession
+  const matrix = tokenResponse.matrixSession
+
+  await deps.muonStore.write(muon)
+  deps.pkceStore.clear()
+
+  // Note: the returned MatrixSession is NOT persisted here. The lifecycle orchestrator
+  // is responsible for calling activateMatrixSession(matrix) which persists + creates the client.
+  return { muon, matrix }
 }
 
 export async function refresh(_deps: EnterpriseSessionDeps): Promise<EnterpriseSession | null> {
@@ -106,5 +144,4 @@ export function parseEnterpriseAuthCallback(url: string): { code: string, state:
 
 // Silence unused-import warnings on schemas while the module fills in
 void muonSessionSchema
-void oauthTokenResponseSchema
 void ({} as z.ZodTypeAny)
