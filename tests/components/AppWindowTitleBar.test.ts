@@ -4,18 +4,19 @@ import { ref } from 'vue'
 import App from '@/app/App.vue'
 
 const routerReplace = vi.fn()
-const matrixMocks = vi.hoisted(() => ({
-  restoreSession: vi.fn(() => false),
+const lifecycleMocks = vi.hoisted(() => ({
+  bootstrap: vi.fn(async () => ({ restored: false })),
 }))
 const toastMocks = vi.hoisted(() => ({
   error: vi.fn(),
 }))
 
 vi.mock('@matrix/index', () => ({
-  bindClientEvents: vi.fn(),
-  restoreSession: matrixMocks.restoreSession,
-  startSync: vi.fn(),
   syncState: ref('STOPPED'),
+}))
+
+vi.mock('@/auth/lifecycle', () => ({
+  bootstrap: lifecycleMocks.bootstrap,
 }))
 
 vi.mock('vue-router', async importOriginal => ({
@@ -49,8 +50,8 @@ function mountApp() {
 describe('app native window frame runtime', () => {
   beforeEach(() => {
     routerReplace.mockClear()
-    matrixMocks.restoreSession.mockReset()
-    matrixMocks.restoreSession.mockResolvedValue(false)
+    lifecycleMocks.bootstrap.mockReset()
+    lifecycleMocks.bootstrap.mockResolvedValue({ restored: false })
     toastMocks.error.mockClear()
     delete window.muonDesktop
   })
@@ -77,7 +78,7 @@ describe('app native window frame runtime', () => {
   })
 
   it('shows a localized network error when session restore cannot reach the server', async () => {
-    matrixMocks.restoreSession.mockRejectedValueOnce(new TypeError('fetch failed'))
+    lifecycleMocks.bootstrap.mockRejectedValueOnce(new TypeError('fetch failed'))
 
     mountApp()
     await flushPromises()

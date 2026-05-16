@@ -7,25 +7,28 @@ import zh from '@/locales/zh.json'
 
 const mocks = vi.hoisted(() => ({
   bindClientEvents: vi.fn(),
-  completeEnterpriseLogin: vi.fn(),
   desktopCallbacks: [] as Array<(url: string) => void>,
   desktopUnsubscribe: vi.fn(),
   isEnterpriseAuthConfigured: vi.fn(() => true),
-  login: vi.fn(),
   register: vi.fn(),
   routerPush: vi.fn(),
-  startEnterpriseLogin: vi.fn(),
+  signInWithEnterprise: vi.fn(),
+  signInWithPassword: vi.fn(),
+  startEnterpriseSignIn: vi.fn(),
   startSync: vi.fn(),
 }))
 
 vi.mock('@matrix/index', () => ({
   bindClientEvents: mocks.bindClientEvents,
-  completeEnterpriseLogin: mocks.completeEnterpriseLogin,
-  isEnterpriseAuthConfigured: mocks.isEnterpriseAuthConfigured,
-  login: mocks.login,
   register: mocks.register,
-  startEnterpriseLogin: mocks.startEnterpriseLogin,
   startSync: mocks.startSync,
+}))
+
+vi.mock('@/auth/lifecycle', () => ({
+  isEnterpriseAuthConfigured: mocks.isEnterpriseAuthConfigured,
+  signInWithEnterprise: mocks.signInWithEnterprise,
+  signInWithPassword: mocks.signInWithPassword,
+  startEnterpriseSignIn: mocks.startEnterpriseSignIn,
 }))
 
 vi.mock('vue-router', () => ({
@@ -84,32 +87,25 @@ describe('loginPage enterprise login', () => {
 
     await wrapper.get('button[type="button"]').trigger('click')
 
-    expect(mocks.startEnterpriseLogin).toHaveBeenCalledOnce()
+    expect(mocks.startEnterpriseSignIn).toHaveBeenCalledOnce()
   })
 
   it('completes enterprise login from a desktop deeplink callback', async () => {
     vi.stubEnv('VITE_MUON_API_BASE_URL', 'http://127.0.0.1:8787')
-    mocks.completeEnterpriseLogin.mockResolvedValue({
-      accessToken: 'matrix-token',
-      deviceId: 'MUONDEVICE',
-      serverUrl: 'http://127.0.0.1:6167',
-      userId: '@owner:localhost',
-    })
+    mocks.signInWithEnterprise.mockResolvedValue(undefined)
     mount(LoginPage)
 
     mocks.desktopCallbacks[0]('muon://auth/callback?code=oauth-code&state=oauth-state')
 
     await vi.waitFor(() => {
-      expect(mocks.completeEnterpriseLogin).toHaveBeenCalledWith('muon://auth/callback?code=oauth-code&state=oauth-state')
+      expect(mocks.signInWithEnterprise).toHaveBeenCalledWith('muon://auth/callback?code=oauth-code&state=oauth-state')
     })
-    expect(mocks.bindClientEvents).toHaveBeenCalledOnce()
-    expect(mocks.startSync).toHaveBeenCalledOnce()
     expect(mocks.routerPush).toHaveBeenCalledWith('/dm')
   })
 
   it('localizes enterprise callback errors instead of exposing internal English strings', async () => {
     vi.stubEnv('VITE_MUON_API_BASE_URL', 'http://127.0.0.1:8787')
-    mocks.completeEnterpriseLogin.mockRejectedValueOnce(new Error('Enterprise login state does not match this device'))
+    mocks.signInWithEnterprise.mockRejectedValueOnce(new Error('Enterprise login state does not match this device'))
     const wrapper = mount(LoginPage)
 
     mocks.desktopCallbacks[0]('muon://auth/callback?code=oauth-code&state=wrong-state')

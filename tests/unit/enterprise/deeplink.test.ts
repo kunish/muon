@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { extractEnterpriseAuthCallbackUrl, isEnterpriseAuthCallbackUrl } from '../../../electron/authCallback'
-import { parseEnterpriseAuthCallback } from '../../../src/matrix/auth'
+import { parseEnterpriseAuthCallback } from '../../../src/enterprise/session'
 
 describe('enterprise deeplink parsing', () => {
   it('accepts muon auth callback codes', () => {

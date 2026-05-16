@@ -4,21 +4,26 @@ import LoginPage from '@/features/auth/components/LoginPage.vue'
 
 const mocks = vi.hoisted(() => ({
   bindClientEvents: vi.fn(),
-  completeEnterpriseLogin: vi.fn(),
   isEnterpriseAuthConfigured: vi.fn(() => false),
-  login: vi.fn(),
   push: vi.fn(),
   register: vi.fn(),
+  signInWithEnterprise: vi.fn(),
+  signInWithPassword: vi.fn(),
+  startEnterpriseSignIn: vi.fn(),
   startSync: vi.fn(),
 }))
 
 vi.mock('@matrix/index', () => ({
   bindClientEvents: mocks.bindClientEvents,
-  completeEnterpriseLogin: mocks.completeEnterpriseLogin,
-  isEnterpriseAuthConfigured: mocks.isEnterpriseAuthConfigured,
-  login: mocks.login,
   register: mocks.register,
   startSync: mocks.startSync,
+}))
+
+vi.mock('@/auth/lifecycle', () => ({
+  isEnterpriseAuthConfigured: mocks.isEnterpriseAuthConfigured,
+  signInWithEnterprise: mocks.signInWithEnterprise,
+  signInWithPassword: mocks.signInWithPassword,
+  startEnterpriseSignIn: mocks.startEnterpriseSignIn,
 }))
 
 vi.mock('vue-router', () => ({
