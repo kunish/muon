@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { bindClientEvents, completeEnterpriseLogin, isEnterpriseAuthConfigured, login, register, startEnterpriseLogin, startSync } from '@matrix/index'
+import { bindClientEvents, register, startSync } from '@matrix/index'
 import { Input } from '@muon/ui/input'
 import { Label } from '@muon/ui/label'
 import { Tabs, TabsList, TabsTrigger } from '@muon/ui/tabs'
@@ -7,6 +7,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
+import { isEnterpriseAuthConfigured, signInWithEnterprise, signInWithPassword, startEnterpriseSignIn } from '@/auth/lifecycle'
 import { getDesktopBridge } from '@/electron/bridge'
 
 const router = useRouter()
@@ -101,7 +102,7 @@ async function handleSubmit() {
   loading.value = true
   try {
     if (tab.value === 'login') {
-      await login(serverUrl.value, {
+      await signInWithPassword(serverUrl.value, {
         username: username.value,
         password: password.value,
       })
@@ -112,9 +113,9 @@ async function handleSubmit() {
         password: password.value,
         displayName: displayName.value || undefined,
       })
+      bindClientEvents()
+      startSync()
     }
-    bindClientEvents()
-    startSync()
     router.push('/dm')
   }
   catch (e: unknown) {
@@ -129,7 +130,7 @@ async function handleEnterpriseLogin() {
   error.value = ''
   enterpriseLoading.value = true
   try {
-    await startEnterpriseLogin()
+    await startEnterpriseSignIn()
   }
   catch (e: unknown) {
     error.value = getEnterpriseAuthErrorMessage(e)
@@ -143,9 +144,7 @@ async function handleEnterpriseCallback(url: string) {
   error.value = ''
   enterpriseLoading.value = true
   try {
-    await completeEnterpriseLogin(url)
-    bindClientEvents()
-    startSync()
+    await signInWithEnterprise(url)
     router.push('/dm')
   }
   catch (e: unknown) {
