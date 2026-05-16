@@ -4,6 +4,7 @@ import { muonSessionSchema, oauthTokenResponseSchema } from '@muon/enterprise-co
 import { z } from 'zod'
 import { getDesktopBridge, isElectronRuntime } from '@/electron/bridge'
 import { openUrl as defaultOpenUrl } from '@/electron/opener'
+import { readMatrixSessionFromStore } from '@/matrix/auth'
 import { makeEncryptedStore } from '@/shared/safeStorageStore'
 
 const pkceTransientSchema = z.object({
@@ -231,8 +232,7 @@ export function defaultEnterpriseSessionDeps(apiBaseUrl = import.meta.env.VITE_M
     openUrl: defaultOpenUrl,
     muonStore: makeEncryptedStore({ key: STORAGE_KEY_MUON, schema: muonSessionSchema, safeStorage }),
     pkceStore: makeEncryptedStore({ key: STORAGE_KEY_PKCE, schema: pkceTransientSchema, safeStorage }),
-    // TODO(Task 11): replace with readMatrixSessionFromStore from '@/matrix/auth' once that export exists
-    readMatrixSession: async () => null,
+    readMatrixSession: readMatrixSessionFromStore,
     refreshThresholdMs: REFRESH_NEAR_EXPIRY_MS,
     clientId: 'muon-desktop',
     redirectUri: 'muon://auth/callback',
