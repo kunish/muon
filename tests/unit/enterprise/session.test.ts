@@ -140,3 +140,87 @@ describe('enterpriseSession.complete', () => {
     expect(await deps.muonStore.read()).toBeNull()
   })
 })
+
+const validMatrix: MatrixSession = {
+  serverUrl: 'https://matrix.example.com',
+  userId: '@u:example.com',
+  accessToken: 'xat',
+  deviceId: 'DEV',
+}
+
+const validMuon: MuonSession = {
+  accessToken: 'old-at',
+  refreshToken: 'old-rt',
+  expiresAt: '2030-01-01T00:00:00.000Z',
+  deviceName: 'My Laptop',
+}
+
+describe('enterpriseSession.refresh', () => {
+  beforeEach(() => {
+    localStorage.clear()
+  })
+
+  it('returns null when no MuonSession is stored', async () => {
+    const deps = makeDeps()
+    const result = await refresh(deps)
+    expect(result).toBeNull()
+  })
+
+  it('rotates tokens, persists the new MuonSession, and uses the stored deviceName in the request', async () => {
+    const http = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        muonSession: {
+          accessToken: 'new-at',
+          refreshToken: 'new-rt',
+          expiresAt: '2031-01-01T00:00:00.000Z',
+          deviceName: 'My Laptop',
+        },
+        matrixSession: validMatrix,
+      }),
+    }) as unknown as typeof fetch
+
+    const deps = makeDeps({ http })
+    await deps.muonStore.write(validMuon)
+
+    const result = await refresh(deps)
+    expect(result?.muon.accessToken).toBe('new-at')
+    expect(result?.muon.deviceName).toBe('My Laptop')
+    expect(result?.matrix).toEqual(validMatrix)
+
+    const stored = await deps.muonStore.read()
+    expect(stored?.accessToken).toBe('new-at')
+
+    const [, init] = (http as unknown as ReturnType<typeof vi.fn>).mock.calls[0]!
+    const body = JSON.parse((init as RequestInit).body as string)
+    expect(body.refreshToken).toBe('old-rt')
+    expect(body.deviceName).toBe('My Laptop')
+  })
+
+  it('clears the stored MuonSession on 401 (server-side revoke), does not touch Matrix storage', async () => {
+    const http = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 401,
+      json: async () => ({ error: 'invalid_refresh_token' }),
+    }) as unknown as typeof fetch
+
+    const readMatrixSession = vi.fn().mockResolvedValue(validMatrix)
+    const deps = makeDeps({ http, readMatrixSession })
+    await deps.muonStore.write(validMuon)
+
+    await expect(refresh(deps)).rejects.toBeInstanceOf(EnterpriseSessionError)
+
+    expect(await deps.muonStore.read()).toBeNull()
+    // readMatrixSession was not invoked from refresh — refresh does not own Matrix lifecycle
+    expect(readMatrixSession).not.toHaveBeenCalled()
+  })
+
+  it('keeps stored MuonSession on network error', async () => {
+    const http = vi.fn().mockRejectedValue(new Error('ECONNREFUSED')) as unknown as typeof fetch
+    const deps = makeDeps({ http })
+    await deps.muonStore.write(validMuon)
+
+    await expect(refresh(deps)).rejects.toBeInstanceOf(EnterpriseSessionError)
+    expect(await deps.muonStore.read()).toEqual(validMuon)
+  })
+})

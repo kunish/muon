@@ -114,8 +114,38 @@ export async function complete(callbackUrl: string, deps: EnterpriseSessionDeps)
   return { muon, matrix }
 }
 
-export async function refresh(_deps: EnterpriseSessionDeps): Promise<EnterpriseSession | null> {
-  throw new Error('not implemented')
+export async function refresh(deps: EnterpriseSessionDeps): Promise<EnterpriseSession | null> {
+  const stored = await deps.muonStore.read()
+  if (!stored)
+    return null
+
+  let response: Response
+  try {
+    response = await deps.http(`${deps.apiBaseUrl}/api/oauth/refresh`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        refreshToken: stored.refreshToken,
+        clientId: deps.clientId,
+        deviceName: stored.deviceName,
+      }),
+    })
+  }
+  catch (err) {
+    throw new EnterpriseSessionError('refresh-network', err instanceof Error ? err.message : 'Network error')
+  }
+
+  if (!response.ok) {
+    deps.muonStore.clear()
+    throw new EnterpriseSessionError('refresh-revoked', `Refresh failed with status ${response.status}`)
+  }
+
+  const tokenResponse = oauthTokenResponseSchema.parse(await response.json())
+  await deps.muonStore.write(tokenResponse.muonSession)
+
+  // Matrix session comes from the server's refresh response, not from any desktop store
+  // (EnterpriseSession does not own Matrix storage).
+  return { muon: tokenResponse.muonSession, matrix: tokenResponse.matrixSession }
 }
 
 export async function restore(_deps: EnterpriseSessionDeps): Promise<EnterpriseSession | null> {
