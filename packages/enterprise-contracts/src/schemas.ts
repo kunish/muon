@@ -118,6 +118,7 @@ export const muonSessionSchema = z.object({
   accessToken: z.string().min(1),
   refreshToken: z.string().min(1),
   expiresAt: z.string().datetime(),
+  deviceName: z.string().trim().min(1),
 })
 export type MuonSession = z.infer<typeof muonSessionSchema>
 
