@@ -64,6 +64,7 @@ describe('oauthService.refresh', () => {
 
     expect(refreshed.muonSession.accessToken).not.toBe(exchanged.muonSession.accessToken)
     expect(refreshed.muonSession.refreshToken).not.toBe(exchanged.muonSession.refreshToken)
+    expect(refreshed.muonSession.deviceName).toBe('Muon Desktop')
 
     // matrixSession re-attached, not re-issued.
     expect(refreshed.matrixSession.accessToken).toBe(exchanged.matrixSession.accessToken)

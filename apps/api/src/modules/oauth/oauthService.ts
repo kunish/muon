@@ -245,6 +245,7 @@ export function createOAuthService({ repository, matrix, matrixServerUrl }: OAut
           accessToken,
           refreshToken,
           expiresAt,
+          deviceName: request.deviceName,
         },
         matrixSession: {
           serverUrl: matrixServerUrl,
