@@ -35,9 +35,41 @@ export class EnterpriseSessionError extends Error {
   }
 }
 
+function randomUrlToken(bytes = 32): string {
+  const values = new Uint8Array(bytes)
+  crypto.getRandomValues(values)
+  return btoa(String.fromCharCode(...values))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/g, '')
+}
+
+async function sha256Base64Url(value: string): Promise<string> {
+  const data = new TextEncoder().encode(value)
+  const digest = await crypto.subtle.digest('SHA-256', data)
+  return btoa(String.fromCharCode(...new Uint8Array(digest)))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/g, '')
+}
+
 // Implementations added in subsequent tasks
-export async function start(_deps: EnterpriseSessionDeps): Promise<void> {
-  throw new Error('not implemented')
+export async function start(deps: EnterpriseSessionDeps): Promise<void> {
+  const codeVerifier = randomUrlToken()
+  const state = randomUrlToken(16)
+  const codeChallenge = await sha256Base64Url(codeVerifier)
+
+  await deps.pkceStore.write({ codeVerifier, state })
+
+  const authorizeUrl = new URL('/api/oauth/authorize', deps.apiBaseUrl)
+  authorizeUrl.searchParams.set('client_id', deps.clientId)
+  authorizeUrl.searchParams.set('redirect_uri', deps.redirectUri)
+  authorizeUrl.searchParams.set('response_type', 'code')
+  authorizeUrl.searchParams.set('code_challenge', codeChallenge)
+  authorizeUrl.searchParams.set('code_challenge_method', 'S256')
+  authorizeUrl.searchParams.set('state', state)
+
+  await deps.openUrl(authorizeUrl.toString())
 }
 
 export async function complete(_callbackUrl: string, _deps: EnterpriseSessionDeps): Promise<EnterpriseSession> {
