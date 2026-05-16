@@ -4,13 +4,13 @@ Reference screenshots from Feishu desktop. These images are the **visual contrac
 
 ## Current anchors (5)
 
-| File | Coverage |
-| --- | --- |
-| `01-messages.png` | IM 列表 + 会话视图（暗色） |
-| `02-docs-home.png` | 云文档 Home / 文件列表表格视图（暗色） |
-| `03-calendar-week.png` | 日历周视图 + 日程详情 popover（暗色） |
-| `04-approval-form.png` | 审批表单详情（暗色） |
-| `05-settings.png` | 设置页 — 账号与外观（暗色） |
+| File                   | Coverage                               |
+| ---------------------- | -------------------------------------- |
+| `01-messages.png`      | IM 列表 + 会话视图（暗色）             |
+| `02-docs-home.png`     | 云文档 Home / 文件列表表格视图（暗色） |
+| `03-calendar-week.png` | 日历周视图 + 日程详情 popover（暗色）  |
+| `04-approval-form.png` | 审批表单详情（暗色）                   |
+| `05-settings.png`      | 设置页 — 账号与外观（暗色）            |
 
 All current anchors were captured in **dark mode**. Light-mode anchors can be added later with the same `<NN>-<area>-light.png` naming convention.
 

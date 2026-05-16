@@ -249,10 +249,14 @@ export function createInMemoryEnterpriseRepository(): EnterpriseRepository {
     async revokeAllAdminSessionsForUserExcept(organizationId, userId, exceptSessionId) {
       const nowTimestamp = nowIso()
       for (const session of adminSessions) {
-        if (session.organizationId !== organizationId) continue
-        if (session.userId !== userId) continue
-        if (session.id === exceptSessionId) continue
-        if (session.revokedAt) continue
+        if (session.organizationId !== organizationId)
+          continue
+        if (session.userId !== userId)
+          continue
+        if (session.id === exceptSessionId)
+          continue
+        if (session.revokedAt)
+          continue
         session.revokedAt = nowTimestamp
       }
     },

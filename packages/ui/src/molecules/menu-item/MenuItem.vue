@@ -2,9 +2,9 @@
 import type { Component, HTMLAttributes } from 'vue'
 import type { MenuItemVariants } from '.'
 import { ChevronRight } from 'lucide-vue-next'
+import { menuItemVariants } from '.'
 import { Kbd } from '../../atoms/kbd'
 import { cn } from '../../utils'
-import { menuItemVariants } from '.'
 
 const props = withDefaults(defineProps<{
   variant?: MenuItemVariants['variant']
@@ -36,5 +36,7 @@ const emits = defineEmits<{ click: [event: MouseEvent] }>()
 </template>
 
 <style scoped>
-.hover\:bg-menu-item-hover-bg:hover { background-color: var(--color-menu-item-hover-bg); }
+.hover\:bg-menu-item-hover-bg:hover {
+  background-color: var(--color-menu-item-hover-bg);
+}
 </style>

@@ -2,7 +2,7 @@ import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 import { Switch } from '../src/atoms/switch'
 
-describe('Switch controlled / uncontrolled', () => {
+describe('switch controlled / uncontrolled', () => {
   it('uncontrolled: toggles internal state on click', async () => {
     const wrapper = mount(Switch, { props: { defaultChecked: false } })
     const btn = wrapper.find('button')

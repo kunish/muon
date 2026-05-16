@@ -2,9 +2,9 @@
 import type { HTMLAttributes } from 'vue'
 import { useVModel } from '@vueuse/core'
 import { computed } from 'vue'
+import { Textarea } from '../../../atoms/textarea'
 import { cn } from '../../../utils'
 import Label from '../label/Label.vue'
-import { Textarea } from '../../../atoms/textarea'
 
 defineOptions({
   inheritAttrs: false,

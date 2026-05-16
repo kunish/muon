@@ -2,7 +2,7 @@ import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 import { Checkbox } from '../src/atoms/checkbox'
 
-describe('Checkbox controlled / uncontrolled', () => {
+describe('checkbox controlled / uncontrolled', () => {
   it('uncontrolled: toggles on click', async () => {
     const wrapper = mount(Checkbox, { props: { defaultChecked: false } })
     expect(wrapper.find('button').attributes('aria-checked')).toBe('false')

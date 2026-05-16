@@ -3,8 +3,8 @@ import type { HTMLAttributes } from 'vue'
 import type { BreadcrumbItem, BreadcrumbVariants } from '.'
 import { ChevronRight } from 'lucide-vue-next'
 import { computed } from 'vue'
-import { cn } from '../../utils'
 import { breadcrumbVariants } from '.'
+import { cn } from '../../utils'
 
 const props = withDefaults(defineProps<{
   items: BreadcrumbItem[]
@@ -19,8 +19,10 @@ const props = withDefaults(defineProps<{
 })
 
 const visible = computed(() => {
-  if (props.items.length <= 4) return props.items
-  if (props.truncation === 'end') return props.items.slice(0, 4).concat([{ label: '…' }])
+  if (props.items.length <= 4)
+    return props.items
+  if (props.truncation === 'end')
+    return props.items.slice(0, 4).concat([{ label: '…' }])
   return [props.items[0], { label: '…' }, ...props.items.slice(-2)]
 })
 </script>
@@ -47,5 +49,7 @@ const visible = computed(() => {
 </template>
 
 <style scoped>
-.text-breadcrumb-current-fg { color: var(--color-breadcrumb-current-fg); }
+.text-breadcrumb-current-fg {
+  color: var(--color-breadcrumb-current-fg);
+}
 </style>

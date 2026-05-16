@@ -4,9 +4,9 @@ import type { SearchBoxVariants } from '.'
 import { useVModel } from '@vueuse/core'
 import { Search, X } from 'lucide-vue-next'
 import { computed } from 'vue'
+import { searchBoxVariants } from '.'
 import { Kbd } from '../../atoms/kbd'
 import { cn } from '../../utils'
-import { searchBoxVariants } from '.'
 
 const props = withDefaults(defineProps<{
   modelValue?: string

@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/vue3'
-import { Heart, MoreVertical, AlertCircle, CheckCircle2 } from 'lucide-vue-next'
+import { AlertCircle, CheckCircle2, Heart, MoreVertical } from 'lucide-vue-next'
 import { Icon } from '../../atoms/icon'
 
 const meta: Meta<typeof Icon> = {

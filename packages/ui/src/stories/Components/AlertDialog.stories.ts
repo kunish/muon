@@ -23,8 +23,14 @@ type Story = StoryObj<typeof AlertDialog>
 export const DeleteConfirm: Story = {
   render: () => ({
     components: {
-      AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle,
-      AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction,
+      AlertDialog,
+      AlertDialogContent,
+      AlertDialogHeader,
+      AlertDialogTitle,
+      AlertDialogDescription,
+      AlertDialogFooter,
+      AlertDialogCancel,
+      AlertDialogAction,
     },
     template: `
       <AlertDialog default-open>

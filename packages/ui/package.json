@@ -42,6 +42,14 @@
     "./textarea": "./src/components/ui/textarea/index.ts",
     "./tooltip": "./src/components/ui/tooltip/index.ts"
   },
+  "scripts": {
+    "check:tokens": "tsx scripts/check-tokens.ts",
+    "storybook": "storybook dev -p 6006 --ci",
+    "build-storybook": "storybook build -o storybook-static",
+    "refresh-stories": "tsx scripts/refresh-stories.ts",
+    "test:visual": "rm -rf ../../node_modules/.vite && playwright test",
+    "test:visual:update": "rm -rf ../../node_modules/.vite && playwright test --update-snapshots"
+  },
   "dependencies": {
     "@vueuse/core": "^14.2.1",
     "class-variance-authority": "^0.7.1",
@@ -67,13 +75,5 @@
     "tailwindcss": "^4.2.4",
     "vite": "^8.0.10",
     "wait-on": "^9.0.5"
-  },
-  "scripts": {
-    "check:tokens": "tsx scripts/check-tokens.ts",
-    "storybook": "storybook dev -p 6006 --ci",
-    "build-storybook": "storybook build -o storybook-static",
-    "refresh-stories": "tsx scripts/refresh-stories.ts",
-    "test:visual": "rm -rf ../../node_modules/.vite && playwright test",
-    "test:visual:update": "rm -rf ../../node_modules/.vite && playwright test --update-snapshots"
   }
 }

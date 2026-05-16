@@ -1,7 +1,7 @@
 /* Palette layer (raw scales, no semantics) */
 @theme {
   /* brand — muon identity preserved (#2d5af7 ≠ Feishu #3370FF, locked by spec §0) */
-  --brand-50:  #eef2ff;
+  --brand-50: #eef2ff;
   --brand-100: #dee5fd;
   --brand-200: #b8c8fb;
   --brand-300: #8aa4f8;
@@ -14,7 +14,7 @@
   --brand-950: #0a1542;
 
   /* gray — Feishu-leaning cool neutral */
-  --gray-50:  #f8f9fa;
+  --gray-50: #f8f9fa;
   --gray-100: #f1f3f5;
   --gray-200: #e5e7eb;
   --gray-300: #ced3da;
@@ -27,7 +27,7 @@
   --gray-950: #0a0c10;
 
   /* red — destructive */
-  --red-50:  #fff1f1;
+  --red-50: #fff1f1;
   --red-100: #ffdede;
   --red-200: #ffbcbc;
   --red-300: #ff9090;
@@ -40,7 +40,7 @@
   --red-950: #390e0e;
 
   /* green — success */
-  --green-50:  #ecfdf3;
+  --green-50: #ecfdf3;
   --green-100: #cdf9dd;
   --green-200: #98f0bb;
   --green-300: #5fe293;
@@ -53,7 +53,7 @@
   --green-950: #00280c;
 
   /* orange — warning */
-  --orange-50:  #fff7e8;
+  --orange-50: #fff7e8;
   --orange-100: #ffeac4;
   --orange-200: #ffd28a;
   --orange-300: #ffb44a;
@@ -66,7 +66,7 @@
   --orange-950: #321400;
 
   /* cyan — info */
-  --cyan-50:  #ecfdfd;
+  --cyan-50: #ecfdfd;
   --cyan-100: #cdfafa;
   --cyan-200: #94f2f1;
   --cyan-300: #56e3e2;

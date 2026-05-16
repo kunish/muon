@@ -77,7 +77,8 @@ describe('desktop oauth flow', () => {
 
     // installService creates owner with mustChangePassword=false; flip it.
     const ownerRecord = repository.users.find(user => user.id === install.owner.id)
-    if (!ownerRecord) throw new Error('precondition: owner missing')
+    if (!ownerRecord)
+      throw new Error('precondition: owner missing')
     await repository.resetUserPassword(install.organization.id, install.owner.id, {
       passwordHash: ownerRecord.passwordHash,
       mustChangePassword: true,

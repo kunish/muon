@@ -71,7 +71,8 @@ describe('adminSessionService.validate', () => {
     })
 
     const stored = await repository.findAdminSessionByTokenHash(sha256(session.accessToken))
-    if (!stored) throw new Error('precondition: session missing')
+    if (!stored)
+      throw new Error('precondition: session missing')
     await repository.revokeAdminSession(stored.id)
 
     await expect(service.validate(session.accessToken)).rejects.toMatchObject({
@@ -89,7 +90,8 @@ describe('adminSessionService.validate', () => {
     })
 
     const stored = await repository.findAdminSessionByTokenHash(sha256(session.accessToken))
-    if (!stored) throw new Error('precondition: session missing')
+    if (!stored)
+      throw new Error('precondition: session missing')
     stored.expiresAt = new Date(Date.now() - 1000).toISOString()
 
     await expect(service.validate(session.accessToken)).rejects.toMatchObject({
@@ -123,7 +125,8 @@ describe('adminSessionService.validate', () => {
     })
 
     const before = await repository.findAdminSessionByTokenHash(sha256(session.accessToken))
-    if (!before) throw new Error('precondition: session missing')
+    if (!before)
+      throw new Error('precondition: session missing')
     const originalLastSeenAt = before.lastSeenAt
     await new Promise(resolve => setTimeout(resolve, 5))
     await service.validate(session.accessToken)

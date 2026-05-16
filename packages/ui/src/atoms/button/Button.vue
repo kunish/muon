@@ -4,8 +4,8 @@ import type { Component, HTMLAttributes } from 'vue'
 import type { ButtonVariants } from '.'
 import { Loader2 } from 'lucide-vue-next'
 import { Primitive } from 'reka-ui'
-import { cn } from '../../utils'
 import { buttonVariants } from '.'
+import { cn } from '../../utils'
 
 interface Props extends PrimitiveProps {
   variant?: ButtonVariants['variant']

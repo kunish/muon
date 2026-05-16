@@ -1,9 +1,9 @@
 import type { VariantProps } from 'class-variance-authority'
 import { cva } from 'class-variance-authority'
 
-export { default as FormField } from './FormField.vue'
 export { FORM_FIELD_KEY } from './context'
 export type { FormFieldContext } from './context'
+export { default as FormField } from './FormField.vue'
 
 export const formFieldVariants = cva(
   'flex gap-1.5 w-full',

@@ -3,8 +3,8 @@ import type { HTMLAttributes } from 'vue'
 import type { FileChipVariants } from '.'
 import { Download, File, X } from 'lucide-vue-next'
 import { computed } from 'vue'
-import { cn } from '../../utils'
 import { fileChipVariants, inferKind, KIND_COLOR } from '.'
+import { cn } from '../../utils'
 
 const props = withDefaults(defineProps<{
   name: string
@@ -55,6 +55,10 @@ const iconColor = computed(() => KIND_COLOR[kind.value])
 </template>
 
 <style scoped>
-.bg-file-chip-bg { background-color: var(--color-file-chip-bg); }
-.hover\:bg-file-chip-hover-bg:hover { background-color: var(--color-file-chip-hover-bg); }
+.bg-file-chip-bg {
+  background-color: var(--color-file-chip-bg);
+}
+.hover\:bg-file-chip-hover-bg:hover {
+  background-color: var(--color-file-chip-hover-bg);
+}
 </style>

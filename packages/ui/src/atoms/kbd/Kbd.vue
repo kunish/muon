@@ -10,18 +10,36 @@ const props = withDefaults(defineProps<{
 }>(), { size: 'md' })
 
 const isMac = computed(() => {
-  if (typeof navigator === 'undefined') return false
+  if (typeof navigator === 'undefined')
+    return false
   return /Mac|iPhone|iPod|iPad/i.test(navigator.platform)
 })
 
 const SYMBOLS_MAC: Record<string, string> = {
-  Cmd: '⌘', Meta: '⌘', Ctrl: '⌃', Alt: '⌥', Option: '⌥', Shift: '⇧',
-  Enter: '⏎', Return: '⏎', Esc: '⎋', Escape: '⎋', Tab: '⇥', Backspace: '⌫',
-  ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→',
+  Cmd: '⌘',
+  Meta: '⌘',
+  Ctrl: '⌃',
+  Alt: '⌥',
+  Option: '⌥',
+  Shift: '⇧',
+  Enter: '⏎',
+  Return: '⏎',
+  Esc: '⎋',
+  Escape: '⎋',
+  Tab: '⇥',
+  Backspace: '⌫',
+  ArrowUp: '↑',
+  ArrowDown: '↓',
+  ArrowLeft: '←',
+  ArrowRight: '→',
 }
 const SYMBOLS_OTHER: Record<string, string> = {
-  Cmd: 'Ctrl', Meta: 'Win',
-  Enter: 'Enter', Return: 'Enter', Esc: 'Esc', Escape: 'Esc',
+  Cmd: 'Ctrl',
+  Meta: 'Win',
+  Enter: 'Enter',
+  Return: 'Enter',
+  Esc: 'Esc',
+  Escape: 'Esc',
 }
 
 function display(k: string): string {

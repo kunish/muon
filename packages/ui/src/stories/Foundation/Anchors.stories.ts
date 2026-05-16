@@ -21,8 +21,7 @@ const Anchors = defineComponent({
     return () => h('div', { class: 'flex flex-col gap-8 p-6 max-w-5xl' }, [
       h('div', { class: 'flex flex-col gap-1' }, [
         h('h1', { class: 'text-xl font-semibold' }, 'Feishu 风参照锚点视图'),
-        h('p', { class: 'text-sm text-muted-foreground' },
-          '所有 atom 调样必须以下列锚点视图为对照。每个 atom 的故事评审时，应在 Storybook 中并排打开本页面进行视觉比对。'),
+        h('p', { class: 'text-sm text-muted-foreground' }, '所有 atom 调样必须以下列锚点视图为对照。每个 atom 的故事评审时，应在 Storybook 中并排打开本页面进行视觉比对。'),
       ]),
       ...ANCHORS.map(a => h('figure', {
         key: a.src,

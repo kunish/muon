@@ -22,7 +22,13 @@ type Story = StoryObj<typeof Select>
 export const Language: Story = {
   render: () => ({
     components: {
-      Select, SelectTrigger, SelectValue, SelectContent, SelectGroup, SelectItem, SelectLabel,
+      Select,
+      SelectTrigger,
+      SelectValue,
+      SelectContent,
+      SelectGroup,
+      SelectItem,
+      SelectLabel,
     },
     template: `
       <div class="flex items-center justify-center min-h-screen">

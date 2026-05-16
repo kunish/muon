@@ -12,7 +12,7 @@ export default meta
 type Story = StoryObj<typeof Progress>
 
 export const Default: Story = {
-  render: (args) => ({
+  render: args => ({
     components: { Progress },
     setup: () => ({ args }),
     template: `<div class="w-72"><Progress :model-value="args.modelValue" /></div>`,

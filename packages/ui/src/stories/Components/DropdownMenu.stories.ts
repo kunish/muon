@@ -29,8 +29,17 @@ type Story = StoryObj<typeof DropdownMenu>
 export const MessageActions: Story = {
   render: () => ({
     components: {
-      DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
-      DropdownMenuSeparator, Button, Reply, Forward, Pin, Copy, Trash,
+      DropdownMenu,
+      DropdownMenuTrigger,
+      DropdownMenuContent,
+      DropdownMenuItem,
+      DropdownMenuSeparator,
+      Button,
+      Reply,
+      Forward,
+      Pin,
+      Copy,
+      Trash,
     },
     setup: () => ({ Reply, Forward, Pin, Copy, Trash }),
     template: `
@@ -71,8 +80,13 @@ export const MessageActions: Story = {
 export const WithLabel: Story = {
   render: () => ({
     components: {
-      DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
-      DropdownMenuLabel, DropdownMenuSeparator, Button,
+      DropdownMenu,
+      DropdownMenuTrigger,
+      DropdownMenuContent,
+      DropdownMenuItem,
+      DropdownMenuLabel,
+      DropdownMenuSeparator,
+      Button,
     },
     template: `
       <div class="flex items-center justify-center min-h-screen">

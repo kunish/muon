@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import type { HTMLAttributes } from 'vue'
-import type { FormFieldContext } from './context'
 import type { FormFieldVariants } from '.'
+import type { FormFieldContext } from './context'
 import { computed, provide, useId } from 'vue'
+import { formFieldVariants } from '.'
 import { cn } from '../../utils'
 import { FORM_FIELD_KEY } from './context'
-import { formFieldVariants } from '.'
 
 const props = withDefaults(defineProps<{
   label?: string
@@ -45,12 +45,18 @@ provide(FORM_FIELD_KEY, context.value)
       >
         {{ label }}<span v-if="required" class="ml-0.5 text-destructive">*</span>
       </label>
-      <p v-if="description" class="mt-0.5 text-xs text-gray-500">{{ description }}</p>
+      <p v-if="description" class="mt-0.5 text-xs text-gray-500">
+        {{ description }}
+      </p>
     </div>
     <div class="flex flex-1 flex-col gap-1">
       <slot :field-id="fieldId" :described-by="context.describedById" :invalid="invalid" />
-      <p v-if="error" :id="errorId" class="text-xs text-destructive">{{ error }}</p>
-      <p v-else-if="helper" :id="helperId" class="text-xs text-gray-500">{{ helper }}</p>
+      <p v-if="error" :id="errorId" class="text-xs text-destructive">
+        {{ error }}
+      </p>
+      <p v-else-if="helper" :id="helperId" class="text-xs text-gray-500">
+        {{ helper }}
+      </p>
     </div>
   </div>
 </template>

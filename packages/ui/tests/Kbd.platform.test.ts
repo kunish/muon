@@ -2,7 +2,7 @@ import { mount } from '@vue/test-utils'
 import { describe, expect, it, vi } from 'vitest'
 import { Kbd } from '../src/atoms/kbd'
 
-describe('Kbd platform symbols', () => {
+describe('kbd platform symbols', () => {
   it('renders Cmd as ⌘ on macOS', () => {
     vi.stubGlobal('navigator', { platform: 'MacIntel' })
     const wrapper = mount(Kbd, { props: { keys: ['Cmd', 'K'] } })

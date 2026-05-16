@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import type { TabsTriggerProps } from 'reka-ui'
+import type { TabsVariant } from './TabsList.vue'
 import { TabsTrigger, useForwardProps } from 'reka-ui'
 import { inject } from 'vue'
 import { cn } from '../../../utils'
-import type { TabsVariant } from './TabsList.vue'
 
 const props = defineProps<TabsTriggerProps & { class?: string }>()
 
@@ -25,7 +25,7 @@ const UNDERLINE_CLASSES = [
   'px-3 py-2 text-sm',
   'text-muted-foreground hover:text-foreground transition-colors',
   'data-[state=active]:text-gray-900 data-[state=active]:font-medium',
-  "data-[state=active]:after:content-[''] data-[state=active]:after:absolute",
+  'data-[state=active]:after:content-[\'\'] data-[state=active]:after:absolute',
   'data-[state=active]:after:bottom-0 data-[state=active]:after:left-1/2',
   'data-[state=active]:after:-translate-x-1/2 data-[state=active]:after:h-0.5',
   'data-[state=active]:after:w-[18px] data-[state=active]:after:bg-brand-500 data-[state=active]:after:rounded-full',

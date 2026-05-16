@@ -2,7 +2,7 @@ import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 import { Button } from '../src/atoms/button'
 
-describe('Button loading state', () => {
+describe('button loading state', () => {
   it('renders a spinner in place of leading icon when loading=true', () => {
     const wrapper = mount(Button, {
       props: { loading: true, leadingIcon: 'check' },

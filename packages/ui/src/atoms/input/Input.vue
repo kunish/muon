@@ -2,8 +2,8 @@
 import type { HTMLAttributes } from 'vue'
 import type { InputVariants } from '.'
 import { useVModel } from '@vueuse/core'
-import { cn } from '../../utils'
 import { inputVariants } from '.'
+import { cn } from '../../utils'
 
 const props = withDefaults(defineProps<{
   class?: HTMLAttributes['class']

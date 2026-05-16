@@ -47,14 +47,14 @@ const props = withDefaults(defineProps<{
 })
 
 // --- 尺寸映射（飞书规范 §4.1；2xl 是 hero/profile-card 尺寸） ---
-const SIZE_PX: Record<AvatarSize, number> = { xs: 20, sm: 24, md: 32, lg: 40, xl: 56, '2xl': 64 }
+const SIZE_PX: Record<AvatarSize, number> = { 'xs': 20, 'sm': 24, 'md': 32, 'lg': 40, 'xl': 56, '2xl': 64 }
 
 const SIZE_CLASSES: Record<AvatarSize, string> = {
-  xs: 'h-5 w-5 text-[8px]',
-  sm: 'h-6 w-6 text-[10px]',
-  md: 'h-8 w-8 text-xs',
-  lg: 'h-10 w-10 text-sm',
-  xl: 'h-14 w-14 text-base',
+  'xs': 'h-5 w-5 text-[8px]',
+  'sm': 'h-6 w-6 text-[10px]',
+  'md': 'h-8 w-8 text-xs',
+  'lg': 'h-10 w-10 text-sm',
+  'xl': 'h-14 w-14 text-base',
   '2xl': 'h-16 w-16 text-lg',
 }
 

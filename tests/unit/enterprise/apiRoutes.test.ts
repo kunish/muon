@@ -239,7 +239,8 @@ describe('enterprise api routes', () => {
     // installService sets mustChangePassword=false for the owner. Flip it to true
     // so we can exercise the must-change-password gating path.
     const ownerRecord = repository.users.find(user => user.id === installPayload.owner.id)
-    if (!ownerRecord) throw new Error('precondition: owner missing')
+    if (!ownerRecord)
+      throw new Error('precondition: owner missing')
     await repository.resetUserPassword(installPayload.organization.id, installPayload.owner.id, {
       passwordHash: ownerRecord.passwordHash,
       mustChangePassword: true,
@@ -422,7 +423,7 @@ describe('enterprise api routes', () => {
     expect(meB.status).toBe(401)
   })
 
-  it('POST /api/oauth/refresh issues a new session pair', async () => {
+  it('pOST /api/oauth/refresh issues a new session pair', async () => {
     const handler = createEnterpriseHttpHandler({
       matrix: {
         async ensureUser() {
@@ -489,7 +490,7 @@ describe('enterprise api routes', () => {
     expect(refreshPayload.muonSession.refreshToken).not.toBe(exchangePayload.muonSession.refreshToken)
   })
 
-  it('POST /api/oauth/refresh rejects an unknown refresh token with 400', async () => {
+  it('pOST /api/oauth/refresh rejects an unknown refresh token with 400', async () => {
     const handler = createEnterpriseHttpHandler()
     const response = await handler.fetch(new Request('http://muon.test/api/oauth/refresh', {
       method: 'POST',
@@ -577,7 +578,7 @@ describe('enterprise api routes', () => {
     return { handler, adminToken, ownerId, repository }
   }
 
-  it('GET /api/admin/users/:userId/sessions returns active desktop sessions without hashes', async () => {
+  it('gET /api/admin/users/:userId/sessions returns active desktop sessions without hashes', async () => {
     const { handler, adminToken, ownerId } = await setupAdminWithDeviceSession()
     const response = await handler.fetch(new Request(`http://muon.test/api/admin/users/${ownerId}/sessions`, {
       headers: { authorization: `Bearer ${adminToken}` },
@@ -597,7 +598,7 @@ describe('enterprise api routes', () => {
     expect((payload.sessions[0] as Record<string, unknown>).refreshTokenHash).toBeUndefined()
   })
 
-  it('GET /api/admin/users/:userId/sessions returns 403 for a must-change-password admin', async () => {
+  it('gET /api/admin/users/:userId/sessions returns 403 for a must-change-password admin', async () => {
     const { handler, token: mustChangeToken } = await setupMustChangeOwner()
     // The actor's organizationId is implicit from the token; any user id works since the gate fires first.
     const response = await handler.fetch(new Request('http://muon.test/api/admin/users/some-user/sessions', {
@@ -606,7 +607,7 @@ describe('enterprise api routes', () => {
     expect(response.status).toBe(403)
   })
 
-  it('DELETE /api/admin/users/:userId/sessions/:sessionId revokes the session', async () => {
+  it('dELETE /api/admin/users/:userId/sessions/:sessionId revokes the session', async () => {
     const { handler, adminToken, ownerId, repository } = await setupAdminWithDeviceSession()
     const sessionId = repository.deviceSessions[0].id
 
@@ -624,7 +625,7 @@ describe('enterprise api routes', () => {
     expect(payload.sessions.find(s => s.id === sessionId)).toBeUndefined()
   })
 
-  it('DELETE /api/admin/users/:userId/sessions/:sessionId returns 404 for an unknown session id', async () => {
+  it('dELETE /api/admin/users/:userId/sessions/:sessionId returns 404 for an unknown session id', async () => {
     const { handler, adminToken, ownerId } = await setupAdminWithDeviceSession()
     const del = await handler.fetch(new Request(`http://muon.test/api/admin/users/${ownerId}/sessions/not-a-session`, {
       method: 'DELETE',
@@ -633,7 +634,7 @@ describe('enterprise api routes', () => {
     expect(del.status).toBe(404)
   })
 
-  it('DELETE /api/admin/users/:userId/sessions/:sessionId returns 404 when session belongs to a different org (cross-org bypass prevention)', async () => {
+  it('dELETE /api/admin/users/:userId/sessions/:sessionId returns 404 when session belongs to a different org (cross-org bypass prevention)', async () => {
     // Create two organisations with separate installs sharing the same underlying repository.
     const repository = createInMemoryEnterpriseRepository()
 

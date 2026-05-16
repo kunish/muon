@@ -2,8 +2,8 @@
 import type { HTMLAttributes } from 'vue'
 import type { SegmentedControlVariants, SegmentItem } from '.'
 import { useVModel } from '@vueuse/core'
-import { cn } from '../../utils'
 import { segmentedControlVariants } from '.'
+import { cn } from '../../utils'
 
 const props = withDefaults(defineProps<{
   items: SegmentItem[]

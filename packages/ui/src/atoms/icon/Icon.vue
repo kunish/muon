@@ -10,11 +10,11 @@ const props = withDefaults(defineProps<{
 }>(), { size: 'md' })
 
 const SIZE: Record<string, string> = {
-  xs: 'size-3',     // 12
-  sm: 'size-3.5',   // 14
-  md: 'size-4',     // 16
-  lg: 'size-5',     // 20
-  xl: 'size-6',     // 24
+  xs: 'size-3', // 12
+  sm: 'size-3.5', // 14
+  md: 'size-4', // 16
+  lg: 'size-5', // 20
+  xl: 'size-6', // 24
 }
 </script>
 

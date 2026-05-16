@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import process from 'node:process'
 
@@ -6,12 +6,28 @@ const TOKENS_DIR = resolve(import.meta.dirname, '../src/tokens')
 const SRC_DIR = resolve(import.meta.dirname, '../src')
 
 const REQUIRED_ROLES = [
-  'background', 'foreground', 'muted', 'muted-foreground',
-  'primary', 'primary-foreground', 'accent', 'accent-foreground',
-  'destructive', 'destructive-foreground', 'border', 'input', 'ring',
-  'card', 'card-foreground', 'secondary', 'secondary-foreground',
-  'popover', 'popover-foreground',
-  'success', 'warning', 'info',
+  'background',
+  'foreground',
+  'muted',
+  'muted-foreground',
+  'primary',
+  'primary-foreground',
+  'accent',
+  'accent-foreground',
+  'destructive',
+  'destructive-foreground',
+  'border',
+  'input',
+  'ring',
+  'card',
+  'card-foreground',
+  'secondary',
+  'secondary-foreground',
+  'popover',
+  'popover-foreground',
+  'success',
+  'warning',
+  'info',
 ]
 
 function readAllTokens(): string {
@@ -26,8 +42,10 @@ function readAllSource(): string {
     const out: string[] = []
     for (const ent of readdirSync(dir, { withFileTypes: true })) {
       const p = resolve(dir, ent.name)
-      if (ent.isDirectory()) out.push(...walk(p))
-      else if (/\.(?:vue|ts|css)$/.test(ent.name)) out.push(p)
+      if (ent.isDirectory())
+        out.push(...walk(p))
+      else if (/\.(?:vue|ts|css)$/.test(ent.name))
+        out.push(p)
     }
     return out
   }

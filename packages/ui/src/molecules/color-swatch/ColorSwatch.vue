@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import type { HTMLAttributes } from 'vue'
 import type { ColorSwatchVariants } from '.'
-import { cn } from '../../utils'
 import { colorSwatchVariants } from '.'
+import { cn } from '../../utils'
 
 const props = withDefaults(defineProps<{
   color: string
@@ -14,7 +14,10 @@ const props = withDefaults(defineProps<{
 }>(), { size: 'md', selected: false, disabled: false })
 
 const emits = defineEmits<{ select: [color: string] }>()
-function onClick() { if (!props.disabled) emits('select', props.color) }
+function onClick() {
+  if (!props.disabled)
+    emits('select', props.color)
+}
 </script>
 
 <template>

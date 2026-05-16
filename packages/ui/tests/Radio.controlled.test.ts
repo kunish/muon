@@ -2,7 +2,7 @@ import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 import { Radio, RadioGroup } from '../src/atoms/radio'
 
-describe('Radio controlled / uncontrolled', () => {
+describe('radio controlled / uncontrolled', () => {
   it('uncontrolled: clicking sets checked', async () => {
     const wrapper = mount({
       components: { RadioGroup, Radio },
