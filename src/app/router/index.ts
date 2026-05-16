@@ -1,3 +1,4 @@
+import { readMatrixSessionFromStore } from '@matrix/index'
 import { createRouter, createWebHistory } from 'vue-router'
 
 const router = createRouter({
@@ -105,21 +106,18 @@ const router = createRouter({
   ],
 })
 
-function isAuthenticated(): boolean {
+async function isAuthenticated(): Promise<boolean> {
   try {
-    const stored = localStorage.getItem('muon_auth')
-    if (!stored)
-      return false
-    const data = JSON.parse(stored)
-    return !!(data.accessToken && data.serverUrl && data.userId)
+    const session = await readMatrixSessionFromStore()
+    return session !== null
   }
   catch {
     return false
   }
 }
 
-router.beforeEach((to) => {
-  if (to.meta.requiresAuth && !isAuthenticated())
+router.beforeEach(async (to) => {
+  if (to.meta.requiresAuth && !(await isAuthenticated()))
     return '/login'
 })
 
