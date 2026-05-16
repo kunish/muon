@@ -54,6 +54,7 @@ describe('desktop oauth flow', () => {
       accessToken: 'matrix-token',
       deviceId: 'MUONDEVICE',
     })
+    expect(token.muonSession.deviceName).toBe('Muon Desktop')
     await expect(oauth.exchangeCode({
       code: authorization.code,
       codeVerifier: 'plain-challenge',
