@@ -338,3 +338,21 @@ describe('enterpriseSession.restore', () => {
     expect(await deps.muonStore.read()).toBeNull()
   })
 })
+
+describe('enterpriseSession.clear', () => {
+  beforeEach(() => {
+    localStorage.clear()
+  })
+
+  it('clears MuonSession and PKCE state but does NOT touch Matrix storage (owned by MatrixSession)', async () => {
+    const deps = makeDeps()
+    await deps.muonStore.write(validMuon)
+    await deps.pkceStore.write({ codeVerifier: 'v', state: 's' })
+
+    const { clear } = await import('@/enterprise/session')
+    clear(deps)
+
+    expect(await deps.muonStore.read()).toBeNull()
+    expect(await deps.pkceStore.read()).toBeNull()
+  })
+})

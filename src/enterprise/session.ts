@@ -1,8 +1,15 @@
 import type { MatrixSession as MatrixSessionContract, MuonSession } from '@muon/enterprise-contracts'
-import type { z } from 'zod'
-// eslint-disable-next-line unused-imports/no-unused-imports -- SafeStorageLike used by defaultEnterpriseSessionDeps in Task 10
 import type { EncryptedStore, SafeStorageLike } from '@/shared/safeStorageStore'
 import { muonSessionSchema, oauthTokenResponseSchema } from '@muon/enterprise-contracts'
+import { z } from 'zod'
+import { getDesktopBridge, isElectronRuntime } from '@/electron/bridge'
+import { openUrl as defaultOpenUrl } from '@/electron/opener'
+import { makeEncryptedStore } from '@/shared/safeStorageStore'
+
+const pkceTransientSchema = z.object({
+  codeVerifier: z.string().min(1),
+  state: z.string().min(1),
+})
 
 export interface EnterpriseSession {
   muon: MuonSession
@@ -174,8 +181,10 @@ export async function restore(deps: EnterpriseSessionDeps): Promise<EnterpriseSe
   return { muon, matrix }
 }
 
-export function clear(_deps: EnterpriseSessionDeps): void {
-  throw new Error('not implemented')
+export function clear(deps: EnterpriseSessionDeps): void {
+  deps.muonStore.clear()
+  deps.pkceStore.clear()
+  // Matrix storage is owned by the MatrixSession module — cleared by logoutMatrix().
 }
 
 export function parseEnterpriseAuthCallback(url: string): { code: string, state: string } | null {
@@ -194,6 +203,42 @@ export function parseEnterpriseAuthCallback(url: string): { code: string, state:
   }
 }
 
-// Silence unused-import warnings on schemas while the module fills in
-void muonSessionSchema
-void ({} as z.ZodTypeAny)
+const REFRESH_NEAR_EXPIRY_MS = 24 * 60 * 60 * 1000
+const STORAGE_KEY_MUON = 'muon_enterprise_session'
+const STORAGE_KEY_PKCE = 'muon_enterprise_pkce'
+
+function bridgeSafeStorage(): SafeStorageLike {
+  if (!isElectronRuntime()) {
+    return {
+      isAvailable: async () => false,
+      encrypt: async s => s,
+      decrypt: async s => s,
+    }
+  }
+  return {
+    isAvailable: () => getDesktopBridge()!.safeStorage.isAvailable(),
+    encrypt: s => getDesktopBridge()!.safeStorage.encrypt(s),
+    decrypt: s => getDesktopBridge()!.safeStorage.decrypt(s),
+  }
+}
+
+export function defaultEnterpriseSessionDeps(apiBaseUrl = import.meta.env.VITE_MUON_API_BASE_URL): EnterpriseSessionDeps {
+  const safeStorage = bridgeSafeStorage()
+  return {
+    apiBaseUrl: String(apiBaseUrl || '').replace(/\/+$/g, ''),
+    http: globalThis.fetch.bind(globalThis),
+    clock: () => Date.now(),
+    openUrl: defaultOpenUrl,
+    muonStore: makeEncryptedStore({ key: STORAGE_KEY_MUON, schema: muonSessionSchema, safeStorage }),
+    pkceStore: makeEncryptedStore({ key: STORAGE_KEY_PKCE, schema: pkceTransientSchema, safeStorage }),
+    // TODO(Task 11): replace with readMatrixSessionFromStore from '@/matrix/auth' once that export exists
+    readMatrixSession: async () => null,
+    refreshThresholdMs: REFRESH_NEAR_EXPIRY_MS,
+    clientId: 'muon-desktop',
+    redirectUri: 'muon://auth/callback',
+  }
+}
+
+export function isEnterpriseAuthConfigured(apiBaseUrl = import.meta.env.VITE_MUON_API_BASE_URL): boolean {
+  return String(apiBaseUrl || '').replace(/\/+$/g, '').length > 0
+}
