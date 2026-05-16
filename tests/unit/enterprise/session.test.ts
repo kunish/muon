@@ -224,3 +224,117 @@ describe('enterpriseSession.refresh', () => {
     expect(await deps.muonStore.read()).toEqual(validMuon)
   })
 })
+
+describe('enterpriseSession.restore', () => {
+  beforeEach(() => {
+    localStorage.clear()
+  })
+
+  it('returns null when no MuonSession is stored', async () => {
+    const deps = makeDeps()
+    expect(await restore(deps)).toBeNull()
+  })
+
+  it('returns the stored bundle without refreshing when not near expiry', async () => {
+    const http = vi.fn() as unknown as typeof fetch
+    const readMatrixSession = vi.fn().mockResolvedValue(validMatrix)
+    const deps = makeDeps({
+      http,
+      readMatrixSession,
+      clock: () => Date.parse('2026-05-16T00:00:00.000Z'),
+    })
+
+    const farFuture: MuonSession = {
+      ...validMuon,
+      expiresAt: '2026-06-16T00:00:00.000Z',
+    }
+    await deps.muonStore.write(farFuture)
+
+    const result = await restore(deps)
+    expect(result).toEqual({ muon: farFuture, matrix: validMatrix })
+    expect(http).not.toHaveBeenCalled()
+    expect(readMatrixSession).toHaveBeenCalled()
+  })
+
+  it('returns null when no MatrixSession exists even if MuonSession is valid', async () => {
+    const readMatrixSession = vi.fn().mockResolvedValue(null)
+    const deps = makeDeps({
+      readMatrixSession,
+      clock: () => Date.parse('2026-05-16T00:00:00.000Z'),
+    })
+    const farFuture: MuonSession = { ...validMuon, expiresAt: '2026-06-16T00:00:00.000Z' }
+    await deps.muonStore.write(farFuture)
+
+    expect(await restore(deps)).toBeNull()
+  })
+
+  it('refreshes when within the threshold and returns the rotated bundle', async () => {
+    const http = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        muonSession: {
+          accessToken: 'rotated',
+          refreshToken: 'rotated-rt',
+          expiresAt: '2031-01-01T00:00:00.000Z',
+          deviceName: 'My Laptop',
+        },
+        matrixSession: validMatrix,
+      }),
+    }) as unknown as typeof fetch
+
+    const deps = makeDeps({
+      http,
+      clock: () => Date.parse('2026-05-16T00:00:00.000Z'),
+    })
+
+    const nearExpiry: MuonSession = {
+      ...validMuon,
+      expiresAt: '2026-05-16T12:00:00.000Z',
+    }
+    await deps.muonStore.write(nearExpiry)
+
+    const result = await restore(deps)
+    expect(http).toHaveBeenCalledTimes(1)
+    expect(result?.muon.accessToken).toBe('rotated')
+    expect(result?.matrix).toEqual(validMatrix)
+  })
+
+  it('returns the still-valid stored bundle when near-expiry refresh fails with network error', async () => {
+    const http = vi.fn().mockRejectedValue(new Error('ECONNREFUSED')) as unknown as typeof fetch
+    const readMatrixSession = vi.fn().mockResolvedValue(validMatrix)
+    const deps = makeDeps({
+      http,
+      readMatrixSession,
+      clock: () => Date.parse('2026-05-16T00:00:00.000Z'),
+    })
+    const nearExpiry: MuonSession = {
+      ...validMuon,
+      expiresAt: '2026-05-16T12:00:00.000Z',
+    }
+    await deps.muonStore.write(nearExpiry)
+
+    const result = await restore(deps)
+    expect(result?.muon.accessToken).toBe(nearExpiry.accessToken)
+    expect(result?.matrix).toEqual(validMatrix)
+  })
+
+  it('returns null when refresh detects a revoked session (401)', async () => {
+    const http = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 401,
+      json: async () => ({ error: 'invalid_refresh_token' }),
+    }) as unknown as typeof fetch
+    const deps = makeDeps({
+      http,
+      clock: () => Date.parse('2026-05-16T00:00:00.000Z'),
+    })
+    const nearExpiry: MuonSession = {
+      ...validMuon,
+      expiresAt: '2026-05-16T12:00:00.000Z',
+    }
+    await deps.muonStore.write(nearExpiry)
+
+    expect(await restore(deps)).toBeNull()
+    expect(await deps.muonStore.read()).toBeNull()
+  })
+})

@@ -148,8 +148,30 @@ export async function refresh(deps: EnterpriseSessionDeps): Promise<EnterpriseSe
   return { muon: tokenResponse.muonSession, matrix: tokenResponse.matrixSession }
 }
 
-export async function restore(_deps: EnterpriseSessionDeps): Promise<EnterpriseSession | null> {
-  throw new Error('not implemented')
+export async function restore(deps: EnterpriseSessionDeps): Promise<EnterpriseSession | null> {
+  const muon = await deps.muonStore.read()
+  if (!muon)
+    return null
+
+  const msUntilExpiry = Date.parse(muon.expiresAt) - deps.clock()
+  const needsRefresh = msUntilExpiry < deps.refreshThresholdMs
+
+  if (needsRefresh) {
+    try {
+      return await refresh(deps)
+    }
+    catch (err) {
+      if (!(err instanceof EnterpriseSessionError && err.kind === 'refresh-network'))
+        return null
+      // Network error — fall through to use the existing stored MuonSession.
+    }
+  }
+
+  const matrix = await deps.readMatrixSession()
+  if (!matrix)
+    return null
+
+  return { muon, matrix }
 }
 
 export function clear(_deps: EnterpriseSessionDeps): void {
