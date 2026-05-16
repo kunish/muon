@@ -74,4 +74,48 @@ describe('makeEncryptedStore', () => {
     const raw = localStorage.getItem('k')!
     expect(JSON.parse(raw)).toEqual({ token: 'abc' })
   })
+
+  it('returns null when stored payload is encrypted but safeStorage is unavailable at read time', async () => {
+    const writeSide = makeFakeSafeStorage(true)
+    const readSide = makeFakeSafeStorage(false)
+
+    const writer = makeEncryptedStore({ key: 'k', schema: sampleSchema, safeStorage: writeSide })
+    await writer.write({ token: 'abc' })
+
+    const reader = makeEncryptedStore({ key: 'k', schema: sampleSchema, safeStorage: readSide })
+    expect(await reader.read()).toBeNull()
+  })
+
+  it('reads back an encrypted payload written by a separate store instance with the same key', async () => {
+    const safeStorage = makeFakeSafeStorage(true)
+    const writer = makeEncryptedStore({ key: 'k', schema: sampleSchema, safeStorage })
+    await writer.write({ token: 'roundtrip' })
+
+    const reader = makeEncryptedStore({ key: 'k', schema: sampleSchema, safeStorage })
+    expect(await reader.read()).toEqual({ token: 'roundtrip' })
+  })
+
+  it('returns null when decrypt throws', async () => {
+    const safeStorage = makeFakeSafeStorage(true)
+    // Write first with working encrypt
+    const writer = makeEncryptedStore({ key: 'k', schema: sampleSchema, safeStorage })
+    await writer.write({ token: 'abc' })
+
+    // Reader hits a decrypt failure
+    safeStorage.decrypt = vi.fn().mockRejectedValueOnce(new Error('decrypt failed'))
+    const reader = makeEncryptedStore({ key: 'k', schema: sampleSchema, safeStorage })
+    expect(await reader.read()).toBeNull()
+  })
+
+  it('uses a custom logger when provided', async () => {
+    const log = vi.fn()
+    const safeStorage = makeFakeSafeStorage(true)
+    safeStorage.encrypt = vi.fn().mockRejectedValueOnce(new Error('boom'))
+
+    const store = makeEncryptedStore({ key: 'k', schema: sampleSchema, safeStorage, logger: log })
+    await store.write({ token: 'abc' })
+
+    expect(log).toHaveBeenCalled()
+    expect(log.mock.calls[0]![0]).toContain('encrypt failed')
+  })
 })

@@ -12,6 +12,8 @@ export interface EncryptedStore<T> {
   clear: () => void
 }
 
+export type EncryptedStoreLogger = (message: string, error?: unknown) => void
+
 interface EncryptedPayload {
   _enc: true
   data: string
@@ -30,8 +32,12 @@ export function makeEncryptedStore<T>(params: {
   key: string
   schema: z.ZodType<T>
   safeStorage: SafeStorageLike
+  logger?: EncryptedStoreLogger
 }): EncryptedStore<T> {
-  const { key, schema, safeStorage } = params
+  const { key, schema, safeStorage, logger } = params
+  const warn: EncryptedStoreLogger = logger ?? ((message, error) => {
+    console.warn(`[encryptedStore:${key}] ${message}`, error)
+  })
 
   return {
     async read() {
@@ -43,7 +49,8 @@ export function makeEncryptedStore<T>(params: {
       try {
         parsed = JSON.parse(raw)
       }
-      catch {
+      catch (err) {
+        warn('failed to parse stored payload', err)
         return null
       }
 
@@ -53,13 +60,18 @@ export function makeEncryptedStore<T>(params: {
           const decrypted = await safeStorage.decrypt(parsed.data)
           candidate = JSON.parse(decrypted)
         }
-        catch {
+        catch (err) {
+          warn('decrypt failed; treating session as invalid', err)
           return null
         }
       }
 
       const result = schema.safeParse(candidate)
-      return result.success ? result.data : null
+      if (!result.success) {
+        warn('stored payload failed schema validation; discarding')
+        return null
+      }
+      return result.data
     },
 
     async write(value) {
@@ -71,7 +83,8 @@ export function makeEncryptedStore<T>(params: {
           const encrypted = await safeStorage.encrypt(json)
           payload = JSON.stringify({ _enc: true, data: encrypted } satisfies EncryptedPayload)
         }
-        catch {
+        catch (err) {
+          warn('encrypt failed; persisting plaintext fallback', err)
           payload = json
         }
       }
