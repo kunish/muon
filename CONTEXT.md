@@ -44,6 +44,24 @@ _Avoid_: logout (as a verb in code).
 Application startup path: attempt to restore an **EnterpriseSession**, refresh its **MuonSession** if near expiry, then activate the **MatrixSession**.
 _Avoid_: hydrate, init.
 
+### Rooms & messages
+
+**RoomSummary**:
+Domain-shaped snapshot of one Matrix room as the chat client cares about it: `{ roomId, name, avatar?, lastMessage?, lastMessageTs?, unreadCount, isDirect, isEncrypted, members, isPinned, isMuted, highlightCount, memberCount, … }`. Produced by `getRoomSummaries()` in `src/matrix/rooms.ts` from SDK `Room` objects. **RoomSummary** is the only room shape that should appear in feature-layer code.
+_Avoid_: matrix-js-sdk `Room`, room object, room info.
+
+**Message**:
+Tagged union `ChatMessage | SystemMessage`. The domain-shaped projection of a single Matrix timeline event as the chat UI cares about it. Every **Message** is an immutable snapshot — when the SDK mutates the underlying event (decryption, edits, reactions, local-echo state), the matrix module re-projects and the array is replaced. Feature-layer code never sees `matrix-js-sdk`'s `MatrixEvent`.
+_Avoid_: matrix event, timeline event, event payload.
+
+**ChatMessage**:
+A user-sent **Message**: `{ kind: 'chat', id, roomId, senderId, timestamp, msgType, body, formattedBody?, content, isRedacted, replyTo?, reactions, threadReplyCount?, sendStatus? }`. `isMine` is NOT a field — UI infers it via `senderId === currentUserId`, so the projection stays pure.
+_Avoid_: text message, user message, content event.
+
+**SystemMessage**:
+A non-user **Message**: membership change, room rename, topic change, room created. Shape: `{ kind: 'system', id, roomId, timestamp, info: SystemEventInfo }`. The `info` carries enough domain detail to render the "Alice joined" / "Bob renamed the room" line without re-reading the SDK event.
+_Avoid_: state event, system event row.
+
 ## Relationships
 
 - An **EnterpriseSession** contains exactly one **MuonSession** and exactly one **MatrixSession**.
@@ -52,6 +70,8 @@ _Avoid_: hydrate, init.
 - A **PkceTransientState** is not part of an **EnterpriseSession**; it is a precondition for producing one.
 - **Bootstrap** orchestrates **MatrixSession** activation after restoring an **EnterpriseSession**.
 - **SignIn** and **SignOut** are the only entry points that callers (Vue components, App startup) should depend on.
+- A **Message** is always derived from one Matrix timeline event by a pure projection in `src/matrix/projections/`. It is replaced (not mutated) on any change to the underlying event.
+- A **RoomSummary** is a domain projection of an SDK `Room`. Composables and stores expose `RoomSummary`, never `Room`.
 
 ## Example dialogue
 
