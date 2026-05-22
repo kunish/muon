@@ -194,6 +194,16 @@
   --function-warning-700: var(--O700);
   --function-warning-800: var(--O800);
   --function-warning-900: var(--O900);
+  --function-warning-50-raw: var(--O50-raw);
+  --function-warning-100-raw: var(--O100-raw);
+  --function-warning-200-raw: var(--O200-raw);
+  --function-warning-300-raw: var(--O300-raw);
+  --function-warning-400-raw: var(--O400-raw);
+  --function-warning-500-raw: var(--O500-raw);
+  --function-warning-600-raw: var(--O600-raw);
+  --function-warning-700-raw: var(--O700-raw);
+  --function-warning-800-raw: var(--O800-raw);
+  --function-warning-900-raw: var(--O900-raw);
 
   /* Shadows defaults (raw + color) */
   --shadow-default-raw: var(--N900-raw);
@@ -201,15 +211,6 @@
   --shadow-default-sm: rgba(var(--N900-raw), 0.12);
   --shadow-default-md: rgba(var(--N900-raw), 0.1);
   --shadow-default-lg: rgba(var(--N900-raw), 0.08);
-
-  /* Gradients */
-  --gradient-red: linear-gradient(90deg, var(--R400), var(--R500));
-  --gradient-orange: linear-gradient(90deg, var(--O400), var(--O500));
-  --gradient-purple: linear-gradient(90deg, var(--P400), var(--P500));
-  --gradient-turquoise: linear-gradient(90deg, var(--T400), var(--T500));
-  --gradient-violet: linear-gradient(90deg, var(--V400), var(--V500));
-  --gradient-wathet: linear-gradient(90deg, var(--W400), var(--W500));
-  --gradient-yellow: linear-gradient(90deg, var(--Y400), var(--Y500));
 
   /* Static blacks/whites */
   --static-black: #000;
@@ -241,14 +242,6 @@
   --static-white-hover: hsla(0,0%,100%,0.1);
   --static-white-pressed: hsla(0,0%,100%,0.2);
 
-  /* Illustration colors */
-  --illustration-orange: var(--O500);
-  --illustration-red: var(--R500);
-  --illustration-static-black: var(--static-black);
-  --illustration-static-white: var(--static-white);
-  --illustration-turquoise: var(--T500);
-  --illustration-wathet: var(--W500);
-  --illustration-yellow: var(--Y500);
 
   /* Muon compatibility layer — existing --color-* tokens mapped to Feishu values */
   --color-background: var(--N00);
