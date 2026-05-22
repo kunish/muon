@@ -72,6 +72,11 @@ const {
   uploadImage,
   uploadVideo,
   uploadFile,
+  stageFile,
+  getUpload,
+  waitForAll,
+  removeUpload,
+  clearUploads,
 } = useMediaUpload(() => store.currentRoomId)
 const { filterMembers } = useMention()
 
@@ -116,6 +121,12 @@ interface PendingPasteAttachment {
   file: File
   kind: 'image' | 'video' | 'file'
   previewUrl: string | null
+  /** Upload progress 0–100 when pre-upload is active */
+  uploadProgress: number
+  /** Pre-uploaded mxcUrl (available before send click for 秒发) */
+  preMxcUrl: string | null
+  /** Whether pre-upload has completed */
+  preUploadDone: boolean
 }
 
 const PENDING_MEDIA_NODE_PATTERN
@@ -124,12 +135,16 @@ let pendingPasteAttachmentId = 0
 const pendingPasteAttachments = shallowRef<PendingPasteAttachment[]>([])
 const pendingPasteAttachmentDrafts = new Map<string, PendingPasteAttachment[]>()
 const hasPendingPasteAttachments = computed(() => pendingPasteAttachments.value.length > 0)
+const editorShouldScroll = ref(false)
 const editorHeightClass = computed(() => {
   if (editorExpanded.value)
     return 'overflow-y-auto min-h-[320px] max-h-[60vh] [&_.tiptap]:min-h-[304px]'
 
   if (hasPendingPasteAttachments.value)
     return 'overflow-y-auto min-h-[80px] max-h-[40vh] [&_.tiptap]:min-h-[64px]'
+
+  if (!editorShouldScroll.value)
+    return 'overflow-hidden min-h-[40px] max-h-[40vh] [&_.tiptap]:min-h-[24px]'
 
   return 'overflow-y-auto min-h-[40px] max-h-[40vh] [&_.tiptap]:min-h-[24px]'
 })
@@ -155,13 +170,27 @@ const { editor, clear, insertEmoji, insertPendingMediaAttachment } = useRichText
 watch(editor, (instance, _prev, onCleanup) => {
   if (!instance)
     return
+
   const handler = () => {
     instance.commands.scrollIntoView()
+    syncPendingPasteAttachmentsFromEditor(instance.getHTML())
+
+    const dom = instance.view.dom as HTMLElement
+    const wrapper = dom.parentElement
+    if (!dom || !wrapper)
+      return
+
+    const scrollH = dom.scrollHeight
+    const nowScrollable = scrollH > wrapper.clientHeight + 4
+
+    editorShouldScroll.value = nowScrollable
+
+    // Apply overflow via inline style (not CSS class) for synchronous DOM update.
+    // CSS class changes happen async via Vue — too late for scroll-dimension reset.
+    wrapper.style.overflowY = nowScrollable ? '' : 'hidden'
   }
   instance.on('update', handler)
-  onCleanup(() => {
-    instance.off('update', handler)
-  })
+  onCleanup(() => instance.off('update', handler))
 }, { immediate: true })
 
 // 草稿缓存：roomId → HTML content
@@ -345,8 +374,10 @@ async function submitComposer(html: string, text: string, options?: { silent?: b
   revokePendingPasteAttachmentUrls(submittedAttachments)
   if (drafts.get(roomId) === submittedHtml)
     drafts.delete(roomId)
-  if (roomId)
+  if (roomId) {
+    store.setDraft(roomId, '')
     pendingPasteAttachmentDrafts.delete(roomId)
+  }
   if (canCleanSubmittedState) {
     clear()
     stopTyping()
@@ -591,6 +622,9 @@ function stagePasteFiles(files: File[], options: { insert: boolean }): string[] 
     file,
     kind: getPendingPasteAttachmentKind(file),
     previewUrl: createPendingPastePreviewUrl(file),
+    uploadProgress: 0,
+    preMxcUrl: null,
+    preUploadDone: false,
   }))
 
   pendingPasteAttachments.value = [
@@ -601,8 +635,53 @@ function stagePasteFiles(files: File[], options: { insert: boolean }): string[] 
     for (const attachment of attachments)
       insertPendingMediaAttachment(attachment.id)
   }
+
+  // 秒发: start pre-upload immediately
+  for (const attachment of attachments)
+    kickoffPreUpload(attachment)
+
   markComposeChanged()
   return attachments.map(attachment => attachment.id)
+}
+
+/** Start pre-upload as soon as file is staged — core of 秒发 mechanism */
+function kickoffPreUpload(attachment: PendingPasteAttachment) {
+  stageFile(attachment.id, attachment.file).then((upload) => {
+    const attachmentIndex = pendingPasteAttachments.value.findIndex(a => a.id === attachment.id)
+    if (attachmentIndex === -1)
+      return
+
+    const updated = { ...pendingPasteAttachments.value[attachmentIndex] }
+    updated.uploadProgress = upload.progress
+    updated.preMxcUrl = upload.mxcUrl
+    updated.preUploadDone = upload.status === 'done'
+    pendingPasteAttachments.value[attachmentIndex] = updated
+
+    // Watch for progress updates via polling (the uploadManager emits events)
+    const pollInterval = setInterval(() => {
+      const u = getUpload(attachment.id)
+      if (!u) {
+        clearInterval(pollInterval)
+        return
+      }
+
+      const idx = pendingPasteAttachments.value.findIndex(a => a.id === attachment.id)
+      if (idx === -1) {
+        clearInterval(pollInterval)
+        return
+      }
+
+      pendingPasteAttachments.value[idx] = {
+        ...pendingPasteAttachments.value[idx],
+        uploadProgress: u.progress,
+        preMxcUrl: u.mxcUrl,
+        preUploadDone: u.status === 'done',
+      }
+
+      if (u.status === 'done' || u.status === 'error')
+        clearInterval(pollInterval)
+    }, 200)
+  })
 }
 
 async function handlePasteMediaSources(sources: PastedMediaSource[]): Promise<string[]> {
@@ -672,10 +751,27 @@ function removePendingPasteAttachment(id: string) {
   pendingPasteAttachments.value = pendingPasteAttachments.value.filter(attachment => attachment.id !== id)
   if (removedAttachment)
     revokePendingPasteAttachmentUrls([removedAttachment])
+  removeUpload(id)
   markComposeChanged()
 }
 
-function openPendingPasteAttachmentPreview(attachment: PendingPasteAttachment) {
+function syncPendingPasteAttachmentsFromEditor(html: string) {
+  if (!pendingPasteAttachments.value.length)
+    return
+
+  const visibleIds = new Set(getPendingMediaIds(html))
+  const removedAttachments = pendingPasteAttachments.value.filter(attachment => !visibleIds.has(attachment.id))
+  if (!removedAttachments.length)
+    return
+
+  pendingPasteAttachments.value = pendingPasteAttachments.value.filter(attachment => visibleIds.has(attachment.id))
+  revokePendingPasteAttachmentUrls(removedAttachments)
+  for (const attachment of removedAttachments)
+    removeUpload(attachment.id)
+  markComposeChanged()
+}
+
+function openPendingPasteAttachmentPreview(attachment: Pick<PendingPasteAttachment, 'kind' | 'previewUrl'>) {
   if (!attachment.previewUrl)
     return
   if (attachment.kind === 'image') {
@@ -706,6 +802,8 @@ interface RichMediaUpload {
   mxcUrl: string
   width?: number
   height?: number
+  /** True if the URL came from pre-upload (already uploaded before send click) */
+  fromPreUpload: boolean
 }
 
 interface RichMediaSubmitPayload {
@@ -725,14 +823,51 @@ async function createRichMediaSubmitPayload(html: string): Promise<RichMediaSubm
     }
   }
 
+  // 秒发: check which uploads are already done from pre-upload
+  const preDoneIds = mediaIds.filter((id) => {
+    const a = attachmentsById.get(id)
+    return a && a.preUploadDone && a.preMxcUrl
+  })
+
   uploading.value = true
   progress.value = 0
+
+  // Wait for any still-in-progress uploads
+  if (preDoneIds.length < mediaIds.length) {
+    const pendingIds = mediaIds.filter(id => !preDoneIds.includes(id))
+    await waitForAll(pendingIds)
+  }
+
   const uploads = new Map<string, RichMediaUpload>()
   for (const [index, id] of mediaIds.entries()) {
     const attachment = attachmentsById.get(id)
     if (!attachment)
       continue
-    uploads.set(id, await uploadPendingRichMediaAttachment(attachment))
+
+    // Use pre-uploaded URL if available
+    if (attachment.preUploadDone && attachment.preMxcUrl) {
+      let meta = { width: 0, height: 0 }
+      if (attachment.kind === 'image') {
+        try {
+          meta = await extractImageMeta(attachment.file)
+        }
+        catch {
+          // continue without dimensions
+        }
+      }
+      uploads.set(id, {
+        attachment,
+        mxcUrl: attachment.preMxcUrl,
+        width: meta.width,
+        height: meta.height,
+        fromPreUpload: true,
+      })
+    }
+    else {
+      // Fallback: upload now (shouldn't normally happen if pre-upload works)
+      uploads.set(id, await uploadPendingRichMediaAttachment(attachment))
+    }
+
     progress.value = Math.round(((index + 1) / mediaIds.length) * 90)
   }
 
@@ -780,6 +915,7 @@ async function uploadPendingRichMediaAttachment(attachment: PendingPasteAttachme
     mxcUrl: await uploadMedia(attachment.file),
     width,
     height,
+    fromPreUpload: false,
   }
 }
 
@@ -829,6 +965,11 @@ function revokeAllPendingPasteAttachmentUrls() {
 function onInput() {
   markComposeChanged()
   startTyping()
+  const roomId = store.currentRoomId
+  if (roomId && editor.value) {
+    const text = editor.value.getText().trim()
+    store.setDraft(roomId, text)
+  }
 }
 
 const showFormatBar = ref(false)
@@ -870,9 +1011,11 @@ watch(
       const text = editor.value.getText().trim()
       if (text) {
         drafts.set(oldId, editor.value.getHTML())
+        store.setDraft(oldId, text)
       }
       else {
         drafts.delete(oldId)
+        store.setDraft(oldId, '')
       }
 
       if (pendingPasteAttachments.value.length) {
@@ -882,6 +1025,11 @@ watch(
         pendingPasteAttachmentDrafts.delete(oldId)
       }
     }
+
+    // Clean up pre-uploads from the old room
+    for (const a of pendingPasteAttachments.value)
+      removeUpload(a.id)
+    clearUploads()
 
     // 恢复目标房间草稿或清空
     const saved = newId ? drafts.get(newId) : undefined
@@ -942,6 +1090,7 @@ onUnmounted(() => {
   clearTimeout(prewarmExpressionTimer)
   window.removeEventListener('resize', onWindowResize)
   revokeAllPendingPasteAttachmentUrls()
+  clearUploads()
 })
 </script>
 

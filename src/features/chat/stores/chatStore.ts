@@ -2,7 +2,7 @@ import type { RoomSummary } from '@matrix/types'
 import type { MatrixEvent } from 'matrix-js-sdk'
 import { getClient } from '@matrix/client'
 import { defineStore } from 'pinia'
-import { reactive, ref, watch } from 'vue'
+import { reactive, ref } from 'vue'
 
 export type ConversationFilter = 'all' | 'unread' | 'dm' | 'group'
 export type SidePanelType = 'threads' | 'search' | 'pinned' | 'starred' | 'members' | 'settings' | 'tasks' | 'knowledge'
@@ -70,7 +70,6 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   loadDraftsFromStorage()
-  watch(() => drafts.size, persistDrafts, { deep: true })
   const pendingMentionRequests = reactive<ComposerMentionRequest[]>([])
   const sidebarPromotionTimes = reactive(new Map<string, number>())
   const sidebarPromotionPreviews = reactive(new Map<string, RoomSummary>())
