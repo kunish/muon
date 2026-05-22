@@ -1,7 +1,8 @@
 import type { RoomSummary } from '@matrix/types'
 import type { MatrixEvent } from 'matrix-js-sdk'
+import { getClient } from '@matrix/client'
 import { defineStore } from 'pinia'
-import { reactive, ref } from 'vue'
+import { reactive, ref, watch } from 'vue'
 
 export type ConversationFilter = 'all' | 'unread' | 'dm' | 'group'
 export type SidePanelType = 'threads' | 'search' | 'pinned' | 'starred' | 'members' | 'settings' | 'tasks' | 'knowledge'
@@ -37,6 +38,39 @@ export const useChatStore = defineStore('chat', () => {
   const mutedRooms = reactive(new Set<string>())
   const markedUnreadRooms = reactive(new Set<string>())
   const drafts = reactive(new Map<string, string>())
+
+  // --- 草稿持久化到 localStorage ---
+  const DRAFTS_STORAGE_KEY = 'muon_chat_drafts'
+
+  function loadDraftsFromStorage() {
+    try {
+      const userId = getClient().getUserId()
+      if (!userId) return
+      const key = `${DRAFTS_STORAGE_KEY}:${userId}`
+      const stored = localStorage.getItem(key)
+      if (!stored) return
+      const parsed = JSON.parse(stored)
+      for (const [roomId, text] of Object.entries(parsed) as [string, string][]) {
+        if (text) drafts.set(roomId, text)
+      }
+    } catch { /* ignore parse errors */ }
+  }
+
+  function persistDrafts() {
+    try {
+      const userId = getClient().getUserId()
+      if (!userId) return
+      const key = `${DRAFTS_STORAGE_KEY}:${userId}`
+      if (drafts.size === 0) {
+        localStorage.removeItem(key)
+      } else {
+        localStorage.setItem(key, JSON.stringify(Object.fromEntries(drafts)))
+      }
+    } catch { /* ignore storage errors */ }
+  }
+
+  loadDraftsFromStorage()
+  watch(() => drafts.size, persistDrafts, { deep: true })
   const pendingMentionRequests = reactive<ComposerMentionRequest[]>([])
   const sidebarPromotionTimes = reactive(new Map<string, number>())
   const sidebarPromotionPreviews = reactive(new Map<string, RoomSummary>())
@@ -203,6 +237,7 @@ export const useChatStore = defineStore('chat', () => {
     else {
       drafts.delete(roomId)
     }
+    persistDrafts()
   }
 
   function getDraft(roomId: string) {
