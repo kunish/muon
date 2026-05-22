@@ -54,16 +54,16 @@ async function toggleReaction(emoji: string) {
 </script>
 
 <template>
-  <div v-if="reactions.length > 0 || showPicker" class="flex flex-wrap items-center gap-1 mt-0.5">
+  <div v-if="reactions.length > 0 || showPicker" class="flex flex-wrap items-center gap-1 mt-2">
     <!-- Reaction 药丸 -->
     <button
       v-for="r in reactions"
       :key="r.key"
-      class="reaction-pill inline-flex items-center gap-1 h-[22px] px-1.5 rounded-md text-[11px] border cursor-pointer transition-all duration-150 active:scale-95"
+      class="reaction-pill inline-flex items-center gap-1 h-[22px] px-0.5 py-0.5 rounded-md text-[11px] border cursor-pointer transition-all duration-150 active:scale-95"
       :class="
         r.myReaction
-          ? 'bg-primary/15 border-primary/40 text-foreground'
-          : 'bg-[var(--color-background)] border-[var(--color-muted)]/40 text-muted-foreground hover:border-muted-foreground/30'
+          ? 'bg-[var(--B100)] border border-[var(--B300)] text-foreground'
+          : 'bg-[var(--N100)] border border-transparent text-muted-foreground hover:border-muted-foreground/30'
       "
       @click.stop="toggleReaction(r.key)"
     >

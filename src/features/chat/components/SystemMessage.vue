@@ -69,7 +69,7 @@ function onUserClick(userId: string | undefined, e: MouseEvent) {
     />
 
     <!-- 结构化片段渲染 -->
-    <span class="text-[13px] text-muted-foreground/60 leading-snug">
+    <span class="text-xs text-muted-foreground/60 leading-snug">
       <template v-for="(part, idx) in info.parts" :key="idx">
         <!-- 可点击的用户名 -->
         <span

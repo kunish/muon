@@ -15,7 +15,7 @@ const label = computed(() => formatTimestampDivider(props.timestamp, locale.valu
 <template>
   <div class="flex items-center gap-3 py-3">
     <div class="flex-1 h-px bg-border/50" />
-    <span class="text-[11px] text-muted-foreground/60 font-medium select-none">{{ label }}</span>
+    <span class="text-xs text-[var(--N400)] font-medium select-none">{{ label }}</span>
     <div class="flex-1 h-px bg-border/50" />
   </div>
 </template>

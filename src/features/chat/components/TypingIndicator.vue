@@ -20,7 +20,7 @@ const typingText = computed(() => {
 <template>
   <div
     v-if="users.length"
-    class="flex items-center gap-1.5 px-4 h-6 text-xs text-muted-foreground select-none"
+    class="flex items-center gap-1.5 pl-10 pr-4 h-6 text-sm text-[var(--N500)] select-none"
   >
     <!-- Animated bouncing dots -->
     <span class="inline-flex items-center gap-[3px]">
