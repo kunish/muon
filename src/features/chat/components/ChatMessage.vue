@@ -703,7 +703,7 @@ onUnmounted(() => {
       class="min-w-0 flex flex-col"
       :class="avatarColumnHidden
         ? (isRightAligned ? 'items-end' : 'w-full items-start')
-        : (isRightAligned ? 'order-1 items-end max-w-[70%]' : 'order-2 items-start flex-1')"
+        : (isRightAligned ? 'order-1 items-end max-w-[min(70%,900px)]' : 'order-2 items-start flex-1')"
     >
       <!-- 首条消息：用户名 + 时间戳 -->
       <div
