@@ -504,10 +504,10 @@ function onOpenThread() {
           v-else
           class="msg-bubble max-w-[min(65vw,560px)] w-fit text-sm break-words"
           :class="[
-            isMine ? 'bg-primary/10' : 'bg-muted',
+            isMine ? 'bg-[var(--B100)]' : 'bg-[var(--N200)]',
             msgtype === 'm.image' || msgtype === 'm.video'
               ? 'p-0.5'
-              : 'px-3 py-2',
+              : 'px-4 py-2.5',
             bubbleRadiusClass,
           ]"
         >
@@ -649,7 +649,7 @@ function onOpenThread() {
       </div>
       <div
         v-else-if="translatedText"
-        class="mt-1 max-w-[min(65vw,560px)] px-3 py-1.5 rounded-md bg-muted/40 border border-border/30"
+        class="mt-1 max-w-[min(65vw,560px)] px-3 py-1.5 rounded-md bg-[var(--N100)] border border-border/30"
       >
         <div class="text-[10px] text-muted-foreground/60 mb-0.5">
           {{ t("chat.translation_result") }}
