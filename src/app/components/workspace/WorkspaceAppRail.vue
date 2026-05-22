@@ -51,14 +51,14 @@ function openApp(path: string): void {
           v-for="app in primaryWorkspaceApps"
           :key="app.id"
           class="group relative flex h-10 w-full items-center justify-center rounded-md text-muted-foreground transition-colors duration-150 hover:bg-sidebar-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          :class="activeApp.id === app.id ? 'bg-sidebar-accent text-primary before:absolute before:left-[-8px] before:top-1/2 before:h-6 before:w-0.5 before:-translate-y-1/2 before:bg-primary before:content-[\'\']' : ''"
+          :class="activeApp.id === app.id ? 'bg-sidebar-accent text-primary before:absolute before:left-[-8px] before:top-1/2 before:h-6 before:w-[3px] before:-translate-y-1/2 before:bg-primary before:content-[\'\']' : ''"
           :data-testid="`workspace-app-${app.id}`"
           :aria-current="activeApp.id === app.id ? 'page' : undefined"
           :aria-label="t(app.labelKey)"
           :title="t(app.labelKey)"
           @click="openApp(app.path)"
         >
-          <component :is="app.icon" :size="20" class="shrink-0" />
+          <component :is="app.icon" :size="16" class="shrink-0" />
           <span
             v-if="app.id === 'messages' && messageUnreadCount > 0"
             class="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-semibold leading-none text-destructive-foreground"
@@ -76,21 +76,21 @@ function openApp(path: string): void {
           :title="`${t('settings.shortcut_search')} (Ctrl/Cmd + K)`"
           @click="globalUi.openGlobalSearch"
         >
-          <Search :size="20" aria-hidden="true" />
+          <Search :size="16" aria-hidden="true" />
         </button>
 
         <button
           v-for="app in footerWorkspaceApps"
           :key="app.id"
           class="group relative flex h-10 w-full items-center justify-center rounded-md text-muted-foreground transition-colors duration-150 hover:bg-sidebar-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          :class="activeApp.id === app.id ? 'bg-sidebar-accent text-primary before:absolute before:left-[-8px] before:top-1/2 before:h-6 before:w-0.5 before:-translate-y-1/2 before:bg-primary before:content-[\'\']' : ''"
+          :class="activeApp.id === app.id ? 'bg-sidebar-accent text-primary before:absolute before:left-[-8px] before:top-1/2 before:h-6 before:w-[3px] before:-translate-y-1/2 before:bg-primary before:content-[\'\']' : ''"
           :data-testid="`workspace-app-${app.id}`"
           :aria-current="activeApp.id === app.id ? 'page' : undefined"
           :aria-label="t(app.labelKey)"
           :title="t(app.labelKey)"
           @click="openApp(app.path)"
         >
-          <component :is="app.icon" :size="20" class="shrink-0" />
+          <component :is="app.icon" :size="16" class="shrink-0" />
         </button>
       </div>
     </div>
