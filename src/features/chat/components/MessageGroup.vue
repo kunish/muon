@@ -222,7 +222,7 @@ const messageGroups = computed((): MessageGroup[] => {
           </div>
 
           <div
-            class="min-w-0 flex flex-col"
+            class="min-w-0 flex flex-col space-y-[0.5px]"
             :class="isRightAlignedGroup(group.senderId)
               ? 'col-start-1 self-start w-full items-end max-w-[min(72%,900px)] justify-self-end'
               : 'col-start-2 self-start w-full items-start'"
