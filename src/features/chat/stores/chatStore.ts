@@ -38,6 +38,7 @@ export const useChatStore = defineStore('chat', () => {
   const mutedRooms = reactive(new Set<string>())
   const markedUnreadRooms = reactive(new Set<string>())
   const drafts = reactive(new Map<string, string>())
+  const htmlDrafts = reactive(new Map<string, string>())
 
   // --- 草稿持久化到 localStorage ---
   const DRAFTS_STORAGE_KEY = 'muon_chat_drafts'
@@ -50,8 +51,9 @@ export const useChatStore = defineStore('chat', () => {
       const stored = localStorage.getItem(key)
       if (!stored) return
       const parsed = JSON.parse(stored)
-      for (const [roomId, text] of Object.entries(parsed) as [string, string][]) {
-        if (text) drafts.set(roomId, text)
+      for (const [roomId, entry] of Object.entries(parsed) as [string, { text?: string, html?: string }][]) {
+        if (entry?.text) drafts.set(roomId, entry.text)
+        if (entry?.html) htmlDrafts.set(roomId, entry.html)
       }
     } catch { /* ignore parse errors */ }
   }
@@ -61,10 +63,21 @@ export const useChatStore = defineStore('chat', () => {
       const userId = getClient().getUserId()
       if (!userId) return
       const key = `${DRAFTS_STORAGE_KEY}:${userId}`
-      if (drafts.size === 0) {
+      const allRoomIds = new Set([...drafts.keys(), ...htmlDrafts.keys()])
+      if (allRoomIds.size === 0) {
         localStorage.removeItem(key)
       } else {
-        localStorage.setItem(key, JSON.stringify(Object.fromEntries(drafts)))
+        const data: Record<string, { text?: string, html?: string }> = {}
+        for (const roomId of allRoomIds) {
+          const text = drafts.get(roomId)
+          const html = htmlDrafts.get(roomId)
+          if (text || html) {
+            data[roomId] = {}
+            if (text) data[roomId].text = text
+            if (html) data[roomId].html = html
+          }
+        }
+        localStorage.setItem(key, JSON.stringify(data))
       }
     } catch { /* ignore storage errors */ }
   }
@@ -243,6 +256,26 @@ export const useChatStore = defineStore('chat', () => {
     return drafts.get(roomId) || ''
   }
 
+  function setHtmlDraft(roomId: string, html: string) {
+    if (html.trim()) {
+      htmlDrafts.set(roomId, html)
+    }
+    else {
+      htmlDrafts.delete(roomId)
+    }
+    persistDrafts()
+  }
+
+  function getHtmlDraft(roomId: string) {
+    return htmlDrafts.get(roomId) || ''
+  }
+
+  function clearAllDrafts(roomId: string) {
+    drafts.delete(roomId)
+    htmlDrafts.delete(roomId)
+    persistDrafts()
+  }
+
   function getSidebarPromotionTime(roomId: string) {
     return sidebarPromotionTimes.get(roomId)
   }
@@ -342,6 +375,9 @@ export const useChatStore = defineStore('chat', () => {
     isMarkedUnread,
     setDraft,
     getDraft,
+    setHtmlDraft,
+    getHtmlDraft,
+    clearAllDrafts,
     pendingMentionRequests,
     getSidebarPromotionTime,
     getSidebarPromotionRoomIds,

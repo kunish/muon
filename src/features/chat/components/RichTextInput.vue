@@ -193,9 +193,8 @@ watch(editor, (instance, _prev, onCleanup) => {
   onCleanup(() => instance.off('update', handler))
 }, { immediate: true })
 
-// 草稿缓存：roomId → HTML content
-const drafts = new Map<string, string>()
-
+// 草稿缓存：roomId → HTML content (persisted via store)
+const pendingPasteAttachmentDrafts = new Map<string, typeof pendingPasteAttachments.value>()
 type ExpressionTab = 'emoji' | 'gif' | 'sticker'
 
 const showExpressionPicker = ref(false)
@@ -372,10 +371,9 @@ async function submitComposer(html: string, text: string, options?: { silent?: b
     attachment => !submittedAttachmentIds.has(attachment.id),
   )
   revokePendingPasteAttachmentUrls(submittedAttachments)
-  if (drafts.get(roomId) === submittedHtml)
-    drafts.delete(roomId)
+  if (store.getHtmlDraft(roomId) === submittedHtml)
+    store.clearAllDrafts(roomId)
   if (roomId) {
-    store.setDraft(roomId, '')
     pendingPasteAttachmentDrafts.delete(roomId)
   }
   if (canCleanSubmittedState) {
@@ -422,8 +420,8 @@ async function handleSend(html: string, text: string, options?: { silent?: boole
   const composeUnchanged = store.editingEvent === editingEvent && store.replyingTo === replyingTo
   const composeVersionUnchanged = composeVersion.value === submittedComposeVersion
   const canCleanSubmittedState = roomUnchanged && composeUnchanged && composeVersionUnchanged && editorTextUnchanged && editorHtmlUnchanged
-  if (sentPlainText && drafts.get(roomId) === submittedHtml)
-    drafts.delete(roomId)
+  if (sentPlainText && store.getHtmlDraft(roomId) === submittedHtml)
+    store.clearAllDrafts(roomId)
   if (canCleanSubmittedState) {
     clear()
     stopTyping()
@@ -1009,13 +1007,13 @@ watch(
     // 保存当前房间草稿
     if (oldId && editor.value) {
       const text = editor.value.getText().trim()
+      const html = editor.value.getHTML()
       if (text) {
-        drafts.set(oldId, editor.value.getHTML())
+        store.setHtmlDraft(oldId, html)
         store.setDraft(oldId, text)
       }
       else {
-        drafts.delete(oldId)
-        store.setDraft(oldId, '')
+        store.clearAllDrafts(oldId)
       }
 
       if (pendingPasteAttachments.value.length) {
@@ -1032,9 +1030,9 @@ watch(
     clearUploads()
 
     // 恢复目标房间草稿或清空
-    const saved = newId ? drafts.get(newId) : undefined
-    if (saved) {
-      editor.value?.commands.setContent(saved)
+    const savedHtml = newId ? store.getHtmlDraft(newId) : ''
+    if (savedHtml) {
+      editor.value?.commands.setContent(savedHtml)
     }
     else {
       clear()
