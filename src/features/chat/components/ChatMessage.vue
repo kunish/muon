@@ -115,7 +115,7 @@ const isRightAligned = computed(() =>
   settingsStore.messageAlignment === 'leftright' && isMine.value,
 )
 const textBubbleClass = computed(() => [
-  'w-fit max-w-[70%] rounded-[20px] px-4 py-2.5',
+  'w-fit max-w-full rounded-[20px] px-4 py-2.5',
   isRightAligned.value ? 'self-end bg-[var(--B100)]' : 'bg-[var(--N200)]',
 ])
 
