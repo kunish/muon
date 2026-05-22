@@ -61,7 +61,7 @@ async function forwardTo(targetRoomId: string) {
 <template>
   <Teleport to="body">
     <div class="fixed inset-0 z-50 bg-black/50 flex items-center justify-center" @click.self="emit('close')">
-      <div class="bg-background rounded-xl shadow-2xl w-[360px] max-h-[70vh] flex flex-col">
+      <div class="bg-background rounded-[10px] shadow-2xl w-[520px] max-h-[70vh] flex flex-col">
         <div class="flex items-center justify-between p-4 border-b border-border">
           <h3 class="font-medium text-sm">
             {{ isMergedForward ? t('chat.merged_forward') : t('chat.forward_message') }}

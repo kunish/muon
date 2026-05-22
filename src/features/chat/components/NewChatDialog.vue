@@ -186,7 +186,7 @@ async function handleCreateGroup() {
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40" @pointerdown.self="emit('close')">
       <div
         data-testid="new-chat-dialog-panel"
-        class="flex min-h-0 max-h-[calc(100vh-32px)] w-[400px] flex-col overflow-hidden rounded-xl border border-border bg-background shadow-xl sm:max-h-[640px]"
+        class="flex min-h-0 max-h-[calc(100vh-32px)] w-[480px] flex-col overflow-hidden rounded-[10px] border border-border bg-background shadow-xl sm:max-h-[640px]"
       >
         <!-- 标题栏 -->
         <div class="flex items-center justify-between px-4 pt-4 pb-2">
