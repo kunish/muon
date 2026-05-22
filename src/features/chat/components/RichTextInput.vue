@@ -134,6 +134,69 @@ const PENDING_MEDIA_NODE_PATTERN
 let pendingPasteAttachmentId = 0
 const pendingPasteAttachments = shallowRef<PendingPasteAttachment[]>([])
 const pendingPasteAttachmentDrafts = new Map<string, PendingPasteAttachment[]>()
+const ATTACHMENT_DRAFTS_KEY = 'muon_attachment_drafts'
+
+function loadAttachmentDrafts() {
+  try {
+    const userId = getClient().getUserId()
+    if (!userId) return
+    const key = `${ATTACHMENT_DRAFTS_KEY}:${userId}`
+    const stored = localStorage.getItem(key)
+    if (!stored) return
+    const parsed = JSON.parse(stored) as Record<string, StoredAttachment[]>
+    for (const [roomId, storedAttachments] of Object.entries(parsed)) {
+      if (!storedAttachments?.length) continue
+      const attachments: PendingPasteAttachment[] = storedAttachments.map(s => ({
+        id: s.id,
+        file: new File([], s.fileName || 'image', { type: s.fileType || 'image/png' }),
+        kind: s.kind,
+        previewUrl: null,
+        uploadProgress: s.preMxcUrl ? 100 : 0,
+        preMxcUrl: s.preMxcUrl ?? null,
+        preUploadDone: !!s.preMxcUrl,
+      }))
+      pendingPasteAttachmentDrafts.set(roomId, attachments)
+    }
+  } catch { /* ignore */ }
+}
+
+interface StoredAttachment {
+  id: string
+  kind: 'image' | 'video' | 'file'
+  fileName?: string
+  fileType?: string
+  preMxcUrl?: string
+}
+
+function persistAttachmentDrafts() {
+  try {
+    const userId = getClient().getUserId()
+    if (!userId) return
+    const key = `${ATTACHMENT_DRAFTS_KEY}:${userId}`
+    if (pendingPasteAttachmentDrafts.size === 0) {
+      localStorage.removeItem(key)
+      return
+    }
+    const data: Record<string, StoredAttachment[]> = {}
+    for (const [roomId, attachments] of pendingPasteAttachmentDrafts) {
+      data[roomId] = attachments
+        .filter(a => a.preUploadDone)
+        .map(a => ({
+          id: a.id,
+          kind: a.kind,
+          fileName: a.file?.name,
+          fileType: a.file?.type,
+          preMxcUrl: a.preMxcUrl ?? undefined,
+        }))
+    }
+    if (Object.keys(data).length > 0)
+      localStorage.setItem(key, JSON.stringify(data))
+    else
+      localStorage.removeItem(key)
+  } catch { /* ignore */ }
+}
+
+loadAttachmentDrafts()
 const hasPendingPasteAttachments = computed(() => pendingPasteAttachments.value.length > 0)
 const editorShouldScroll = ref(false)
 const editorHeightClass = computed(() => {
@@ -1016,9 +1079,11 @@ watch(
 
       if (pendingPasteAttachments.value.length) {
         pendingPasteAttachmentDrafts.set(oldId, pendingPasteAttachments.value)
+        persistAttachmentDrafts()
       }
       else {
         pendingPasteAttachmentDrafts.delete(oldId)
+        persistAttachmentDrafts()
       }
     }
 
