@@ -193,8 +193,6 @@ watch(editor, (instance, _prev, onCleanup) => {
   onCleanup(() => instance.off('update', handler))
 }, { immediate: true })
 
-// 草稿缓存：roomId → HTML content (persisted via store)
-const pendingPasteAttachmentDrafts = new Map<string, typeof pendingPasteAttachments.value>()
 type ExpressionTab = 'emoji' | 'gif' | 'sticker'
 
 const showExpressionPicker = ref(false)
