@@ -119,7 +119,7 @@ const sender = computed(() => {
 
 <template>
   <div
-    class="group relative flex min-h-[54px] cursor-pointer select-none items-center gap-2.5 rounded-md px-2.5 py-2 transition-colors duration-150 active:scale-[0.985] active:duration-75"
+    class="group relative flex min-h-[60px] cursor-pointer select-none items-center gap-2.5 px-4 py-2.5 transition-colors duration-150 active:scale-[0.985] active:duration-75"
     :class="[
       rowStateClass,
     ]"
@@ -129,13 +129,13 @@ const sender = computed(() => {
   >
     <span
       v-if="active"
-      class="absolute left-0 top-1/2 h-8 w-0.5 -translate-y-1/2 bg-primary"
+      class="absolute left-0 top-1/2 h-8 w-[3px] -translate-y-1/2 bg-primary"
     />
 
     <!-- 未读指示条 - 带脉冲动画 -->
     <span
       v-if="room.unreadCount > 0 && !active"
-      class="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 bg-primary"
+      class="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 bg-primary"
       style="animation: indicator-ping 2.5s ease-in-out infinite"
     />
 
@@ -166,7 +166,7 @@ const sender = computed(() => {
     <div class="flex-1 min-w-0">
       <div class="flex items-center justify-between gap-2">
         <span
-          class="truncate text-[13px] font-semibold leading-tight transition-colors duration-150"
+          class="truncate text-base font-semibold leading-tight transition-colors duration-150"
           :class="nameTextClass"
         >
           {{ room.name }}
