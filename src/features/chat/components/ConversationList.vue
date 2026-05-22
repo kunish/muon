@@ -91,7 +91,7 @@ function isConversationContextMenuOpen(roomId: string): boolean {
 </script>
 
 <template>
-  <div class="flex flex-col h-full bg-sidebar w-[260px] shrink-0">
+  <div class="flex flex-col h-full bg-sidebar w-full">
     <div class="relative z-10 border-b border-sidebar-border px-3 pb-4 pt-6">
       <div class="mb-4 flex items-center justify-between">
         <div class="flex items-center gap-2.5">

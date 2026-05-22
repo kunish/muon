@@ -38,7 +38,7 @@ const serverStore = useServerStore()
 const { t } = useI18n()
 
 const SIDEBAR_WIDTH_STORAGE_KEY = 'muon_message_sidebar_width'
-const DEFAULT_SIDEBAR_WIDTH = 240
+const DEFAULT_SIDEBAR_WIDTH = 260
 const MIN_SIDEBAR_WIDTH = 220
 const MAX_SIDEBAR_WIDTH = 360
 
