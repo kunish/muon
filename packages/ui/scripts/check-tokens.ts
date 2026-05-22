@@ -77,7 +77,7 @@ for (const role of lightRoles) {
 }
 
 // Collect every defined palette stop, e.g. --brand-500, --gray-200.
-const definedPalette = (tokens.match(/--(?:brand|gray|red|green|orange|cyan)-\d+/g) ?? [])
+const definedPalette = (tokens.match(/--(?:brand|gray|red|green|orange|cyan|[BNRGO])\d*-\d+/g) ?? [])
 const allSource = readAllSource()
 const unused = definedPalette.filter(p => !new RegExp(p).test(allSource + tokens))
 if (unused.length)

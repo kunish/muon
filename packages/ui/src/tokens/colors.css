@@ -1,4 +1,4 @@
-/* 14 Feishu color scales with raw opacity layer */
+/* Feishu color scales with raw opacity layer — B/N/R/G/O */
 @theme {
   /* Blue (B) — Primary Brand — light mode */
   --B50: #f0f4ff;    --B50-raw: 240,244,255;
@@ -228,19 +228,19 @@
   --static-black-90: rgba(0,0,0,0.9);
   --static-white: #fff;
   --static-white-raw: 255,255,255;
-  --static-white-5: hsla(0,0%,100%,0.05);
-  --static-white-10: hsla(0,0%,100%,0.1);
-  --static-white-15: hsla(0,0%,100%,0.15);
-  --static-white-20: hsla(0,0%,100%,0.2);
-  --static-white-30: hsla(0,0%,100%,0.3);
-  --static-white-40: hsla(0,0%,100%,0.4);
-  --static-white-50: hsla(0,0%,100%,0.5);
-  --static-white-60: hsla(0,0%,100%,0.6);
-  --static-white-70: hsla(0,0%,100%,0.7);
-  --static-white-80: hsla(0,0%,100%,0.8);
-  --static-white-90: hsla(0,0%,100%,0.9);
-  --static-white-hover: hsla(0,0%,100%,0.1);
-  --static-white-pressed: hsla(0,0%,100%,0.2);
+  --static-white-5: rgba(255,255,255,0.05);
+  --static-white-10: rgba(255,255,255,0.1);
+  --static-white-15: rgba(255,255,255,0.15);
+  --static-white-20: rgba(255,255,255,0.2);
+  --static-white-30: rgba(255,255,255,0.3);
+  --static-white-40: rgba(255,255,255,0.4);
+  --static-white-50: rgba(255,255,255,0.5);
+  --static-white-60: rgba(255,255,255,0.6);
+  --static-white-70: rgba(255,255,255,0.7);
+  --static-white-80: rgba(255,255,255,0.8);
+  --static-white-90: rgba(255,255,255,0.9);
+  --static-white-hover: rgba(255,255,255,0.1);
+  --static-white-pressed: rgba(255,255,255,0.2);
 
 
   /* Muon compatibility layer — existing --color-* tokens mapped to Feishu values */
@@ -289,6 +289,32 @@
   --color-file-chip-bg: var(--N50);
   --color-file-chip-hover-bg: var(--N100);
   --color-breadcrumb-current-fg: var(--N900);
+
+  /* Backward-compat: old palette naming → new Feishu scales */
+  --brand-50: var(--B50);     --brand-100: var(--B100);   --brand-200: var(--B200);
+  --brand-300: var(--B300);   --brand-400: var(--B400);   --brand-500: var(--B500);
+  --brand-600: var(--B600);   --brand-700: var(--B700);   --brand-800: var(--B800);
+  --brand-900: var(--B900);   --brand-950: var(--B900);
+  --gray-50: var(--N50);      --gray-100: var(--N100);    --gray-200: var(--N200);
+  --gray-300: var(--N300);    --gray-400: var(--N400);    --gray-500: var(--N500);
+  --gray-600: var(--N600);    --gray-700: var(--N700);    --gray-800: var(--N800);
+  --gray-900: var(--N900);    --gray-950: var(--N950);
+  --red-50: var(--R50);       --red-100: var(--R100);     --red-200: var(--R200);
+  --red-300: var(--R300);     --red-400: var(--R400);     --red-500: var(--R500);
+  --red-600: var(--R600);     --red-700: var(--R700);     --red-800: var(--R800);
+  --red-900: var(--R900);     --red-950: var(--R900);
+  --green-50: var(--G50);     --green-100: var(--G100);   --green-200: var(--G200);
+  --green-300: var(--G300);   --green-400: var(--G400);   --green-500: var(--G500);
+  --green-600: var(--G600);   --green-700: var(--G700);   --green-800: var(--G800);
+  --green-900: var(--G900);   --green-950: var(--G900);
+  --orange-50: var(--O50);    --orange-100: var(--O100);  --orange-200: var(--O200);
+  --orange-300: var(--O300);  --orange-400: var(--O400);  --orange-500: var(--O500);
+  --orange-600: var(--O600);  --orange-700: var(--O700);  --orange-800: var(--O800);
+  --orange-900: var(--O900);  --orange-950: var(--O900);
+  --cyan-50: var(--B50);      --cyan-100: var(--B100);    --cyan-200: var(--B200);
+  --cyan-300: var(--B300);    --cyan-400: var(--B400);    --cyan-500: var(--B500);
+  --cyan-600: var(--B600);    --cyan-700: var(--B700);    --cyan-800: var(--B800);
+  --cyan-900: var(--B900);    --cyan-950: var(--B900);
 }
 
 /* Semantic role layer — dark mode */
@@ -419,4 +445,30 @@
   --color-file-chip-bg: var(--N200);
   --color-file-chip-hover-bg: var(--N300);
   --color-breadcrumb-current-fg: var(--N800);
+
+  /* Backward-compat: old palette naming → new Feishu scales */
+  --brand-50: var(--B50);     --brand-100: var(--B100);   --brand-200: var(--B200);
+  --brand-300: var(--B300);   --brand-400: var(--B400);   --brand-500: var(--B500);
+  --brand-600: var(--B600);   --brand-700: var(--B700);   --brand-800: var(--B800);
+  --brand-900: var(--B900);   --brand-950: var(--B900);
+  --gray-50: var(--N50);      --gray-100: var(--N100);    --gray-200: var(--N200);
+  --gray-300: var(--N300);    --gray-400: var(--N400);    --gray-500: var(--N500);
+  --gray-600: var(--N600);    --gray-700: var(--N700);    --gray-800: var(--N800);
+  --gray-900: var(--N900);    --gray-950: var(--N950);
+  --red-50: var(--R50);       --red-100: var(--R100);     --red-200: var(--R200);
+  --red-300: var(--R300);     --red-400: var(--R400);     --red-500: var(--R500);
+  --red-600: var(--R600);     --red-700: var(--R700);     --red-800: var(--R800);
+  --red-900: var(--R900);     --red-950: var(--R900);
+  --green-50: var(--G50);     --green-100: var(--G100);   --green-200: var(--G200);
+  --green-300: var(--G300);   --green-400: var(--G400);   --green-500: var(--G500);
+  --green-600: var(--G600);   --green-700: var(--G700);   --green-800: var(--G800);
+  --green-900: var(--G900);   --green-950: var(--G900);
+  --orange-50: var(--O50);    --orange-100: var(--O100);  --orange-200: var(--O200);
+  --orange-300: var(--O300);  --orange-400: var(--O400);  --orange-500: var(--O500);
+  --orange-600: var(--O600);  --orange-700: var(--O700);  --orange-800: var(--O800);
+  --orange-900: var(--O900);  --orange-950: var(--O900);
+  --cyan-50: var(--B50);      --cyan-100: var(--B100);    --cyan-200: var(--B200);
+  --cyan-300: var(--B300);    --cyan-400: var(--B400);    --cyan-500: var(--B500);
+  --cyan-600: var(--B600);    --cyan-700: var(--B700);    --cyan-800: var(--B800);
+  --cyan-900: var(--B900);    --cyan-950: var(--B900);
 }
