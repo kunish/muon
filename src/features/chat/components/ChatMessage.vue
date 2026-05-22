@@ -7,18 +7,21 @@ import { fetchMediaBlobUrl } from '@matrix/media'
 import { hasPlainUrl, linkifyPlainText, sanitizeMatrixHtml } from '@muon/rich-text'
 import RichMessageContent from '@muon/rich-text/message-content'
 import { Avatar } from '@muon/ui/avatar'
+import { Dialog } from '@muon/ui/dialog'
 import { useSettingsStore } from '@shared/stores/settingsStore'
+import { useClipboard } from '@vueuse/core'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { toast } from 'vue-sonner'
 import { ask } from '@/electron/dialog'
 import { useAuthMedia } from '@/shared/composables/useAuthMedia'
 import { useContextMenuScrollLock } from '@/shared/composables/useContextMenuScrollLock'
 import { useViewportClampedFloating } from '@/shared/composables/useViewportClampedFloating'
 import { isFullEmojiText } from '@/shared/lib/emoji'
 import { handleMatrixLinkClick } from '@/shared/lib/matrixLinks'
+import { safeJsonStringify } from '@/shared/lib/utils'
 import { getFloatingPosition } from '../composables/useFloatingPosition'
 import { useMediaViewer } from '../composables/useMediaViewer'
-import { useMessageClipboardFeedback } from '../composables/useMessageClipboardFeedback'
 import { useMessageContextMenuState } from '../composables/useMessageContextMenuState'
 import { getMediaFrameStyle } from '../lib/mediaFrame'
 import { useChatStore } from '../stores/chatStore'
@@ -30,6 +33,7 @@ import ContactCardMessage from './messages/ContactCardMessage.vue'
 import FileMessage from './messages/FileMessage.vue'
 import ImageMessage from './messages/ImageMessage.vue'
 import VideoMessage from './messages/VideoMessage.vue'
+import RawMessageDialog from './RawMessageDialog.vue'
 import ReactionBar from './ReactionBar.vue'
 import ReplyReference from './ReplyReference.vue'
 
@@ -63,7 +67,7 @@ const RICH_MEDIA_FALLBACK_WIDTH = 300
 const RICH_MEDIA_FALLBACK_HEIGHT = 180
 
 const { t } = useI18n()
-const { copyMessageContentWithFeedback } = useMessageClipboardFeedback()
+const { copy: copyToClipboard } = useClipboard()
 const store = useChatStore()
 const settingsStore = useSettingsStore()
 const { openImage } = useMediaViewer()
@@ -111,8 +115,8 @@ const isRightAligned = computed(() =>
   settingsStore.messageAlignment === 'leftright' && isMine.value,
 )
 const textBubbleClass = computed(() => [
-  'w-fit max-w-full rounded-2xl px-3 py-2',
-  isRightAligned.value ? 'self-end bg-primary/10' : 'bg-muted/60',
+  'w-fit max-w-[70%] rounded-[20px] px-4 py-2.5',
+  isRightAligned.value ? 'self-end bg-[var(--B100)]' : 'bg-[var(--N200)]',
 ])
 
 const avatarColumnHidden = computed(() => props.hideAvatarColumn === true)
@@ -558,6 +562,41 @@ async function onDeleteFromContextMenu() {
   closeContextMenu()
 }
 
+const showRawMessageDialog = ref(false)
+
+function onViewRawJsonFromContextMenu() {
+  showRawMessageDialog.value = true
+  closeContextMenu()
+}
+
+async function onCopyRawJsonFromContextMenu() {
+  try {
+    const parts: string[] = []
+    const add = (key: string, val: unknown) => {
+      try {
+        parts.push(`"${key}": ${safeJsonStringify(val)}`)
+      }
+      catch {
+        parts.push(`"${key}": "[Error]"`)
+      }
+    }
+    add('event_id', props.event.getId())
+    add('type', props.event.getType())
+    add('sender', props.event.getSender())
+    add('room_id', props.event.getRoomId())
+    add('origin_server_ts', props.event.getTs())
+    add('content', props.event.getContent())
+    add('unsigned', props.event.getUnsigned())
+    const json = `{\n  ${parts.join(',\n  ')}\n}`
+    await copyToClipboard(json)
+    toast.success(t('chat.copy_raw_json'))
+  }
+  catch {
+    toast.error('Copy failed')
+  }
+  closeContextMenu()
+}
+
 function onDocumentPointerDown(event: MouseEvent) {
   if (!showContextMenu.value)
     return
@@ -664,7 +703,7 @@ onUnmounted(() => {
       class="min-w-0 flex flex-col"
       :class="avatarColumnHidden
         ? (isRightAligned ? 'items-end' : 'w-full items-start')
-        : (isRightAligned ? 'order-1 items-end max-w-[min(72%,900px)]' : 'order-2 items-start flex-1')"
+        : (isRightAligned ? 'order-1 items-end max-w-[70%]' : 'order-2 items-start flex-1')"
     >
       <!-- 首条消息：用户名 + 时间戳 -->
       <div
@@ -673,7 +712,7 @@ onUnmounted(() => {
         :class="isRightAligned ? 'justify-end' : ''"
       >
         <span
-          class="text-[15px] font-medium leading-snug cursor-pointer hover:underline underline-offset-2"
+          class="text-sm font-medium leading-snug cursor-pointer hover:underline underline-offset-2"
           :style="{ color: nameColor }"
           @click.stop="emit('avatarClick', sender, $event)"
         >
@@ -743,7 +782,7 @@ onUnmounted(() => {
           <RichMessageContent
             :html="sanitizedHtml"
             :sanitize="false"
-            class="text-[15px] leading-relaxed text-foreground/90 whitespace-pre-wrap break-words [&_blockquote]:border-l-[3px] [&_blockquote]:border-muted-foreground [&_blockquote]:pl-3 [&_blockquote]:text-muted-foreground [&_code]:border [&_code]:border-border [&_code]:bg-muted [&_code]:px-[0.35em] [&_code]:py-[0.15em] [&_code]:font-['Consolas','Monaco',monospace] [&_del]:opacity-70 [&_del]:line-through [&_em]:italic [&_img]:my-1 [&_img]:block [&_img]:max-h-[400px] [&_img]:max-w-[300px] [&_img]:cursor-pointer [&_img]:rounded-lg [&_img]:bg-muted [&_img]:object-contain [&_ol]:pl-6 [&_p]:my-1 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_pre]:my-2 [&_pre]:rounded [&_pre]:border [&_pre]:border-border [&_pre]:bg-card [&_pre]:p-3 [&_pre_code]:border-0 [&_s]:opacity-70 [&_s]:line-through [&_strong]:font-bold [&_strong]:text-foreground [&_ul]:pl-6 [&_a]:text-primary [&_a]:no-underline hover:[&_a]:underline [&_a[href^='https://matrix.to']]:rounded [&_a[href^='https://matrix.to']]:bg-[color-mix(in_srgb,var(--color-primary)_15%,transparent)] [&_a[href^='https://matrix.to']]:px-0.5 hover:[&_a[href^='https://matrix.to']]:bg-[color-mix(in_srgb,var(--color-primary)_25%,transparent)]"
+            class="text-sm leading-[20px] text-foreground/90 whitespace-pre-wrap break-words [&_blockquote]:border-l-[3px] [&_blockquote]:border-muted-foreground [&_blockquote]:pl-3 [&_blockquote]:text-muted-foreground [&_code]:border [&_code]:border-border [&_code]:bg-muted [&_code]:px-[0.35em] [&_code]:py-[0.15em] [&_code]:font-['Consolas','Monaco',monospace] [&_del]:opacity-70 [&_del]:line-through [&_em]:italic [&_img]:my-1 [&_img]:block [&_img]:max-h-[400px] [&_img]:max-w-[300px] [&_img]:cursor-pointer [&_img]:rounded-lg [&_img]:bg-muted [&_img]:object-contain [&_ol]:pl-6 [&_p]:my-1 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_pre]:my-2 [&_pre]:rounded [&_pre]:border [&_pre]:border-border [&_pre]:bg-card [&_pre]:p-3 [&_pre_code]:border-0 [&_s]:opacity-70 [&_s]:line-through [&_strong]:font-bold [&_strong]:text-foreground [&_ul]:pl-6 [&_a]:text-primary [&_a]:no-underline hover:[&_a]:underline [&_a[href^='https://matrix.to']]:rounded [&_a[href^='https://matrix.to']]:bg-[color-mix(in_srgb,var(--color-primary)_15%,transparent)] [&_a[href^='https://matrix.to']]:px-0.5 hover:[&_a[href^='https://matrix.to']]:bg-[color-mix(in_srgb,var(--color-primary)_25%,transparent)]"
             @click="onRichContentClick"
           />
         </div>
@@ -756,7 +795,7 @@ onUnmounted(() => {
         </p>
         <p
           v-else
-          class="message-selectable-text text-[15px] leading-relaxed text-foreground/90 whitespace-pre-wrap break-words"
+          class="message-selectable-text text-sm leading-[20px] text-foreground/90 whitespace-pre-wrap break-words"
           :class="textBubbleClass"
         >
           {{ body }}<span v-if="isEdited" class="text-[10px] text-muted-foreground/30 ml-1">({{ t('chat.edited') }})</span>
@@ -823,13 +862,24 @@ onUnmounted(() => {
         >
           <MessageContextMenu
             :is-mine="isMine"
+            :show-debug="settingsStore.debugMode"
             @reply="onReplyFromContextMenu"
             @copy="onCopyFromContextMenu"
             @open-thread="onOpenThreadFromContextMenu"
             @delete="onDeleteFromContextMenu"
+            @view-raw-json="onViewRawJsonFromContextMenu"
+            @copy-raw-json="onCopyRawJsonFromContextMenu"
           />
         </div>
       </Transition>
     </Teleport>
+
+    <Dialog :open="showRawMessageDialog" @update:open="showRawMessageDialog = $event">
+      <RawMessageDialog
+        v-if="showRawMessageDialog"
+        :event="event"
+        @close="showRawMessageDialog = false"
+      />
+    </Dialog>
   </div>
 </template>
