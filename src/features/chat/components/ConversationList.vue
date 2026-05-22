@@ -91,7 +91,7 @@ function isConversationContextMenuOpen(roomId: string): boolean {
 </script>
 
 <template>
-  <div class="flex flex-col h-full bg-sidebar">
+  <div class="flex flex-col h-full bg-sidebar w-[260px] shrink-0">
     <div class="relative z-10 border-b border-sidebar-border px-3 pb-4 pt-6">
       <div class="mb-4 flex items-center justify-between">
         <div class="flex items-center gap-2.5">
@@ -200,7 +200,7 @@ function isConversationContextMenuOpen(roomId: string): boolean {
       <!-- 会话列表：普通流式布局，避免虚拟测量把联系人之间撑出大空隙 -->
       <div
         v-else-if="conversations.length > 0"
-        class="space-y-0.5 px-0.5 pb-2"
+        class="space-y-0 px-0.5 pb-2"
       >
         <template
           v-for="(conversation, index) in conversations"
