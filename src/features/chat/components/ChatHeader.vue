@@ -118,15 +118,13 @@ function openExtendedTab(panel: SidePanelType) {
         <AtSign v-if="isDirect" :size="20" class="text-muted-foreground shrink-0" />
         <Lock v-else-if="isEncrypted" :size="20" class="text-success shrink-0" />
         <Hash v-else :size="20" class="text-muted-foreground shrink-0" />
-        <span data-testid="chat-header-room-name" class="min-w-0 truncate text-[15px] font-semibold text-foreground">{{ roomName }}</span>
+        <span data-testid="chat-header-room-name" class="min-w-0 truncate text-[16px] font-semibold text-foreground">{{ roomName }}</span>
         <template v-if="roomTopic">
           <div
-            class="mx-1.5 hidden h-4 w-px shrink-0 bg-border/60"
-            :class="!isCompactHeader && 'sm:block'"
+            class="mx-1.5 h-4 w-px shrink-0 bg-border/60"
           />
           <span
-            class="hidden min-w-0 truncate text-xs text-muted-foreground"
-            :class="!isCompactHeader && 'sm:block'"
+            class="min-w-0 truncate text-xs text-muted-foreground"
             :title="roomTopic"
           >{{ roomTopic }}</span>
         </template>
