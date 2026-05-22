@@ -299,11 +299,11 @@ onBeforeUnmount(() => {
 
 <template>
   <div
-    class="action-bar flex items-center overflow-visible bg-popover border border-border rounded-md shadow-sm"
+    class="action-bar flex items-center overflow-visible bg-popover border border-[rgba(31,35,41,0.08)] rounded-[10px] shadow-[var(--shadow-s1-down)]"
   >
     <!-- Add Reaction -->
     <button
-      class="flex size-8 cursor-pointer items-center justify-center text-muted-foreground transition-all duration-100 hover:bg-muted hover:text-foreground"
+      class="flex size-7 cursor-pointer items-center justify-center text-muted-foreground transition-all duration-100 hover:bg-muted hover:text-foreground"
       :title="t('chat.add_reaction')"
       @click.stop="onReact"
     >
@@ -312,7 +312,7 @@ onBeforeUnmount(() => {
 
     <!-- Reply -->
     <button
-      class="flex size-8 cursor-pointer items-center justify-center text-muted-foreground transition-all duration-100 hover:bg-muted hover:text-foreground"
+      class="flex size-7 cursor-pointer items-center justify-center text-muted-foreground transition-all duration-100 hover:bg-muted hover:text-foreground"
       :title="t('common.reply')"
       @click.stop="onReply"
     >
@@ -323,7 +323,7 @@ onBeforeUnmount(() => {
     <div>
       <button
         ref="moreTriggerRef"
-        class="flex size-8 cursor-pointer items-center justify-center text-muted-foreground transition-all duration-100 hover:bg-muted hover:text-foreground"
+        class="flex size-7 cursor-pointer items-center justify-center text-muted-foreground transition-all duration-100 hover:bg-muted hover:text-foreground"
         :title="t('chat.more_actions')"
         data-testid="message-more-trigger"
         @click.stop="toggleMore"
