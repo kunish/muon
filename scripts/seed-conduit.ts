@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
-import type { LocalServiceChannel, LocalServiceMessage, LocalServiceSpace } from '../src/shared/data/localServiceMock'
+import type { LocalServiceChannel, LocalServiceMessage, LocalServiceSpace } from '../apps/desktop/src/shared/data/localServiceMock'
 import process from 'node:process'
-import { LOCAL_SERVICE_MOCK_DATA } from '../src/shared/data/localServiceMock'
+import { LOCAL_SERVICE_MOCK_DATA } from '../apps/desktop/src/shared/data/localServiceMock'
 
 const BASE_URL = process.env.MUON_SEED_BASE_URL ?? 'http://127.0.0.1:6167'
 const DEFAULT_USER_PASSWORD = process.env.MUON_SEED_USER_PASSWORD ?? process.env.MUON_SEED_PASSWORD ?? 'test1234'

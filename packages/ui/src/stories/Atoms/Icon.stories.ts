@@ -21,7 +21,7 @@ export default meta
 type Story = StoryObj<typeof Icon>
 
 export const Default: Story = {
-  render: (args: Record<string, unknown>) => ({
+  render: args => ({
     components: { Icon, Heart },
     setup: () => ({ args, Heart }),
     template: '<Icon :as="Heart" v-bind="args" />',

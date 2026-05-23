@@ -1,0 +1,375 @@
+<script setup lang="ts">
+import { getClient } from '@matrix/client'
+import { getRoomAnnouncement, getRoomTopic, leaveRoom, setRoomAnnouncement, setRoomName, setRoomTopic } from '@matrix/index'
+import { Textarea } from '@muon/ui/textarea'
+import { useRoomNavigation } from '@shared/composables/useRoomNavigation'
+import {
+  Check,
+  LogOut,
+  Megaphone,
+  Pencil,
+  Shield,
+  UserMinus,
+  UserPlus,
+  X,
+} from 'lucide-vue-next'
+import { computed, ref, toRef } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { toast } from 'vue-sonner'
+import { ask } from '@/desktop/dialog'
+import { useRoomPermissions } from '@/shared/composables/useRoomPermissions'
+import { useConversations } from '../../chat/composables/useConversations'
+import { useGroupManagement } from '../composables/useGroupManagement'
+import GroupMemberPicker from './GroupMemberPicker.vue'
+
+const props = defineProps<{
+  roomId: string
+}>()
+
+const emit = defineEmits<{
+  leave: []
+}>()
+
+const { t } = useI18n()
+const { inviteUser, kickUser, setUserPowerLevel } = useGroupManagement()
+const { removeRoom } = useConversations()
+const chatStore = useRoomNavigation()
+
+const client = getClient()
+const room = computed(() => client.getRoom(props.roomId))
+const members = computed(() => room.value?.getJoinedMembers() || [])
+const myUserId = client.getUserId()!
+
+const inviteIds = ref<string[]>([])
+const showInvite = ref(false)
+
+function closeInvitePicker(): void {
+  inviteIds.value = []
+  showInvite.value = false
+}
+
+function toggleInvitePicker(): void {
+  if (showInvite.value) {
+    closeInvitePicker()
+    return
+  }
+  showInvite.value = true
+}
+
+// --- 群名称编辑 ---
+const editingName = ref(false)
+const nameInput = ref('')
+
+function startEditName() {
+  nameInput.value = room.value?.name || ''
+  editingName.value = true
+}
+
+async function saveName() {
+  const name = nameInput.value.trim()
+  if (!name || name === room.value?.name) {
+    editingName.value = false
+    return
+  }
+  try {
+    await setRoomName(props.roomId, name)
+  }
+  catch {
+    toast.error(t('contacts.update_failed'))
+  }
+  editingName.value = false
+}
+
+// --- 群话题/描述编辑 ---
+const editingTopic = ref(false)
+const topicInput = ref('')
+const currentTopic = computed(() => getRoomTopic(props.roomId))
+
+function startEditTopic() {
+  topicInput.value = currentTopic.value
+  editingTopic.value = true
+}
+
+async function saveTopic() {
+  if (topicInput.value.trim() === currentTopic.value) {
+    editingTopic.value = false
+    return
+  }
+  try {
+    await setRoomTopic(props.roomId, topicInput.value.trim())
+  }
+  catch {
+    toast.error(t('contacts.update_failed'))
+  }
+  editingTopic.value = false
+}
+
+// --- 群公告 ---
+const editingAnnouncement = ref(false)
+const announcementInput = ref('')
+const currentAnnouncement = computed(() => getRoomAnnouncement(props.roomId))
+
+function startEditAnnouncement() {
+  announcementInput.value = currentAnnouncement.value
+  editingAnnouncement.value = true
+}
+
+async function saveAnnouncement() {
+  if (announcementInput.value.trim() === currentAnnouncement.value) {
+    editingAnnouncement.value = false
+    return
+  }
+  try {
+    await setRoomAnnouncement(props.roomId, announcementInput.value.trim())
+  }
+  catch {
+    toast.error(t('contacts.update_failed'))
+  }
+  editingAnnouncement.value = false
+}
+
+// --- 退出/解散群组 ---
+async function handleLeave() {
+  const confirmed = await ask(t('contacts.leave_confirm'), {
+    title: t('contacts.leave_group'),
+    kind: 'warning',
+  })
+  if (!confirmed)
+    return
+  try {
+    await leaveRoom(props.roomId)
+    if (chatStore.currentRoomId.value === props.roomId) {
+      chatStore.navigateToRoom(null)
+    }
+    removeRoom(props.roomId)
+    emit('leave')
+  }
+  catch {
+    toast.error(t('contacts.update_failed'))
+  }
+}
+
+async function handleInvite() {
+  const targetIds = [...inviteIds.value]
+  if (targetIds.length === 0)
+    return
+  try {
+    await Promise.all(targetIds.map(userId => inviteUser(props.roomId, userId)))
+    closeInvitePicker()
+  }
+  catch {
+    toast.error(t('server.invite_failed'))
+  }
+}
+
+function getPowerLevel(userId: string): number {
+  const plEvent = room.value?.currentState.getStateEvents('m.room.power_levels', '')
+  return plEvent?.getContent()?.users?.[userId] || 0
+}
+
+function getRoleLabel(level: number): string {
+  if (level >= 100)
+    return t('contacts.role_owner')
+  if (level >= 50)
+    return t('contacts.role_admin')
+  return t('contacts.role_member')
+}
+
+const { isModerator: isAdmin } = useRoomPermissions(toRef(props, 'roomId'))
+const memberUserIds = computed(() => members.value.map(member => member.userId))
+</script>
+
+<template>
+  <div class="min-h-0 w-full min-w-0 flex-1 space-y-4 overflow-y-auto p-6">
+    <!-- 群名称 -->
+    <div v-if="room">
+      <div v-if="!editingName" class="flex items-center gap-2 group">
+        <h3 class="font-medium">
+          {{ room.name }}
+        </h3>
+        <button
+          v-if="isAdmin"
+          class="p-1 rounded hover:bg-accent opacity-0 group-hover:opacity-100 transition-opacity"
+          @click="startEditName"
+        >
+          <Pencil :size="12" />
+        </button>
+      </div>
+      <div v-else class="flex items-center gap-2">
+        <input
+          v-model="nameInput"
+          class="flex-1 h-8 px-2 text-sm font-medium rounded border border-border bg-background outline-none focus:ring-1 focus:ring-primary"
+          @keydown.enter="saveName"
+          @keydown.escape="editingName = false"
+        >
+        <button class="p-1 rounded hover:bg-accent text-primary" @click="saveName">
+          <Check :size="14" />
+        </button>
+        <button class="p-1 rounded hover:bg-accent" @click="editingName = false">
+          <X :size="14" />
+        </button>
+      </div>
+      <p class="text-xs text-muted-foreground mt-0.5">
+        {{ t('contacts.members_count', { count: members.length }) }}
+      </p>
+    </div>
+
+    <!-- 群描述/话题 -->
+    <div>
+      <div class="flex items-center justify-between mb-1">
+        <span class="text-xs font-medium text-muted-foreground">{{ t('contacts.group_desc') }}</span>
+        <button
+          v-if="isAdmin && !editingTopic"
+          class="p-1 rounded hover:bg-accent text-muted-foreground"
+          @click="startEditTopic"
+        >
+          <Pencil :size="11" />
+        </button>
+      </div>
+      <div v-if="editingTopic" class="space-y-1.5">
+        <Textarea
+          v-model="topicInput"
+          :rows="2"
+          class="w-full px-2 py-1.5 text-sm rounded border border-border bg-background outline-none resize-none focus:ring-1 focus:ring-primary"
+          :placeholder="t('contacts.group_desc_placeholder')"
+          @keydown.escape="editingTopic = false"
+        />
+        <div class="flex justify-end gap-1">
+          <button class="px-2 py-1 text-xs rounded hover:bg-accent" @click="editingTopic = false">
+            {{ t('common.cancel') }}
+          </button>
+          <button class="px-2 py-1 text-xs rounded bg-primary text-primary-foreground" @click="saveTopic">
+            {{ t('common.save') }}
+          </button>
+        </div>
+      </div>
+      <p v-else class="text-sm text-muted-foreground">
+        {{ currentTopic || t('contacts.no_desc') }}
+      </p>
+    </div>
+
+    <!-- 群公告 -->
+    <div>
+      <div class="flex items-center justify-between mb-1">
+        <div class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+          <Megaphone :size="12" />
+          <span>{{ t('contacts.announcement') }}</span>
+        </div>
+        <button
+          v-if="isAdmin && !editingAnnouncement"
+          class="p-1 rounded hover:bg-accent text-muted-foreground"
+          @click="startEditAnnouncement"
+        >
+          <Pencil :size="11" />
+        </button>
+      </div>
+      <div v-if="editingAnnouncement" class="space-y-1.5">
+        <Textarea
+          v-model="announcementInput"
+          :rows="3"
+          class="w-full px-2 py-1.5 text-sm rounded border border-border bg-background outline-none resize-none focus:ring-1 focus:ring-primary"
+          :placeholder="t('contacts.announcement_placeholder')"
+          @keydown.escape="editingAnnouncement = false"
+        />
+        <div class="flex justify-end gap-1">
+          <button class="px-2 py-1 text-xs rounded hover:bg-accent" @click="editingAnnouncement = false">
+            {{ t('common.cancel') }}
+          </button>
+          <button class="px-2 py-1 text-xs rounded bg-primary text-primary-foreground" @click="saveAnnouncement">
+            {{ t('contacts.publish') }}
+          </button>
+        </div>
+      </div>
+      <div v-else-if="currentAnnouncement" class="text-sm p-2 rounded-lg bg-warning/5 border border-warning/10">
+        {{ currentAnnouncement }}
+      </div>
+      <p v-else class="text-sm text-muted-foreground">
+        {{ t('contacts.no_announcement') }}
+      </p>
+    </div>
+
+    <div>
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-sm font-medium">{{ t('contacts.members') }}</span>
+        <button
+          v-if="isAdmin"
+          data-testid="group-settings-toggle-invite"
+          class="p-1 rounded hover:bg-accent text-primary"
+          @click="toggleInvitePicker"
+        >
+          <UserPlus :size="14" />
+        </button>
+      </div>
+
+      <div v-if="showInvite" class="mb-2 space-y-2 rounded-lg border border-border bg-muted/20 p-2">
+        <GroupMemberPicker
+          v-model="inviteIds"
+          :exclude-ids="memberUserIds"
+        />
+        <div class="flex justify-end gap-2">
+          <button
+            class="h-8 px-3 text-xs rounded hover:bg-accent"
+            @click="closeInvitePicker"
+          >
+            {{ t('common.cancel') }}
+          </button>
+          <button
+            data-testid="group-settings-invite-submit"
+            class="px-3 h-8 text-xs rounded bg-primary text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
+            :disabled="inviteIds.length === 0"
+            @click="handleInvite"
+          >
+            {{ t('contacts.invite') }}
+          </button>
+        </div>
+      </div>
+
+      <div class="space-y-1">
+        <div
+          v-for="member in members"
+          :key="member.userId"
+          class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent/50"
+        >
+          <div class="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs">
+            {{ (member.name || member.userId).slice(0, 1) }}
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="text-sm truncate">
+              {{ member.name || member.userId }}
+            </div>
+          </div>
+          <span class="text-xs text-muted-foreground">
+            {{ getRoleLabel(getPowerLevel(member.userId)) }}
+          </span>
+          <template v-if="isAdmin && member.userId !== myUserId">
+            <button
+              class="p-1 rounded hover:bg-accent"
+              :title="t('contacts.set_admin')"
+              @click="setUserPowerLevel(roomId, member.userId, 50)"
+            >
+              <Shield :size="12" />
+            </button>
+            <button
+              class="p-1 rounded hover:bg-accent text-destructive"
+              :title="t('contacts.remove_member')"
+              @click="kickUser(roomId, member.userId)"
+            >
+              <UserMinus :size="12" />
+            </button>
+          </template>
+        </div>
+      </div>
+    </div>
+
+    <!-- 退出群组 -->
+    <div class="pt-2 border-t border-border">
+      <button
+        class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm text-destructive hover:bg-destructive/10 transition-colors"
+        @click="handleLeave"
+      >
+        <LogOut :size="14" />
+        <span>{{ t('contacts.leave_group') }}</span>
+      </button>
+    </div>
+  </div>
+</template>

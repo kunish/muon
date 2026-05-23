@@ -18,12 +18,15 @@ const meta: Meta<typeof ContextMenu> = {
 
 export default meta
 type Story = StoryObj<typeof ContextMenu>
+type ContextMenuStoryItem
+  = | { label: string, icon?: any, danger?: boolean, separator?: false }
+    | { separator: true }
 
 // reka-ui's ContextMenuTrigger listens for the native `contextmenu` event
 // (no controlled `open` prop, unlike Dialog/Popover). The story dispatches
 // the event programmatically after mount so the screenshot pipeline can
 // capture the open state without manual interaction.
-function makeContextMenuStory(triggerLabel: string, items: Array<{ label: string, icon?: any, danger?: boolean, separator?: boolean }>) {
+function makeContextMenuStory(triggerLabel: string, items: ContextMenuStoryItem[]) {
   return defineComponent({
     setup() {
       const triggerEl = ref<HTMLElement>()

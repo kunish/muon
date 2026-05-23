@@ -1,0 +1,76 @@
+<script setup lang="ts">
+import { Button } from '@muon/ui/button'
+import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { checkForUpdates, installUpdate, updateAvailable, updateVersion, updating } from '@/desktop/updater'
+
+const { t } = useI18n()
+const APP_VERSION = __APP_VERSION__ as string
+
+const checking = ref(false)
+
+async function handleCheck() {
+  checking.value = true
+  try {
+    await checkForUpdates()
+  }
+  finally {
+    checking.value = false
+  }
+}
+</script>
+
+<template>
+  <div class="space-y-6">
+    <h2 class="text-lg font-semibold">
+      {{ t('settings.about_title') }}
+    </h2>
+
+    <div class="space-y-3">
+      <div class="flex items-center gap-3">
+        <div class="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-lg font-bold">
+          M
+        </div>
+        <div>
+          <div class="font-medium">
+            Muon
+          </div>
+          <div class="text-xs text-muted-foreground">
+            v{{ APP_VERSION }}
+          </div>
+        </div>
+      </div>
+
+      <p class="text-sm text-muted-foreground">
+        {{ t('settings.about_desc') }}
+      </p>
+    </div>
+
+    <div class="space-y-2">
+      <div class="text-sm font-medium">
+        {{ t('settings.update') }}
+      </div>
+      <div v-if="updateAvailable" class="flex items-center gap-2 text-sm text-primary">
+        <span>{{ t('settings.new_version') }} {{ updateVersion }}</span>
+        <Button size="sm" :disabled="updating" :loading="updating" @click="installUpdate">
+          {{ updating ? t('settings.updating') : t('settings.update_now') }}
+        </Button>
+      </div>
+      <Button
+        v-else
+        variant="outline"
+        size="sm"
+        :disabled="checking"
+        :loading="checking"
+        @click="handleCheck"
+      >
+        {{ checking ? t('settings.checking') : t('settings.check_update') }}
+      </Button>
+    </div>
+
+    <div class="text-xs text-muted-foreground space-y-1">
+      <div>Electron + Vue 3.5 + Matrix</div>
+      <div>MIT License</div>
+    </div>
+  </div>
+</template>

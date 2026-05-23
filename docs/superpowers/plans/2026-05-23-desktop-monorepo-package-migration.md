@@ -766,7 +766,7 @@ Replace the moved desktop `tsconfig.json` with:
     "isolatedModules": true,
     "skipLibCheck": true
   },
-  "include": ["src/**/*.ts", "src/**/*.vue", "tests/**/*.ts"]
+  "include": ["src/**/*.ts", "src/**/*.vue"]
 }
 ```
 

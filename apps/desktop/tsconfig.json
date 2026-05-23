@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "jsx": "preserve",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@features/*": ["./src/features/*"],
+      "@shared/*": ["./src/shared/*"],
+      "@matrix/*": ["./src/matrix/*"],
+      "@muon/enterprise-contracts": ["../../packages/enterprise-contracts/src/index.ts"],
+      "@muon/rich-text": ["../../packages/rich-text/src/index.ts"],
+      "@muon/rich-text/editor": ["../../packages/rich-text/src/editor/useRichTextEditor.ts"],
+      "@muon/rich-text/html": ["../../packages/rich-text/src/htmlSanitizer.ts"],
+      "@muon/rich-text/linkify": ["../../packages/rich-text/src/linkify.ts"],
+      "@muon/rich-text/markdown": ["../../packages/rich-text/src/markdown.ts"],
+      "@muon/rich-text/message-content": ["../../packages/rich-text/src/components/RichMessageContent.vue"]
+    },
+    "resolveJsonModule": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*.ts", "src/**/*.vue"]
+}

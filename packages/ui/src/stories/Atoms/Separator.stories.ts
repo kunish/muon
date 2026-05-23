@@ -17,7 +17,7 @@ export default meta
 type Story = StoryObj<typeof Separator>
 
 export const Default: Story = {
-  render: (args: Record<string, unknown>) => ({
+  render: args => ({
     components: { Separator },
     setup: () => ({ args }),
     template: '<Separator v-bind="args" />',

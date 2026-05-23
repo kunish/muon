@@ -18,7 +18,7 @@ export default meta
 type Story = StoryObj<typeof Badge>
 
 export const Default: Story = {
-  render: (args: Record<string, unknown>) => ({ components: { Badge }, setup: () => ({ args }), template: '<Badge v-bind="args">Label</Badge>' }),
+  render: args => ({ components: { Badge }, setup: () => ({ args }), template: '<Badge v-bind="args">Label</Badge>' }),
 }
 
 export const Tones: Story = {

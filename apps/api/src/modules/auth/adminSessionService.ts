@@ -1,4 +1,4 @@
-import type { AdminLoginRequest, MuonSession } from '@muon/enterprise-contracts'
+import type { AdminLoginRequest, AdminSession } from '@muon/enterprise-contracts'
 import type { EnterpriseRepository, EnterpriseUserRecord } from '../../repository'
 import { createHash, randomBytes } from 'node:crypto'
 import { adminLoginRequestSchema } from '@muon/enterprise-contracts'
@@ -20,13 +20,13 @@ export class MustChangePasswordError extends Error {
   }
 }
 
-export interface AdminSession {
-  session: MuonSession
+export interface AdminLoginResult {
+  session: AdminSession
   user: EnterpriseUserRecord
 }
 
 export interface AdminSessionService {
-  login: (input: AdminLoginRequest) => Promise<AdminSession>
+  login: (input: AdminLoginRequest) => Promise<AdminLoginResult>
   validate: (token: string) => Promise<EnterpriseUserRecord>
   revoke: (token: string) => Promise<void>
   revokeOthersForUser: (currentToken: string) => Promise<void>

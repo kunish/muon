@@ -122,6 +122,13 @@ export const muonSessionSchema = z.object({
 })
 export type MuonSession = z.infer<typeof muonSessionSchema>
 
+export const adminSessionSchema = z.object({
+  accessToken: z.string().min(1),
+  refreshToken: z.string().min(1),
+  expiresAt: z.string().datetime(),
+})
+export type AdminSession = z.infer<typeof adminSessionSchema>
+
 export const matrixSessionSchema = z.object({
   serverUrl: z.string().url(),
   userId: z.string().regex(/^@[^:]+:.+$/),

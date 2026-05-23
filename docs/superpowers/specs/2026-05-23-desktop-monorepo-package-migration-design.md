@@ -158,7 +158,7 @@ This works because Vite's root is `apps/desktop`.
 
 `apps/desktop/tsconfig.json` owns renderer and test type checking for the desktop package:
 
-- Include `src/**/*.ts`, `src/**/*.vue`, and `tests/**/*.ts`.
+- Include `src/**/*.ts` and `src/**/*.vue`. The existing test suite is executed by Vitest; it is not part of the desktop `vue-tsc` gate because the pre-migration root `pnpm type-check` did not type-check tests.
 - Define path aliases relative to `apps/desktop`.
 - Keep workspace package source aliases for packages that are consumed directly by source path.
 

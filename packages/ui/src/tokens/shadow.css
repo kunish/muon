@@ -1,38 +1,68 @@
 @theme {
   /* s1 — Subtle (cards, hover action bars) */
-  --shadow-s1-down: 0px 1px 2px -2px rgba(0,0,0,0.02), 0px 2px 4px rgba(0,0,0,0.02), 0px 2px 8px 2px rgba(0,0,0,0.02);
-  --shadow-s1-left: -1px 0px 2px -2px rgba(0,0,0,0.02), -2px 0px 4px rgba(0,0,0,0.02), -2px 0px 8px 2px rgba(0,0,0,0.02);
-  --shadow-s1-right: 1px 0px 2px -2px rgba(0,0,0,0.02), 2px 0px 4px rgba(0,0,0,0.02), 2px 0px 8px 2px rgba(0,0,0,0.02);
-  --shadow-s1-up: 0px -1px 2px -2px rgba(0,0,0,0.02), 0px -2px 4px rgba(0,0,0,0.02), 0px -2px 8px 2px rgba(0,0,0,0.02);
-  --shadow-s1-down-pri: 0px 1px 2px -2px rgba(var(--N900-raw), 0.02), 0px 2px 4px rgba(var(--B500-raw), 0.04), 0px 2px 8px 2px rgba(var(--B500-raw), 0.02);
+  --shadow-s1-down:
+    0px 1px 2px -2px rgba(0, 0, 0, 0.02), 0px 2px 4px rgba(0, 0, 0, 0.02), 0px 2px 8px 2px rgba(0, 0, 0, 0.02);
+  --shadow-s1-left:
+    -1px 0px 2px -2px rgba(0, 0, 0, 0.02), -2px 0px 4px rgba(0, 0, 0, 0.02), -2px 0px 8px 2px rgba(0, 0, 0, 0.02);
+  --shadow-s1-right:
+    1px 0px 2px -2px rgba(0, 0, 0, 0.02), 2px 0px 4px rgba(0, 0, 0, 0.02), 2px 0px 8px 2px rgba(0, 0, 0, 0.02);
+  --shadow-s1-up:
+    0px -1px 2px -2px rgba(0, 0, 0, 0.02), 0px -2px 4px rgba(0, 0, 0, 0.02), 0px -2px 8px 2px rgba(0, 0, 0, 0.02);
+  --shadow-s1-down-pri:
+    0px 1px 2px -2px rgba(var(--N900-raw), 0.02), 0px 2px 4px rgba(var(--B500-raw), 0.04),
+    0px 2px 8px 2px rgba(var(--B500-raw), 0.02);
 
   /* s2 — Raised (dropdowns, tooltips) */
-  --shadow-s2-down: 0px 4px 16px 4px rgba(0,0,0,0.03), 0px 4px 8px rgba(0,0,0,0.02), 0px 2px 4px -4px rgba(0,0,0,0.02);
-  --shadow-s2-left: -4px 0px 16px 4px rgba(0,0,0,0.03), -4px 0px 8px rgba(0,0,0,0.02), -2px 0px 4px -4px rgba(0,0,0,0.02);
-  --shadow-s2-right: 4px 0px 16px 4px rgba(0,0,0,0.03), 4px 0px 8px rgba(0,0,0,0.02), 2px 0px 4px -4px rgba(0,0,0,0.02);
-  --shadow-s2-up: 0px -4px 16px 4px rgba(0,0,0,0.03), 0px -4px 8px rgba(0,0,0,0.02), 0px -2px 4px -4px rgba(0,0,0,0.02);
-  --shadow-s2-down-pri: 0px 2px 4px -4px rgba(var(--N900-raw), 0.02), 0px 4px 8px rgba(var(--B500-raw), 0.04), 0px 4px 16px 4px rgba(var(--B500-raw), 0.03);
+  --shadow-s2-down:
+    0px 4px 16px 4px rgba(0, 0, 0, 0.03), 0px 4px 8px rgba(0, 0, 0, 0.02), 0px 2px 4px -4px rgba(0, 0, 0, 0.02);
+  --shadow-s2-left:
+    -4px 0px 16px 4px rgba(0, 0, 0, 0.03), -4px 0px 8px rgba(0, 0, 0, 0.02), -2px 0px 4px -4px rgba(0, 0, 0, 0.02);
+  --shadow-s2-right:
+    4px 0px 16px 4px rgba(0, 0, 0, 0.03), 4px 0px 8px rgba(0, 0, 0, 0.02), 2px 0px 4px -4px rgba(0, 0, 0, 0.02);
+  --shadow-s2-up:
+    0px -4px 16px 4px rgba(0, 0, 0, 0.03), 0px -4px 8px rgba(0, 0, 0, 0.02), 0px -2px 4px -4px rgba(0, 0, 0, 0.02);
+  --shadow-s2-down-pri:
+    0px 2px 4px -4px rgba(var(--N900-raw), 0.02), 0px 4px 8px rgba(var(--B500-raw), 0.04),
+    0px 4px 16px 4px rgba(var(--B500-raw), 0.03);
 
   /* s3 — Modal (dialogs) */
-  --shadow-s3-down: 0px 6px 18px 6px rgba(0,0,0,0.03), 0px 3px 6px -6px rgba(0,0,0,0.05), 0px 4px 8px rgba(0,0,0,0.03);
-  --shadow-s3-left: -6px 0px 18px 6px rgba(0,0,0,0.03), -3px 0px 6px -6px rgba(0,0,0,0.05), -4px 0px 8px rgba(0,0,0,0.03);
-  --shadow-s3-right: 6px 0px 18px 6px rgba(0,0,0,0.03), 3px 0px 6px -6px rgba(0,0,0,0.05), 4px 0px 8px rgba(0,0,0,0.03);
-  --shadow-s3-up: 0px -6px 18px 6px rgba(0,0,0,0.03), 0px -3px 6px -6px rgba(0,0,0,0.05), 0px -4px 8px rgba(0,0,0,0.03);
-  --shadow-s3-down-pri: 0px 3px 6px -6px rgba(var(--N900-raw), 0.05), 0px 4px 8px rgba(var(--B500-raw), 0.06), 0px 6px 18px 6px rgba(var(--B500-raw), 0.04);
+  --shadow-s3-down:
+    0px 6px 18px 6px rgba(0, 0, 0, 0.03), 0px 3px 6px -6px rgba(0, 0, 0, 0.05), 0px 4px 8px rgba(0, 0, 0, 0.03);
+  --shadow-s3-left:
+    -6px 0px 18px 6px rgba(0, 0, 0, 0.03), -3px 0px 6px -6px rgba(0, 0, 0, 0.05), -4px 0px 8px rgba(0, 0, 0, 0.03);
+  --shadow-s3-right:
+    6px 0px 18px 6px rgba(0, 0, 0, 0.03), 3px 0px 6px -6px rgba(0, 0, 0, 0.05), 4px 0px 8px rgba(0, 0, 0, 0.03);
+  --shadow-s3-up:
+    0px -6px 18px 6px rgba(0, 0, 0, 0.03), 0px -3px 6px -6px rgba(0, 0, 0, 0.05), 0px -4px 8px rgba(0, 0, 0, 0.03);
+  --shadow-s3-down-pri:
+    0px 3px 6px -6px rgba(var(--N900-raw), 0.05), 0px 4px 8px rgba(var(--B500-raw), 0.06),
+    0px 6px 18px 6px rgba(var(--B500-raw), 0.04);
 
   /* s4 — High (search modals) */
-  --shadow-s4-down: 0px 8px 24px 8px rgba(0,0,0,0.04), 0px 6px 12px rgba(0,0,0,0.04), 0px 4px 8px -8px rgba(0,0,0,0.06);
-  --shadow-s4-left: -8px 0px 24px 8px rgba(0,0,0,0.04), -6px 0px 12px rgba(0,0,0,0.04), -4px 0px 8px -8px rgba(0,0,0,0.06);
-  --shadow-s4-right: 8px 0px 24px 8px rgba(0,0,0,0.04), 6px 0px 12px rgba(0,0,0,0.04), 4px 0px 8px -8px rgba(0,0,0,0.06);
-  --shadow-s4-up: 0px -8px 24px 8px rgba(0,0,0,0.04), 0px -6px 12px rgba(0,0,0,0.04), 0px -4px 8px -8px rgba(0,0,0,0.06);
-  --shadow-s4-down-pri: 0px 4px 8px -4px rgba(var(--B500-raw), 0.16), 0px 6px 12px rgba(var(--B500-raw), 0.08), 0px 8px 24px 8px rgba(var(--B500-raw), 0.06);
+  --shadow-s4-down:
+    0px 8px 24px 8px rgba(0, 0, 0, 0.04), 0px 6px 12px rgba(0, 0, 0, 0.04), 0px 4px 8px -8px rgba(0, 0, 0, 0.06);
+  --shadow-s4-left:
+    -8px 0px 24px 8px rgba(0, 0, 0, 0.04), -6px 0px 12px rgba(0, 0, 0, 0.04), -4px 0px 8px -8px rgba(0, 0, 0, 0.06);
+  --shadow-s4-right:
+    8px 0px 24px 8px rgba(0, 0, 0, 0.04), 6px 0px 12px rgba(0, 0, 0, 0.04), 4px 0px 8px -8px rgba(0, 0, 0, 0.06);
+  --shadow-s4-up:
+    0px -8px 24px 8px rgba(0, 0, 0, 0.04), 0px -6px 12px rgba(0, 0, 0, 0.04), 0px -4px 8px -8px rgba(0, 0, 0, 0.06);
+  --shadow-s4-down-pri:
+    0px 4px 8px -4px rgba(var(--B500-raw), 0.16), 0px 6px 12px rgba(var(--B500-raw), 0.08),
+    0px 8px 24px 8px rgba(var(--B500-raw), 0.06);
 
   /* s5 — Max elevation */
-  --shadow-s5-down: 0px 10px 36px 10px rgba(0,0,0,0.04), 0px 8px 24px rgba(0,0,0,0.04), 0px 6px 12px -10px rgba(0,0,0,0.06);
-  --shadow-s5-left: -10px 0px 36px 10px rgba(0,0,0,0.04), -8px 0px 24px rgba(0,0,0,0.04), -6px 0px 12px -10px rgba(0,0,0,0.06);
-  --shadow-s5-right: 10px 0px 36px 10px rgba(0,0,0,0.04), 8px 0px 24px rgba(0,0,0,0.04), 6px 0px 12px -10px rgba(0,0,0,0.06);
-  --shadow-s5-up: 0px -10px 36px 10px rgba(0,0,0,0.04), 0px -8px 24px rgba(0,0,0,0.04), 0px -6px 12px -10px rgba(0,0,0,0.06);
-  --shadow-s5-down-pri: 0px 10px 12px -10px rgba(var(--B500-raw), 0.18), 0px 8px 24px rgba(var(--B500-raw), 0.1), 0px 10px 36px 10px rgba(var(--B500-raw), 0.06);
+  --shadow-s5-down:
+    0px 10px 36px 10px rgba(0, 0, 0, 0.04), 0px 8px 24px rgba(0, 0, 0, 0.04), 0px 6px 12px -10px rgba(0, 0, 0, 0.06);
+  --shadow-s5-left:
+    -10px 0px 36px 10px rgba(0, 0, 0, 0.04), -8px 0px 24px rgba(0, 0, 0, 0.04), -6px 0px 12px -10px rgba(0, 0, 0, 0.06);
+  --shadow-s5-right:
+    10px 0px 36px 10px rgba(0, 0, 0, 0.04), 8px 0px 24px rgba(0, 0, 0, 0.04), 6px 0px 12px -10px rgba(0, 0, 0, 0.06);
+  --shadow-s5-up:
+    0px -10px 36px 10px rgba(0, 0, 0, 0.04), 0px -8px 24px rgba(0, 0, 0, 0.04), 0px -6px 12px -10px rgba(0, 0, 0, 0.06);
+  --shadow-s5-down-pri:
+    0px 10px 12px -10px rgba(var(--B500-raw), 0.18), 0px 8px 24px rgba(var(--B500-raw), 0.1),
+    0px 10px 36px 10px rgba(var(--B500-raw), 0.06);
 
   /* Legacy sm/md/lg shadows */
   --shadow-sm-down: 0px 2px 4px rgba(var(--N900-raw), 0.12);

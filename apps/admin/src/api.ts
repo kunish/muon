@@ -1,5 +1,6 @@
 import type {
   AdminLoginRequest,
+  AdminSession,
   AuditLog,
   ChangeOwnPasswordRequest,
   CreateOrganizationRequest,
@@ -7,7 +8,6 @@ import type {
   DeviceSessionPublic,
   EnterpriseUser,
   InstallRequest,
-  MuonSession,
   Organization,
   ResetPasswordRequest,
   UpdateUserRequest,
@@ -41,7 +41,7 @@ export function installMuon(input: InstallRequest): Promise<unknown> {
   })
 }
 
-export function loginAdmin(input: AdminLoginRequest): Promise<{ session: MuonSession, user: EnterpriseUser }> {
+export function loginAdmin(input: AdminLoginRequest): Promise<{ session: AdminSession, user: EnterpriseUser }> {
   return request('/api/admin/login', {
     method: 'POST',
     body: JSON.stringify(input),
