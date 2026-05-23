@@ -1,56 +1,70 @@
-import type { LoginCredentials } from '@matrix/types'
-import { activateMatrixSession, bindClientEvents, logoutMatrix, restoreMatrixSession, startSync, stopSync } from '@matrix/index'
-import { clear as clearEnterprise, complete as completeEnterprise, defaultEnterpriseSessionDeps, restore as restoreEnterprise } from '@/enterprise/session'
+import type { LoginCredentials, RegisterParams } from '@matrix/types'
+import type { MatrixSession } from '@muon/enterprise-contracts'
+import type { SignOutReason } from './lifecycleEvents'
+import { clear as clearEnterprise, complete as completeEnterprise, defaultEnterpriseSessionDeps, isEnterpriseAuthConfigured, restore as restoreEnterprise, start as startEnterprise } from '@/enterprise/session'
+import { loginWithPassword, readMatrixSessionFromStore, register } from '@/matrix/auth'
+import { setMyDisplayName } from '@/matrix/profile'
+import { activate, deactivate } from '@/matrix/sessionLifecycle'
+import { emitSignIn, emitSignOut } from './lifecycleEvents'
 
 export interface BootstrapResult {
-  restored: boolean
+  restored: 'enterprise' | 'matrix-only' | false
+}
+
+async function activateSession(session: MatrixSession): Promise<void> {
+  const activated = await activate(session)
+  if (activated)
+    emitSignIn(session)
 }
 
 export async function bootstrap(): Promise<BootstrapResult> {
   const deps = defaultEnterpriseSessionDeps()
-
   const enterprise = await restoreEnterprise(deps).catch(() => null)
   if (enterprise) {
-    await activateMatrixSession(enterprise.matrix)
-    bindClientEvents()
-    startSync()
-    return { restored: true }
+    await activateSession(enterprise.matrix)
+    return { restored: 'enterprise' }
   }
 
-  const matrixOnly = await restoreMatrixSession()
+  const matrixOnly = await readMatrixSessionFromStore()
   if (matrixOnly) {
-    bindClientEvents()
-    startSync()
-    return { restored: true }
+    await activateSession(matrixOnly)
+    return { restored: 'matrix-only' }
   }
 
   return { restored: false }
 }
 
+export { isEnterpriseAuthConfigured }
+
 export async function signInWithPassword(serverUrl: string, credentials: LoginCredentials): Promise<void> {
-  const { loginWithPassword } = await import('@matrix/index')
-  await loginWithPassword(serverUrl, credentials)
-  bindClientEvents()
-  startSync()
+  const session = await loginWithPassword(serverUrl, credentials)
+  await activateSession(session)
+}
+
+export async function signUpWithPassword(serverUrl: string, params: RegisterParams): Promise<void> {
+  const session = await register(serverUrl, params)
+  await activateSession(session)
+
+  if (params.displayName)
+    await setMyDisplayName(params.displayName)
 }
 
 export async function signInWithEnterprise(callbackUrl: string): Promise<void> {
   const deps = defaultEnterpriseSessionDeps()
   const session = await completeEnterprise(callbackUrl, deps)
-  await activateMatrixSession(session.matrix)
-  bindClientEvents()
-  startSync()
+  await activateSession(session.matrix)
 }
 
 export async function startEnterpriseSignIn(): Promise<void> {
-  const { start } = await import('@/enterprise/session')
-  await start(defaultEnterpriseSessionDeps())
+  await startEnterprise(defaultEnterpriseSessionDeps())
 }
 
-export async function signOut(): Promise<void> {
-  stopSync()
-  await logoutMatrix()
-  clearEnterprise(defaultEnterpriseSessionDeps())
+export async function signOut(reason: SignOutReason = 'user-initiated'): Promise<void> {
+  emitSignOut(reason)
+  try {
+    await deactivate({ revoke: true })
+  }
+  finally {
+    clearEnterprise(defaultEnterpriseSessionDeps())
+  }
 }
-
-export { isEnterpriseAuthConfigured } from '@/enterprise/session'

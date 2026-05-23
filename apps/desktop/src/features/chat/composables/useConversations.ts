@@ -1,6 +1,7 @@
 import type { RoomSummary } from '@matrix/types'
 import { getRoomSummaries, invalidateRoomSummariesCache, matrixEvents, paginateBack } from '@matrix/index'
 import { computed, onMounted, ref, shallowRef } from 'vue'
+import { registerSessionSubscriber } from '@/auth/lifecycleEvents'
 import { useChatStore } from '../stores/chatStore'
 
 const LISTENED_EVENTS = ['room.message', 'room.timeline', 'room.decrypted', 'room.member', 'sync.state', 'room.receipt'] as const
@@ -32,6 +33,12 @@ function loadArchivedDms(): Set<string> {
 
 function saveArchivedDms(ids: Set<string>) {
   localStorage.setItem(ARCHIVED_KEY, JSON.stringify([...ids]))
+}
+
+function reloadArchivedDms(ids: Set<string>) {
+  ids.clear()
+  for (const roomId of loadArchivedDms())
+    ids.add(roomId)
 }
 
 // --- 模块级共享状态，所有组件实例共用同一份数据 ---
@@ -150,6 +157,15 @@ const refreshEventHandlers: Record<typeof LISTENED_EVENTS[number], () => void> =
   'room.member': () => scheduleRefresh(REFRESH_EVENT_MODES['room.member']),
   'sync.state': () => scheduleRefresh(REFRESH_EVENT_MODES['sync.state']),
   'room.receipt': () => scheduleRefresh(REFRESH_EVENT_MODES['room.receipt']),
+}
+
+function bindConversationsListeners() {
+  if (listenersBound)
+    return
+
+  listenersBound = true
+  for (const evt of LISTENED_EVENTS)
+    matrixEvents.on(evt, refreshEventHandlers[evt])
 }
 
 function refreshNow(mode: RefreshMode = 'resort') {
@@ -290,14 +306,9 @@ function restoreRoom(roomId: string) {
 export function useConversations() {
   const store = useChatStore()
 
-  // 首次使用时绑定事件监听，全局只绑定一次
   onMounted(() => {
-    if (!listenersBound) {
-      listenersBound = true
-      refreshNow()
-      for (const evt of LISTENED_EVENTS)
-        matrixEvents.on(evt, refreshEventHandlers[evt])
-    }
+    bindConversationsListeners()
+    refreshNow()
   })
 
   // --- 筛选 + 搜索 + 置顶排序 ---
@@ -381,8 +392,24 @@ export function resetConversationsListeners() {
   rooms.value = []
   isLoading.value = true
   excludedRoomIds.clear()
+  archivedDmIds.clear()
   try {
     useChatStore().clearSidebarPromotions()
   }
   catch { /* store 尚未初始化时忽略 */ }
+}
+
+const unregisterConversationsSessionSubscriber = registerSessionSubscriber({
+  onSignIn: () => {
+    reloadArchivedDms(archivedDmIds)
+    bindConversationsListeners()
+    refreshNow()
+  },
+  onSignOut: resetConversationsListeners,
+})
+
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    unregisterConversationsSessionSubscriber()
+  })
 }

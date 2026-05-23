@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { bindClientEvents, register, startSync } from '@matrix/index'
 import { Input } from '@muon/ui/input'
 import { Label } from '@muon/ui/label'
 import { Tabs, TabsList, TabsTrigger } from '@muon/ui/tabs'
@@ -7,7 +6,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
-import { isEnterpriseAuthConfigured, signInWithEnterprise, signInWithPassword, startEnterpriseSignIn } from '@/auth/lifecycle'
+import { isEnterpriseAuthConfigured, signInWithEnterprise, signInWithPassword, signUpWithPassword, startEnterpriseSignIn } from '@/auth/lifecycle'
 import { getDesktopBridge } from '@/desktop/bridge'
 
 const router = useRouter()
@@ -108,13 +107,11 @@ async function handleSubmit() {
       })
     }
     else {
-      await register(serverUrl.value, {
+      await signUpWithPassword(serverUrl.value, {
         username: username.value,
         password: password.value,
         displayName: displayName.value || undefined,
       })
-      bindClientEvents()
-      startSync()
     }
     router.push('/dm')
   }

@@ -1,5 +1,5 @@
-import { readMatrixSessionFromStore } from '@matrix/index'
 import { createRouter, createWebHistory } from 'vue-router'
+import { readMatrixSessionFromStore } from '@/matrix/auth'
 
 const router = createRouter({
   history: createWebHistory(),

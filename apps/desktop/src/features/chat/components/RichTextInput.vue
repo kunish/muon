@@ -2,11 +2,11 @@
 import type { MentionPopupState, PastedMediaSource } from '@muon/rich-text/editor'
 import type { ImageSticker } from '@/shared/data/stickerPacks'
 import type { GifResult } from '@/shared/lib/gifSearch'
+import { getClient } from '@matrix/client'
 import {
   downloadMedia,
   editMessage,
   extractImageMeta,
-  getClient,
   replyToMessage,
   sendAudioMessage,
   sendContactCard,

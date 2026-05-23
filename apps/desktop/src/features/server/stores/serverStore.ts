@@ -1,6 +1,7 @@
 import type { ChannelInfo, SpaceInfo } from '@/matrix/spaces'
 import { defineStore } from 'pinia'
 import { reactive, ref, shallowRef } from 'vue'
+import { registerSessionSubscriber } from '@/auth/lifecycleEvents'
 import { getClient } from '@/matrix/client'
 import { matrixEvents } from '@/matrix/events'
 import {
@@ -333,3 +334,28 @@ export const useServerStore = defineStore('server', () => {
     resetStore,
   }
 })
+
+let lifecycleStore: ReturnType<typeof useServerStore> | null = null
+
+function getLifecycleStore(): ReturnType<typeof useServerStore> {
+  lifecycleStore ??= useServerStore()
+  return lifecycleStore
+}
+
+const unregisterServerStoreSessionSubscriber = registerSessionSubscriber({
+  onSignIn: () => {
+    const store = getLifecycleStore()
+    store.loadServers()
+    store.startListening()
+  },
+  onSignOut: () => {
+    lifecycleStore?.resetStore()
+    lifecycleStore = null
+  },
+})
+
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    unregisterServerStoreSessionSubscriber()
+  })
+}

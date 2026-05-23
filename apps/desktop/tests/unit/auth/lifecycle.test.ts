@@ -4,14 +4,14 @@ const mockStart = vi.fn()
 const mockComplete = vi.fn()
 const mockRestore = vi.fn()
 const mockClear = vi.fn()
+const mockActivate = vi.fn()
+const mockDeactivate = vi.fn()
 const mockLoginWithPassword = vi.fn()
-const mockRestoreMatrixSession = vi.fn()
-const mockLogoutMatrix = vi.fn()
-const mockActivateMatrixSession = vi.fn()
-const mockBindClientEvents = vi.fn()
-const mockUnbindClientEvents = vi.fn()
-const mockStartSync = vi.fn()
-const mockStopSync = vi.fn()
+const mockReadMatrixSessionFromStore = vi.fn()
+const mockRegister = vi.fn()
+const mockSetMyDisplayName = vi.fn()
+const mockEmitSignIn = vi.fn()
+const mockEmitSignOut = vi.fn()
 
 vi.mock('@/enterprise/session', () => ({
   start: mockStart,
@@ -22,102 +22,159 @@ vi.mock('@/enterprise/session', () => ({
   isEnterpriseAuthConfigured: vi.fn(() => true),
 }))
 
-vi.mock('@matrix/index', () => ({
+vi.mock('@/matrix/auth', () => ({
   loginWithPassword: mockLoginWithPassword,
-  restoreMatrixSession: mockRestoreMatrixSession,
-  logoutMatrix: mockLogoutMatrix,
-  activateMatrixSession: mockActivateMatrixSession,
-  bindClientEvents: mockBindClientEvents,
-  unbindClientEvents: mockUnbindClientEvents,
-  startSync: mockStartSync,
-  stopSync: mockStopSync,
+  readMatrixSessionFromStore: mockReadMatrixSessionFromStore,
+  register: mockRegister,
 }))
+
+vi.mock('@/matrix/profile', () => ({
+  setMyDisplayName: mockSetMyDisplayName,
+}))
+
+vi.mock('@/matrix/sessionLifecycle', () => ({
+  activate: mockActivate,
+  deactivate: mockDeactivate,
+}))
+
+vi.mock('@/auth/lifecycleEvents', () => ({
+  emitSignIn: mockEmitSignIn,
+  emitSignOut: mockEmitSignOut,
+}))
+
+const matrixSession = {
+  serverUrl: 'https://matrix.example.com',
+  userId: '@u:example.com',
+  accessToken: 'ma',
+  deviceId: 'DEV',
+}
 
 describe('lifecycle.bootstrap', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockActivate.mockResolvedValue(true)
   })
 
   it('returns restored=false when no session of any kind exists', async () => {
     mockRestore.mockResolvedValue(null)
-    mockRestoreMatrixSession.mockResolvedValue(null)
+    mockReadMatrixSessionFromStore.mockResolvedValue(null)
 
     const { bootstrap } = await import('@/auth/lifecycle')
     const result = await bootstrap()
 
-    expect(result.restored).toBe(false)
-    expect(mockBindClientEvents).not.toHaveBeenCalled()
-    expect(mockStartSync).not.toHaveBeenCalled()
+    expect(result).toEqual({ restored: false })
+    expect(mockActivate).not.toHaveBeenCalled()
+    expect(mockEmitSignIn).not.toHaveBeenCalled()
   })
 
-  it('activates Matrix client, binds events, and starts sync when EnterpriseSession restores', async () => {
+  it('activates an EnterpriseSession MatrixSession and reports enterprise restore', async () => {
     mockRestore.mockResolvedValue({
       muon: { accessToken: 'a', refreshToken: 'r', expiresAt: '2030-01-01T00:00:00.000Z', deviceName: 'D' },
-      matrix: { serverUrl: 'm', userId: '@u:m', accessToken: 'ma', deviceId: 'd' },
+      matrix: matrixSession,
     })
 
     const { bootstrap } = await import('@/auth/lifecycle')
     const result = await bootstrap()
 
-    expect(result.restored).toBe(true)
-    expect(mockActivateMatrixSession).toHaveBeenCalledWith({
-      serverUrl: 'm',
-      userId: '@u:m',
-      accessToken: 'ma',
-      deviceId: 'd',
-    })
-    expect(mockBindClientEvents).toHaveBeenCalled()
-    expect(mockStartSync).toHaveBeenCalled()
+    expect(result).toEqual({ restored: 'enterprise' })
+    expect(mockActivate).toHaveBeenCalledWith(matrixSession)
+    expect(mockEmitSignIn).toHaveBeenCalledWith(matrixSession)
   })
 
-  it('falls back to MatrixSession-only restore when no EnterpriseSession', async () => {
+  it('falls back to a stored MatrixSession and reports matrix-only restore', async () => {
     mockRestore.mockResolvedValue(null)
-    mockRestoreMatrixSession.mockResolvedValue({ serverUrl: 'm', userId: '@u:m', accessToken: 'ma', deviceId: 'd' })
+    mockReadMatrixSessionFromStore.mockResolvedValue(matrixSession)
 
     const { bootstrap } = await import('@/auth/lifecycle')
     const result = await bootstrap()
 
-    expect(result.restored).toBe(true)
-    expect(mockBindClientEvents).toHaveBeenCalled()
-    expect(mockStartSync).toHaveBeenCalled()
+    expect(result).toEqual({ restored: 'matrix-only' })
+    expect(mockActivate).toHaveBeenCalledWith(matrixSession)
+    expect(mockEmitSignIn).toHaveBeenCalledWith(matrixSession)
+  })
+
+  it('does not re-emit signIn when activation is idempotent for the same MatrixSession', async () => {
+    mockRestore.mockResolvedValue(null)
+    mockReadMatrixSessionFromStore.mockResolvedValue(matrixSession)
+    mockActivate.mockResolvedValue(false)
+
+    const { bootstrap } = await import('@/auth/lifecycle')
+    await bootstrap()
+
+    expect(mockEmitSignIn).not.toHaveBeenCalled()
   })
 })
 
 describe('lifecycle.signInWithPassword', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockActivate.mockResolvedValue(true)
   })
 
-  it('logs in with password then binds events and starts sync', async () => {
-    mockLoginWithPassword.mockResolvedValue({ serverUrl: 's', userId: '@u:s', accessToken: 'a', deviceId: 'd' })
+  it('exchanges credentials for a MatrixSession and activates through the lifecycle facade', async () => {
+    mockLoginWithPassword.mockResolvedValue(matrixSession)
 
     const { signInWithPassword } = await import('@/auth/lifecycle')
     await signInWithPassword('https://matrix.example.com', { username: 'u', password: 'p' })
 
     expect(mockLoginWithPassword).toHaveBeenCalledWith('https://matrix.example.com', { username: 'u', password: 'p' })
-    expect(mockBindClientEvents).toHaveBeenCalled()
-    expect(mockStartSync).toHaveBeenCalled()
+    expect(mockActivate).toHaveBeenCalledWith(matrixSession)
+    expect(mockEmitSignIn).toHaveBeenCalledWith(matrixSession)
+  })
+})
+
+describe('lifecycle.signUpWithPassword', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockActivate.mockResolvedValue(true)
+  })
+
+  it('registers, activates, then applies the profile display name', async () => {
+    const calls: string[] = []
+    mockRegister.mockResolvedValue(matrixSession)
+    mockActivate.mockImplementation(async () => {
+      calls.push('activate')
+      return true
+    })
+    mockSetMyDisplayName.mockImplementation(async () => {
+      calls.push('setMyDisplayName')
+    })
+
+    const { signUpWithPassword } = await import('@/auth/lifecycle')
+    await signUpWithPassword('https://matrix.example.com', {
+      username: 'u',
+      password: 'p',
+      displayName: 'Ada',
+    })
+
+    expect(mockRegister).toHaveBeenCalledWith('https://matrix.example.com', {
+      username: 'u',
+      password: 'p',
+      displayName: 'Ada',
+    })
+    expect(calls).toEqual(['activate', 'setMyDisplayName'])
+    expect(mockSetMyDisplayName).toHaveBeenCalledWith('Ada')
   })
 })
 
 describe('lifecycle.signInWithEnterprise', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockActivate.mockResolvedValue(true)
   })
 
-  it('completes the enterprise flow, activates Matrix, binds events, starts sync', async () => {
+  it('completes enterprise auth and activates its MatrixSession', async () => {
     mockComplete.mockResolvedValue({
       muon: { accessToken: 'a', refreshToken: 'r', expiresAt: '2030-01-01T00:00:00.000Z', deviceName: 'D' },
-      matrix: { serverUrl: 'm', userId: '@u:m', accessToken: 'ma', deviceId: 'd' },
+      matrix: matrixSession,
     })
 
     const { signInWithEnterprise } = await import('@/auth/lifecycle')
     await signInWithEnterprise('muon://auth/callback?code=c&state=s')
 
     expect(mockComplete).toHaveBeenCalled()
-    expect(mockActivateMatrixSession).toHaveBeenCalled()
-    expect(mockBindClientEvents).toHaveBeenCalled()
-    expect(mockStartSync).toHaveBeenCalled()
+    expect(mockActivate).toHaveBeenCalledWith(matrixSession)
+    expect(mockEmitSignIn).toHaveBeenCalledWith(matrixSession)
   })
 })
 
@@ -126,13 +183,13 @@ describe('lifecycle.signOut', () => {
     vi.clearAllMocks()
   })
 
-  it('stops sync, logs out of Matrix, clears EnterpriseSession storage', async () => {
+  it('emits signOut, performs best-effort Matrix deactivation, then clears EnterpriseSession storage', async () => {
     const calls: string[] = []
-    mockStopSync.mockImplementation(() => {
-      calls.push('stopSync')
+    mockEmitSignOut.mockImplementation(() => {
+      calls.push('emitSignOut')
     })
-    mockLogoutMatrix.mockImplementation(async () => {
-      calls.push('logoutMatrix')
+    mockDeactivate.mockImplementation(async () => {
+      calls.push('deactivate')
     })
     mockClear.mockImplementation(() => {
       calls.push('enterprise.clear')
@@ -141,7 +198,8 @@ describe('lifecycle.signOut', () => {
     const { signOut } = await import('@/auth/lifecycle')
     await signOut()
 
-    // stopSync first, then Matrix logout, then enterprise clear
-    expect(calls).toEqual(['stopSync', 'logoutMatrix', 'enterprise.clear'])
+    expect(calls).toEqual(['emitSignOut', 'deactivate', 'enterprise.clear'])
+    expect(mockEmitSignOut).toHaveBeenCalledWith('user-initiated')
+    expect(mockDeactivate).toHaveBeenCalledWith({ revoke: true })
   })
 })

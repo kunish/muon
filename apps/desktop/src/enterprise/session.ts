@@ -118,7 +118,7 @@ export async function complete(callbackUrl: string, deps: EnterpriseSessionDeps)
   deps.pkceStore.clear()
 
   // Note: the returned MatrixSession is NOT persisted here. The lifecycle orchestrator
-  // is responsible for calling activateMatrixSession(matrix) which persists + creates the client.
+  // owns MatrixSession activation, persistence, and client creation.
   return { muon, matrix }
 }
 
@@ -185,7 +185,7 @@ export async function restore(deps: EnterpriseSessionDeps): Promise<EnterpriseSe
 export function clear(deps: EnterpriseSessionDeps): void {
   deps.muonStore.clear()
   deps.pkceStore.clear()
-  // Matrix storage is owned by the MatrixSession module — cleared by logoutMatrix().
+  // Matrix storage is owned by the MatrixSession module and cleared by lifecycle deactivation.
 }
 
 export function parseEnterpriseAuthCallback(url: string): { code: string, state: string } | null {

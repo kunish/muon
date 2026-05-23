@@ -12,7 +12,7 @@ const projectRepoMock = vi.hoisted(() => ({
   saveProject: vi.fn(),
 }))
 
-vi.mock('@/matrix', () => ({
+vi.mock('@/matrix/client', () => ({
   getClient: () => matrixClientMock,
 }))
 

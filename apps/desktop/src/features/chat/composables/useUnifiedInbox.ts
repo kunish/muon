@@ -3,6 +3,7 @@ import type { UnifiedInboxItem } from '../types/unifiedInbox'
 import { getClient } from '@matrix/client'
 import { getRoom, getRoomSummaries, invalidateRoomSummariesCache, matrixEvents } from '@matrix/index'
 import { computed, getCurrentInstance, onMounted, ref, shallowRef } from 'vue'
+import { registerSessionSubscriber } from '@/auth/lifecycleEvents'
 import { useInboxStore } from '../stores/inboxStore'
 
 const LISTENED_EVENTS = ['room.message', 'room.member', 'room.receipt'] as const
@@ -38,6 +39,16 @@ function handleSyncState({ state }: { state: string }) {
     return
   }
   scheduleRefresh()
+}
+
+function bindUnifiedInboxListeners() {
+  if (listenersBound)
+    return
+
+  listenersBound = true
+  for (const evt of LISTENED_EVENTS)
+    matrixEvents.on(evt, scheduleRefresh)
+  matrixEvents.on('sync.state', handleSyncState)
 }
 
 function getLatestEventMeta(roomId: string): { eventId: string, ts: number, sender?: string, body?: string } {
@@ -108,23 +119,14 @@ function toInboxItems(roomList: RoomSummary[], currentUserId?: string): UnifiedI
 export function useUnifiedInbox() {
   const store = useInboxStore()
 
-  const bind = () => {
-    if (!listenersBound) {
-      listenersBound = true
-      for (const evt of LISTENED_EVENTS)
-        matrixEvents.on(evt, scheduleRefresh)
-      matrixEvents.on('sync.state', handleSyncState)
-    }
-  }
-
   if (getCurrentInstance()) {
     onMounted(() => {
-      bind()
+      bindUnifiedInboxListeners()
       refreshNow()
     })
   }
   else {
-    bind()
+    bindUnifiedInboxListeners()
     refreshNow()
   }
 
@@ -175,3 +177,17 @@ export function resetUnifiedInboxListeners() {
 }
 
 export const __resetUnifiedInboxForTests = resetUnifiedInboxListeners
+
+const unregisterUnifiedInboxSessionSubscriber = registerSessionSubscriber({
+  onSignIn: () => {
+    bindUnifiedInboxListeners()
+    refreshNow()
+  },
+  onSignOut: resetUnifiedInboxListeners,
+})
+
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    unregisterUnifiedInboxSessionSubscriber()
+  })
+}

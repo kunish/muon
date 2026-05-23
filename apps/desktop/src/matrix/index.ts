@@ -1,6 +1,4 @@
-export { activateMatrixSession, clearMatrixSessionStore, loginWithPassword, logoutMatrix, readMatrixSessionFromStore, register, restoreMatrixSession } from './auth'
 export { blockUser, getBlockedUsers, isUserBlocked, unblockUser } from './blocking'
-export { createClient, destroyClient, getClient } from './client'
 export { createEncryptedRoom, initCrypto } from './crypto'
 export { materializeOfflineDigest } from './digest'
 export {
@@ -23,7 +21,7 @@ export type {
   DigestSession,
   DigestSourceEvent,
 } from './digestTypes'
-export { bindClientEvents, matrixEvents, unbindClientEvents } from './events'
+export { matrixEvents } from './events'
 export { loadInboxEventContext } from './inbox'
 export type { InboxEventContext } from './inbox'
 export { downloadMedia, extractImageMeta, extractVideoMeta, fetchMediaBlobUrl, uploadMedia } from './media'
@@ -76,7 +74,7 @@ export {
   setSpacePowerLevel,
 } from './spaces'
 export type { CategoryInfo, ChannelInfo, SpaceInfo, SpaceMember } from './spaces'
-export { startSync, stopSync, syncState } from './sync'
+export { syncState } from './sync'
 export type { RoomSummary } from './types'
 export { sendTyping } from './typing'
 export { getCurrentDeviceId, getDevices } from './verification'

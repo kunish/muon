@@ -6,28 +6,21 @@ import en from '@/locales/en.json'
 import zh from '@/locales/zh.json'
 
 const mocks = vi.hoisted(() => ({
-  bindClientEvents: vi.fn(),
   desktopCallbacks: [] as Array<(url: string) => void>,
   desktopUnsubscribe: vi.fn(),
   isEnterpriseAuthConfigured: vi.fn(() => true),
-  register: vi.fn(),
   routerPush: vi.fn(),
   signInWithEnterprise: vi.fn(),
   signInWithPassword: vi.fn(),
+  signUpWithPassword: vi.fn(),
   startEnterpriseSignIn: vi.fn(),
-  startSync: vi.fn(),
-}))
-
-vi.mock('@matrix/index', () => ({
-  bindClientEvents: mocks.bindClientEvents,
-  register: mocks.register,
-  startSync: mocks.startSync,
 }))
 
 vi.mock('@/auth/lifecycle', () => ({
   isEnterpriseAuthConfigured: mocks.isEnterpriseAuthConfigured,
   signInWithEnterprise: mocks.signInWithEnterprise,
   signInWithPassword: mocks.signInWithPassword,
+  signUpWithPassword: mocks.signUpWithPassword,
   startEnterpriseSignIn: mocks.startEnterpriseSignIn,
 }))
 

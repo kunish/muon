@@ -11,6 +11,7 @@ export function createMockMatrixClient() {
   return {
     // ---- 认证 ----
     login: vi.fn().mockResolvedValue({ access_token: 'mock_token', user_id: SELF_USER_ID }),
+    register: vi.fn().mockResolvedValue({ access_token: 'mock_token', user_id: SELF_USER_ID, device_id: 'MOCK_DEVICE' }),
     logout: vi.fn().mockResolvedValue(undefined),
     startClient: vi.fn().mockResolvedValue(undefined),
     stopClient: vi.fn(),
@@ -119,6 +120,7 @@ const mockClient = createMockMatrixClient()
 vi.mock('@matrix/client', () => ({
   getClient: () => mockClient,
   createClient: vi.fn().mockReturnValue(mockClient),
+  createEphemeralClient: vi.fn().mockReturnValue(mockClient),
   initClient: vi.fn().mockResolvedValue(mockClient),
   destroyClient: vi.fn(),
 }))

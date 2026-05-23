@@ -2,7 +2,7 @@ import type { Project, ProjectTemplate, ProjectVisibility } from '../types'
 import { Preset } from 'matrix-js-sdk'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { getClient } from '@/matrix'
+import { getClient } from '@/matrix/client'
 import { projectRepo } from '../db/projectDb'
 import { projectSchema } from '../types'
 

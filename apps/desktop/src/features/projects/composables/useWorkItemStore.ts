@@ -1,7 +1,7 @@
 import type { WorkItem } from '../types'
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import { getClient } from '@/matrix'
+import { getClient } from '@/matrix/client'
 import { sendProjectSyncEvent } from '@/matrix/projects'
 import { projectRepo } from '../db/projectDb'
 import { workItemSchema } from '../types'

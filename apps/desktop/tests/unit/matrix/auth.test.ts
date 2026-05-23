@@ -1,49 +1,44 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+vi.unmock('@matrix/client')
+
 const mockLogin = vi.fn().mockResolvedValue({
   user_id: '@test:localhost',
   access_token: 'mock_token',
   device_id: 'MOCK_DEVICE',
 })
-const mockLogout = vi.fn().mockResolvedValue(undefined)
-const mockUnbindClientEvents = vi.fn()
-const mockDestroyClient = vi.fn()
 const mockRegister = vi.fn().mockResolvedValue({
   user_id: '@test:localhost',
   access_token: 'mock_token',
   device_id: 'MOCK_DEVICE',
 })
 const mockSetDisplayName = vi.fn().mockResolvedValue(undefined)
-
-vi.mock('@matrix/client', () => ({
-  createClient: vi.fn(() => ({
-    login: mockLogin,
-    logout: mockLogout,
-    register: mockRegister,
-    setDisplayName: mockSetDisplayName,
-  })),
-  getClient: vi.fn(() => ({
-    logout: mockLogout,
-    setDisplayName: mockSetDisplayName,
-  })),
-  destroyClient: mockDestroyClient,
+const mockSdkCreateClient = vi.fn(() => ({
+  login: mockLogin,
+  register: mockRegister,
+  setDisplayName: mockSetDisplayName,
+  stopClient: vi.fn(),
 }))
 
-vi.mock('@/matrix/events', () => ({
-  unbindClientEvents: mockUnbindClientEvents,
+vi.mock('matrix-js-sdk', () => ({
+  createClient: mockSdkCreateClient,
 }))
 
-describe('auth', () => {
+vi.mock('@/desktop/http', () => ({
+  fetch: vi.fn(),
+}))
+
+describe('matrix auth credential exchange', () => {
   beforeEach(() => {
     localStorage.clear()
     vi.clearAllMocks()
   })
 
-  it('should login and persist session', async () => {
+  it('logs in and returns a MatrixSession without persisting or activating the singleton client', async () => {
     const { loginWithPassword } = await import('@/matrix/auth')
 
     const session = await loginWithPassword('https://matrix.localhost', {
-      username: 'testuser',
+      username: '@testuser:localhost',
       password: 'testpass',
     })
 
@@ -54,65 +49,28 @@ describe('auth', () => {
       },
       password: 'testpass',
     })
+    expect(session).toEqual({
+      serverUrl: 'https://matrix.localhost',
+      userId: '@test:localhost',
+      accessToken: 'mock_token',
+      deviceId: 'MOCK_DEVICE',
+    })
+    expect(localStorage.getItem('muon_auth')).toBeNull()
+  })
+
+  it('registers and returns a MatrixSession without setting profile data or persisting locally', async () => {
+    const { register } = await import('@/matrix/auth')
+
+    const session = await register('https://matrix.localhost', {
+      username: 'testuser',
+      password: 'testpass',
+      displayName: 'Ada',
+    })
+
+    expect(mockRegister).toHaveBeenCalledWith('testuser', 'testpass', null, { type: 'm.login.dummy' })
     expect(session.userId).toBe('@test:localhost')
-    expect(session.accessToken).toBe('mock_token')
-
-    const stored = JSON.parse(localStorage.getItem('muon_auth')!)
-    expect(stored.userId).toBe('@test:localhost')
-  })
-
-  it('should clear session on logout', async () => {
-    localStorage.setItem('muon_auth', JSON.stringify({
-      serverUrl: 'https://matrix.localhost',
-      userId: '@test:localhost',
-      accessToken: 'mock_token',
-      deviceId: 'MOCK_DEVICE',
-    }))
-
-    const { logoutMatrix } = await import('@/matrix/auth')
-    await logoutMatrix()
-
-    expect(mockLogout).toHaveBeenCalled()
+    expect(mockSetDisplayName).not.toHaveBeenCalled()
     expect(localStorage.getItem('muon_auth')).toBeNull()
-  })
-
-  it('should unbind client events and destroy the client on logout', async () => {
-    localStorage.setItem('muon_auth', JSON.stringify({
-      serverUrl: 'https://matrix.localhost',
-      userId: '@test:localhost',
-      accessToken: 'mock_token',
-      deviceId: 'MOCK_DEVICE',
-    }))
-
-    const { logoutMatrix } = await import('@/matrix/auth')
-    await logoutMatrix()
-
-    expect(mockLogout).toHaveBeenCalledWith(true)
-    expect(mockUnbindClientEvents).toHaveBeenCalledOnce()
-    expect(mockDestroyClient).toHaveBeenCalledOnce()
-    expect(localStorage.getItem('muon_auth')).toBeNull()
-  })
-
-  it('should restore session from localStorage', async () => {
-    localStorage.setItem('muon_auth', JSON.stringify({
-      serverUrl: 'https://matrix.localhost',
-      userId: '@test:localhost',
-      accessToken: 'mock_token',
-      deviceId: 'MOCK_DEVICE',
-    }))
-
-    const { restoreMatrixSession } = await import('@/matrix/auth')
-    const result = await restoreMatrixSession()
-
-    expect(result).not.toBeNull()
-    expect(result?.userId).toBe('@test:localhost')
-  })
-
-  it('should return null when no stored session', async () => {
-    const { restoreMatrixSession } = await import('@/matrix/auth')
-    const result = await restoreMatrixSession()
-
-    expect(result).toBeNull()
   })
 })
 
@@ -122,9 +80,8 @@ describe('activateMatrixSession', () => {
     vi.clearAllMocks()
   })
 
-  it('persists the session to muon_auth and creates the client', async () => {
+  it('persists the session to muon_auth and creates the singleton client', async () => {
     const { activateMatrixSession } = await import('@/matrix/auth')
-    const { createClient } = await import('@matrix/client')
     const session = {
       serverUrl: 'https://matrix.example.com',
       userId: '@u:example.com',
@@ -137,8 +94,12 @@ describe('activateMatrixSession', () => {
     expect(localStorage.getItem('muon_auth')).not.toBeNull()
     const stored = JSON.parse(localStorage.getItem('muon_auth')!)
     expect(stored).toEqual(session)
-    expect(createClient).toHaveBeenCalledTimes(1)
-    expect(createClient).toHaveBeenCalledWith(session)
+    expect(mockSdkCreateClient).toHaveBeenCalledWith(expect.objectContaining({
+      accessToken: 'at',
+      baseUrl: 'https://matrix.example.com',
+      deviceId: 'DEV',
+      userId: '@u:example.com',
+    }))
   })
 })
 
@@ -150,14 +111,13 @@ describe('readMatrixSessionFromStore', () => {
 
   it('returns null when no session is stored', async () => {
     const { readMatrixSessionFromStore } = await import('@/matrix/auth')
-    const { createClient } = await import('@matrix/client')
+
     expect(await readMatrixSessionFromStore()).toBeNull()
-    expect(createClient).not.toHaveBeenCalled()
+    expect(mockSdkCreateClient).not.toHaveBeenCalled()
   })
 
   it('returns the stored session without creating a client', async () => {
     const { activateMatrixSession, readMatrixSessionFromStore } = await import('@/matrix/auth')
-    const { createClient } = await import('@matrix/client')
     const session = {
       serverUrl: 'https://matrix.example.com',
       userId: '@u:example.com',
@@ -169,6 +129,6 @@ describe('readMatrixSessionFromStore', () => {
 
     const read = await readMatrixSessionFromStore()
     expect(read).toEqual(session)
-    expect(createClient).not.toHaveBeenCalled()
+    expect(mockSdkCreateClient).not.toHaveBeenCalled()
   })
 })
