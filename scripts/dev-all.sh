@@ -33,7 +33,7 @@ pnpm services:up
 
 start "enterprise API" pnpm --filter @muon/api exec tsx src/server.ts
 start "Admin Web" pnpm --filter @muon/admin exec vite --host 0.0.0.0 --port 4174
-start "Electron desktop" pnpm exec electron-vite dev
+start "Electron desktop" pnpm --filter @muon/desktop dev
 
 while true; do
   for index in "${!pids[@]}"; do

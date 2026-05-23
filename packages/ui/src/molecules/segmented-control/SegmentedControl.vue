@@ -20,8 +20,13 @@ const value = useVModel(props, 'modelValue', emits, {
   defaultValue: props.defaultValue ?? props.items[0]?.value,
 })
 
-function isActive(v: string) { return value.value === v }
-function activate(v: string) { value.value = v }
+function isActive(v: string) {
+  return value.value === v
+}
+
+function activate(v: string) {
+  value.value = v
+}
 </script>
 
 <template>

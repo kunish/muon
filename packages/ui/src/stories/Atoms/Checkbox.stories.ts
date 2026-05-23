@@ -23,7 +23,7 @@ export default meta
 type Story = StoryObj<typeof Checkbox>
 
 export const Default: Story = {
-  render: (args: Record<string, unknown>) => ({
+  render: args => ({
     components: { Checkbox },
     setup: () => ({ args }),
     template: '<Checkbox v-bind="args" />',

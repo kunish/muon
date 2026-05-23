@@ -50,7 +50,7 @@ const PendingMedia = TiptapNode.create<PendingMediaOptions>({
   name: 'pendingMedia',
   group: 'block',
   atom: true,
-  selectable: true,
+  selectable: false,
   draggable: true,
 
   addOptions() {

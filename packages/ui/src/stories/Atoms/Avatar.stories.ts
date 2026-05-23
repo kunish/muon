@@ -26,7 +26,7 @@ export default meta
 type Story = StoryObj<typeof Avatar>
 
 export const Default: Story = {
-  render: (args: Record<string, unknown>) => ({
+  render: args => ({
     components: { Avatar },
     setup: () => ({ args }),
     template: '<Avatar v-bind="args" />',

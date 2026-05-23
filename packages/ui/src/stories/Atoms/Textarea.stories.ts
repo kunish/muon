@@ -17,7 +17,7 @@ export default meta
 type Story = StoryObj<typeof Textarea>
 
 export const Default: Story = {
-  render: (args: Record<string, unknown>) => ({ components: { Textarea }, setup: () => ({ args }), template: '<Textarea v-bind="args" class="w-64" />' }),
+  render: args => ({ components: { Textarea }, setup: () => ({ args }), template: '<Textarea v-bind="args" class="w-64" />' }),
 }
 
 export const Variants: Story = {

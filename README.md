@@ -42,10 +42,10 @@ A modern [Matrix](https://matrix.org) chat client built with [Electron](https://
 ## Brand Assets
 
 - Primary logo source: `public/muon-logo.svg`
-- Web favicon: `index.html` points to the primary SVG logo
-- Workspace rail brand mark: `src/app/components/workspace/WorkspaceAppRail.vue`
-- Window title bar brand mark: `src/app/components/window/WindowTitleBar.vue`
-- Native desktop window controls: `electron/main.ts`
+- Web favicon: `apps/desktop/index.html` points to the primary SVG logo
+- Workspace rail brand mark: `apps/desktop/src/app/components/workspace/WorkspaceAppRail.vue`
+- Window title bar brand mark: `apps/desktop/src/app/components/window/WindowTitleBar.vue`
+- Native desktop window controls: `apps/desktop/electron/main.ts`
 - Electron platform icons: `build/icons/`
 
 ## Download
@@ -191,21 +191,13 @@ one project. Workspace packages keep small `dev`/`build`/`test` scripts for
 
 ```text
 muon/
-├── apps/                 # Enterprise API and Admin Web apps
-├── packages/             # Shared workspace packages
-├── public/              # Static web assets, including the Muon logo
-├── electron/            # Electron main and preload sources
-├── build/icons/         # Electron package icons
-├── src/                  # Vue frontend source
-│   ├── app/              # App shell, router, layouts
-│   ├── features/         # Feature modules (chat, auth, etc.)
-│   ├── matrix/           # Matrix SDK integration layer
-│   ├── shared/           # Shared components, utils, composables
-│   ├── electron/         # Renderer-side desktop bridge adapters
-│   └── locales/          # i18n translation files
-├── tests/
-│   ├── unit/             # Vitest unit tests
-│   └── e2e/              # Playwright e2e tests
+├── apps/
+│   ├── desktop/           # Electron desktop app: renderer, main/preload, tests
+│   ├── api/               # Enterprise API service
+│   └── admin/             # Admin Web console
+├── packages/              # Shared workspace packages
+├── public/                # Shared static brand assets, including the Muon logo
+├── build/icons/           # Electron package icons
 ├── docker/               # Local dev homeserver (Conduit + LiveKit)
 └── .github/workflows/    # CI + release pipelines
 ```
