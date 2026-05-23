@@ -6,41 +6,41 @@ export interface LocalServiceUser {
   avatarUrl?: string
 }
 
-export type LocalServiceMessageContent
-  = | {
-    'msgtype': 'm.text' | 'm.notice'
-    'body': string
-    'format'?: typeof MATRIX_HTML_FORMAT
-    'formatted_body'?: string
-    'm.mentions'?: { user_ids: string[] }
-  }
+export type LocalServiceMessageContent =
   | {
-    msgtype: 'm.image'
-    body: string
-    url: string
-    info: { mimetype: string, size: number, w: number, h: number }
-  }
-  | {
-    msgtype: 'm.file'
-    body: string
-    url: string
-    info: { mimetype: string, size: number }
-  }
-  | {
-    msgtype: 'm.audio'
-    body: string
-    url: string
-    info: { mimetype: string, size: number, duration: number }
-  }
-  | {
-    'msgtype': 'im.muon.contact_card'
-    'body': string
-    'im.muon.contact_card': {
-      user_id: string
-      display_name: string
-      avatar_url?: string
+      msgtype: 'm.text' | 'm.notice'
+      body: string
+      format?: typeof MATRIX_HTML_FORMAT
+      formatted_body?: string
+      'm.mentions'?: { user_ids: string[] }
     }
-  }
+  | {
+      msgtype: 'm.image'
+      body: string
+      url: string
+      info: { mimetype: string; size: number; w: number; h: number }
+    }
+  | {
+      msgtype: 'm.file'
+      body: string
+      url: string
+      info: { mimetype: string; size: number }
+    }
+  | {
+      msgtype: 'm.audio'
+      body: string
+      url: string
+      info: { mimetype: string; size: number; duration: number }
+    }
+  | {
+      msgtype: 'im.muon.contact_card'
+      body: string
+      'im.muon.contact_card': {
+        user_id: string
+        display_name: string
+        avatar_url?: string
+      }
+    }
 
 export interface LocalServiceMessage {
   sender: string
@@ -111,7 +111,12 @@ function text(sender: string, body: string, delayMs?: number): LocalServiceMessa
   }
 }
 
-function richText(sender: string, body: string, formattedBody: string, mentionLocalparts: string[] = []): LocalServiceMessage {
+function richText(
+  sender: string,
+  body: string,
+  formattedBody: string,
+  mentionLocalparts: string[] = [],
+): LocalServiceMessage {
   return {
     sender,
     content: {
@@ -120,7 +125,7 @@ function richText(sender: string, body: string, formattedBody: string, mentionLo
       format: MATRIX_HTML_FORMAT,
       formatted_body: formattedBody,
       ...(mentionLocalparts.length
-        ? { 'm.mentions': { user_ids: mentionLocalparts.map(localpart => userId(localpart)) } }
+        ? { 'm.mentions': { user_ids: mentionLocalparts.map((localpart) => userId(localpart)) } }
         : {}),
     },
   }
@@ -166,8 +171,8 @@ function contactCard(sender: string, localpart: string, displayName: string): Lo
   return {
     sender,
     content: {
-      'msgtype': 'im.muon.contact_card',
-      'body': `[Contact] ${displayName}`,
+      msgtype: 'im.muon.contact_card',
+      body: `[Contact] ${displayName}`,
       'im.muon.contact_card': {
         user_id: userId(localpart),
         display_name: displayName,
@@ -510,7 +515,13 @@ export const LOCAL_SERVICE_MOCK_DATA: LocalServiceMockData = {
               members: SERVICE_MEMBERS,
               messages: [
                 image('xiaofang', '媒体预览.png', 'local_media_preview', 1200, 800),
-                file('xiaojie', '验收记录.xlsx', 'local_acceptance_sheet', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 42_000),
+                file(
+                  'xiaojie',
+                  '验收记录.xlsx',
+                  'local_acceptance_sheet',
+                  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                  42_000,
+                ),
                 audio('xiaogang', 6_200, 'local_voice_preview'),
               ],
             },

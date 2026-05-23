@@ -34,11 +34,12 @@ const InputStub = defineComponent({
   },
   emits: ['update:modelValue'],
   setup(props, { attrs, emit }) {
-    return () => h('input', {
-      ...attrs,
-      value: props.modelValue,
-      onInput: (event: Event) => emit('update:modelValue', (event.target as HTMLInputElement).value),
-    })
+    return () =>
+      h('input', {
+        ...attrs,
+        value: props.modelValue,
+        onInput: (event: Event) => emit('update:modelValue', (event.target as HTMLInputElement).value),
+      })
   },
 })
 
@@ -50,9 +51,7 @@ function workflowFixture(): Workflow {
       { key: 'todo', name: '待办', color: '#e5e7eb', category: 'todo' },
       { key: 'done', name: '已完成', color: '#22c55e', category: 'done' },
     ],
-    transitions: [
-      { from: 'todo', to: 'done', name: '完成' },
-    ],
+    transitions: [{ from: 'todo', to: 'done', name: '完成' }],
   }
 }
 
@@ -101,15 +100,12 @@ describe('workflowEditor', () => {
     await wrapper.get('[data-testid="project-workflow-save"]').trigger('click')
     await flushPromises()
 
-    expect(workflowMock.saveWorkflow).toHaveBeenCalledWith(expect.objectContaining({
-      statuses: [
-        expect.objectContaining({ key: 'backlog' }),
-        expect.objectContaining({ key: 'done' }),
-      ],
-      transitions: [
-        expect.objectContaining({ from: 'backlog', to: 'done' }),
-      ],
-    }))
+    expect(workflowMock.saveWorkflow).toHaveBeenCalledWith(
+      expect.objectContaining({
+        statuses: [expect.objectContaining({ key: 'backlog' }), expect.objectContaining({ key: 'done' })],
+        transitions: [expect.objectContaining({ from: 'backlog', to: 'done' })],
+      }),
+    )
   })
 
   it('removes transitions that reference a deleted status', async () => {
@@ -123,11 +119,11 @@ describe('workflowEditor', () => {
     await wrapper.get('[data-testid="project-workflow-save"]').trigger('click')
     await flushPromises()
 
-    expect(workflowMock.saveWorkflow).toHaveBeenCalledWith(expect.objectContaining({
-      statuses: [
-        expect.objectContaining({ key: 'done' }),
-      ],
-      transitions: [],
-    }))
+    expect(workflowMock.saveWorkflow).toHaveBeenCalledWith(
+      expect.objectContaining({
+        statuses: [expect.objectContaining({ key: 'done' })],
+        transitions: [],
+      }),
+    )
   })
 })

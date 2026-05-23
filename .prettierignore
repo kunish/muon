@@ -1,0 +1,16 @@
+node_modules
+dist
+out
+release
+coverage
+playwright-report
+test-results
+docker/conduit_data
+docker/minio_data
+design/stitch
+docs/superpowers
+.superpowers
+.worktrees
+*.log
+CHANGELOG.md
+pnpm-lock.yaml

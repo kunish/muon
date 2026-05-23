@@ -68,9 +68,7 @@ function dispatchBackgroundWheel(): WheelEvent {
 
 describe('context menu scroll lock', () => {
   it('prevents the chat timeline from scrolling while a message context menu is open', async () => {
-    const ChatMessage = (
-      await import('@/features/chat/components/ChatMessage.vue')
-    ).default
+    const ChatMessage = (await import('@/features/chat/components/ChatMessage.vue')).default
 
     const wrapper = mount(ChatMessage, {
       props: {
@@ -104,9 +102,7 @@ describe('context menu scroll lock', () => {
   })
 
   it('prevents the conversation list from scrolling while its context menu is open', async () => {
-    const ConversationContextMenu = (
-      await import('@/features/chat/components/ConversationContextMenu.vue')
-    ).default
+    const ConversationContextMenu = (await import('@/features/chat/components/ConversationContextMenu.vue')).default
     const store = useChatStore()
 
     store.openContextMenu('!dm:localhost', 32, 48)
@@ -123,9 +119,7 @@ describe('context menu scroll lock', () => {
   })
 
   it('prevents the member panel from scrolling while its context menu is open', async () => {
-    const MemberContextMenu = (
-      await import('@/features/server/components/MemberContextMenu.vue')
-    ).default
+    const MemberContextMenu = (await import('@/features/server/components/MemberContextMenu.vue')).default
 
     const wrapper = mount(MemberContextMenu, {
       props: {

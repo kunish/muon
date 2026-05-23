@@ -1,47 +1,43 @@
 <script setup lang="ts">
-import { getClient } from '@matrix/client'
-import { Download, FileText, Film, Image, Music, Search } from 'lucide-vue-next'
-import { computed, ref } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { toast } from 'vue-sonner'
-import { downloadMediaFile } from '@/shared/lib/download'
-import { useChatStore } from '../stores/chatStore'
+import { getClient } from '@matrix/client';
+import { Download, FileText, Film, Image, Music, Search } from 'lucide-vue-next';
+import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { toast } from 'vue-sonner';
+import { downloadMediaFile } from '@/shared/lib/download';
+import { useChatStore } from '../stores/chatStore';
 
-const { t, locale } = useI18n()
-const store = useChatStore()
-const searchQuery = ref('')
+const { t, locale } = useI18n();
+const store = useChatStore();
+const searchQuery = ref('');
 
 interface FileItem {
-  eventId: string
-  name: string
-  size: number
-  mimetype: string
-  msgtype: string
-  sender: string
-  timestamp: number
-  url: string
+  eventId: string;
+  name: string;
+  size: number;
+  mimetype: string;
+  msgtype: string;
+  sender: string;
+  timestamp: number;
+  url: string;
 }
 
 const files = computed<FileItem[]>(() => {
-  const client = getClient()
-  const roomId = store.currentRoomId
-  if (!roomId)
-    return []
+  const client = getClient();
+  const roomId = store.currentRoomId;
+  if (!roomId) return [];
 
-  const room = client.getRoom(roomId)
-  if (!room)
-    return []
+  const room = client.getRoom(roomId);
+  if (!room) return [];
 
-  const timeline = room.getLiveTimeline().getEvents()
-  const result: FileItem[] = []
+  const timeline = room.getLiveTimeline().getEvents();
+  const result: FileItem[] = [];
 
   for (const ev of timeline) {
-    if (ev.getType() !== 'm.room.message')
-      continue
-    const content = ev.getContent()
-    const msgtype = content?.msgtype as string | undefined
-    if (!msgtype || !['m.file', 'm.image', 'm.video', 'm.audio'].includes(msgtype))
-      continue
+    if (ev.getType() !== 'm.room.message') continue;
+    const content = ev.getContent();
+    const msgtype = content?.msgtype as string | undefined;
+    if (!msgtype || !['m.file', 'm.image', 'm.video', 'm.audio'].includes(msgtype)) continue;
 
     result.push({
       eventId: ev.getId() || '',
@@ -52,68 +48,71 @@ const files = computed<FileItem[]>(() => {
       sender: ev.getSender() || '',
       timestamp: ev.getTs(),
       url: content.url || '',
-    })
+    });
   }
 
-  return result.sort((a, b) => b.timestamp - a.timestamp)
-})
+  return result.sort((a, b) => b.timestamp - a.timestamp);
+});
 
 const filteredFiles = computed(() => {
-  if (!searchQuery.value.trim())
-    return files.value
-  const q = searchQuery.value.toLowerCase()
-  return files.value.filter(f => f.name.toLowerCase().includes(q))
-})
+  if (!searchQuery.value.trim()) return files.value;
+  const q = searchQuery.value.toLowerCase();
+  return files.value.filter((f) => f.name.toLowerCase().includes(q));
+});
 
 function formatSize(bytes: number) {
-  if (bytes < 1024)
-    return `${bytes} B`
-  if (bytes < 1024 * 1024)
-    return `${(bytes / 1024).toFixed(1)} KB`
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function formatDate(ts: number) {
-  const d = new Date(ts)
-  const now = new Date()
+  const d = new Date(ts);
+  const now = new Date();
   if (d.toDateString() === now.toDateString()) {
-    return d.toLocaleTimeString(locale.value, { hour: '2-digit', minute: '2-digit' })
+    return d.toLocaleTimeString(locale.value, { hour: '2-digit', minute: '2-digit' });
   }
-  return d.toLocaleDateString(locale.value, { month: 'short', day: 'numeric' })
+  return d.toLocaleDateString(locale.value, { month: 'short', day: 'numeric' });
 }
 
 function getFileIcon(msgtype: string) {
   switch (msgtype) {
-    case 'm.image': return Image
-    case 'm.video': return Film
-    case 'm.audio': return Music
-    default: return FileText
+    case 'm.image':
+      return Image;
+    case 'm.video':
+      return Film;
+    case 'm.audio':
+      return Music;
+    default:
+      return FileText;
   }
 }
 
 function getFileIconClass(msgtype: string) {
   switch (msgtype) {
-    case 'm.image': return 'text-success bg-success/5'
-    case 'm.video': return 'text-destructive/70 bg-destructive/5'
-    case 'm.audio': return 'text-secondary bg-secondary/5'
-    default: return 'text-primary bg-primary/5'
+    case 'm.image':
+      return 'text-success bg-success/5';
+    case 'm.video':
+      return 'text-destructive/70 bg-destructive/5';
+    case 'm.audio':
+      return 'text-secondary bg-secondary/5';
+    default:
+      return 'text-primary bg-primary/5';
   }
 }
 
 function getSenderName(userId: string) {
-  const client = getClient()
-  const user = client.getUser(userId)
-  return user?.displayName || userId.split(':')[0]?.slice(1) || userId
+  const client = getClient();
+  const user = client.getUser(userId);
+  return user?.displayName || userId.split(':')[0]?.slice(1) || userId;
 }
 
 async function downloadFile(file: FileItem) {
-  if (!file.url)
-    return
+  if (!file.url) return;
   try {
-    await downloadMediaFile(file.url, file.name)
-  }
-  catch {
-    toast.error(t('chat.download_failed'))
+    await downloadMediaFile(file.url, file.name);
+  } catch {
+    toast.error(t('chat.download_failed'));
   }
 }
 </script>
@@ -123,16 +122,13 @@ async function downloadFile(file: FileItem) {
     <!-- Search bar -->
     <div class="px-4 py-3 border-b border-border/40 shrink-0">
       <div class="relative">
-        <Search
-          class="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/40"
-          :size="13"
-        />
+        <Search class="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/40" :size="13" />
         <input
           v-model="searchQuery"
           type="text"
           :placeholder="t('chat.search_files')"
           class="w-full h-[30px] pl-7.5 pr-3 text-[12px] rounded-lg bg-accent/40 border border-transparent outline-none placeholder:text-muted-foreground/35 focus:bg-accent/70 focus:border-ring/20"
-        >
+        />
       </div>
     </div>
 
@@ -179,7 +175,9 @@ async function downloadFile(file: FileItem) {
         <div class="w-16 h-16 rounded-2xl bg-accent/50 flex items-center justify-center mb-4">
           <FileText :size="28" class="opacity-40" />
         </div>
-        <span class="text-sm font-medium">{{ searchQuery ? t('chat.no_matching_files') : t('chat.no_shared_files') }}</span>
+        <span class="text-sm font-medium">{{
+          searchQuery ? t('chat.no_matching_files') : t('chat.no_shared_files')
+        }}</span>
         <span class="text-xs mt-1 text-muted-foreground/30">{{ t('chat.no_shared_files_hint') }}</span>
       </div>
     </div>

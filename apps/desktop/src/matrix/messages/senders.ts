@@ -13,10 +13,10 @@ const NON_PLAIN_HTML_RE = /<(?:[abisu]|blockquote|code|del|em|h[1-6]|img|li|ol|p
 const MATRIX_HTML_FORMAT = 'org.matrix.custom.html' as const
 
 interface MatrixTextContent {
-  'msgtype': MsgType.Text
-  'body': string
-  'format'?: typeof MATRIX_HTML_FORMAT
-  'formatted_body'?: string
+  msgtype: MsgType.Text
+  body: string
+  format?: typeof MATRIX_HTML_FORMAT
+  formatted_body?: string
   'm.mentions'?: { user_ids: string[] }
   // MSC4019 (unstable). Recognizing clients should suppress notifications and
   // sound; others fall back to normal notifying behavior. Track stabilization at
@@ -29,17 +29,14 @@ interface MatrixTextContent {
  * TipTap: <span data-type="mention" data-id="@user:server" class="mention">@DisplayName</span>
  * Matrix: <a href="https://matrix.to/#/@user:server">DisplayName</a>
  */
-function convertMentionsToMatrix(html: string): { html: string, userIds: string[] } {
+function convertMentionsToMatrix(html: string): { html: string; userIds: string[] } {
   const userIds: string[] = []
-  const converted = html.replace(
-    MENTION_SPAN_RE,
-    (_match, userId: string, label: string) => {
-      if (userId && !userIds.includes(userId)) {
-        userIds.push(userId)
-      }
-      return `<a href="https://matrix.to/#/${userId}">${label}</a>`
-    },
-  )
+  const converted = html.replace(MENTION_SPAN_RE, (_match, userId: string, label: string) => {
+    if (userId && !userIds.includes(userId)) {
+      userIds.push(userId)
+    }
+    return `<a href="https://matrix.to/#/${userId}">${label}</a>`
+  })
   return { html: converted, userIds }
 }
 
@@ -82,15 +79,14 @@ function isPlainEditorHtml(html: string, body: string): boolean {
 }
 
 export async function sendImageMessage(roomId: string, file: File): Promise<string> {
-  let meta: { width: number, height: number } | null = null
+  let meta: { width: number; height: number } | null = null
   try {
     meta = await extractImageMeta(file)
-  }
-  catch (e) {
+  } catch (e) {
     console.warn('[upload] failed to extract image meta', e)
   }
   const mxcUrl = await uploadMedia(file)
-  const info: { mimetype: string, size: number, w?: number, h?: number } = {
+  const info: { mimetype: string; size: number; w?: number; h?: number } = {
     mimetype: file.type,
     size: file.size,
   }
@@ -102,8 +98,7 @@ export async function sendImageMessage(roomId: string, file: File): Promise<stri
   let fileHash: string | undefined
   try {
     fileHash = await computeSha256(file)
-  }
-  catch {
+  } catch {
     // Hash computation is best-effort for dedup
   }
   const res = await getClient().sendMessage(roomId, {
@@ -121,8 +116,7 @@ export async function sendFileMessage(roomId: string, file: File): Promise<strin
   let fileHash: string | undefined
   try {
     fileHash = await computeSha256(file)
-  }
-  catch {
+  } catch {
     // best-effort
   }
   const res = await getClient().sendMessage(roomId, {
@@ -138,7 +132,7 @@ export async function sendFileMessage(roomId: string, file: File): Promise<strin
 export async function sendVideoMessage(
   roomId: string,
   file: File,
-  meta?: { thumbnail: Blob, width: number, height: number, duration: number },
+  meta?: { thumbnail: Blob; width: number; height: number; duration: number },
 ): Promise<string> {
   const mxcUrl = await uploadMedia(file)
   const info: VideoInfo = { mimetype: file.type, size: file.size }
@@ -156,8 +150,7 @@ export async function sendVideoMessage(
   let fileHash: string | undefined
   try {
     fileHash = await computeSha256(file)
-  }
-  catch {
+  } catch {
     // best-effort
   }
   const res = await getClient().sendMessage(roomId, {
@@ -231,12 +224,7 @@ export async function replyToMessage(
 }
 
 /** 发送 GIF 消息（作为 m.image，mimetype 标记为 image/gif） */
-export async function sendGifMessage(
-  roomId: string,
-  url: string,
-  width: number,
-  height: number,
-): Promise<string> {
+export async function sendGifMessage(roomId: string, url: string, width: number, height: number): Promise<string> {
   let gifBlob: Blob
 
   try {
@@ -247,22 +235,20 @@ export async function sendGifMessage(
     const buf = await res.arrayBuffer()
     const contentType = res.headers.get('content-type') || 'image/gif'
     gifBlob = new Blob([buf], { type: contentType })
-  }
-  catch {
+  } catch {
     // Fallback: browser fetch (for environments where plugin-http is unavailable)
     const resp = await fetch(url)
-    if (!resp.ok)
-      throw new Error(`GIF fetch failed: ${resp.status}`)
+    if (!resp.ok) throw new Error(`GIF fetch failed: ${resp.status}`)
     gifBlob = await resp.blob()
   }
 
   const mxcUrl = await uploadMedia(gifBlob)
 
   const res = await getClient().sendMessage(roomId, {
-    'msgtype': MsgType.Image,
-    'body': 'GIF',
-    'url': mxcUrl,
-    'info': {
+    msgtype: MsgType.Image,
+    body: 'GIF',
+    url: mxcUrl,
+    info: {
       mimetype: 'image/gif',
       size: gifBlob.size,
       w: width,
@@ -279,7 +265,7 @@ export async function sendStickerMessage(roomId: string, emoji: string, name: st
     body: name,
     url: '',
     info: {
-      'mimetype': 'text/plain',
+      mimetype: 'text/plain',
       'xyz.muon.emoji': emoji,
     },
   } as StickerEventContent)
@@ -291,7 +277,7 @@ export async function sendImageStickerMessage(
   roomId: string,
   name: string,
   mxcUrl: string,
-  info: { w: number, h: number, mimetype: string, size?: number },
+  info: { w: number; h: number; mimetype: string; size?: number },
 ): Promise<string> {
   const res = await getClient().sendEvent(roomId, EventType.Sticker, {
     body: name,
@@ -326,15 +312,9 @@ export async function sendLocationMessage(
 }
 
 /** 合并转发多条消息到目标房间 */
-export async function forwardMessages(
-  roomId: string,
-  targetRoomId: string,
-  eventIds: string[],
-): Promise<string> {
+export async function forwardMessages(roomId: string, targetRoomId: string, eventIds: string[]): Promise<string> {
   const timeline = getTimeline(roomId)
-  const events = eventIds
-    .map(id => timeline.find(e => e.getId() === id))
-    .filter(Boolean)
+  const events = eventIds.map((id) => timeline.find((e) => e.getId() === id)).filter(Boolean)
 
   const bodies = events.map((e) => {
     const sender = e!.getSender() || 'Unknown'
@@ -365,8 +345,8 @@ export async function sendContactCard(
   avatarUrl?: string,
 ): Promise<string> {
   const { event_id } = await getClient().sendMessage(roomId, {
-    'msgtype': 'im.muon.contact_card',
-    'body': `[Contact] ${displayName}`,
+    msgtype: 'im.muon.contact_card',
+    body: `[Contact] ${displayName}`,
     'im.muon.contact_card': {
       user_id: userId,
       display_name: displayName,

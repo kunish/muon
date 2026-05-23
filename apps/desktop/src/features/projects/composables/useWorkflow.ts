@@ -45,20 +45,17 @@ export function useWorkflow(projectId: () => string) {
   }
 
   function canTransition(wf: Workflow, fromStatus: string, toStatus: string): boolean {
-    return wf.transitions.some(t => t.from === fromStatus && t.to === toStatus)
+    return wf.transitions.some((t) => t.from === fromStatus && t.to === toStatus)
   }
 
   function getAvailableTransitions(wf: Workflow, currentStatus: string): string[] {
-    return wf.transitions
-      .filter(t => t.from === currentStatus)
-      .map(t => t.to)
+    return wf.transitions.filter((t) => t.from === currentStatus).map((t) => t.to)
   }
 
   async function changeStatus(itemId: string, toStatus: string): Promise<void> {
     const wf = await loadWorkflow()
     const item = await projectRepo.getWorkItem(itemId)
-    if (!item)
-      throw new Error('Work item not found')
+    if (!item) throw new Error('Work item not found')
 
     if (!canTransition(wf, item.status, toStatus)) {
       throw new Error(`Cannot transition from "${item.status}" to "${toStatus}"`)

@@ -1,24 +1,26 @@
 <script setup lang="ts">
-import { onErrorCaptured, ref } from 'vue'
-import { useI18n } from 'vue-i18n'
+import { onErrorCaptured, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
-const error = ref<Error | null>(null)
-const { t } = useI18n()
+const error = ref<Error | null>(null);
+const { t } = useI18n();
 
 onErrorCaptured((err: Error) => {
-  error.value = err
-  return false
-})
+  error.value = err;
+  return false;
+});
 
 function handleReload() {
-  window.location.reload()
+  window.location.reload();
 }
 </script>
 
 <template>
   <div v-if="error" class="flex h-full items-center justify-center bg-background">
     <div class="max-w-sm text-center space-y-4 p-6">
-      <div class="w-12 h-12 mx-auto rounded-full bg-destructive/10 text-destructive flex items-center justify-center text-xl">
+      <div
+        class="w-12 h-12 mx-auto rounded-full bg-destructive/10 text-destructive flex items-center justify-center text-xl"
+      >
         !
       </div>
       <h2 class="text-lg font-medium">

@@ -1,21 +1,20 @@
 <script setup lang="ts">
-import { Button } from '@muon/ui/button'
-import { ref } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { checkForUpdates, installUpdate, updateAvailable, updateVersion, updating } from '@/desktop/updater'
+import { Button } from '@muon/ui/button';
+import { ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { checkForUpdates, installUpdate, updateAvailable, updateVersion, updating } from '@/desktop/updater';
 
-const { t } = useI18n()
-const APP_VERSION = __APP_VERSION__ as string
+const { t } = useI18n();
+const APP_VERSION = __APP_VERSION__ as string;
 
-const checking = ref(false)
+const checking = ref(false);
 
 async function handleCheck() {
-  checking.value = true
+  checking.value = true;
   try {
-    await checkForUpdates()
-  }
-  finally {
-    checking.value = false
+    await checkForUpdates();
+  } finally {
+    checking.value = false;
   }
 }
 </script>
@@ -32,12 +31,8 @@ async function handleCheck() {
           M
         </div>
         <div>
-          <div class="font-medium">
-            Muon
-          </div>
-          <div class="text-xs text-muted-foreground">
-            v{{ APP_VERSION }}
-          </div>
+          <div class="font-medium">Muon</div>
+          <div class="text-xs text-muted-foreground">v{{ APP_VERSION }}</div>
         </div>
       </div>
 
@@ -56,14 +51,7 @@ async function handleCheck() {
           {{ updating ? t('settings.updating') : t('settings.update_now') }}
         </Button>
       </div>
-      <Button
-        v-else
-        variant="outline"
-        size="sm"
-        :disabled="checking"
-        :loading="checking"
-        @click="handleCheck"
-      >
+      <Button v-else variant="outline" size="sm" :disabled="checking" :loading="checking" @click="handleCheck">
         {{ checking ? t('settings.checking') : t('settings.check_update') }}
       </Button>
     </div>

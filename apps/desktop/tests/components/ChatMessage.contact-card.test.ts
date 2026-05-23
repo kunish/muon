@@ -13,17 +13,15 @@ vi.mock('@/desktop/dialog', () => ({
 
 describe('chatMessage contact card', () => {
   it('renders shared contact cards with the dedicated card UI', async () => {
-    const ChatMessage = (
-      await import('@/features/chat/components/ChatMessage.vue')
-    ).default
+    const ChatMessage = (await import('@/features/chat/components/ChatMessage.vue')).default
 
     const event = {
       getId: () => '$contact1',
       getType: () => 'm.room.message',
       getSender: () => '@alice:localhost',
       getContent: () => ({
-        'msgtype': 'im.muon.contact_card',
-        'body': '[Contact]',
+        msgtype: 'im.muon.contact_card',
+        body: '[Contact]',
         'im.muon.contact_card': {
           user_id: '@bob:localhost',
           display_name: 'Bob Stone',

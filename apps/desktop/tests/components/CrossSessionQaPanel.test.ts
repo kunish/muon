@@ -113,7 +113,7 @@ describe('crossSessionQaPanel', () => {
     expect(wrapper.text()).toContain('Earlier question')
 
     const store = useQaStore()
-    expect(store.history.map(item => item.id)).toEqual(['qa-2', 'qa-1'])
+    expect(store.history.map((item) => item.id)).toEqual(['qa-2', 'qa-1'])
   })
 
   it('supports citation click with preload fallback navigation', async () => {

@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { Progress } from '@muon/ui/progress'
+import { Progress } from '@muon/ui/progress';
 
 defineProps<{
-  progress: number
-  visible: boolean
-}>()
+  progress: number;
+  visible: boolean;
+}>();
 </script>
 
 <template>

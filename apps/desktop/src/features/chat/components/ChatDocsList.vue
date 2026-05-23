@@ -1,15 +1,15 @@
 <script setup lang="ts">
-import { getClient } from '@matrix/client'
-import { Download, FileText, Search } from 'lucide-vue-next'
-import { computed, ref } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { toast } from 'vue-sonner'
-import { downloadMediaFile } from '@/shared/lib/download'
-import { useChatStore } from '../stores/chatStore'
+import { getClient } from '@matrix/client';
+import { Download, FileText, Search } from 'lucide-vue-next';
+import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { toast } from 'vue-sonner';
+import { downloadMediaFile } from '@/shared/lib/download';
+import { useChatStore } from '../stores/chatStore';
 
-const { t, locale } = useI18n()
-const store = useChatStore()
-const searchQuery = ref('')
+const { t, locale } = useI18n();
+const store = useChatStore();
+const searchQuery = ref('');
 
 const DOC_EXTENSIONS = new Set([
   'doc',
@@ -26,45 +26,40 @@ const DOC_EXTENSIONS = new Set([
   'odp',
   'csv',
   'md',
-])
+]);
 
 interface DocItem {
-  eventId: string
-  name: string
-  size: number
-  mimetype: string
-  sender: string
-  timestamp: number
-  url: string
-  ext: string
+  eventId: string;
+  name: string;
+  size: number;
+  mimetype: string;
+  sender: string;
+  timestamp: number;
+  url: string;
+  ext: string;
 }
 
 const docs = computed<DocItem[]>(() => {
-  const client = getClient()
-  const roomId = store.currentRoomId
-  if (!roomId)
-    return []
+  const client = getClient();
+  const roomId = store.currentRoomId;
+  if (!roomId) return [];
 
-  const room = client.getRoom(roomId)
-  if (!room)
-    return []
+  const room = client.getRoom(roomId);
+  if (!room) return [];
 
-  const timeline = room.getLiveTimeline().getEvents()
-  const result: DocItem[] = []
+  const timeline = room.getLiveTimeline().getEvents();
+  const result: DocItem[] = [];
 
   for (const ev of timeline) {
-    if (ev.getType() !== 'm.room.message')
-      continue
-    const content = ev.getContent()
-    if (content?.msgtype !== 'm.file')
-      continue
+    if (ev.getType() !== 'm.room.message') continue;
+    const content = ev.getContent();
+    if (content?.msgtype !== 'm.file') continue;
 
-    const name = content.body || ''
-    const dot = name.lastIndexOf('.')
-    const ext = dot >= 0 ? name.slice(dot + 1).toLowerCase() : ''
+    const name = content.body || '';
+    const dot = name.lastIndexOf('.');
+    const ext = dot >= 0 ? name.slice(dot + 1).toLowerCase() : '';
 
-    if (!DOC_EXTENSIONS.has(ext))
-      continue
+    if (!DOC_EXTENSIONS.has(ext)) continue;
 
     result.push({
       eventId: ev.getId() || '',
@@ -75,34 +70,31 @@ const docs = computed<DocItem[]>(() => {
       timestamp: ev.getTs(),
       url: content.url || '',
       ext: ext.toUpperCase(),
-    })
+    });
   }
 
-  return result.sort((a, b) => b.timestamp - a.timestamp)
-})
+  return result.sort((a, b) => b.timestamp - a.timestamp);
+});
 
 const filteredDocs = computed(() => {
-  if (!searchQuery.value.trim())
-    return docs.value
-  const q = searchQuery.value.toLowerCase()
-  return docs.value.filter(d => d.name.toLowerCase().includes(q))
-})
+  if (!searchQuery.value.trim()) return docs.value;
+  const q = searchQuery.value.toLowerCase();
+  return docs.value.filter((d) => d.name.toLowerCase().includes(q));
+});
 
 function formatSize(bytes: number) {
-  if (bytes < 1024)
-    return `${bytes} B`
-  if (bytes < 1024 * 1024)
-    return `${(bytes / 1024).toFixed(1)} KB`
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function formatDate(ts: number) {
-  const d = new Date(ts)
-  const now = new Date()
+  const d = new Date(ts);
+  const now = new Date();
   if (d.toDateString() === now.toDateString()) {
-    return d.toLocaleTimeString(locale.value, { hour: '2-digit', minute: '2-digit' })
+    return d.toLocaleTimeString(locale.value, { hour: '2-digit', minute: '2-digit' });
   }
-  return d.toLocaleDateString(locale.value, { month: 'short', day: 'numeric' })
+  return d.toLocaleDateString(locale.value, { month: 'short', day: 'numeric' });
 }
 
 function getDocIconColor(ext: string) {
@@ -114,24 +106,22 @@ function getDocIconColor(ext: string) {
     XLSX: 'text-success bg-success/5',
     PPT: 'text-warning bg-warning/5',
     PPTX: 'text-warning bg-warning/5',
-  }
-  return colorMap[ext] || 'text-primary bg-primary/5'
+  };
+  return colorMap[ext] || 'text-primary bg-primary/5';
 }
 
 function getSenderName(userId: string) {
-  const client = getClient()
-  const user = client.getUser(userId)
-  return user?.displayName || userId.split(':')[0]?.slice(1) || userId
+  const client = getClient();
+  const user = client.getUser(userId);
+  return user?.displayName || userId.split(':')[0]?.slice(1) || userId;
 }
 
 async function downloadDoc(doc: DocItem) {
-  if (!doc.url)
-    return
+  if (!doc.url) return;
   try {
-    await downloadMediaFile(doc.url, doc.name)
-  }
-  catch {
-    toast.error(t('chat.download_failed'))
+    await downloadMediaFile(doc.url, doc.name);
+  } catch {
+    toast.error(t('chat.download_failed'));
   }
 }
 </script>
@@ -141,16 +131,13 @@ async function downloadDoc(doc: DocItem) {
     <!-- Search bar -->
     <div class="px-4 py-3 border-b border-border/40 shrink-0">
       <div class="relative">
-        <Search
-          class="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/40"
-          :size="13"
-        />
+        <Search class="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/40" :size="13" />
         <input
           v-model="searchQuery"
           type="text"
           :placeholder="t('chat.search_docs')"
           class="w-full h-[30px] pl-7.5 pr-3 text-[12px] rounded-lg bg-accent/40 border border-transparent outline-none placeholder:text-muted-foreground/35 focus:bg-accent/70 focus:border-ring/20"
-        >
+        />
       </div>
     </div>
 
@@ -162,10 +149,7 @@ async function downloadDoc(doc: DocItem) {
         class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-accent/40 transition-colors group"
       >
         <!-- Doc icon -->
-        <div
-          class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
-          :class="getDocIconColor(doc.ext)"
-        >
+        <div class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" :class="getDocIconColor(doc.ext)">
           <FileText :size="18" />
         </div>
 

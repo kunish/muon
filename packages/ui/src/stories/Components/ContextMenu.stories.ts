@@ -18,9 +18,7 @@ const meta: Meta<typeof ContextMenu> = {
 
 export default meta
 type Story = StoryObj<typeof ContextMenu>
-type ContextMenuStoryItem
-  = | { label: string, icon?: any, danger?: boolean, separator?: false }
-    | { separator: true }
+type ContextMenuStoryItem = { label: string; icon?: any; danger?: boolean; separator?: false } | { separator: true }
 
 // reka-ui's ContextMenuTrigger listens for the native `contextmenu` event
 // (no controlled `open` prop, unlike Dialog/Popover). The story dispatches
@@ -35,15 +33,16 @@ function makeContextMenuStory(triggerLabel: string, items: ContextMenuStoryItem[
         // small delay so reka-ui's listeners attach before we fire
         setTimeout(() => {
           const target = triggerEl.value
-          if (!target)
-            return
+          if (!target) return
           const rect = target.getBoundingClientRect()
-          target.dispatchEvent(new MouseEvent('contextmenu', {
-            bubbles: true,
-            cancelable: true,
-            clientX: rect.left + rect.width / 2,
-            clientY: rect.top + rect.height / 2,
-          }))
+          target.dispatchEvent(
+            new MouseEvent('contextmenu', {
+              bubbles: true,
+              cancelable: true,
+              clientX: rect.left + rect.width / 2,
+              clientY: rect.top + rect.height / 2,
+            }),
+          )
         }, 100)
       })
 
@@ -51,25 +50,30 @@ function makeContextMenuStory(triggerLabel: string, items: ContextMenuStoryItem[
         h('div', { class: 'flex items-center justify-center min-h-screen' }, [
           h(ContextMenu, null, {
             default: () => [
-              h(ContextMenuTrigger, { asChild: true }, {
-                default: () => h('div', {
-                  ref: triggerEl,
-                  class: 'rounded-md border bg-card px-6 py-4 text-sm text-muted-foreground',
-                }, triggerLabel),
-              }),
+              h(
+                ContextMenuTrigger,
+                { asChild: true },
+                {
+                  default: () =>
+                    h(
+                      'div',
+                      {
+                        ref: triggerEl,
+                        class: 'rounded-md border bg-card px-6 py-4 text-sm text-muted-foreground',
+                      },
+                      triggerLabel,
+                    ),
+                },
+              ),
               h(ContextMenuContent, null, {
-                default: () => items.map((item, i) => {
-                  if (item.separator)
-                    return h(ContextMenuSeparator, { key: `sep-${i}` })
-                  return h(
-                    ContextMenuItem,
-                    { key: i, class: item.danger ? 'text-destructive' : undefined },
-                    () => [
+                default: () =>
+                  items.map((item, i) => {
+                    if (item.separator) return h(ContextMenuSeparator, { key: `sep-${i}` })
+                    return h(ContextMenuItem, { key: i, class: item.danger ? 'text-destructive' : undefined }, () => [
                       item.icon ? h(item.icon) : null,
                       h('span', null, item.label),
-                    ],
-                  )
-                }),
+                    ])
+                  }),
               }),
             ],
           }),
@@ -79,11 +83,12 @@ function makeContextMenuStory(triggerLabel: string, items: ContextMenuStoryItem[
 }
 
 export const MessageBubble: Story = {
-  render: () => makeContextMenuStory('右键此消息', [
-    { label: '回复', icon: Reply },
-    { label: '复制', icon: Copy },
-    { label: '置顶', icon: Pin },
-    { separator: true },
-    { label: '删除', icon: Trash, danger: true },
-  ]),
+  render: () =>
+    makeContextMenuStory('右键此消息', [
+      { label: '回复', icon: Reply },
+      { label: '复制', icon: Copy },
+      { label: '置顶', icon: Pin },
+      { separator: true },
+      { label: '删除', icon: Trash, danger: true },
+    ]),
 }

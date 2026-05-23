@@ -1,95 +1,96 @@
 <script setup lang="ts">
-import type { ReminderPreset } from '../types/defer'
-import type { InboxFilterType, UnifiedInboxItem } from '../types/unifiedInbox'
-import { useVirtualizer } from '@tanstack/vue-virtual'
-import { computed, ref } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { useUnifiedInbox } from '../composables/useUnifiedInbox'
-import { useDeferStore } from '../stores/deferStore'
-import { useInboxStore } from '../stores/inboxStore'
+import type { ReminderPreset } from '../types/defer';
+import type { InboxFilterType, UnifiedInboxItem } from '../types/unifiedInbox';
+import { useVirtualizer } from '@tanstack/vue-virtual';
+import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useUnifiedInbox } from '../composables/useUnifiedInbox';
+import { useDeferStore } from '../stores/deferStore';
+import { useInboxStore } from '../stores/inboxStore';
 
 const emit = defineEmits<{
-  jump: [payload: { roomId: string, eventId: string }]
-}>()
+  jump: [payload: { roomId: string; eventId: string }];
+}>();
 
-const { t } = useI18n()
-const store = useInboxStore()
-const deferStore = useDeferStore()
-const { items, counts, isLoading } = useUnifiedInbox()
+const { t } = useI18n();
+const store = useInboxStore();
+const deferStore = useDeferStore();
+const { items, counts, isLoading } = useUnifiedInbox();
 
-const deferMenuItemId = ref<string | null>(null)
-const customInputByItemId = ref<Record<string, string>>({})
-const customDeferOpenByItemId = ref<Record<string, boolean>>({})
-const scrollRef = ref<HTMLElement | null>(null)
+const deferMenuItemId = ref<string | null>(null);
+const customInputByItemId = ref<Record<string, string>>({});
+const customDeferOpenByItemId = ref<Record<string, boolean>>({});
+const scrollRef = ref<HTMLElement | null>(null);
 
-const ITEM_HEIGHT = 88
-const FALLBACK_VISIBLE_COUNT = 24
+const ITEM_HEIGHT = 88;
+const FALLBACK_VISIBLE_COUNT = 24;
 
-const deferPresetOptions: Array<{ key: Exclude<ReminderPreset, 'custom' | 'later-today' | 'next-week'>, actionId: string, labelKey: string }> = [
+const deferPresetOptions: Array<{
+  key: Exclude<ReminderPreset, 'custom' | 'later-today' | 'next-week'>;
+  actionId: string;
+  labelKey: string;
+}> = [
   { key: 'in-1-hour', actionId: '1h', labelKey: 'chat.defer_preset_1h' },
   { key: 'tonight', actionId: 'tonight', labelKey: 'chat.defer_preset_tonight' },
   { key: 'tomorrow-morning', actionId: 'tomorrow-morning', labelKey: 'chat.defer_preset_tomorrow_morning' },
   { key: 'tomorrow', actionId: 'tomorrow', labelKey: 'chat.defer_preset_tomorrow' },
-]
+];
 
-const filterTabs: Array<{ key: InboxFilterType, label: string }> = [
+const filterTabs: Array<{ key: InboxFilterType; label: string }> = [
   { key: 'all', label: t('chat.inbox_filter_all') },
   { key: 'mention', label: t('chat.inbox_filter_mention') },
   { key: 'priority-unread', label: t('chat.inbox_filter_priority') },
   { key: 'reply-needed', label: t('chat.inbox_filter_reply') },
-]
+];
 
-const selectedCount = computed(() => store.selectedItemIds.size)
-const virtualizer = useVirtualizer(computed(() => ({
-  count: items.value.length,
-  getScrollElement: () => scrollRef.value,
-  estimateSize: () => ITEM_HEIGHT,
-  overscan: 6,
-})))
+const selectedCount = computed(() => store.selectedItemIds.size);
+const virtualizer = useVirtualizer(
+  computed(() => ({
+    count: items.value.length,
+    getScrollElement: () => scrollRef.value,
+    estimateSize: () => ITEM_HEIGHT,
+    overscan: 6,
+  })),
+);
 const virtualItems = computed(() => {
-  const measuredItems = virtualizer.value.getVirtualItems()
-  if (measuredItems.length > 0)
-    return measuredItems
+  const measuredItems = virtualizer.value.getVirtualItems();
+  if (measuredItems.length > 0) return measuredItems;
 
   return items.value.slice(0, FALLBACK_VISIBLE_COUNT).map((_, index) => ({
     index,
     start: index * ITEM_HEIGHT,
-  }))
-})
+  }));
+});
 const totalHeight = computed(() => {
-  const measuredHeight = virtualizer.value.getTotalSize()
-  if (measuredHeight > 0)
-    return measuredHeight
-  return items.value.length * ITEM_HEIGHT
-})
+  const measuredHeight = virtualizer.value.getTotalSize();
+  if (measuredHeight > 0) return measuredHeight;
+  return items.value.length * ITEM_HEIGHT;
+});
 
 function itemTypeLabel(type: UnifiedInboxItem['type']) {
-  if (type === 'mention')
-    return t('chat.inbox_filter_mention')
-  if (type === 'priority-unread')
-    return t('chat.inbox_filter_priority')
-  return t('chat.inbox_filter_reply')
+  if (type === 'mention') return t('chat.inbox_filter_mention');
+  if (type === 'priority-unread') return t('chat.inbox_filter_priority');
+  return t('chat.inbox_filter_reply');
 }
 
 function onItemClick(item: UnifiedInboxItem) {
-  emit('jump', { roomId: item.roomId, eventId: item.eventId })
+  emit('jump', { roomId: item.roomId, eventId: item.eventId });
 }
 
 function toggleItemSelection(itemId: string) {
-  store.toggleSelection(itemId)
+  store.toggleSelection(itemId);
 }
 
 function selectAllVisible() {
-  store.selectAll(items.value.map(item => item.id))
+  store.selectAll(items.value.map((item) => item.id));
 }
 
 function toggleDeferMenu(itemId: string) {
   if (deferMenuItemId.value === itemId) {
-    deferMenuItemId.value = null
-    customDeferOpenByItemId.value[itemId] = false
-  }
-  else {
-    deferMenuItemId.value = itemId
+    deferMenuItemId.value = null;
+    customDeferOpenByItemId.value[itemId] = false;
+  } else {
+    deferMenuItemId.value = itemId;
   }
 }
 
@@ -99,15 +100,14 @@ function createDeferredByPreset(item: UnifiedInboxItem, preset: Exclude<Reminder
     roomId: item.roomId,
     eventId: item.eventId,
     reminder: { preset },
-  })
-  deferMenuItemId.value = null
+  });
+  deferMenuItemId.value = null;
 }
 
 function submitCustomDefer(item: UnifiedInboxItem) {
-  const customRaw = customInputByItemId.value[item.id]
-  const dueAt = Date.parse(customRaw)
-  if (!Number.isFinite(dueAt))
-    return
+  const customRaw = customInputByItemId.value[item.id];
+  const dueAt = Date.parse(customRaw);
+  if (!Number.isFinite(dueAt)) return;
 
   deferStore.createDeferredItem({
     id: `inbox:${item.id}:custom`,
@@ -117,8 +117,8 @@ function submitCustomDefer(item: UnifiedInboxItem) {
       preset: 'custom',
       dueAt,
     },
-  })
-  deferMenuItemId.value = null
+  });
+  deferMenuItemId.value = null;
 }
 </script>
 
@@ -137,9 +137,11 @@ function submitCustomDefer(item: UnifiedInboxItem) {
           :key="tab.key"
           type="button"
           class="px-2 py-1 text-[11px] rounded-md border transition-colors"
-          :class="store.filter === tab.key
-            ? 'bg-primary/10 border-primary/40 text-primary'
-            : 'border-border text-muted-foreground hover:bg-accent'"
+          :class="
+            store.filter === tab.key
+              ? 'bg-primary/10 border-primary/40 text-primary'
+              : 'border-border text-muted-foreground hover:bg-accent'
+          "
           :data-testid="`inbox-filter-${tab.key}`"
           @click="store.setFilter(tab.key)"
         >
@@ -172,7 +174,11 @@ function submitCustomDefer(item: UnifiedInboxItem) {
       {{ t('chat.loading') }}
     </div>
 
-    <div v-else-if="items.length === 0" class="px-3 py-4 text-center text-xs text-muted-foreground" data-testid="inbox-empty">
+    <div
+      v-else-if="items.length === 0"
+      class="px-3 py-4 text-center text-xs text-muted-foreground"
+      data-testid="inbox-empty"
+    >
       {{ t('chat.inbox_empty') }}
     </div>
 
@@ -192,7 +198,7 @@ function submitCustomDefer(item: UnifiedInboxItem) {
               :checked="store.isSelected(items[virtualItem.index]!.id)"
               :data-testid="`inbox-select-${items[virtualItem.index]!.id}`"
               @change="toggleItemSelection(items[virtualItem.index]!.id)"
-            >
+            />
             <button
               type="button"
               class="flex-1 min-w-0 text-left"
@@ -201,7 +207,9 @@ function submitCustomDefer(item: UnifiedInboxItem) {
             >
               <div class="flex items-center justify-between gap-2">
                 <span class="text-xs font-medium truncate">{{ items[virtualItem.index]!.roomName }}</span>
-                <span class="text-[10px] px-1.5 py-0.5 rounded bg-accent text-muted-foreground">{{ itemTypeLabel(items[virtualItem.index]!.type) }}</span>
+                <span class="text-[10px] px-1.5 py-0.5 rounded bg-accent text-muted-foreground">{{
+                  itemTypeLabel(items[virtualItem.index]!.type)
+                }}</span>
               </div>
               <p class="text-xs text-muted-foreground truncate mt-1">
                 {{ items[virtualItem.index]!.snippet || '...' }}
@@ -240,7 +248,10 @@ function submitCustomDefer(item: UnifiedInboxItem) {
                     type="button"
                     class="w-full rounded px-2 py-1 text-left text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
                     :data-testid="`inbox-defer-custom-toggle-${items[virtualItem.index]!.id}`"
-                    @click="customDeferOpenByItemId[items[virtualItem.index]!.id] = !customDeferOpenByItemId[items[virtualItem.index]!.id]"
+                    @click="
+                      customDeferOpenByItemId[items[virtualItem.index]!.id] =
+                        !customDeferOpenByItemId[items[virtualItem.index]!.id]
+                    "
                   >
                     {{ t('chat.defer_custom') }}
                   </button>
@@ -250,7 +261,7 @@ function submitCustomDefer(item: UnifiedInboxItem) {
                       type="datetime-local"
                       class="mt-1 w-full rounded-md border border-border bg-background px-2 py-1 text-xs"
                       :data-testid="`inbox-defer-custom-input-${items[virtualItem.index]!.id}`"
-                    >
+                    />
                     <button
                       type="button"
                       class="mt-1 w-full rounded-md bg-primary px-2 py-1 text-xs text-primary-foreground disabled:opacity-50"

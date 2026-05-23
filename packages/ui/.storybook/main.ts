@@ -5,10 +5,7 @@ import { mergeConfig } from 'vite'
 
 const config: StorybookConfig = {
   stories: ['../src/stories/**/*.stories.@(ts|tsx)'],
-  addons: [
-    '@storybook/addon-essentials',
-    '@storybook/addon-themes',
-  ],
+  addons: ['@storybook/addon-essentials', '@storybook/addon-themes'],
   framework: {
     name: '@storybook/vue3-vite',
     options: {},

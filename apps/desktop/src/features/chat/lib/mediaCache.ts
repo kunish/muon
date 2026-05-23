@@ -31,8 +31,7 @@ const MAX_ENTRY_AGE_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
 let dbPromise: Promise<IDBDatabase> | null = null
 
 function getDb(): Promise<IDBDatabase> {
-  if (dbPromise)
-    return dbPromise
+  if (dbPromise) return dbPromise
 
   dbPromise = new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION)
@@ -55,16 +54,11 @@ function getDb(): Promise<IDBDatabase> {
 
 function buildKey(mxcUrl: string, width?: number, height?: number): string {
   const base = mxcUrl.replace('mxc://', '')
-  if (width && height)
-    return `${base}__${width}x${height}`
+  if (width && height) return `${base}__${width}x${height}`
   return base
 }
 
-export async function getCachedMedia(
-  mxcUrl: string,
-  width?: number,
-  height?: number,
-): Promise<Blob | null> {
+export async function getCachedMedia(mxcUrl: string, width?: number, height?: number): Promise<Blob | null> {
   try {
     const db = await getDb()
     const key = buildKey(mxcUrl, width, height)
@@ -75,7 +69,7 @@ export async function getCachedMedia(
       const request = store.get(key)
 
       request.onsuccess = () => {
-        const entry = request.result as { blob: Blob, contentType: string, cachedAt: number } | undefined
+        const entry = request.result as { blob: Blob; contentType: string; cachedAt: number } | undefined
         if (!entry) {
           resolve(null)
           return
@@ -93,18 +87,12 @@ export async function getCachedMedia(
 
       request.onerror = () => resolve(null)
     })
-  }
-  catch {
+  } catch {
     return null
   }
 }
 
-export async function cacheMedia(
-  mxcUrl: string,
-  blob: Blob,
-  width?: number,
-  height?: number,
-): Promise<void> {
+export async function cacheMedia(mxcUrl: string, blob: Blob, width?: number, height?: number): Promise<void> {
   try {
     const db = await getDb()
     const key = buildKey(mxcUrl, width, height)
@@ -124,17 +112,12 @@ export async function cacheMedia(
       tx.oncomplete = () => resolve()
       tx.onerror = () => resolve()
     })
-  }
-  catch {
+  } catch {
     // IndexedDB might be unavailable (private browsing), silently fail
   }
 }
 
-export async function removeCachedMedia(
-  mxcUrl: string,
-  width?: number,
-  height?: number,
-): Promise<void> {
+export async function removeCachedMedia(mxcUrl: string, width?: number, height?: number): Promise<void> {
   try {
     const db = await getDb()
     const key = buildKey(mxcUrl, width, height)
@@ -145,8 +128,7 @@ export async function removeCachedMedia(
       tx.oncomplete = () => resolve()
       tx.onerror = () => resolve()
     })
-  }
-  catch {
+  } catch {
     // ignore
   }
 }
@@ -182,8 +164,7 @@ export async function getCacheStats(): Promise<CacheStats> {
       }
       tx.onerror = () => resolve({ entryCount: 0, totalSize: 0 })
     })
-  }
-  catch {
+  } catch {
     return { entryCount: 0, totalSize: 0 }
   }
 }
@@ -191,8 +172,7 @@ export async function getCacheStats(): Promise<CacheStats> {
 async function checkAndCleanup(db: IDBDatabase, newEntrySize: number): Promise<void> {
   const stats = await getStatsFromDb(db)
 
-  if (stats.totalSize + newEntrySize < CLEANUP_THRESHOLD)
-    return
+  if (stats.totalSize + newEntrySize < CLEANUP_THRESHOLD) return
 
   const entries = await getEntriesSortedByAge(db)
 
@@ -200,21 +180,18 @@ async function checkAndCleanup(db: IDBDatabase, newEntrySize: number): Promise<v
   const toDelete: string[] = []
 
   for (const entry of entries) {
-    if (stats.totalSize - freed + newEntrySize < CLEANUP_THRESHOLD)
-      break
+    if (stats.totalSize - freed + newEntrySize < CLEANUP_THRESHOLD) break
 
     toDelete.push(entry.key)
     freed += entry.size
   }
 
-  if (toDelete.length === 0)
-    return
+  if (toDelete.length === 0) return
 
   return new Promise((resolve) => {
     const tx = db.transaction(STORE_NAME, 'readwrite')
     const store = tx.objectStore(STORE_NAME)
-    for (const key of toDelete)
-      store.delete(key)
+    for (const key of toDelete) store.delete(key)
     tx.oncomplete = () => resolve()
     tx.onerror = () => resolve()
   })
@@ -276,8 +253,7 @@ export async function clearMediaCache(): Promise<void> {
       tx.oncomplete = () => resolve()
       tx.onerror = () => resolve()
     })
-  }
-  catch {
+  } catch {
     // ignore
   }
 }

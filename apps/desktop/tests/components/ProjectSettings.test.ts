@@ -43,11 +43,12 @@ const InputStub = defineComponent({
   },
   emits: ['update:modelValue'],
   setup(props, { attrs, emit }) {
-    return () => h('input', {
-      ...attrs,
-      value: props.modelValue,
-      onInput: (event: Event) => emit('update:modelValue', (event.target as HTMLInputElement).value),
-    })
+    return () =>
+      h('input', {
+        ...attrs,
+        value: props.modelValue,
+        onInput: (event: Event) => emit('update:modelValue', (event.target as HTMLInputElement).value),
+      })
   },
 })
 
@@ -61,11 +62,12 @@ const TextareaStub = defineComponent({
   },
   emits: ['update:modelValue'],
   setup(props, { attrs, emit }) {
-    return () => h('textarea', {
-      ...attrs,
-      value: props.modelValue,
-      onInput: (event: Event) => emit('update:modelValue', (event.target as HTMLTextAreaElement).value),
-    })
+    return () =>
+      h('textarea', {
+        ...attrs,
+        value: props.modelValue,
+        onInput: (event: Event) => emit('update:modelValue', (event.target as HTMLTextAreaElement).value),
+      })
   },
 })
 
@@ -113,7 +115,9 @@ describe('projectSettings', () => {
     const wrapper = mountSettings()
     await flushPromises()
 
-    expect((wrapper.get('[data-testid="project-settings-name-input"]').element as HTMLInputElement).value).toBe('旧项目')
+    expect((wrapper.get('[data-testid="project-settings-name-input"]').element as HTMLInputElement).value).toBe(
+      '旧项目',
+    )
     expect(wrapper.get('[data-testid="project-settings-save-general"]').attributes('disabled')).toBeDefined()
 
     await wrapper.get('[data-testid="project-settings-name-input"]').setValue('新项目')

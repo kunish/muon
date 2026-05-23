@@ -272,11 +272,13 @@ describe('globalSearch', () => {
 
   it('promotes a direct conversation opened from a contact result', async () => {
     const contactStore = useContactStore()
-    contactStore.contacts = [{
-      userId: '@bob:muon.dev',
-      displayName: 'Bob',
-      presence: 'offline',
-    }]
+    contactStore.contacts = [
+      {
+        userId: '@bob:muon.dev',
+        displayName: 'Bob',
+        presence: 'offline',
+      },
+    ]
     findOrCreateDmMock.mockResolvedValue('!bob:muon.dev')
 
     const wrapper = mountGlobalSearch()

@@ -45,16 +45,12 @@ export function useWatermark() {
  * 创建 MutationObserver 防止水印被 DevTools 删除
  * 当水印元素被移除或属性被修改时自动恢复
  */
-export function useWatermarkGuard(
-  getContainer: () => HTMLElement | null,
-  getOverlay: () => HTMLElement | null,
-) {
+export function useWatermarkGuard(getContainer: () => HTMLElement | null, getOverlay: () => HTMLElement | null) {
   let observer: MutationObserver | null = null
 
   function startGuard(restoreFn: () => void) {
     const container = getContainer()
-    if (!container)
-      return
+    if (!container) return
 
     observer = new MutationObserver((mutations) => {
       for (const mutation of mutations) {

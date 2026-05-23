@@ -1,10 +1,4 @@
-import type {
-  CitationRef,
-  DecisionCard,
-  DecisionStatus,
-  DecisionSuggestion,
-  SuggestionDisposition,
-} from './knowledge'
+import type { CitationRef, DecisionCard, DecisionStatus, DecisionSuggestion, SuggestionDisposition } from './knowledge'
 import { toCitationEventIds } from './knowledge'
 
 export type { DecisionCard, DecisionStatus, DecisionSuggestion, SuggestionDisposition }
@@ -49,7 +43,7 @@ export function createDecisionCard(input: CreateDecisionCardInput): DecisionCard
     status: input.status,
     citations: input.citations,
     citationEventIds: toCitationEventIds(input.citations),
-    suggestions: (input.suggestions ?? []).map(suggestion => createDecisionSuggestion(suggestion, now)),
+    suggestions: (input.suggestions ?? []).map((suggestion) => createDecisionSuggestion(suggestion, now)),
     createdAt: now,
     updatedAt: now,
   }

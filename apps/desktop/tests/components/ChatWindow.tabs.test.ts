@@ -9,11 +9,12 @@ const ChatHeaderStub = defineComponent({
   name: 'ChatHeaderStub',
   emits: ['update:activeTab'],
   setup(_, { emit }) {
-    return () => h('div', { 'data-testid': 'chat-header' }, [
-      h('button', { 'data-testid': 'tab-chat', 'onClick': () => emit('update:activeTab', 'chat') }, 'Chat'),
-      h('button', { 'data-testid': 'tab-docs', 'onClick': () => emit('update:activeTab', 'docs') }, 'Docs'),
-      h('button', { 'data-testid': 'tab-files', 'onClick': () => emit('update:activeTab', 'files') }, 'File'),
-    ])
+    return () =>
+      h('div', { 'data-testid': 'chat-header' }, [
+        h('button', { 'data-testid': 'tab-chat', onClick: () => emit('update:activeTab', 'chat') }, 'Chat'),
+        h('button', { 'data-testid': 'tab-docs', onClick: () => emit('update:activeTab', 'docs') }, 'Docs'),
+        h('button', { 'data-testid': 'tab-files', onClick: () => emit('update:activeTab', 'files') }, 'File'),
+      ])
   },
 })
 

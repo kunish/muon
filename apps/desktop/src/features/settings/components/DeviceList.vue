@@ -1,29 +1,29 @@
 <script setup lang="ts">
-import { getCurrentDeviceId, getDevices } from '@matrix/verification'
-import { Monitor, Smartphone } from 'lucide-vue-next'
-import { onMounted, ref } from 'vue'
-import { useI18n } from 'vue-i18n'
+import { getCurrentDeviceId, getDevices } from '@matrix/verification';
+import { Monitor, Smartphone } from 'lucide-vue-next';
+import { onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
-const { t } = useI18n()
+const { t } = useI18n();
 
 interface DeviceInfo {
-  deviceId: string
-  displayName: string
-  current: boolean
+  deviceId: string;
+  displayName: string;
+  current: boolean;
 }
 
-const devices = ref<DeviceInfo[]>([])
+const devices = ref<DeviceInfo[]>([]);
 
 onMounted(async () => {
-  const stored = await getDevices()
-  const currentId = getCurrentDeviceId()
+  const stored = await getDevices();
+  const currentId = getCurrentDeviceId();
 
   devices.value = stored.map((d: any) => ({
     deviceId: d.device_id,
     displayName: d.display_name || d.device_id,
     current: d.device_id === currentId,
-  }))
-})
+  }));
+});
 </script>
 
 <template>

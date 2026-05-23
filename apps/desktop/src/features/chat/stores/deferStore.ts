@@ -1,12 +1,7 @@
 import type { DeferItem, DeferStatus, ReminderPreset } from '../types/defer'
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import {
-  createDeferItem,
-  DEFER_STORAGE_KEY,
-  isDeferActive,
-  transitionDeferStatus,
-} from '../types/defer'
+import { createDeferItem, DEFER_STORAGE_KEY, isDeferActive, transitionDeferStatus } from '../types/defer'
 
 interface PersistedDeferState {
   version: 1
@@ -31,17 +26,18 @@ function isValidDeferStatus(status: unknown): status is DeferStatus {
 }
 
 function isValidDeferItem(value: unknown): value is DeferItem {
-  if (!value || typeof value !== 'object')
-    return false
+  if (!value || typeof value !== 'object') return false
 
   const candidate = value as Partial<DeferItem>
-  return !!candidate.id
-    && !!candidate.roomId
-    && !!candidate.eventId
-    && typeof candidate.dueAt === 'number'
-    && isValidDeferStatus(candidate.status)
-    && typeof candidate.createdAt === 'number'
-    && typeof candidate.updatedAt === 'number'
+  return (
+    !!candidate.id &&
+    !!candidate.roomId &&
+    !!candidate.eventId &&
+    typeof candidate.dueAt === 'number' &&
+    isValidDeferStatus(candidate.status) &&
+    typeof candidate.createdAt === 'number' &&
+    typeof candidate.updatedAt === 'number'
+  )
 }
 
 export function resolveReminderDueAt(reminder: ReminderInput, now: number): number {
@@ -53,8 +49,7 @@ export function resolveReminderDueAt(reminder: ReminderInput, now: number): numb
     case 'tonight': {
       const due = new Date(base)
       due.setHours(21, 0, 0, 0)
-      if (due.getTime() <= now)
-        due.setDate(due.getDate() + 1)
+      if (due.getTime() <= now) due.setDate(due.getDate() + 1)
       return due.getTime()
     }
     case 'tomorrow-morning': {
@@ -70,8 +65,7 @@ export function resolveReminderDueAt(reminder: ReminderInput, now: number): numb
     case 'next-week':
       return now + 7 * 24 * 60 * 60 * 1000
     case 'custom':
-      if (typeof reminder.dueAt === 'number')
-        return reminder.dueAt
+      if (typeof reminder.dueAt === 'number') return reminder.dueAt
       return now
     default:
       return now
@@ -81,16 +75,13 @@ export function resolveReminderDueAt(reminder: ReminderInput, now: number): numb
 function loadState(): DeferItem[] {
   try {
     const raw = localStorage.getItem(DEFER_STORAGE_KEY)
-    if (!raw)
-      return []
+    if (!raw) return []
 
     const parsed = JSON.parse(raw) as Partial<PersistedDeferState>
-    if (parsed.version !== 1 || !Array.isArray(parsed.items))
-      return []
+    if (parsed.version !== 1 || !Array.isArray(parsed.items)) return []
 
     return parsed.items.filter(isValidDeferItem)
-  }
-  catch {
+  } catch {
     return []
   }
 }
@@ -103,8 +94,7 @@ function persistState(items: DeferItem[]) {
 
   try {
     localStorage.setItem(DEFER_STORAGE_KEY, JSON.stringify(payload))
-  }
-  catch {
+  } catch {
     // 忽略持久化失败（例如隐私模式）
   }
 }
@@ -122,14 +112,13 @@ export const useDeferStore = defineStore('defer', () => {
 
   const historyItems = computed(() => {
     return items.value
-      .filter(item => item.status !== 'deferred')
+      .filter((item) => item.status !== 'deferred')
       .slice()
       .sort((a, b) => b.updatedAt - a.updatedAt)
   })
 
   function hydrate() {
-    if (hydrated.value)
-      return
+    if (hydrated.value) return
     hydrated.value = true
     items.value = loadState()
   }
@@ -151,9 +140,8 @@ export const useDeferStore = defineStore('defer', () => {
   }
 
   function updateStatus(id: string, nextStatus: Exclude<DeferStatus, 'deferred'>) {
-    const index = items.value.findIndex(item => item.id === id)
-    if (index < 0)
-      return
+    const index = items.value.findIndex((item) => item.id === id)
+    if (index < 0) return
     items.value[index] = transitionDeferStatus(items.value[index], nextStatus)
     persistState(items.value)
   }

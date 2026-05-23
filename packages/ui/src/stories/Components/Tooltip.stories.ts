@@ -1,12 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/vue3'
 import { Bell, Search } from 'lucide-vue-next'
 import { Button } from '../../atoms/button'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '../../components/ui/tooltip'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../../components/ui/tooltip'
 
 const meta: Meta<typeof Tooltip> = {
   title: 'Components/Tooltip',

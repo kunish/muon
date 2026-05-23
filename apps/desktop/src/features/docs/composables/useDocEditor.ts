@@ -40,13 +40,11 @@ function readFileAsDataUrl(file: File): Promise<string> {
 
 function isSelectionInEmptyListItem(view: EditorView): boolean {
   const { selection } = view.state
-  if (!selection.empty)
-    return false
+  if (!selection.empty) return false
 
   for (let depth = selection.$from.depth; depth > 0; depth -= 1) {
     const node = selection.$from.node(depth)
-    if (node.type.name === 'listItem')
-      return node.textContent.trim().length === 0
+    if (node.type.name === 'listItem') return node.textContent.trim().length === 0
   }
 
   return false
@@ -55,7 +53,7 @@ function isSelectionInEmptyListItem(view: EditorView): boolean {
 export function useDocEditor(
   ydoc: () => Doc,
   elementRef: Ref<HTMLElement | undefined>,
-  _user: { id: string, name: string, color: string },
+  _user: { id: string; name: string; color: string },
 ) {
   const editor = shallowRef<EditorType | null>(null)
 
@@ -90,29 +88,26 @@ export function useDocEditor(
       ],
       editorProps: {
         attributes: {
-          'class': 'doc-editor-prosemirror',
+          class: 'doc-editor-prosemirror',
           'aria-label': '文档正文',
         },
         handleKeyDown(view, event) {
-          if (event.key !== 'Enter')
-            return false
+          if (event.key !== 'Enter') return false
 
-          if (!isSelectionInEmptyListItem(view))
-            return false
+          if (!isSelectionInEmptyListItem(view)) return false
 
           const didLift = editor.value?.chain().focus().liftListItem('listItem').run()
-          if (!didLift)
-            return false
+          if (!didLift) return false
 
           event.preventDefault()
           return true
         },
         handlePaste(view, event) {
-          const imageFiles = Array.from(event.clipboardData?.files ?? [])
-            .filter(file => file.type.startsWith('image/'))
+          const imageFiles = Array.from(event.clipboardData?.files ?? []).filter((file) =>
+            file.type.startsWith('image/'),
+          )
 
-          if (imageFiles.length === 0)
-            return false
+          if (imageFiles.length === 0) return false
 
           event.preventDefault()
           void Promise.all(imageFiles.map(readFileAsDataUrl)).then((sources) => {

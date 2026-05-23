@@ -9,11 +9,10 @@ const typingMap = reactive(new Map<string, string[]>())
 
 let listenerCount = 0
 
-function onTyping(payload: { roomId: string, userIds: string[] }) {
+function onTyping(payload: { roomId: string; userIds: string[] }) {
   if (payload.userIds.length > 0) {
     typingMap.set(payload.roomId, payload.userIds)
-  }
-  else {
+  } else {
     typingMap.delete(payload.roomId)
   }
 }

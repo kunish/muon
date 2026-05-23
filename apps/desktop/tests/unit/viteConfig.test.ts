@@ -19,7 +19,7 @@ describe('vite config', () => {
       exports?: Record<string, string>
     }
 
-    expect(Object.keys(tsconfig.compilerOptions?.paths ?? {}).some(alias => alias.startsWith('@muon/ui'))).toBe(false)
+    expect(Object.keys(tsconfig.compilerOptions?.paths ?? {}).some((alias) => alias.startsWith('@muon/ui'))).toBe(false)
     expect(tsconfig.compilerOptions?.paths).not.toHaveProperty('@muon/ui/avatar/Avatar.vue')
     expect(tsconfig.compilerOptions?.paths).not.toHaveProperty('@muon/ui/*')
     expect(vitestConfig).not.toContain('@muon/ui/avatar/Avatar.vue')

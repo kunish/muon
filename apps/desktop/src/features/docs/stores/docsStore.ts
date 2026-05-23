@@ -84,8 +84,7 @@ const DELETED_DOC_FOLDERS_STORAGE_KEY = 'muon_docs_deleted_folders_v1'
 function readStorageItem(key: string): string | null {
   try {
     return globalThis.localStorage?.getItem(key) ?? null
-  }
-  catch {
+  } catch {
     return null
   }
 }
@@ -93,8 +92,7 @@ function readStorageItem(key: string): string | null {
 function writeStorageItem(key: string, value: string): void {
   try {
     globalThis.localStorage?.setItem(key, value)
-  }
-  catch {
+  } catch {
     // Local persistence is best effort; in-memory state still keeps this session correct.
   }
 }
@@ -102,8 +100,7 @@ function writeStorageItem(key: string, value: string): void {
 function removeStorageItem(key: string): void {
   try {
     globalThis.localStorage?.removeItem(key)
-  }
-  catch {
+  } catch {
     // Ignore unavailable storage.
   }
 }
@@ -111,24 +108,18 @@ function removeStorageItem(key: string): void {
 function getDocMetadataEvent(room: MatrixDocRoom): MatrixDocEvent | undefined {
   const candidates: MatrixDocEvent[] = []
   const stateEvent = room.currentState?.getStateEvents(MATRIX_EVENT_TYPES.DOC_METADATA, '')
-  if (Array.isArray(stateEvent))
-    candidates.push(...stateEvent)
-  if (!Array.isArray(stateEvent) && stateEvent)
-    candidates.push(stateEvent)
+  if (Array.isArray(stateEvent)) candidates.push(...stateEvent)
+  if (!Array.isArray(stateEvent) && stateEvent) candidates.push(stateEvent)
 
   const events = room.getLiveTimeline().getEvents()
   for (const event of events) {
-    if (event?.getType() === MATRIX_EVENT_TYPES.DOC_METADATA)
-      candidates.push(event)
+    if (event?.getType() === MATRIX_EVENT_TYPES.DOC_METADATA) candidates.push(event)
   }
 
   return candidates.reduce<MatrixDocEvent | undefined>((latest, event) => {
-    if (!latest)
-      return event
+    if (!latest) return event
 
-    return getMetadataTimestamp(event.getContent()) > getMetadataTimestamp(latest.getContent())
-      ? event
-      : latest
+    return getMetadataTimestamp(event.getContent()) > getMetadataTimestamp(latest.getContent()) ? event : latest
   }, undefined)
 }
 
@@ -137,12 +128,10 @@ function getMetadataTimestamp(content: DocMetadataContent): number {
 }
 
 function normalizeLocalMetadataOverride(value: unknown): LocalDocMetadataOverride | null {
-  if (typeof value !== 'object' || value === null)
-    return null
+  if (typeof value !== 'object' || value === null) return null
 
   const override = value as Partial<LocalDocMetadataOverride>
-  if (typeof override.updated !== 'string' || typeof override.updatedAt !== 'number')
-    return null
+  if (typeof override.updated !== 'string' || typeof override.updatedAt !== 'number') return null
 
   return {
     ...(typeof override.title === 'string' ? { title: override.title } : {}),
@@ -155,27 +144,22 @@ function normalizeLocalMetadataOverride(value: unknown): LocalDocMetadataOverrid
 
 function readLocalMetadataOverrides(): Map<string, LocalDocMetadataOverride> {
   const raw = readStorageItem(LOCAL_DOC_METADATA_OVERRIDES_STORAGE_KEY)
-  if (!raw)
-    return new Map()
+  if (!raw) return new Map()
 
   try {
     const parsed = JSON.parse(raw) as unknown
-    const entries = Array.isArray(parsed)
-      ? parsed
-      : Object.entries(parsed as Record<string, unknown>)
+    const entries = Array.isArray(parsed) ? parsed : Object.entries(parsed as Record<string, unknown>)
     return new Map(
       entries
         .map((entry) => {
-          if (!Array.isArray(entry) || typeof entry[0] !== 'string')
-            return null
+          if (!Array.isArray(entry) || typeof entry[0] !== 'string') return null
 
           const override = normalizeLocalMetadataOverride(entry[1])
-          return override ? [entry[0], override] as const : null
+          return override ? ([entry[0], override] as const) : null
         })
         .filter((entry): entry is readonly [string, LocalDocMetadataOverride] => entry !== null),
     )
-  }
-  catch {
+  } catch {
     return new Map()
   }
 }
@@ -191,19 +175,14 @@ function writeLocalMetadataOverrides(overrides: Map<string, LocalDocMetadataOver
 
 function readDeletedFolderIds(): Set<string> {
   const raw = readStorageItem(DELETED_DOC_FOLDERS_STORAGE_KEY)
-  if (!raw)
-    return new Set()
+  if (!raw) return new Set()
 
   try {
     const parsed = JSON.parse(raw) as unknown
-    if (!Array.isArray(parsed))
-      return new Set()
+    if (!Array.isArray(parsed)) return new Set()
 
-    return new Set(parsed
-      .map(value => typeof value === 'string' ? normalizeFolderId(value) : '')
-      .filter(Boolean))
-  }
-  catch {
+    return new Set(parsed.map((value) => (typeof value === 'string' ? normalizeFolderId(value) : '')).filter(Boolean))
+  } catch {
     return new Set()
   }
 }
@@ -218,8 +197,7 @@ function writeDeletedFolderIds(folderIds: Set<string>): void {
 }
 
 function isForbiddenMatrixError(err: unknown): boolean {
-  if (typeof err !== 'object' || err === null)
-    return false
+  if (typeof err !== 'object' || err === null) return false
 
   const matrixError = err as {
     errcode?: unknown
@@ -231,14 +209,16 @@ function isForbiddenMatrixError(err: unknown): boolean {
     message?: unknown
   }
   const message = typeof matrixError.message === 'string' ? matrixError.message : ''
-  return matrixError.errcode === 'M_FORBIDDEN'
-    || matrixError.data?.errcode === 'M_FORBIDDEN'
-    || matrixError.httpStatus === 403
-    || matrixError.statusCode === 403
-    || matrixError.status === 403
-    || matrixError.response?.status === 403
-    || message.includes('M_FORBIDDEN')
-    || message.includes('[403]')
+  return (
+    matrixError.errcode === 'M_FORBIDDEN' ||
+    matrixError.data?.errcode === 'M_FORBIDDEN' ||
+    matrixError.httpStatus === 403 ||
+    matrixError.statusCode === 403 ||
+    matrixError.status === 403 ||
+    matrixError.response?.status === 403 ||
+    message.includes('M_FORBIDDEN') ||
+    message.includes('[403]')
+  )
 }
 
 function normalizeFolderId(folder?: string): string {
@@ -250,52 +230,46 @@ function normalizeFolderId(folder?: string): string {
 }
 
 function isLikelyFolderId(name: string): boolean {
-  return /^folder:[0-9a-fA-F-]{6,}$/.test(name)
-    || /^folder:[a-z0-9]+:[a-z0-9]+$/i.test(name)
-    || (name.startsWith('folder:') && name.length > 40)
+  return (
+    /^folder:[0-9a-fA-F-]{6,}$/.test(name) ||
+    /^folder:[a-z0-9]+:[a-z0-9]+$/i.test(name) ||
+    (name.startsWith('folder:') && name.length > 40)
+  )
 }
 
 function readableFolderName(value: unknown): string | undefined {
-  if (typeof value !== 'string')
-    return undefined
+  if (typeof value !== 'string') return undefined
 
   const trimmed = value.trim()
-  if (!trimmed || isLikelyFolderId(trimmed))
-    return undefined
+  if (!trimmed || isLikelyFolderId(trimmed)) return undefined
 
   return trimmed
 }
 
 function sanitizeFolderName(name: string): string {
   const trimmed = name.trim()
-  if (!trimmed)
-    return '新建文件夹'
+  if (!trimmed) return '新建文件夹'
 
-  if (isLikelyFolderId(trimmed))
-    return '未命名文件夹'
+  if (isLikelyFolderId(trimmed)) return '未命名文件夹'
 
   return trimmed
 }
 
 function createFolderId(): string {
-  if (globalThis.crypto?.randomUUID)
-    return `folder:${globalThis.crypto.randomUUID()}`
+  if (globalThis.crypto?.randomUUID) return `folder:${globalThis.crypto.randomUUID()}`
   return `folder:${Date.now().toString(36)}:${Math.random().toString(36).slice(2)}`
 }
 
 function isRawFolderRecord(value: unknown): value is RawFolderRecord & { id: string } {
-  return typeof value === 'object'
-    && value !== null
-    && typeof (value as RawFolderRecord).id === 'string'
+  return typeof value === 'object' && value !== null && typeof (value as RawFolderRecord).id === 'string'
 }
 
 function resolveFolderRecordName(record: RawFolderRecord): string {
-  return [
-    record.name,
-    record.title,
-    record.label,
-    record.folderName,
-  ].map(readableFolderName).find((name): name is string => name !== undefined) ?? ''
+  return (
+    [record.name, record.title, record.label, record.folderName]
+      .map(readableFolderName)
+      .find((name): name is string => name !== undefined) ?? ''
+  )
 }
 
 function folderNameFromId(id: string): string {
@@ -310,12 +284,10 @@ function folderNameForMetadataValue(value: unknown): string | undefined {
 }
 
 function normalizeFolderRecord(value: unknown): DocFolderRecord | null {
-  if (!isRawFolderRecord(value))
-    return null
+  if (!isRawFolderRecord(value)) return null
 
   const id = normalizeFolderId(value.id)
-  if (!id)
-    return null
+  if (!id) return null
 
   const now = Date.now()
   return {
@@ -356,9 +328,7 @@ function normalizeFolderRecords(value: unknown): DocFolderRecord[] {
   }
 
   if (value && typeof value === 'object') {
-    const rawEntries = value instanceof Map
-      ? [...value.entries()]
-      : Object.entries(value as Record<string, unknown>)
+    const rawEntries = value instanceof Map ? [...value.entries()] : Object.entries(value as Record<string, unknown>)
 
     return rawEntries
       .map(([id, entry]) => {
@@ -380,16 +350,13 @@ function normalizeFolderRecords(value: unknown): DocFolderRecord[] {
         return null
       })
       .map((entry) => {
-        if (entry === null)
-          return null
+        if (entry === null) return null
 
         let record = entry
         if (!record.name) {
-          const fallbackName = typeof record.id === 'string' && record.id.includes('/')
-            ? record.id.split('/').slice(-1)[0]
-            : ''
-          if (fallbackName)
-            record = { ...record, name: fallbackName }
+          const fallbackName =
+            typeof record.id === 'string' && record.id.includes('/') ? record.id.split('/').slice(-1)[0] : ''
+          if (fallbackName) record = { ...record, name: fallbackName }
         }
 
         return normalizeFolderRecord(record)
@@ -418,10 +385,13 @@ function createFolderNode(
   }
 }
 
-function ensureLegacyFolderPath(folderId: string, nodesById: Map<string, MutableDocFolderNode>, terminalName?: string): void {
+function ensureLegacyFolderPath(
+  folderId: string,
+  nodesById: Map<string, MutableDocFolderNode>,
+  terminalName?: string,
+): void {
   const normalized = normalizeFolderId(folderId)
-  if (!normalized)
-    return
+  if (!normalized) return
 
   let parentId = ROOT_DOC_FOLDER_ID
   let path = ''
@@ -443,8 +413,7 @@ function attachFolderNodes(nodesById: Map<string, MutableDocFolderNode>, root: M
   }
 
   for (const node of nodesById.values()) {
-    if (node.id === ROOT_DOC_FOLDER_ID)
-      continue
+    if (node.id === ROOT_DOC_FOLDER_ID) continue
 
     const parent = nodesById.get(node.parentId) ?? root
     node.parentId = parent.id
@@ -459,39 +428,38 @@ function sortFolderTree(node: MutableDocFolderNode): void {
 }
 
 function findFolderNode(node: DocFolderNode, folderId: string): DocFolderNode | null {
-  if (node.id === folderId)
-    return node
+  if (node.id === folderId) return node
   for (const child of node.children) {
     const found = findFolderNode(child, folderId)
-    if (found)
-      return found
+    if (found) return found
   }
   return null
 }
 
 function collectFolderIds(node: DocFolderNode, folderIds: Set<string>): void {
   folderIds.add(node.id)
-  node.children.forEach(child => collectFolderIds(child, folderIds))
+  node.children.forEach((child) => collectFolderIds(child, folderIds))
 }
 
-function buildFolderTree(documents: DocEntry[], folders: DocFolderRecord[], deletedFolderIds: Set<string>): DocFolderNode {
+function buildFolderTree(
+  documents: DocEntry[],
+  folders: DocFolderRecord[],
+  deletedFolderIds: Set<string>,
+): DocFolderNode {
   const root = createFolderNode(ROOT_DOC_FOLDER_ID, ROOT_DOC_FOLDER_NAME, ROOT_DOC_FOLDER_ID, 0, true)
   const nodesById = new Map<string, MutableDocFolderNode>([[ROOT_DOC_FOLDER_ID, root]])
 
   folders.forEach((folder) => {
     const id = normalizeFolderId(folder.id)
-    if (!id || deletedFolderIds.has(id))
-      return
+    if (!id || deletedFolderIds.has(id)) return
     const parentId = normalizeFolderId(folder.parentId)
-    if (parentId && parentId.includes('/'))
-      ensureLegacyFolderPath(parentId, nodesById)
+    if (parentId && parentId.includes('/')) ensureLegacyFolderPath(parentId, nodesById)
     nodesById.set(id, createFolderNode(id, sanitizeFolderName(folder.name), parentId, 1, true))
   })
 
   documents.forEach((doc) => {
     const folderId = normalizeFolderId(doc.folder)
-    if (!folderId || deletedFolderIds.has(folderId))
-      return
+    if (!folderId || deletedFolderIds.has(folderId)) return
     const readableDocFolderName = folderNameForMetadataValue(doc.folderName)
     if (!nodesById.has(folderId)) {
       ensureLegacyFolderPath(folderId, nodesById, readableDocFolderName)
@@ -508,8 +476,7 @@ function buildFolderTree(documents: DocEntry[], folders: DocFolderRecord[], dele
   documents.forEach((doc) => {
     root.count += 1
     const folderId = normalizeFolderId(doc.folder)
-    if (!folderId || deletedFolderIds.has(folderId))
-      return
+    if (!folderId || deletedFolderIds.has(folderId)) return
 
     let node = nodesById.get(folderId)
     while (node && node.id !== ROOT_DOC_FOLDER_ID) {
@@ -522,10 +489,13 @@ function buildFolderTree(documents: DocEntry[], folders: DocFolderRecord[], dele
   return root
 }
 
-function deriveDocumentSectionIds(sectionIds: DocSectionId[] | undefined, owner: string, currentUserId: string | null): DocSectionId[] {
+function deriveDocumentSectionIds(
+  sectionIds: DocSectionId[] | undefined,
+  owner: string,
+  currentUserId: string | null,
+): DocSectionId[] {
   const sections = new Set<DocSectionId>(sectionIds?.length ? sectionIds : ['recent'])
-  if (currentUserId && owner && owner !== currentUserId)
-    sections.add('shared')
+  if (currentUserId && owner && owner !== currentUserId) sections.add('shared')
   return [...sections]
 }
 
@@ -543,12 +513,10 @@ export const useDocsStore = defineStore('docs', () => {
   const folderTree = computed(() => buildFolderTree(documents.value, folders.value, deletedFolderIds.value))
   const selectedFolderIds = computed(() => {
     const folderId = normalizeFolderId(activeFolder.value)
-    if (!folderId)
-      return null
+    if (!folderId) return null
 
     const node = findFolderNode(folderTree.value, folderId)
-    if (!node)
-      return new Set([folderId])
+    if (!node) return new Set([folderId])
 
     const folderIds = new Set<string>()
     collectFolderIds(node, folderIds)
@@ -557,20 +525,17 @@ export const useDocsStore = defineStore('docs', () => {
 
   function resolveFolderNameForMetadata(folderId: string, fallback?: unknown): string | undefined {
     const normalizedFolderId = normalizeFolderId(folderId)
-    if (!normalizedFolderId)
-      return undefined
+    if (!normalizedFolderId) return undefined
 
     const readableFallback = folderNameForMetadataValue(fallback)
-    if (readableFallback)
-      return readableFallback
+    if (readableFallback) return readableFallback
 
     return folderNameForMetadataValue(findFolderNode(folderTree.value, normalizedFolderId)?.name)
   }
 
   function mergeLocalOverride(roomId: string, content: DocMetadataContent): DocMetadataContent {
     const override = localMetadataOverrides.get(roomId)
-    if (!override)
-      return content
+    if (!override) return content
 
     const titleSynced = !override.title || content.title === override.title
     const folderSynced = override.folder === undefined || normalizeFolderId(content.folder) === override.folder
@@ -591,7 +556,10 @@ export const useDocsStore = defineStore('docs', () => {
     }
   }
 
-  function updateLocalMetadataOverride(docId: string, patch: Partial<LocalDocMetadataOverride> & Pick<LocalDocMetadataOverride, 'updated' | 'updatedAt'>): void {
+  function updateLocalMetadataOverride(
+    docId: string,
+    patch: Partial<LocalDocMetadataOverride> & Pick<LocalDocMetadataOverride, 'updated' | 'updatedAt'>,
+  ): void {
     localMetadataOverrides.set(docId, {
       ...(localMetadataOverrides.get(docId) ?? {}),
       ...patch,
@@ -603,8 +571,7 @@ export const useDocsStore = defineStore('docs', () => {
     const next = new Set(deletedFolderIds.value)
     folderIds.forEach((folderId) => {
       const normalized = normalizeFolderId(folderId)
-      if (normalized)
-        next.add(normalized)
+      if (normalized) next.add(normalized)
     })
     deletedFolderIds.value = next
     writeDeletedFolderIds(next)
@@ -612,8 +579,7 @@ export const useDocsStore = defineStore('docs', () => {
 
   function forgetDeletedFolderId(folderId: string): void {
     const normalized = normalizeFolderId(folderId)
-    if (!normalized || !deletedFolderIds.value.has(normalized))
-      return
+    if (!normalized || !deletedFolderIds.value.has(normalized)) return
 
     const next = new Set(deletedFolderIds.value)
     next.delete(normalized)
@@ -624,12 +590,10 @@ export const useDocsStore = defineStore('docs', () => {
   const filteredDocuments = computed(() => {
     const query = searchQuery.value.trim().toLowerCase()
     return documents.value.filter((doc) => {
-      const matchesQuery = !query
-        || doc.title.toLowerCase().includes(query)
-        || doc.owner.toLowerCase().includes(query)
+      const matchesQuery = !query || doc.title.toLowerCase().includes(query) || doc.owner.toLowerCase().includes(query)
       const matchesSection = doc.sectionIds.includes(activeSection.value)
-      const matchesFolder = selectedFolderIds.value === null
-        || selectedFolderIds.value.has(normalizeFolderId(doc.folder))
+      const matchesFolder =
+        selectedFolderIds.value === null || selectedFolderIds.value.has(normalizeFolderId(doc.folder))
       const matchesReview = !reviewOnly.value || doc.status === '评审中'
       return matchesSection && matchesFolder && matchesQuery && matchesReview
     })
@@ -639,10 +603,8 @@ export const useDocsStore = defineStore('docs', () => {
     const client = getClient() as unknown as MatrixDocAccountClient
     try {
       await client.setAccountData?.(MATRIX_EVENT_TYPES.DOC_FOLDERS, { folders: folders.value })
-    }
-    catch (err) {
-      if (!isForbiddenMatrixError(err))
-        throw err
+    } catch (err) {
+      if (!isForbiddenMatrixError(err)) throw err
       console.warn('[Docs] Cannot persist folder tree account data:', err)
     }
   }
@@ -652,10 +614,8 @@ export const useDocsStore = defineStore('docs', () => {
     try {
       await client.sendStateEvent(docId, MATRIX_EVENT_TYPES.DOC_METADATA, content)
       return
-    }
-    catch (err) {
-      if (!isForbiddenMatrixError(err))
-        throw err
+    } catch (err) {
+      if (!isForbiddenMatrixError(err)) throw err
       if (!client.sendEvent) {
         console.warn('[Docs] Cannot persist document metadata state event:', err)
         return
@@ -665,10 +625,8 @@ export const useDocsStore = defineStore('docs', () => {
 
     try {
       await client.sendEvent(docId, MATRIX_EVENT_TYPES.DOC_METADATA, content)
-    }
-    catch (err) {
-      if (!isForbiddenMatrixError(err))
-        throw err
+    } catch (err) {
+      if (!isForbiddenMatrixError(err)) throw err
       console.warn('[Docs] Cannot persist document metadata timeline event:', err)
     }
   }
@@ -677,10 +635,8 @@ export const useDocsStore = defineStore('docs', () => {
     const client = getClient() as unknown as MatrixDocMetadataClient
     try {
       await client.setRoomName?.(docId, title)
-    }
-    catch (err) {
-      if (!isForbiddenMatrixError(err))
-        throw err
+    } catch (err) {
+      if (!isForbiddenMatrixError(err)) throw err
       console.warn('[Docs] Cannot update document room name:', err)
     }
   }
@@ -689,10 +645,10 @@ export const useDocsStore = defineStore('docs', () => {
     try {
       const client = getClient() as unknown as MatrixDocAccountClient
       const content = client.getAccountData?.(MATRIX_EVENT_TYPES.DOC_FOLDERS)?.getContent()
-      folders.value = normalizeFolderRecords(content?.folders)
-        .filter(folder => !deletedFolderIds.value.has(folder.id))
-    }
-    catch {
+      folders.value = normalizeFolderRecords(content?.folders).filter(
+        (folder) => !deletedFolderIds.value.has(folder.id),
+      )
+    } catch {
       folders.value = []
     }
   }
@@ -724,11 +680,9 @@ export const useDocsStore = defineStore('docs', () => {
           sectionIds: deriveDocumentSectionIds(content.sectionIds, owner, currentUserId),
         }
       })
-    }
-    catch {
+    } catch {
       documents.value = []
-    }
-    finally {
+    } finally {
       isLoading.value = false
     }
   }
@@ -755,15 +709,15 @@ export const useDocsStore = defineStore('docs', () => {
       result = await client.createRoom({
         name: title,
         visibility: Visibility.Private,
-        initial_state: [{
-          type: MATRIX_EVENT_TYPES.DOC_METADATA,
-          content: metadataContent,
-        }],
+        initial_state: [
+          {
+            type: MATRIX_EVENT_TYPES.DOC_METADATA,
+            content: metadataContent,
+          },
+        ],
       })
-    }
-    catch (err) {
-      if (!isForbiddenMatrixError(err))
-        throw err
+    } catch (err) {
+      if (!isForbiddenMatrixError(err)) throw err
       result = await client.createRoom({
         name: title,
         visibility: Visibility.Private,
@@ -782,7 +736,7 @@ export const useDocsStore = defineStore('docs', () => {
       sectionIds: ['recent'],
     }
     await loadDocuments()
-    if (!documents.value.some(doc => doc.id === createdDoc.id)) {
+    if (!documents.value.some((doc) => doc.id === createdDoc.id)) {
       documents.value = [createdDoc, ...documents.value]
     }
     return result.room_id
@@ -790,8 +744,7 @@ export const useDocsStore = defineStore('docs', () => {
 
   async function appendMarkdown(docId: string, markdown: string): Promise<void> {
     const trimmed = markdown.trim()
-    if (!trimmed)
-      return
+    if (!trimmed) return
     // Imported markdown should land in the doc room without paging every member.
     await sendTextMessage(docId, trimmed, undefined, { silent: true })
   }
@@ -800,7 +753,7 @@ export const useDocsStore = defineStore('docs', () => {
     const nextTitle = title.trim() || '无标题文档'
     const now = Date.now()
     const client = getClient()
-    const existing = documents.value.find(doc => doc.id === docId)
+    const existing = documents.value.find((doc) => doc.id === docId)
     const room = client.getRoom(docId)
     const metaEvent = room ? getDocMetadataEvent(room as MatrixDocRoom) : undefined
     const currentContent = metaEvent?.getContent() ?? {}
@@ -828,18 +781,20 @@ export const useDocsStore = defineStore('docs', () => {
       updatedAt: now,
     })
 
-    documents.value = documents.value.map(doc => doc.id === docId
-      ? {
-          ...doc,
-          title: nextTitle,
-          updated: '刚刚',
-          type: nextContent.type,
-          status: nextContent.status,
-          folder: nextContent.folder,
-          folderName: nextContent.folderName,
-          sectionIds: nextContent.sectionIds,
-        }
-      : doc)
+    documents.value = documents.value.map((doc) =>
+      doc.id === docId
+        ? {
+            ...doc,
+            title: nextTitle,
+            updated: '刚刚',
+            type: nextContent.type,
+            status: nextContent.status,
+            folder: nextContent.folder,
+            folderName: nextContent.folderName,
+            sectionIds: nextContent.sectionIds,
+          }
+        : doc,
+    )
   }
 
   async function updateDocumentFolder(docId: string, folder: string): Promise<void> {
@@ -847,7 +802,7 @@ export const useDocsStore = defineStore('docs', () => {
     const nextFolderName = resolveFolderNameForMetadata(nextFolder)
     const now = Date.now()
     const client = getClient()
-    const existing = documents.value.find(doc => doc.id === docId)
+    const existing = documents.value.find((doc) => doc.id === docId)
     const room = client.getRoom(docId)
     const metaEvent = room ? getDocMetadataEvent(room as MatrixDocRoom) : undefined
     const currentContent = metaEvent?.getContent() ?? {}
@@ -874,35 +829,34 @@ export const useDocsStore = defineStore('docs', () => {
       updatedAt: now,
     })
 
-    documents.value = documents.value.map(doc => doc.id === docId
-      ? {
-          ...doc,
-          updated: '刚刚',
-          type: nextContent.type,
-          status: nextContent.status,
-          folder: nextFolder,
-          folderName: nextFolderName,
-          sectionIds: nextContent.sectionIds,
-        }
-      : doc)
+    documents.value = documents.value.map((doc) =>
+      doc.id === docId
+        ? {
+            ...doc,
+            updated: '刚刚',
+            type: nextContent.type,
+            status: nextContent.status,
+            folder: nextFolder,
+            folderName: nextFolderName,
+            sectionIds: nextContent.sectionIds,
+          }
+        : doc,
+    )
   }
 
   async function setDocumentStarred(docId: string, starred: boolean): Promise<void> {
     const now = Date.now()
     const client = getClient()
-    const existing = documents.value.find(doc => doc.id === docId)
+    const existing = documents.value.find((doc) => doc.id === docId)
     const room = client.getRoom(docId)
     const metaEvent = room ? getDocMetadataEvent(room as MatrixDocRoom) : undefined
     const currentContent = metaEvent?.getContent() ?? {}
     const currentSections = new Set<DocSectionId>(currentContent.sectionIds || existing?.sectionIds || ['recent'])
 
-    if (starred)
-      currentSections.add('starred')
-    else
-      currentSections.delete('starred')
+    if (starred) currentSections.add('starred')
+    else currentSections.delete('starred')
 
-    if (currentSections.size === 0)
-      currentSections.add('recent')
+    if (currentSections.size === 0) currentSections.add('recent')
 
     const sectionIds = [...currentSections]
     const folder = normalizeFolderId(existing?.folder || currentContent.folder)
@@ -922,23 +876,25 @@ export const useDocsStore = defineStore('docs', () => {
 
     await sendDocMetadataEvent(docId, nextContent)
 
-    documents.value = documents.value.map(doc => doc.id === docId
-      ? {
-          ...doc,
-          updated: '刚刚',
-          type: nextContent.type,
-          status: nextContent.status,
-          folder: nextContent.folder,
-          folderName: nextContent.folderName,
-          sectionIds,
-        }
-      : doc)
+    documents.value = documents.value.map((doc) =>
+      doc.id === docId
+        ? {
+            ...doc,
+            updated: '刚刚',
+            type: nextContent.type,
+            status: nextContent.status,
+            folder: nextContent.folder,
+            folderName: nextContent.folderName,
+            sectionIds,
+          }
+        : doc,
+    )
   }
 
   async function setDocumentStatus(docId: string, status: DocEntry['status']): Promise<void> {
     const now = Date.now()
     const client = getClient()
-    const existing = documents.value.find(doc => doc.id === docId)
+    const existing = documents.value.find((doc) => doc.id === docId)
     const room = client.getRoom(docId)
     const metaEvent = room ? getDocMetadataEvent(room as MatrixDocRoom) : undefined
     const currentContent = metaEvent?.getContent() ?? {}
@@ -959,17 +915,19 @@ export const useDocsStore = defineStore('docs', () => {
 
     await sendDocMetadataEvent(docId, nextContent)
 
-    documents.value = documents.value.map(doc => doc.id === docId
-      ? {
-          ...doc,
-          updated: '刚刚',
-          type: nextContent.type,
-          status,
-          folder: nextContent.folder,
-          folderName: nextContent.folderName,
-          sectionIds: nextContent.sectionIds,
-        }
-      : doc)
+    documents.value = documents.value.map((doc) =>
+      doc.id === docId
+        ? {
+            ...doc,
+            updated: '刚刚',
+            type: nextContent.type,
+            status,
+            folder: nextContent.folder,
+            folderName: nextContent.folderName,
+            sectionIds: nextContent.sectionIds,
+          }
+        : doc,
+    )
   }
 
   async function deleteDocument(docId: string): Promise<void> {
@@ -977,7 +935,7 @@ export const useDocsStore = defineStore('docs', () => {
     await client.leave(docId)
     localMetadataOverrides.delete(docId)
     writeLocalMetadataOverrides(localMetadataOverrides)
-    documents.value = documents.value.filter(doc => doc.id !== docId)
+    documents.value = documents.value.filter((doc) => doc.id !== docId)
   }
 
   async function createFolder(name: string, parentId = activeFolder.value): Promise<string> {
@@ -999,19 +957,17 @@ export const useDocsStore = defineStore('docs', () => {
 
   async function renameFolder(folderId: string, name: string): Promise<void> {
     const targetFolderId = normalizeFolderId(folderId)
-    if (!targetFolderId)
-      return
+    if (!targetFolderId) return
 
     const nextName = sanitizeFolderName(name)
     const now = Date.now()
-    const existingFolder = folders.value.find(folder => folder.id === targetFolderId)
+    const existingFolder = folders.value.find((folder) => folder.id === targetFolderId)
     forgetDeletedFolderId(targetFolderId)
     if (existingFolder) {
-      folders.value = folders.value.map(folder => folder.id === targetFolderId
-        ? { ...folder, name: nextName, updatedAt: now }
-        : folder)
-    }
-    else {
+      folders.value = folders.value.map((folder) =>
+        folder.id === targetFolderId ? { ...folder, name: nextName, updatedAt: now } : folder,
+      )
+    } else {
       const node = findFolderNode(folderTree.value, targetFolderId)
       folders.value = [
         ...folders.value,
@@ -1029,22 +985,19 @@ export const useDocsStore = defineStore('docs', () => {
 
   async function deleteFolder(folderId: string): Promise<void> {
     const targetFolderId = normalizeFolderId(folderId)
-    if (!targetFolderId)
-      return
+    if (!targetFolderId) return
 
     const node = findFolderNode(folderTree.value, targetFolderId)
-    if (!node)
-      return
+    if (!node) return
 
     const folderIds = new Set<string>()
     collectFolderIds(node, folderIds)
-    const documentsToMove = documents.value.filter(doc => folderIds.has(normalizeFolderId(doc.folder)))
-    await Promise.all(documentsToMove.map(doc => updateDocumentFolder(doc.id, ROOT_DOC_FOLDER_ID)))
+    const documentsToMove = documents.value.filter((doc) => folderIds.has(normalizeFolderId(doc.folder)))
+    await Promise.all(documentsToMove.map((doc) => updateDocumentFolder(doc.id, ROOT_DOC_FOLDER_ID)))
     rememberDeletedFolderIds(folderIds)
 
-    folders.value = folders.value.filter(folder => !folderIds.has(folder.id))
-    if (selectedFolderIds.value?.has(targetFolderId))
-      activeFolder.value = ROOT_DOC_FOLDER_ID
+    folders.value = folders.value.filter((folder) => !folderIds.has(folder.id))
+    if (selectedFolderIds.value?.has(targetFolderId)) activeFolder.value = ROOT_DOC_FOLDER_ID
     await persistFolders()
   }
 

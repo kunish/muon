@@ -17,10 +17,10 @@ vi.mock('@/features/chat/composables/useUnifiedInbox', () => ({
   useUnifiedInbox: () => ({
     items: computed(() => inboxItems.value),
     counts: computed(() => ({
-      'all': inboxItems.value.length,
-      'mention': inboxItems.value.filter(item => item.type === 'mention').length,
-      'priority-unread': inboxItems.value.filter(item => item.type === 'priority-unread').length,
-      'reply-needed': inboxItems.value.filter(item => item.type === 'reply-needed').length,
+      all: inboxItems.value.length,
+      mention: inboxItems.value.filter((item) => item.type === 'mention').length,
+      'priority-unread': inboxItems.value.filter((item) => item.type === 'priority-unread').length,
+      'reply-needed': inboxItems.value.filter((item) => item.type === 'reply-needed').length,
     })),
     isLoading: ref(false),
   }),

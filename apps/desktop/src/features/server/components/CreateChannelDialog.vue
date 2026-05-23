@@ -1,75 +1,75 @@
 <script setup lang="ts">
-import { Button } from '@muon/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@muon/ui/dialog'
-import { Input } from '@muon/ui/input'
-import { Label } from '@muon/ui/label'
-import { Switch } from '@muon/ui/switch'
-import { Hash, Lock, Volume2 } from 'lucide-vue-next'
-import { ref, watch } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
-import { toast } from 'vue-sonner'
-import { useServerStore } from '@/features/server/stores/serverStore'
-import { createChannel } from '@/matrix/spaces'
+import { Button } from '@muon/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@muon/ui/dialog';
+import { Input } from '@muon/ui/input';
+import { Label } from '@muon/ui/label';
+import { Switch } from '@muon/ui/switch';
+import { Hash, Lock, Volume2 } from 'lucide-vue-next';
+import { ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useRouter } from 'vue-router';
+import { toast } from 'vue-sonner';
+import { useServerStore } from '@/features/server/stores/serverStore';
+import { createChannel } from '@/matrix/spaces';
 
-const props = withDefaults(defineProps<{
-  /** Pre-fill category when creating from a category header */
-  categoryId?: string
-}>(), {
-  categoryId: undefined,
-})
+const props = withDefaults(
+  defineProps<{
+    /** Pre-fill category when creating from a category header */
+    categoryId?: string;
+  }>(),
+  {
+    categoryId: undefined,
+  },
+);
 
-const open = defineModel<boolean>('open', { default: false })
+const open = defineModel<boolean>('open', { default: false });
 
-const router = useRouter()
-const serverStore = useServerStore()
-const { t } = useI18n()
+const router = useRouter();
+const serverStore = useServerStore();
+const { t } = useI18n();
 
-const channelName = ref('')
-const channelType = ref<'text' | 'voice'>('text')
-const isPrivate = ref(false)
-const isCreating = ref(false)
+const channelName = ref('');
+const channelType = ref<'text' | 'voice'>('text');
+const isPrivate = ref(false);
+const isCreating = ref(false);
 
 // Reset form when dialog opens
 watch(open, (val) => {
   if (val) {
-    channelName.value = ''
-    channelType.value = 'text'
-    isPrivate.value = false
-    isCreating.value = false
+    channelName.value = '';
+    channelType.value = 'text';
+    isPrivate.value = false;
+    isCreating.value = false;
   }
-})
+});
 
 async function handleCreate() {
-  const serverId = serverStore.currentServerId
-  if (!serverId || !channelName.value.trim() || isCreating.value)
-    return
+  const serverId = serverStore.currentServerId;
+  if (!serverId || !channelName.value.trim() || isCreating.value) return;
 
-  isCreating.value = true
+  isCreating.value = true;
   try {
     const roomId = await createChannel(serverId, channelName.value.trim(), {
       isVoice: channelType.value === 'voice',
       isPrivate: isPrivate.value,
       categoryId: props.categoryId || undefined,
-    })
+    });
 
     // Refresh channel tree
-    serverStore.loadChannelTree(serverId)
+    serverStore.loadChannelTree(serverId);
 
     // Navigate to the new channel (text only)
     if (channelType.value === 'text') {
-      serverStore.selectChannel(roomId)
-      router.push(`/server/${encodeURIComponent(serverId)}/channel/${encodeURIComponent(roomId)}`)
+      serverStore.selectChannel(roomId);
+      router.push(`/server/${encodeURIComponent(serverId)}/channel/${encodeURIComponent(roomId)}`);
     }
 
-    open.value = false
-  }
-  catch (error) {
-    console.error('Failed to create channel:', error)
-    toast.error(t('auth.error'))
-  }
-  finally {
-    isCreating.value = false
+    open.value = false;
+  } catch (error) {
+    console.error('Failed to create channel:', error);
+    toast.error(t('auth.error'));
+  } finally {
+    isCreating.value = false;
   }
 }
 </script>
@@ -82,7 +82,9 @@ async function handleCreate() {
     <DialogContent>
       <DialogHeader>
         <DialogTitle>{{ t('channel.create_channel') }}</DialogTitle>
-        <DialogDescription>{{ categoryId ? t('channel.in_this_category') : t('channel.in_your_server') }}</DialogDescription>
+        <DialogDescription>{{
+          categoryId ? t('channel.in_this_category') : t('channel.in_your_server')
+        }}</DialogDescription>
       </DialogHeader>
 
       <!-- Channel Type -->
@@ -161,9 +163,7 @@ async function handleCreate() {
       </div>
 
       <!-- Private Toggle -->
-      <div
-        class="flex w-full items-center gap-3 rounded-md"
-      >
+      <div class="flex w-full items-center gap-3 rounded-md">
         <Lock :size="16" class="text-muted-foreground" />
         <div class="text-left">
           <div class="text-sm font-medium text-foreground">

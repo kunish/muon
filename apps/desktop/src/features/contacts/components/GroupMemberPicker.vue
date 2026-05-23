@@ -1,197 +1,181 @@
 <script setup lang="ts">
-import { getClient } from '@matrix/client'
-import { Avatar } from '@muon/ui/avatar'
-import { Checkbox } from '@muon/ui/checkbox'
-import { Label } from '@muon/ui/label'
-import { Check, Search, X } from 'lucide-vue-next'
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { useContacts } from '../composables/useContacts'
-import { useContactStore } from '../stores/contactStore'
+import { getClient } from '@matrix/client';
+import { Avatar } from '@muon/ui/avatar';
+import { Checkbox } from '@muon/ui/checkbox';
+import { Label } from '@muon/ui/label';
+import { Check, Search, X } from 'lucide-vue-next';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useContacts } from '../composables/useContacts';
+import { useContactStore } from '../stores/contactStore';
 
 interface MemberOption {
-  userId: string
-  displayName: string
-  avatarUrl?: string
-  source?: 'contact' | 'directory' | 'direct'
+  userId: string;
+  displayName: string;
+  avatarUrl?: string;
+  source?: 'contact' | 'directory' | 'direct';
 }
 
-const props = withDefaults(defineProps<{
-  excludeIds?: string[]
-  label?: string
-}>(), {
-  excludeIds: () => [],
-  label: undefined,
-})
-const selectedIds = defineModel<string[]>({ default: () => [] })
+const props = withDefaults(
+  defineProps<{
+    excludeIds?: string[];
+    label?: string;
+  }>(),
+  {
+    excludeIds: () => [],
+    label: undefined,
+  },
+);
+const selectedIds = defineModel<string[]>({ default: () => [] });
 
-const { t } = useI18n()
-const contactStore = useContactStore()
-const { searchUsers } = useContacts()
+const { t } = useI18n();
+const contactStore = useContactStore();
+const { searchUsers } = useContacts();
 
-const query = ref('')
-const searching = ref(false)
-const directoryResults = ref<MemberOption[]>([])
+const query = ref('');
+const searching = ref(false);
+const directoryResults = ref<MemberOption[]>([]);
 
-let searchTimer: ReturnType<typeof setTimeout> | null = null
-let searchSeq = 0
+let searchTimer: ReturnType<typeof setTimeout> | null = null;
+let searchSeq = 0;
 
 onMounted(() => {
-  if (contactStore.contacts.length === 0)
-    void contactStore.loadContacts().catch(() => {})
-})
+  if (contactStore.contacts.length === 0) void contactStore.loadContacts().catch(() => {});
+});
 
 onUnmounted(() => {
-  if (searchTimer)
-    clearTimeout(searchTimer)
-})
+  if (searchTimer) clearTimeout(searchTimer);
+});
 
 watch(query, (value) => {
-  if (searchTimer)
-    clearTimeout(searchTimer)
+  if (searchTimer) clearTimeout(searchTimer);
 
-  const seq = ++searchSeq
-  const term = value.trim()
+  const seq = ++searchSeq;
+  const term = value.trim();
   if (!term) {
-    directoryResults.value = []
-    searching.value = false
-    return
+    directoryResults.value = [];
+    searching.value = false;
+    return;
   }
 
-  searching.value = true
+  searching.value = true;
   searchTimer = setTimeout(async () => {
     try {
-      const results = await searchUsers(term)
-      if (seq !== searchSeq)
-        return
-      directoryResults.value = results.map(user => ({
+      const results = await searchUsers(term);
+      if (seq !== searchSeq) return;
+      directoryResults.value = results.map((user) => ({
         userId: user.user_id,
         displayName: user.display_name || fallbackName(user.user_id),
         avatarUrl: user.avatar_url || undefined,
         source: 'directory',
-      }))
+      }));
+    } catch {
+      if (seq === searchSeq) directoryResults.value = [];
+    } finally {
+      if (seq === searchSeq) searching.value = false;
     }
-    catch {
-      if (seq === searchSeq)
-        directoryResults.value = []
-    }
-    finally {
-      if (seq === searchSeq)
-        searching.value = false
-    }
-  }, 250)
-})
+  }, 250);
+});
 
-const selectedIdSet = computed(() => new Set(selectedIds.value))
-const excludedIdSet = computed(() => new Set(props.excludeIds))
+const selectedIdSet = computed(() => new Set(selectedIds.value));
+const excludedIdSet = computed(() => new Set(props.excludeIds));
 
 const contactOptions = computed<MemberOption[]>(() =>
   contactStore.contacts
-    .filter(contact => !excludedIdSet.value.has(contact.userId))
-    .map(contact => ({
+    .filter((contact) => !excludedIdSet.value.has(contact.userId))
+    .map((contact) => ({
       userId: contact.userId,
       displayName: contact.displayName,
       avatarUrl: contact.avatarUrl,
       source: 'contact',
     })),
-)
+);
 
 const optionById = computed(() => {
-  const map = new Map<string, MemberOption>()
-  for (const option of [...contactOptions.value, ...directoryResults.value])
-    map.set(option.userId, option)
-  return map
-})
+  const map = new Map<string, MemberOption>();
+  for (const option of [...contactOptions.value, ...directoryResults.value]) map.set(option.userId, option);
+  return map;
+});
 
 const selectedMembers = computed<MemberOption[]>(() =>
-  selectedIds.value.map(userId =>
-    optionById.value.get(userId) ?? {
-      userId,
-      displayName: fallbackName(userId),
-    },
+  selectedIds.value.map(
+    (userId) =>
+      optionById.value.get(userId) ?? {
+        userId,
+        displayName: fallbackName(userId),
+      },
   ),
-)
+);
 
 const visibleMembers = computed<MemberOption[]>(() => {
-  const term = query.value.trim().toLowerCase()
-  const options = new Map<string, MemberOption>()
+  const term = query.value.trim().toLowerCase();
+  const options = new Map<string, MemberOption>();
 
   for (const option of contactOptions.value) {
-    if (!term || matchesMember(option, term))
-      options.set(option.userId, option)
+    if (!term || matchesMember(option, term)) options.set(option.userId, option);
   }
 
   if (term) {
-    const directOption = createDirectMemberOption(query.value)
-    if (directOption && !excludedIdSet.value.has(directOption.userId))
-      options.set(directOption.userId, directOption)
+    const directOption = createDirectMemberOption(query.value);
+    if (directOption && !excludedIdSet.value.has(directOption.userId)) options.set(directOption.userId, directOption);
 
     for (const option of directoryResults.value) {
-      if (excludedIdSet.value.has(option.userId))
-        continue
-      if (!options.has(option.userId))
-        options.set(option.userId, option)
+      if (excludedIdSet.value.has(option.userId)) continue;
+      if (!options.has(option.userId)) options.set(option.userId, option);
     }
   }
 
-  return [...options.values()]
-})
+  return [...options.values()];
+});
 
 function matchesMember(member: MemberOption, term: string): boolean {
-  return member.displayName.toLowerCase().includes(term) || member.userId.toLowerCase().includes(term)
+  return member.displayName.toLowerCase().includes(term) || member.userId.toLowerCase().includes(term);
 }
 
 function fallbackName(userId: string): string {
-  return userId.split(':')[0]?.replace(/^@/, '') || userId
+  return userId.split(':')[0]?.replace(/^@/, '') || userId;
 }
 
 function normalizePotentialMatrixId(input: string): string | null {
-  const value = input.trim()
-  if (!value)
-    return null
+  const value = input.trim();
+  if (!value) return null;
 
-  if (value.startsWith('@') && value.includes(':'))
-    return value
+  if (value.startsWith('@') && value.includes(':')) return value;
 
-  const domain = getClient().getDomain?.()
-  if (!domain)
-    return null
+  const domain = getClient().getDomain?.();
+  if (!domain) return null;
 
-  if (value.startsWith('@'))
-    return `${value}:${domain}`
+  if (value.startsWith('@')) return `${value}:${domain}`;
 
-  if (/^[\w.=/-]+$/.test(value))
-    return `@${value}:${domain}`
+  if (/^[\w.=/-]+$/.test(value)) return `@${value}:${domain}`;
 
-  return null
+  return null;
 }
 
 function createDirectMemberOption(input: string): MemberOption | null {
-  const userId = normalizePotentialMatrixId(input)
-  if (!userId)
-    return null
+  const userId = normalizePotentialMatrixId(input);
+  if (!userId) return null;
 
   return {
     userId,
     displayName: fallbackName(userId),
     source: 'direct',
-  }
+  };
 }
 
 function toggleMember(userId: string): void {
-  if (excludedIdSet.value.has(userId))
-    return
+  if (excludedIdSet.value.has(userId)) return;
 
   if (selectedIdSet.value.has(userId)) {
-    selectedIds.value = selectedIds.value.filter(id => id !== userId)
-    return
+    selectedIds.value = selectedIds.value.filter((id) => id !== userId);
+    return;
   }
 
-  selectedIds.value = [...selectedIds.value, userId]
+  selectedIds.value = [...selectedIds.value, userId];
 }
 
 function removeMember(userId: string): void {
-  selectedIds.value = selectedIds.value.filter(id => id !== userId)
+  selectedIds.value = selectedIds.value.filter((id) => id !== userId);
 }
 </script>
 
@@ -201,18 +185,12 @@ function removeMember(userId: string): void {
       <Label class="text-sm text-muted-foreground">
         {{ label || t('contacts.invite_members') }}
       </Label>
-      <span
-        data-testid="selected-members-count"
-        class="shrink-0 text-xs text-muted-foreground"
-      >
+      <span data-testid="selected-members-count" class="shrink-0 text-xs text-muted-foreground">
         {{ t('contacts.selected_members_count', { count: selectedIds.length }) }}
       </span>
     </div>
 
-    <div
-      class="min-h-10 rounded-lg border border-border bg-muted/25 p-2"
-      data-testid="selected-members-tray"
-    >
+    <div class="min-h-10 rounded-lg border border-border bg-muted/25 p-2" data-testid="selected-members-tray">
       <div v-if="selectedMembers.length > 0" class="flex flex-wrap gap-1.5">
         <button
           v-for="member in selectedMembers"
@@ -249,14 +227,11 @@ function removeMember(userId: string): void {
         type="text"
         :placeholder="t('contacts.search_members_placeholder')"
         class="h-full min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground/70"
-      >
+      />
     </label>
 
     <div class="max-h-52 overflow-y-auto rounded-lg border border-border bg-background p-1">
-      <div
-        v-if="searching && visibleMembers.length === 0"
-        class="px-3 py-6 text-center text-sm text-muted-foreground"
-      >
+      <div v-if="searching && visibleMembers.length === 0" class="px-3 py-6 text-center text-sm text-muted-foreground">
         {{ t('chat.searching') }}
       </div>
 
@@ -271,11 +246,7 @@ function removeMember(userId: string): void {
           :aria-pressed="selectedIdSet.has(member.userId)"
           @click="toggleMember(member.userId)"
         >
-          <Checkbox
-            :model-value="selectedIdSet.has(member.userId)"
-            class="pointer-events-none"
-            aria-hidden="true"
-          />
+          <Checkbox :model-value="selectedIdSet.has(member.userId)" class="pointer-events-none" aria-hidden="true" />
           <Avatar
             :src="member.avatarUrl"
             :alt="member.displayName"
@@ -297,18 +268,11 @@ function removeMember(userId: string): void {
           >
             ID
           </span>
-          <Check
-            v-if="selectedIdSet.has(member.userId)"
-            :size="15"
-            class="shrink-0 text-primary"
-          />
+          <Check v-if="selectedIdSet.has(member.userId)" :size="15" class="shrink-0 text-primary" />
         </button>
       </template>
 
-      <div
-        v-else
-        class="px-3 py-6 text-center text-sm text-muted-foreground"
-      >
+      <div v-else class="px-3 py-6 text-center text-sm text-muted-foreground">
         {{ t('contacts.no_matching_members') }}
       </div>
     </div>

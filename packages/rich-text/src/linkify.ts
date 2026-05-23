@@ -11,8 +11,7 @@ export function linkifyPlainText(text: string): string {
     const rawUrl = match[0]
     const index = match.index ?? 0
     const { href, trailing } = stripTrailingUrlPunctuation(rawUrl)
-    if (!href)
-      continue
+    if (!href) continue
 
     html += escapeHtmlText(text.slice(lastIndex, index))
     html += `<a href="${escapeHtmlAttribute(href)}" target="_blank" rel="noopener noreferrer">${escapeHtmlText(href)}</a>${escapeHtmlText(trailing)}`
@@ -22,10 +21,9 @@ export function linkifyPlainText(text: string): string {
   return html
 }
 
-function stripTrailingUrlPunctuation(url: string): { href: string, trailing: string } {
+function stripTrailingUrlPunctuation(url: string): { href: string; trailing: string } {
   const match = url.match(/[),.;:!?]+$/)
-  if (!match)
-    return { href: url, trailing: '' }
+  if (!match) return { href: url, trailing: '' }
   return {
     href: url.slice(0, -match[0].length),
     trailing: match[0],
@@ -33,11 +31,7 @@ function stripTrailingUrlPunctuation(url: string): { href: string, trailing: str
 }
 
 function escapeHtmlText(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 }
 
 function escapeHtmlAttribute(value: string): string {

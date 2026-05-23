@@ -1,69 +1,65 @@
 <script setup lang="ts">
-import type { Workflow, WorkflowStatus } from '../../types'
-import { Button } from '@muon/ui/button'
-import { Plus } from 'lucide-vue-next'
-import { onMounted, ref } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { useWorkflow } from '../../composables/useWorkflow'
-import { useWorkItemStore } from '../../composables/useWorkItemStore'
-import WorkItemCard from '../WorkItemCard.vue'
-import WorkItemCreateDialog from '../WorkItemCreateDialog.vue'
-import WorkItemDetail from '../WorkItemDetail.vue'
+import type { Workflow, WorkflowStatus } from '../../types';
+import { Button } from '@muon/ui/button';
+import { Plus } from 'lucide-vue-next';
+import { onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useWorkflow } from '../../composables/useWorkflow';
+import { useWorkItemStore } from '../../composables/useWorkItemStore';
+import WorkItemCard from '../WorkItemCard.vue';
+import WorkItemCreateDialog from '../WorkItemCreateDialog.vue';
+import WorkItemDetail from '../WorkItemDetail.vue';
 
-const props = defineProps<{ projectId: string }>()
+const props = defineProps<{ projectId: string }>();
 
-const { t } = useI18n()
-const itemStore = useWorkItemStore()
-const { loadWorkflow, canTransition } = useWorkflow(() => props.projectId)
+const { t } = useI18n();
+const itemStore = useWorkItemStore();
+const { loadWorkflow, canTransition } = useWorkflow(() => props.projectId);
 
-const statuses = ref<WorkflowStatus[]>([])
-const workflow = ref<Workflow | null>(null)
-const showCreateDialog = ref(false)
-const selectedItemId = ref<string | null>(null)
-const createDefaultStatus = ref('')
+const statuses = ref<WorkflowStatus[]>([]);
+const workflow = ref<Workflow | null>(null);
+const showCreateDialog = ref(false);
+const selectedItemId = ref<string | null>(null);
+const createDefaultStatus = ref('');
 
 onMounted(async () => {
-  const wf = await loadWorkflow()
-  workflow.value = wf
-  statuses.value = wf.statuses
-})
+  const wf = await loadWorkflow();
+  workflow.value = wf;
+  statuses.value = wf.statuses;
+});
 
 function itemsForStatus(statusKey: string) {
-  return itemStore.currentItems.filter(i => i.status === statusKey)
+  return itemStore.currentItems.filter((i) => i.status === statusKey);
 }
 
 function openCreate(statusKey: string) {
-  createDefaultStatus.value = statusKey
-  showCreateDialog.value = true
+  createDefaultStatus.value = statusKey;
+  showCreateDialog.value = true;
 }
 
 function onDragStart(event: DragEvent, itemId: string) {
-  if (!event.dataTransfer)
-    return
-  event.dataTransfer.setData('text/plain', itemId)
-  event.dataTransfer.effectAllowed = 'move'
+  if (!event.dataTransfer) return;
+  event.dataTransfer.setData('text/plain', itemId);
+  event.dataTransfer.effectAllowed = 'move';
 }
 
 function onDragOver(event: DragEvent) {
-  event.preventDefault()
-  if (!event.dataTransfer)
-    return
-  event.dataTransfer.dropEffect = 'move'
+  event.preventDefault();
+  if (!event.dataTransfer) return;
+  event.dataTransfer.dropEffect = 'move';
 }
 
 async function onDrop(event: DragEvent, targetStatus: string) {
-  event.preventDefault()
-  const itemId = event.dataTransfer?.getData('text/plain')
-  if (!itemId)
-    return
-  const item = itemStore.currentItems.find(current => current.id === itemId)
-  if (!item)
-    return
+  event.preventDefault();
+  const itemId = event.dataTransfer?.getData('text/plain');
+  if (!itemId) return;
+  const item = itemStore.currentItems.find((current) => current.id === itemId);
+  if (!item) return;
   if (item.status !== targetStatus && workflow.value && !canTransition(workflow.value, item.status, targetStatus))
-    return
-  const items = itemsForStatus(targetStatus)
-  const newOrder = items.length > 0 ? Math.max(...items.map(i => i.order)) + 1 : 0
-  await itemStore.reorderItem(itemId, props.projectId, newOrder, targetStatus)
+    return;
+  const items = itemsForStatus(targetStatus);
+  const newOrder = items.length > 0 ? Math.max(...items.map((i) => i.order)) + 1 : 0;
+  await itemStore.reorderItem(itemId, props.projectId, newOrder, targetStatus);
 }
 </script>
 
@@ -80,10 +76,7 @@ async function onDrop(event: DragEvent, targetStatus: string) {
       >
         <div class="flex shrink-0 items-center justify-between px-3 py-2.5">
           <div class="flex min-w-0 items-center gap-2">
-            <div
-              class="h-2.5 w-2.5 shrink-0 rounded-full"
-              :style="{ backgroundColor: status.color }"
-            />
+            <div class="h-2.5 w-2.5 shrink-0 rounded-full" :style="{ backgroundColor: status.color }" />
             <span class="truncate text-sm font-medium">{{ status.name }}</span>
             <span class="shrink-0 text-xs text-muted-foreground">{{ itemsForStatus(status.key).length }}</span>
           </div>
@@ -102,10 +95,7 @@ async function onDrop(event: DragEvent, targetStatus: string) {
             @dragstart="onDragStart($event, item.id)"
             @click="selectedItemId = item.id"
           />
-          <p
-            v-if="itemsForStatus(status.key).length === 0"
-            class="py-6 text-center text-xs text-muted-foreground"
-          >
+          <p v-if="itemsForStatus(status.key).length === 0" class="py-6 text-center text-xs text-muted-foreground">
             {{ t('projects.no_tasks') }}
           </p>
         </div>
@@ -117,10 +107,6 @@ async function onDrop(event: DragEvent, targetStatus: string) {
       :project-id="props.projectId"
       :default-status="createDefaultStatus"
     />
-    <WorkItemDetail
-      v-if="selectedItemId"
-      :item-id="selectedItemId"
-      @close="selectedItemId = null"
-    />
+    <WorkItemDetail v-if="selectedItemId" :item-id="selectedItemId" @close="selectedItemId = null" />
   </div>
 </template>

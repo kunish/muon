@@ -85,9 +85,7 @@ describe('messageBubble', () => {
   }
 
   it('should render text message content', async () => {
-    const MessageBubble = (
-      await import('@/features/chat/components/MessageBubble.vue')
-    ).default
+    const MessageBubble = (await import('@/features/chat/components/MessageBubble.vue')).default
     const wrapper = mount(MessageBubble, {
       props: {
         event: mockTextEvent as any,
@@ -106,9 +104,7 @@ describe('messageBubble', () => {
   })
 
   it('should apply correct alignment for non-mine messages', async () => {
-    const MessageBubble = (
-      await import('@/features/chat/components/MessageBubble.vue')
-    ).default
+    const MessageBubble = (await import('@/features/chat/components/MessageBubble.vue')).default
     const wrapper = mount(MessageBubble, {
       props: {
         event: mockTextEvent as any,

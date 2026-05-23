@@ -43,12 +43,12 @@ export interface RoomSummary {
 }
 
 export interface MessageContent {
-  'msgtype': string
-  'body': string
-  'format'?: string
-  'formatted_body'?: string
-  'url'?: string
-  'info'?: Record<string, unknown>
+  msgtype: string
+  body: string
+  format?: string
+  formatted_body?: string
+  url?: string
+  info?: Record<string, unknown>
   'm.relates_to'?: {
     rel_type: string
     event_id: string

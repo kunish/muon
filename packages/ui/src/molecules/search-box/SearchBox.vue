@@ -1,39 +1,42 @@
 <script setup lang="ts">
-import type { HTMLAttributes } from 'vue'
-import type { SearchBoxVariants } from '.'
-import { useVModel } from '@vueuse/core'
-import { Search, X } from 'lucide-vue-next'
-import { computed } from 'vue'
-import { searchBoxVariants } from '.'
-import { Kbd } from '../../atoms/kbd'
-import { cn } from '../../utils'
+import type { HTMLAttributes } from 'vue';
+import type { SearchBoxVariants } from '.';
+import { useVModel } from '@vueuse/core';
+import { Search, X } from 'lucide-vue-next';
+import { computed } from 'vue';
+import { searchBoxVariants } from '.';
+import { Kbd } from '../../atoms/kbd';
+import { cn } from '../../utils';
 
-const props = withDefaults(defineProps<{
-  modelValue?: string
-  defaultValue?: string
-  placeholder?: string
-  size?: SearchBoxVariants['size']
-  kbd?: string[]
-  disabled?: boolean
-  class?: HTMLAttributes['class']
-}>(), {
-  size: 'md',
-  placeholder: 'Search',
-})
+const props = withDefaults(
+  defineProps<{
+    modelValue?: string;
+    defaultValue?: string;
+    placeholder?: string;
+    size?: SearchBoxVariants['size'];
+    kbd?: string[];
+    disabled?: boolean;
+    class?: HTMLAttributes['class'];
+  }>(),
+  {
+    size: 'md',
+    placeholder: 'Search',
+  },
+);
 
 const emits = defineEmits<{
-  'update:modelValue': [value: string]
-  'clear': []
-}>()
+  'update:modelValue': [value: string];
+  clear: [];
+}>();
 
-const value = useVModel(props, 'modelValue', emits, { passive: true, defaultValue: props.defaultValue ?? '' })
+const value = useVModel(props, 'modelValue', emits, { passive: true, defaultValue: props.defaultValue ?? '' });
 
-const showClear = computed(() => !props.disabled && value.value && String(value.value).length > 0)
-const showKbd = computed(() => props.kbd && props.kbd.length > 0 && !value.value)
+const showClear = computed(() => !props.disabled && value.value && String(value.value).length > 0);
+const showKbd = computed(() => props.kbd && props.kbd.length > 0 && !value.value);
 
 function onClear() {
-  value.value = ''
-  emits('clear')
+  value.value = '';
+  emits('clear');
 }
 </script>
 
@@ -51,7 +54,7 @@ function onClear() {
       :disabled="disabled"
       class="min-w-0 flex-1 bg-transparent outline-none placeholder:text-gray-400 disabled:cursor-not-allowed"
       data-testid="search-box-input"
-    >
+    />
     <button
       v-if="showClear"
       type="button"

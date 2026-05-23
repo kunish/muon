@@ -1,8 +1,4 @@
-export {
-  canMergeSystemEvents,
-  getSystemEventInfo,
-  isSystemEvent,
-} from './content'
+export { canMergeSystemEvents, getSystemEventInfo, isSystemEvent } from './content'
 
 export type { SystemEventInfo, SystemEventPart } from './content'
 

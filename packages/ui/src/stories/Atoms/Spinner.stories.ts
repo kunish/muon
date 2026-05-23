@@ -21,7 +21,7 @@ export default meta
 type Story = StoryObj<typeof Spinner>
 
 export const Default: Story = {
-  render: args => ({
+  render: (args) => ({
     components: { Spinner },
     setup: () => ({ args }),
     template: '<Spinner v-bind="args" />',

@@ -51,25 +51,42 @@ const ChannelContextMenuStub = defineComponent({
   },
   emits: ['deleteChannel', 'editChannel', 'markAsRead', 'muteChannel'],
   setup(props, { emit, slots }) {
-    return () => h('div', [
-      h('button', {
-        'data-testid': 'mark-read-channel',
-        'onClick': () => emit('markAsRead', props.channel.roomId),
-      }, 'mark read'),
-      h('button', {
-        'data-testid': 'mute-channel',
-        'onClick': () => emit('muteChannel', props.channel.roomId),
-      }, 'mute'),
-      h('button', {
-        'data-testid': 'edit-channel',
-        'onClick': () => emit('editChannel', props.channel.roomId),
-      }, 'edit'),
-      h('button', {
-        'data-testid': 'delete-channel',
-        'onClick': () => emit('deleteChannel', props.channel.roomId),
-      }, 'delete'),
-      slots.default?.({ open: false }),
-    ])
+    return () =>
+      h('div', [
+        h(
+          'button',
+          {
+            'data-testid': 'mark-read-channel',
+            onClick: () => emit('markAsRead', props.channel.roomId),
+          },
+          'mark read',
+        ),
+        h(
+          'button',
+          {
+            'data-testid': 'mute-channel',
+            onClick: () => emit('muteChannel', props.channel.roomId),
+          },
+          'mute',
+        ),
+        h(
+          'button',
+          {
+            'data-testid': 'edit-channel',
+            onClick: () => emit('editChannel', props.channel.roomId),
+          },
+          'edit',
+        ),
+        h(
+          'button',
+          {
+            'data-testid': 'delete-channel',
+            onClick: () => emit('deleteChannel', props.channel.roomId),
+          },
+          'delete',
+        ),
+        slots.default?.({ open: false }),
+      ])
   },
 })
 
@@ -120,14 +137,19 @@ const ConfirmDialogStub = defineComponent({
   },
   emits: ['cancel', 'confirm', 'update:open'],
   setup(props, { emit }) {
-    return () => props.open
-      ? h('div', [
-          h('button', {
-            'data-testid': props.confirmTestId,
-            'onClick': () => emit('confirm'),
-          }, 'confirm'),
-        ])
-      : null
+    return () =>
+      props.open
+        ? h('div', [
+            h(
+              'button',
+              {
+                'data-testid': props.confirmTestId,
+                onClick: () => emit('confirm'),
+              },
+              'confirm',
+            ),
+          ])
+        : null
   },
 })
 
@@ -142,11 +164,12 @@ function createModelFieldStub(name: string, tag: 'input' | 'textarea') {
     },
     emits: ['update:modelValue'],
     setup(props, { attrs, emit }) {
-      return () => h(tag, {
-        ...attrs,
-        value: props.modelValue,
-        onInput: (event: Event) => emit('update:modelValue', (event.target as HTMLInputElement).value),
-      })
+      return () =>
+        h(tag, {
+          ...attrs,
+          value: props.modelValue,
+          onInput: (event: Event) => emit('update:modelValue', (event.target as HTMLInputElement).value),
+        })
     },
   })
 }
@@ -158,26 +181,32 @@ function mountSidebar() {
   const serverStore = useServerStore()
   serverStore.isDmMode = false
   serverStore.currentServerId = '!server:localhost'
-  serverStore.servers = [{
-    spaceId: '!server:localhost',
-    name: 'Launch Team',
-    memberCount: 8,
-    childRoomIds: ['!general:localhost'],
-    childSpaceIds: [],
-  }]
-  serverStore.channelTree = [{
-    id: '__text_channels__',
-    name: '__text_channels__',
-    channels: [{
-      roomId: '!general:localhost',
-      name: 'general',
-      isVoice: false,
-      categoryId: null,
-      unreadCount: 4,
-      highlightCount: 1,
+  serverStore.servers = [
+    {
+      spaceId: '!server:localhost',
+      name: 'Launch Team',
       memberCount: 8,
-    }],
-  }]
+      childRoomIds: ['!general:localhost'],
+      childSpaceIds: [],
+    },
+  ]
+  serverStore.channelTree = [
+    {
+      id: '__text_channels__',
+      name: '__text_channels__',
+      channels: [
+        {
+          roomId: '!general:localhost',
+          name: 'general',
+          isVoice: false,
+          categoryId: null,
+          unreadCount: 4,
+          highlightCount: 1,
+          memberCount: 8,
+        },
+      ],
+    },
+  ]
 
   const loadChannelTree = vi.spyOn(serverStore, 'loadChannelTree').mockImplementation(() => {})
 

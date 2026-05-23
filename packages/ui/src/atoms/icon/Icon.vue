@@ -1,13 +1,16 @@
 <script setup lang="ts">
-import type { Component, HTMLAttributes } from 'vue'
-import { cn } from '../../utils'
+import type { Component, HTMLAttributes } from 'vue';
+import { cn } from '../../utils';
 
-const props = withDefaults(defineProps<{
-  as: Component
-  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl'
-  class?: HTMLAttributes['class']
-  ariaLabel?: string
-}>(), { size: 'md' })
+const props = withDefaults(
+  defineProps<{
+    as: Component;
+    size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+    class?: HTMLAttributes['class'];
+    ariaLabel?: string;
+  }>(),
+  { size: 'md' },
+);
 
 const SIZE: Record<string, string> = {
   xs: 'size-3', // 12
@@ -15,7 +18,7 @@ const SIZE: Record<string, string> = {
   md: 'size-4', // 16
   lg: 'size-5', // 20
   xl: 'size-6', // 24
-}
+};
 </script>
 
 <template>

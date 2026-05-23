@@ -1,8 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import {
-  copyMessageContentToClipboard,
-  createMessageClipboardPayload,
-} from '@/features/chat/lib/messageClipboard'
+import { copyMessageContentToClipboard, createMessageClipboardPayload } from '@/features/chat/lib/messageClipboard'
 
 describe('message clipboard', () => {
   it('keeps rich media html while removing fallback placeholders from copied plain text', () => {
@@ -10,7 +7,8 @@ describe('message clipboard', () => {
       msgtype: 'm.text',
       body: 'Caption\n[image.png]',
       format: 'org.matrix.custom.html',
-      formatted_body: '<p><strong>Caption</strong></p><p><img src="mxc://server/media" alt="image.png" title="image.png"></p>',
+      formatted_body:
+        '<p><strong>Caption</strong></p><p><img src="mxc://server/media" alt="image.png" title="image.png"></p>',
     })
 
     expect(payload.text).toBe('Caption')
@@ -50,12 +48,13 @@ describe('message clipboard', () => {
 
       expect(write).toHaveBeenCalledTimes(1)
       expect(writeText).not.toHaveBeenCalled()
-      expect(clipboardItem).toHaveBeenCalledWith(expect.objectContaining({
-        'text/html': expect.any(Blob),
-        'text/plain': expect.any(Blob),
-      }))
-    }
-    finally {
+      expect(clipboardItem).toHaveBeenCalledWith(
+        expect.objectContaining({
+          'text/html': expect.any(Blob),
+          'text/plain': expect.any(Blob),
+        }),
+      )
+    } finally {
       Object.defineProperty(globalThis, 'ClipboardItem', {
         configurable: true,
         value: OriginalClipboardItem,

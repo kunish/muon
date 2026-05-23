@@ -1,48 +1,48 @@
 <script setup lang="ts">
-import { Label } from '@muon/ui/label'
-import { Switch } from '@muon/ui/switch'
-import { Lock, X } from 'lucide-vue-next'
-import { ref } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { useGroupManagement } from '../composables/useGroupManagement'
-import GroupMemberPicker from './GroupMemberPicker.vue'
+import { Label } from '@muon/ui/label';
+import { Switch } from '@muon/ui/switch';
+import { Lock, X } from 'lucide-vue-next';
+import { ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useGroupManagement } from '../composables/useGroupManagement';
+import GroupMemberPicker from './GroupMemberPicker.vue';
 
 const emit = defineEmits<{
-  close: []
-  created: [roomId: string]
-}>()
+  close: [];
+  created: [roomId: string];
+}>();
 
-const { t } = useI18n()
-const { createGroup } = useGroupManagement()
+const { t } = useI18n();
+const { createGroup } = useGroupManagement();
 
-const name = ref('')
-const topic = ref('')
-const encrypted = ref(true)
-const selectedMemberIds = ref<string[]>([])
-const creating = ref(false)
+const name = ref('');
+const topic = ref('');
+const encrypted = ref(true);
+const selectedMemberIds = ref<string[]>([]);
+const creating = ref(false);
 
 async function handleCreate() {
-  if (!name.value.trim())
-    return
-  creating.value = true
+  if (!name.value.trim()) return;
+  creating.value = true;
   try {
     const roomId = await createGroup({
       name: name.value.trim(),
       topic: topic.value.trim() || undefined,
       userIds: selectedMemberIds.value,
       isEncrypted: encrypted.value,
-    })
-    emit('created', roomId)
-  }
-  finally {
-    creating.value = false
+    });
+    emit('created', roomId);
+  } finally {
+    creating.value = false;
   }
 }
 </script>
 
 <template>
   <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-    <div class="flex max-h-[84vh] w-[520px] max-w-full flex-col overflow-hidden rounded-xl border border-border bg-background shadow-2xl">
+    <div
+      class="flex max-h-[84vh] w-[520px] max-w-full flex-col overflow-hidden rounded-xl border border-border bg-background shadow-2xl"
+    >
       <div class="flex items-center justify-between border-b border-border px-4 py-3">
         <h3 class="text-sm font-semibold">
           {{ t('contacts.create_group') }}
@@ -60,7 +60,7 @@ async function handleCreate() {
             type="text"
             :placeholder="t('contacts.group_name_placeholder')"
             class="w-full h-9 px-3 text-sm rounded-lg border border-border bg-background outline-none focus:ring-1 focus:ring-primary"
-          >
+          />
         </div>
 
         <div>
@@ -70,7 +70,7 @@ async function handleCreate() {
             type="text"
             :placeholder="t('contacts.group_topic_placeholder')"
             class="w-full h-9 px-3 text-sm rounded-lg border border-border bg-background outline-none focus:ring-1 focus:ring-primary"
-          >
+          />
         </div>
 
         <GroupMemberPicker v-model="selectedMemberIds" />
@@ -83,10 +83,7 @@ async function handleCreate() {
       </div>
 
       <div class="flex justify-end gap-2 border-t border-border p-4">
-        <button
-          class="px-4 py-2 text-sm rounded-lg hover:bg-accent"
-          @click="emit('close')"
-        >
+        <button class="px-4 py-2 text-sm rounded-lg hover:bg-accent" @click="emit('close')">
           {{ t('common.cancel') }}
         </button>
         <button

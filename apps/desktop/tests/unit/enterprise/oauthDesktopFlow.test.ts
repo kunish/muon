@@ -55,13 +55,15 @@ describe('desktop oauth flow', () => {
       deviceId: 'MUONDEVICE',
     })
     expect(token.muonSession.deviceName).toBe('Muon Desktop')
-    await expect(oauth.exchangeCode({
-      code: authorization.code,
-      codeVerifier: 'plain-challenge',
-      redirectUri: 'muon://auth/callback',
-      clientId: 'muon-desktop',
-      deviceName: 'Muon Desktop',
-    })).rejects.toThrow('Authorization code has already been used')
+    await expect(
+      oauth.exchangeCode({
+        code: authorization.code,
+        codeVerifier: 'plain-challenge',
+        redirectUri: 'muon://auth/callback',
+        clientId: 'muon-desktop',
+        deviceName: 'Muon Desktop',
+      }),
+    ).rejects.toThrow('Authorization code has already been used')
   })
 
   it('refuses OAuth login when the user must change their password', async () => {
@@ -76,9 +78,8 @@ describe('desktop oauth flow', () => {
     })
 
     // installService creates owner with mustChangePassword=false; flip it.
-    const ownerRecord = repository.users.find(user => user.id === install.owner.id)
-    if (!ownerRecord)
-      throw new Error('precondition: owner missing')
+    const ownerRecord = repository.users.find((user) => user.id === install.owner.id)
+    if (!ownerRecord) throw new Error('precondition: owner missing')
     await repository.resetUserPassword(install.organization.id, install.owner.id, {
       passwordHash: ownerRecord.passwordHash,
       mustChangePassword: true,
@@ -94,16 +95,18 @@ describe('desktop oauth flow', () => {
       matrixServerUrl: 'http://localhost',
     })
 
-    await expect(oauth.loginAndCreateCode({
-      organizationSlug: 'acme',
-      username: 'owner',
-      password: 'correct horse battery staple',
-      clientId: 'muon-desktop',
-      redirectUri: 'muon://auth/callback',
-      codeChallenge: 'a'.repeat(43),
-      codeChallengeMethod: 'S256',
-      state: 'state-value',
-    })).rejects.toMatchObject({ name: 'MustChangePasswordError' })
+    await expect(
+      oauth.loginAndCreateCode({
+        organizationSlug: 'acme',
+        username: 'owner',
+        password: 'correct horse battery staple',
+        clientId: 'muon-desktop',
+        redirectUri: 'muon://auth/callback',
+        codeChallenge: 'a'.repeat(43),
+        codeChallengeMethod: 'S256',
+        state: 'state-value',
+      }),
+    ).rejects.toMatchObject({ name: 'MustChangePasswordError' })
   })
 
   it('exchangeCode stores access_token as a hash, not plaintext', async () => {
@@ -148,9 +151,7 @@ describe('desktop oauth flow', () => {
     const stored = repository.deviceSessions[0]
     expect(stored.accessTokenHash).not.toBe(exchanged.muonSession.accessToken)
 
-    const expectedHash = createHash('sha256')
-      .update(`access:${exchanged.muonSession.accessToken}`)
-      .digest('base64url')
+    const expectedHash = createHash('sha256').update(`access:${exchanged.muonSession.accessToken}`).digest('base64url')
     expect(stored.accessTokenHash).toBe(expectedHash)
   })
 })

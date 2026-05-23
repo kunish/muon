@@ -1,44 +1,41 @@
 <script setup lang="ts">
-import type { MatrixEvent } from 'matrix-js-sdk'
-import { getClient } from '@matrix/client'
-import { Pin, X } from 'lucide-vue-next'
-import { onMounted, ref } from 'vue'
-import { useI18n } from 'vue-i18n'
+import type { MatrixEvent } from 'matrix-js-sdk';
+import { getClient } from '@matrix/client';
+import { Pin, X } from 'lucide-vue-next';
+import { onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 const props = defineProps<{
-  roomId: string
-}>()
+  roomId: string;
+}>();
 
 const emit = defineEmits<{
-  close: []
-  jumpTo: [eventId: string]
-}>()
+  close: [];
+  jumpTo: [eventId: string];
+}>();
 
-const { t, locale } = useI18n()
+const { t, locale } = useI18n();
 
-const pinned = ref<MatrixEvent[]>([])
-const loading = ref(true)
+const pinned = ref<MatrixEvent[]>([]);
+const loading = ref(true);
 
 onMounted(async () => {
   try {
-    const client = getClient()
-    const room = client.getRoom(props.roomId)
-    if (!room)
-      return
-    const pinEvent = room.currentState.getStateEvents('m.room.pinned_events', '')
-    const pinnedIds: string[] = pinEvent?.getContent()?.pinned || []
-    const events: MatrixEvent[] = []
+    const client = getClient();
+    const room = client.getRoom(props.roomId);
+    if (!room) return;
+    const pinEvent = room.currentState.getStateEvents('m.room.pinned_events', '');
+    const pinnedIds: string[] = pinEvent?.getContent()?.pinned || [];
+    const events: MatrixEvent[] = [];
     for (const id of pinnedIds) {
-      const ev = room.findEventById(id)
-      if (ev)
-        events.push(ev)
+      const ev = room.findEventById(id);
+      if (ev) events.push(ev);
     }
-    pinned.value = events
+    pinned.value = events;
+  } finally {
+    loading.value = false;
   }
-  finally {
-    loading.value = false
-  }
-})
+});
 
 function formatTime(ts: number): string {
   return new Date(ts).toLocaleString(locale.value, {
@@ -46,7 +43,7 @@ function formatTime(ts: number): string {
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-  })
+  });
 }
 </script>
 

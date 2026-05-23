@@ -1,17 +1,13 @@
 import { vi } from 'vitest'
-import {
-  getMockRoomById,
-  M_DIRECT_CONTENT,
-  MOCK_ROOM_OBJECTS,
-  SELF_USER_ID,
-  USERS,
-} from './data'
+import { getMockRoomById, M_DIRECT_CONTENT, MOCK_ROOM_OBJECTS, SELF_USER_ID, USERS } from './data'
 
 export function createMockMatrixClient() {
   return {
     // ---- 认证 ----
     login: vi.fn().mockResolvedValue({ access_token: 'mock_token', user_id: SELF_USER_ID }),
-    register: vi.fn().mockResolvedValue({ access_token: 'mock_token', user_id: SELF_USER_ID, device_id: 'MOCK_DEVICE' }),
+    register: vi
+      .fn()
+      .mockResolvedValue({ access_token: 'mock_token', user_id: SELF_USER_ID, device_id: 'MOCK_DEVICE' }),
     logout: vi.fn().mockResolvedValue(undefined),
     startClient: vi.fn().mockResolvedValue(undefined),
     stopClient: vi.fn(),
@@ -45,9 +41,7 @@ export function createMockMatrixClient() {
 
     // ---- 媒体 ----
     uploadContent: vi.fn().mockResolvedValue({ content_uri: 'mxc://localhost/mock' }),
-    mxcUrlToHttp: vi.fn((url: string) =>
-      url.replace('mxc://', 'https://matrix.localhost/_matrix/media/v3/download/'),
-    ),
+    mxcUrlToHttp: vi.fn((url: string) => url.replace('mxc://', 'https://matrix.localhost/_matrix/media/v3/download/')),
 
     // ---- Account Data ----
     getAccountData: vi.fn((type: string) => {
@@ -70,8 +64,8 @@ export function createMockMatrixClient() {
     // ---- 搜索 ----
     searchUserDirectory: vi.fn().mockResolvedValue({
       results: Object.values(USERS)
-        .filter(u => u.userId !== SELF_USER_ID)
-        .map(u => ({ user_id: u.userId, display_name: u.displayName, avatar_url: u.avatarUrl ?? null })),
+        .filter((u) => u.userId !== SELF_USER_ID)
+        .map((u) => ({ user_id: u.userId, display_name: u.displayName, avatar_url: u.avatarUrl ?? null })),
       limited: false,
     }),
     searchRoomEvents: vi.fn().mockResolvedValue({ results: [] }),

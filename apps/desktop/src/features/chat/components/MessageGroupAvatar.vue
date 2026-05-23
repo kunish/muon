@@ -1,32 +1,32 @@
 <script setup lang="ts">
-import { getClient } from '@matrix/client'
-import { Avatar } from '@muon/ui/avatar'
-import { computed } from 'vue'
+import { getClient } from '@matrix/client';
+import { Avatar } from '@muon/ui/avatar';
+import { computed } from 'vue';
 
 const props = defineProps<{
   /** The sender user ID, e.g. @alice:matrix.org */
-  senderId: string
+  senderId: string;
   /** The room ID to resolve display name / avatar */
-  roomId: string
-}>()
+  roomId: string;
+}>();
 
 const emit = defineEmits<{
-  avatarClick: [userId: string, event: MouseEvent]
-}>()
+  avatarClick: [userId: string, event: MouseEvent];
+}>();
 
 const senderName = computed(() => {
-  const client = getClient()
-  const room = client.getRoom(props.roomId)
-  const member = room?.getMember(props.senderId)
-  return member?.name || props.senderId
-})
+  const client = getClient();
+  const room = client.getRoom(props.roomId);
+  const member = room?.getMember(props.senderId);
+  return member?.name || props.senderId;
+});
 
 const senderMxcAvatar = computed(() => {
-  const client = getClient()
-  const room = client.getRoom(props.roomId)
-  const member = room?.getMember(props.senderId)
-  return member?.getMxcAvatarUrl() || undefined
-})
+  const client = getClient();
+  const room = client.getRoom(props.roomId);
+  const member = room?.getMember(props.senderId);
+  return member?.getMxcAvatarUrl() || undefined;
+});
 </script>
 
 <template>

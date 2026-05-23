@@ -28,7 +28,12 @@ describe('button loading state', () => {
   it('disables click when loading=true', async () => {
     let clicks = 0
     const wrapper = mount(Button, {
-      props: { loading: true, onClick: () => { clicks += 1 } },
+      props: {
+        loading: true,
+        onClick: () => {
+          clicks += 1
+        },
+      },
       slots: { default: 'Submit' },
     })
     await wrapper.trigger('click')

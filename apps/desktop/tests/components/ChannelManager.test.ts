@@ -10,16 +10,18 @@ const channelManagerMocks = vi.hoisted(() => ({
   getCategoryChannels: vi.fn(() => []),
   getSpaceHierarchy: vi.fn(() => ({
     categories: [],
-    uncategorizedChannels: [{
-      roomId: '!general:localhost',
-      name: 'general',
-      topic: 'Team updates',
-      isVoice: false,
-      categoryId: null,
-      unreadCount: 0,
-      highlightCount: 0,
-      memberCount: 8,
-    }],
+    uncategorizedChannels: [
+      {
+        roomId: '!general:localhost',
+        name: 'general',
+        topic: 'Team updates',
+        isVoice: false,
+        categoryId: null,
+        unreadCount: 0,
+        highlightCount: 0,
+        memberCount: 8,
+      },
+    ],
   })),
   removeRoomFromSpace: vi.fn().mockResolvedValue(undefined),
   setRoomName: vi.fn().mockResolvedValue(undefined),
@@ -70,11 +72,12 @@ function createModelFieldStub(name: string, tag: 'input' | 'textarea') {
     },
     emits: ['update:modelValue'],
     setup(props, { attrs, emit }) {
-      return () => h(tag, {
-        ...attrs,
-        value: props.modelValue,
-        onInput: (event: Event) => emit('update:modelValue', (event.target as HTMLInputElement).value),
-      })
+      return () =>
+        h(tag, {
+          ...attrs,
+          value: props.modelValue,
+          onInput: (event: Event) => emit('update:modelValue', (event.target as HTMLInputElement).value),
+        })
     },
   })
 }

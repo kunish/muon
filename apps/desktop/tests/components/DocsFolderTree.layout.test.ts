@@ -11,15 +11,17 @@ function makeFolderTree(): DocFolderNode {
     depth: 0,
     count: 3,
     isPersisted: true,
-    children: [{
-      id: 'folder:long',
-      name: 'Beem-IM 包管理 yarn 迁移至 pnpm',
-      parentId: '',
-      depth: 1,
-      count: 1,
-      isPersisted: true,
-      children: [],
-    }],
+    children: [
+      {
+        id: 'folder:long',
+        name: 'Beem-IM 包管理 yarn 迁移至 pnpm',
+        parentId: '',
+        depth: 1,
+        count: 1,
+        isPersisted: true,
+        children: [],
+      },
+    ],
   }
 }
 
@@ -32,8 +34,7 @@ describe('docsFolderTree layout', () => {
       },
     })
 
-    const longName = wrapper.findAll('[data-testid="docs-folder-name"]')
-      .find(node => node.text().includes('Beem-IM'))
+    const longName = wrapper.findAll('[data-testid="docs-folder-name"]').find((node) => node.text().includes('Beem-IM'))
 
     expect(longName?.attributes('title')).toBeUndefined()
     expect(longName?.attributes('aria-label')).toBe('Beem-IM 包管理 yarn 迁移至 pnpm')

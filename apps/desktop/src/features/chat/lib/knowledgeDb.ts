@@ -1,16 +1,7 @@
 import type { EntityTable } from 'dexie'
-import type {
-  CrossSessionQaAnswer,
-  DecisionCard,
-  DigestEntry,
-  SuggestionDisposition,
-} from '../types/knowledge'
+import type { CrossSessionQaAnswer, DecisionCard, DigestEntry, SuggestionDisposition } from '../types/knowledge'
 import Dexie from 'dexie'
-import {
-  crossSessionQaAnswerSchema,
-  decisionCardSchema,
-  digestEntrySchema,
-} from '../types/knowledge'
+import { crossSessionQaAnswerSchema, decisionCardSchema, digestEntrySchema } from '../types/knowledge'
 
 export const KNOWLEDGE_DB_NAME = 'MuonKnowledgeDB'
 
@@ -59,7 +50,9 @@ export interface KnowledgeRepositoryTables {
   qaSessions: KnowledgeTable<CrossSessionQaAnswer>
 }
 
-export function createKnowledgeRepository(db: KnowledgeRepositoryTables = knowledgeDb as unknown as KnowledgeRepositoryTables) {
+export function createKnowledgeRepository(
+  db: KnowledgeRepositoryTables = knowledgeDb as unknown as KnowledgeRepositoryTables,
+) {
   return {
     async saveDigestEntry(entry: DigestEntry) {
       const parsed = digestEntrySchema.parse(entry)
@@ -77,28 +70,30 @@ export function createKnowledgeRepository(db: KnowledgeRepositoryTables = knowle
       return parsed
     },
     async listDigestEntries(relevance?: DigestEntry['relevance']) {
-      if (relevance)
-        return await db.digestEntries.where('relevance').equals(relevance).toArray()
+      if (relevance) return await db.digestEntries.where('relevance').equals(relevance).toArray()
 
       return await db.digestEntries.orderBy('createdAt').reverse().toArray()
     },
     async listDecisionCards(status?: DecisionCard['status']) {
-      if (status)
-        return await db.decisions.where('status').equals(status).toArray()
+      if (status) return await db.decisions.where('status').equals(status).toArray()
 
       return await db.decisions.orderBy('updatedAt').reverse().toArray()
     },
     async listQaSessions() {
       return await db.qaSessions.orderBy('createdAt').reverse().toArray()
     },
-    async updateSuggestionDisposition(decisionId: string, suggestionId: string, disposition: SuggestionDisposition, updatedBy = 'system', updatedAt = Date.now()) {
+    async updateSuggestionDisposition(
+      decisionId: string,
+      suggestionId: string,
+      disposition: SuggestionDisposition,
+      updatedBy = 'system',
+      updatedAt = Date.now(),
+    ) {
       const decision = await db.decisions.get(decisionId)
-      if (!decision)
-        throw new Error(`Decision ${decisionId} not found`)
+      if (!decision) throw new Error(`Decision ${decisionId} not found`)
 
       const suggestions = decision.suggestions.map((suggestion) => {
-        if (suggestion.id !== suggestionId)
-          return suggestion
+        if (suggestion.id !== suggestionId) return suggestion
 
         return {
           ...suggestion,

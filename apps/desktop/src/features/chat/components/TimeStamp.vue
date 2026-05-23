@@ -1,15 +1,15 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { formatTimestampDivider } from '../lib/format'
+import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { formatTimestampDivider } from '../lib/format';
 
 const props = defineProps<{
-  timestamp: number
-}>()
+  timestamp: number;
+}>();
 
-const { locale } = useI18n()
+const { locale } = useI18n();
 
-const label = computed(() => formatTimestampDivider(props.timestamp, locale.value))
+const label = computed(() => formatTimestampDivider(props.timestamp, locale.value));
 </script>
 
 <template>

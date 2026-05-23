@@ -5,17 +5,14 @@ import { getClient } from '@/matrix/client'
 export function useRoomPermissions(roomId: Ref<string | null> | string | null) {
   const room = computed(() => {
     const id = toValue(roomId)
-    if (!id)
-      return null
+    if (!id) return null
     return getClient()?.getRoom(id) ?? null
   })
 
   const myPowerLevel = computed(() => {
-    if (!room.value)
-      return 0
+    if (!room.value) return 0
     const me = getClient()?.getUserId()
-    if (!me)
-      return 0
+    if (!me) return 0
     const plEvent = room.value.currentState.getStateEvents('m.room.power_levels', '')
     const levels = plEvent?.getContent?.()
     return levels?.users?.[me] ?? levels?.users_default ?? 0

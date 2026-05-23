@@ -27,7 +27,7 @@ export default meta
 type Story = StoryObj<typeof Breadcrumb>
 
 export const Default: Story = {
-  render: args => ({ components: { Breadcrumb }, setup: () => ({ args }), template: '<Breadcrumb v-bind="args" />' }),
+  render: (args) => ({ components: { Breadcrumb }, setup: () => ({ args }), template: '<Breadcrumb v-bind="args" />' }),
 }
 
 export const Variants: Story = {

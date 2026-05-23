@@ -1,17 +1,17 @@
 <script setup lang="ts">
-import { useI18n } from 'vue-i18n'
+import { useI18n } from 'vue-i18n';
 
 interface ReadUser {
-  userId: string
-  name: string
-  avatar?: string
+  userId: string;
+  name: string;
+  avatar?: string;
 }
 
 defineProps<{
-  readUsers: ReadUser[]
-}>()
+  readUsers: ReadUser[];
+}>();
 
-const { t } = useI18n()
+const { t } = useI18n();
 </script>
 
 <template>
@@ -24,7 +24,7 @@ const { t } = useI18n()
           :alt="u.name"
           :title="u.name"
           class="w-3.5 h-3.5 rounded-full ring-1 ring-background object-cover"
-        >
+        />
         <div
           v-else
           :title="u.name"
@@ -35,7 +35,7 @@ const { t } = useI18n()
       </template>
     </div>
     <span class="text-[10px] text-muted-foreground/50">
-      {{ readUsers.length > 5 ? t("chat.read_by_n", { n: readUsers.length }) : t("chat.read") }}
+      {{ readUsers.length > 5 ? t('chat.read_by_n', { n: readUsers.length }) : t('chat.read') }}
     </span>
   </div>
 </template>

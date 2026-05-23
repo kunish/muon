@@ -1,74 +1,69 @@
 <script setup lang="ts">
-import { Button } from '@muon/ui/button'
-import { Input } from '@muon/ui/input'
-import { Label } from '@muon/ui/label'
-import { Textarea } from '@muon/ui/textarea'
-import { ArrowLeft } from 'lucide-vue-next'
-import { computed, ref, watch } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
-import { useProjectStore } from '../composables/useProjectStore'
-import CustomFieldEditor from './settings/CustomFieldEditor.vue'
-import WorkflowEditor from './settings/WorkflowEditor.vue'
+import { Button } from '@muon/ui/button';
+import { Input } from '@muon/ui/input';
+import { Label } from '@muon/ui/label';
+import { Textarea } from '@muon/ui/textarea';
+import { ArrowLeft } from 'lucide-vue-next';
+import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useRouter } from 'vue-router';
+import { useProjectStore } from '../composables/useProjectStore';
+import CustomFieldEditor from './settings/CustomFieldEditor.vue';
+import WorkflowEditor from './settings/WorkflowEditor.vue';
 
-const props = defineProps<{ projectId: string }>()
+const props = defineProps<{ projectId: string }>();
 
-const { t } = useI18n()
-const router = useRouter()
-const store = useProjectStore()
-const project = computed(() => store.projects.find(p => p.id === props.projectId))
+const { t } = useI18n();
+const router = useRouter();
+const store = useProjectStore();
+const project = computed(() => store.projects.find((p) => p.id === props.projectId));
 
-const activeTab = ref<'general' | 'workflow' | 'fields'>('general')
-const editName = ref('')
-const editDescription = ref('')
-const savingGeneral = ref(false)
+const activeTab = ref<'general' | 'workflow' | 'fields'>('general');
+const editName = ref('');
+const editDescription = ref('');
+const savingGeneral = ref(false);
 
 const canSaveGeneral = computed(() => {
-  if (!project.value || savingGeneral.value)
-    return false
-  return editName.value.trim().length > 0
-    && (
-      editName.value.trim() !== project.value.name
-      || editDescription.value.trim() !== project.value.description
-    )
-})
+  if (!project.value || savingGeneral.value) return false;
+  return (
+    editName.value.trim().length > 0 &&
+    (editName.value.trim() !== project.value.name || editDescription.value.trim() !== project.value.description)
+  );
+});
 
 watch(
   () => props.projectId,
   async (projectId) => {
-    store.setCurrentProject(projectId)
-    if (!project.value)
-      await store.loadProjects()
+    store.setCurrentProject(projectId);
+    if (!project.value) await store.loadProjects();
   },
   { immediate: true },
-)
+);
 
 watch(
   project,
   (value) => {
-    editName.value = value?.name ?? ''
-    editDescription.value = value?.description ?? ''
+    editName.value = value?.name ?? '';
+    editDescription.value = value?.description ?? '';
   },
   { immediate: true },
-)
+);
 
 function goBack() {
-  router.push(`/projects/${props.projectId}`)
+  router.push(`/projects/${props.projectId}`);
 }
 
 async function saveGeneralSettings() {
-  if (!project.value || !canSaveGeneral.value)
-    return
+  if (!project.value || !canSaveGeneral.value) return;
 
-  savingGeneral.value = true
+  savingGeneral.value = true;
   try {
     await store.updateProject(project.value.id, {
       name: editName.value.trim(),
       description: editDescription.value.trim(),
-    })
-  }
-  finally {
-    savingGeneral.value = false
+    });
+  } finally {
+    savingGeneral.value = false;
   }
 }
 </script>
@@ -79,14 +74,12 @@ async function saveGeneralSettings() {
       <Button variant="ghost" size="icon" @click="goBack()">
         <ArrowLeft class="h-4 w-4" />
       </Button>
-      <h1 class="text-lg font-semibold">
-        {{ project.name }} — {{ t('projects.settings') }}
-      </h1>
+      <h1 class="text-lg font-semibold">{{ project.name }} — {{ t('projects.settings') }}</h1>
     </div>
 
     <div class="flex border-b">
       <button
-        v-for="tab in (['general', 'workflow', 'fields'] as const)"
+        v-for="tab in ['general', 'workflow', 'fields'] as const"
         :key="tab"
         class="border-b-2 px-4 py-2 text-sm font-medium"
         :class="activeTab === tab ? 'border-primary text-primary' : 'border-transparent text-muted-foreground'"

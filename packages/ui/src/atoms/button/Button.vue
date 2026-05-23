@@ -1,26 +1,26 @@
 <script setup lang="ts">
-import type { PrimitiveProps } from 'reka-ui'
-import type { Component, HTMLAttributes } from 'vue'
-import type { ButtonVariants } from '.'
-import { Loader2 } from 'lucide-vue-next'
-import { Primitive } from 'reka-ui'
-import { buttonVariants } from '.'
-import { cn } from '../../utils'
+import type { PrimitiveProps } from 'reka-ui';
+import type { Component, HTMLAttributes } from 'vue';
+import type { ButtonVariants } from '.';
+import { Loader2 } from 'lucide-vue-next';
+import { Primitive } from 'reka-ui';
+import { buttonVariants } from '.';
+import { cn } from '../../utils';
 
 interface Props extends PrimitiveProps {
-  variant?: ButtonVariants['variant']
-  size?: ButtonVariants['size']
-  class?: HTMLAttributes['class']
-  disabled?: boolean
-  loading?: boolean
-  leadingIcon?: Component | string
-  trailingIcon?: Component | string
+  variant?: ButtonVariants['variant'];
+  size?: ButtonVariants['size'];
+  class?: HTMLAttributes['class'];
+  disabled?: boolean;
+  loading?: boolean;
+  leadingIcon?: Component | string;
+  trailingIcon?: Component | string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   as: 'button',
   loading: false,
-})
+});
 </script>
 
 <template>
@@ -42,10 +42,6 @@ const props = withDefaults(defineProps<Props>(), {
       class="size-4"
     />
     <slot />
-    <component
-      :is="trailingIcon"
-      v-if="trailingIcon && typeof trailingIcon !== 'string' && !loading"
-      class="size-4"
-    />
+    <component :is="trailingIcon" v-if="trailingIcon && typeof trailingIcon !== 'string' && !loading" class="size-4" />
   </Primitive>
 </template>

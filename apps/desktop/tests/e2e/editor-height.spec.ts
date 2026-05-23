@@ -17,7 +17,10 @@ async function mockMatrixHomeserver(page: import('@playwright/test').Page) {
     }
 
     if (pathname.includes('/pushrules')) {
-      await route.fulfill({ contentType: 'application/json', json: { global: { override: [], underride: [], content: [], room: [], sender: [] } } })
+      await route.fulfill({
+        contentType: 'application/json',
+        json: { global: { override: [], underride: [], content: [], room: [], sender: [] } },
+      })
       return
     }
 
@@ -44,18 +47,21 @@ async function mockMatrixHomeserver(page: import('@playwright/test').Page) {
 }
 
 function composerMetrics(page: import('@playwright/test').Page) {
-  return page.locator('.rich-editor').first().evaluate((node) => {
-    const wrapper = node as HTMLElement
-    const tiptap = wrapper.querySelector('.tiptap') as HTMLElement | null
-    const wrapperStyle = getComputedStyle(wrapper)
-    const tiptapStyle = tiptap ? getComputedStyle(tiptap) : null
+  return page
+    .locator('.rich-editor')
+    .first()
+    .evaluate((node) => {
+      const wrapper = node as HTMLElement
+      const tiptap = wrapper.querySelector('.tiptap') as HTMLElement | null
+      const wrapperStyle = getComputedStyle(wrapper)
+      const tiptapStyle = tiptap ? getComputedStyle(tiptap) : null
 
-    return {
-      height: wrapper.clientHeight,
-      minHeight: wrapperStyle.minHeight,
-      tiptapMinHeight: tiptapStyle?.minHeight ?? null,
-    }
-  })
+      return {
+        height: wrapper.clientHeight,
+        minHeight: wrapperStyle.minHeight,
+        tiptapMinHeight: tiptapStyle?.minHeight ?? null,
+      }
+    })
 }
 
 test('compact composer returns to default height after keyboard-deleting pasted media', async ({ page }) => {

@@ -1,76 +1,73 @@
 <script setup lang="ts">
-import type { SpaceMember } from '@/matrix/spaces'
-import { useRoomNavigation } from '@shared/composables/useRoomNavigation'
-import { Search, X } from 'lucide-vue-next'
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { useServerStore } from '@/features/server/stores/serverStore'
-import { matrixEvents } from '@/matrix/events'
-import { getUserPresenceInfo } from '@/matrix/profile'
-import { getSpaceMembers } from '@/matrix/spaces'
-import MemberContextMenu from './MemberContextMenu.vue'
-import MemberItem from './MemberItem.vue'
+import type { SpaceMember } from '@/matrix/spaces';
+import { useRoomNavigation } from '@shared/composables/useRoomNavigation';
+import { Search, X } from 'lucide-vue-next';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useServerStore } from '@/features/server/stores/serverStore';
+import { matrixEvents } from '@/matrix/events';
+import { getUserPresenceInfo } from '@/matrix/profile';
+import { getSpaceMembers } from '@/matrix/spaces';
+import MemberContextMenu from './MemberContextMenu.vue';
+import MemberItem from './MemberItem.vue';
 
 const _props = defineProps<{
-  visible: boolean
-}>()
+  visible: boolean;
+}>();
 
 const emit = defineEmits<{
-  close: []
-  openPopover: [member: SpaceMember, event: MouseEvent]
-  openContextMenu: [member: SpaceMember, event: MouseEvent]
-}>()
+  close: [];
+  openPopover: [member: SpaceMember, event: MouseEvent];
+  openContextMenu: [member: SpaceMember, event: MouseEvent];
+}>();
 
-const serverStore = useServerStore()
-const chatStore = useRoomNavigation()
-const { t } = useI18n()
-const searchQuery = ref('')
+const serverStore = useServerStore();
+const chatStore = useRoomNavigation();
+const { t } = useI18n();
+const searchQuery = ref('');
 
 // ── 成员数据 ──
 
-const rawMembers = ref<SpaceMember[]>([])
+const rawMembers = ref<SpaceMember[]>([]);
 
 function refreshMembers() {
-  const serverId = serverStore.currentServerId
+  const serverId = serverStore.currentServerId;
   if (!serverId) {
-    rawMembers.value = []
-    return
+    rawMembers.value = [];
+    return;
   }
-  rawMembers.value = getSpaceMembers(serverId)
+  rawMembers.value = getSpaceMembers(serverId);
 }
 
-watch(() => serverStore.currentServerId, refreshMembers, { immediate: true })
+watch(() => serverStore.currentServerId, refreshMembers, { immediate: true });
 
 // 监听成员变更事件
 onMounted(() => {
-  matrixEvents.on('space.member', refreshMembers)
-  matrixEvents.on('room.member', refreshMembers)
-})
+  matrixEvents.on('space.member', refreshMembers);
+  matrixEvents.on('room.member', refreshMembers);
+});
 
 onUnmounted(() => {
-  matrixEvents.off('space.member', refreshMembers)
-  matrixEvents.off('room.member', refreshMembers)
-})
+  matrixEvents.off('space.member', refreshMembers);
+  matrixEvents.off('room.member', refreshMembers);
+});
 
 // ── 搜索过滤 ──
 
 const filteredMembers = computed(() => {
-  if (!searchQuery.value.trim())
-    return rawMembers.value
-  const q = searchQuery.value.toLowerCase()
-  return rawMembers.value.filter(m =>
-    m.displayName.toLowerCase().includes(q) || m.userId.toLowerCase().includes(q),
-  )
-})
+  if (!searchQuery.value.trim()) return rawMembers.value;
+  const q = searchQuery.value.toLowerCase();
+  return rawMembers.value.filter((m) => m.displayName.toLowerCase().includes(q) || m.userId.toLowerCase().includes(q));
+});
 
 // ── 角色分组定义 ──
 
 interface RoleGroup {
-  key: string
-  labelKey: string
-  color: string
-  minPower: number
-  maxPower: number
+  key: string;
+  labelKey: string;
+  color: string;
+  minPower: number;
+  maxPower: number;
 }
 
 const roleGroups: RoleGroup[] = [
@@ -78,47 +75,44 @@ const roleGroups: RoleGroup[] = [
   { key: 'admin', labelKey: 'role.admin', color: '#b85c4a', minPower: 75, maxPower: 99 },
   { key: 'moderator', labelKey: 'role.moderator', color: '#4a9882', minPower: 50, maxPower: 74 },
   { key: 'member', labelKey: 'role.member', color: 'var(--color-foreground)', minPower: 0, maxPower: 49 },
-]
+];
 
 // ── 按角色分组 + 在线排前 ──
 
 interface GroupedSection {
-  key: string
-  label: string
-  color: string
-  count: number
-  onlineMembers: SpaceMember[]
-  offlineMembers: SpaceMember[]
+  key: string;
+  label: string;
+  color: string;
+  count: number;
+  onlineMembers: SpaceMember[];
+  offlineMembers: SpaceMember[];
 }
 
 const groupedSections = computed<GroupedSection[]>(() => {
-  const sections: GroupedSection[] = []
+  const sections: GroupedSection[] = [];
 
   for (const group of roleGroups) {
     const members = filteredMembers.value.filter(
-      m => m.powerLevel >= group.minPower && m.powerLevel <= group.maxPower,
-    )
-    if (members.length === 0)
-      continue
+      (m) => m.powerLevel >= group.minPower && m.powerLevel <= group.maxPower,
+    );
+    if (members.length === 0) continue;
 
-    const online: SpaceMember[] = []
-    const offline: SpaceMember[] = []
+    const online: SpaceMember[] = [];
+    const offline: SpaceMember[] = [];
 
     for (const m of members) {
-      const p = getUserPresenceInfo(m.userId).presence
+      const p = getUserPresenceInfo(m.userId).presence;
       if (p === 'online' || p === 'unavailable' || p === 'busy') {
-        online.push(m)
-      }
-      else {
-        offline.push(m)
+        online.push(m);
+      } else {
+        offline.push(m);
       }
     }
 
     // 按名称排序
-    const sorter = (a: SpaceMember, b: SpaceMember) =>
-      a.displayName.localeCompare(b.displayName)
-    online.sort(sorter)
-    offline.sort(sorter)
+    const sorter = (a: SpaceMember, b: SpaceMember) => a.displayName.localeCompare(b.displayName);
+    online.sort(sorter);
+    offline.sort(sorter);
 
     sections.push({
       key: group.key,
@@ -127,46 +121,47 @@ const groupedSections = computed<GroupedSection[]>(() => {
       count: members.length,
       onlineMembers: online,
       offlineMembers: offline,
-    })
+    });
   }
 
-  return sections
-})
+  return sections;
+});
 
-const _totalOnline = computed(() =>
-  groupedSections.value.reduce((sum, s) => sum + s.onlineMembers.length, 0),
-)
+const _totalOnline = computed(() => groupedSections.value.reduce((sum, s) => sum + s.onlineMembers.length, 0));
 
-const contextMenuMember = ref<SpaceMember | null>(null)
-const contextMenuPosition = ref({ x: 0, y: 0 })
+const contextMenuMember = ref<SpaceMember | null>(null);
+const contextMenuPosition = ref({ x: 0, y: 0 });
 
 function handleOpenContextMenu(member: SpaceMember, event: MouseEvent) {
-  contextMenuMember.value = member
-  contextMenuPosition.value = { x: event.clientX, y: event.clientY }
-  emit('openContextMenu', member, event)
+  contextMenuMember.value = member;
+  contextMenuPosition.value = { x: event.clientX, y: event.clientY };
+  emit('openContextMenu', member, event);
 }
 
 function closeContextMenu() {
-  contextMenuMember.value = null
+  contextMenuMember.value = null;
 }
 
 function handleProfileFromContext(userId: string) {
-  const member = rawMembers.value.find(item => item.userId === userId)
-  if (!member)
-    return
-  emit('openPopover', member, new MouseEvent('click', {
-    clientX: contextMenuPosition.value.x,
-    clientY: contextMenuPosition.value.y,
-  }))
+  const member = rawMembers.value.find((item) => item.userId === userId);
+  if (!member) return;
+  emit(
+    'openPopover',
+    member,
+    new MouseEvent('click', {
+      clientX: contextMenuPosition.value.x,
+      clientY: contextMenuPosition.value.y,
+    }),
+  );
 }
 
 function handleMentionFromContext(userId: string) {
-  const member = rawMembers.value.find(item => item.userId === userId)
+  const member = rawMembers.value.find((item) => item.userId === userId);
   chatStore.requestMention({
     id: userId,
     label: member?.displayName || userId.split(':')[0]?.slice(1) || userId,
-  })
-  closeContextMenu()
+  });
+  closeContextMenu();
 }
 </script>
 
@@ -177,19 +172,13 @@ function handleMentionFromContext(userId: string) {
     enter-from-class="translate-x-5 opacity-0"
     leave-to-class="translate-x-5 opacity-0"
   >
-    <aside
-      v-if="visible"
-      class="w-60 h-full flex flex-col border-l border-border bg-sidebar shrink-0 overflow-hidden"
-    >
+    <aside v-if="visible" class="w-60 h-full flex flex-col border-l border-border bg-sidebar shrink-0 overflow-hidden">
       <!-- Header -->
       <div class="flex items-center justify-between px-4 h-12 border-b border-border shrink-0">
         <span class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
           {{ t('member.members') }} — {{ rawMembers.length }}
         </span>
-        <button
-          class="p-1 rounded-md hover:bg-accent text-muted-foreground transition-colors"
-          @click="emit('close')"
-        >
+        <button class="p-1 rounded-md hover:bg-accent text-muted-foreground transition-colors" @click="emit('close')">
           <X :size="14" />
         </button>
       </div>
@@ -197,16 +186,13 @@ function handleMentionFromContext(userId: string) {
       <!-- Search -->
       <div class="px-2.5 py-2 shrink-0">
         <div class="relative">
-          <Search
-            class="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground/40"
-            :size="12"
-          />
+          <Search class="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground/40" :size="12" />
           <input
             v-model="searchQuery"
             type="text"
             :placeholder="t('member.search_members_placeholder')"
             class="w-full h-7 pl-7 pr-2 text-xs rounded-md bg-background border border-transparent outline-none placeholder:text-muted-foreground/35 transition-all duration-150 focus:border-ring/30"
-          >
+          />
         </div>
       </div>
 

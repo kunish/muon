@@ -6,16 +6,14 @@ export async function open(options: DesktopDialogOpenOptions & { multiple: true 
 export async function open(options?: DesktopDialogOpenOptions & { multiple?: false }): Promise<string | null>
 export async function open(options?: DesktopDialogOpenOptions): Promise<string | string[] | null> {
   const bridge = getDesktopBridge()
-  if (!bridge)
-    return null
+  if (!bridge) return null
 
   return bridge.dialog.open(options)
 }
 
 export async function save(options?: DesktopDialogSaveOptions): Promise<string | null> {
   const bridge = getDesktopBridge()
-  if (!bridge)
-    return null
+  if (!bridge) return null
 
   return bridge.dialog.save(options)
 }

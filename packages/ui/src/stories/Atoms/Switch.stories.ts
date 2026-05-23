@@ -23,7 +23,7 @@ export default meta
 type Story = StoryObj<typeof Switch>
 
 export const Default: Story = {
-  render: args => ({
+  render: (args) => ({
     components: { Switch },
     setup: () => ({ args }),
     template: '<Switch v-bind="args" />',

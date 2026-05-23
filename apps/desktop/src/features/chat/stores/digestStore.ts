@@ -19,12 +19,13 @@ export const useDigestStore = defineStore('digest', () => {
   const session = ref<DigestSession | null>(null)
   const activeFilter = ref<DigestFilter>('all')
   const loading = ref(false)
-  let runtimeHandler: ((payload: { roomId: string, event: MatrixEvent }) => void) | null = null
+  let runtimeHandler: ((payload: { roomId: string; event: MatrixEvent }) => void) | null = null
 
   const visibleEntries = computed(() => {
-    const filtered = activeFilter.value === 'all'
-      ? entries.value
-      : entries.value.filter(entry => entry.relevance === activeFilter.value)
+    const filtered =
+      activeFilter.value === 'all'
+        ? entries.value
+        : entries.value.filter((entry) => entry.relevance === activeFilter.value)
 
     return [...filtered].sort(compareDigestEntries).map((entry) => {
       const citation = entry.citations[0]
@@ -37,7 +38,7 @@ export const useDigestStore = defineStore('digest', () => {
 
   function ingestEvent(event: DigestSourceEvent) {
     const current = sourceEvents.value
-    const existingIndex = current.findIndex(sourceEvent => sourceEvent.eventId === event.eventId)
+    const existingIndex = current.findIndex((sourceEvent) => sourceEvent.eventId === event.eventId)
     if (existingIndex >= 0) {
       const next = [...current]
       next[existingIndex] = event
@@ -60,8 +61,7 @@ export const useDigestStore = defineStore('digest', () => {
   }
 
   function startRuntimeSync() {
-    if (runtimeHandler)
-      return
+    if (runtimeHandler) return
 
     runtimeHandler = ({ roomId, event }) => {
       const eventId = event?.getId?.()
@@ -69,8 +69,7 @@ export const useDigestStore = defineStore('digest', () => {
       const sender = event?.getSender?.()
       const body = event?.getContent?.()?.body
 
-      if (!eventId || typeof ts !== 'number' || !sender || typeof body !== 'string' || body.length === 0)
-        return
+      if (!eventId || typeof ts !== 'number' || !sender || typeof body !== 'string' || body.length === 0) return
 
       ingestEvent({
         roomId,
@@ -85,25 +84,23 @@ export const useDigestStore = defineStore('digest', () => {
   }
 
   function stopRuntimeSync() {
-    if (!runtimeHandler)
-      return
+    if (!runtimeHandler) return
 
     matrixEvents.off('room.message', runtimeHandler)
     runtimeHandler = null
   }
 
-  async function initializeDigest(options: { now?: number, lastOfflineAt?: number | null } = {}) {
+  async function initializeDigest(options: { now?: number; lastOfflineAt?: number | null } = {}) {
     await hydrateDigestEntries()
     startRuntimeSync()
 
     const windowStart = options.lastOfflineAt ?? lastOfflineAt.value
-    if (windowStart == null)
-      return entries.value
+    if (windowStart == null) return entries.value
 
     return await buildDigestSession(options)
   }
 
-  async function buildDigestSession(options: { now?: number, lastOfflineAt?: number | null } = {}) {
+  async function buildDigestSession(options: { now?: number; lastOfflineAt?: number | null } = {}) {
     const windowStart = options.lastOfflineAt ?? lastOfflineAt.value
     const windowEnd = options.now ?? Date.now()
     if (windowStart == null) {
@@ -128,10 +125,9 @@ export const useDigestStore = defineStore('digest', () => {
       }
 
       entries.value = nextSession.entries
-      await Promise.all(nextSession.entries.map(entry => repository.saveDigestEntry(entry)))
+      await Promise.all(nextSession.entries.map((entry) => repository.saveDigestEntry(entry)))
       return nextSession.entries
-    }
-    finally {
+    } finally {
       loading.value = false
     }
   }

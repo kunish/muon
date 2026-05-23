@@ -1,54 +1,51 @@
 <script setup lang="ts">
-import { Button } from '@muon/ui/button'
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@muon/ui/dialog'
-import { Input } from '@muon/ui/input'
-import { Label } from '@muon/ui/label'
-import { computed, ref } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
-import { useProjectStore } from '../composables/useProjectStore'
+import { Button } from '@muon/ui/button';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@muon/ui/dialog';
+import { Input } from '@muon/ui/input';
+import { Label } from '@muon/ui/label';
+import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useRouter } from 'vue-router';
+import { useProjectStore } from '../composables/useProjectStore';
 
 defineProps<{
-  open: boolean
-}>()
+  open: boolean;
+}>();
 
 const emit = defineEmits<{
-  'update:open': [value: boolean]
-  'created': [projectId: string]
-}>()
+  'update:open': [value: boolean];
+  created: [projectId: string];
+}>();
 
-const { t } = useI18n()
-const router = useRouter()
-const store = useProjectStore()
+const { t } = useI18n();
+const router = useRouter();
+const store = useProjectStore();
 
-const name = ref('')
-const description = ref('')
-const creating = ref(false)
-const error = ref('')
+const name = ref('');
+const description = ref('');
+const creating = ref(false);
+const error = ref('');
 
-const canSubmit = computed(() => name.value.trim().length > 0 && !creating.value)
+const canSubmit = computed(() => name.value.trim().length > 0 && !creating.value);
 
 async function submit() {
-  if (!canSubmit.value)
-    return
-  creating.value = true
-  error.value = ''
+  if (!canSubmit.value) return;
+  creating.value = true;
+  error.value = '';
   try {
     const project = await store.createProject({
       name: name.value.trim(),
       description: description.value.trim(),
-    })
-    emit('created', project.id)
-    emit('update:open', false)
-    name.value = ''
-    description.value = ''
-    router.push(`/projects/${project.id}`)
-  }
-  catch (e) {
-    error.value = e instanceof Error ? e.message : String(e)
-  }
-  finally {
-    creating.value = false
+    });
+    emit('created', project.id);
+    emit('update:open', false);
+    name.value = '';
+    description.value = '';
+    router.push(`/projects/${project.id}`);
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : String(e);
+  } finally {
+    creating.value = false;
   }
 }
 </script>

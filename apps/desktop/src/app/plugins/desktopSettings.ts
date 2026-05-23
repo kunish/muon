@@ -11,12 +11,12 @@ export function syncDesktopSettingsWithStore(): WatchStopHandle {
   const settingsStore = useSettingsStore()
   const stopAutoLaunchSync = watch(
     () => settingsStore.autoLaunch,
-    value => void setAutoLaunchEnabled(value),
+    (value) => void setAutoLaunchEnabled(value),
     { immediate: true },
   )
   const stopCloseToTraySync = watch(
     () => settingsStore.closeToTray,
-    value => void setCloseToTrayEnabled(value),
+    (value) => void setCloseToTrayEnabled(value),
     { immediate: true },
   )
 

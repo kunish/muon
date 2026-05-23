@@ -3,11 +3,7 @@ import type { CursorData } from '../types/doc'
 import { computed, shallowRef, watchEffect } from 'vue'
 import { userColor } from '../types/doc'
 
-export function useDocCursor(
-  provider: () => MatrixSyncProvider | null,
-  userId: string,
-  userName: string,
-) {
+export function useDocCursor(provider: () => MatrixSyncProvider | null, userId: string, userName: string) {
   const remoteCursors = shallowRef<Record<string, CursorData>>({})
   const color = userColor(userId)
 
@@ -15,9 +11,7 @@ export function useDocCursor(
     provider()?.sendCursor({ userId, name: userName, color, from, to })
   }
 
-  const others = computed(() =>
-    Object.values(remoteCursors.value).filter(c => c.userId !== userId),
-  )
+  const others = computed(() => Object.values(remoteCursors.value).filter((c) => c.userId !== userId))
 
   function updateRemoteCursor(cursor: CursorData): void {
     remoteCursors.value = { ...remoteCursors.value, [cursor.userId]: cursor }
@@ -31,8 +25,7 @@ export function useDocCursor(
 
   watchEffect((onCleanup) => {
     const currentProvider = provider()
-    if (!currentProvider)
-      return
+    if (!currentProvider) return
 
     const dispose = currentProvider.onCursor(updateRemoteCursor)
     onCleanup(dispose)

@@ -1,68 +1,61 @@
 <script setup lang="ts">
-import type { RecentSticker } from '../stores/stickerStore'
-import type { ImageSticker } from '@/shared/data/stickerPacks'
-import { Settings } from 'lucide-vue-next'
-import { computed, defineComponent, h, ref, toRef } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { useAuthMedia } from '@/shared/composables/useAuthMedia'
-import { BUILTIN_STICKER_PACKS } from '@/shared/data/stickerPacks'
-import { useStickerStore } from '../stores/stickerStore'
+import type { RecentSticker } from '../stores/stickerStore';
+import type { ImageSticker } from '@/shared/data/stickerPacks';
+import { Settings } from 'lucide-vue-next';
+import { computed, defineComponent, h, ref, toRef } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useAuthMedia } from '@/shared/composables/useAuthMedia';
+import { BUILTIN_STICKER_PACKS } from '@/shared/data/stickerPacks';
+import { useStickerStore } from '../stores/stickerStore';
 
 const emit = defineEmits<{
-  select: [emoji: string, name: string]
-  selectImage: [sticker: ImageSticker]
-  manage: []
-}>()
+  select: [emoji: string, name: string];
+  selectImage: [sticker: ImageSticker];
+  manage: [];
+}>();
 
-const { t } = useI18n()
+const { t } = useI18n();
 
-const stickerStore = useStickerStore()
+const stickerStore = useStickerStore();
 
-const activeTabId = ref<string>(
-  stickerStore.recentStickers.length > 0 ? 'recent' : BUILTIN_STICKER_PACKS[0].id,
-)
+const activeTabId = ref<string>(stickerStore.recentStickers.length > 0 ? 'recent' : BUILTIN_STICKER_PACKS[0].id);
 
 // 所有 tab：最近 → 内置 → 自定义
 const tabs = computed(() => {
-  const list: { id: string, icon: string, label: string, type: 'recent' | 'builtin' | 'custom' }[] = []
+  const list: { id: string; icon: string; label: string; type: 'recent' | 'builtin' | 'custom' }[] = [];
   if (stickerStore.recentStickers.length > 0) {
-    list.push({ id: 'recent', icon: '🕐', label: t('chat.sticker_recent'), type: 'recent' })
+    list.push({ id: 'recent', icon: '🕐', label: t('chat.sticker_recent'), type: 'recent' });
   }
   for (const p of BUILTIN_STICKER_PACKS) {
-    list.push({ id: p.id, icon: p.icon, label: p.label, type: 'builtin' })
+    list.push({ id: p.id, icon: p.icon, label: p.label, type: 'builtin' });
   }
   for (const p of stickerStore.customPacks) {
-    list.push({ id: p.id, icon: p.icon ? '📦' : '📦', label: p.name, type: 'custom' })
+    list.push({ id: p.id, icon: p.icon ? '📦' : '📦', label: p.name, type: 'custom' });
   }
-  return list
-})
+  return list;
+});
 
-const activeTab = computed(() => tabs.value.find(t => t.id === activeTabId.value) || tabs.value[0])
+const activeTab = computed(() => tabs.value.find((t) => t.id === activeTabId.value) || tabs.value[0]);
 
-const activeBuiltinPack = computed(() =>
-  BUILTIN_STICKER_PACKS.find(p => p.id === activeTabId.value),
-)
+const activeBuiltinPack = computed(() => BUILTIN_STICKER_PACKS.find((p) => p.id === activeTabId.value));
 
-const activeCustomPack = computed(() =>
-  stickerStore.customPacks.find(p => p.id === activeTabId.value),
-)
+const activeCustomPack = computed(() => stickerStore.customPacks.find((p) => p.id === activeTabId.value));
 
 function onEmojiSelect(emoji: string, name: string) {
-  stickerStore.addRecentEmoji(emoji, name)
-  emit('select', emoji, name)
+  stickerStore.addRecentEmoji(emoji, name);
+  emit('select', emoji, name);
 }
 
 function onImageSelect(sticker: ImageSticker) {
-  stickerStore.addRecentImage(sticker, activeTabId.value)
-  emit('selectImage', sticker)
+  stickerStore.addRecentImage(sticker, activeTabId.value);
+  emit('selectImage', sticker);
 }
 
 function onRecentSelect(recent: RecentSticker) {
   if (recent.type === 'emoji') {
-    stickerStore.addRecentEmoji(recent.value, recent.name)
-    emit('select', recent.value, recent.name)
-  }
-  else if (recent.mxcUrl) {
+    stickerStore.addRecentEmoji(recent.value, recent.name);
+    emit('select', recent.value, recent.name);
+  } else if (recent.mxcUrl) {
     const sticker: ImageSticker = {
       id: recent.mxcUrl,
       name: recent.name,
@@ -70,9 +63,9 @@ function onRecentSelect(recent: RecentSticker) {
       width: recent.width || 128,
       height: recent.height || 128,
       mimetype: recent.mimetype || 'image/webp',
-    }
-    stickerStore.addRecentImage(sticker, recent.packId)
-    emit('selectImage', sticker)
+    };
+    stickerStore.addRecentImage(sticker, recent.packId);
+    emit('selectImage', sticker);
   }
 }
 
@@ -85,19 +78,23 @@ const StickerThumb = defineComponent({
     imgClass: { type: String, default: 'w-full h-full rounded-lg object-cover' },
   },
   setup(props) {
-    const src = useAuthMedia(toRef(props, 'mxcUrl'), props.size, props.size)
+    const src = useAuthMedia(toRef(props, 'mxcUrl'), props.size, props.size);
     return () =>
       src.value
         ? h('img', { src: src.value, class: props.imgClass })
-        : h('div', { class: `${props.imgClass} bg-muted/40 animate-pulse` })
+        : h('div', { class: `${props.imgClass} bg-muted/40 animate-pulse` });
   },
-})
+});
 </script>
 
 <template>
-  <div class="flex h-[min(380px,calc(100vh-24px))] w-[min(340px,calc(100vw-16px))] flex-col overflow-hidden rounded-xl border border-border bg-popover/95 shadow-2xl backdrop-blur-xl">
+  <div
+    class="flex h-[min(380px,calc(100vh-24px))] w-[min(340px,calc(100vw-16px))] flex-col overflow-hidden rounded-xl border border-border bg-popover/95 shadow-2xl backdrop-blur-xl"
+  >
     <!-- Tab 栏 -->
-    <div class="muon-scrollbar-hidden flex items-center gap-0.5 overflow-x-auto border-b border-border bg-muted/30 px-1 py-1">
+    <div
+      class="muon-scrollbar-hidden flex items-center gap-0.5 overflow-x-auto border-b border-border bg-muted/30 px-1 py-1"
+    >
       <button
         v-for="tab in tabs"
         :key="tab.id"
@@ -172,15 +169,9 @@ const StickerThumb = defineComponent({
             <StickerThumb :mxc-url="sticker.mxcUrl" />
           </button>
         </div>
-        <div
-          v-else
-          class="flex flex-col items-center justify-center py-8 text-xs text-muted-foreground gap-2"
-        >
+        <div v-else class="flex flex-col items-center justify-center py-8 text-xs text-muted-foreground gap-2">
           <span>{{ t('chat.sticker_empty') }}</span>
-          <button
-            class="text-primary hover:underline text-xs"
-            @click="emit('manage')"
-          >
+          <button class="text-primary hover:underline text-xs" @click="emit('manage')">
             {{ t('chat.sticker_manage_hint') }}
           </button>
         </div>

@@ -41,8 +41,13 @@
     "preview": "pnpm --filter @muon/desktop preview",
     "package": "pnpm --filter @muon/desktop package",
     "dist": "pnpm --filter @muon/desktop dist",
-    "check": "pnpm lint && pnpm test:unit && pnpm build",
+    "check": "pnpm format:check && pnpm lint && pnpm test:unit && pnpm build",
+    "commitlint": "commitlint --edit",
     "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "prepare": "husky",
     "type-check": "pnpm --filter @muon/desktop type-check",
     "services:up": "bash docker/start.sh",
     "services:seed": "tsx scripts/seed-conduit.ts",
@@ -57,10 +62,24 @@
   },
   "devDependencies": {
     "@antfu/eslint-config": "^8.2.0",
+    "@commitlint/cli": "^21.0.1",
+    "@commitlint/config-conventional": "^21.0.1",
     "@types/node": "^25.6.0",
     "eslint": "^10.2.1",
-    "eslint-plugin-format": "^2.0.1",
+    "eslint-config-prettier": "^10.1.8",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.5",
+    "prettier": "^3.8.3",
     "tsx": "^4.21.0",
     "typescript": "^6.0.3"
+  },
+  "lint-staged": {
+    "*.{cjs,cts,js,jsx,mjs,mts,ts,tsx,vue}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{css,html,json,jsonc,md,scss,yaml,yml}": [
+      "prettier --write"
+    ]
   }
 }

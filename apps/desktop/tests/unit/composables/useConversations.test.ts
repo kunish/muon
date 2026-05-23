@@ -19,11 +19,9 @@ const mountedWrappers: ReturnType<typeof mount>[] = []
 
 vi.mock('@matrix/index', () => ({
   getRoomSummaries: () => {
-    if (!roomSummaryCacheState.enabled)
-      return roomSummaries.slice()
+    if (!roomSummaryCacheState.enabled) return roomSummaries.slice()
 
-    if (!roomSummaryCacheState.cached)
-      roomSummaryCacheState.cached = roomSummaries.slice()
+    if (!roomSummaryCacheState.cached) roomSummaryCacheState.cached = roomSummaries.slice()
     return roomSummaryCacheState.cached.slice()
   },
   invalidateRoomSummariesCache: () => {
@@ -64,20 +62,30 @@ function createRoom(overrides: Partial<RoomSummary> = {}): RoomSummary {
 }
 
 function mountUseConversationsHarness() {
-  const wrapper = mount(defineComponent({
-    name: 'UseConversationsHarness',
-    setup() {
-      const { conversations, pinnedCount } = useConversations()
+  const wrapper = mount(
+    defineComponent({
+      name: 'UseConversationsHarness',
+      setup() {
+        const { conversations, pinnedCount } = useConversations()
 
-      return () => h('ol', conversations.value.map((room, index) =>
-        h('li', {
-          'data-room-id': room.roomId,
-          'data-last-message': room.lastMessage,
-          'data-pinned-boundary': pinnedCount.value > 0 && index === pinnedCount.value ? 'true' : undefined,
-        }, room.name),
-      ))
-    },
-  }))
+        return () =>
+          h(
+            'ol',
+            conversations.value.map((room, index) =>
+              h(
+                'li',
+                {
+                  'data-room-id': room.roomId,
+                  'data-last-message': room.lastMessage,
+                  'data-pinned-boundary': pinnedCount.value > 0 && index === pinnedCount.value ? 'true' : undefined,
+                },
+                room.name,
+              ),
+            ),
+          )
+      },
+    }),
+  )
   mountedWrappers.push(wrapper)
   return wrapper
 }
@@ -100,8 +108,7 @@ describe('useConversations', () => {
   })
 
   afterEach(() => {
-    for (const wrapper of mountedWrappers.splice(0))
-      wrapper.unmount()
+    for (const wrapper of mountedWrappers.splice(0)) wrapper.unmount()
   })
 
   it('keeps history order when an existing conversation is opened outside the sidebar', async () => {
@@ -117,7 +124,7 @@ describe('useConversations', () => {
     const wrapper = mountUseConversationsHarness()
     await nextTick()
 
-    expect(wrapper.findAll('li').map(row => row.attributes('data-room-id'))).toEqual([
+    expect(wrapper.findAll('li').map((row) => row.attributes('data-room-id'))).toEqual([
       '!alice:localhost',
       '!carol:localhost',
       '!bob:localhost',
@@ -137,7 +144,7 @@ describe('useConversations', () => {
     const wrapper = mountUseConversationsHarness()
     await nextTick()
 
-    expect(wrapper.findAll('li').map(row => row.attributes('data-room-id'))).toEqual([
+    expect(wrapper.findAll('li').map((row) => row.attributes('data-room-id'))).toEqual([
       '!alice:localhost',
       '!carol:localhost',
       '!bob:localhost',
@@ -159,7 +166,7 @@ describe('useConversations', () => {
     store.setCurrentRoomFromRoute('!bob:localhost')
     await nextTick()
 
-    expect(wrapper.findAll('li').map(row => row.attributes('data-room-id'))).toEqual([
+    expect(wrapper.findAll('li').map((row) => row.attributes('data-room-id'))).toEqual([
       '!bob:localhost',
       '!alice:localhost',
       '!carol:localhost',
@@ -181,7 +188,7 @@ describe('useConversations', () => {
     store.setCurrentRoom('!bob:localhost', { sidebarPlacement: 'promote' })
     await nextTick()
 
-    expect(wrapper.findAll('li').map(row => row.attributes('data-room-id'))).toEqual([
+    expect(wrapper.findAll('li').map((row) => row.attributes('data-room-id'))).toEqual([
       '!bob:localhost',
       '!alice:localhost',
       '!carol:localhost',
@@ -203,12 +210,12 @@ describe('useConversations', () => {
     store.setCurrentRoom('!bob:localhost', { sidebarPlacement: 'promote' })
     await nextTick()
 
-    expect(wrapper.findAll('li').map(row => row.attributes('data-room-id'))).toEqual([
+    expect(wrapper.findAll('li').map((row) => row.attributes('data-room-id'))).toEqual([
       '!bob:localhost',
       '!alice:localhost',
       '!carol:localhost',
     ])
-    expect(wrapper.findAll('li').some(row => row.attributes('data-pinned-boundary') === 'true')).toBe(false)
+    expect(wrapper.findAll('li').some((row) => row.attributes('data-pinned-boundary') === 'true')).toBe(false)
   })
 
   it('keeps the pinned boundary when pinned conversations remain the top group', async () => {
@@ -224,17 +231,12 @@ describe('useConversations', () => {
     await nextTick()
 
     const rows = wrapper.findAll('li')
-    expect(rows.map(row => row.attributes('data-room-id'))).toEqual([
-      '!alice:localhost',
-      '!bob:localhost',
-    ])
+    expect(rows.map((row) => row.attributes('data-room-id'))).toEqual(['!alice:localhost', '!bob:localhost'])
     expect(rows[1].attributes('data-pinned-boundary')).toBe('true')
   })
 
   it('shows a searched contact first before the new DM appears in room summaries', async () => {
-    roomSummaries.push(
-      createRoom({ roomId: '!alice:localhost', name: 'Alice', lastMessageTs: 3000 }),
-    )
+    roomSummaries.push(createRoom({ roomId: '!alice:localhost', name: 'Alice', lastMessageTs: 3000 }))
 
     const wrapper = mountUseConversationsHarness()
     await nextTick()
@@ -251,10 +253,7 @@ describe('useConversations', () => {
     await nextTick()
 
     const rows = wrapper.findAll('li')
-    expect(rows.map(row => row.attributes('data-room-id'))).toEqual([
-      '!bob:localhost',
-      '!alice:localhost',
-    ])
+    expect(rows.map((row) => row.attributes('data-room-id'))).toEqual(['!bob:localhost', '!alice:localhost'])
     expect(rows[0].text()).toBe('Bob')
   })
 
@@ -272,9 +271,7 @@ describe('useConversations', () => {
     store.setSearchQuery('alice')
     await nextTick()
 
-    expect(wrapper.findAll('li').map(row => row.attributes('data-room-id'))).toEqual([
-      '!alice:localhost',
-    ])
+    expect(wrapper.findAll('li').map((row) => row.attributes('data-room-id'))).toEqual(['!alice:localhost'])
 
     store.setCurrentRoom('!bob:localhost', {
       sidebarPlacement: 'promote',
@@ -288,7 +285,7 @@ describe('useConversations', () => {
 
     expect(store.activeFilter).toBe('all')
     expect(store.searchQuery).toBe('')
-    expect(wrapper.findAll('li').map(row => row.attributes('data-room-id'))).toEqual([
+    expect(wrapper.findAll('li').map((row) => row.attributes('data-room-id'))).toEqual([
       '!bob:localhost',
       '!alice:localhost',
       '!carol:localhost',
@@ -309,7 +306,7 @@ describe('useConversations', () => {
     store.setCurrentRoom('!bob:localhost', { sidebarPlacement: 'promote' })
     await nextTick()
 
-    expect(wrapper.findAll('li').map(row => row.attributes('data-room-id'))).toEqual([
+    expect(wrapper.findAll('li').map((row) => row.attributes('data-room-id'))).toEqual([
       '!bob:localhost',
       '!alice:localhost',
     ])
@@ -320,12 +317,11 @@ describe('useConversations', () => {
       createRoom({ roomId: '!alice:localhost', name: 'Alice', lastMessageTs: 4000 }),
       createRoom({ roomId: '!bob:localhost', name: 'Bob', lastMessageTs: 1000 }),
     )
-    for (const handler of matrixEventHandlers.get('room.message') ?? [])
-      handler({ roomId: '!alice:localhost' })
+    for (const handler of matrixEventHandlers.get('room.message') ?? []) handler({ roomId: '!alice:localhost' })
     await vi.advanceTimersByTimeAsync(90)
     await nextTick()
 
-    expect(wrapper.findAll('li').map(row => row.attributes('data-room-id'))).toEqual([
+    expect(wrapper.findAll('li').map((row) => row.attributes('data-room-id'))).toEqual([
       '!bob:localhost',
       '!alice:localhost',
     ])
@@ -349,7 +345,7 @@ describe('useConversations', () => {
     await nextTick()
 
     expect(store.currentRoomId).toBe('!alice:localhost')
-    expect(wrapper.findAll('li').map(row => row.attributes('data-room-id'))).toEqual([
+    expect(wrapper.findAll('li').map((row) => row.attributes('data-room-id'))).toEqual([
       '!bob:localhost',
       '!alice:localhost',
       '!carol:localhost',
@@ -369,7 +365,7 @@ describe('useConversations', () => {
 
     expect(matrixEventHandlers.get('room.receipt')?.size).toBe(1)
 
-    expect(wrapper.findAll('li').map(row => row.attributes('data-room-id'))).toEqual([
+    expect(wrapper.findAll('li').map((row) => row.attributes('data-room-id'))).toEqual([
       '!alice:localhost',
       '!carol:localhost',
       '!bob:localhost',
@@ -383,12 +379,11 @@ describe('useConversations', () => {
       createRoom({ roomId: '!carol:localhost', name: 'Carol', lastMessageTs: 2000 }),
     )
 
-    for (const handler of matrixEventHandlers.get('room.receipt') ?? [])
-      handler({ roomId: '!bob:localhost' })
+    for (const handler of matrixEventHandlers.get('room.receipt') ?? []) handler({ roomId: '!bob:localhost' })
     await vi.advanceTimersByTimeAsync(90)
     await nextTick()
 
-    expect(wrapper.findAll('li').map(row => row.attributes('data-room-id'))).toEqual([
+    expect(wrapper.findAll('li').map((row) => row.attributes('data-room-id'))).toEqual([
       '!alice:localhost',
       '!carol:localhost',
       '!bob:localhost',
@@ -399,7 +394,12 @@ describe('useConversations', () => {
     vi.useFakeTimers()
     roomSummaryCacheState.enabled = true
     roomSummaries.push(
-      createRoom({ roomId: '!alice:localhost', name: 'Alice', lastMessage: 'stale startup preview', lastMessageTs: 1000 }),
+      createRoom({
+        roomId: '!alice:localhost',
+        name: 'Alice',
+        lastMessage: 'stale startup preview',
+        lastMessageTs: 1000,
+      }),
     )
 
     const wrapper = mountUseConversationsHarness()
@@ -410,10 +410,14 @@ describe('useConversations', () => {
     roomSummaries.splice(
       0,
       roomSummaries.length,
-      createRoom({ roomId: '!alice:localhost', name: 'Alice', lastMessage: 'latest startup preview', lastMessageTs: 2000 }),
+      createRoom({
+        roomId: '!alice:localhost',
+        name: 'Alice',
+        lastMessage: 'latest startup preview',
+        lastMessageTs: 2000,
+      }),
     )
-    for (const handler of matrixEventHandlers.get('sync.state') ?? [])
-      handler({ state: 'PREPARED' })
+    for (const handler of matrixEventHandlers.get('sync.state') ?? []) handler({ state: 'PREPARED' })
     await vi.advanceTimersByTimeAsync(90)
     await nextTick()
 
@@ -450,8 +454,7 @@ describe('useConversations', () => {
         lastMessageTs: 1000,
       }),
     )
-    for (const handler of matrixEventHandlers.get('room.decrypted') ?? [])
-      handler({ roomId: '!encrypted:localhost' })
+    for (const handler of matrixEventHandlers.get('room.decrypted') ?? []) handler({ roomId: '!encrypted:localhost' })
     await vi.advanceTimersByTimeAsync(90)
     await nextTick()
 
@@ -469,7 +472,7 @@ describe('useConversations', () => {
     await nextTick()
 
     expect(matrixEventHandlers.get('room.timeline')?.size).toBe(1)
-    expect(wrapper.findAll('li').map(row => row.attributes('data-room-id'))).toEqual([
+    expect(wrapper.findAll('li').map((row) => row.attributes('data-room-id'))).toEqual([
       '!alice:localhost',
       '!bob:localhost',
     ])
@@ -478,27 +481,31 @@ describe('useConversations', () => {
     roomSummaries.splice(
       0,
       roomSummaries.length,
-      createRoom({ roomId: '!bob:localhost', name: 'Bob', lastMessage: 'bob loaded after timeline', lastMessageTs: 4000 }),
+      createRoom({
+        roomId: '!bob:localhost',
+        name: 'Bob',
+        lastMessage: 'bob loaded after timeline',
+        lastMessageTs: 4000,
+      }),
       createRoom({ roomId: '!alice:localhost', name: 'Alice', lastMessage: 'alice latest', lastMessageTs: 3000 }),
     )
-    for (const handler of matrixEventHandlers.get('room.timeline') ?? [])
-      handler({ roomId: '!bob:localhost' })
+    for (const handler of matrixEventHandlers.get('room.timeline') ?? []) handler({ roomId: '!bob:localhost' })
     await vi.advanceTimersByTimeAsync(90)
     await nextTick()
 
     const rows = wrapper.findAll('li')
-    expect(rows.map(row => row.attributes('data-room-id'))).toEqual([
-      '!alice:localhost',
-      '!bob:localhost',
-    ])
+    expect(rows.map((row) => row.attributes('data-room-id'))).toEqual(['!alice:localhost', '!bob:localhost'])
     expect(rows[1].attributes('data-last-message')).toBe('bob loaded after timeline')
   })
 
   it('hydrates missing startup previews before a room is opened', async () => {
     let resolveHydration!: (loaded: boolean) => void
-    paginateBackMock.mockImplementationOnce(() => new Promise<boolean>((resolve) => {
-      resolveHydration = resolve
-    }))
+    paginateBackMock.mockImplementationOnce(
+      () =>
+        new Promise<boolean>((resolve) => {
+          resolveHydration = resolve
+        }),
+    )
     roomSummaries.push(
       createRoom({ roomId: '!alice:localhost', name: 'Alice', lastMessage: undefined, lastMessageTs: 1000 }),
       createRoom({ roomId: '!bob:localhost', name: 'Bob', lastMessage: 'bob latest', lastMessageTs: 900 }),
@@ -513,7 +520,12 @@ describe('useConversations', () => {
     roomSummaries.splice(
       0,
       roomSummaries.length,
-      createRoom({ roomId: '!alice:localhost', name: 'Alice', lastMessage: 'alice hydrated latest', lastMessageTs: 1200 }),
+      createRoom({
+        roomId: '!alice:localhost',
+        name: 'Alice',
+        lastMessage: 'alice hydrated latest',
+        lastMessageTs: 1200,
+      }),
       createRoom({ roomId: '!bob:localhost', name: 'Bob', lastMessage: 'bob latest', lastMessageTs: 900 }),
     )
     resolveHydration(true)
@@ -521,10 +533,7 @@ describe('useConversations', () => {
     await nextTick()
 
     const rows = wrapper.findAll('li')
-    expect(rows.map(row => row.attributes('data-room-id'))).toEqual([
-      '!alice:localhost',
-      '!bob:localhost',
-    ])
+    expect(rows.map((row) => row.attributes('data-room-id'))).toEqual(['!alice:localhost', '!bob:localhost'])
     expect(rows[0].attributes('data-last-message')).toBe('alice hydrated latest')
   })
 
@@ -539,7 +548,7 @@ describe('useConversations', () => {
     const wrapper = mountUseConversationsHarness()
     await nextTick()
 
-    expect(wrapper.findAll('li').map(row => row.attributes('data-room-id'))).toEqual([
+    expect(wrapper.findAll('li').map((row) => row.attributes('data-room-id'))).toEqual([
       '!alice:localhost',
       '!bob:localhost',
       '!carol:localhost',
@@ -551,12 +560,11 @@ describe('useConversations', () => {
       createRoom({ roomId: '!alice:localhost', name: 'Alice', lastMessageTs: 3000 }),
       createRoom({ roomId: '!carol:localhost', name: 'Carol', lastMessageTs: 1000 }),
     )
-    for (const handler of matrixEventHandlers.get('sync.state') ?? [])
-      handler({ state: 'SYNCING' })
+    for (const handler of matrixEventHandlers.get('sync.state') ?? []) handler({ state: 'SYNCING' })
     await vi.advanceTimersByTimeAsync(90)
     await nextTick()
 
-    expect(wrapper.findAll('li').map(row => row.attributes('data-room-id'))).toEqual([
+    expect(wrapper.findAll('li').map((row) => row.attributes('data-room-id'))).toEqual([
       '!alice:localhost',
       '!carol:localhost',
     ])
@@ -568,12 +576,11 @@ describe('useConversations', () => {
       createRoom({ roomId: '!carol:localhost', name: 'Carol', lastMessageTs: 1000 }),
       createRoom({ roomId: '!bob:localhost', name: 'Bob', lastMessageTs: 2000, unreadCount: 0 }),
     )
-    for (const handler of matrixEventHandlers.get('room.receipt') ?? [])
-      handler({ roomId: '!bob:localhost' })
+    for (const handler of matrixEventHandlers.get('room.receipt') ?? []) handler({ roomId: '!bob:localhost' })
     await vi.advanceTimersByTimeAsync(90)
     await nextTick()
 
-    expect(wrapper.findAll('li').map(row => row.attributes('data-room-id'))).toEqual([
+    expect(wrapper.findAll('li').map((row) => row.attributes('data-room-id'))).toEqual([
       '!alice:localhost',
       '!bob:localhost',
       '!carol:localhost',

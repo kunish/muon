@@ -17,7 +17,11 @@ export default meta
 type Story = StoryObj<typeof ColorSwatch>
 
 export const Default: Story = {
-  render: args => ({ components: { ColorSwatch }, setup: () => ({ args }), template: '<ColorSwatch v-bind="args" />' }),
+  render: (args) => ({
+    components: { ColorSwatch },
+    setup: () => ({ args }),
+    template: '<ColorSwatch v-bind="args" />',
+  }),
 }
 
 export const Variants: Story = {

@@ -1,133 +1,127 @@
 <script setup lang="ts">
-import type { SpaceMember } from '@/matrix/spaces'
-import { Avatar } from '@muon/ui/avatar'
-import { useRoomNavigation } from '@shared/composables/useRoomNavigation'
-import { MessageCircle, X } from 'lucide-vue-next'
-import { computed } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
-import { toast } from 'vue-sonner'
-import { useConversations } from '@/features/chat/composables/useConversations'
-import { avatarGradient } from '@/features/chat/lib/format'
-import { getClient } from '@/matrix/client'
-import { getUserPresenceInfo } from '@/matrix/profile'
-import { findOrCreateDm } from '@/matrix/rooms'
+import type { SpaceMember } from '@/matrix/spaces';
+import { Avatar } from '@muon/ui/avatar';
+import { useRoomNavigation } from '@shared/composables/useRoomNavigation';
+import { MessageCircle, X } from 'lucide-vue-next';
+import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useRouter } from 'vue-router';
+import { toast } from 'vue-sonner';
+import { useConversations } from '@/features/chat/composables/useConversations';
+import { avatarGradient } from '@/features/chat/lib/format';
+import { getClient } from '@/matrix/client';
+import { getUserPresenceInfo } from '@/matrix/profile';
+import { findOrCreateDm } from '@/matrix/rooms';
 
 const props = defineProps<{
-  member: SpaceMember | null
-  position: { x: number, y: number }
-}>()
+  member: SpaceMember | null;
+  position: { x: number; y: number };
+}>();
 
 const emit = defineEmits<{
-  close: []
-}>()
+  close: [];
+}>();
 
-const { t } = useI18n()
-const router = useRouter()
-const chatStore = useRoomNavigation()
-const { restoreRoom } = useConversations()
-const isVisible = computed(() => !!props.member)
+const { t } = useI18n();
+const router = useRouter();
+const chatStore = useRoomNavigation();
+const { restoreRoom } = useConversations();
+const isVisible = computed(() => !!props.member);
 
 // ── 头像 ──
-const avatarMxc = computed(() => props.member?.avatarUrl)
-const fallbackGradient = computed(() => props.member ? avatarGradient(props.member.userId) : '')
+const avatarMxc = computed(() => props.member?.avatarUrl);
+const fallbackGradient = computed(() => (props.member ? avatarGradient(props.member.userId) : ''));
 
 // ── 状态 ──
 const presence = computed(() => {
-  if (!props.member)
-    return { presence: 'offline' }
-  return getUserPresenceInfo(props.member.userId)
-})
+  if (!props.member) return { presence: 'offline' };
+  return getUserPresenceInfo(props.member.userId);
+});
 
 const presenceLabel = computed(() => {
   switch (presence.value.presence) {
-    case 'online': return t('member.online')
-    case 'unavailable': return t('member.idle')
-    case 'busy': return t('member.dnd')
-    default: return t('member.offline')
+    case 'online':
+      return t('member.online');
+    case 'unavailable':
+      return t('member.idle');
+    case 'busy':
+      return t('member.dnd');
+    default:
+      return t('member.offline');
   }
-})
+});
 
 const presenceDotColor = computed(() => {
   switch (presence.value.presence) {
-    case 'online': return 'bg-success'
-    case 'unavailable': return 'bg-warning'
-    case 'busy': return 'bg-destructive'
-    default: return 'bg-muted-foreground/50'
+    case 'online':
+      return 'bg-success';
+    case 'unavailable':
+      return 'bg-warning';
+    case 'busy':
+      return 'bg-destructive';
+    default:
+      return 'bg-muted-foreground/50';
   }
-})
+});
 
 // ── 角色 ──
 const roleLabel = computed(() => {
-  if (!props.member)
-    return ''
-  const pl = props.member.powerLevel
-  if (pl >= 100)
-    return t('role.owner')
-  if (pl >= 75)
-    return t('role.admin')
-  if (pl >= 50)
-    return t('role.moderator')
-  return t('role.member')
-})
+  if (!props.member) return '';
+  const pl = props.member.powerLevel;
+  if (pl >= 100) return t('role.owner');
+  if (pl >= 75) return t('role.admin');
+  if (pl >= 50) return t('role.moderator');
+  return t('role.member');
+});
 
 const roleColor = computed(() => {
-  if (!props.member)
-    return ''
-  const pl = props.member.powerLevel
-  if (pl >= 100)
-    return '#c08b2e'
-  if (pl >= 75)
-    return '#b85c4a'
-  if (pl >= 50)
-    return '#4a9882'
-  return 'var(--color-muted-foreground)'
-})
+  if (!props.member) return '';
+  const pl = props.member.powerLevel;
+  if (pl >= 100) return '#c08b2e';
+  if (pl >= 75) return '#b85c4a';
+  if (pl >= 50) return '#4a9882';
+  return 'var(--color-muted-foreground)';
+});
 
 // ── 面板定位 ──
 const panelStyle = computed(() => {
-  if (!isVisible.value)
-    return { display: 'none' }
-  const panelW = 300
-  const panelH = 340
-  const margin = 8
-  let x = props.position.x + margin
-  let y = props.position.y
+  if (!isVisible.value) return { display: 'none' };
+  const panelW = 300;
+  const panelH = 340;
+  const margin = 8;
+  let x = props.position.x + margin;
+  let y = props.position.y;
 
   if (x + panelW > window.innerWidth - margin) {
-    x = props.position.x - panelW - margin
+    x = props.position.x - panelW - margin;
   }
-  if (x < margin)
-    x = margin
+  if (x < margin) x = margin;
   if (y + panelH > window.innerHeight - margin) {
-    y = window.innerHeight - panelH - margin
+    y = window.innerHeight - panelH - margin;
   }
-  if (y < margin)
-    y = margin
+  if (y < margin) y = margin;
 
   return {
     position: 'fixed' as const,
     left: `${x}px`,
     top: `${y}px`,
     zIndex: 100,
-  }
-})
+  };
+});
 
 // ── 发起私聊 ──
 const isSelf = computed(() => {
-  if (!props.member)
-    return true
-  const myId = getClient().getUserId()
-  return props.member.userId === myId
-})
+  if (!props.member) return true;
+  const myId = getClient().getUserId();
+  return props.member.userId === myId;
+});
 
 async function onMessage() {
-  if (!props.member || isSelf.value)
-    return
-  emit('close')
+  if (!props.member || isSelf.value) return;
+  emit('close');
   try {
-    const roomId = await findOrCreateDm(props.member.userId)
-    restoreRoom(roomId)
+    const roomId = await findOrCreateDm(props.member.userId);
+    restoreRoom(roomId);
     chatStore.navigateToRoom(roomId, {
       sidebarPlacement: 'promote',
       sidebarPreview: {
@@ -137,12 +131,11 @@ async function onMessage() {
         dmUserAvatar: props.member.avatarUrl,
         isDirect: true,
       },
-    })
-    await router.push(`/dm/${encodeURIComponent(roomId)}`)
-  }
-  catch (err) {
-    console.error('Failed to open DM:', err)
-    toast.error(t('auth.error'))
+    });
+    await router.push(`/dm/${encodeURIComponent(roomId)}`);
+  } catch (err) {
+    console.error('Failed to open DM:', err);
+    toast.error(t('auth.error'));
   }
 }
 </script>
@@ -156,11 +149,7 @@ async function onMessage() {
       enter-from-class="opacity-0"
       leave-to-class="opacity-0"
     >
-      <div
-        v-if="isVisible"
-        class="fixed inset-0 z-[99] bg-black/5 backdrop-blur-[1px]"
-        @click="emit('close')"
-      />
+      <div v-if="isVisible" class="fixed inset-0 z-[99] bg-black/5 backdrop-blur-[1px]" @click="emit('close')" />
     </Transition>
 
     <!-- Popover 面板 -->
@@ -176,10 +165,7 @@ async function onMessage() {
         class="w-[300px] bg-popover/95 text-popover-foreground rounded-2xl shadow-[0_8px_40px_rgba(0,0,0,0.15),0_0_0_1px_rgba(0,0,0,0.06)] overflow-hidden backdrop-blur-xl"
       >
         <!-- Banner -->
-        <div
-          class="h-14 relative overflow-hidden"
-          :style="{ background: fallbackGradient }"
-        >
+        <div class="h-14 relative overflow-hidden" :style="{ background: fallbackGradient }">
           <div class="absolute inset-0 bg-gradient-to-b from-white/10 to-black/10" />
           <button
             class="absolute top-2 right-2 p-1 rounded-lg bg-black/15 hover:bg-black/25 text-white/80 hover:text-white transition-all duration-150"
@@ -227,7 +213,9 @@ async function onMessage() {
         <!-- 角色 Badge -->
         <div class="px-5 pt-2 pb-1">
           <div class="flex items-center gap-2">
-            <span class="text-[10px] font-bold uppercase tracking-wide text-muted-foreground/50">{{ t('member.role_col') }}</span>
+            <span class="text-[10px] font-bold uppercase tracking-wide text-muted-foreground/50">{{
+              t('member.role_col')
+            }}</span>
           </div>
           <div class="mt-1 flex flex-wrap gap-1.5">
             <span
@@ -237,10 +225,7 @@ async function onMessage() {
                 color: roleColor,
               }"
             >
-              <span
-                class="w-1.5 h-1.5 rounded-full mr-1.5"
-                :style="{ backgroundColor: roleColor }"
-              />
+              <span class="w-1.5 h-1.5 rounded-full mr-1.5" :style="{ backgroundColor: roleColor }" />
               {{ roleLabel }}
             </span>
           </div>
@@ -260,10 +245,7 @@ async function onMessage() {
             <MessageCircle :size="14" />
             {{ t('member.message') }}
           </button>
-          <p
-            v-else
-            class="text-center text-xs text-muted-foreground/40"
-          >
+          <p v-else class="text-center text-xs text-muted-foreground/40">
             {{ t('member.this_is_you') }}
           </p>
         </div>

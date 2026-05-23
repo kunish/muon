@@ -19,7 +19,7 @@ export default meta
 type Story = StoryObj<typeof Radio>
 
 export const Default: Story = {
-  render: args => ({
+  render: (args) => ({
     components: { Radio, RadioGroup },
     setup: () => ({ args }),
     template: `

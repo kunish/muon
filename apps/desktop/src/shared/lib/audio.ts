@@ -27,8 +27,7 @@ export function playNotificationSound() {
 
     oscillator.start(ctx.currentTime)
     oscillator.stop(ctx.currentTime + 0.2)
-  }
-  catch {
+  } catch {
     // 静默失败，不影响主流程
   }
 }

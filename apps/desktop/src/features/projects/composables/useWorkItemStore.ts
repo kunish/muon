@@ -17,8 +17,7 @@ export const useWorkItemStore = defineStore('workItems', () => {
   const currentProjectId = ref<string | null>(null)
 
   const currentItems = computed(() => {
-    if (!currentProjectId.value)
-      return []
+    if (!currentProjectId.value) return []
     return itemsByProject.value[currentProjectId.value] ?? []
   })
 
@@ -26,8 +25,7 @@ export const useWorkItemStore = defineStore('workItems', () => {
     const grouped: Record<string, WorkItem[]> = {}
     for (const item of currentItems.value) {
       const key = item.status
-      if (!grouped[key])
-        grouped[key] = []
+      if (!grouped[key]) grouped[key] = []
       grouped[key].push(item)
     }
     return grouped
@@ -38,22 +36,24 @@ export const useWorkItemStore = defineStore('workItems', () => {
     try {
       const items = await projectRepo.listWorkItems(projectId)
       itemsByProject.value[projectId] = items
-    }
-    finally {
+    } finally {
       loading.value = false
     }
   }
 
-  async function createItem(projectId: string, data: {
-    title: string
-    description?: string
-    status: string
-    type?: WorkItem['type']
-    priority?: WorkItem['priority']
-    assignee?: string
-    dueDate?: number
-    parentId?: string
-  }): Promise<WorkItem> {
+  async function createItem(
+    projectId: string,
+    data: {
+      title: string
+      description?: string
+      status: string
+      type?: WorkItem['type']
+      priority?: WorkItem['priority']
+      assignee?: string
+      dueDate?: number
+      parentId?: string
+    },
+  ): Promise<WorkItem> {
     const items = itemsByProject.value[projectId] ?? []
     const maxOrder = items.reduce((max, i) => Math.max(max, i.order), -1)
 
@@ -77,8 +77,7 @@ export const useWorkItemStore = defineStore('workItems', () => {
     await projectRepo.saveWorkItem(item)
     if (itemsByProject.value[projectId]) {
       itemsByProject.value[projectId].push(item)
-    }
-    else {
+    } else {
       itemsByProject.value[projectId] = [item]
     }
 
@@ -91,7 +90,9 @@ export const useWorkItemStore = defineStore('workItems', () => {
         ts: now,
         sender: client.getUserId()!,
         data: { workItemId: item.id, workItem: item },
-      }).catch(() => { /* sync is best-effort */ })
+      }).catch(() => {
+        /* sync is best-effort */
+      })
     }
 
     return item
@@ -101,9 +102,8 @@ export const useWorkItemStore = defineStore('workItems', () => {
     const updated = await projectRepo.updateWorkItem(id, changes)
     const list = itemsByProject.value[updated.projectId]
     if (list) {
-      const idx = list.findIndex(i => i.id === id)
-      if (idx !== -1)
-        list.splice(idx, 1, updated)
+      const idx = list.findIndex((i) => i.id === id)
+      if (idx !== -1) list.splice(idx, 1, updated)
     }
 
     const client = getClient()
@@ -124,7 +124,7 @@ export const useWorkItemStore = defineStore('workItems', () => {
     await projectRepo.deleteWorkItem(id)
     const list = itemsByProject.value[projectId]
     if (list) {
-      itemsByProject.value[projectId] = list.filter(i => i.id !== id)
+      itemsByProject.value[projectId] = list.filter((i) => i.id !== id)
     }
 
     const client = getClient()
@@ -143,9 +143,8 @@ export const useWorkItemStore = defineStore('workItems', () => {
     const updated = await projectRepo.reorderWorkItem(id, newOrder, statusColumn)
     const list = itemsByProject.value[projectId]
     if (list) {
-      const idx = list.findIndex(i => i.id === id)
-      if (idx !== -1)
-        list.splice(idx, 1, updated)
+      const idx = list.findIndex((i) => i.id === id)
+      if (idx !== -1) list.splice(idx, 1, updated)
     }
 
     const client = getClient()

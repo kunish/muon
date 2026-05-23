@@ -1,16 +1,16 @@
 <script setup lang="ts">
-import type { ProgressRootProps } from 'reka-ui'
-import { ProgressIndicator, ProgressRoot, useForwardProps } from 'reka-ui'
-import { cn } from '../../../utils'
+import type { ProgressRootProps } from 'reka-ui';
+import { ProgressIndicator, ProgressRoot, useForwardProps } from 'reka-ui';
+import { cn } from '../../../utils';
 
 const props = withDefaults(defineProps<ProgressRootProps & { class?: string }>(), {
   modelValue: 0,
-})
+});
 
 const forwardedProps = useForwardProps(() => {
-  const { class: _, ...delegated } = props
-  return delegated
-})
+  const { class: _, ...delegated } = props;
+  return delegated;
+});
 </script>
 
 <template>

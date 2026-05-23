@@ -8,14 +8,11 @@ export interface BreadcrumbItem {
   href?: string
 }
 
-export const breadcrumbVariants = cva(
-  'flex items-center gap-1 text-gray-500',
-  {
-    variants: {
-      size: { sm: 'text-xs', md: 'text-sm' },
-    },
-    defaultVariants: { size: 'md' },
+export const breadcrumbVariants = cva('flex items-center gap-1 text-gray-500', {
+  variants: {
+    size: { sm: 'text-xs', md: 'text-sm' },
   },
-)
+  defaultVariants: { size: 'md' },
+})
 
 export type BreadcrumbVariants = VariantProps<typeof breadcrumbVariants>

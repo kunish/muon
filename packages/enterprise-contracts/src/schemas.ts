@@ -11,8 +11,18 @@ export type UserStatus = z.infer<typeof userStatusSchema>
 
 export const installRequestSchema = z.object({
   organizationName: z.string().trim().min(1),
-  organizationSlug: z.string().trim().min(2).max(64).regex(/^[a-z0-9][a-z0-9-]*[a-z0-9]$/),
-  ownerUsername: z.string().trim().min(2).max(64).regex(/^[\w.-]+$/),
+  organizationSlug: z
+    .string()
+    .trim()
+    .min(2)
+    .max(64)
+    .regex(/^[a-z0-9][a-z0-9-]*[a-z0-9]$/),
+  ownerUsername: z
+    .string()
+    .trim()
+    .min(2)
+    .max(64)
+    .regex(/^[\w.-]+$/),
   ownerEmail: z.string().trim().email(),
   ownerDisplayName: z.string().trim().min(1),
   ownerPassword: z.string().min(12),
@@ -63,7 +73,12 @@ export const adminLoginRequestSchema = z.object({
 export type AdminLoginRequest = z.infer<typeof adminLoginRequestSchema>
 
 export const createUserRequestSchema = z.object({
-  username: z.string().trim().min(2).max(64).regex(/^[\w.-]+$/),
+  username: z
+    .string()
+    .trim()
+    .min(2)
+    .max(64)
+    .regex(/^[\w.-]+$/),
   email: z.string().trim().email(),
   displayName: z.string().trim().min(1),
   initialPassword: z.string().min(12),
@@ -72,7 +87,13 @@ export const createUserRequestSchema = z.object({
 export type CreateUserRequest = z.infer<typeof createUserRequestSchema>
 
 export const updateUserRequestSchema = z.object({
-  username: z.string().trim().min(2).max(64).regex(/^[\w.-]+$/).optional(),
+  username: z
+    .string()
+    .trim()
+    .min(2)
+    .max(64)
+    .regex(/^[\w.-]+$/)
+    .optional(),
   displayName: z.string().trim().min(1).optional(),
   email: z.string().trim().email().optional(),
   status: userStatusSchema.optional(),

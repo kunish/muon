@@ -105,7 +105,9 @@ describe('channelContextMenu', () => {
     await wrapper.get('button:last-of-type').trigger('click')
     await flushPromises()
 
-    expect(clipboardMocks.writeText).toHaveBeenCalledWith(expect.stringContaining('/server/!server%3Alocalhost/channel/!general%3Alocalhost'))
+    expect(clipboardMocks.writeText).toHaveBeenCalledWith(
+      expect.stringContaining('/server/!server%3Alocalhost/channel/!general%3Alocalhost'),
+    )
     expect(toastMocks.success).toHaveBeenCalledWith('频道链接已复制')
     expect(wrapper.emitted('copyLink')).toEqual([['!general:localhost']])
   })

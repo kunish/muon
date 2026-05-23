@@ -7,7 +7,7 @@ type DocUserClient = NonNullable<Parameters<typeof resolveCurrentDocUser>[1]>
 function createClient(userId: string | null, displayName: string | null): DocUserClient {
   return {
     getUserId: vi.fn(() => userId),
-    getUser: vi.fn(() => displayName ? ({ displayName }) : null),
+    getUser: vi.fn(() => (displayName ? { displayName } : null)),
   } as unknown as DocUserClient
 }
 

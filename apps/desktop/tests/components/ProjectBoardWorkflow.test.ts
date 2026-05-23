@@ -37,10 +37,15 @@ const WorkItemCardStub = defineComponent({
     },
   },
   setup(props, { attrs }) {
-    return () => h('div', {
-      ...attrs,
-      'data-testid': `project-card-${(props.item as any).id}`,
-    }, (props.item as any).title)
+    return () =>
+      h(
+        'div',
+        {
+          ...attrs,
+          'data-testid': `project-card-${(props.item as any).id}`,
+        },
+        (props.item as any).title,
+      )
   },
 })
 
@@ -52,9 +57,7 @@ function workflowFixture() {
       { key: 'todo', name: '待办', color: '#e5e7eb', category: 'todo' },
       { key: 'done', name: '完成', color: '#22c55e', category: 'done' },
     ],
-    transitions: [
-      { from: 'todo', to: 'done', name: '完成' },
-    ],
+    transitions: [{ from: 'todo', to: 'done', name: '完成' }],
   }
 }
 

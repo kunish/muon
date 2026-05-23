@@ -1,22 +1,22 @@
 <script setup lang="ts">
-import { Copy, FileJson, MessageSquare, Reply, Trash2 } from 'lucide-vue-next'
-import { useI18n } from 'vue-i18n'
+import { Copy, FileJson, MessageSquare, Reply, Trash2 } from 'lucide-vue-next';
+import { useI18n } from 'vue-i18n';
 
 defineProps<{
-  isMine: boolean
-  showDebug?: boolean
-}>()
+  isMine: boolean;
+  showDebug?: boolean;
+}>();
 
 const emit = defineEmits<{
-  reply: []
-  copy: []
-  openThread: []
-  delete: []
-  viewRawJson: []
-  copyRawJson: []
-}>()
+  reply: [];
+  copy: [];
+  openThread: [];
+  delete: [];
+  viewRawJson: [];
+  copyRawJson: [];
+}>();
 
-const { t } = useI18n()
+const { t } = useI18n();
 </script>
 
 <template>

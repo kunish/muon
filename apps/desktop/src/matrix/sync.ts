@@ -16,8 +16,7 @@ function applySyncState(state: SyncState) {
 }
 
 function scheduleRetry() {
-  if (retryTimer)
-    return
+  if (retryTimer) return
   errorCount++
   // Exponential backoff: 2s, 4s, 8s, 16s, max 30s
   const delay = Math.min(2000 * 2 ** (errorCount - 1), 30_000)
@@ -29,8 +28,7 @@ function scheduleRetry() {
     try {
       const client = getClient()
       client.retryImmediately()
-    }
-    catch {
+    } catch {
       // Client may have been destroyed
     }
   }, delay)

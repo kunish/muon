@@ -1,39 +1,39 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { useServerStore } from '@/features/server/stores/serverStore'
-import { useAuthMedia } from '@/shared/composables/useAuthMedia'
+import { computed, ref } from 'vue';
+import { useServerStore } from '@/features/server/stores/serverStore';
+import { useAuthMedia } from '@/shared/composables/useAuthMedia';
 
 const props = defineProps<{
-  name: string
-  avatar?: string
-  isSelected: boolean
-  spaceId: string
-}>()
+  name: string;
+  avatar?: string;
+  isSelected: boolean;
+  spaceId: string;
+}>();
 
-const serverStore = useServerStore()
+const serverStore = useServerStore();
 
 // Avatar loading
-const avatarSrc = props.avatar ? useAuthMedia(() => props.avatar!) : ref<string | undefined>(undefined)
+const avatarSrc = props.avatar ? useAuthMedia(() => props.avatar!) : ref<string | undefined>(undefined);
 
 // First letter fallback
 const initial = computed(() => {
-  return props.name.charAt(0).toUpperCase()
-})
+  return props.name.charAt(0).toUpperCase();
+});
 
 // Deterministic color from spaceId hash
 const bgColor = computed(() => {
-  let hash = 0
+  let hash = 0;
   for (let i = 0; i < props.spaceId.length; i++) {
-    hash = props.spaceId.charCodeAt(i) + ((hash << 5) - hash)
+    hash = props.spaceId.charCodeAt(i) + ((hash << 5) - hash);
   }
-  const hue = Math.abs(hash) % 360
-  return `oklch(65% 0.15 ${hue})`
-})
+  const hue = Math.abs(hash) % 360;
+  return `oklch(65% 0.15 ${hue})`;
+});
 
 // Unread info
-const unreadInfo = computed(() => serverStore.getServerUnreadInfo(props.spaceId))
-const hasUnread = computed(() => unreadInfo.value.unreadCount > 0)
-const hasHighlight = computed(() => unreadInfo.value.highlightCount > 0)
+const unreadInfo = computed(() => serverStore.getServerUnreadInfo(props.spaceId));
+const hasUnread = computed(() => unreadInfo.value.unreadCount > 0);
+const hasHighlight = computed(() => unreadInfo.value.highlightCount > 0);
 </script>
 
 <template>
@@ -42,12 +42,7 @@ const hasHighlight = computed(() => unreadInfo.value.highlightCount > 0)
       class="flex size-9 items-center justify-center overflow-hidden bg-muted transition-all duration-150"
       :class="isSelected ? 'rounded-xl' : 'rounded-xl hover:rounded-lg'"
     >
-      <img
-        v-if="avatarSrc"
-        :src="avatarSrc"
-        :alt="name"
-        class="w-full h-full object-cover"
-      >
+      <img v-if="avatarSrc" :src="avatarSrc" :alt="name" class="w-full h-full object-cover" />
       <span
         v-else
         class="flex size-full items-center justify-center text-sm font-semibold text-white"

@@ -50,15 +50,10 @@ function makeRoom(overrides: Record<string, any> = {}) {
 function makeSpaceRoom(
   roomId: string,
   name: string,
-  children: Array<{ roomId: string, order?: string, isSpace?: boolean }> = [],
+  children: Array<{ roomId: string; order?: string; isSpace?: boolean }> = [],
   extraState: Record<string, any> = {},
 ) {
-  const childEvents = children.map(c =>
-    stateEventWithKey(
-      { via: ['localhost'], order: c.order },
-      c.roomId,
-    ),
-  )
+  const childEvents = children.map((c) => stateEventWithKey({ via: ['localhost'], order: c.order }, c.roomId))
 
   return makeRoom({
     roomId,
@@ -75,9 +70,7 @@ function makeSpaceRoom(
           return extraState.topic ? stateEvent({ topic: extraState.topic }) : null
         }
         if (eventType === 'm.room.power_levels' && stateKey === '') {
-          return extraState.powerLevels
-            ? stateEvent(extraState.powerLevels)
-            : null
+          return extraState.powerLevels ? stateEvent(extraState.powerLevels) : null
         }
         return null
       }),
@@ -124,10 +117,8 @@ function makeChannelRoom(
     getMxcAvatarUrl: () => opts.avatarUrl ?? null,
     getMyMembership: () => opts.membership ?? 'join',
     getUnreadNotificationCount: (type?: string) => {
-      if (type === 'total')
-        return opts.unreadCount ?? 0
-      if (type === 'highlight')
-        return opts.highlightCount ?? 0
+      if (type === 'total') return opts.unreadCount ?? 0
+      if (type === 'highlight') return opts.highlightCount ?? 0
       return 0
     },
   })
@@ -199,16 +190,12 @@ describe('matrix spaces', () => {
     })
 
     it('should return a single top-level space', async () => {
-      const server = makeSpaceRoom('!server:localhost', 'My Server', [
-        { roomId: '!ch1:localhost' },
-      ])
+      const server = makeSpaceRoom('!server:localhost', 'My Server', [{ roomId: '!ch1:localhost' }])
       const ch1 = makeChannelRoom('!ch1:localhost', 'general')
       vi.mocked(mockClient.getRooms).mockReturnValue([server as any, ch1 as any])
       vi.mocked(mockClient.getRoom).mockImplementation((rid: string) => {
-        if (rid === '!server:localhost')
-          return server as any
-        if (rid === '!ch1:localhost')
-          return ch1 as any
+        if (rid === '!server:localhost') return server as any
+        if (rid === '!ch1:localhost') return ch1 as any
         return null
       })
 
@@ -249,12 +236,9 @@ describe('matrix spaces', () => {
 
       vi.mocked(mockClient.getRooms).mockReturnValue([server as any, category as any, ch1 as any])
       vi.mocked(mockClient.getRoom).mockImplementation((rid: string) => {
-        if (rid === '!server:localhost')
-          return server as any
-        if (rid === '!category:localhost')
-          return category as any
-        if (rid === '!ch1:localhost')
-          return ch1 as any
+        if (rid === '!server:localhost') return server as any
+        if (rid === '!category:localhost') return category as any
+        if (rid === '!ch1:localhost') return ch1 as any
         return null
       })
 
@@ -267,29 +251,16 @@ describe('matrix spaces', () => {
     })
 
     it('should return multiple top-level spaces', async () => {
-      const server1 = makeSpaceRoom('!server1:localhost', 'Server 1', [
-        { roomId: '!ch1:localhost' },
-      ])
-      const server2 = makeSpaceRoom('!server2:localhost', 'Server 2', [
-        { roomId: '!ch2:localhost' },
-      ])
+      const server1 = makeSpaceRoom('!server1:localhost', 'Server 1', [{ roomId: '!ch1:localhost' }])
+      const server2 = makeSpaceRoom('!server2:localhost', 'Server 2', [{ roomId: '!ch2:localhost' }])
       const ch1 = makeChannelRoom('!ch1:localhost', 'general')
       const ch2 = makeChannelRoom('!ch2:localhost', 'random')
-      vi.mocked(mockClient.getRooms).mockReturnValue([
-        server1 as any,
-        server2 as any,
-        ch1 as any,
-        ch2 as any,
-      ])
+      vi.mocked(mockClient.getRooms).mockReturnValue([server1 as any, server2 as any, ch1 as any, ch2 as any])
       vi.mocked(mockClient.getRoom).mockImplementation((rid: string) => {
-        if (rid === '!server1:localhost')
-          return server1 as any
-        if (rid === '!server2:localhost')
-          return server2 as any
-        if (rid === '!ch1:localhost')
-          return ch1 as any
-        if (rid === '!ch2:localhost')
-          return ch2 as any
+        if (rid === '!server1:localhost') return server1 as any
+        if (rid === '!server2:localhost') return server2 as any
+        if (rid === '!ch1:localhost') return ch1 as any
+        if (rid === '!ch2:localhost') return ch2 as any
         return null
       })
 
@@ -297,9 +268,7 @@ describe('matrix spaces', () => {
       const spaces = getTopLevelSpaces()
 
       expect(spaces).toHaveLength(2)
-      expect(spaces.map(s => s.spaceId).sort()).toEqual(
-        ['!server1:localhost', '!server2:localhost'].sort(),
-      )
+      expect(spaces.map((s) => s.spaceId).sort()).toEqual(['!server1:localhost', '!server2:localhost'].sort())
     })
 
     it('should use default name "Unnamed Server" when room has no name', async () => {
@@ -320,8 +289,7 @@ describe('matrix spaces', () => {
     it('should return empty categories and channels when space has no children', async () => {
       const server = makeSpaceRoom('!server:localhost', 'Server', [])
       vi.mocked(mockClient.getRoom).mockImplementation((rid: string) => {
-        if (rid === '!server:localhost')
-          return server as any
+        if (rid === '!server:localhost') return server as any
         return null
       })
 
@@ -343,12 +311,9 @@ describe('matrix spaces', () => {
       const ch2 = makeChannelRoom('!ch2:localhost', 'Random')
 
       vi.mocked(mockClient.getRoom).mockImplementation((rid: string) => {
-        if (rid === '!server:localhost')
-          return server as any
-        if (rid === '!ch1:localhost')
-          return ch1 as any
-        if (rid === '!ch2:localhost')
-          return ch2 as any
+        if (rid === '!server:localhost') return server as any
+        if (rid === '!ch1:localhost') return ch1 as any
+        if (rid === '!ch2:localhost') return ch2 as any
         return null
       })
 
@@ -367,9 +332,7 @@ describe('matrix spaces', () => {
     })
 
     it('should return categories with nested channels', async () => {
-      const server = makeSpaceRoom('!server:localhost', 'Server', [
-        { roomId: '!cat1:localhost', order: '1' },
-      ])
+      const server = makeSpaceRoom('!server:localhost', 'Server', [{ roomId: '!cat1:localhost', order: '1' }])
       const cat1 = makeSpaceRoom('!cat1:localhost', 'Text Channels', [
         { roomId: '!ch1:localhost', order: 'a' },
         { roomId: '!ch2:localhost', order: 'b' },
@@ -378,14 +341,10 @@ describe('matrix spaces', () => {
       const ch2 = makeChannelRoom('!ch2:localhost', 'Random')
 
       vi.mocked(mockClient.getRoom).mockImplementation((rid: string) => {
-        if (rid === '!server:localhost')
-          return server as any
-        if (rid === '!cat1:localhost')
-          return cat1 as any
-        if (rid === '!ch1:localhost')
-          return ch1 as any
-        if (rid === '!ch2:localhost')
-          return ch2 as any
+        if (rid === '!server:localhost') return server as any
+        if (rid === '!cat1:localhost') return cat1 as any
+        if (rid === '!ch1:localhost') return ch1 as any
+        if (rid === '!ch2:localhost') return ch2 as any
         return null
       })
 
@@ -403,12 +362,9 @@ describe('matrix spaces', () => {
     })
 
     it('should skip non-existent child rooms', async () => {
-      const server = makeSpaceRoom('!server:localhost', 'Server', [
-        { roomId: '!missing:localhost' },
-      ])
+      const server = makeSpaceRoom('!server:localhost', 'Server', [{ roomId: '!missing:localhost' }])
       vi.mocked(mockClient.getRoom).mockImplementation((rid: string) => {
-        if (rid === '!server:localhost')
-          return server as any
+        if (rid === '!server:localhost') return server as any
         return null
       })
 
@@ -420,15 +376,11 @@ describe('matrix spaces', () => {
     })
 
     it('should skip child rooms where user is not joined', async () => {
-      const server = makeSpaceRoom('!server:localhost', 'Server', [
-        { roomId: '!ch1:localhost' },
-      ])
+      const server = makeSpaceRoom('!server:localhost', 'Server', [{ roomId: '!ch1:localhost' }])
       const ch1 = makeChannelRoom('!ch1:localhost', 'General', { membership: 'leave' })
       vi.mocked(mockClient.getRoom).mockImplementation((rid: string) => {
-        if (rid === '!server:localhost')
-          return server as any
-        if (rid === '!ch1:localhost')
-          return ch1 as any
+        if (rid === '!server:localhost') return server as any
+        if (rid === '!ch1:localhost') return ch1 as any
         return null
       })
 
@@ -443,21 +395,15 @@ describe('matrix spaces', () => {
         { roomId: '!cat1:localhost', order: '1' },
         { roomId: '!orphanCh:localhost', order: '2' },
       ])
-      const cat1 = makeSpaceRoom('!cat1:localhost', 'Category', [
-        { roomId: '!ch1:localhost' },
-      ])
+      const cat1 = makeSpaceRoom('!cat1:localhost', 'Category', [{ roomId: '!ch1:localhost' }])
       const orphanCh = makeChannelRoom('!orphanCh:localhost', 'Orphan')
       const ch1 = makeChannelRoom('!ch1:localhost', 'In Category')
 
       vi.mocked(mockClient.getRoom).mockImplementation((rid: string) => {
-        if (rid === '!server:localhost')
-          return server as any
-        if (rid === '!cat1:localhost')
-          return cat1 as any
-        if (rid === '!orphanCh:localhost')
-          return orphanCh as any
-        if (rid === '!ch1:localhost')
-          return ch1 as any
+        if (rid === '!server:localhost') return server as any
+        if (rid === '!cat1:localhost') return cat1 as any
+        if (rid === '!orphanCh:localhost') return orphanCh as any
+        if (rid === '!ch1:localhost') return ch1 as any
         return null
       })
 
@@ -470,15 +416,11 @@ describe('matrix spaces', () => {
     })
 
     it('should use "Unnamed Category" when category space has no name', async () => {
-      const server = makeSpaceRoom('!server:localhost', 'Server', [
-        { roomId: '!cat1:localhost' },
-      ])
+      const server = makeSpaceRoom('!server:localhost', 'Server', [{ roomId: '!cat1:localhost' }])
       const cat1 = makeSpaceRoom('!cat1:localhost', '', [])
       vi.mocked(mockClient.getRoom).mockImplementation((rid: string) => {
-        if (rid === '!server:localhost')
-          return server as any
-        if (rid === '!cat1:localhost')
-          return cat1 as any
+        if (rid === '!server:localhost') return server as any
+        if (rid === '!cat1:localhost') return cat1 as any
         return null
       })
 
@@ -571,12 +513,9 @@ describe('matrix spaces', () => {
       const ch2 = makeChannelRoom('!ch2:localhost', 'Random')
 
       vi.mocked(mockClient.getRoom).mockImplementation((rid: string) => {
-        if (rid === '!cat:localhost')
-          return cat as any
-        if (rid === '!ch1:localhost')
-          return ch1 as any
-        if (rid === '!ch2:localhost')
-          return ch2 as any
+        if (rid === '!cat:localhost') return cat as any
+        if (rid === '!ch1:localhost') return ch1 as any
+        if (rid === '!ch2:localhost') return ch2 as any
         return null
       })
 
@@ -604,12 +543,9 @@ describe('matrix spaces', () => {
       const ch1 = makeChannelRoom('!ch1:localhost', 'Channel')
 
       vi.mocked(mockClient.getRoom).mockImplementation((rid: string) => {
-        if (rid === '!cat:localhost')
-          return cat as any
-        if (rid === '!nested:localhost')
-          return nested as any
-        if (rid === '!ch1:localhost')
-          return ch1 as any
+        if (rid === '!cat:localhost') return cat as any
+        if (rid === '!nested:localhost') return nested as any
+        if (rid === '!ch1:localhost') return ch1 as any
         return null
       })
 
@@ -621,16 +557,12 @@ describe('matrix spaces', () => {
     })
 
     it('should skip non-joined rooms', async () => {
-      const cat = makeSpaceRoom('!cat:localhost', 'Category', [
-        { roomId: '!ch1:localhost' },
-      ])
+      const cat = makeSpaceRoom('!cat:localhost', 'Category', [{ roomId: '!ch1:localhost' }])
       const ch1 = makeChannelRoom('!ch1:localhost', 'Channel', { membership: 'leave' })
 
       vi.mocked(mockClient.getRoom).mockImplementation((rid: string) => {
-        if (rid === '!cat:localhost')
-          return cat as any
-        if (rid === '!ch1:localhost')
-          return ch1 as any
+        if (rid === '!cat:localhost') return cat as any
+        if (rid === '!ch1:localhost') return ch1 as any
         return null
       })
 
@@ -698,9 +630,7 @@ describe('matrix spaces', () => {
 
       const createCall = vi.mocked(mockClient.createRoom).mock.calls[0][0]
       expect(createCall.topic).toBe('A fancy space')
-      expect(createCall.initial_state).toEqual([
-        { type: 'm.room.avatar', content: { url: 'mxc://localhost/fancy' } },
-      ])
+      expect(createCall.initial_state).toEqual([{ type: 'm.room.avatar', content: { url: 'mxc://localhost/fancy' } }])
     })
 
     it('should add child to parent when parentSpaceId is provided', async () => {
@@ -768,9 +698,7 @@ describe('matrix spaces', () => {
 
       const { addRoomToSpace } = await import('@/matrix/spaces')
       // Should not throw if getDomain returns undefined/null (?? '')
-      await expect(
-        addRoomToSpace('!space:localhost', '!room:localhost'),
-      ).resolves.toBeUndefined()
+      await expect(addRoomToSpace('!space:localhost', '!room:localhost')).resolves.toBeUndefined()
     })
   })
 
@@ -781,12 +709,7 @@ describe('matrix spaces', () => {
       const { removeRoomFromSpace } = await import('@/matrix/spaces')
       await removeRoomFromSpace('!space:localhost', '!room:localhost')
 
-      expect(mockClient.sendStateEvent).toHaveBeenCalledWith(
-        '!space:localhost',
-        'm.space.child',
-        {},
-        '!room:localhost',
-      )
+      expect(mockClient.sendStateEvent).toHaveBeenCalledWith('!space:localhost', 'm.space.child', {}, '!room:localhost')
     })
   })
 
@@ -803,10 +726,7 @@ describe('matrix spaces', () => {
     })
 
     it('should return members with default power levels', async () => {
-      const members = [
-        makeMember('@test:localhost', 'Me'),
-        makeMember('@alice:localhost', 'Alice'),
-      ]
+      const members = [makeMember('@test:localhost', 'Me'), makeMember('@alice:localhost', 'Alice')]
       const room = makeSpaceRoom('!space:localhost', 'Server', [], {
         members,
         memberCount: 2,
@@ -829,10 +749,7 @@ describe('matrix spaces', () => {
     })
 
     it('should return members with custom power levels', async () => {
-      const members = [
-        makeMember('@test:localhost', 'Me'),
-        makeMember('@alice:localhost', 'Alice'),
-      ]
+      const members = [makeMember('@test:localhost', 'Me'), makeMember('@alice:localhost', 'Alice')]
       const powerLevels = {
         users: { '@test:localhost': 100, '@alice:localhost': 50 },
         users_default: 0,
@@ -852,10 +769,7 @@ describe('matrix spaces', () => {
     })
 
     it('should use user default power level when user not in power_levels', async () => {
-      const members = [
-        makeMember('@test:localhost', 'Me'),
-        makeMember('@alice:localhost', 'Alice'),
-      ]
+      const members = [makeMember('@test:localhost', 'Me'), makeMember('@alice:localhost', 'Alice')]
       // Only @test has explicit power level
       const powerLevels = {
         users: { '@test:localhost': 100 },
@@ -911,9 +825,9 @@ describe('matrix spaces', () => {
       vi.mocked(mockClient.getRoom).mockReturnValue(null as any)
 
       const { setSpacePowerLevel } = await import('@/matrix/spaces')
-      await expect(
-        setSpacePowerLevel('!missing:localhost', '@alice:localhost', 50),
-      ).rejects.toThrow('Space !missing:localhost not found')
+      await expect(setSpacePowerLevel('!missing:localhost', '@alice:localhost', 50)).rejects.toThrow(
+        'Space !missing:localhost not found',
+      )
     })
 
     it('should set a user power level when no previous power levels exist', async () => {
@@ -925,13 +839,9 @@ describe('matrix spaces', () => {
       const { setSpacePowerLevel } = await import('@/matrix/spaces')
       await setSpacePowerLevel('!space:localhost', '@alice:localhost', 50)
 
-      expect(mockClient.sendStateEvent).toHaveBeenCalledWith(
-        '!space:localhost',
-        'm.room.power_levels',
-        {
-          users: { '@alice:localhost': 50 },
-        },
-      )
+      expect(mockClient.sendStateEvent).toHaveBeenCalledWith('!space:localhost', 'm.room.power_levels', {
+        users: { '@alice:localhost': 50 },
+      })
     })
 
     it('should preserve existing power levels when adding a new user', async () => {
@@ -947,14 +857,10 @@ describe('matrix spaces', () => {
       const { setSpacePowerLevel } = await import('@/matrix/spaces')
       await setSpacePowerLevel('!space:localhost', '@alice:localhost', 50)
 
-      expect(mockClient.sendStateEvent).toHaveBeenCalledWith(
-        '!space:localhost',
-        'm.room.power_levels',
-        {
-          users: { '@bob:localhost': 100, '@alice:localhost': 50 },
-          users_default: 0,
-        },
-      )
+      expect(mockClient.sendStateEvent).toHaveBeenCalledWith('!space:localhost', 'm.room.power_levels', {
+        users: { '@bob:localhost': 100, '@alice:localhost': 50 },
+        users_default: 0,
+      })
     })
 
     it('should override existing user power level', async () => {
@@ -969,13 +875,9 @@ describe('matrix spaces', () => {
       const { setSpacePowerLevel } = await import('@/matrix/spaces')
       await setSpacePowerLevel('!space:localhost', '@alice:localhost', 99)
 
-      expect(mockClient.sendStateEvent).toHaveBeenCalledWith(
-        '!space:localhost',
-        'm.room.power_levels',
-        {
-          users: { '@alice:localhost': 99 },
-        },
-      )
+      expect(mockClient.sendStateEvent).toHaveBeenCalledWith('!space:localhost', 'm.room.power_levels', {
+        users: { '@alice:localhost': 99 },
+      })
     })
   })
 
@@ -1080,9 +982,7 @@ describe('matrix spaces', () => {
 
       const { createChannel } = await import('@/matrix/spaces')
       // Should not throw when getDomain returns undefined
-      await expect(
-        createChannel('!space:localhost', 'General'),
-      ).resolves.toBe('!newch:localhost')
+      await expect(createChannel('!space:localhost', 'General')).resolves.toBe('!newch:localhost')
     })
   })
 
@@ -1090,16 +990,12 @@ describe('matrix spaces', () => {
 
   describe('getOrphanRooms', () => {
     it('should return empty array when all rooms are space-managed', async () => {
-      const server = makeSpaceRoom('!server:localhost', 'Server', [
-        { roomId: '!ch1:localhost' },
-      ])
+      const server = makeSpaceRoom('!server:localhost', 'Server', [{ roomId: '!ch1:localhost' }])
       const ch1 = makeChannelRoom('!ch1:localhost', 'General')
       vi.mocked(mockClient.getRooms).mockReturnValue([server as any, ch1 as any])
       vi.mocked(mockClient.getRoom).mockImplementation((rid: string) => {
-        if (rid === '!server:localhost')
-          return server as any
-        if (rid === '!ch1:localhost')
-          return ch1 as any
+        if (rid === '!server:localhost') return server as any
+        if (rid === '!ch1:localhost') return ch1 as any
         return null
       })
       vi.mocked(mockClient.getAccountData).mockReturnValue({
@@ -1119,10 +1015,8 @@ describe('matrix spaces', () => {
       const orphan = makeChannelRoom('!orphan:localhost', 'Lonely Room')
       vi.mocked(mockClient.getRooms).mockReturnValue([server as any, orphan as any])
       vi.mocked(mockClient.getRoom).mockImplementation((rid: string) => {
-        if (rid === '!server:localhost')
-          return server as any
-        if (rid === '!orphan:localhost')
-          return orphan as any
+        if (rid === '!server:localhost') return server as any
+        if (rid === '!orphan:localhost') return orphan as any
         return null
       })
       vi.mocked(mockClient.getAccountData).mockReturnValue({
@@ -1151,7 +1045,7 @@ describe('matrix spaces', () => {
       const orphans = getOrphanRooms()
 
       // DM rooms should be excluded
-      expect(orphans.find(o => o.roomId === '!dm_alice:localhost')).toBeUndefined()
+      expect(orphans.find((o) => o.roomId === '!dm_alice:localhost')).toBeUndefined()
       // Orphan should still be there
       expect(orphans).toHaveLength(1)
       expect(orphans[0].roomId).toBe('!orphan:localhost')
@@ -1162,10 +1056,8 @@ describe('matrix spaces', () => {
       const orphan = makeChannelRoom('!orphan:localhost', 'Orphan')
       vi.mocked(mockClient.getRooms).mockReturnValue([server as any, orphan as any])
       vi.mocked(mockClient.getRoom).mockImplementation((rid: string) => {
-        if (rid === '!server:localhost')
-          return server as any
-        if (rid === '!orphan:localhost')
-          return orphan as any
+        if (rid === '!server:localhost') return server as any
+        if (rid === '!orphan:localhost') return orphan as any
         return null
       })
       vi.mocked(mockClient.getAccountData).mockReturnValue({
@@ -1255,25 +1147,14 @@ describe('matrix spaces', () => {
     })
 
     it('should handle multiple spaces managing the same room (dedup)', async () => {
-      const server1 = makeSpaceRoom('!server1:localhost', 'Server 1', [
-        { roomId: '!shared:localhost' },
-      ])
-      const server2 = makeSpaceRoom('!server2:localhost', 'Server 2', [
-        { roomId: '!shared:localhost' },
-      ])
+      const server1 = makeSpaceRoom('!server1:localhost', 'Server 1', [{ roomId: '!shared:localhost' }])
+      const server2 = makeSpaceRoom('!server2:localhost', 'Server 2', [{ roomId: '!shared:localhost' }])
       const shared = makeChannelRoom('!shared:localhost', 'Shared')
-      vi.mocked(mockClient.getRooms).mockReturnValue([
-        server1 as any,
-        server2 as any,
-        shared as any,
-      ])
+      vi.mocked(mockClient.getRooms).mockReturnValue([server1 as any, server2 as any, shared as any])
       vi.mocked(mockClient.getRoom).mockImplementation((rid: string) => {
-        if (rid === '!server1:localhost')
-          return server1 as any
-        if (rid === '!server2:localhost')
-          return server2 as any
-        if (rid === '!shared:localhost')
-          return shared as any
+        if (rid === '!server1:localhost') return server1 as any
+        if (rid === '!server2:localhost') return server2 as any
+        if (rid === '!shared:localhost') return shared as any
         return null
       })
       vi.mocked(mockClient.getAccountData).mockReturnValue({
@@ -1288,17 +1169,13 @@ describe('matrix spaces', () => {
     })
 
     it('should return no rooms when all are spaces, DMs, or managed', async () => {
-      const server = makeSpaceRoom('!server:localhost', 'Server', [
-        { roomId: '!ch1:localhost' },
-      ])
+      const server = makeSpaceRoom('!server:localhost', 'Server', [{ roomId: '!ch1:localhost' }])
       const ch1 = makeChannelRoom('!ch1:localhost', 'Managed')
       // DM rooms - the default account data includes them
       vi.mocked(mockClient.getRooms).mockReturnValue([server as any, ch1 as any])
       vi.mocked(mockClient.getRoom).mockImplementation((rid: string) => {
-        if (rid === '!server:localhost')
-          return server as any
-        if (rid === '!ch1:localhost')
-          return ch1 as any
+        if (rid === '!server:localhost') return server as any
+        if (rid === '!ch1:localhost') return ch1 as any
         return null
       })
 
@@ -1338,10 +1215,8 @@ describe('matrix spaces', () => {
 
       vi.mocked(mockClient.getRooms).mockReturnValue([server as any, ch1 as any])
       vi.mocked(mockClient.getRoom).mockImplementation((rid: string) => {
-        if (rid === '!server:localhost')
-          return server as any
-        if (rid === '!ch1:localhost')
-          return ch1 as any
+        if (rid === '!server:localhost') return server as any
+        if (rid === '!ch1:localhost') return ch1 as any
         return null
       })
 
@@ -1378,10 +1253,8 @@ describe('matrix spaces', () => {
 
       vi.mocked(mockClient.getRooms).mockReturnValue([server as any, ch1 as any])
       vi.mocked(mockClient.getRoom).mockImplementation((rid: string) => {
-        if (rid === '!server:localhost')
-          return server as any
-        if (rid === '!ch1:localhost')
-          return ch1 as any
+        if (rid === '!server:localhost') return server as any
+        if (rid === '!ch1:localhost') return ch1 as any
         return null
       })
 
@@ -1431,21 +1304,17 @@ describe('matrix spaces', () => {
       const ch3 = makeChannelRoom('!ch3:localhost', 'Third')
 
       vi.mocked(mockClient.getRoom).mockImplementation((rid: string) => {
-        if (rid === '!server:localhost')
-          return server as any
-        if (rid === '!ch1:localhost')
-          return ch1 as any
-        if (rid === '!ch2:localhost')
-          return ch2 as any
-        if (rid === '!ch3:localhost')
-          return ch3 as any
+        if (rid === '!server:localhost') return server as any
+        if (rid === '!ch1:localhost') return ch1 as any
+        if (rid === '!ch2:localhost') return ch2 as any
+        if (rid === '!ch3:localhost') return ch3 as any
         return null
       })
 
       const { getSpaceHierarchy } = await import('@/matrix/spaces')
       const hierarchy = getSpaceHierarchy('!server:localhost')
 
-      const channelRoomIds = hierarchy.uncategorizedChannels.map(c => c.roomId)
+      const channelRoomIds = hierarchy.uncategorizedChannels.map((c) => c.roomId)
       expect(channelRoomIds).toEqual(['!ch1:localhost', '!ch2:localhost', '!ch3:localhost'])
     })
   })

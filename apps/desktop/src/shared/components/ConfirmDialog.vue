@@ -1,52 +1,61 @@
 <script setup lang="ts">
-import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@muon/ui/alert-dialog'
-import { Button } from '@muon/ui/button'
-import { computed } from 'vue'
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@muon/ui/alert-dialog';
+import { Button } from '@muon/ui/button';
+import { computed } from 'vue';
 
-type ConfirmDialogVariant = 'default' | 'destructive'
+type ConfirmDialogVariant = 'default' | 'destructive';
 
-const props = withDefaults(defineProps<{
-  cancelLabel: string
-  cancelTestId?: string
-  confirmLabel: string
-  confirmTestId?: string
-  description?: string
-  detail?: string
-  loading?: boolean
-  loadingLabel?: string
-  open: boolean
-  testId?: string
-  title: string
-  variant?: ConfirmDialogVariant
-}>(), {
-  description: '',
-  detail: '',
-  loading: false,
-  loadingLabel: '',
-  testId: 'confirm-dialog',
-  variant: 'default',
-})
+const props = withDefaults(
+  defineProps<{
+    cancelLabel: string;
+    cancelTestId?: string;
+    confirmLabel: string;
+    confirmTestId?: string;
+    description?: string;
+    detail?: string;
+    loading?: boolean;
+    loadingLabel?: string;
+    open: boolean;
+    testId?: string;
+    title: string;
+    variant?: ConfirmDialogVariant;
+  }>(),
+  {
+    description: '',
+    detail: '',
+    loading: false,
+    loadingLabel: '',
+    testId: 'confirm-dialog',
+    variant: 'default',
+  },
+);
 
 const emit = defineEmits<{
-  'cancel': []
-  'confirm': []
-  'update:open': [value: boolean]
-}>()
+  cancel: [];
+  confirm: [];
+  'update:open': [value: boolean];
+}>();
 
 const confirmText = computed(() => {
-  if (props.loading && props.loadingLabel)
-    return props.loadingLabel
+  if (props.loading && props.loadingLabel) return props.loadingLabel;
 
-  return props.confirmLabel
-})
+  return props.confirmLabel;
+});
 
 const confirmVariant = computed(() => {
-  return props.variant === 'destructive' ? 'destructive' : 'default'
-})
+  return props.variant === 'destructive' ? 'destructive' : 'default';
+});
 </script>
 
 <template>
-  <AlertDialog :open="open" @update:open="value => emit('update:open', value)">
+  <AlertDialog :open="open" @update:open="(value) => emit('update:open', value)">
     <AlertDialogContent :data-testid="testId">
       <AlertDialogHeader>
         <AlertDialogTitle>{{ title }}</AlertDialogTitle>
@@ -59,20 +68,10 @@ const confirmVariant = computed(() => {
       </AlertDialogHeader>
 
       <AlertDialogFooter>
-        <Button
-          :data-testid="cancelTestId"
-          variant="outline"
-          :disabled="loading"
-          @click="emit('cancel')"
-        >
+        <Button :data-testid="cancelTestId" variant="outline" :disabled="loading" @click="emit('cancel')">
           {{ cancelLabel }}
         </Button>
-        <Button
-          :data-testid="confirmTestId"
-          :variant="confirmVariant"
-          :disabled="loading"
-          @click="emit('confirm')"
-        >
+        <Button :data-testid="confirmTestId" :variant="confirmVariant" :disabled="loading" @click="emit('confirm')">
           {{ confirmText }}
         </Button>
       </AlertDialogFooter>

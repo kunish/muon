@@ -1,38 +1,38 @@
 <script setup lang="ts">
-import type { ContactCallLaunch } from '@/features/calls/stores/callLaunchStore'
-import { useContactList } from '@shared/composables/useContactList'
-import { Mic, MicOff, Phone, PhoneCall, PhoneOff, Plus, ScreenShare, UserPlus, Video } from 'lucide-vue-next'
-import { computed, onMounted, ref, shallowRef } from 'vue'
-import { useI18n } from 'vue-i18n'
-import WorkspacePageFrame from '@/app/components/workspace/WorkspacePageFrame.vue'
-import { consumePendingContactCall } from '@/features/calls/stores/callLaunchStore'
-import GroupMemberPicker from '@/features/contacts/components/GroupMemberPicker.vue'
+import type { ContactCallLaunch } from '@/features/calls/stores/callLaunchStore';
+import { useContactList } from '@shared/composables/useContactList';
+import { Mic, MicOff, Phone, PhoneCall, PhoneOff, Plus, ScreenShare, UserPlus, Video } from 'lucide-vue-next';
+import { computed, onMounted, ref, shallowRef } from 'vue';
+import { useI18n } from 'vue-i18n';
+import WorkspacePageFrame from '@/app/components/workspace/WorkspacePageFrame.vue';
+import { consumePendingContactCall } from '@/features/calls/stores/callLaunchStore';
+import GroupMemberPicker from '@/features/contacts/components/GroupMemberPicker.vue';
 
-const { t } = useI18n()
-const contactList = useContactList()
+const { t } = useI18n();
+const contactList = useContactList();
 
-const callMode = shallowRef<'video' | 'audio'>('video')
-const selectedCallId = shallowRef('call-1')
-const callInvitePickerOpen = shallowRef(false)
-const callInviteIds = ref<string[]>([])
+const callMode = shallowRef<'video' | 'audio'>('video');
+const selectedCallId = shallowRef('call-1');
+const callInvitePickerOpen = shallowRef(false);
+const callInviteIds = ref<string[]>([]);
 
 interface CallRecord {
-  id: string
-  title: string
-  type: string
-  time: string
-  status: string
-  durationMinutes: number
-  hasNotes?: boolean
-  hasRecording?: boolean
-  icon: typeof Video
+  id: string;
+  title: string;
+  type: string;
+  time: string;
+  status: string;
+  durationMinutes: number;
+  hasNotes?: boolean;
+  hasRecording?: boolean;
+  icon: typeof Video;
 }
 
 interface CallControlState {
-  isMuted: boolean
-  isSharingScreen: boolean
-  participants: string[]
-  notice: string
+  isMuted: boolean;
+  isSharingScreen: boolean;
+  participants: string[];
+  notice: string;
 }
 
 function defaultCallControlState(): CallControlState {
@@ -41,69 +41,117 @@ function defaultCallControlState(): CallControlState {
     isSharingScreen: false,
     participants: ['我'],
     notice: t('calls.call_ready'),
-  }
+  };
 }
 
 const calls = shallowRef<CallRecord[]>([
-  { id: 'call-1', title: '设计评审', type: t('calls.video_call_type'), time: '10:00', status: t('calls.call_recorded'), durationMinutes: 20, hasRecording: true, icon: Video },
-  { id: 'call-2', title: '故障复盘跟进', type: t('calls.audio_call_type'), time: '13:30', status: t('calls.call_notes_hint'), durationMinutes: 16, icon: PhoneCall },
-  { id: 'call-3', title: '客户反馈评审', type: t('calls.video_call_type'), time: '昨天', status: t('calls.call_shared'), durationMinutes: 18, icon: Video },
-])
+  {
+    id: 'call-1',
+    title: '设计评审',
+    type: t('calls.video_call_type'),
+    time: '10:00',
+    status: t('calls.call_recorded'),
+    durationMinutes: 20,
+    hasRecording: true,
+    icon: Video,
+  },
+  {
+    id: 'call-2',
+    title: '故障复盘跟进',
+    type: t('calls.audio_call_type'),
+    time: '13:30',
+    status: t('calls.call_notes_hint'),
+    durationMinutes: 16,
+    icon: PhoneCall,
+  },
+  {
+    id: 'call-3',
+    title: '客户反馈评审',
+    type: t('calls.video_call_type'),
+    time: '昨天',
+    status: t('calls.call_shared'),
+    durationMinutes: 18,
+    icon: Video,
+  },
+]);
 const callControlStates = shallowRef<Record<string, CallControlState>>({
   'call-1': defaultCallControlState(),
   'call-2': defaultCallControlState(),
   'call-3': defaultCallControlState(),
-})
+});
 
-const activeCallCount = computed(() => calls.value.filter(call => call.status === t('calls.call_in_progress')).length)
-const recordedCallCount = computed(() => calls.value.filter(call => call.hasRecording).length)
-const completedCallDurations = computed(() => calls.value.map(call => call.durationMinutes).filter(duration => duration > 0))
+const activeCallCount = computed(
+  () => calls.value.filter((call) => call.status === t('calls.call_in_progress')).length,
+);
+const recordedCallCount = computed(() => calls.value.filter((call) => call.hasRecording).length);
+const completedCallDurations = computed(() =>
+  calls.value.map((call) => call.durationMinutes).filter((duration) => duration > 0),
+);
 const averageCallDuration = computed(() => {
-  if (completedCallDurations.value.length === 0)
-    return 0
+  if (completedCallDurations.value.length === 0) return 0;
 
-  const total = completedCallDurations.value.reduce((sum, duration) => sum + duration, 0)
-  return Math.round(total / completedCallDurations.value.length)
-})
+  const total = completedCallDurations.value.reduce((sum, duration) => sum + duration, 0);
+  return Math.round(total / completedCallDurations.value.length);
+});
 const callStats = computed(() => [
-  { id: 'today', label: t('calls.today_calls'), value: `${calls.value.length}`, hint: t('calls.today_calls_hint', { count: activeCallCount.value }) },
-  { id: 'duration', label: t('calls.avg_duration'), value: t('calls.minutes_short', { n: averageCallDuration.value }), hint: t('calls.avg_duration_hint') },
-  { id: 'recordings', label: t('calls.recordings'), value: `${recordedCallCount.value}`, hint: t('calls.recordings_hint') },
-])
+  {
+    id: 'today',
+    label: t('calls.today_calls'),
+    value: `${calls.value.length}`,
+    hint: t('calls.today_calls_hint', { count: activeCallCount.value }),
+  },
+  {
+    id: 'duration',
+    label: t('calls.avg_duration'),
+    value: t('calls.minutes_short', { n: averageCallDuration.value }),
+    hint: t('calls.avg_duration_hint'),
+  },
+  {
+    id: 'recordings',
+    label: t('calls.recordings'),
+    value: `${recordedCallCount.value}`,
+    hint: t('calls.recordings_hint'),
+  },
+]);
 
-const callModeLabel = computed(() => callMode.value === 'audio' ? t('calls.audio_call_type') : t('calls.video_call_type'))
-const selectedCall = computed(() => calls.value.find(call => call.id === selectedCallId.value) ?? calls.value[0])
+const callModeLabel = computed(() =>
+  callMode.value === 'audio' ? t('calls.audio_call_type') : t('calls.video_call_type'),
+);
+const selectedCall = computed(() => calls.value.find((call) => call.id === selectedCallId.value) ?? calls.value[0]);
 const selectedCallGeneratedNote = computed(() => {
-  const call = selectedCall.value
-  if (!call?.hasNotes)
-    return null
-  return call
-})
+  const call = selectedCall.value;
+  if (!call?.hasNotes) return null;
+  return call;
+});
 const selectedCallControlState = computed(() => {
-  const call = selectedCall.value
-  if (!call)
-    return defaultCallControlState()
+  const call = selectedCall.value;
+  if (!call) return defaultCallControlState();
 
-  return callControlStates.value[call.id] ?? defaultCallControlState()
-})
+  return callControlStates.value[call.id] ?? defaultCallControlState();
+});
 
 function updateSelectedCallControlState(updater: (state: CallControlState) => CallControlState): void {
-  const call = selectedCall.value
-  if (!call)
-    return
+  const call = selectedCall.value;
+  if (!call) return;
 
-  const currentState = selectedCallControlState.value
+  const currentState = selectedCallControlState.value;
   callControlStates.value = {
     ...callControlStates.value,
     [call.id]: updater({
       ...currentState,
       participants: [...currentState.participants],
     }),
-  }
+  };
 }
 
-function createActiveCall(title: string, type: string, icon: typeof Video, nextParticipants: string[], notice: string): void {
-  const callId = `call-${Date.now()}`
+function createActiveCall(
+  title: string,
+  type: string,
+  icon: typeof Video,
+  nextParticipants: string[],
+  notice: string,
+): void {
+  const callId = `call-${Date.now()}`;
   calls.value = [
     {
       id: callId,
@@ -115,8 +163,8 @@ function createActiveCall(title: string, type: string, icon: typeof Video, nextP
       icon,
     },
     ...calls.value,
-  ]
-  selectedCallId.value = callId
+  ];
+  selectedCallId.value = callId;
   callControlStates.value = {
     ...callControlStates.value,
     [callId]: {
@@ -125,31 +173,30 @@ function createActiveCall(title: string, type: string, icon: typeof Video, nextP
       participants: nextParticipants,
       notice,
     },
-  }
+  };
 }
 
 function startContactCall(call: ContactCallLaunch): void {
-  const contactName = call.displayName || call.userId
-  callMode.value = call.mode
-  const type = call.mode === 'audio' ? t('calls.audio_call_type') : t('calls.video_call_type')
+  const contactName = call.displayName || call.userId;
+  callMode.value = call.mode;
+  const type = call.mode === 'audio' ? t('calls.audio_call_type') : t('calls.video_call_type');
   createActiveCall(
     t('calls.call_with', { name: contactName, type }),
     type,
     call.mode === 'audio' ? PhoneCall : Video,
     ['我', contactName],
     t('calls.connected', { name: contactName }),
-  )
+  );
 }
 
 onMounted(() => {
-  contactList.ensureContactsLoaded()
-  const pendingCall = consumePendingContactCall()
-  if (pendingCall)
-    startContactCall(pendingCall)
-})
+  contactList.ensureContactsLoaded();
+  const pendingCall = consumePendingContactCall();
+  if (pendingCall) startContactCall(pendingCall);
+});
 
 function toggleAudioMode(): void {
-  callMode.value = callMode.value === 'audio' ? 'video' : 'audio'
+  callMode.value = callMode.value === 'audio' ? 'video' : 'audio';
 }
 
 function startCall(): void {
@@ -159,107 +206,97 @@ function startCall(): void {
     callMode.value === 'audio' ? PhoneCall : Video,
     ['我'],
     t('calls.call_joined'),
-  )
+  );
 }
 
 function selectCall(callId: string): void {
-  selectedCallId.value = callId
+  selectedCallId.value = callId;
 }
 
 function generateNotes(): void {
-  const call = selectedCall.value
-  if (!call)
-    return
+  const call = selectedCall.value;
+  if (!call) return;
 
-  calls.value = calls.value.map(item => item.id === call.id
-    ? { ...item, hasNotes: true, status: t('calls.call_notes_generated') }
-    : item)
+  calls.value = calls.value.map((item) =>
+    item.id === call.id ? { ...item, hasNotes: true, status: t('calls.call_notes_generated') } : item,
+  );
 }
 
 function toggleMute(): void {
   updateSelectedCallControlState((state) => {
-    const isMuted = !state.isMuted
+    const isMuted = !state.isMuted;
     return {
       ...state,
       isMuted,
       notice: isMuted ? t('calls.mic_muted') : t('calls.mic_unmuted'),
-    }
-  })
+    };
+  });
 }
 
 function toggleShareScreen(): void {
   updateSelectedCallControlState((state) => {
-    const isSharingScreen = !state.isSharingScreen
+    const isSharingScreen = !state.isSharingScreen;
     return {
       ...state,
       isSharingScreen,
       notice: isSharingScreen ? t('calls.now_sharing') : t('calls.stopped_sharing'),
-    }
-  })
+    };
+  });
 }
 
 function fallbackName(userId: string): string {
-  return userId.split(':')[0]?.replace(/^@/, '') || userId
+  return userId.split(':')[0]?.replace(/^@/, '') || userId;
 }
 
 function displayNameForUserId(userId: string): string {
-  return contactList.contacts.find(contact => contact.userId === userId)?.displayName ?? fallbackName(userId)
+  return contactList.contacts.find((contact) => contact.userId === userId)?.displayName ?? fallbackName(userId);
 }
 
 function toggleCallInvitePicker(): void {
   if (callInvitePickerOpen.value) {
-    closeCallInvitePicker()
-    return
+    closeCallInvitePicker();
+    return;
   }
 
-  contactList.ensureContactsLoaded()
-  callInvitePickerOpen.value = true
+  contactList.ensureContactsLoaded();
+  callInvitePickerOpen.value = true;
 }
 
 function closeCallInvitePicker(): void {
-  callInviteIds.value = []
-  callInvitePickerOpen.value = false
+  callInviteIds.value = [];
+  callInvitePickerOpen.value = false;
 }
 
 function inviteSelectedMembers(): void {
-  const invitedNames = callInviteIds.value.map(displayNameForUserId)
-  if (invitedNames.length === 0)
-    return
+  const invitedNames = callInviteIds.value.map(displayNameForUserId);
+  if (invitedNames.length === 0) return;
 
-  updateSelectedCallControlState(state => ({
+  updateSelectedCallControlState((state) => ({
     ...state,
-    participants: [
-      ...state.participants,
-      ...invitedNames.filter(name => !state.participants.includes(name)),
-    ],
+    participants: [...state.participants, ...invitedNames.filter((name) => !state.participants.includes(name))],
     notice: t('calls.invited', { names: invitedNames.join(t('system_events.list_separator')) }),
-  }))
-  closeCallInvitePicker()
+  }));
+  closeCallInvitePicker();
 }
 
 function endSelectedCall(): void {
-  const call = selectedCall.value
-  if (!call)
-    return
+  const call = selectedCall.value;
+  if (!call) return;
 
-  calls.value = calls.value.map(item => item.id === call.id
-    ? { ...item, status: t('calls.call_status_ended') }
-    : item)
-  updateSelectedCallControlState(state => ({
+  calls.value = calls.value.map((item) =>
+    item.id === call.id ? { ...item, status: t('calls.call_status_ended') } : item,
+  );
+  updateSelectedCallControlState((state) => ({
     ...state,
     isMuted: false,
     isSharingScreen: false,
     notice: t('calls.call_ended', { title: call.title }),
-  }))
+  }));
 }
 </script>
 
 <template>
-  <WorkspacePageFrame
-    :title="t('sidebar.calls')"
-    :subtitle="t('calls.subtitle')"
-    :icon="Phone"
-  >
+  <WorkspacePageFrame :title="t('sidebar.calls')" :subtitle="t('calls.subtitle')" :icon="Phone">
     <template #actions>
       <button
         data-testid="calls-audio-mode"
@@ -280,31 +317,25 @@ function endSelectedCall(): void {
     </template>
 
     <div class="grid gap-3 md:grid-cols-3">
-      <div
-        v-for="stat in callStats"
-        :key="stat.id"
-        class="workspace-surface rounded-lg p-4"
-      >
+      <div v-for="stat in callStats" :key="stat.id" class="workspace-surface rounded-lg p-4">
         <div class="text-[11px] font-bold uppercase leading-4 tracking-[0.05em] text-muted-foreground">
           {{ stat.label }}
         </div>
-        <div
-          class="mt-3 text-2xl font-semibold leading-8"
-          :data-testid="`calls-stat-${stat.id}`"
-        >
+        <div class="mt-3 text-2xl font-semibold leading-8" :data-testid="`calls-stat-${stat.id}`">
           {{ stat.value }}
         </div>
-        <p
-          class="mt-1 text-[13px] text-muted-foreground"
-          :data-testid="`calls-stat-${stat.id}-hint`"
-        >
+        <p class="mt-1 text-[13px] text-muted-foreground" :data-testid="`calls-stat-${stat.id}-hint`">
           {{ stat.hint }}
         </p>
       </div>
     </div>
     <p class="text-[12px] font-semibold text-muted-foreground">
       {{ t('calls.current_mode') }}：{{ callModeLabel }}
-      <span v-if="selectedCall"> · {{ t('calls.current_call') }}：{{ selectedCall.title }} · {{ t('calls.call_type') }}：{{ selectedCall.type }}</span>
+      <span v-if="selectedCall">
+        · {{ t('calls.current_call') }}：{{ selectedCall.title }} · {{ t('calls.call_type') }}：{{
+          selectedCall.type
+        }}</span
+      >
     </p>
 
     <section class="workspace-surface overflow-hidden rounded-lg">
@@ -317,9 +348,21 @@ function endSelectedCall(): void {
       <div class="grid gap-3 p-4 md:grid-cols-[minmax(0,1fr)_auto]">
         <div class="grid gap-2 text-[13px] leading-5">
           <span class="font-semibold text-foreground">{{ t('calls.current_meeting') }}：{{ selectedCall.title }}</span>
-          <span class="text-muted-foreground">{{ t('calls.mic_label') }}：{{ selectedCallControlState.isMuted ? t('calls.mic_off') : t('calls.mic_on') }}</span>
-          <span class="text-muted-foreground">{{ t('calls.screen_share_label') }}：{{ selectedCallControlState.isSharingScreen ? t('calls.screen_sharing') : t('calls.screen_not_sharing') }}</span>
-          <span class="text-muted-foreground">{{ t('calls.participants_label') }}：{{ selectedCallControlState.participants.join(t('system_events.list_separator')) }}</span>
+          <span class="text-muted-foreground"
+            >{{ t('calls.mic_label') }}：{{
+              selectedCallControlState.isMuted ? t('calls.mic_off') : t('calls.mic_on')
+            }}</span
+          >
+          <span class="text-muted-foreground"
+            >{{ t('calls.screen_share_label') }}：{{
+              selectedCallControlState.isSharingScreen ? t('calls.screen_sharing') : t('calls.screen_not_sharing')
+            }}</span
+          >
+          <span class="text-muted-foreground"
+            >{{ t('calls.participants_label') }}：{{
+              selectedCallControlState.participants.join(t('system_events.list_separator'))
+            }}</span
+          >
         </div>
         <div class="grid min-w-[240px] gap-2 sm:grid-cols-4 md:grid-cols-1">
           <button
@@ -336,7 +379,9 @@ function endSelectedCall(): void {
             @click="toggleShareScreen"
           >
             <ScreenShare :size="14" />
-            <span>{{ selectedCallControlState.isSharingScreen ? t('calls.stop_share') : t('calls.share_screen') }}</span>
+            <span>{{
+              selectedCallControlState.isSharingScreen ? t('calls.stop_share') : t('calls.share_screen')
+            }}</span>
           </button>
           <button
             data-testid="calls-invite-member"
@@ -398,7 +443,9 @@ function endSelectedCall(): void {
           @click="selectCall(call.id)"
         >
           <span class="flex min-w-0 items-center gap-3">
-            <span class="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border bg-muted text-primary">
+            <span
+              class="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border bg-muted text-primary"
+            >
               <component :is="call.icon" :size="18" />
             </span>
             <span class="min-w-0">
@@ -407,7 +454,9 @@ function endSelectedCall(): void {
             </span>
           </span>
           <span class="text-[12px] text-muted-foreground">{{ call.time }}</span>
-          <span class="justify-self-start rounded-md border border-border px-2 py-1 text-[11px] font-semibold text-muted-foreground">
+          <span
+            class="justify-self-start rounded-md border border-border px-2 py-1 text-[11px] font-semibold text-muted-foreground"
+          >
             {{ call.status }}
           </span>
         </button>
@@ -416,9 +465,7 @@ function endSelectedCall(): void {
 
     <section class="workspace-surface overflow-hidden rounded-lg">
       <div class="flex h-11 items-center justify-between border-b border-border px-4">
-        <h2 class="text-[15px] font-semibold">
-          会议纪要
-        </h2>
+        <h2 class="text-[15px] font-semibold">会议纪要</h2>
         <button
           data-testid="calls-generate-notes"
           class="flex h-8 items-center rounded-md border border-border px-3 text-[12px] font-semibold text-foreground transition-colors hover:bg-accent"
@@ -429,9 +476,7 @@ function endSelectedCall(): void {
       </div>
       <div class="p-4">
         <template v-if="selectedCallGeneratedNote">
-          <h3 class="text-[14px] font-semibold">
-            会议纪要：{{ selectedCallGeneratedNote.title }}
-          </h3>
+          <h3 class="text-[14px] font-semibold">会议纪要：{{ selectedCallGeneratedNote.title }}</h3>
           <div class="mt-3 grid gap-2 text-[13px] leading-5 text-muted-foreground">
             <p>会议总结：围绕 {{ selectedCallGeneratedNote.title }} 完成结论同步，并沉淀可追踪记录。</p>
             <p>待办提炼：同步评审结论</p>

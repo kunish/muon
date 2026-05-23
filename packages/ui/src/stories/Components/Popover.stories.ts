@@ -2,11 +2,7 @@ import type { Meta, StoryObj } from '@storybook/vue3'
 import { Calendar, Users } from 'lucide-vue-next'
 import { Avatar } from '../../atoms/avatar'
 import { Button } from '../../atoms/button'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '../../components/ui/popover'
+import { Popover, PopoverContent, PopoverTrigger } from '../../components/ui/popover'
 
 const meta: Meta<typeof Popover> = {
   title: 'Components/Popover',

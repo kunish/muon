@@ -1,173 +1,160 @@
 <script setup lang="ts">
-import type { ChannelInfo } from '@/matrix/spaces'
-import { Avatar } from '@muon/ui/avatar'
-import { Button } from '@muon/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@muon/ui/dialog'
-import { Input } from '@muon/ui/input'
-import { Label } from '@muon/ui/label'
-import { ScrollArea } from '@muon/ui/scroll-area'
-import { Textarea } from '@muon/ui/textarea'
-import { ChevronDown, X } from 'lucide-vue-next'
-import { computed, ref } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { toast } from 'vue-sonner'
-import WorkspaceResizablePane from '@/app/components/workspace/WorkspaceResizablePane.vue'
-import ConversationList from '@/features/chat/components/ConversationList.vue'
-import { useServerStore } from '@/features/server/stores/serverStore'
-import { markRoomAsRead, setRoomName, setRoomTopic, toggleRoomMute } from '@/matrix/rooms'
-import { removeRoomFromSpace } from '@/matrix/spaces'
-import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
-import ChannelCategory from './ChannelCategory.vue'
-import ChannelContextMenu from './ChannelContextMenu.vue'
-import CreateChannelDialog from './CreateChannelDialog.vue'
-import ServerDropdown from './ServerDropdown.vue'
-import TextChannelItem from './TextChannelItem.vue'
-import UserPanel from './UserPanel.vue'
-import VoiceChannelItem from './VoiceChannelItem.vue'
-import VoiceStatusBar from './VoiceStatusBar.vue'
+import type { ChannelInfo } from '@/matrix/spaces';
+import { Avatar } from '@muon/ui/avatar';
+import { Button } from '@muon/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@muon/ui/dialog';
+import { Input } from '@muon/ui/input';
+import { Label } from '@muon/ui/label';
+import { ScrollArea } from '@muon/ui/scroll-area';
+import { Textarea } from '@muon/ui/textarea';
+import { ChevronDown, X } from 'lucide-vue-next';
+import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { toast } from 'vue-sonner';
+import WorkspaceResizablePane from '@/app/components/workspace/WorkspaceResizablePane.vue';
+import ConversationList from '@/features/chat/components/ConversationList.vue';
+import { useServerStore } from '@/features/server/stores/serverStore';
+import { markRoomAsRead, setRoomName, setRoomTopic, toggleRoomMute } from '@/matrix/rooms';
+import { removeRoomFromSpace } from '@/matrix/spaces';
+import ConfirmDialog from '@/shared/components/ConfirmDialog.vue';
+import ChannelCategory from './ChannelCategory.vue';
+import ChannelContextMenu from './ChannelContextMenu.vue';
+import CreateChannelDialog from './CreateChannelDialog.vue';
+import ServerDropdown from './ServerDropdown.vue';
+import TextChannelItem from './TextChannelItem.vue';
+import UserPanel from './UserPanel.vue';
+import VoiceChannelItem from './VoiceChannelItem.vue';
+import VoiceStatusBar from './VoiceStatusBar.vue';
 
 defineEmits<{
-  createCategory: []
-  invitePeople: []
-  serverSettings: []
-  notificationSettings: []
-  leaveServer: []
-}>()
+  createCategory: [];
+  invitePeople: [];
+  serverSettings: [];
+  notificationSettings: [];
+  leaveServer: [];
+}>();
 
-const serverStore = useServerStore()
-const { t } = useI18n()
+const serverStore = useServerStore();
+const { t } = useI18n();
 
-const SIDEBAR_WIDTH_STORAGE_KEY = 'muon_message_sidebar_width'
-const DEFAULT_SIDEBAR_WIDTH = 260
-const MIN_SIDEBAR_WIDTH = 220
-const MAX_SIDEBAR_WIDTH = 360
+const SIDEBAR_WIDTH_STORAGE_KEY = 'muon_message_sidebar_width';
+const DEFAULT_SIDEBAR_WIDTH = 260;
+const MIN_SIDEBAR_WIDTH = 220;
+const MAX_SIDEBAR_WIDTH = 360;
 
-const channelTree = computed(() => serverStore.channelTree)
-const isDmMode = computed(() => serverStore.isDmMode)
+const channelTree = computed(() => serverStore.channelTree);
+const isDmMode = computed(() => serverStore.isDmMode);
 const currentServer = computed(() => {
-  if (!serverStore.currentServerId)
-    return null
-  return serverStore.servers.find(s => s.spaceId === serverStore.currentServerId) ?? null
-})
+  if (!serverStore.currentServerId) return null;
+  return serverStore.servers.find((s) => s.spaceId === serverStore.currentServerId) ?? null;
+});
 
-const showCreateChannel = ref(false)
-const createChannelCategoryId = ref<string | undefined>(undefined)
-const editingChannel = ref<ChannelInfo | null>(null)
-const editChannelName = ref('')
-const editChannelTopic = ref('')
-const isSavingChannelEdit = ref(false)
-const deleteTarget = ref<ChannelInfo | null>(null)
-const isDeletingChannel = ref(false)
-const resizeHandleLabel = computed(() => t('sidebar.resize_messages'))
+const showCreateChannel = ref(false);
+const createChannelCategoryId = ref<string | undefined>(undefined);
+const editingChannel = ref<ChannelInfo | null>(null);
+const editChannelName = ref('');
+const editChannelTopic = ref('');
+const isSavingChannelEdit = ref(false);
+const deleteTarget = ref<ChannelInfo | null>(null);
+const isDeletingChannel = ref(false);
+const resizeHandleLabel = computed(() => t('sidebar.resize_messages'));
 
 function openCreateChannel(categoryId?: string): void {
-  createChannelCategoryId.value = categoryId
-  showCreateChannel.value = true
+  createChannelCategoryId.value = categoryId;
+  showCreateChannel.value = true;
 }
 
 function findChannel(roomId: string): ChannelInfo | null {
   for (const category of channelTree.value) {
-    const channel = category.channels.find(item => item.roomId === roomId)
-    if (channel)
-      return channel
+    const channel = category.channels.find((item) => item.roomId === roomId);
+    if (channel) return channel;
   }
-  return null
+  return null;
 }
 
 function refreshCurrentServerChannels(): void {
-  if (serverStore.currentServerId)
-    serverStore.loadChannelTree(serverStore.currentServerId)
+  if (serverStore.currentServerId) serverStore.loadChannelTree(serverStore.currentServerId);
 }
 
 async function handleMarkChannelAsRead(roomId: string): Promise<void> {
-  await markRoomAsRead(roomId)
-  refreshCurrentServerChannels()
+  await markRoomAsRead(roomId);
+  refreshCurrentServerChannels();
 }
 
 async function handleMuteChannel(roomId: string): Promise<void> {
-  await toggleRoomMute(roomId)
-  refreshCurrentServerChannels()
+  await toggleRoomMute(roomId);
+  refreshCurrentServerChannels();
 }
 
 function handleEditChannel(roomId: string): void {
-  const channel = findChannel(roomId)
-  if (!channel)
-    return
+  const channel = findChannel(roomId);
+  if (!channel) return;
 
-  editingChannel.value = channel
-  editChannelName.value = channel.name
-  editChannelTopic.value = channel.topic ?? ''
+  editingChannel.value = channel;
+  editChannelName.value = channel.name;
+  editChannelTopic.value = channel.topic ?? '';
 }
 
 function closeEditChannelDialog(): void {
-  editingChannel.value = null
-  editChannelName.value = ''
-  editChannelTopic.value = ''
+  editingChannel.value = null;
+  editChannelName.value = '';
+  editChannelTopic.value = '';
 }
 
 async function saveChannelEdit(): Promise<void> {
-  const channel = editingChannel.value
-  const name = editChannelName.value.trim()
-  if (!channel || !name || isSavingChannelEdit.value)
-    return
+  const channel = editingChannel.value;
+  const name = editChannelName.value.trim();
+  if (!channel || !name || isSavingChannelEdit.value) return;
 
-  isSavingChannelEdit.value = true
+  isSavingChannelEdit.value = true;
   try {
-    const topic = editChannelTopic.value.trim()
-    if (name !== channel.name)
-      await setRoomName(channel.roomId, name)
-    if (topic !== (channel.topic ?? ''))
-      await setRoomTopic(channel.roomId, topic)
+    const topic = editChannelTopic.value.trim();
+    if (name !== channel.name) await setRoomName(channel.roomId, name);
+    if (topic !== (channel.topic ?? '')) await setRoomTopic(channel.roomId, topic);
 
-    refreshCurrentServerChannels()
-    closeEditChannelDialog()
-  }
-  catch (error) {
-    console.error('Failed to edit channel:', error)
-    toast.error(t('server.channel_failed'))
-  }
-  finally {
-    isSavingChannelEdit.value = false
+    refreshCurrentServerChannels();
+    closeEditChannelDialog();
+  } catch (error) {
+    console.error('Failed to edit channel:', error);
+    toast.error(t('server.channel_failed'));
+  } finally {
+    isSavingChannelEdit.value = false;
   }
 }
 
 function handleDeleteChannel(roomId: string): void {
-  deleteTarget.value = findChannel(roomId)
+  deleteTarget.value = findChannel(roomId);
 }
 
 function closeDeleteChannelDialog(): void {
-  deleteTarget.value = null
+  deleteTarget.value = null;
 }
 
 async function confirmDeleteChannel(): Promise<void> {
-  const channel = deleteTarget.value
-  const serverId = serverStore.currentServerId
-  if (!channel || !serverId || isDeletingChannel.value)
-    return
+  const channel = deleteTarget.value;
+  const serverId = serverStore.currentServerId;
+  if (!channel || !serverId || isDeletingChannel.value) return;
 
-  isDeletingChannel.value = true
+  isDeletingChannel.value = true;
   try {
-    const parentId = channel.categoryId ?? serverId
-    await removeRoomFromSpace(parentId, channel.roomId)
+    const parentId = channel.categoryId ?? serverId;
+    await removeRoomFromSpace(parentId, channel.roomId);
 
     if (channel.categoryId) {
       try {
-        await removeRoomFromSpace(serverId, channel.roomId)
-      }
-      catch {
+        await removeRoomFromSpace(serverId, channel.roomId);
+      } catch {
         // Category channels are not always direct children of the top-level server.
       }
     }
 
-    refreshCurrentServerChannels()
-    closeDeleteChannelDialog()
-  }
-  catch (error) {
-    console.error('Failed to delete channel:', error)
-    toast.error(t('server.channel_failed'))
-  }
-  finally {
-    isDeletingChannel.value = false
+    refreshCurrentServerChannels();
+    closeDeleteChannelDialog();
+  } catch (error) {
+    console.error('Failed to delete channel:', error);
+    toast.error(t('server.channel_failed'));
+  } finally {
+    isDeletingChannel.value = false;
   }
 }
 </script>
@@ -208,18 +195,10 @@ async function confirmDeleteChannel(): Promise<void> {
         </template>
       </ServerDropdown>
 
-      <div
-        v-if="channelTree.length <= 2"
-        class="border-b border-sidebar-border px-3 py-3"
-      >
+      <div v-if="channelTree.length <= 2" class="border-b border-sidebar-border px-3 py-3">
         <div class="rounded-lg border border-sidebar-border bg-sidebar-accent p-3">
           <div class="mb-2 flex items-center justify-center">
-            <Avatar
-              :src="currentServer.avatar"
-              :alt="currentServer.name"
-              :color-id="currentServer.spaceId"
-              size="xl"
-            />
+            <Avatar :src="currentServer.avatar" :alt="currentServer.name" :color-id="currentServer.spaceId" size="xl" />
           </div>
           <p class="text-center text-sm font-medium text-foreground/90">
             {{ t('server.welcome_intro') }}
@@ -250,16 +229,8 @@ async function confirmDeleteChannel(): Promise<void> {
                 @delete-channel="handleDeleteChannel"
               >
                 <template #default="{ open }">
-                  <TextChannelItem
-                    v-if="!channel.isVoice"
-                    :channel="channel"
-                    :context-menu-open="open"
-                  />
-                  <VoiceChannelItem
-                    v-else
-                    :channel="channel"
-                    :context-menu-open="open"
-                  />
+                  <TextChannelItem v-if="!channel.isVoice" :channel="channel" :context-menu-open="open" />
+                  <VoiceChannelItem v-else :channel="channel" :context-menu-open="open" />
                 </template>
               </ChannelContextMenu>
             </template>
@@ -272,14 +243,15 @@ async function confirmDeleteChannel(): Promise<void> {
 
     <UserPanel />
 
-    <CreateChannelDialog
-      v-model:open="showCreateChannel"
-      :category-id="createChannelCategoryId"
-    />
+    <CreateChannelDialog v-model:open="showCreateChannel" :category-id="createChannelCategoryId" />
 
     <Dialog
       :open="Boolean(editingChannel)"
-      @update:open="value => { if (!value) closeEditChannelDialog() }"
+      @update:open="
+        (value) => {
+          if (!value) closeEditChannelDialog();
+        }
+      "
     >
       <DialogContent v-if="editingChannel">
         <DialogHeader>
@@ -340,7 +312,11 @@ async function confirmDeleteChannel(): Promise<void> {
       :loading-label="t('server.deleting')"
       confirm-test-id="channel-delete-confirm"
       variant="destructive"
-      @update:open="value => { if (!value) closeDeleteChannelDialog() }"
+      @update:open="
+        (value) => {
+          if (!value) closeDeleteChannelDialog();
+        }
+      "
       @confirm="confirmDeleteChannel"
       @cancel="closeDeleteChannelDialog"
     />

@@ -14,9 +14,7 @@ describe('useRichTextEditor', () => {
         })
         editorApi = api
 
-        return () => api.editor.value
-          ? h(EditorContent, { editor: api.editor.value })
-          : null
+        return () => (api.editor.value ? h(EditorContent, { editor: api.editor.value }) : null)
       },
     })
 
@@ -29,15 +27,11 @@ describe('useRichTextEditor', () => {
     const event = new Event('paste', { cancelable: true }) as ClipboardEvent
     Object.defineProperty(event, 'clipboardData', {
       value: {
-        getData: (type: string) =>
-          type === 'text/plain'
-            ? '**Bold** and [Muon](https://example.com)'
-            : '',
+        getData: (type: string) => (type === 'text/plain' ? '**Bold** and [Muon](https://example.com)' : ''),
       },
     })
 
-    const handled = editor!.view.someProp('handlePaste', handler =>
-      handler(editor!.view, event, null as never))
+    const handled = editor!.view.someProp('handlePaste', (handler) => handler(editor!.view, event, null as never))
 
     expect(handled).toBe(true)
     expect(editor!.getHTML()).toContain('<strong>Bold</strong>')
@@ -58,9 +52,7 @@ describe('useRichTextEditor', () => {
         })
         editorApi = api
 
-        return () => api.editor.value
-          ? h(EditorContent, { editor: api.editor.value })
-          : null
+        return () => (api.editor.value ? h(EditorContent, { editor: api.editor.value }) : null)
       },
     })
 
@@ -73,15 +65,11 @@ describe('useRichTextEditor', () => {
     Object.defineProperty(event, 'clipboardData', {
       value: {
         files: [imageFile],
-        getData: (type: string) =>
-          type === 'text/plain'
-            ? '**Should not become markdown**'
-            : '',
+        getData: (type: string) => (type === 'text/plain' ? '**Should not become markdown**' : ''),
       },
     })
 
-    const handled = editor!.view.someProp('handlePaste', handler =>
-      handler(editor!.view, event, null as never))
+    const handled = editor!.view.someProp('handlePaste', (handler) => handler(editor!.view, event, null as never))
 
     expect(handled).toBe(true)
     expect(event.defaultPrevented).toBe(true)
@@ -102,9 +90,7 @@ describe('useRichTextEditor', () => {
         })
         editorApi = api
 
-        return () => api.editor.value
-          ? h(EditorContent, { editor: api.editor.value })
-          : null
+        return () => (api.editor.value ? h(EditorContent, { editor: api.editor.value }) : null)
       },
     })
 
@@ -127,8 +113,7 @@ describe('useRichTextEditor', () => {
       },
     })
 
-    const handled = editor!.view.someProp('handlePaste', handler =>
-      handler(editor!.view, event, null as never))
+    const handled = editor!.view.someProp('handlePaste', (handler) => handler(editor!.view, event, null as never))
 
     expect(handled).toBe(true)
     expect(onPasteFiles).toHaveBeenCalledWith([videoFile])
@@ -153,14 +138,12 @@ describe('useRichTextEditor', () => {
           onSubmit: vi.fn(),
           onPasteMediaSources,
           pendingMedia: {
-            getAttachment: id => id === attachment.id ? attachment : undefined,
+            getAttachment: (id) => (id === attachment.id ? attachment : undefined),
           },
         })
         editorApi = api
 
-        return () => api.editor.value
-          ? h(EditorContent, { editor: api.editor.value })
-          : null
+        return () => (api.editor.value ? h(EditorContent, { editor: api.editor.value }) : null)
       },
     })
 
@@ -178,8 +161,7 @@ describe('useRichTextEditor', () => {
         getData: (type: string) => {
           if (type === 'text/html')
             return '<p>Before</p><p><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==" data-rich-media-mxc-src="mxc://server/media" alt="image.png" title="image.png"></p><p>After</p>'
-          if (type === 'text/plain')
-            return 'Before\n[image.png]\nAfter'
+          if (type === 'text/plain') return 'Before\n[image.png]\nAfter'
           return ''
         },
       },
@@ -194,7 +176,12 @@ describe('useRichTextEditor', () => {
         expect(editor!.getHTML()).toContain('<p>Before</p><div data-pending-media-id="attachment-1"></div><p>After</p>')
       })
 
-      expect(editor!.getText().trim().replace(/\n{2,}/g, '\n\n')).toBe('Before\n\nAfter')
+      expect(
+        editor!
+          .getText()
+          .trim()
+          .replace(/\n{2,}/g, '\n\n'),
+      ).toBe('Before\n\nAfter')
       expect(editor!.getText()).not.toContain('[image.png]')
       expect(onPasteMediaSources).toHaveBeenCalledWith([
         {
@@ -205,8 +192,7 @@ describe('useRichTextEditor', () => {
         },
       ])
       expect(warnSpy).not.toHaveBeenCalledWith(expect.stringContaining('Duplicate extension names found'))
-    }
-    finally {
+    } finally {
       warnSpy.mockRestore()
       wrapper.unmount()
     }
@@ -227,15 +213,13 @@ describe('useRichTextEditor', () => {
         const api = useRichTextEditor({
           onSubmit: vi.fn(),
           pendingMedia: {
-            getAttachment: id => id === attachment.id ? attachment : undefined,
+            getAttachment: (id) => (id === attachment.id ? attachment : undefined),
             onPreview,
           },
         })
         editorApi = api
 
-        return () => api.editor.value
-          ? h(EditorContent, { editor: api.editor.value })
-          : null
+        return () => (api.editor.value ? h(EditorContent, { editor: api.editor.value }) : null)
       },
     })
 
@@ -278,9 +262,7 @@ describe('useRichTextEditor', () => {
         })
         editorApi = api
 
-        return () => api.editor.value
-          ? h(EditorContent, { editor: api.editor.value })
-          : null
+        return () => (api.editor.value ? h(EditorContent, { editor: api.editor.value }) : null)
       },
     })
 
@@ -292,8 +274,7 @@ describe('useRichTextEditor', () => {
     editor!.commands.setContent('Hello')
 
     const event = new KeyboardEvent('keydown', { cancelable: true, key: 'Enter' })
-    editor!.view.someProp('handleKeyDown', handler =>
-      handler(editor!.view, event))
+    editor!.view.someProp('handleKeyDown', (handler) => handler(editor!.view, event))
 
     expect(onSubmit).not.toHaveBeenCalled()
 
@@ -311,9 +292,7 @@ describe('useRichTextEditor', () => {
         })
         editorApi = api
 
-        return () => api.editor.value
-          ? h(EditorContent, { editor: api.editor.value })
-          : null
+        return () => (api.editor.value ? h(EditorContent, { editor: api.editor.value }) : null)
       },
     })
 
@@ -324,8 +303,7 @@ describe('useRichTextEditor', () => {
     expect(editor).toBeTruthy()
 
     const event = new KeyboardEvent('keydown', { cancelable: true, key: 'Enter' })
-    editor!.view.someProp('handleKeyDown', handler =>
-      handler(editor!.view, event))
+    editor!.view.someProp('handleKeyDown', (handler) => handler(editor!.view, event))
 
     expect(onSubmit).toHaveBeenCalledWith('<p></p>', '')
 
@@ -342,9 +320,7 @@ describe('useRichTextEditor', () => {
         })
         editorApi = api
 
-        return () => api.editor.value
-          ? h(EditorContent, { editor: api.editor.value })
-          : null
+        return () => (api.editor.value ? h(EditorContent, { editor: api.editor.value }) : null)
       },
     })
 
@@ -362,13 +338,9 @@ describe('useRichTextEditor', () => {
     })
 
     const event = new KeyboardEvent('keydown', { cancelable: true, key: 'Enter' })
-    editor!.view.someProp('handleKeyDown', handler =>
-      handler(editor!.view, event))
+    editor!.view.someProp('handleKeyDown', (handler) => handler(editor!.view, event))
 
-    expect(onSubmit).toHaveBeenCalledWith(
-      expect.stringContaining('data-type="mention"'),
-      '@小红',
-    )
+    expect(onSubmit).toHaveBeenCalledWith(expect.stringContaining('data-type="mention"'), '@小红')
 
     wrapper.unmount()
   })

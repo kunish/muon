@@ -32,8 +32,8 @@ const REQUIRED_ROLES = [
 
 function readAllTokens(): string {
   return readdirSync(TOKENS_DIR)
-    .filter(f => f.endsWith('.css'))
-    .map(f => readFileSync(resolve(TOKENS_DIR, f), 'utf-8'))
+    .filter((f) => f.endsWith('.css'))
+    .map((f) => readFileSync(resolve(TOKENS_DIR, f), 'utf-8'))
     .join('\n')
 }
 
@@ -42,14 +42,14 @@ function readAllSource(): string {
     const out: string[] = []
     for (const ent of readdirSync(dir, { withFileTypes: true })) {
       const p = resolve(dir, ent.name)
-      if (ent.isDirectory())
-        out.push(...walk(p))
-      else if (/\.(?:vue|ts|css)$/.test(ent.name))
-        out.push(p)
+      if (ent.isDirectory()) out.push(...walk(p))
+      else if (/\.(?:vue|ts|css)$/.test(ent.name)) out.push(p)
     }
     return out
   }
-  return walk(SRC_DIR).map(p => readFileSync(p, 'utf-8')).join('\n')
+  return walk(SRC_DIR)
+    .map((p) => readFileSync(p, 'utf-8'))
+    .join('\n')
 }
 
 const tokens = readAllTokens()
@@ -63,8 +63,7 @@ const errors: string[] = []
 
 for (const role of REQUIRED_ROLES) {
   // Match e.g. `--color-foreground:` (with optional whitespace before the colon).
-  if (!new RegExp(`--color-${role}\\s*:`).test(tokens))
-    errors.push(`Missing role token: --color-${role}`)
+  if (!new RegExp(`--color-${role}\\s*:`).test(tokens)) errors.push(`Missing role token: --color-${role}`)
 }
 
 // Collect every distinct --color-* token name appearing anywhere in the token files.
@@ -72,16 +71,14 @@ for (const role of REQUIRED_ROLES) {
 const lightRoles = (tokens.match(/--color-[a-z0-9-]+/g) ?? []).filter((v, i, a) => a.indexOf(v) === i)
 const darkBlock = tokens.split('.dark').slice(1).join('.dark')
 for (const role of lightRoles) {
-  if (!darkBlock.includes(`${role}:`))
-    errors.push(`Missing dark override: ${role}`)
+  if (!darkBlock.includes(`${role}:`)) errors.push(`Missing dark override: ${role}`)
 }
 
 // Collect every defined palette stop, e.g. --brand-500, --gray-200.
-const definedPalette = (tokens.match(/--(?:brand|gray|red|green|orange|cyan|[BNRGO])\d*-\d+/g) ?? [])
+const definedPalette = tokens.match(/--(?:brand|gray|red|green|orange|cyan|[BNRGO])\d*-\d+/g) ?? []
 const allSource = readAllSource()
-const unused = definedPalette.filter(p => !new RegExp(p).test(allSource + tokens))
-if (unused.length)
-  console.warn(`[warn] Unused palette tokens: ${[...new Set(unused)].join(', ')}`)
+const unused = definedPalette.filter((p) => !new RegExp(p).test(allSource + tokens))
+if (unused.length) console.warn(`[warn] Unused palette tokens: ${[...new Set(unused)].join(', ')}`)
 
 if (errors.length) {
   console.error('Token completeness check FAILED:')

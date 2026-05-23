@@ -38,7 +38,7 @@ describe('server settings localization', () => {
 
   it('uses Chinese placeholders in the server overview form', () => {
     const wrapper = mountServerOverview()
-    const textInputs = wrapper.findAll('input').filter(input => input.attributes('type') !== 'file')
+    const textInputs = wrapper.findAll('input').filter((input) => input.attributes('type') !== 'file')
 
     expect(textInputs[0].attributes('placeholder')).toBe('输入服务器名称')
     expect(wrapper.get('textarea').attributes('placeholder')).toBe('输入服务器描述')

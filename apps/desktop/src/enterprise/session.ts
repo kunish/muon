@@ -37,7 +37,16 @@ export interface EnterpriseSessionDeps {
 }
 
 export class EnterpriseSessionError extends Error {
-  constructor(public readonly kind: 'invalid-callback' | 'state-mismatch' | 'no-pkce-state' | 'exchange-failed' | 'refresh-revoked' | 'refresh-network', message: string) {
+  constructor(
+    public readonly kind:
+      | 'invalid-callback'
+      | 'state-mismatch'
+      | 'no-pkce-state'
+      | 'exchange-failed'
+      | 'refresh-revoked'
+      | 'refresh-network',
+    message: string,
+  ) {
     super(message)
     this.name = 'EnterpriseSessionError'
   }
@@ -84,8 +93,7 @@ export async function start(deps: EnterpriseSessionDeps): Promise<void> {
 
 export async function complete(callbackUrl: string, deps: EnterpriseSessionDeps): Promise<EnterpriseSession> {
   const callback = parseEnterpriseAuthCallback(callbackUrl)
-  if (!callback)
-    throw new EnterpriseSessionError('invalid-callback', 'Invalid enterprise auth callback')
+  if (!callback) throw new EnterpriseSessionError('invalid-callback', 'Invalid enterprise auth callback')
 
   const pkce = await deps.pkceStore.read()
   if (!pkce)
@@ -107,8 +115,7 @@ export async function complete(callbackUrl: string, deps: EnterpriseSessionDeps)
   })
 
   const payload = await response.json()
-  if (!response.ok)
-    throw new EnterpriseSessionError('exchange-failed', payload?.error ?? 'Enterprise login failed')
+  if (!response.ok) throw new EnterpriseSessionError('exchange-failed', payload?.error ?? 'Enterprise login failed')
 
   const tokenResponse = oauthTokenResponseSchema.parse(payload)
   const muon = tokenResponse.muonSession
@@ -124,8 +131,7 @@ export async function complete(callbackUrl: string, deps: EnterpriseSessionDeps)
 
 export async function refresh(deps: EnterpriseSessionDeps): Promise<EnterpriseSession | null> {
   const stored = await deps.muonStore.read()
-  if (!stored)
-    return null
+  if (!stored) return null
 
   let response: Response
   try {
@@ -138,8 +144,7 @@ export async function refresh(deps: EnterpriseSessionDeps): Promise<EnterpriseSe
         deviceName: stored.deviceName,
       }),
     })
-  }
-  catch (err) {
+  } catch (err) {
     throw new EnterpriseSessionError('refresh-network', err instanceof Error ? err.message : 'Network error')
   }
 
@@ -158,8 +163,7 @@ export async function refresh(deps: EnterpriseSessionDeps): Promise<EnterpriseSe
 
 export async function restore(deps: EnterpriseSessionDeps): Promise<EnterpriseSession | null> {
   const muon = await deps.muonStore.read()
-  if (!muon)
-    return null
+  if (!muon) return null
 
   const msUntilExpiry = Date.parse(muon.expiresAt) - deps.clock()
   const needsRefresh = msUntilExpiry < deps.refreshThresholdMs
@@ -167,17 +171,14 @@ export async function restore(deps: EnterpriseSessionDeps): Promise<EnterpriseSe
   if (needsRefresh) {
     try {
       return await refresh(deps)
-    }
-    catch (err) {
-      if (!(err instanceof EnterpriseSessionError && err.kind === 'refresh-network'))
-        return null
+    } catch (err) {
+      if (!(err instanceof EnterpriseSessionError && err.kind === 'refresh-network')) return null
       // Network error — fall through to use the existing stored MuonSession.
     }
   }
 
   const matrix = await deps.readMatrixSession()
-  if (!matrix)
-    return null
+  if (!matrix) return null
 
   return { muon, matrix }
 }
@@ -188,18 +189,15 @@ export function clear(deps: EnterpriseSessionDeps): void {
   // Matrix storage is owned by the MatrixSession module and cleared by lifecycle deactivation.
 }
 
-export function parseEnterpriseAuthCallback(url: string): { code: string, state: string } | null {
+export function parseEnterpriseAuthCallback(url: string): { code: string; state: string } | null {
   try {
     const parsed = new URL(url)
-    if (parsed.protocol !== 'muon:' || parsed.hostname !== 'auth' || parsed.pathname !== '/callback')
-      return null
+    if (parsed.protocol !== 'muon:' || parsed.hostname !== 'auth' || parsed.pathname !== '/callback') return null
     const code = parsed.searchParams.get('code')
     const state = parsed.searchParams.get('state')
-    if (!code || !state)
-      return null
+    if (!code || !state) return null
     return { code, state }
-  }
-  catch {
+  } catch {
     return null
   }
 }
@@ -212,18 +210,20 @@ function bridgeSafeStorage(): SafeStorageLike {
   if (!isElectronRuntime()) {
     return {
       isAvailable: async () => false,
-      encrypt: async s => s,
-      decrypt: async s => s,
+      encrypt: async (s) => s,
+      decrypt: async (s) => s,
     }
   }
   return {
     isAvailable: () => getDesktopBridge()!.safeStorage.isAvailable(),
-    encrypt: s => getDesktopBridge()!.safeStorage.encrypt(s),
-    decrypt: s => getDesktopBridge()!.safeStorage.decrypt(s),
+    encrypt: (s) => getDesktopBridge()!.safeStorage.encrypt(s),
+    decrypt: (s) => getDesktopBridge()!.safeStorage.decrypt(s),
   }
 }
 
-export function defaultEnterpriseSessionDeps(apiBaseUrl = import.meta.env.VITE_MUON_API_BASE_URL): EnterpriseSessionDeps {
+export function defaultEnterpriseSessionDeps(
+  apiBaseUrl = import.meta.env.VITE_MUON_API_BASE_URL,
+): EnterpriseSessionDeps {
   const safeStorage = bridgeSafeStorage()
   return {
     apiBaseUrl: String(apiBaseUrl || '').replace(/\/+$/g, ''),

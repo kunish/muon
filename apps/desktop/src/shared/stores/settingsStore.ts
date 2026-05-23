@@ -46,8 +46,8 @@ export const useSettingsStore = defineStore('settings', () => {
     ...notificationChannels.value,
   }))
 
-  const activeNotificationChannelCount = computed(() =>
-    Object.values(normalizedNotificationChannels.value).filter(Boolean).length,
+  const activeNotificationChannelCount = computed(
+    () => Object.values(normalizedNotificationChannels.value).filter(Boolean).length,
   )
 
   function setNotificationChannel(channel: NotificationChannelId, enabled: boolean): void {

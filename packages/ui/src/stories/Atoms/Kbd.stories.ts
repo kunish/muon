@@ -17,7 +17,7 @@ export default meta
 type Story = StoryObj<typeof Kbd>
 
 export const Default: Story = {
-  render: args => ({
+  render: (args) => ({
     components: { Kbd },
     setup: () => ({ args }),
     template: '<Kbd v-bind="args" />',

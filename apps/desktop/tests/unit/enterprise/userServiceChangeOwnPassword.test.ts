@@ -42,7 +42,11 @@ describe('userService.changeOwnPassword', () => {
     expect(await verifyPassword('a much better passphrase!', fresh.passwordHash)).toBe(true)
     expect(await verifyPassword('correct horse battery staple', fresh.passwordHash)).toBe(false)
 
-    expect(repository.auditLogs.some(event => event.action === 'user.password_changed' && event.actorUserId === ownerRecord.id)).toBe(true)
+    expect(
+      repository.auditLogs.some(
+        (event) => event.action === 'user.password_changed' && event.actorUserId === ownerRecord.id,
+      ),
+    ).toBe(true)
   })
 
   it('rejects when the current password is wrong', async () => {
@@ -50,10 +54,12 @@ describe('userService.changeOwnPassword', () => {
     const service = createUserService({ repository })
     const ownerRecord = (await repository.findUserById(install.organization.id, install.owner.id))!
 
-    await expect(service.changeOwnPassword(ownerRecord, {
-      currentPassword: 'wrong password',
-      newPassword: 'a much better passphrase!',
-    })).rejects.toThrow(/credentials/i)
+    await expect(
+      service.changeOwnPassword(ownerRecord, {
+        currentPassword: 'wrong password',
+        newPassword: 'a much better passphrase!',
+      }),
+    ).rejects.toThrow(/credentials/i)
 
     const fresh = (await repository.findUserById(install.organization.id, install.owner.id))!
     expect(fresh.mustChangePassword).toBe(true)
@@ -65,9 +71,11 @@ describe('userService.changeOwnPassword', () => {
     const service = createUserService({ repository })
     const ownerRecord = (await repository.findUserById(install.organization.id, install.owner.id))!
 
-    await expect(service.changeOwnPassword(ownerRecord, {
-      currentPassword: 'correct horse battery staple',
-      newPassword: 'short',
-    })).rejects.toThrow()
+    await expect(
+      service.changeOwnPassword(ownerRecord, {
+        currentPassword: 'correct horse battery staple',
+        newPassword: 'short',
+      }),
+    ).rejects.toThrow()
   })
 })

@@ -30,7 +30,7 @@ describe('defer queue panel', () => {
     await nextTick()
 
     const rows = wrapper.findAll('[data-testid^="defer-active-item-"]')
-    expect(rows.map(node => node.attributes('data-testid'))).toEqual([
+    expect(rows.map((node) => node.attributes('data-testid'))).toEqual([
       'defer-active-item-earlier',
       'defer-active-item-later',
     ])

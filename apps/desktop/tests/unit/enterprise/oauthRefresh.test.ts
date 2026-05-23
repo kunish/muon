@@ -70,14 +70,14 @@ describe('oauthService.refresh', () => {
     expect(refreshed.matrixSession.accessToken).toBe(exchanged.matrixSession.accessToken)
     expect(refreshed.matrixSession.deviceId).toBe(exchanged.matrixSession.deviceId)
 
-    const oldRow = repository.deviceSessions.find(s => s.id === oldSession.id)
+    const oldRow = repository.deviceSessions.find((s) => s.id === oldSession.id)
     expect(oldRow?.revokedAt).toBeTruthy()
 
     expect(repository.deviceSessions.length).toBe(2)
-    const newRow = repository.deviceSessions.find(s => s.id !== oldSession.id)
+    const newRow = repository.deviceSessions.find((s) => s.id !== oldSession.id)
     expect(newRow?.revokedAt).toBeNull()
 
-    expect(repository.auditLogs.some(e => e.action === 'oauth.token.refreshed')).toBe(true)
+    expect(repository.auditLogs.some((e) => e.action === 'oauth.token.refreshed')).toBe(true)
   })
 
   it('rejects re-use of the old refresh token after rotation', async () => {
@@ -88,40 +88,48 @@ describe('oauthService.refresh', () => {
       deviceName: 'Muon Desktop',
     })
 
-    await expect(oauth.refresh({
-      refreshToken: exchanged.muonSession.refreshToken,
-      clientId: 'muon-desktop',
-      deviceName: 'Muon Desktop',
-    })).rejects.toThrow(/invalid refresh token/i)
+    await expect(
+      oauth.refresh({
+        refreshToken: exchanged.muonSession.refreshToken,
+        clientId: 'muon-desktop',
+        deviceName: 'Muon Desktop',
+      }),
+    ).rejects.toThrow(/invalid refresh token/i)
   })
 
   it('rejects an unknown refresh token', async () => {
     const { oauth } = await setupOauthSession()
-    await expect(oauth.refresh({
-      refreshToken: 'never-issued',
-      clientId: 'muon-desktop',
-      deviceName: 'Muon Desktop',
-    })).rejects.toThrow(/invalid refresh token/i)
+    await expect(
+      oauth.refresh({
+        refreshToken: 'never-issued',
+        clientId: 'muon-desktop',
+        deviceName: 'Muon Desktop',
+      }),
+    ).rejects.toThrow(/invalid refresh token/i)
   })
 
   it('rejects when the session has expired', async () => {
     const { repository, oauth, exchanged } = await setupOauthSession()
     repository.deviceSessions[0].expiresAt = new Date(Date.now() - 1000).toISOString()
 
-    await expect(oauth.refresh({
-      refreshToken: exchanged.muonSession.refreshToken,
-      clientId: 'muon-desktop',
-      deviceName: 'Muon Desktop',
-    })).rejects.toThrow(/invalid refresh token/i)
+    await expect(
+      oauth.refresh({
+        refreshToken: exchanged.muonSession.refreshToken,
+        clientId: 'muon-desktop',
+        deviceName: 'Muon Desktop',
+      }),
+    ).rejects.toThrow(/invalid refresh token/i)
   })
 
   it('rejects an invalid clientId', async () => {
     const { oauth, exchanged } = await setupOauthSession()
-    await expect(oauth.refresh({
-      refreshToken: exchanged.muonSession.refreshToken,
-      clientId: 'wrong-client',
-      deviceName: 'Muon Desktop',
-    })).rejects.toThrow(/invalid oauth client/i)
+    await expect(
+      oauth.refresh({
+        refreshToken: exchanged.muonSession.refreshToken,
+        clientId: 'wrong-client',
+        deviceName: 'Muon Desktop',
+      }),
+    ).rejects.toThrow(/invalid oauth client/i)
   })
 
   it('aborts and does not create a new session when the underlying revoke returns false (TOCTOU guard)', async () => {
@@ -132,11 +140,13 @@ describe('oauthService.refresh', () => {
     oldSession.revokedAt = new Date().toISOString()
 
     // Refresh must fail because the session is already revoked.
-    await expect(oauth.refresh({
-      refreshToken: exchanged.muonSession.refreshToken,
-      clientId: 'muon-desktop',
-      deviceName: 'Muon Desktop',
-    })).rejects.toThrow(/invalid refresh token/i)
+    await expect(
+      oauth.refresh({
+        refreshToken: exchanged.muonSession.refreshToken,
+        clientId: 'muon-desktop',
+        deviceName: 'Muon Desktop',
+      }),
+    ).rejects.toThrow(/invalid refresh token/i)
 
     // Only one session should exist (the pre-revoked one); no new session created.
     expect(repository.deviceSessions.length).toBe(1)

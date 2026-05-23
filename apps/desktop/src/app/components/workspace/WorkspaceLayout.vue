@@ -1,11 +1,14 @@
 <script setup lang="ts">
-import WorkspaceAppRail from './WorkspaceAppRail.vue'
+import WorkspaceAppRail from './WorkspaceAppRail.vue';
 
-withDefaults(defineProps<{
-  messageUnreadCount?: number
-}>(), {
-  messageUnreadCount: 0,
-})
+withDefaults(
+  defineProps<{
+    messageUnreadCount?: number;
+  }>(),
+  {
+    messageUnreadCount: 0,
+  },
+);
 </script>
 
 <template>

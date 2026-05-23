@@ -1,19 +1,19 @@
 <script setup lang="ts">
-import type { NotificationChannelId } from '../stores/settingsStore'
-import { Label } from '@muon/ui/label'
-import { Switch } from '@muon/ui/switch'
-import { AtSign, BellRing, CalendarDays, ClipboardCheck, MessageSquare, Volume2 } from 'lucide-vue-next'
-import { useI18n } from 'vue-i18n'
-import { useSettingsStore } from '../stores/settingsStore'
+import type { NotificationChannelId } from '../stores/settingsStore';
+import { Label } from '@muon/ui/label';
+import { Switch } from '@muon/ui/switch';
+import { AtSign, BellRing, CalendarDays, ClipboardCheck, MessageSquare, Volume2 } from 'lucide-vue-next';
+import { useI18n } from 'vue-i18n';
+import { useSettingsStore } from '../stores/settingsStore';
 
-const { t } = useI18n()
-const store = useSettingsStore()
+const { t } = useI18n();
+const store = useSettingsStore();
 
 const notificationChannels: {
-  id: NotificationChannelId
-  title: () => string
-  desc: () => string
-  icon: typeof MessageSquare
+  id: NotificationChannelId;
+  title: () => string;
+  desc: () => string;
+  icon: typeof MessageSquare;
 }[] = [
   {
     id: 'messages',
@@ -39,23 +39,20 @@ const notificationChannels: {
     desc: () => t('settings.channel_approvals_desc'),
     icon: ClipboardCheck,
   },
-]
+];
 
 function requestSystemNotificationPermission(): void {
-  const NotificationCtor = globalThis.Notification
-  if (typeof NotificationCtor?.requestPermission !== 'function')
-    return
+  const NotificationCtor = globalThis.Notification;
+  if (typeof NotificationCtor?.requestPermission !== 'function') return;
 
-  if (NotificationCtor.permission !== 'default')
-    return
+  if (NotificationCtor.permission !== 'default') return;
 
-  void NotificationCtor.requestPermission()
+  void NotificationCtor.requestPermission();
 }
 
 function setNotificationsEnabled(enabled: boolean): void {
-  store.notificationsEnabled = enabled
-  if (enabled)
-    requestSystemNotificationPermission()
+  store.notificationsEnabled = enabled;
+  if (enabled) requestSystemNotificationPermission();
 }
 </script>
 
@@ -93,10 +90,7 @@ function setNotificationsEnabled(enabled: boolean): void {
           <div class="text-xs text-muted-foreground">{{ t('settings.notification_sound_desc') }}</div>
         </div>
       </div>
-      <Switch
-        v-model="store.notificationSound"
-        data-testid="settings-notification-sound"
-      />
+      <Switch v-model="store.notificationSound" data-testid="settings-notification-sound" />
     </Label>
 
     <Label class="flex items-center justify-between">
@@ -107,10 +101,7 @@ function setNotificationsEnabled(enabled: boolean): void {
           <div class="text-xs text-muted-foreground">{{ t('settings.badge_count_desc') }}</div>
         </div>
       </div>
-      <Switch
-        v-model="store.badgeCount"
-        data-testid="settings-badge-count"
-      />
+      <Switch v-model="store.badgeCount" data-testid="settings-badge-count" />
     </Label>
 
     <div class="space-y-3">
@@ -168,13 +159,13 @@ function setNotificationsEnabled(enabled: boolean): void {
           v-model="store.dndStart"
           type="time"
           class="h-8 px-2 text-sm rounded border border-border bg-background outline-none"
-        >
+        />
         <span class="text-sm text-muted-foreground">{{ t('settings.dnd_to') }}</span>
         <input
           v-model="store.dndEnd"
           type="time"
           class="h-8 px-2 text-sm rounded border border-border bg-background outline-none"
-        >
+        />
       </div>
     </div>
   </div>

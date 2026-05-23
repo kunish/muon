@@ -4,8 +4,7 @@ const cache = new Map<string, string>()
 
 export async function translateText(text: string, targetLang: string): Promise<string> {
   const cacheKey = `${text}_${targetLang}`
-  if (cache.has(cacheKey))
-    return cache.get(cacheKey)!
+  if (cache.has(cacheKey)) return cache.get(cacheKey)!
 
   const url = new URL('https://translate.googleapis.com/translate_a/single')
   url.searchParams.set('client', 'gtx')
@@ -15,8 +14,7 @@ export async function translateText(text: string, targetLang: string): Promise<s
   url.searchParams.set('q', text)
 
   const res = await desktopFetch(url.toString())
-  if (!res.ok)
-    throw new Error(`Translation failed: ${res.status}`)
+  if (!res.ok) throw new Error(`Translation failed: ${res.status}`)
 
   const data = await res.json()
   const translated = (data[0] as any[])
@@ -30,7 +28,6 @@ export async function translateText(text: string, targetLang: string): Promise<s
 
 export function getSystemLanguage(): string {
   const lang = navigator.language?.toLowerCase() ?? ''
-  if (lang.startsWith('zh'))
-    return 'zh'
+  if (lang.startsWith('zh')) return 'zh'
   return 'en'
 }

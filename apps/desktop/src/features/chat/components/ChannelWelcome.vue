@@ -1,35 +1,35 @@
 <script setup lang="ts">
-import { getClient } from '@matrix/client'
-import { isDirectRoom } from '@matrix/roomUtils'
-import { Hash, Search, Settings, Users } from 'lucide-vue-next'
-import { computed } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { useChatStore } from '../stores/chatStore'
+import { getClient } from '@matrix/client';
+import { isDirectRoom } from '@matrix/roomUtils';
+import { Hash, Search, Settings, Users } from 'lucide-vue-next';
+import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useChatStore } from '../stores/chatStore';
 
 const props = defineProps<{
-  roomId: string
-}>()
+  roomId: string;
+}>();
 
-const { t } = useI18n()
-const store = useChatStore()
+const { t } = useI18n();
+const store = useChatStore();
 
 const roomName = computed(() => {
-  const room = getClient().getRoom(props.roomId)
-  return room?.name || props.roomId
-})
+  const room = getClient().getRoom(props.roomId);
+  return room?.name || props.roomId;
+});
 
-const isDirect = computed(() => isDirectRoom(props.roomId))
+const isDirect = computed(() => isDirectRoom(props.roomId));
 
 function openMembers() {
-  store.toggleSidePanel('members')
+  store.toggleSidePanel('members');
 }
 
 function openSettings() {
-  store.toggleSidePanel('settings')
+  store.toggleSidePanel('settings');
 }
 
 function openSearch() {
-  store.toggleSidePanel('search')
+  store.toggleSidePanel('search');
 }
 </script>
 

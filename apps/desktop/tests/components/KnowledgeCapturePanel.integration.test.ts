@@ -59,11 +59,12 @@ function createInputStub() {
     },
     emits: ['update:modelValue'],
     setup(props, { emit, attrs }) {
-      return () => h('input', {
-        ...attrs,
-        value: props.modelValue,
-        onInput: (event: Event) => emit('update:modelValue', (event.target as HTMLInputElement).value),
-      })
+      return () =>
+        h('input', {
+          ...attrs,
+          value: props.modelValue,
+          onInput: (event: Event) => emit('update:modelValue', (event.target as HTMLInputElement).value),
+        })
     },
   })
 }
@@ -187,13 +188,18 @@ vi.mock('@/features/chat/components/ConversationList.vue', () => ({
   default: defineComponent({
     name: 'ConversationListStub',
     setup() {
-      return () => h('div', { 'data-testid': 'conversation-list' }, mockConversationState.items.map(item => item.name).join(' '))
+      return () =>
+        h('div', { 'data-testid': 'conversation-list' }, mockConversationState.items.map((item) => item.name).join(' '))
     },
   }),
 }))
 vi.mock('@/features/server/components/ChannelCategory.vue', () => ({ default: createStub('ChannelCategoryStub') }))
-vi.mock('@/features/server/components/ChannelContextMenu.vue', () => ({ default: createStub('ChannelContextMenuStub') }))
-vi.mock('@/features/server/components/CreateChannelDialog.vue', () => ({ default: createStub('CreateChannelDialogStub') }))
+vi.mock('@/features/server/components/ChannelContextMenu.vue', () => ({
+  default: createStub('ChannelContextMenuStub'),
+}))
+vi.mock('@/features/server/components/CreateChannelDialog.vue', () => ({
+  default: createStub('CreateChannelDialogStub'),
+}))
 vi.mock('@/features/server/components/ServerDropdown.vue', () => ({ default: createServerDropdownStub() }))
 vi.mock('@/features/server/components/TextChannelItem.vue', () => ({ default: createStub('TextChannelItemStub') }))
 vi.mock('@/features/server/components/VoiceChannelItem.vue', () => ({ default: createStub('VoiceChannelItemStub') }))
@@ -303,20 +309,24 @@ describe('knowledgeCapturePanel integration', () => {
 
     expect(sidebar.attributes('style')).toContain('width: 260px')
 
-    handle.element.dispatchEvent(new MouseEvent('pointerdown', {
-      bubbles: true,
-      cancelable: true,
-      button: 0,
-      clientX: 240,
-    }))
+    handle.element.dispatchEvent(
+      new MouseEvent('pointerdown', {
+        bubbles: true,
+        cancelable: true,
+        button: 0,
+        clientX: 240,
+      }),
+    )
     await nextTick()
 
     expect(document.body.style.cursor).toBe('col-resize')
 
-    window.dispatchEvent(new MouseEvent('pointermove', {
-      bubbles: true,
-      clientX: 300,
-    }))
+    window.dispatchEvent(
+      new MouseEvent('pointermove', {
+        bubbles: true,
+        clientX: 300,
+      }),
+    )
     await nextTick()
 
     expect(sidebar.attributes('style')).toContain('width: 320px')

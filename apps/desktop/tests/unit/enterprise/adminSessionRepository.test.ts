@@ -76,7 +76,7 @@ describe('touchAdminSession + revokeAdminSession', () => {
     })
 
     const originalLastSeenAt = created.lastSeenAt
-    await new Promise(resolve => setTimeout(resolve, 5))
+    await new Promise((resolve) => setTimeout(resolve, 5))
     await repository.touchAdminSession(created.id)
 
     const after = await repository.findAdminSessionByTokenHash('touch-access')
@@ -186,7 +186,7 @@ describe('revokeAllAdminSessionsForUserExcept', () => {
     await repository.revokeAdminSession(session.id)
     const firstRevokedAt = (await repository.findAdminSessionByTokenHash('will-stay-revoked-access'))?.revokedAt
 
-    await new Promise(resolve => setTimeout(resolve, 5))
+    await new Promise((resolve) => setTimeout(resolve, 5))
     await repository.revokeAllAdminSessionsForUserExcept(install.organization.id, install.owner.id, 'unrelated-id')
 
     const afterRevokedAt = (await repository.findAdminSessionByTokenHash('will-stay-revoked-access'))?.revokedAt

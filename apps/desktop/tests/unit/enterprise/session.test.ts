@@ -16,8 +16,8 @@ const pkceTransientSchema = z.object({
 function plaintextSafeStorage(): SafeStorageLike {
   return {
     isAvailable: vi.fn().mockResolvedValue(false),
-    encrypt: vi.fn(async s => s),
-    decrypt: vi.fn(async s => s),
+    encrypt: vi.fn(async (s) => s),
+    decrypt: vi.fn(async (s) => s),
   }
 }
 

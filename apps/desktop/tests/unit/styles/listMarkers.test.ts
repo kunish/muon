@@ -64,7 +64,7 @@ describe('rich text list markers', () => {
     expect(editor).toContain('margin: 0.08em 0;')
     expect(editor).toContain('margin-top: 0.35em;')
     expect(useEditor).toContain('isSelectionInEmptyListItem')
-    expect(useEditor).toContain('liftListItem(\'listItem\')')
+    expect(useEditor).toContain("liftListItem('listItem')")
   })
 
   it('keeps document headings close to adjacent paragraphs and lists', () => {

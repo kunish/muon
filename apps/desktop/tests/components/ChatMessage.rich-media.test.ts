@@ -40,7 +40,8 @@ describe('chatMessage rich media', () => {
         msgtype: 'm.text',
         body: 'Caption\n[pasted.png]',
         format: 'org.matrix.custom.html',
-        formatted_body: '<p>Caption</p><p><img src="mxc://server/media" alt="pasted.png" data-width="640" data-height="360"></p>',
+        formatted_body:
+          '<p>Caption</p><p><img src="mxc://server/media" alt="pasted.png" data-width="640" data-height="360"></p>',
       }),
       getTs: () => 1767225600000,
       isRedacted: () => false,
@@ -76,10 +77,13 @@ describe('chatMessage rich media', () => {
     expect(initialImage.attributes('style')).toContain('width: 300px')
     expect(initialImage.attributes('style')).toContain('height: 169px')
 
-    await new Promise(resolve => setTimeout(resolve, 0))
-    await vi.waitFor(() => {
-      expect(wrapper.get('img[alt="pasted.png"]').attributes('src')).toBe('blob:thumb:mxc://server/media')
-    }, { timeout: 500 })
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    await vi.waitFor(
+      () => {
+        expect(wrapper.get('img[alt="pasted.png"]').attributes('src')).toBe('blob:thumb:mxc://server/media')
+      },
+      { timeout: 500 },
+    )
 
     expect(mocks.fetchMediaBlobUrl).toHaveBeenCalledWith('mxc://server/media', 300, 300)
     expect(mocks.fetchMediaBlobUrl).toHaveBeenCalledWith('mxc://server/media')

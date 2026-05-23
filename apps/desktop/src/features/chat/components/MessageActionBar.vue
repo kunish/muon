@@ -1,17 +1,13 @@
 <script setup lang="ts">
-import type { MatrixEvent } from 'matrix-js-sdk'
-import type { TaskStatus } from '../types/task'
+import type { MatrixEvent } from 'matrix-js-sdk';
+import type { TaskStatus } from '../types/task';
 /**
  * 消息悬浮操作栏
  * 显示在消息右上角，包含：Add Reaction、Reply、More 下拉菜单
  */
-import { getClient } from '@matrix/client'
-import { redactMessage } from '@matrix/index'
-import {
-  isMessagePinned,
-  pinMessage,
-  unpinMessage,
-} from '@matrix/rooms'
+import { getClient } from '@matrix/client';
+import { redactMessage } from '@matrix/index';
+import { isMessagePinned, pinMessage, unpinMessage } from '@matrix/rooms';
 import {
   Copy,
   Edit,
@@ -23,183 +19,170 @@ import {
   Reply,
   Smile,
   Trash2,
-} from 'lucide-vue-next'
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { toast } from 'vue-sonner'
-import { ask } from '@/desktop/dialog'
-import { getFloatingPosition } from '../composables/useFloatingPosition'
-import { useMessageClipboardFeedback } from '../composables/useMessageClipboardFeedback'
-import { useChatStore } from '../stores/chatStore'
-import { useDeferStore } from '../stores/deferStore'
-import { useTaskStore } from '../stores/taskStore'
-import TaskComposerDialog from './TaskComposerDialog.vue'
+} from 'lucide-vue-next';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { toast } from 'vue-sonner';
+import { ask } from '@/desktop/dialog';
+import { getFloatingPosition } from '../composables/useFloatingPosition';
+import { useMessageClipboardFeedback } from '../composables/useMessageClipboardFeedback';
+import { useChatStore } from '../stores/chatStore';
+import { useDeferStore } from '../stores/deferStore';
+import { useTaskStore } from '../stores/taskStore';
+import TaskComposerDialog from './TaskComposerDialog.vue';
 
 const props = defineProps<{
-  event: MatrixEvent
-  roomId: string
-}>()
+  event: MatrixEvent;
+  roomId: string;
+}>();
 
 const emit = defineEmits<{
-  react: []
-  reply: []
-  menuOpenChange: [open: boolean]
-}>()
+  react: [];
+  reply: [];
+  menuOpenChange: [open: boolean];
+}>();
 
-const store = useChatStore()
-const deferStore = useDeferStore()
-const taskStore = useTaskStore()
-const { t } = useI18n()
-const { copyMessageContentWithFeedback } = useMessageClipboardFeedback()
-const showMore = ref(false)
-const showDeferMenu = ref(false)
-const customDeferValue = ref('')
-const showTaskComposer = ref(false)
-const creatingTask = ref(false)
-const moreTriggerRef = ref<HTMLElement>()
-const moreMenuRef = ref<HTMLElement>()
-const moreMenuStyle = ref({ left: '0px', top: '0px' })
-const moreMenuPositioned = ref(false)
+const store = useChatStore();
+const deferStore = useDeferStore();
+const taskStore = useTaskStore();
+const { t } = useI18n();
+const { copyMessageContentWithFeedback } = useMessageClipboardFeedback();
+const showMore = ref(false);
+const showDeferMenu = ref(false);
+const customDeferValue = ref('');
+const showTaskComposer = ref(false);
+const creatingTask = ref(false);
+const moreTriggerRef = ref<HTMLElement>();
+const moreMenuRef = ref<HTMLElement>();
+const moreMenuStyle = ref({ left: '0px', top: '0px' });
+const moreMenuPositioned = ref(false);
 
-const myUserId = computed(() => getClient().getUserId())
-const isMine = computed(() => props.event.getSender() === myUserId.value)
-const eventId = computed(() => props.event.getId() || '')
-const content = computed(() => props.event.getContent() ?? {})
-const body = computed(() => props.event.getContent()?.body || '')
+const myUserId = computed(() => getClient().getUserId());
+const isMine = computed(() => props.event.getSender() === myUserId.value);
+const eventId = computed(() => props.event.getId() || '');
+const content = computed(() => props.event.getContent() ?? {});
+const body = computed(() => props.event.getContent()?.body || '');
 
 const isPinned = computed(() => {
-  if (!props.roomId || !eventId.value)
-    return false
-  return isMessagePinned(props.roomId, eventId.value)
-})
+  if (!props.roomId || !eventId.value) return false;
+  return isMessagePinned(props.roomId, eventId.value);
+});
 
 function updateMoreMenuPosition() {
-  const trigger = moreTriggerRef.value
-  const menu = moreMenuRef.value
-  if (!trigger || !menu)
-    return
-  moreMenuStyle.value = getFloatingPosition(trigger, menu, { margin: 12, offset: 6 })
+  const trigger = moreTriggerRef.value;
+  const menu = moreMenuRef.value;
+  if (!trigger || !menu) return;
+  moreMenuStyle.value = getFloatingPosition(trigger, menu, { margin: 12, offset: 6 });
 }
 
 function closeMoreMenu() {
-  showMore.value = false
-  showDeferMenu.value = false
+  showMore.value = false;
+  showDeferMenu.value = false;
 }
 
 function onMoreMenuAfterLeave() {
-  if (!showMore.value)
-    moreMenuPositioned.value = false
+  if (!showMore.value) moreMenuPositioned.value = false;
 }
 
 function toggleMore() {
   if (showMore.value) {
-    closeMoreMenu()
-    return
+    closeMoreMenu();
+    return;
   }
-  moreMenuPositioned.value = false
-  showMore.value = true
+  moreMenuPositioned.value = false;
+  showMore.value = true;
 }
 
 function onReply() {
-  store.setReplyingTo(props.event)
-  emit('reply')
+  store.setReplyingTo(props.event);
+  emit('reply');
 }
 
 function onEdit() {
-  store.setEditingEvent(props.event)
-  showMore.value = false
+  store.setEditingEvent(props.event);
+  showMore.value = false;
 }
 
 async function onDelete() {
-  showMore.value = false
+  showMore.value = false;
   const confirmed = await ask(t('chat.delete_confirm'), {
     title: t('chat.delete_message'),
     kind: 'warning',
-  })
-  if (!confirmed)
-    return
+  });
+  if (!confirmed) return;
   try {
-    await redactMessage(props.roomId, eventId.value)
-  }
-  catch {
-    toast.error(t('auth.error'))
+    await redactMessage(props.roomId, eventId.value);
+  } catch {
+    toast.error(t('auth.error'));
   }
 }
 
 async function onTogglePin() {
-  showMore.value = false
-  if (!props.roomId || !eventId.value)
-    return
+  showMore.value = false;
+  if (!props.roomId || !eventId.value) return;
   try {
     if (isPinned.value) {
-      await unpinMessage(props.roomId, eventId.value)
+      await unpinMessage(props.roomId, eventId.value);
+    } else {
+      await pinMessage(props.roomId, eventId.value);
     }
-    else {
-      await pinMessage(props.roomId, eventId.value)
-    }
-  }
-  catch {
-    toast.error(t('auth.error'))
+  } catch {
+    toast.error(t('auth.error'));
   }
 }
 
 function onCopyText() {
-  showMore.value = false
-  void copyMessageContentWithFeedback(content.value)
+  showMore.value = false;
+  void copyMessageContentWithFeedback(content.value);
 }
 
 async function onCopyLink() {
-  showMore.value = false
+  showMore.value = false;
   if (!props.roomId || !eventId.value || !navigator.clipboard?.writeText) {
-    toast.error(t('chat.copy_message_link_failed'))
-    return
+    toast.error(t('chat.copy_message_link_failed'));
+    return;
   }
 
-  const link = `https://matrix.to/#/${props.roomId}/${eventId.value}`
+  const link = `https://matrix.to/#/${props.roomId}/${eventId.value}`;
   try {
-    await navigator.clipboard.writeText(link)
-    toast.success(t('chat.message_link_copied'))
-  }
-  catch {
-    toast.error(t('chat.copy_message_link_failed'))
+    await navigator.clipboard.writeText(link);
+    toast.success(t('chat.message_link_copied'));
+  } catch {
+    toast.error(t('chat.copy_message_link_failed'));
   }
 }
 
 function onReact() {
-  emit('react')
+  emit('react');
 }
 
 function onOpenThread() {
-  if (!eventId.value)
-    return
-  store.openThread(eventId.value)
-  showMore.value = false
+  if (!eventId.value) return;
+  store.openThread(eventId.value);
+  showMore.value = false;
 }
 
 function onToggleDeferMenu() {
-  showDeferMenu.value = !showDeferMenu.value
+  showDeferMenu.value = !showDeferMenu.value;
 }
 
 function createDeferredFromMessage(preset: 'in-1-hour' | 'tonight' | 'tomorrow-morning' | 'tomorrow', suffix: string) {
-  if (!eventId.value || !props.roomId)
-    return
+  if (!eventId.value || !props.roomId) return;
   deferStore.createDeferredItem({
     id: `message:${props.roomId}:${eventId.value}:${suffix}`,
     roomId: props.roomId,
     eventId: eventId.value,
     reminder: { preset },
-  })
-  showDeferMenu.value = false
-  showMore.value = false
+  });
+  showDeferMenu.value = false;
+  showMore.value = false;
 }
 
 function submitCustomDeferredFromMessage() {
-  if (!eventId.value || !props.roomId)
-    return
+  if (!eventId.value || !props.roomId) return;
 
-  const dueAt = Date.parse(customDeferValue.value)
-  if (!Number.isFinite(dueAt))
-    return
+  const dueAt = Date.parse(customDeferValue.value);
+  if (!Number.isFinite(dueAt)) return;
 
   deferStore.createDeferredItem({
     id: `message:${props.roomId}:${eventId.value}:custom`,
@@ -209,92 +192,85 @@ function submitCustomDeferredFromMessage() {
       preset: 'custom',
       dueAt,
     },
-  })
-  showDeferMenu.value = false
-  showMore.value = false
-  customDeferValue.value = ''
+  });
+  showDeferMenu.value = false;
+  showMore.value = false;
+  customDeferValue.value = '';
 }
 
 function onOpenTaskComposer() {
-  showTaskComposer.value = true
-  showMore.value = false
-  showDeferMenu.value = false
+  showTaskComposer.value = true;
+  showMore.value = false;
+  showDeferMenu.value = false;
 }
 
 function onCloseTaskComposer() {
-  if (creatingTask.value)
-    return
-  showTaskComposer.value = false
+  if (creatingTask.value) return;
+  showTaskComposer.value = false;
 }
 
-async function onSubmitTask(payload: { title: string, assignee: string, dueAt: string, status: TaskStatus }) {
-  if (creatingTask.value || !props.roomId || !eventId.value)
-    return
+async function onSubmitTask(payload: { title: string; assignee: string; dueAt: string; status: TaskStatus }) {
+  if (creatingTask.value || !props.roomId || !eventId.value) return;
 
-  creatingTask.value = true
+  creatingTask.value = true;
   try {
-    await Promise.resolve(taskStore.createTask({
-      title: payload.title,
-      assignee: payload.assignee,
-      dueAt: payload.dueAt,
-      status: payload.status,
-      sourceRef: {
-        roomId: props.roomId,
-        eventId: eventId.value,
-      },
-    }))
-    showTaskComposer.value = false
-  }
-  finally {
-    creatingTask.value = false
+    await Promise.resolve(
+      taskStore.createTask({
+        title: payload.title,
+        assignee: payload.assignee,
+        dueAt: payload.dueAt,
+        status: payload.status,
+        sourceRef: {
+          roomId: props.roomId,
+          eventId: eventId.value,
+        },
+      }),
+    );
+    showTaskComposer.value = false;
+  } finally {
+    creatingTask.value = false;
   }
 }
 
 function onDocumentPointerDown(event: PointerEvent) {
-  if (!showMore.value)
-    return
-  const target = event.target as Node | null
-  if (!target)
-    return
-  if (moreTriggerRef.value?.contains(target) || moreMenuRef.value?.contains(target))
-    return
-  closeMoreMenu()
+  if (!showMore.value) return;
+  const target = event.target as Node | null;
+  if (!target) return;
+  if (moreTriggerRef.value?.contains(target) || moreMenuRef.value?.contains(target)) return;
+  closeMoreMenu();
 }
 
 function onViewportChange() {
-  if (showMore.value)
-    updateMoreMenuPosition()
+  if (showMore.value) updateMoreMenuPosition();
 }
 
 watch(showMore, async (open) => {
-  emit('menuOpenChange', open)
-  if (!open)
-    return
+  emit('menuOpenChange', open);
+  if (!open) return;
 
-  await nextTick()
-  updateMoreMenuPosition()
-  moreMenuPositioned.value = true
-})
+  await nextTick();
+  updateMoreMenuPosition();
+  moreMenuPositioned.value = true;
+});
 
 watch(showDeferMenu, async () => {
-  if (!showMore.value)
-    return
-  await nextTick()
-  updateMoreMenuPosition()
-})
+  if (!showMore.value) return;
+  await nextTick();
+  updateMoreMenuPosition();
+});
 
 onMounted(() => {
-  document.addEventListener('pointerdown', onDocumentPointerDown)
-  window.addEventListener('resize', onViewportChange)
-  document.addEventListener('scroll', onViewportChange, true)
-})
+  document.addEventListener('pointerdown', onDocumentPointerDown);
+  window.addEventListener('resize', onViewportChange);
+  document.addEventListener('scroll', onViewportChange, true);
+});
 
 onBeforeUnmount(() => {
-  document.removeEventListener('pointerdown', onDocumentPointerDown)
-  window.removeEventListener('resize', onViewportChange)
-  document.removeEventListener('scroll', onViewportChange, true)
-  emit('menuOpenChange', false)
-})
+  document.removeEventListener('pointerdown', onDocumentPointerDown);
+  window.removeEventListener('resize', onViewportChange);
+  document.removeEventListener('scroll', onViewportChange, true);
+  emit('menuOpenChange', false);
+});
 </script>
 
 <template>
@@ -450,7 +426,7 @@ onBeforeUnmount(() => {
                 type="datetime-local"
                 class="mt-1 w-full rounded border border-[var(--color-muted)]/40 bg-background px-2 py-1 text-xs"
                 data-testid="message-defer-custom-input"
-              >
+              />
               <button
                 class="mt-1 w-full rounded bg-primary px-2 py-1 text-xs text-primary-foreground disabled:opacity-50"
                 :disabled="!customDeferValue"

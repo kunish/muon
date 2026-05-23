@@ -1,25 +1,24 @@
 <script setup lang="ts">
-import { getBlockedUsers, unblockUser } from '@matrix/index'
-import { UserX } from 'lucide-vue-next'
-import { ref } from 'vue'
-import { useI18n } from 'vue-i18n'
+import { getBlockedUsers, unblockUser } from '@matrix/index';
+import { UserX } from 'lucide-vue-next';
+import { ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
-const { t } = useI18n()
-const blockedUsers = ref<string[]>(getBlockedUsers())
-const unblocking = ref<string | null>(null)
+const { t } = useI18n();
+const blockedUsers = ref<string[]>(getBlockedUsers());
+const unblocking = ref<string | null>(null);
 
 function refreshList() {
-  blockedUsers.value = getBlockedUsers()
+  blockedUsers.value = getBlockedUsers();
 }
 
 async function handleUnblock(userId: string) {
-  unblocking.value = userId
+  unblocking.value = userId;
   try {
-    await unblockUser(userId)
-    refreshList()
-  }
-  finally {
-    unblocking.value = null
+    await unblockUser(userId);
+    refreshList();
+  } finally {
+    unblocking.value = null;
   }
 }
 </script>
@@ -37,7 +36,9 @@ async function handleUnblock(userId: string) {
       class="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-accent/30 hover:bg-accent/50 transition-colors"
     >
       <div class="flex items-center gap-2 min-w-0">
-        <div class="w-7 h-7 rounded-full bg-destructive/10 text-destructive flex items-center justify-center text-xs font-medium shrink-0">
+        <div
+          class="w-7 h-7 rounded-full bg-destructive/10 text-destructive flex items-center justify-center text-xs font-medium shrink-0"
+        >
           {{ userId.slice(1, 2).toUpperCase() }}
         </div>
         <span class="text-sm truncate font-mono">{{ userId }}</span>

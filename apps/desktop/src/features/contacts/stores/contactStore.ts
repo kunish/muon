@@ -49,7 +49,7 @@ export const useContactStore = defineStore('contacts', () => {
     for (const room of rooms) {
       const members = room.getJoinedMembers()
       if (members.length === 2) {
-        const other = members.find(m => m.userId !== client.getUserId())
+        const other = members.find((m) => m.userId !== client.getUserId())
         if (other && !isSystemContact(other.userId) && !dmMap.has(other.userId)) {
           dmMap.set(other.userId, {
             userId: other.userId,
@@ -61,8 +61,7 @@ export const useContactStore = defineStore('contacts', () => {
       }
     }
 
-    contacts.value = Array.from(dmMap.values())
-      .sort((a, b) => a.displayName.localeCompare(b.displayName))
+    contacts.value = Array.from(dmMap.values()).sort((a, b) => a.displayName.localeCompare(b.displayName))
   }
 
   async function loadGroups() {
@@ -70,8 +69,8 @@ export const useContactStore = defineStore('contacts', () => {
     const rooms = client.getRooms()
 
     groups.value = rooms
-      .filter(r => r.getJoinedMemberCount() > 2)
-      .map(r => ({
+      .filter((r) => r.getJoinedMemberCount() > 2)
+      .map((r) => ({
         roomId: r.roomId,
         name: r.name || r.roomId,
         memberCount: r.getJoinedMemberCount(),
@@ -82,11 +81,8 @@ export const useContactStore = defineStore('contacts', () => {
 
   const filteredContacts = computed(() => {
     const q = normalizedSearchQuery.value
-    if (!q)
-      return contacts.value
-    return contacts.value.filter(c =>
-      c.displayName.toLowerCase().includes(q) || c.userId.toLowerCase().includes(q),
-    )
+    if (!q) return contacts.value
+    return contacts.value.filter((c) => c.displayName.toLowerCase().includes(q) || c.userId.toLowerCase().includes(q))
   })
 
   function contactProfileFor(userId: string): ContactProfileState {
@@ -115,11 +111,8 @@ export const useContactStore = defineStore('contacts', () => {
 
   const filteredGroups = computed(() => {
     const q = normalizedSearchQuery.value
-    if (!q)
-      return groups.value
-    return groups.value.filter(g =>
-      g.name.toLowerCase().includes(q) || g.roomId.toLowerCase().includes(q),
-    )
+    if (!q) return groups.value
+    return groups.value.filter((g) => g.name.toLowerCase().includes(q) || g.roomId.toLowerCase().includes(q))
   })
 
   return {

@@ -11,7 +11,7 @@ const mockedRoom = vi.hoisted(() => ({
 }))
 
 vi.mock('@matrix/index', () => ({
-  getRoom: (roomId: string) => roomId === mockedRoom.roomId ? mockedRoom : null,
+  getRoom: (roomId: string) => (roomId === mockedRoom.roomId ? mockedRoom : null),
 }))
 
 vi.mock('@matrix/rooms', () => ({

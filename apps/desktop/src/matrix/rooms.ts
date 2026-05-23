@@ -1,15 +1,22 @@
 import type { IPushRule, MatrixEvent, Room } from 'matrix-js-sdk'
 import type {} from './matrix-sdk.d'
 import type { RoomSummary } from './types'
-import { ConditionKind, EventTimeline, EventType, NotificationCountType, Preset, PushRuleActionName, PushRuleKind } from 'matrix-js-sdk'
+import {
+  ConditionKind,
+  EventTimeline,
+  EventType,
+  NotificationCountType,
+  Preset,
+  PushRuleActionName,
+  PushRuleKind,
+} from 'matrix-js-sdk'
 import { getClient } from './client'
 
 const VISIBLE_TYPES = new Set(['m.room.message', 'm.sticker', 'm.room.encrypted'])
 
 function getTimelineEvents(room: Room): MatrixEvent[] {
   const liveTimeline = room.getLiveTimeline?.()
-  if (!liveTimeline)
-    return room.timeline ?? []
+  if (!liveTimeline) return room.timeline ?? []
 
   const timelines: EventTimeline[] = []
   const seenTimelines = new Set<EventTimeline>()
@@ -27,15 +34,14 @@ function getTimelineEvents(room: Room): MatrixEvent[] {
     for (const event of item.getEvents()) {
       const eventId = event.getId()
       if (eventId) {
-        if (seenEventIds.has(eventId))
-          continue
+        if (seenEventIds.has(eventId)) continue
         seenEventIds.add(eventId)
       }
       events.push(event)
     }
   }
 
-  return events.length > 0 ? events : room.timeline ?? []
+  return events.length > 0 ? events : (room.timeline ?? [])
 }
 
 function getLatestVisibleEvent(room: Room) {
@@ -43,15 +49,13 @@ function getLatestVisibleEvent(room: Room) {
 
   for (let i = liveEvents.length - 1; i >= 0; i--) {
     const event = liveEvents[i]
-    if (VISIBLE_TYPES.has(event.getType()))
-      return { event, lastTimeEvent: liveEvents.at(-1) }
+    if (VISIBLE_TYPES.has(event.getType())) return { event, lastTimeEvent: liveEvents.at(-1) }
   }
 
   const fallbackEvents = room.timeline ?? []
   for (let i = fallbackEvents.length - 1; i >= 0; i--) {
     const event = fallbackEvents[i]
-    if (VISIBLE_TYPES.has(event.getType()))
-      return { event, lastTimeEvent: liveEvents.at(-1) ?? fallbackEvents.at(-1) }
+    if (VISIBLE_TYPES.has(event.getType())) return { event, lastTimeEvent: liveEvents.at(-1) ?? fallbackEvents.at(-1) }
   }
 
   return {
@@ -80,7 +84,7 @@ export function getRoomSummaries(): RoomSummary[] {
   }
 
   const client = getClient()
-  const rooms = client.getRooms().filter(room => room.getMyMembership() === 'join')
+  const rooms = client.getRooms().filter((room) => room.getMyMembership() === 'join')
 
   // 从 m.direct account data 获取所有 DM 房间 ID
   const directEvent = client.getAccountData(EventType.Direct)
@@ -98,7 +102,7 @@ export function getRoomSummaries(): RoomSummary[] {
     .map((room): RoomSummary => {
       const { event: lastEvent, lastTimeEvent } = getLatestVisibleEvent(room)
 
-      const members = room.getJoinedMembers().map(m => m.userId)
+      const members = room.getJoinedMembers().map((m) => m.userId)
       const dmUserId = dmRoomMap.get(room.roomId)
 
       const sender = lastEvent?.getSender()
@@ -115,10 +119,9 @@ export function getRoomSummaries(): RoomSummary[] {
       // 免打扰: 检查 push rules override
       const pushRules = client.pushRules
       const overrides = pushRules?.global?.override || []
-      const isMuted = overrides.some((rule: IPushRule) =>
-        rule.rule_id === room.roomId
-        && rule.actions?.length === 1
-        && rule.actions[0] === 'dont_notify',
+      const isMuted = overrides.some(
+        (rule: IPushRule) =>
+          rule.rule_id === room.roomId && rule.actions?.length === 1 && rule.actions[0] === 'dont_notify',
       )
 
       const highlightCount = room.getUnreadNotificationCount(NotificationCountType.Highlight) || 0
@@ -155,14 +158,12 @@ export function getRoomSummaries(): RoomSummary[] {
 export async function toggleRoomPin(roomId: string): Promise<boolean> {
   const client = getClient()
   const room = client.getRoom(roomId)
-  if (!room)
-    return false
+  if (!room) return false
   const tags = room.tags || {}
   const isPinned = 'm.favourite' in tags
   if (isPinned) {
     await client.deleteRoomTag(roomId, 'm.favourite')
-  }
-  else {
+  } else {
     await client.setRoomTag(roomId, 'm.favourite', { order: 0.5 })
   }
   return !isPinned
@@ -178,8 +179,7 @@ export async function toggleRoomMute(roomId: string): Promise<boolean> {
   if (existing) {
     await client.deletePushRule('global', PushRuleKind.Override, roomId)
     return false
-  }
-  else {
+  } else {
     await client.addPushRule('global', PushRuleKind.Override, roomId, {
       conditions: [{ kind: ConditionKind.EventMatch, key: 'room_id', pattern: roomId }],
       actions: [PushRuleActionName.DontNotify],
@@ -192,14 +192,12 @@ export async function toggleRoomMute(roomId: string): Promise<boolean> {
 export async function markRoomAsRead(roomId: string): Promise<void> {
   const client = getClient()
   const room = client.getRoom(roomId)
-  if (!room)
-    return
+  if (!room) return
 
   const { event, lastTimeEvent } = getLatestVisibleEvent(room)
   const markerEvent = lastTimeEvent ?? event
   const markerEventId = markerEvent?.getId()
-  if (!markerEvent || !markerEventId)
-    return
+  if (!markerEvent || !markerEventId) return
 
   await client.setRoomReadMarkers(roomId, markerEventId, event ?? markerEvent)
   invalidateRoomSummariesCache()
@@ -237,8 +235,7 @@ export async function findOrCreateDm(userId: string): Promise<string> {
       try {
         await client.joinRoom(rid)
         return rid
-      }
-      catch {
+      } catch {
         // 可能被 ban、房间已删除等，继续尝试下一个
       }
     }
@@ -248,11 +245,14 @@ export async function findOrCreateDm(userId: string): Promise<string> {
   const myUserId = client.getUserId()
   const allRooms = client.getRooms()
   for (const room of allRooms) {
-    if (room.getMyMembership() !== 'join')
-      continue
+    if (room.getMyMembership() !== 'join') continue
     const members = room.getJoinedMembers()
     // 1:1 房间：正好两个成员，一个是自己，一个是目标用户
-    if (members.length === 2 && members.some(m => m.userId === userId) && members.some(m => m.userId === myUserId)) {
+    if (
+      members.length === 2 &&
+      members.some((m) => m.userId === userId) &&
+      members.some((m) => m.userId === myUserId)
+    ) {
       // 将找到的房间补充写入 m.direct，保持数据一致
       const updated = { ...directContent }
       updated[userId] = [...(updated[userId] || []), room.roomId]
@@ -292,8 +292,7 @@ export async function setRoomTopic(roomId: string, topic: string): Promise<void>
 export function getRoomTopic(roomId: string): string {
   const client = getClient()
   const room = client.getRoom(roomId)
-  if (!room)
-    return ''
+  if (!room) return ''
   const topicEvent = room.currentState.getStateEvents('m.room.topic', '')
   return topicEvent?.getContent()?.topic || ''
 }
@@ -308,8 +307,7 @@ export async function setRoomAnnouncement(roomId: string, announcement: string):
 export function getRoomAnnouncement(roomId: string): string {
   const client = getClient()
   const room = client.getRoom(roomId)
-  if (!room)
-    return ''
+  if (!room) return ''
   const event = room.currentState.getStateEvents('im.muon.announcement', '')
   return event?.getContent()?.body || ''
 }
@@ -318,8 +316,7 @@ export function getRoomAnnouncement(roomId: string): string {
 export async function setMessageRetention(roomId: string, maxLifetimeMs: number | null): Promise<void> {
   if (maxLifetimeMs === null) {
     await getClient().sendStateEvent(roomId, 'im.muon.message_retention', { enabled: false })
-  }
-  else {
+  } else {
     await getClient().sendStateEvent(roomId, 'im.muon.message_retention', {
       enabled: true,
       max_lifetime: maxLifetimeMs,
@@ -327,13 +324,11 @@ export async function setMessageRetention(roomId: string, maxLifetimeMs: number 
   }
 }
 
-export function getMessageRetention(roomId: string): { enabled: boolean, maxLifetime: number } | null {
+export function getMessageRetention(roomId: string): { enabled: boolean; maxLifetime: number } | null {
   const room = getClient().getRoom(roomId)
-  if (!room)
-    return null
+  if (!room) return null
   const event = room.currentState.getStateEvents('im.muon.message_retention', '')
-  if (!event)
-    return null
+  if (!event) return null
   const content = event.getContent()
   return { enabled: content.enabled ?? false, maxLifetime: content.max_lifetime ?? 0 }
 }
@@ -343,8 +338,7 @@ export function getMessageRetention(roomId: string): { enabled: boolean, maxLife
 /** 获取房间中已置顶的消息 eventId 列表 */
 function getPinnedEventIds(roomId: string): string[] {
   const room = getClient().getRoom(roomId)
-  if (!room)
-    return []
+  if (!room) return []
   const pinEvent = room.currentState.getStateEvents('m.room.pinned_events', '')
   return pinEvent?.getContent()?.pinned || []
 }
@@ -352,8 +346,7 @@ function getPinnedEventIds(roomId: string): string[] {
 /** 置顶一条消息 */
 export async function pinMessage(roomId: string, eventId: string): Promise<void> {
   const current = getPinnedEventIds(roomId)
-  if (current.includes(eventId))
-    return
+  if (current.includes(eventId)) return
   await getClient().sendStateEvent(roomId, EventType.RoomPinnedEvents, {
     pinned: [...current, eventId],
   })
@@ -362,10 +355,9 @@ export async function pinMessage(roomId: string, eventId: string): Promise<void>
 /** 取消置顶一条消息 */
 export async function unpinMessage(roomId: string, eventId: string): Promise<void> {
   const current = getPinnedEventIds(roomId)
-  if (!current.includes(eventId))
-    return
+  if (!current.includes(eventId)) return
   await getClient().sendStateEvent(roomId, EventType.RoomPinnedEvents, {
-    pinned: current.filter(id => id !== eventId),
+    pinned: current.filter((id) => id !== eventId),
   })
 }
 
@@ -377,7 +369,7 @@ export function isMessagePinned(roomId: string, eventId: string): boolean {
 // --- 消息收藏 (使用 im.muon.starred account data) ---
 
 /** 获取当前用户的所有收藏消息 */
-function getStarredMessages(): { roomId: string, eventId: string }[] {
+function getStarredMessages(): { roomId: string; eventId: string }[] {
   const client = getClient()
   const event = client.getAccountData('im.muon.starred')
   return event?.getContent()?.starred || []
@@ -387,8 +379,7 @@ function getStarredMessages(): { roomId: string, eventId: string }[] {
 export async function starMessage(roomId: string, eventId: string): Promise<void> {
   const client = getClient()
   const current = getStarredMessages()
-  if (current.some(s => s.roomId === roomId && s.eventId === eventId))
-    return
+  if (current.some((s) => s.roomId === roomId && s.eventId === eventId)) return
   await client.setAccountData('im.muon.starred', {
     starred: [...current, { roomId, eventId }],
   })
@@ -399,13 +390,13 @@ export async function unstarMessage(roomId: string, eventId: string): Promise<vo
   const client = getClient()
   const current = getStarredMessages()
   await client.setAccountData('im.muon.starred', {
-    starred: current.filter(s => !(s.roomId === roomId && s.eventId === eventId)),
+    starred: current.filter((s) => !(s.roomId === roomId && s.eventId === eventId)),
   })
 }
 
 /** 检查消息是否已收藏 */
 export function isMessageStarred(roomId: string, eventId: string): boolean {
-  return getStarredMessages().some(s => s.roomId === roomId && s.eventId === eventId)
+  return getStarredMessages().some((s) => s.roomId === roomId && s.eventId === eventId)
 }
 
 // --- 语音频道状态 (im.muon.voice_channel) ---
@@ -418,11 +409,9 @@ export async function setVoiceChannelState(roomId: string, enabled: boolean): Pr
 /** 获取房间的语音频道状态 */
 export function getVoiceChannelState(roomId: string): { enabled: boolean } | null {
   const room = getClient().getRoom(roomId)
-  if (!room)
-    return null
+  if (!room) return null
   const event = room.currentState.getStateEvents('im.muon.voice_channel', '')
-  if (!event)
-    return null
+  if (!event) return null
   const content = event.getContent()
   return { enabled: content.enabled ?? false }
 }

@@ -17,8 +17,7 @@ interface ContextPayload {
 }
 
 function normalizeContextPayload(roomId: string, eventId: string, payload: ContextPayload): InboxEventContext {
-  if (!payload?.event)
-    throw new Error(`target event ${eventId} missing in context payload`)
+  if (!payload?.event) throw new Error(`target event ${eventId} missing in context payload`)
 
   return {
     roomId,
@@ -59,24 +58,20 @@ export async function loadInboxEventContext(roomId: string, eventId: string, lim
   try {
     const client: MatrixClient = getClient()
     const room = client.getRoom(roomId)
-    if (!room)
-      throw new Error(`room ${roomId} not found`)
+    if (!room) throw new Error(`room ${roomId} not found`)
 
     const timelineSet = room.getUnfilteredTimelineSet?.()
-    if (!timelineSet)
-      throw new Error(`timeline set missing for room ${roomId}`)
+    if (!timelineSet) throw new Error(`timeline set missing for room ${roomId}`)
 
     const timeline = await client.getEventTimeline(timelineSet, eventId)
-    if (!timeline)
-      return await fallbackLoadContext(roomId, eventId, limit)
+    if (!timeline) return await fallbackLoadContext(roomId, eventId, limit)
 
     await client.paginateEventTimeline(timeline, { backwards: true, limit })
     await client.paginateEventTimeline(timeline, { backwards: false, limit })
 
     const events = timeline.getEvents() as MatrixEvent[]
-    const targetIndex = events.findIndex(event => event.getId() === eventId)
-    if (targetIndex === -1)
-      return await fallbackLoadContext(roomId, eventId, limit)
+    const targetIndex = events.findIndex((event) => event.getId() === eventId)
+    if (targetIndex === -1) return await fallbackLoadContext(roomId, eventId, limit)
 
     const eventsBefore = events.slice(Math.max(0, targetIndex - limit), targetIndex)
     const event = events[targetIndex]
@@ -89,8 +84,7 @@ export async function loadInboxEventContext(roomId: string, eventId: string, lim
       event,
       eventsAfter,
     }
-  }
-  catch (error) {
+  } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     throw new Error(`Failed to load inbox event context (${roomId}/${eventId}): ${message}`)
   }

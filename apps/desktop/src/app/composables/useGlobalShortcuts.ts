@@ -5,11 +5,9 @@ import { workspaceApps } from '../components/workspace/navigation'
 import { useGlobalUiStore } from '../stores/globalUiStore'
 
 function isEditableTarget(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement))
-    return false
+  if (!(target instanceof HTMLElement)) return false
 
-  if (target.isContentEditable)
-    return true
+  if (target.isContentEditable) return true
 
   const tagName = target.tagName.toLowerCase()
   return tagName === 'input' || tagName === 'textarea' || tagName === 'select'
@@ -59,8 +57,7 @@ export function useGlobalShortcuts(): void {
   }
 
   function onKeydown(event: KeyboardEvent): void {
-    if (event.defaultPrevented || event.isComposing)
-      return
+    if (event.defaultPrevented || event.isComposing) return
 
     const key = event.key.toLowerCase()
 
@@ -86,7 +83,7 @@ export function useGlobalShortcuts(): void {
     // 飞书风格 Cmd/Ctrl+数字键 切换应用
     if (isPlainModifier(event) && key >= '1' && key <= '9') {
       event.preventDefault()
-      const primaryApps = workspaceApps.filter(a => a.id !== 'settings')
+      const primaryApps = workspaceApps.filter((a) => a.id !== 'settings')
       const index = Number.parseInt(key, 10) - 1
       if (index < primaryApps.length) {
         router.push(primaryApps[index].path)
@@ -94,14 +91,11 @@ export function useGlobalShortcuts(): void {
       return
     }
 
-    if (event.key !== 'Escape')
-      return
+    if (event.key !== 'Escape') return
 
-    if (!globalUi.globalSearchOpen && !globalUi.newChatOpen && isEditableTarget(event.target))
-      return
+    if (!globalUi.globalSearchOpen && !globalUi.newChatOpen && isEditableTarget(event.target)) return
 
-    if (closeTopmostTransient())
-      event.preventDefault()
+    if (closeTopmostTransient()) event.preventDefault()
   }
 
   onMounted(() => {

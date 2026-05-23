@@ -6,9 +6,9 @@ describe('admin styles', () => {
     const main = readRepoSource('apps/admin/src/main.ts')
     const css = readRepoSource('apps/admin/src/main.css')
 
-    expect(main).toContain('import \'./main.css\'')
-    expect(css).toContain('@import \'@muon/ui/styles.css\'')
-    expect(css).toContain('@source \'../../../packages/ui/src\'')
+    expect(main).toContain("import './main.css'")
+    expect(css).toContain("@import '@muon/ui/styles.css'")
+    expect(css).toContain("@source '../../../packages/ui/src'")
   })
 
   it('keeps the admin content pane scrollable', () => {

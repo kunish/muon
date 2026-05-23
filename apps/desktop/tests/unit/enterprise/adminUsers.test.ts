@@ -40,7 +40,7 @@ describe('admin users', () => {
 
     expect(member.organizationId).toBe(install.organization.id)
     expect(member.roles).toEqual(['member'])
-    expect(repository.auditLogs.some(event => event.action === 'user.created')).toBe(true)
+    expect(repository.auditLogs.some((event) => event.action === 'user.created')).toBe(true)
   })
 
   it('lets an owner update another owner and reset their password', async () => {
@@ -71,23 +71,27 @@ describe('admin users', () => {
       displayName: 'Principal Owner',
       roles: ['owner'],
     })
-    await expect(adminSessions.login({
-      organizationSlug: 'acme',
-      username: 'owner',
-      password: 'correct horse battery staple',
-    })).rejects.toThrow(/credentials/)
-    await expect(adminSessions.login({
-      organizationSlug: 'acme',
-      username: 'principal-owner',
-      password: 'new owner passphrase',
-    })).resolves.toMatchObject({
+    await expect(
+      adminSessions.login({
+        organizationSlug: 'acme',
+        username: 'owner',
+        password: 'correct horse battery staple',
+      }),
+    ).rejects.toThrow(/credentials/)
+    await expect(
+      adminSessions.login({
+        organizationSlug: 'acme',
+        username: 'principal-owner',
+        password: 'new owner passphrase',
+      }),
+    ).resolves.toMatchObject({
       user: {
         id: install.owner.id,
         roles: ['owner'],
       },
     })
-    expect(repository.auditLogs.some(event => event.action === 'user.updated')).toBe(true)
-    expect(repository.auditLogs.some(event => event.action === 'user.password_reset')).toBe(true)
+    expect(repository.auditLogs.some((event) => event.action === 'user.updated')).toBe(true)
+    expect(repository.auditLogs.some((event) => event.action === 'user.password_reset')).toBe(true)
   })
 
   it('rejects member access to user administration', async () => {
@@ -104,12 +108,14 @@ describe('admin users', () => {
       status: 'active',
     })
 
-    await expect(userService.createUser(member, {
-      username: 'blocked',
-      email: 'blocked@acme.test',
-      displayName: 'Blocked',
-      initialPassword: 'initial passphrase',
-      roles: ['member'],
-    })).rejects.toThrow('Requires admin role')
+    await expect(
+      userService.createUser(member, {
+        username: 'blocked',
+        email: 'blocked@acme.test',
+        displayName: 'Blocked',
+        initialPassword: 'initial passphrase',
+        roles: ['member'],
+      }),
+    ).rejects.toThrow('Requires admin role')
   })
 })

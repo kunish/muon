@@ -1,27 +1,29 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { getDesktopBridge } from '@/desktop/bridge'
+import { computed } from 'vue';
+import { getDesktopBridge } from '@/desktop/bridge';
 
-const desktopPlatform = getDesktopBridge()?.platform
-const isMac = computed(() => isMacPlatform(desktopPlatform) || (!desktopPlatform && typeof navigator !== 'undefined'
-  && /Mac|iPhone|iPad|iPod/.test(`${navigator.platform} ${navigator.userAgent}`)
-))
+const desktopPlatform = getDesktopBridge()?.platform;
+const isMac = computed(
+  () =>
+    isMacPlatform(desktopPlatform) ||
+    (!desktopPlatform &&
+      typeof navigator !== 'undefined' &&
+      /Mac|iPhone|iPad|iPod/.test(`${navigator.platform} ${navigator.userAgent}`)),
+);
 
 function isMacPlatform(platform: string | undefined): boolean {
-  const normalizedPlatform = platform?.toLowerCase()
-  return normalizedPlatform === 'darwin'
-    || normalizedPlatform === 'mac'
-    || normalizedPlatform === 'macos'
-    || normalizedPlatform === 'osx'
+  const normalizedPlatform = platform?.toLowerCase();
+  return (
+    normalizedPlatform === 'darwin' ||
+    normalizedPlatform === 'mac' ||
+    normalizedPlatform === 'macos' ||
+    normalizedPlatform === 'osx'
+  );
 }
 </script>
 
 <template>
-  <header
-    class="window-titlebar"
-    :class="{ 'window-titlebar--mac': isMac }"
-    data-testid="window-titlebar"
-  >
+  <header class="window-titlebar" :class="{ 'window-titlebar--mac': isMac }" data-testid="window-titlebar">
     <div
       class="window-titlebar__drag-region electrobun-webkit-app-region-drag"
       data-electron-drag-region
@@ -35,7 +37,7 @@ function isMacPlatform(platform: string | undefined): boolean {
           src="/muon-logo.svg"
           alt="Muon"
           draggable="false"
-        >
+        />
         <span class="window-titlebar__name" data-electron-drag-region>Muon</span>
       </div>
     </div>

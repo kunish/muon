@@ -1,52 +1,53 @@
 <script setup lang="ts">
-import type { Doc } from 'yjs'
-import { nextTick, onMounted, onUnmounted, shallowRef, watch } from 'vue'
+import type { Doc } from 'yjs';
+import { nextTick, onMounted, onUnmounted, shallowRef, watch } from 'vue';
 
-const props = defineProps<{ ydoc: Doc, initialTitle?: string }>()
-const emit = defineEmits<{ updateTitle: [title: string] }>()
+const props = defineProps<{ ydoc: Doc; initialTitle?: string }>();
+const emit = defineEmits<{ updateTitle: [title: string] }>();
 
-const title = shallowRef('')
+const title = shallowRef('');
 
-let ytitle: ReturnType<Doc['getText']> | null = null
-let applyingExternalTitle = false
+let ytitle: ReturnType<Doc['getText']> | null = null;
+let applyingExternalTitle = false;
 
 function setTitleFromExternal(value: string): void {
-  applyingExternalTitle = true
-  title.value = value
+  applyingExternalTitle = true;
+  title.value = value;
   void nextTick(() => {
-    applyingExternalTitle = false
-  })
+    applyingExternalTitle = false;
+  });
 }
 
 function handleYjsUpdate(): void {
-  setTitleFromExternal(ytitle!.toString())
+  setTitleFromExternal(ytitle!.toString());
 }
 
 onMounted(() => {
-  ytitle = props.ydoc.getText('title')
-  setTitleFromExternal(ytitle.toString() || props.initialTitle || '')
-  ytitle.observe(handleYjsUpdate)
-})
+  ytitle = props.ydoc.getText('title');
+  setTitleFromExternal(ytitle.toString() || props.initialTitle || '');
+  ytitle.observe(handleYjsUpdate);
+});
 
 onUnmounted(() => {
-  ytitle?.unobserve(handleYjsUpdate)
-})
+  ytitle?.unobserve(handleYjsUpdate);
+});
 
 watch(title, (val) => {
-  if (applyingExternalTitle || !ytitle || val === ytitle.toString())
-    return
-  ytitle.delete(0, ytitle.length)
-  ytitle.insert(0, val)
-})
+  if (applyingExternalTitle || !ytitle || val === ytitle.toString()) return;
+  ytitle.delete(0, ytitle.length);
+  ytitle.insert(0, val);
+});
 
-watch(() => props.initialTitle, (val) => {
-  if (!ytitle || ytitle.length > 0)
-    return
-  setTitleFromExternal(val || '')
-})
+watch(
+  () => props.initialTitle,
+  (val) => {
+    if (!ytitle || ytitle.length > 0) return;
+    setTitleFromExternal(val || '');
+  },
+);
 
 function commitTitle(): void {
-  emit('updateTitle', title.value)
+  emit('updateTitle', title.value);
 }
 </script>
 
@@ -59,5 +60,5 @@ function commitTitle(): void {
     class="mb-4 w-full border-none bg-transparent px-0 pb-3 pt-0 text-[32px] font-bold leading-10 text-foreground outline-none placeholder:text-muted-foreground"
     @blur="commitTitle"
     @keydown.enter.prevent="commitTitle"
-  >
+  />
 </template>

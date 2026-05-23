@@ -36,14 +36,10 @@ function formatHHMM(d: Date): string {
 /** 将时间戳归类到时间区间 */
 function classifyTimeBucket(ts: number): 'today' | 'yesterday' | 'thisWeek' | 'thisYear' | 'older' {
   const today = todayStart()
-  if (ts >= today)
-    return 'today'
-  if (ts >= today - 86_400_000)
-    return 'yesterday'
-  if (ts >= today - 6 * 86_400_000)
-    return 'thisWeek'
-  if (new Date(ts).getFullYear() === new Date().getFullYear())
-    return 'thisYear'
+  if (ts >= today) return 'today'
+  if (ts >= today - 86_400_000) return 'yesterday'
+  if (ts >= today - 6 * 86_400_000) return 'thisWeek'
+  if (new Date(ts).getFullYear() === new Date().getFullYear()) return 'thisYear'
   return 'older'
 }
 
@@ -77,13 +73,11 @@ function formatDatePart(d: Date, locale: string, bucket: string): string {
  * - 更早 → YYYY/MM/DD
  */
 export function formatMessageTime(ts: number | undefined, locale: string = 'zh'): string {
-  if (!ts)
-    return ''
+  if (!ts) return ''
   const d = new Date(ts)
   const bucket = classifyTimeBucket(ts)
   // 会话列表中，今天直接显示时间，不显示"今天"前缀
-  if (bucket === 'today')
-    return formatHHMM(d)
+  if (bucket === 'today') return formatHHMM(d)
   return formatDatePart(d, locale, bucket)
 }
 
@@ -113,8 +107,7 @@ const MESSAGE_TYPE_KEYS: Record<string, string> = {
 }
 
 export function messageTypeLabel(type?: string): string | null {
-  if (!type || type === 'm.text' || type === 'm.notice')
-    return null
+  if (!type || type === 'm.text' || type === 'm.notice') return null
   return MESSAGE_TYPE_KEYS[type] ?? null
 }
 
@@ -124,14 +117,11 @@ export function messageTypeLabel(type?: string): string | null {
  * 或者用户名中包含 "bot" 关键词
  */
 export function isLikelyBot(userId: string): boolean {
-  if (!userId)
-    return false
+  if (!userId) return false
   const localpart = userId.split(':')[0]?.slice(1)?.toLowerCase() || ''
   // appservice bridge 用户通常以 _ 开头（如 @_slack_xxx:server）
-  if (localpart.startsWith('_'))
-    return true
+  if (localpart.startsWith('_')) return true
   // 用户名包含 bot 后缀或前缀
-  if (BOT_NAME_RE.test(localpart))
-    return true
+  if (BOT_NAME_RE.test(localpart)) return true
   return false
 }

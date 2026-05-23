@@ -29,11 +29,7 @@ describe('markRoomAsRead', () => {
 
     await markRoomAsRead(room.roomId)
 
-    expect(mockClient.setRoomReadMarkers).toHaveBeenCalledWith(
-      room.roomId,
-      '$membership',
-      visibleEvent,
-    )
+    expect(mockClient.setRoomReadMarkers).toHaveBeenCalledWith(room.roomId, '$membership', visibleEvent)
   })
 
   it('does nothing when the room cannot be found', async () => {

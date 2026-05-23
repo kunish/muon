@@ -21,10 +21,10 @@ interface EncryptedPayload {
 
 function isEncryptedPayload(value: unknown): value is EncryptedPayload {
   return (
-    typeof value === 'object'
-    && value !== null
-    && (value as { _enc?: unknown })._enc === true
-    && typeof (value as { data?: unknown }).data === 'string'
+    typeof value === 'object' &&
+    value !== null &&
+    (value as { _enc?: unknown })._enc === true &&
+    typeof (value as { data?: unknown }).data === 'string'
   )
 }
 
@@ -35,21 +35,21 @@ export function makeEncryptedStore<T>(params: {
   logger?: EncryptedStoreLogger
 }): EncryptedStore<T> {
   const { key, schema, safeStorage, logger } = params
-  const warn: EncryptedStoreLogger = logger ?? ((message, error) => {
-    console.warn(`[encryptedStore:${key}] ${message}`, error)
-  })
+  const warn: EncryptedStoreLogger =
+    logger ??
+    ((message, error) => {
+      console.warn(`[encryptedStore:${key}] ${message}`, error)
+    })
 
   return {
     async read() {
       const raw = localStorage.getItem(key)
-      if (!raw)
-        return null
+      if (!raw) return null
 
       let parsed: unknown
       try {
         parsed = JSON.parse(raw)
-      }
-      catch (err) {
+      } catch (err) {
         warn('failed to parse stored payload', err)
         return null
       }
@@ -59,8 +59,7 @@ export function makeEncryptedStore<T>(params: {
         try {
           const decrypted = await safeStorage.decrypt(parsed.data)
           candidate = JSON.parse(decrypted)
-        }
-        catch (err) {
+        } catch (err) {
           warn('decrypt failed; treating session as invalid', err)
           return null
         }
@@ -82,8 +81,7 @@ export function makeEncryptedStore<T>(params: {
         try {
           const encrypted = await safeStorage.encrypt(json)
           payload = JSON.stringify({ _enc: true, data: encrypted } satisfies EncryptedPayload)
-        }
-        catch (err) {
+        } catch (err) {
           warn('encrypt failed; persisting plaintext fallback', err)
           payload = json
         }

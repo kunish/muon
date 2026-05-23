@@ -14,18 +14,18 @@ const SCROLL_KEYS = new Set([
 ])
 
 function isEditableTarget(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement))
-    return false
+  if (!(target instanceof HTMLElement)) return false
 
-  return target.isContentEditable
-    || target instanceof HTMLInputElement
-    || target instanceof HTMLTextAreaElement
-    || target instanceof HTMLSelectElement
+  return (
+    target.isContentEditable ||
+    target instanceof HTMLInputElement ||
+    target instanceof HTMLTextAreaElement ||
+    target instanceof HTMLSelectElement
+  )
 }
 
 function preventDefaultScroll(event: Event): void {
-  if (event.cancelable)
-    event.preventDefault()
+  if (event.cancelable) event.preventDefault()
 }
 
 export function useContextMenuScrollLock(open: MaybeRefOrGetter<boolean>): void {
@@ -40,15 +40,12 @@ export function useContextMenuScrollLock(open: MaybeRefOrGetter<boolean>): void 
   }
 
   function onKeyDown(event: KeyboardEvent): void {
-    if (isEditableTarget(event.target))
-      return
-    if (SCROLL_KEYS.has(event.key))
-      preventDefaultScroll(event)
+    if (isEditableTarget(event.target)) return
+    if (SCROLL_KEYS.has(event.key)) preventDefaultScroll(event)
   }
 
   function lock(): void {
-    if (locked || typeof document === 'undefined')
-      return
+    if (locked || typeof document === 'undefined') return
 
     document.addEventListener('wheel', onWheel, { capture: true, passive: false })
     document.addEventListener('touchmove', onTouchMove, { capture: true, passive: false })
@@ -57,8 +54,7 @@ export function useContextMenuScrollLock(open: MaybeRefOrGetter<boolean>): void 
   }
 
   function unlock(): void {
-    if (!locked || typeof document === 'undefined')
-      return
+    if (!locked || typeof document === 'undefined') return
 
     document.removeEventListener('wheel', onWheel, true)
     document.removeEventListener('touchmove', onTouchMove, true)
@@ -69,10 +65,8 @@ export function useContextMenuScrollLock(open: MaybeRefOrGetter<boolean>): void 
   watch(
     () => Boolean(toValue(open)),
     (isOpen) => {
-      if (isOpen)
-        lock()
-      else
-        unlock()
+      if (isOpen) lock()
+      else unlock()
     },
     { immediate: true },
   )

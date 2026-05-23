@@ -22,8 +22,7 @@ export function resolveCurrentDocUser(userName?: string, client?: DocUserClient)
       name,
       color: userColor(id),
     }
-  }
-  catch {
+  } catch {
     const id = 'current-user'
     return {
       id,

@@ -1,219 +1,273 @@
 <script setup lang="ts">
-import { CheckSquare, Clock3, FileCheck2, Plus, ShieldCheck, XCircle } from 'lucide-vue-next'
-import { computed, onMounted, ref, shallowRef, watch } from 'vue'
-import { useI18n } from 'vue-i18n'
-import WorkspacePageFrame from '@/app/components/workspace/WorkspacePageFrame.vue'
-import GroupMemberPicker from '@/features/contacts/components/GroupMemberPicker.vue'
-import { useContactList } from '@/shared/composables/useContactList'
+import { CheckSquare, Clock3, FileCheck2, Plus, ShieldCheck, XCircle } from 'lucide-vue-next';
+import { computed, onMounted, ref, shallowRef, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+import WorkspacePageFrame from '@/app/components/workspace/WorkspacePageFrame.vue';
+import GroupMemberPicker from '@/features/contacts/components/GroupMemberPicker.vue';
+import { useContactList } from '@/shared/composables/useContactList';
 
-const { t } = useI18n()
-const contactList = useContactList()
+const { t } = useI18n();
+const contactList = useContactList();
 
-const activeQueue = shallowRef('pending')
-const selectedRequestId = shallowRef('request-2')
-const decisionNotices = shallowRef<Record<string, string>>({})
-const approvalCommentDraft = shallowRef('')
-const requestEditorOpen = shallowRef(false)
-const requestDraftId = shallowRef('')
-const requestDraftTitle = shallowRef('临时审批申请')
-const requestDraftRequester = shallowRef(t('approvals.default_requester'))
-const requestDraftRequesterIds = ref<string[]>([])
-const requestDraftDue = shallowRef('刚刚')
-const transferPickerOpen = shallowRef(false)
-const transferMemberIds = ref<string[]>([])
+const activeQueue = shallowRef('pending');
+const selectedRequestId = shallowRef('request-2');
+const decisionNotices = shallowRef<Record<string, string>>({});
+const approvalCommentDraft = shallowRef('');
+const requestEditorOpen = shallowRef(false);
+const requestDraftId = shallowRef('');
+const requestDraftTitle = shallowRef('临时审批申请');
+const requestDraftRequester = shallowRef(t('approvals.default_requester'));
+const requestDraftRequesterIds = ref<string[]>([]);
+const requestDraftDue = shallowRef('刚刚');
+const transferPickerOpen = shallowRef(false);
+const transferMemberIds = ref<string[]>([]);
 
 const approvalQueues = [
   { id: 'pending', label: t('approvals.queue_pending'), hint: t('approvals.queue_pending_hint'), icon: Clock3 },
   { id: 'approved', label: t('approvals.queue_approved'), hint: t('approvals.queue_approved_hint'), icon: CheckSquare },
-  { id: 'compliance', label: t('approvals.queue_compliance'), hint: t('approvals.queue_compliance_hint'), icon: ShieldCheck },
+  {
+    id: 'compliance',
+    label: t('approvals.queue_compliance'),
+    hint: t('approvals.queue_compliance_hint'),
+    icon: ShieldCheck,
+  },
   { id: 'rejected', label: t('approvals.queue_rejected'), hint: t('approvals.queue_rejected_hint'), icon: XCircle },
-]
+];
 
 interface ApprovalRequest {
-  id: string
-  queue: string
-  title: string
-  requester: string
-  stage: string
-  due: string
-  currentHandler: string
-  comments: string[]
+  id: string;
+  queue: string;
+  title: string;
+  requester: string;
+  stage: string;
+  due: string;
+  currentHandler: string;
+  comments: string[];
 }
 
 const requests = shallowRef<ApprovalRequest[]>([
-  { id: 'request-1', queue: 'compliance', title: '供应商安全例外申请', requester: '运营团队', stage: '法务复核', due: '今日', currentHandler: '法务复核', comments: [] },
-  { id: 'request-2', queue: 'pending', title: '生产访问申请', requester: '工程团队', stage: '主管审批', due: '明日', currentHandler: '主管审批', comments: [] },
-  { id: 'request-3', queue: 'pending', title: '上线预算调整', requester: '增长团队', stage: '财务确认', due: '周五', currentHandler: '财务确认', comments: [] },
-  { id: 'request-4', queue: 'approved', title: '设计资源采购', requester: '设计团队', stage: '已归档', due: '已通过', currentHandler: '已归档', comments: ['采购合同已归档'] },
-])
+  {
+    id: 'request-1',
+    queue: 'compliance',
+    title: '供应商安全例外申请',
+    requester: '运营团队',
+    stage: '法务复核',
+    due: '今日',
+    currentHandler: '法务复核',
+    comments: [],
+  },
+  {
+    id: 'request-2',
+    queue: 'pending',
+    title: '生产访问申请',
+    requester: '工程团队',
+    stage: '主管审批',
+    due: '明日',
+    currentHandler: '主管审批',
+    comments: [],
+  },
+  {
+    id: 'request-3',
+    queue: 'pending',
+    title: '上线预算调整',
+    requester: '增长团队',
+    stage: '财务确认',
+    due: '周五',
+    currentHandler: '财务确认',
+    comments: [],
+  },
+  {
+    id: 'request-4',
+    queue: 'approved',
+    title: '设计资源采购',
+    requester: '设计团队',
+    stage: '已归档',
+    due: '已通过',
+    currentHandler: '已归档',
+    comments: ['采购合同已归档'],
+  },
+]);
 
-const activeQueueLabel = computed(() => approvalQueues.find(queue => queue.id === activeQueue.value)?.label ?? t('approvals.queue_pending'))
+const activeQueueLabel = computed(
+  () => approvalQueues.find((queue) => queue.id === activeQueue.value)?.label ?? t('approvals.queue_pending'),
+);
 
-const queueCards = computed(() => approvalQueues.map(queue => ({
-  ...queue,
-  value: requests.value.filter(request => request.queue === queue.id).length,
-})))
+const queueCards = computed(() =>
+  approvalQueues.map((queue) => ({
+    ...queue,
+    value: requests.value.filter((request) => request.queue === queue.id).length,
+  })),
+);
 
-const filteredRequests = computed(() => requests.value.filter(request => request.queue === activeQueue.value))
-const selectedRequest = computed(() => filteredRequests.value.find(request => request.id === selectedRequestId.value) ?? filteredRequests.value[0])
+const filteredRequests = computed(() => requests.value.filter((request) => request.queue === activeQueue.value));
+const selectedRequest = computed(
+  () => filteredRequests.value.find((request) => request.id === selectedRequestId.value) ?? filteredRequests.value[0],
+);
 const selectedRequestDecisionNotice = computed(() => {
-  const request = selectedRequest.value
-  if (!request)
-    return t('approvals.waiting_notice')
+  const request = selectedRequest.value;
+  if (!request) return t('approvals.waiting_notice');
 
-  return decisionNotices.value[request.id] ?? t('approvals.waiting_notice')
-})
+  return decisionNotices.value[request.id] ?? t('approvals.waiting_notice');
+});
 
 onMounted(() => {
-  contactList.ensureContactsLoaded()
-})
+  contactList.ensureContactsLoaded();
+});
 
 watch(requestDraftRequesterIds, (ids) => {
   if (ids.length > 1) {
-    requestDraftRequesterIds.value = [ids[ids.length - 1]!]
-    return
+    requestDraftRequesterIds.value = [ids[ids.length - 1]!];
+    return;
   }
 
-  requestDraftRequester.value = ids[0] ? displayNameForUserId(ids[0]) : t('approvals.default_requester')
-})
+  requestDraftRequester.value = ids[0] ? displayNameForUserId(ids[0]) : t('approvals.default_requester');
+});
 
 function createRequest(): void {
-  const requestId = `request-${Date.now()}`
-  const title = t('approvals.default_request_title')
-  const requester = t('approvals.default_requester')
-  const submittedStatus = t('approvals.status_submitted')
-  const due = t('calls.call_just_now')
-  contactList.ensureContactsLoaded()
-  requestEditorOpen.value = true
-  requestDraftId.value = requestId
-  requestDraftTitle.value = title
-  requestDraftRequester.value = requester
-  requestDraftRequesterIds.value = []
-  requestDraftDue.value = due
+  const requestId = `request-${Date.now()}`;
+  const title = t('approvals.default_request_title');
+  const requester = t('approvals.default_requester');
+  const submittedStatus = t('approvals.status_submitted');
+  const due = t('calls.call_just_now');
+  contactList.ensureContactsLoaded();
+  requestEditorOpen.value = true;
+  requestDraftId.value = requestId;
+  requestDraftTitle.value = title;
+  requestDraftRequester.value = requester;
+  requestDraftRequesterIds.value = [];
+  requestDraftDue.value = due;
   requests.value = [
-    { id: requestId, queue: activeQueue.value, title, requester, stage: submittedStatus, due, currentHandler: submittedStatus, comments: [] },
+    {
+      id: requestId,
+      queue: activeQueue.value,
+      title,
+      requester,
+      stage: submittedStatus,
+      due,
+      currentHandler: submittedStatus,
+      comments: [],
+    },
     ...requests.value,
-  ]
-  selectedRequestId.value = requestId
+  ];
+  selectedRequestId.value = requestId;
 }
 
 function selectRequest(requestId: string): void {
-  selectedRequestId.value = requestId
-  closeTransferPicker()
+  selectedRequestId.value = requestId;
+  closeTransferPicker();
 }
 
 function decideSelectedRequest(queue: 'approved' | 'rejected'): void {
-  const request = selectedRequest.value
-  if (!request)
-    return
+  const request = selectedRequest.value;
+  if (!request) return;
 
-  const approved = queue === 'approved'
-  requests.value = requests.value.map(item => item.id === request.id
-    ? {
-        ...item,
-        queue,
-        stage: approved ? t('approvals.status_approved') : t('approvals.status_rejected'),
-        due: approved ? t('approvals.status_approved') : t('approvals.status_rejected'),
-        currentHandler: approved ? t('approvals.status_archived') : t('approvals.status_follow_up'),
-      }
-    : item)
-  activeQueue.value = queue
-  selectedRequestId.value = request.id
+  const approved = queue === 'approved';
+  requests.value = requests.value.map((item) =>
+    item.id === request.id
+      ? {
+          ...item,
+          queue,
+          stage: approved ? t('approvals.status_approved') : t('approvals.status_rejected'),
+          due: approved ? t('approvals.status_approved') : t('approvals.status_rejected'),
+          currentHandler: approved ? t('approvals.status_archived') : t('approvals.status_follow_up'),
+        }
+      : item,
+  );
+  activeQueue.value = queue;
+  selectedRequestId.value = request.id;
   decisionNotices.value = {
     ...decisionNotices.value,
-    [request.id]: approved ? t('approvals.approved_notice', { title: request.title }) : t('approvals.rejected_notice', { title: request.title }),
-  }
+    [request.id]: approved
+      ? t('approvals.approved_notice', { title: request.title })
+      : t('approvals.rejected_notice', { title: request.title }),
+  };
 }
 
 function addApprovalComment(): void {
-  const request = selectedRequest.value
-  const comment = approvalCommentDraft.value.trim()
-  if (!request || !comment)
-    return
+  const request = selectedRequest.value;
+  const comment = approvalCommentDraft.value.trim();
+  if (!request || !comment) return;
 
-  requests.value = requests.value.map(item => item.id === request.id
-    ? { ...item, comments: [...item.comments, comment] }
-    : item)
-  approvalCommentDraft.value = ''
+  requests.value = requests.value.map((item) =>
+    item.id === request.id ? { ...item, comments: [...item.comments, comment] } : item,
+  );
+  approvalCommentDraft.value = '';
   decisionNotices.value = {
     ...decisionNotices.value,
     [request.id]: t('approvals.comment_recorded_notice', { title: request.title }),
-  }
+  };
 }
 
 function fallbackNameFromUserId(userId: string): string {
-  return userId.split(':')[0]?.replace(/^@/, '') || userId
+  return userId.split(':')[0]?.replace(/^@/, '') || userId;
 }
 
 function displayNameForUserId(userId: string): string {
-  return contactList.contacts.find(contact => contact.userId === userId)?.displayName ?? fallbackNameFromUserId(userId)
+  return (
+    contactList.contacts.find((contact) => contact.userId === userId)?.displayName ?? fallbackNameFromUserId(userId)
+  );
 }
 
 function openTransferPicker(): void {
-  const request = selectedRequest.value
-  if (!request)
-    return
-  contactList.ensureContactsLoaded()
-  transferMemberIds.value = []
-  transferPickerOpen.value = true
+  const request = selectedRequest.value;
+  if (!request) return;
+  contactList.ensureContactsLoaded();
+  transferMemberIds.value = [];
+  transferPickerOpen.value = true;
 }
 
 function closeTransferPicker(): void {
-  transferMemberIds.value = []
-  transferPickerOpen.value = false
+  transferMemberIds.value = [];
+  transferPickerOpen.value = false;
 }
 
 function transferSelectedRequest(): void {
-  const request = selectedRequest.value
-  if (!request || transferMemberIds.value.length === 0)
-    return
+  const request = selectedRequest.value;
+  if (!request || transferMemberIds.value.length === 0) return;
 
-  const nextHandler = transferMemberIds.value.map(displayNameForUserId).join('、')
+  const nextHandler = transferMemberIds.value.map(displayNameForUserId).join('、');
 
-  requests.value = requests.value.map(item => item.id === request.id
-    ? { ...item, stage: nextHandler, currentHandler: nextHandler }
-    : item)
+  requests.value = requests.value.map((item) =>
+    item.id === request.id ? { ...item, stage: nextHandler, currentHandler: nextHandler } : item,
+  );
   decisionNotices.value = {
     ...decisionNotices.value,
     [request.id]: t('approvals.transferred_notice', { title: request.title }),
-  }
-  closeTransferPicker()
+  };
+  closeTransferPicker();
 }
 
 function saveDraftRequest(): void {
-  if (!requestEditorOpen.value)
-    return
+  if (!requestEditorOpen.value) return;
 
-  const requestId = requestDraftId.value
-  const title = requestDraftTitle.value.trim() || t('approvals.default_request_title')
-  const requester = requestDraftRequester.value.trim() || t('approvals.default_requester')
-  const due = requestDraftDue.value.trim() || t('calls.call_just_now')
+  const requestId = requestDraftId.value;
+  const title = requestDraftTitle.value.trim() || t('approvals.default_request_title');
+  const requester = requestDraftRequester.value.trim() || t('approvals.default_requester');
+  const due = requestDraftDue.value.trim() || t('calls.call_just_now');
 
-  requests.value = requests.value.map(item => item.id === requestId
-    ? {
-        ...item,
-        title,
-        requester,
-        stage: t('approvals.status_manager'),
-        due,
-        currentHandler: t('approvals.status_manager'),
-      }
-    : item)
-  selectedRequestId.value = requestId
+  requests.value = requests.value.map((item) =>
+    item.id === requestId
+      ? {
+          ...item,
+          title,
+          requester,
+          stage: t('approvals.status_manager'),
+          due,
+          currentHandler: t('approvals.status_manager'),
+        }
+      : item,
+  );
+  selectedRequestId.value = requestId;
   decisionNotices.value = {
     ...decisionNotices.value,
     [requestId]: t('approvals.created_notice', { title }),
-  }
-  requestEditorOpen.value = false
+  };
+  requestEditorOpen.value = false;
 }
 </script>
 
 <template>
-  <WorkspacePageFrame
-    :title="t('sidebar.approvals')"
-    :subtitle="t('approvals.subtitle')"
-    :icon="FileCheck2"
-  >
+  <WorkspacePageFrame :title="t('sidebar.approvals')" :subtitle="t('approvals.subtitle')" :icon="FileCheck2">
     <template #actions>
       <button
         data-testid="approvals-new-request"
@@ -235,7 +289,9 @@ function saveDraftRequest(): void {
         @click="activeQueue = queue.id"
       >
         <div class="flex items-center justify-between">
-          <span class="text-[11px] font-bold uppercase leading-4 tracking-[0.05em] text-muted-foreground">{{ queue.label }}</span>
+          <span class="text-[11px] font-bold uppercase leading-4 tracking-[0.05em] text-muted-foreground">{{
+            queue.label
+          }}</span>
           <component :is="queue.icon" :size="18" class="text-primary" />
         </div>
         <div class="mt-3 text-2xl font-semibold leading-8">
@@ -271,7 +327,9 @@ function saveDraftRequest(): void {
             <span class="mt-1 block truncate text-[12px] text-muted-foreground">{{ request.requester }}</span>
           </span>
           <span class="text-[12px] text-muted-foreground">{{ request.stage }}</span>
-          <span class="justify-self-start rounded-md border border-border px-2 py-1 text-[11px] font-semibold text-muted-foreground">
+          <span
+            class="justify-self-start rounded-md border border-border px-2 py-1 text-[11px] font-semibold text-muted-foreground"
+          >
             {{ request.due }}
           </span>
         </button>
@@ -284,18 +342,15 @@ function saveDraftRequest(): void {
             type="text"
             :placeholder="t('approvals.request_title_placeholder')"
             class="h-8 rounded-md border border-border bg-background px-3 text-[12px] text-foreground outline-none focus:border-primary"
-          >
-          <GroupMemberPicker
-            v-model="requestDraftRequesterIds"
-            :label="t('approvals.requester_placeholder')"
           />
+          <GroupMemberPicker v-model="requestDraftRequesterIds" :label="t('approvals.requester_placeholder')" />
           <input
             v-model="requestDraftDue"
             data-testid="approvals-new-due"
             type="text"
             :placeholder="t('approvals.due_placeholder')"
             class="h-8 rounded-md border border-border bg-background px-3 text-[12px] text-foreground outline-none focus:border-primary"
-          >
+          />
           <button
             data-testid="approvals-save-new-request"
             class="h-8 rounded-md bg-primary px-3 text-[12px] font-semibold text-primary-foreground transition-opacity hover:opacity-90"
@@ -340,10 +395,7 @@ function saveDraftRequest(): void {
           class="mt-3 rounded-lg border border-border bg-muted/30 p-3"
           data-testid="approvals-transfer-picker"
         >
-          <GroupMemberPicker
-            v-model="transferMemberIds"
-            :label="t('approvals.transfer_to')"
-          />
+          <GroupMemberPicker v-model="transferMemberIds" :label="t('approvals.transfer_to')" />
           <div class="mt-3 flex justify-end gap-2">
             <button
               class="h-8 rounded-md px-3 text-xs font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
@@ -369,7 +421,7 @@ function saveDraftRequest(): void {
               type="text"
               :placeholder="t('approvals.comment_placeholder')"
               class="h-8 min-w-0 flex-1 rounded-md border border-border bg-background px-3 text-[12px] text-foreground outline-none focus:border-primary"
-            >
+            />
             <button
               data-testid="approvals-add-comment"
               class="h-8 rounded-md bg-primary px-3 text-[12px] font-semibold text-primary-foreground transition-opacity hover:opacity-90"
@@ -379,7 +431,9 @@ function saveDraftRequest(): void {
             </button>
           </div>
           <div class="grid gap-1 text-[12px] text-muted-foreground">
-            <span v-for="comment in selectedRequest.comments" :key="comment">{{ t('approvals.comment_prefix') }}：{{ comment }}</span>
+            <span v-for="comment in selectedRequest.comments" :key="comment"
+              >{{ t('approvals.comment_prefix') }}：{{ comment }}</span
+            >
             <span v-if="selectedRequest.comments.length === 0">{{ t('approvals.no_comments') }}</span>
           </div>
         </div>

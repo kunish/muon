@@ -74,7 +74,8 @@ vi.mock('@/features/docs/composables/useDocComments', async () => {
 const EmptyStub = defineComponent({ template: '<div />' })
 const CommentsPanelStub = defineComponent({
   emits: ['addComment'],
-  template: '<aside data-testid="doc-comments-panel"><button data-testid="doc-comments-add" @click="$emit(\'addComment\', \'评审意见\')" /></aside>',
+  template:
+    '<aside data-testid="doc-comments-panel"><button data-testid="doc-comments-add" @click="$emit(\'addComment\', \'评审意见\')" /></aside>',
 })
 const ShareDialogStub = defineComponent({ template: '<div data-testid="doc-share-dialog" />' })
 
@@ -182,8 +183,7 @@ describe('docEditor navigation', () => {
         },
       },
       on: vi.fn((eventName: string, handler: () => void) => {
-        if (eventName === 'selectionUpdate')
-          selectionHandlers.push(handler)
+        if (eventName === 'selectionUpdate') selectionHandlers.push(handler)
       }),
       off: vi.fn(),
     }

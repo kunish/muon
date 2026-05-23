@@ -33,8 +33,7 @@ export function useGroupManagement() {
   async function setUserPowerLevel(roomId: string, userId: string, level: number) {
     const client = getClient()
     const room = client.getRoom(roomId)
-    if (!room)
-      return
+    if (!room) return
     const plEvent = room.currentState.getStateEvents('m.room.power_levels', '')
     const content = plEvent?.getContent() || {}
     const users = { ...content.users, [userId]: level }

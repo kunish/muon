@@ -1,21 +1,21 @@
 <script setup lang="ts">
-import { X } from 'lucide-vue-next'
+import { X } from 'lucide-vue-next';
 
 defineProps<{
   /** Reply-to sender display name */
-  replyingToSenderName: string
+  replyingToSenderName: string;
   /** Reply preview text */
-  replyingToPreview: string
+  replyingToPreview: string;
   /** Edit mode label */
-  composeLabel: string
+  composeLabel: string;
   /** Whether reply bar is showing (store.replyingTo is truthy) */
-  isReplying: boolean
-}>()
+  isReplying: boolean;
+}>();
 
 const emit = defineEmits<{
-  clear: []
-  jumpToReplyTarget: []
-}>()
+  clear: [];
+  jumpToReplyTarget: [];
+}>();
 </script>
 
 <template>
@@ -33,24 +33,15 @@ const emit = defineEmits<{
           {{ replyingToPreview }}
         </div>
       </button>
-      <button
-        class="shrink-0 rounded p-0.5 text-muted-foreground hover:bg-accent"
-        @click="emit('clear')"
-      >
+      <button class="shrink-0 rounded p-0.5 text-muted-foreground hover:bg-accent" @click="emit('clear')">
         <X :size="14" />
       </button>
     </div>
 
     <!-- Edit indicator -->
-    <div
-      v-else-if="composeLabel"
-      class="flex items-center justify-between text-xs text-muted-foreground"
-    >
+    <div v-else-if="composeLabel" class="flex items-center justify-between text-xs text-muted-foreground">
       <span>{{ composeLabel }}</span>
-      <button
-        class="p-0.5 rounded hover:bg-accent"
-        @click="emit('clear')"
-      >
+      <button class="p-0.5 rounded hover:bg-accent" @click="emit('clear')">
         <X :size="14" />
       </button>
     </div>

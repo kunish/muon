@@ -1,32 +1,30 @@
 <script setup lang="ts">
-import { ChevronDown, Loader2, Scissors } from 'lucide-vue-next'
-import { ref } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { toast } from 'vue-sonner'
-import { captureScreen } from '@/desktop/screenshot'
+import { ChevronDown, Loader2, Scissors } from 'lucide-vue-next';
+import { ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { toast } from 'vue-sonner';
+import { captureScreen } from '@/desktop/screenshot';
 
 const emit = defineEmits<{
-  capture: [file: File]
-}>()
+  capture: [file: File];
+}>();
 
-const { t } = useI18n()
-const loading = ref(false)
+const { t } = useI18n();
+const loading = ref(false);
 
 async function takeScreenshot() {
-  if (loading.value)
-    return
-  loading.value = true
+  if (loading.value) return;
+  loading.value = true;
   try {
-    const blob = await captureScreen()
+    const blob = await captureScreen();
     if (blob) {
-      const file = new File([blob], `screenshot-${Date.now()}.png`, { type: 'image/png' })
-      emit('capture', file)
-      return
+      const file = new File([blob], `screenshot-${Date.now()}.png`, { type: 'image/png' });
+      emit('capture', file);
+      return;
     }
-    toast.error(t('chat.screenshot_failed'))
-  }
-  finally {
-    loading.value = false
+    toast.error(t('chat.screenshot_failed'));
+  } finally {
+    loading.value = false;
   }
 }
 </script>

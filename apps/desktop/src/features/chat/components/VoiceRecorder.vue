@@ -1,24 +1,24 @@
 <script setup lang="ts">
-import { Mic, Square, X } from 'lucide-vue-next'
-import { computed } from 'vue'
-import { useVoiceRecorder } from '../composables/useVoiceRecorder'
+import { Mic, Square, X } from 'lucide-vue-next';
+import { computed } from 'vue';
+import { useVoiceRecorder } from '../composables/useVoiceRecorder';
 
 const emit = defineEmits<{
-  send: [blob: Blob, duration: number]
-}>()
+  send: [blob: Blob, duration: number];
+}>();
 
-const { isRecording, duration, start, stop, cancel } = useVoiceRecorder()
+const { isRecording, duration, start, stop, cancel } = useVoiceRecorder();
 
 const formattedDuration = computed(() => {
-  const m = Math.floor(duration.value / 60)
-  const s = duration.value % 60
-  return `${m}:${String(s).padStart(2, '0')}`
-})
+  const m = Math.floor(duration.value / 60);
+  const s = duration.value % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
+});
 
 async function handleStop() {
-  const blob = await stop()
+  const blob = await stop();
   if (blob) {
-    emit('send', blob, duration.value * 1000)
+    emit('send', blob, duration.value * 1000);
   }
 }
 </script>

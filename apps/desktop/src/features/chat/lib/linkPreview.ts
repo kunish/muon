@@ -1,9 +1,6 @@
 export const MAX_LINK_PREVIEW_BYTES = 2 * 1024 * 1024
 
-const BLOCKED_HOSTS = new Set([
-  'localhost',
-  'metadata.google.internal',
-])
+const BLOCKED_HOSTS = new Set(['localhost', 'metadata.google.internal'])
 
 const TRAILING_DOT_RE = /\.$/
 const DECIMAL_RE = /^\d+$/
@@ -12,144 +9,120 @@ const LINK_LOCAL_IPV6_RE = /^fe[89ab]/
 
 function normalizeHostname(hostname: string): string {
   const lower = hostname.toLowerCase().replace(TRAILING_DOT_RE, '')
-  if (lower.startsWith('[') && lower.endsWith(']'))
-    return lower.slice(1, -1)
+  if (lower.startsWith('[') && lower.endsWith(']')) return lower.slice(1, -1)
   return lower
 }
 
 function parseIpv4(hostname: string): number[] | null {
   const parts = hostname.split('.')
-  if (parts.length !== 4)
-    return null
+  if (parts.length !== 4) return null
 
   const octets = parts.map((part) => {
-    if (!DECIMAL_RE.test(part))
-      return Number.NaN
+    if (!DECIMAL_RE.test(part)) return Number.NaN
     return Number(part)
   })
 
-  if (octets.some(octet => !Number.isInteger(octet) || octet < 0 || octet > 255))
-    return null
+  if (octets.some((octet) => !Number.isInteger(octet) || octet < 0 || octet > 255)) return null
 
   return octets
 }
 
 function isBlockedIpv4(hostname: string): boolean {
   const octets = parseIpv4(hostname)
-  if (!octets)
-    return false
+  if (!octets) return false
 
   const [first, second] = octets
-  return first === 0
-    || first === 10
-    || first === 127
-    || (first === 169 && second === 254)
-    || (first === 172 && second >= 16 && second <= 31)
-    || (first === 192 && second === 168)
+  return (
+    first === 0 ||
+    first === 10 ||
+    first === 127 ||
+    (first === 169 && second === 254) ||
+    (first === 172 && second >= 16 && second <= 31) ||
+    (first === 192 && second === 168)
+  )
 }
 
 function isBlockedIpv4MappedIpv6(hostname: string): boolean {
-  if (!hostname.startsWith('::ffff:'))
-    return false
+  if (!hostname.startsWith('::ffff:')) return false
 
   const mapped = hostname.slice('::ffff:'.length)
-  if (mapped.includes('.'))
-    return isBlockedIpv4(mapped)
+  if (mapped.includes('.')) return isBlockedIpv4(mapped)
 
   const parts = mapped.split(':')
-  if (parts.length !== 2)
-    return false
+  if (parts.length !== 2) return false
 
   const words = parts.map((part) => {
-    if (!IPV6_WORD_RE.test(part))
-      return Number.NaN
+    if (!IPV6_WORD_RE.test(part)) return Number.NaN
     return Number.parseInt(part, 16)
   })
-  if (words.some(word => !Number.isInteger(word) || word < 0 || word > 0xFFFF))
-    return false
+  if (words.some((word) => !Number.isInteger(word) || word < 0 || word > 0xffff)) return false
 
   const [high, low] = words
-  return isBlockedIpv4([
-    high >> 8,
-    high & 0xFF,
-    low >> 8,
-    low & 0xFF,
-  ].join('.'))
+  return isBlockedIpv4([high >> 8, high & 0xff, low >> 8, low & 0xff].join('.'))
 }
 
 function isBlockedIpv6(hostname: string): boolean {
   const host = hostname.toLowerCase()
-  if (host === '::' || host === '::1')
-    return true
-  if (host.startsWith('fc') || host.startsWith('fd'))
-    return true
-  if (LINK_LOCAL_IPV6_RE.test(host))
-    return true
-  if (isBlockedIpv4MappedIpv6(host))
-    return true
+  if (host === '::' || host === '::1') return true
+  if (host.startsWith('fc') || host.startsWith('fd')) return true
+  if (LINK_LOCAL_IPV6_RE.test(host)) return true
+  if (isBlockedIpv4MappedIpv6(host)) return true
   return false
 }
 
 function isUnsafeHostname(hostname: string): boolean {
   const host = normalizeHostname(hostname)
-  return BLOCKED_HOSTS.has(host)
-    || host.endsWith('.localhost')
-    || host.endsWith('.local')
-    || isBlockedIpv4(host)
-    || isBlockedIpv6(host)
+  return (
+    BLOCKED_HOSTS.has(host) ||
+    host.endsWith('.localhost') ||
+    host.endsWith('.local') ||
+    isBlockedIpv4(host) ||
+    isBlockedIpv6(host)
+  )
 }
 
 export function getPreviewRequestUrl(rawUrl: string): URL | null {
   try {
     const url = new URL(rawUrl)
-    if (url.protocol !== 'http:' && url.protocol !== 'https:')
-      return null
-    if (isUnsafeHostname(url.hostname))
-      return null
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return null
+    if (isUnsafeHostname(url.hostname)) return null
 
     url.username = ''
     url.password = ''
     return url
-  }
-  catch {
+  } catch {
     return null
   }
 }
 
 export function getPreviewAssetUrl(rawUrl: string | null | undefined, baseUrl: string): string {
-  if (!rawUrl)
-    return ''
+  if (!rawUrl) return ''
 
   try {
     const resolved = new URL(rawUrl, baseUrl)
     return getPreviewRequestUrl(resolved.href)?.href ?? ''
-  }
-  catch {
+  } catch {
     return ''
   }
 }
 
 export function isHtmlPreviewResponse(resp: Response, maxBytes = MAX_LINK_PREVIEW_BYTES): boolean {
-  if (!resp.ok)
-    return false
+  if (!resp.ok) return false
 
   const contentType = resp.headers.get('content-type')?.toLowerCase() ?? ''
-  if (!contentType.includes('text/html') && !contentType.includes('application/xhtml+xml'))
-    return false
+  if (!contentType.includes('text/html') && !contentType.includes('application/xhtml+xml')) return false
 
   const contentLength = resp.headers.get('content-length')
   if (contentLength !== null) {
     const bytes = Number(contentLength)
-    if (!Number.isFinite(bytes) || bytes > maxBytes)
-      return false
+    if (!Number.isFinite(bytes) || bytes > maxBytes) return false
   }
 
   return true
 }
 
 export async function readLimitedText(resp: Response, maxBytes = MAX_LINK_PREVIEW_BYTES): Promise<string | null> {
-  if (!resp.body)
-    return null
+  if (!resp.body) return null
 
   const reader = resp.body.getReader()
   const decoder = new TextDecoder()
@@ -159,8 +132,7 @@ export async function readLimitedText(resp: Response, maxBytes = MAX_LINK_PREVIE
   try {
     while (true) {
       const { done, value } = await reader.read()
-      if (done)
-        break
+      if (done) break
 
       bytesRead += value.byteLength
       if (bytesRead > maxBytes) {
@@ -173,8 +145,7 @@ export async function readLimitedText(resp: Response, maxBytes = MAX_LINK_PREVIE
 
     text += decoder.decode()
     return text
-  }
-  finally {
+  } finally {
     reader.releaseLock()
   }
 }

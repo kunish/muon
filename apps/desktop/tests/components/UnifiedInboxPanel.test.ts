@@ -29,15 +29,27 @@ describe('unifiedInboxPanel', () => {
     const store = useInboxStore()
     store.setFilter('mention')
     await nextTick()
-    expect(wrapper.findAll('[data-testid^="inbox-item-"]').every(node => node.attributes('data-testid') === 'inbox-item-mention')).toBe(true)
+    expect(
+      wrapper
+        .findAll('[data-testid^="inbox-item-"]')
+        .every((node) => node.attributes('data-testid') === 'inbox-item-mention'),
+    ).toBe(true)
 
     store.setFilter('priority-unread')
     await nextTick()
-    expect(wrapper.findAll('[data-testid^="inbox-item-"]').every(node => node.attributes('data-testid') === 'inbox-item-priority-unread')).toBe(true)
+    expect(
+      wrapper
+        .findAll('[data-testid^="inbox-item-"]')
+        .every((node) => node.attributes('data-testid') === 'inbox-item-priority-unread'),
+    ).toBe(true)
 
     store.setFilter('reply-needed')
     await nextTick()
-    expect(wrapper.findAll('[data-testid^="inbox-item-"]').every(node => node.attributes('data-testid') === 'inbox-item-reply-needed')).toBe(true)
+    expect(
+      wrapper
+        .findAll('[data-testid^="inbox-item-"]')
+        .every((node) => node.attributes('data-testid') === 'inbox-item-reply-needed'),
+    ).toBe(true)
 
     store.setFilter('all')
     await nextTick()

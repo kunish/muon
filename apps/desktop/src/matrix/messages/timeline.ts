@@ -3,11 +3,7 @@ import { EventTimeline, RelationType } from 'matrix-js-sdk'
 import { getClient } from '../client'
 
 /** 可见的内容事件类型 */
-const CONTENT_TYPES = new Set([
-  'm.room.message',
-  'm.sticker',
-  'm.room.encrypted',
-])
+const CONTENT_TYPES = new Set(['m.room.message', 'm.sticker', 'm.room.encrypted'])
 
 /** 飞书风格：需要在聊天中展示的系统事件类型 */
 export const SYSTEM_EVENT_TYPES = new Set([
@@ -21,8 +17,7 @@ export const DISPLAYABLE_MEMBER_MEMBERSHIPS = new Set(['join', 'leave', 'ban', '
 
 export function getTimeline(roomId: string, limit = 50): MatrixEvent[] {
   const room = getClient().getRoom(roomId)
-  if (!room)
-    return []
+  if (!room) return []
 
   return getLinkedTimelineEvents(room).filter(isDisplayableTimelineEvent).slice(-limit)
 }
@@ -45,8 +40,7 @@ export function getLinkedTimelineEvents(room: Room): MatrixEvent[] {
     for (const event of item.getEvents()) {
       const eventId = event.getId()
       if (eventId) {
-        if (seenEventIds.has(eventId))
-          continue
+        if (seenEventIds.has(eventId)) continue
         seenEventIds.add(eventId)
       }
       events.push(event)
@@ -63,35 +57,29 @@ export function isDisplayableTimelineEvent(ev: MatrixEvent): boolean {
   if (CONTENT_TYPES.has(evType)) {
     // Hide edit replacement events (aggregated into original)
     const relType = ev.getContent()?.['m.relates_to']?.rel_type
-    if (relType === RelationType.Replace)
-      return false
+    if (relType === RelationType.Replace) return false
     // Hide redaction events themselves
-    if (evType === 'm.room.redaction')
-      return false
+    if (evType === 'm.room.redaction') return false
     return true
   }
 
-  if (SYSTEM_EVENT_TYPES.has(evType))
-    return isDisplayableSystemEvent(ev)
+  if (SYSTEM_EVENT_TYPES.has(evType)) return isDisplayableSystemEvent(ev)
 
   return false
 }
 
 export function isDisplayableSystemEvent(ev: MatrixEvent): boolean {
-  if (ev.getType() !== 'm.room.member')
-    return true
+  if (ev.getType() !== 'm.room.member') return true
 
   const membership = ev.getContent()?.membership
   const prevMembership = ev.getPrevContent()?.membership
-  if (membership === prevMembership)
-    return false
+  if (membership === prevMembership) return false
 
   return typeof membership === 'string' && DISPLAYABLE_MEMBER_MEMBERSHIPS.has(membership)
 }
 
 export async function paginateBack(roomId: string, count = 20): Promise<boolean> {
   const room = getClient().getRoom(roomId)
-  if (!room)
-    return false
+  if (!room) return false
   return getClient().paginateEventTimeline(room.getLiveTimeline(), { backwards: true, limit: count })
 }

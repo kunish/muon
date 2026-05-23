@@ -1,19 +1,16 @@
 import { getCurrentWindow } from './window'
 
 function delay(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms))
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 function stopAllTracks(stream: MediaStream | null): void {
-  if (!stream)
-    return
-  for (const track of stream.getTracks())
-    track.stop()
+  if (!stream) return
+  for (const track of stream.getTracks()) track.stop()
 }
 
 export async function captureScreen(): Promise<Blob | null> {
-  if (!navigator.mediaDevices?.getDisplayMedia)
-    return null
+  if (!navigator.mediaDevices?.getDisplayMedia) return null
 
   const appWindow = getCurrentWindow()
 
@@ -28,8 +25,7 @@ export async function captureScreen(): Promise<Blob | null> {
     })
 
     const track = stream.getVideoTracks()[0]
-    if (!track)
-      return null
+    if (!track) return null
 
     const video = document.createElement('video')
     video.srcObject = stream
@@ -47,14 +43,10 @@ export async function captureScreen(): Promise<Blob | null> {
     video.pause()
     video.srcObject = null
 
-    return await new Promise<Blob | null>(resolve =>
-      canvas.toBlob(blob => resolve(blob), 'image/png'),
-    )
-  }
-  catch {
+    return await new Promise<Blob | null>((resolve) => canvas.toBlob((blob) => resolve(blob), 'image/png'))
+  } catch {
     return null
-  }
-  finally {
+  } finally {
     stopAllTracks(stream)
     await appWindow.show()
     await appWindow.setFocus()

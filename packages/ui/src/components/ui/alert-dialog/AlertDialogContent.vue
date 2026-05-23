@@ -1,27 +1,22 @@
 <script setup lang="ts">
-import type { AlertDialogContentProps } from 'reka-ui'
-import {
-  AlertDialogContent,
-  AlertDialogOverlay,
-  AlertDialogPortal,
-  useForwardPropsEmits,
-} from 'reka-ui'
-import { cn } from '../../../utils'
+import type { AlertDialogContentProps } from 'reka-ui';
+import { AlertDialogContent, AlertDialogOverlay, AlertDialogPortal, useForwardPropsEmits } from 'reka-ui';
+import { cn } from '../../../utils';
 
 defineOptions({
   inheritAttrs: false,
-})
+});
 
-const props = defineProps<AlertDialogContentProps & { class?: string }>()
+const props = defineProps<AlertDialogContentProps & { class?: string }>();
 
 const emits = defineEmits<{
-  escapeKeyDown: [event: KeyboardEvent]
-}>()
+  escapeKeyDown: [event: KeyboardEvent];
+}>();
 
 const forwarded = useForwardPropsEmits(() => {
-  const { class: _, ...delegated } = props
-  return delegated
-}, emits)
+  const { class: _, ...delegated } = props;
+  return delegated;
+}, emits);
 </script>
 
 <template>

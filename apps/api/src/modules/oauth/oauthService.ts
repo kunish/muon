@@ -42,36 +42,35 @@ function codeHash(code: string): string {
 }
 
 function assertDesktopClientId(clientId: string): void {
-  if (clientId !== DESKTOP_CLIENT_ID)
-    throw new Error('Invalid OAuth client')
+  if (clientId !== DESKTOP_CLIENT_ID) throw new Error('Invalid OAuth client')
 }
 
 function assertDesktopClient(clientId: string, redirectUri: string): void {
   assertDesktopClientId(clientId)
-  if (redirectUri !== DESKTOP_REDIRECT_URI)
-    throw new Error('Invalid OAuth client')
+  if (redirectUri !== DESKTOP_REDIRECT_URI) throw new Error('Invalid OAuth client')
 }
 
 function verifyPkce(method: 'plain' | 'S256', verifier: string, challenge: string): boolean {
-  if (method === 'plain')
-    return verifier === challenge
+  if (method === 'plain') return verifier === challenge
   return sha256(verifier) === challenge
 }
 
-async function findActiveUser(repository: EnterpriseRepository, organizationSlug: string, username: string, password: string): Promise<{
+async function findActiveUser(
+  repository: EnterpriseRepository,
+  organizationSlug: string,
+  username: string,
+  password: string,
+): Promise<{
   organizationId: string
   user: EnterpriseUserRecord
 }> {
   const organization = await repository.findOrganizationBySlug(organizationSlug)
-  if (!organization || organization.status !== 'active')
-    throw new Error('Invalid organization or credentials')
+  if (!organization || organization.status !== 'active') throw new Error('Invalid organization or credentials')
 
   const user = await repository.findUserByUsername(organization.id, username)
-  if (!user || user.status !== 'active')
-    throw new Error('Invalid organization or credentials')
+  if (!user || user.status !== 'active') throw new Error('Invalid organization or credentials')
 
-  if (!await verifyPassword(password, user.passwordHash))
-    throw new Error('Invalid organization or credentials')
+  if (!(await verifyPassword(password, user.passwordHash))) throw new Error('Invalid organization or credentials')
 
   return { organizationId: organization.id, user }
 }
@@ -88,8 +87,7 @@ export function createOAuthService({ repository, matrix, matrixServerUrl }: OAut
         request.password,
       )
 
-      if (user.mustChangePassword)
-        throw new MustChangePasswordError()
+      if (user.mustChangePassword) throw new MustChangePasswordError()
 
       const existingMatrixAccount = await repository.findMatrixAccount(organizationId, user.id)
       const provisioned = existingMatrixAccount
@@ -150,14 +148,11 @@ export function createOAuthService({ repository, matrix, matrixServerUrl }: OAut
       assertDesktopClient(request.clientId, request.redirectUri)
 
       const authorizationCode = await repository.findAuthorizationCodeByHash(codeHash(request.code))
-      if (!authorizationCode)
-        throw new Error('Invalid authorization code')
+      if (!authorizationCode) throw new Error('Invalid authorization code')
 
-      if (authorizationCode.usedAt)
-        throw new Error('Authorization code has already been used')
+      if (authorizationCode.usedAt) throw new Error('Authorization code has already been used')
 
-      if (Date.parse(authorizationCode.expiresAt) <= Date.now())
-        throw new Error('Authorization code has expired')
+      if (Date.parse(authorizationCode.expiresAt) <= Date.now()) throw new Error('Authorization code has expired')
 
       if (authorizationCode.clientId !== request.clientId || authorizationCode.redirectUri !== request.redirectUri)
         throw new Error('Invalid OAuth client')
@@ -203,18 +198,14 @@ export function createOAuthService({ repository, matrix, matrixServerUrl }: OAut
       assertDesktopClientId(request.clientId)
 
       const session = await repository.findDeviceSessionByRefreshTokenHash(sha256(`refresh:${request.refreshToken}`))
-      if (!session || session.revokedAt)
-        throw new Error('Invalid refresh token')
-      if (Date.parse(session.expiresAt) <= Date.now())
-        throw new Error('Invalid refresh token')
+      if (!session || session.revokedAt) throw new Error('Invalid refresh token')
+      if (Date.parse(session.expiresAt) <= Date.now()) throw new Error('Invalid refresh token')
 
       const matrixAccount = await repository.findMatrixAccount(session.organizationId, session.userId)
-      if (!matrixAccount)
-        throw new Error('Matrix account not found')
+      if (!matrixAccount) throw new Error('Matrix account not found')
 
       const revoked = await repository.revokeDeviceSession(session.id)
-      if (!revoked)
-        throw new Error('Invalid refresh token')
+      if (!revoked) throw new Error('Invalid refresh token')
 
       const accessToken = token()
       const refreshToken = token()

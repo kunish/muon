@@ -1,19 +1,19 @@
 <script setup lang="ts">
-import type { SelectTriggerProps } from 'reka-ui'
-import { ChevronDownIcon } from 'lucide-vue-next'
-import { SelectIcon, SelectTrigger, useForwardProps } from 'reka-ui'
-import { cn } from '../../../utils'
+import type { SelectTriggerProps } from 'reka-ui';
+import { ChevronDownIcon } from 'lucide-vue-next';
+import { SelectIcon, SelectTrigger, useForwardProps } from 'reka-ui';
+import { cn } from '../../../utils';
 
 defineOptions({
   inheritAttrs: false,
-})
+});
 
-const props = defineProps<SelectTriggerProps & { class?: string }>()
+const props = defineProps<SelectTriggerProps & { class?: string }>();
 
 const forwardedProps = useForwardProps(() => {
-  const { class: _, ...delegated } = props
-  return delegated
-})
+  const { class: _, ...delegated } = props;
+  return delegated;
+});
 </script>
 
 <template>

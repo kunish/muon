@@ -21,14 +21,10 @@ export function useDocComments(ydoc: () => Doc, currentUserId: string) {
     ycomments.unobserve(syncFromYjs)
   })
 
-  const resolvedCount = computed(() =>
-    comments.value.filter(c => c.resolved).length,
-  )
-  const unresolvedCount = computed(() =>
-    comments.value.filter(c => !c.resolved).length,
-  )
+  const resolvedCount = computed(() => comments.value.filter((c) => c.resolved).length)
+  const unresolvedCount = computed(() => comments.value.filter((c) => !c.resolved).length)
 
-  function addComment(text: string, selection?: { from: number, to: number }): void {
+  function addComment(text: string, selection?: { from: number; to: number }): void {
     const comment: DocComment = {
       id: nanoid(),
       userId: currentUserId,
@@ -41,9 +37,8 @@ export function useDocComments(ydoc: () => Doc, currentUserId: string) {
   }
 
   function resolveComment(commentId: string): void {
-    const idx = ycomments.toArray().findIndex(c => c.id === commentId)
-    if (idx === -1)
-      return
+    const idx = ycomments.toArray().findIndex((c) => c.id === commentId)
+    if (idx === -1) return
     const updated = { ...ycomments.get(idx), resolved: true }
     ycomments.delete(idx, 1)
     ycomments.insert(idx, [updated])

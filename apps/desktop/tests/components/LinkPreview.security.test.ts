@@ -26,9 +26,7 @@ describe('linkPreview security', () => {
     ;(globalThis as any).__ogInflight?.clear()
     Object.defineProperty(URL, 'createObjectURL', {
       configurable: true,
-      value: vi.fn()
-        .mockReturnValueOnce('blob:favicon')
-        .mockReturnValueOnce('blob:preview'),
+      value: vi.fn().mockReturnValueOnce('blob:favicon').mockReturnValueOnce('blob:preview'),
     })
     Object.defineProperty(URL, 'revokeObjectURL', {
       configurable: true,
@@ -37,9 +35,11 @@ describe('linkPreview security', () => {
   })
 
   it('fetches preview HTML with redirects disabled', async () => {
-    vi.mocked(fetch).mockResolvedValueOnce(new Response('<html><title>Safe</title></html>', {
-      headers: { 'content-type': 'text/html' },
-    }))
+    vi.mocked(fetch).mockResolvedValueOnce(
+      new Response('<html><title>Safe</title></html>', {
+        headers: { 'content-type': 'text/html' },
+      }),
+    )
 
     mount(LinkPreview, {
       props: { url: 'https://example.com/post' },
@@ -49,20 +49,27 @@ describe('linkPreview security', () => {
       expect(fetch).toHaveBeenCalled()
     })
 
-    expect(fetch).toHaveBeenCalledWith('https://example.com/post', expect.objectContaining({
-      redirect: 'manual',
-    }))
+    expect(fetch).toHaveBeenCalledWith(
+      'https://example.com/post',
+      expect.objectContaining({
+        redirect: 'manual',
+      }),
+    )
   })
 
   it('follows public redirects before parsing preview HTML', async () => {
     vi.mocked(fetch)
-      .mockResolvedValueOnce(new Response('', {
-        status: 302,
-        headers: { location: 'https://example.com/final' },
-      }))
-      .mockResolvedValueOnce(new Response('<html><title>Final title</title></html>', {
-        headers: { 'content-type': 'text/html' },
-      }))
+      .mockResolvedValueOnce(
+        new Response('', {
+          status: 302,
+          headers: { location: 'https://example.com/final' },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response('<html><title>Final title</title></html>', {
+          headers: { 'content-type': 'text/html' },
+        }),
+      )
 
     const wrapper = mount(LinkPreview, {
       props: { url: 'https://example.com/post' },
@@ -72,17 +79,27 @@ describe('linkPreview security', () => {
       expect(wrapper.text()).toContain('Final title')
     })
 
-    expect(fetch).toHaveBeenNthCalledWith(1, 'https://example.com/post', expect.objectContaining({
-      redirect: 'manual',
-    }))
-    expect(fetch).toHaveBeenNthCalledWith(2, 'https://example.com/final', expect.objectContaining({
-      redirect: 'manual',
-    }))
+    expect(fetch).toHaveBeenNthCalledWith(
+      1,
+      'https://example.com/post',
+      expect.objectContaining({
+        redirect: 'manual',
+      }),
+    )
+    expect(fetch).toHaveBeenNthCalledWith(
+      2,
+      'https://example.com/final',
+      expect.objectContaining({
+        redirect: 'manual',
+      }),
+    )
   })
 
   it('renders public preview image assets from parsed HTML', async () => {
     vi.mocked(fetch)
-      .mockResolvedValueOnce(new Response(`
+      .mockResolvedValueOnce(
+        new Response(
+          `
       <html>
         <head>
           <title>Safe title</title>
@@ -91,9 +108,12 @@ describe('linkPreview security', () => {
           <link rel="icon" href="https://cdn.example.com/favicon.ico">
         </head>
       </html>
-    `, {
-        headers: { 'content-type': 'text/html' },
-      }))
+    `,
+          {
+            headers: { 'content-type': 'text/html' },
+          },
+        ),
+      )
       .mockResolvedValueOnce(new Response('ico', { headers: { 'content-type': 'image/x-icon' } }))
       .mockResolvedValueOnce(new Response('png', { headers: { 'content-type': 'image/png' } }))
 
@@ -117,7 +137,9 @@ describe('linkPreview security', () => {
   })
 
   it('does not render unsafe preview image assets from parsed HTML', async () => {
-    vi.mocked(fetch).mockResolvedValueOnce(new Response(`
+    vi.mocked(fetch).mockResolvedValueOnce(
+      new Response(
+        `
       <html>
         <head>
           <title>Safe title</title>
@@ -125,9 +147,12 @@ describe('linkPreview security', () => {
           <link rel="icon" href="file:///etc/passwd">
         </head>
       </html>
-    `, {
-      headers: { 'content-type': 'text/html' },
-    }))
+    `,
+        {
+          headers: { 'content-type': 'text/html' },
+        },
+      ),
+    )
 
     const wrapper = mount(LinkPreview, {
       props: { url: 'https://example.com/post-with-unsafe-assets' },

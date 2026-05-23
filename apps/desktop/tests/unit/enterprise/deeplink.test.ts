@@ -21,10 +21,12 @@ describe('enterprise deeplink parsing', () => {
   })
 
   it('extracts the callback URL from second-instance argv', () => {
-    expect(extractEnterpriseAuthCallbackUrl([
-      '/Applications/Muon.app/Contents/MacOS/Muon',
-      '--some-electron-flag',
-      'muon://auth/callback?code=abc&state=xyz',
-    ])).toBe('muon://auth/callback?code=abc&state=xyz')
+    expect(
+      extractEnterpriseAuthCallbackUrl([
+        '/Applications/Muon.app/Contents/MacOS/Muon',
+        '--some-electron-flag',
+        'muon://auth/callback?code=abc&state=xyz',
+      ]),
+    ).toBe('muon://auth/callback?code=abc&state=xyz')
   })
 })

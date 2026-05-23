@@ -43,20 +43,16 @@ const pendingFetches = new Map<string, Promise<any>>()
 export async function fetchEmojiLottie(emoji: string): Promise<any | null> {
   const url = getEmojiLottieUrl(emoji)
 
-  if (lottieCache.has(url))
-    return lottieCache.get(url)
-  if (pendingFetches.has(url))
-    return pendingFetches.get(url)
+  if (lottieCache.has(url)) return lottieCache.get(url)
+  if (pendingFetches.has(url)) return pendingFetches.get(url)
 
   const promise = fetch(url)
     .then((res) => {
-      if (!res.ok)
-        return null
+      if (!res.ok) return null
       return res.json()
     })
     .then((data) => {
-      if (data)
-        lottieCache.set(url, data)
+      if (data) lottieCache.set(url, data)
       pendingFetches.delete(url)
       return data
     })

@@ -29,6 +29,9 @@ jobs:
 
       - uses: ./.github/actions/setup-node-pnpm
 
+      - name: Check formatting
+        run: pnpm format:check
+
       - name: Lint
         run: pnpm lint
 

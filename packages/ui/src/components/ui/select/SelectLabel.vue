@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import type { SelectLabelProps } from 'reka-ui'
-import { SelectLabel, useForwardProps } from 'reka-ui'
-import { cn } from '../../../utils'
+import type { SelectLabelProps } from 'reka-ui';
+import { SelectLabel, useForwardProps } from 'reka-ui';
+import { cn } from '../../../utils';
 
-const props = defineProps<SelectLabelProps & { class?: string }>()
+const props = defineProps<SelectLabelProps & { class?: string }>();
 
 const forwardedProps = useForwardProps(() => {
-  const { class: _, ...delegated } = props
-  return delegated
-})
+  const { class: _, ...delegated } = props;
+  return delegated;
+});
 </script>
 
 <template>

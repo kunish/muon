@@ -5,51 +5,47 @@
  * 当前用户的 reaction 高亮 Blurple 边框
  * 末尾 "+" 按钮打开 emoji 选择器
  */
-import type { ReactionSummary } from '@matrix/index'
-import { getReactions, sendReaction } from '@matrix/index'
-import { Smile } from 'lucide-vue-next'
-import { computed, nextTick, ref, watch } from 'vue'
+import type { ReactionSummary } from '@matrix/index';
+import { getReactions, sendReaction } from '@matrix/index';
+import { Smile } from 'lucide-vue-next';
+import { computed, nextTick, ref, watch } from 'vue';
 
 const props = defineProps<{
-  eventId: string
-  reactions?: ReactionSummary[]
-  roomId: string
-}>()
+  eventId: string;
+  reactions?: ReactionSummary[];
+  roomId: string;
+}>();
 
-const QUICK_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🎉', '🔥', '👏']
+const QUICK_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🎉', '🔥', '👏'];
 
-const reactions = computed(() => props.reactions ?? getReactions(props.roomId, props.eventId))
+const reactions = computed(() => props.reactions ?? getReactions(props.roomId, props.eventId));
 
-const showPicker = ref(false)
-const triggerRef = ref<HTMLElement | null>(null)
-const pickerRef = ref<HTMLElement | null>(null)
-const pickerStyle = ref<Record<string, string>>({})
+const showPicker = ref(false);
+const triggerRef = ref<HTMLElement | null>(null);
+const pickerRef = ref<HTMLElement | null>(null);
+const pickerStyle = ref<Record<string, string>>({});
 
 watch(showPicker, async (visible) => {
-  if (!visible)
-    return
-  await nextTick()
-  const trigger = triggerRef.value
-  const picker = pickerRef.value
-  if (!trigger || !picker)
-    return
-  const rect = trigger.getBoundingClientRect()
-  const pw = picker.offsetWidth
+  if (!visible) return;
+  await nextTick();
+  const trigger = triggerRef.value;
+  const picker = pickerRef.value;
+  if (!trigger || !picker) return;
+  const rect = trigger.getBoundingClientRect();
+  const pw = picker.offsetWidth;
   // Position above the trigger button, clamped to viewport
-  let left = rect.left
-  if (left + pw > window.innerWidth - 8)
-    left = window.innerWidth - pw - 8
-  if (left < 8)
-    left = 8
+  let left = rect.left;
+  if (left + pw > window.innerWidth - 8) left = window.innerWidth - pw - 8;
+  if (left < 8) left = 8;
   pickerStyle.value = {
     left: `${left}px`,
     top: `${rect.top - picker.offsetHeight - 4}px`,
-  }
-})
+  };
+});
 
 async function toggleReaction(emoji: string) {
-  showPicker.value = false
-  await sendReaction(props.roomId, props.eventId, emoji)
+  showPicker.value = false;
+  await sendReaction(props.roomId, props.eventId, emoji);
 }
 </script>
 

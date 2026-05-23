@@ -13,7 +13,7 @@ let stopLocaleSync: WatchStopHandle | undefined
 
 function normalizeLocale(value: unknown): SupportedLocale {
   return typeof value === 'string' && SUPPORTED_LOCALES.has(value as SupportedLocale)
-    ? value as SupportedLocale
+    ? (value as SupportedLocale)
     : 'zh'
 }
 
@@ -21,8 +21,7 @@ function readPersistedLocale(): SupportedLocale {
   try {
     const raw = globalThis.localStorage?.getItem('muon_locale')
     return normalizeLocale(raw ? JSON.parse(raw) : undefined)
-  }
-  catch {
+  } catch {
     return 'zh'
   }
 }
@@ -42,11 +41,7 @@ export function syncI18nLocaleWithSettings(): WatchStopHandle {
   stopLocaleSync?.()
 
   const settingsStore = useSettingsStore()
-  stopLocaleSync = watch(
-    () => settingsStore.locale,
-    setI18nLocale,
-    { immediate: true },
-  )
+  stopLocaleSync = watch(() => settingsStore.locale, setI18nLocale, { immediate: true })
 
   return () => {
     stopLocaleSync?.()

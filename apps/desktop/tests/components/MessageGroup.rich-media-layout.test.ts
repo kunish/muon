@@ -60,12 +60,15 @@ describe('message group rich media layout', () => {
   })
 
   it('anchors the avatar at the start of a rich image message group', () => {
-    const wrapper = mountGroup(createTextEvent({
-      msgtype: 'm.text',
-      body: '1234\n[image.png]',
-      format: 'org.matrix.custom.html',
-      formatted_body: '<p>1234</p><p><img src="mxc://server/media" alt="image.png" data-width="1440" data-height="900"></p>',
-    }))
+    const wrapper = mountGroup(
+      createTextEvent({
+        msgtype: 'm.text',
+        body: '1234\n[image.png]',
+        format: 'org.matrix.custom.html',
+        formatted_body:
+          '<p>1234</p><p><img src="mxc://server/media" alt="image.png" data-width="1440" data-height="900"></p>',
+      }),
+    )
 
     const avatarAnchor = wrapper.get('[data-testid="group-avatar"]').element.parentElement as HTMLElement
     const avatarLane = avatarAnchor.parentElement as HTMLElement
@@ -78,10 +81,12 @@ describe('message group rich media layout', () => {
   })
 
   it('keeps the sticky avatar behavior for plain text groups', () => {
-    const wrapper = mountGroup(createTextEvent({
-      msgtype: 'm.text',
-      body: 'plain text',
-    }))
+    const wrapper = mountGroup(
+      createTextEvent({
+        msgtype: 'm.text',
+        body: 'plain text',
+      }),
+    )
 
     const avatarAnchor = wrapper.get('[data-testid="group-avatar"]').element.parentElement as HTMLElement
     const avatarLane = avatarAnchor.parentElement as HTMLElement

@@ -1,15 +1,15 @@
 <script setup lang="ts">
-import type { ReactionSummary } from '@matrix/index'
-import type { MatrixEvent } from 'matrix-js-sdk'
-import { getClient } from '@matrix/client'
-import { canMergeSystemEvents, isSystemEvent } from '@matrix/index'
-import { useSettingsStore } from '@shared/stores/settingsStore'
-import { computed } from 'vue'
-import ChatMessage from './ChatMessage.vue'
-import MessageGroupAvatar from './MessageGroupAvatar.vue'
-import NewMessageSeparator from './NewMessageSeparator.vue'
-import SystemMessage from './SystemMessage.vue'
-import TimeStamp from './TimeStamp.vue'
+import type { ReactionSummary } from '@matrix/index';
+import type { MatrixEvent } from 'matrix-js-sdk';
+import { getClient } from '@matrix/client';
+import { canMergeSystemEvents, isSystemEvent } from '@matrix/index';
+import { useSettingsStore } from '@shared/stores/settingsStore';
+import { computed } from 'vue';
+import ChatMessage from './ChatMessage.vue';
+import MessageGroupAvatar from './MessageGroupAvatar.vue';
+import NewMessageSeparator from './NewMessageSeparator.vue';
+import SystemMessage from './SystemMessage.vue';
+import TimeStamp from './TimeStamp.vue';
 
 /**
  * 消息分组组件
@@ -21,53 +21,50 @@ import TimeStamp from './TimeStamp.vue'
  * - 未读分割线在适当位置插入
  */
 const props = defineProps<{
-  events: MatrixEvent[]
-  roomId: string
-  reactionsByEventId?: Map<string, ReactionSummary[]>
-  threadReplyCountsByEventId?: Map<string, number>
-  timelineVersion?: number
+  events: MatrixEvent[];
+  roomId: string;
+  reactionsByEventId?: Map<string, ReactionSummary[]>;
+  threadReplyCountsByEventId?: Map<string, number>;
+  timelineVersion?: number;
   /** 未读分割线应插入在该 eventId 之前（由父组件提供），为空则不显示 */
-  unreadEventId?: string | null
-}>()
+  unreadEventId?: string | null;
+}>();
 
 const emit = defineEmits<{
-  avatarClick: [userId: string, event: MouseEvent]
-  userClick: [userId: string, event: MouseEvent]
-}>()
+  avatarClick: [userId: string, event: MouseEvent];
+  userClick: [userId: string, event: MouseEvent];
+}>();
 
-const settingsStore = useSettingsStore()
-const currentUserId = computed(() => getClient().getUserId() || '')
+const settingsStore = useSettingsStore();
+const currentUserId = computed(() => getClient().getUserId() || '');
 
 function eventId(event: MatrixEvent): string {
-  return event.getId() || ''
+  return event.getId() || '';
 }
 
 function eventReactions(event: MatrixEvent): ReactionSummary[] {
-  return props.reactionsByEventId?.get(eventId(event)) ?? []
+  return props.reactionsByEventId?.get(eventId(event)) ?? [];
 }
 
 function eventThreadReplyCount(event: MatrixEvent): number {
-  return props.threadReplyCountsByEventId?.get(eventId(event)) ?? 0
+  return props.threadReplyCountsByEventId?.get(eventId(event)) ?? 0;
 }
 
 function isRightAlignedGroup(senderId: string): boolean {
-  return settingsStore.messageAlignment === 'leftright' && senderId === currentUserId.value
+  return settingsStore.messageAlignment === 'leftright' && senderId === currentUserId.value;
 }
 
 function messageHasRichMediaEmbed(event: MatrixEvent): boolean {
-  const content = event.getContent()
-  if (content?.msgtype !== 'm.text' || content?.format !== 'org.matrix.custom.html')
-    return false
+  const content = event.getContent();
+  if (content?.msgtype !== 'm.text' || content?.format !== 'org.matrix.custom.html') return false;
 
-  const formattedBody = content.formatted_body
-  if (typeof formattedBody !== 'string' || !formattedBody)
-    return false
+  const formattedBody = content.formatted_body;
+  if (typeof formattedBody !== 'string' || !formattedBody) return false;
 
-  if (typeof document === 'undefined')
-    return /<img[\s>]/i.test(formattedBody)
+  if (typeof document === 'undefined') return /<img[\s>]/i.test(formattedBody);
 
-  const doc = new DOMParser().parseFromString(formattedBody, 'text/html')
-  return doc.body.querySelector('img') !== null
+  const doc = new DOMParser().parseFromString(formattedBody, 'text/html');
+  return doc.body.querySelector('img') !== null;
 }
 
 /**
@@ -80,107 +77,98 @@ function messageHasRichMediaEmbed(event: MatrixEvent): boolean {
 
 // --- 时间分割线（跨日历日时显示） ---
 function isDifferentDay(ts1: number, ts2: number): boolean {
-  const d1 = new Date(ts1)
-  const d2 = new Date(ts2)
-  return d1.getFullYear() !== d2.getFullYear()
-    || d1.getMonth() !== d2.getMonth()
-    || d1.getDate() !== d2.getDate()
+  const d1 = new Date(ts1);
+  const d2 = new Date(ts2);
+  return d1.getFullYear() !== d2.getFullYear() || d1.getMonth() !== d2.getMonth() || d1.getDate() !== d2.getDate();
 }
 
 function shouldShowTimeDivider(idx: number): boolean {
-  if (idx === 0)
-    return true
-  const prev = props.events[idx - 1]
-  const curr = props.events[idx]
-  return isDifferentDay(prev.getTs(), curr.getTs())
+  if (idx === 0) return true;
+  const prev = props.events[idx - 1];
+  const curr = props.events[idx];
+  return isDifferentDay(prev.getTs(), curr.getTs());
 }
 
 // --- 消息分组 ---
 interface MessageGroup {
-  type: 'user' | 'system'
-  senderId: string
-  hasRichMediaEmbeds: boolean
-  messages: { event: MatrixEvent, idx: number, isFirst: boolean }[]
+  type: 'user' | 'system';
+  senderId: string;
+  hasRichMediaEmbeds: boolean;
+  messages: { event: MatrixEvent; idx: number; isFirst: boolean }[];
 }
 
 const messageGroups = computed((): MessageGroup[] => {
-  const events = props.events
-  if (!events.length)
-    return []
+  const events = props.events;
+  if (!events.length) return [];
 
-  const groups: MessageGroup[] = []
-  let currentGroup: MessageGroup | null = null
+  const groups: MessageGroup[] = [];
+  let currentGroup: MessageGroup | null = null;
 
   for (let i = 0; i < events.length; i++) {
-    const ev = events[i]
+    const ev = events[i];
     // 某些事件（尤其本地回显/解密过渡期）sender 可能短暂为空，
     // 使用当前组 sender 或当前用户兜底，避免错误切组。
-    const sender: string = (ev.getSender() || currentGroup?.senderId || currentUserId.value || '') as string
+    const sender: string = (ev.getSender() || currentGroup?.senderId || currentUserId.value || '') as string;
 
     // 系统事件总是独立一组
     if (isSystemEvent(ev)) {
-      if (currentGroup?.type === 'system' && canMergeSystemEvents(currentGroup.messages.map(item => item.event), ev)) {
-        currentGroup!.messages.push({ event: ev, idx: i, isFirst: false })
-        continue
+      if (
+        currentGroup?.type === 'system' &&
+        canMergeSystemEvents(
+          currentGroup.messages.map((item) => item.event),
+          ev,
+        )
+      ) {
+        currentGroup!.messages.push({ event: ev, idx: i, isFirst: false });
+        continue;
       }
 
       if (currentGroup) {
-        groups.push(currentGroup)
+        groups.push(currentGroup);
       }
       currentGroup = {
         type: 'system',
         senderId: '__system__',
         hasRichMediaEmbeds: false,
         messages: [{ event: ev, idx: i, isFirst: true }],
-      }
-      continue
+      };
+      continue;
     }
 
     // 检查是否需要断开分组：
     // 1. 不同发送者
     // 2. 前一组是系统事件
-    const shouldBreak = !currentGroup
-      || currentGroup.type === 'system'
-      || currentGroup.senderId !== sender
+    const shouldBreak = !currentGroup || currentGroup.type === 'system' || currentGroup.senderId !== sender;
 
     if (shouldBreak) {
-      if (currentGroup)
-        groups.push(currentGroup)
+      if (currentGroup) groups.push(currentGroup);
       currentGroup = {
         type: 'user',
         senderId: sender,
         hasRichMediaEmbeds: messageHasRichMediaEmbed(ev),
         messages: [{ event: ev, idx: i, isFirst: true }],
-      }
-    }
-    else {
-      currentGroup!.messages.push({ event: ev, idx: i, isFirst: false })
-      currentGroup!.hasRichMediaEmbeds ||= messageHasRichMediaEmbed(ev)
+      };
+    } else {
+      currentGroup!.messages.push({ event: ev, idx: i, isFirst: false });
+      currentGroup!.hasRichMediaEmbeds ||= messageHasRichMediaEmbed(ev);
     }
   }
 
-  if (currentGroup)
-    groups.push(currentGroup)
-  return groups
-})
+  if (currentGroup) groups.push(currentGroup);
+  return groups;
+});
 </script>
 
 <template>
   <div>
-    <template
-      v-for="(group, gIdx) in messageGroups"
-      :key="`g-${gIdx}-${group.messages[0].event.getId()}`"
-    >
+    <template v-for="(group, gIdx) in messageGroups" :key="`g-${gIdx}-${group.messages[0].event.getId()}`">
       <!-- 系统事件 -->
       <template v-if="group.type === 'system'">
         <!-- 时间分割线 -->
-        <TimeStamp
-          v-if="shouldShowTimeDivider(group.messages[0].idx)"
-          :timestamp="group.messages[0].event.getTs()"
-        />
+        <TimeStamp v-if="shouldShowTimeDivider(group.messages[0].idx)" :timestamp="group.messages[0].event.getTs()" />
         <!-- 未读分割线 -->
         <NewMessageSeparator
-          v-if="unreadEventId && group.messages.some(item => item.event.getId() === unreadEventId)"
+          v-if="unreadEventId && group.messages.some((item) => item.event.getId() === unreadEventId)"
         />
         <div class="relative" :data-event-id="group.messages[0].event.getId()">
           <span
@@ -192,7 +180,7 @@ const messageGroups = computed((): MessageGroup[] => {
           />
           <SystemMessage
             :event="group.messages[0].event"
-            :events="group.messages.map(item => item.event)"
+            :events="group.messages.map((item) => item.event)"
             @user-click="(userId, e) => emit('userClick', userId, e)"
           />
         </div>
@@ -202,9 +190,11 @@ const messageGroups = computed((): MessageGroup[] => {
       <template v-else>
         <div
           class="group-shell relative mt-[1.0625rem] grid overflow-visible"
-          :class="isRightAlignedGroup(group.senderId)
-            ? 'grid-cols-[minmax(0,1fr)_2.5rem] items-stretch gap-x-3 pr-4 pl-12'
-            : 'grid-cols-[2.5rem_minmax(0,1fr)] items-stretch gap-x-4 pr-12 pl-4'"
+          :class="
+            isRightAlignedGroup(group.senderId)
+              ? 'grid-cols-[minmax(0,1fr)_2.5rem] items-stretch gap-x-3 pr-4 pl-12'
+              : 'grid-cols-[2.5rem_minmax(0,1fr)] items-stretch gap-x-4 pr-12 pl-4'
+          "
         >
           <!-- 左侧粘性头像（他人消息） -->
           <div
@@ -223,20 +213,17 @@ const messageGroups = computed((): MessageGroup[] => {
 
           <div
             class="min-w-0 flex flex-col space-y-[0.5px]"
-            :class="isRightAlignedGroup(group.senderId)
-              ? 'col-start-1 self-start w-full items-end max-w-[min(72%,900px)] justify-self-end'
-              : 'col-start-2 self-start w-full items-start'"
+            :class="
+              isRightAlignedGroup(group.senderId)
+                ? 'col-start-1 self-start w-full items-end max-w-[min(72%,900px)] justify-self-end'
+                : 'col-start-2 self-start w-full items-start'
+            "
           >
             <template v-for="(item, mIdx) in group.messages" :key="item.event.getId()">
               <!-- 时间分割线（仅在组首条之前） -->
-              <TimeStamp
-                v-if="mIdx === 0 && shouldShowTimeDivider(item.idx)"
-                :timestamp="item.event.getTs()"
-              />
+              <TimeStamp v-if="mIdx === 0 && shouldShowTimeDivider(item.idx)" :timestamp="item.event.getTs()" />
               <!-- 未读分割线 -->
-              <NewMessageSeparator
-                v-if="unreadEventId && item.event.getId() === unreadEventId"
-              />
+              <NewMessageSeparator v-if="unreadEventId && item.event.getId() === unreadEventId" />
               <div :data-event-id="item.event.getId()">
                 <ChatMessage
                   :event="item.event"

@@ -33,10 +33,15 @@ const ContactListStub = defineComponent({
   name: 'ContactList',
   emits: ['select'],
   setup(_, { emit }) {
-    return () => h('button', {
-      'data-testid': 'contacts-select-alice',
-      'onClick': () => emit('select', '@alice:localhost'),
-    }, 'Alice')
+    return () =>
+      h(
+        'button',
+        {
+          'data-testid': 'contacts-select-alice',
+          onClick: () => emit('select', '@alice:localhost'),
+        },
+        'Alice',
+      )
   },
 })
 
@@ -44,24 +49,31 @@ const UserProfileStub = defineComponent({
   name: 'UserProfile',
   emits: ['audioCall', 'message', 'videoCall'],
   setup(_, { emit }) {
-    return () => h('div', [
-      h('button', {
-        'data-testid': 'contacts-audio-call',
-        'onClick': () => emit('audioCall', '@alice:localhost'),
-      }, 'audio'),
-      h('button', {
-        'data-testid': 'contacts-video-call',
-        'onClick': () => emit('videoCall', '@alice:localhost'),
-      }, 'video'),
-    ])
+    return () =>
+      h('div', [
+        h(
+          'button',
+          {
+            'data-testid': 'contacts-audio-call',
+            onClick: () => emit('audioCall', '@alice:localhost'),
+          },
+          'audio',
+        ),
+        h(
+          'button',
+          {
+            'data-testid': 'contacts-video-call',
+            onClick: () => emit('videoCall', '@alice:localhost'),
+          },
+          'video',
+        ),
+      ])
   },
 })
 
 function mountContactsPage() {
   const store = useContactStore()
-  store.contacts = [
-    { userId: '@alice:localhost', displayName: 'Alice', presence: 'online' },
-  ]
+  store.contacts = [{ userId: '@alice:localhost', displayName: 'Alice', presence: 'online' }]
   store.selectedContactId = '@alice:localhost'
 
   return mount(ContactsPage, {

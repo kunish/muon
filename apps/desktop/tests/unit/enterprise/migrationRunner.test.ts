@@ -9,8 +9,7 @@ describe('loadMigrationFiles', () => {
   let dir = ''
 
   afterEach(async () => {
-    if (dir)
-      await rm(dir, { recursive: true, force: true })
+    if (dir) await rm(dir, { recursive: true, force: true })
     dir = ''
   })
 
@@ -23,7 +22,7 @@ describe('loadMigrationFiles', () => {
     const dirUrl = new URL(`${pathToFileURL(dir).href}/`)
     const files = await loadMigrationFiles(dirUrl)
 
-    expect(files.map(file => file.name)).toEqual(['0001_first.sql', '0002_second.sql'])
+    expect(files.map((file) => file.name)).toEqual(['0001_first.sql', '0002_second.sql'])
     expect(files[0].sql).toBe('-- first')
     expect(files[1].sql).toBe('-- second')
   })

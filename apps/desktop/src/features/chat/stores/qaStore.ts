@@ -17,10 +17,7 @@ export const useQaStore = defineStore('qa', () => {
   }
 
   function upsertAnswer(answer: CrossSessionQaAnswer) {
-    history.value = sortByNewest([
-      answer,
-      ...history.value.filter(item => item.id !== answer.id),
-    ])
+    history.value = sortByNewest([answer, ...history.value.filter((item) => item.id !== answer.id)])
     activeAnswer.value = answer
   }
 
@@ -37,7 +34,7 @@ export const useQaStore = defineStore('qa', () => {
   }
 
   function selectAnswer(answerId: string) {
-    activeAnswer.value = history.value.find(item => item.id === answerId) ?? activeAnswer.value
+    activeAnswer.value = history.value.find((item) => item.id === answerId) ?? activeAnswer.value
   }
 
   return {

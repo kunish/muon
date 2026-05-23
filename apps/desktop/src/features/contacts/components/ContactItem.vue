@@ -1,22 +1,22 @@
 <script setup lang="ts">
-import type { Contact } from '../stores/contactStore'
-import { getUserPresenceInfo } from '@matrix/index'
-import { Avatar } from '@muon/ui/avatar'
-import { computed } from 'vue'
+import type { Contact } from '../stores/contactStore';
+import { getUserPresenceInfo } from '@matrix/index';
+import { Avatar } from '@muon/ui/avatar';
+import { computed } from 'vue';
 
 const props = defineProps<{
-  contact: Contact
-  selected?: boolean
-}>()
+  contact: Contact;
+  selected?: boolean;
+}>();
 
 defineEmits<{
-  click: []
-  dblclick: []
-}>()
+  click: [];
+  dblclick: [];
+}>();
 
 const statusMsg = computed(() => {
-  return getUserPresenceInfo(props.contact.userId).statusMsg || ''
-})
+  return getUserPresenceInfo(props.contact.userId).statusMsg || '';
+});
 </script>
 
 <template>

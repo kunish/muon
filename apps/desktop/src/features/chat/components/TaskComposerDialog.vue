@@ -1,75 +1,76 @@
 <script setup lang="ts">
-import type { TaskStatus } from '../types/task'
-import { Label } from '@muon/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@muon/ui/select'
-import { computed, ref, watch } from 'vue'
-import { useI18n } from 'vue-i18n'
-import GroupMemberPicker from '@/features/contacts/components/GroupMemberPicker.vue'
+import type { TaskStatus } from '../types/task';
+import { Label } from '@muon/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@muon/ui/select';
+import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+import GroupMemberPicker from '@/features/contacts/components/GroupMemberPicker.vue';
 
 const props = defineProps<{
-  open: boolean
-  initialTitle?: string
-  submitting?: boolean
-}>()
+  open: boolean;
+  initialTitle?: string;
+  submitting?: boolean;
+}>();
 
 const emit = defineEmits<{
-  close: []
-  submit: [payload: { title: string, assignee: string, dueAt: string, status: TaskStatus }]
-}>()
+  close: [];
+  submit: [payload: { title: string; assignee: string; dueAt: string; status: TaskStatus }];
+}>();
 
-const { t } = useI18n()
+const { t } = useI18n();
 
-const title = ref('')
-const assigneeIds = ref<string[]>([])
-const dueAt = ref('')
-const status = ref<TaskStatus>('todo')
-const selectedAssigneeId = computed(() => assigneeIds.value[0] ?? '')
+const title = ref('');
+const assigneeIds = ref<string[]>([]);
+const dueAt = ref('');
+const status = ref<TaskStatus>('todo');
+const selectedAssigneeId = computed(() => assigneeIds.value[0] ?? '');
 
 const canSubmit = computed(() => {
-  return !!title.value.trim()
-    && !!selectedAssigneeId.value
-    && !!dueAt.value
-    && !props.submitting
-})
+  return !!title.value.trim() && !!selectedAssigneeId.value && !!dueAt.value && !props.submitting;
+});
 
 function resetForm() {
-  title.value = props.initialTitle?.trim() || ''
-  assigneeIds.value = []
-  dueAt.value = ''
-  status.value = 'todo'
+  title.value = props.initialTitle?.trim() || '';
+  assigneeIds.value = [];
+  dueAt.value = '';
+  status.value = 'todo';
 }
 
 watch(
   () => props.open,
   (open) => {
-    if (open)
-      resetForm()
+    if (open) resetForm();
   },
   { immediate: true },
-)
+);
 
 watch(assigneeIds, (ids) => {
-  if (ids.length > 1)
-    assigneeIds.value = [ids[ids.length - 1]!]
-})
+  if (ids.length > 1) assigneeIds.value = [ids[ids.length - 1]!];
+});
 
 function onSubmit() {
-  if (!canSubmit.value)
-    return
+  if (!canSubmit.value) return;
 
   emit('submit', {
     title: title.value.trim(),
     assignee: selectedAssigneeId.value,
     dueAt: dueAt.value,
     status: status.value,
-  })
+  });
 }
 </script>
 
 <template>
   <Teleport to="body">
-    <div v-if="open" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40" @click.self="emit('close')">
-      <div class="w-[360px] rounded-xl border border-border bg-background p-4 shadow-xl" data-testid="task-composer-dialog">
+    <div
+      v-if="open"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      @click.self="emit('close')"
+    >
+      <div
+        class="w-[360px] rounded-xl border border-border bg-background p-4 shadow-xl"
+        data-testid="task-composer-dialog"
+      >
         <h3 class="text-sm font-semibold">
           {{ t('chat.convert_to_task') }}
         </h3>
@@ -82,15 +83,12 @@ function onSubmit() {
               type="text"
               class="h-9 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-1 focus:ring-primary/40"
               data-testid="task-title-input"
-            >
+            />
           </Label>
 
           <div class="block">
             <span class="mb-1 block text-xs text-muted-foreground">{{ t('chat.task_assignee') }}</span>
-            <GroupMemberPicker
-              v-model="assigneeIds"
-              label="负责人"
-            />
+            <GroupMemberPicker v-model="assigneeIds" label="负责人" />
           </div>
 
           <Label class="block">
@@ -100,15 +98,12 @@ function onSubmit() {
               type="datetime-local"
               class="h-9 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-1 focus:ring-primary/40"
               data-testid="task-due-at-input"
-            >
+            />
           </Label>
 
           <div class="block">
             <span class="mb-1 block text-xs text-muted-foreground">{{ t('chat.task_status') }}</span>
-            <Select
-              v-model="status"
-              data-testid="task-status-select"
-            >
+            <Select v-model="status" data-testid="task-status-select">
               <SelectTrigger
                 class="h-9 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-1 focus:ring-primary/40"
               >

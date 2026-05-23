@@ -14,7 +14,7 @@ describe('text selection rules', () => {
     const chatMessage = readDesktopSource('src/features/chat/components/ChatMessage.vue')
     const richTextInput = readDesktopSource('src/features/chat/components/RichTextInput.vue')
 
-    expect(css).toContain('[contenteditable=\'true\']')
+    expect(css).toContain("[contenteditable='true']")
     expect(css).toContain('.rich-editor')
     expect(css).toContain('.ProseMirror')
     expect(css).toContain('.rich-message-content')

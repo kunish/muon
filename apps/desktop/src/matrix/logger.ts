@@ -11,10 +11,9 @@ const IGNORED_MATRIX_SDK_WARNINGS = [
 export function isIgnoredMatrixSdkWarning(args: unknown[]): boolean {
   const [message] = args
 
-  if (args.length !== 1 || typeof message !== 'string')
-    return false
+  if (args.length !== 1 || typeof message !== 'string') return false
 
-  return IGNORED_MATRIX_SDK_WARNINGS.some(pattern => pattern.test(message))
+  return IGNORED_MATRIX_SDK_WARNINGS.some((pattern) => pattern.test(message))
 }
 
 export function createFilteredMatrixLogger(baseLogger: Logger): Logger {
@@ -25,8 +24,7 @@ export function createFilteredMatrixLogger(baseLogger: Logger): Logger {
     info: (...args: LogArgs) => baseLogger.info(...args),
     trace: (...args: LogArgs) => baseLogger.trace(...args),
     warn: (...args: LogArgs) => {
-      if (isIgnoredMatrixSdkWarning(args))
-        return
+      if (isIgnoredMatrixSdkWarning(args)) return
 
       baseLogger.warn(...args)
     },

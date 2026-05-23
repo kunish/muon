@@ -1,17 +1,17 @@
 <script setup lang="ts">
-import { Kbd } from '@muon/ui/kbd'
-import { useI18n } from 'vue-i18n'
+import { Kbd } from '@muon/ui/kbd';
+import { useI18n } from 'vue-i18n';
 
-const { t } = useI18n()
+const { t } = useI18n();
 
-const shortcuts: { keys: string[], desc: () => string }[] = [
+const shortcuts: { keys: string[]; desc: () => string }[] = [
   { keys: ['Cmd', 'K'], desc: () => t('settings.shortcut_search') },
   { keys: ['Cmd', ','], desc: () => t('settings.shortcut_settings') },
   { keys: ['Cmd', 'N'], desc: () => t('settings.shortcut_new_chat') },
   { keys: ['Escape'], desc: () => t('settings.shortcut_close') },
   { keys: ['Enter'], desc: () => t('settings.shortcut_send') },
   { keys: ['Shift', 'Enter'], desc: () => t('settings.shortcut_newline') },
-]
+];
 </script>
 
 <template>

@@ -1,20 +1,20 @@
 <script setup lang="ts">
-import { Label } from '@muon/ui/label'
-import { Switch } from '@muon/ui/switch'
-import { Droplets, Shield, UserX } from 'lucide-vue-next'
-import { useI18n } from 'vue-i18n'
-import { useWatermark } from '@/shared/composables/useWatermark'
-import { useSettingsStore } from '../stores/settingsStore'
-import BlockedUsers from './BlockedUsers.vue'
-import DeviceList from './DeviceList.vue'
+import { Label } from '@muon/ui/label';
+import { Switch } from '@muon/ui/switch';
+import { Droplets, Shield, UserX } from 'lucide-vue-next';
+import { useI18n } from 'vue-i18n';
+import { useWatermark } from '@/shared/composables/useWatermark';
+import { useSettingsStore } from '../stores/settingsStore';
+import BlockedUsers from './BlockedUsers.vue';
+import DeviceList from './DeviceList.vue';
 
-const { t } = useI18n()
-const store = useSettingsStore()
-const { enabled } = useWatermark()
+const { t } = useI18n();
+const store = useSettingsStore();
+const { enabled } = useWatermark();
 
 function toggleWatermark() {
-  store.watermarkEnabled = !store.watermarkEnabled
-  enabled.value = store.watermarkEnabled
+  store.watermarkEnabled = !store.watermarkEnabled;
+  enabled.value = store.watermarkEnabled;
 }
 </script>
 

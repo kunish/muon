@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import type { SelectItemTextProps } from 'reka-ui'
-import { SelectItemText, useForwardProps } from 'reka-ui'
+import type { SelectItemTextProps } from 'reka-ui';
+import { SelectItemText, useForwardProps } from 'reka-ui';
 
-const props = defineProps<SelectItemTextProps>()
-const forwardedProps = useForwardProps(props)
+const props = defineProps<SelectItemTextProps>();
+const forwardedProps = useForwardProps(props);
 </script>
 
 <template>

@@ -1,21 +1,24 @@
 <script setup lang="ts">
-import type { Component, HTMLAttributes } from 'vue'
-import type { MenuItemVariants } from '.'
-import { ChevronRight } from 'lucide-vue-next'
-import { menuItemVariants } from '.'
-import { Kbd } from '../../atoms/kbd'
-import { cn } from '../../utils'
+import type { Component, HTMLAttributes } from 'vue';
+import type { MenuItemVariants } from '.';
+import { ChevronRight } from 'lucide-vue-next';
+import { menuItemVariants } from '.';
+import { Kbd } from '../../atoms/kbd';
+import { cn } from '../../utils';
 
-const props = withDefaults(defineProps<{
-  variant?: MenuItemVariants['variant']
-  leadingIcon?: Component
-  kbd?: string[]
-  hasArrow?: boolean
-  disabled?: boolean
-  class?: HTMLAttributes['class']
-}>(), { variant: 'default', hasArrow: false, disabled: false })
+const props = withDefaults(
+  defineProps<{
+    variant?: MenuItemVariants['variant'];
+    leadingIcon?: Component;
+    kbd?: string[];
+    hasArrow?: boolean;
+    disabled?: boolean;
+    class?: HTMLAttributes['class'];
+  }>(),
+  { variant: 'default', hasArrow: false, disabled: false },
+);
 
-const emits = defineEmits<{ click: [event: MouseEvent] }>()
+const emits = defineEmits<{ click: [event: MouseEvent] }>();
 </script>
 
 <template>

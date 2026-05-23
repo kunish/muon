@@ -23,7 +23,11 @@ describe('radio controlled / uncontrolled', () => {
     const wrapper = mount({
       components: { RadioGroup, Radio },
       data: () => ({ value: 'a' }),
-      methods: { onUpdate(v: string) { updates.push(v) } },
+      methods: {
+        onUpdate(v: string) {
+          updates.push(v)
+        },
+      },
       template: `
         <RadioGroup :model-value="value" @update:model-value="onUpdate">
           <Radio value="a" data-testid="a" />

@@ -47,55 +47,50 @@ export const useChatStore = defineStore('chat', () => {
   function loadDraftsFromStorage() {
     try {
       const userId = getClient().getUserId()
-      if (!userId)
-        return
+      if (!userId) return
       const key = `${DRAFTS_STORAGE_KEY}:${userId}`
       const stored = localStorage.getItem(key)
-      if (!stored)
-        return
+      if (!stored) return
       const parsed = JSON.parse(stored)
-      for (const [roomId, entry] of Object.entries(parsed) as [string, { text?: string, html?: string, preview?: string }][]) {
-        if (entry?.text)
-          drafts.set(roomId, entry.text)
-        if (entry?.html)
-          htmlDrafts.set(roomId, entry.html)
-        if (entry?.preview)
-          draftPreviews.set(roomId, entry.preview)
+      for (const [roomId, entry] of Object.entries(parsed) as [
+        string,
+        { text?: string; html?: string; preview?: string },
+      ][]) {
+        if (entry?.text) drafts.set(roomId, entry.text)
+        if (entry?.html) htmlDrafts.set(roomId, entry.html)
+        if (entry?.preview) draftPreviews.set(roomId, entry.preview)
       }
+    } catch {
+      /* ignore parse errors */
     }
-    catch { /* ignore parse errors */ }
   }
 
   function persistDrafts() {
     try {
       const userId = getClient().getUserId()
-      if (!userId)
-        return
+      if (!userId) return
       const key = `${DRAFTS_STORAGE_KEY}:${userId}`
       const allRoomIds = new Set([...drafts.keys(), ...htmlDrafts.keys(), ...draftPreviews.keys()])
       if (allRoomIds.size === 0) {
         localStorage.removeItem(key)
-      }
-      else {
-        const data: Record<string, { text?: string, html?: string, preview?: string }> = {}
+      } else {
+        const data: Record<string, { text?: string; html?: string; preview?: string }> = {}
         for (const roomId of allRoomIds) {
           const text = drafts.get(roomId)
           const html = htmlDrafts.get(roomId)
           const preview = draftPreviews.get(roomId)
           if (text || html || preview) {
             data[roomId] = {}
-            if (text)
-              data[roomId].text = text
-            if (html)
-              data[roomId].html = html
-            if (preview)
-              data[roomId].preview = preview
+            if (text) data[roomId].text = text
+            if (html) data[roomId].html = html
+            if (preview) data[roomId].preview = preview
           }
         }
         localStorage.setItem(key, JSON.stringify(data))
       }
+    } catch {
+      /* ignore storage errors */
     }
-    catch { /* ignore storage errors */ }
   }
 
   loadDraftsFromStorage()
@@ -117,8 +112,7 @@ export const useChatStore = defineStore('chat', () => {
     selectedMessages.clear()
   }
   function toggleMessageSelection(eventId: string) {
-    if (selectedMessages.has(eventId))
-      selectedMessages.delete(eventId)
+    if (selectedMessages.has(eventId)) selectedMessages.delete(eventId)
     else selectedMessages.add(eventId)
   }
   function isMessageSelected(eventId: string) {
@@ -135,8 +129,7 @@ export const useChatStore = defineStore('chat', () => {
   function toggleSidePanel(panel: SidePanelType) {
     if (activeSidePanel.value === panel) {
       activeSidePanel.value = null
-    }
-    else {
+    } else {
       activeSidePanel.value = panel
     }
   }
@@ -170,8 +163,7 @@ export const useChatStore = defineStore('chat', () => {
     // 切换房间时清理多选状态
     exitMultiSelect()
     // 进入房间时清除手动标记未读
-    if (roomId)
-      markedUnreadRooms.delete(roomId)
+    if (roomId) markedUnreadRooms.delete(roomId)
     if (roomId && options.sidebarPlacement === 'promote') {
       activeFilter.value = 'all'
       searchQuery.value = ''
@@ -223,10 +215,8 @@ export const useChatStore = defineStore('chat', () => {
 
   // --- 置顶 ---
   function applyPin(roomId: string, pinned: boolean) {
-    if (pinned)
-      pinnedRooms.add(roomId)
-    else
-      pinnedRooms.delete(roomId)
+    if (pinned) pinnedRooms.add(roomId)
+    else pinnedRooms.delete(roomId)
   }
   function setPin(roomId: string, pinned: boolean) {
     applyPin(roomId, pinned)
@@ -261,8 +251,7 @@ export const useChatStore = defineStore('chat', () => {
   function setDraft(roomId: string, text: string) {
     if (text.trim()) {
       drafts.set(roomId, text)
-    }
-    else {
+    } else {
       drafts.delete(roomId)
     }
     persistDrafts()
@@ -276,8 +265,7 @@ export const useChatStore = defineStore('chat', () => {
     const value = preview.trim()
     if (value) {
       draftPreviews.set(roomId, value)
-    }
-    else {
+    } else {
       draftPreviews.delete(roomId)
     }
     persistDrafts()
@@ -290,8 +278,7 @@ export const useChatStore = defineStore('chat', () => {
   function setHtmlDraft(roomId: string, html: string) {
     if (html.trim()) {
       htmlDrafts.set(roomId, html)
-    }
-    else {
+    } else {
       htmlDrafts.delete(roomId)
     }
     persistDrafts()
@@ -367,13 +354,10 @@ export const useChatStore = defineStore('chat', () => {
     for (const r of rooms) {
       const pendingPin = pendingPinStates.get(r.roomId)
       const isPinned = pendingPin ?? r.isPinned
-      if (pendingPin !== undefined && pendingPin === r.isPinned)
-        pendingPinStates.delete(r.roomId)
+      if (pendingPin !== undefined && pendingPin === r.isPinned) pendingPinStates.delete(r.roomId)
 
-      if (isPinned)
-        pinnedRooms.add(r.roomId)
-      if (r.isMuted)
-        mutedRooms.add(r.roomId)
+      if (isPinned) pinnedRooms.add(r.roomId)
+      if (r.isMuted) mutedRooms.add(r.roomId)
     }
   }
 
@@ -424,8 +408,12 @@ export const useChatStore = defineStore('chat', () => {
     syncServerState,
     // 隐藏消息（仅对自己删除）
     hiddenMessages,
-    hideMessage(eventId: string) { hiddenMessages.add(eventId) },
-    isHidden(eventId: string) { return hiddenMessages.has(eventId) },
+    hideMessage(eventId: string) {
+      hiddenMessages.add(eventId)
+    },
+    isHidden(eventId: string) {
+      return hiddenMessages.has(eventId)
+    },
     // 消息多选
     multiSelectMode,
     selectedMessages,

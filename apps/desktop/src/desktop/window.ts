@@ -12,8 +12,7 @@ function bridgeWindow() {
 
 export function getCurrentWindow(): DesktopWindow {
   const desktopWindow = bridgeWindow()
-  if (!desktopWindow)
-    throw new Error('Desktop window APIs are only available in Electron')
+  if (!desktopWindow) throw new Error('Desktop window APIs are only available in Electron')
 
   return {
     hide: desktopWindow.hide,

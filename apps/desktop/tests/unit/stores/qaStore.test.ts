@@ -77,6 +77,6 @@ describe('qaStore', () => {
     await store.askQuestion('New question')
 
     expect(store.activeAnswer?.id).toBe('qa-2')
-    expect(store.history.map(item => item.id)).toEqual(['qa-2', 'qa-1'])
+    expect(store.history.map((item) => item.id)).toEqual(['qa-2', 'qa-1'])
   })
 })

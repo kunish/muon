@@ -39,8 +39,7 @@ async function pingHomeserver() {
     if (resp.ok) {
       status.value = 'online'
       consecutiveFailures = 0
-    }
-    else {
+    } else {
       // 服务器返回非 2xx（如 502/503），但网络本身是通的
       consecutiveFailures++
       if (consecutiveFailures >= 2) {
@@ -48,14 +47,12 @@ async function pingHomeserver() {
         lastOfflineAt.value = lastOfflineAt.value || Date.now()
       }
     }
-  }
-  catch {
+  } catch {
     consecutiveFailures++
     // 区分：navigator.onLine 为 true 说明网络层通但服务器连不上
     if (!navigator.onLine) {
       status.value = 'offline'
-    }
-    else if (consecutiveFailures >= 2) {
+    } else if (consecutiveFailures >= 2) {
       status.value = 'server-unreachable'
     }
     lastOfflineAt.value = lastOfflineAt.value || Date.now()
@@ -63,8 +60,7 @@ async function pingHomeserver() {
 }
 
 function startPing() {
-  if (pingTimer)
-    return
+  if (pingTimer) return
   pingHomeserver()
   pingTimer = setInterval(pingHomeserver, 30_000)
 }

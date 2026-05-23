@@ -24,7 +24,9 @@ describe('windowTitleBar', () => {
   it('marks the custom title region as draggable', () => {
     const wrapper = mount(WindowTitleBar)
 
-    expect(wrapper.get('[data-testid="window-titlebar-drag-region"]').attributes()).toHaveProperty('data-electron-drag-region')
+    expect(wrapper.get('[data-testid="window-titlebar-drag-region"]').attributes()).toHaveProperty(
+      'data-electron-drag-region',
+    )
   })
 
   it('reserves the native macOS traffic light area', () => {

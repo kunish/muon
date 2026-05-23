@@ -85,10 +85,7 @@ describe('useVoiceChannel', () => {
 
     expect(voice.isDeafened.value).toBe(false)
     expect(voice.isMuted.value).toBe(true)
-    expect(setMicrophoneEnabled.mock.calls).toEqual([
-      [true],
-      [false],
-    ])
+    expect(setMicrophoneEnabled.mock.calls).toEqual([[true], [false]])
   })
 
   it('shows a localized error when joining voice fails', async () => {

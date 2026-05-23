@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import type { DialogOverlayProps } from 'reka-ui'
-import { DialogOverlay, useForwardProps } from 'reka-ui'
-import { cn } from '../../../utils'
+import type { DialogOverlayProps } from 'reka-ui';
+import { DialogOverlay, useForwardProps } from 'reka-ui';
+import { cn } from '../../../utils';
 
-const props = defineProps<DialogOverlayProps & { class?: string }>()
+const props = defineProps<DialogOverlayProps & { class?: string }>();
 
 const forwardedProps = useForwardProps(() => {
-  const { class: _, ...delegated } = props
-  return delegated
-})
+  const { class: _, ...delegated } = props;
+  return delegated;
+});
 </script>
 
 <template>

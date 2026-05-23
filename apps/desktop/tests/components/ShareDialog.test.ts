@@ -8,7 +8,7 @@ const matrixMocks = vi.hoisted(() => ({
 }))
 
 const contactListState = vi.hoisted(() => ({
-  contacts: [] as Array<{ userId: string, displayName: string, avatarUrl?: string, presence: string }>,
+  contacts: [] as Array<{ userId: string; displayName: string; avatarUrl?: string; presence: string }>,
   ensureContactsLoaded: vi.fn(),
 }))
 
@@ -74,9 +74,7 @@ describe('shareDialog', () => {
 
   it('resolves directory search results before inviting', async () => {
     matrixMocks.searchUserDirectory.mockResolvedValueOnce({
-      results: [
-        { user_id: '@alice:localhost', display_name: 'Alice' },
-      ],
+      results: [{ user_id: '@alice:localhost', display_name: 'Alice' }],
     })
     const wrapper = mountDialog()
 
@@ -139,9 +137,7 @@ describe('shareDialog', () => {
 
   it('requires a directory result to be selected before inviting', async () => {
     matrixMocks.searchUserDirectory.mockResolvedValueOnce({
-      results: [
-        { user_id: '@alice:localhost', display_name: 'Alice' },
-      ],
+      results: [{ user_id: '@alice:localhost', display_name: 'Alice' }],
     })
     const wrapper = mountDialog()
 

@@ -87,7 +87,7 @@ describe('taskPanel', () => {
     await wrapper.find('[data-testid="task-move-doing-task-1"]').trigger('click')
     await nextTick()
 
-    expect(taskStore.tasks.find(task => task.id === 'task-1')?.status).toBe('doing')
+    expect(taskStore.tasks.find((task) => task.id === 'task-1')?.status).toBe('doing')
     expect(wrapper.find('[data-testid="task-column-doing"]').text()).toContain('Todo Task')
   })
 
@@ -115,16 +115,18 @@ describe('taskPanel', () => {
 
   it('jump to source message: preloads context before navigation', async () => {
     const taskStore = useTaskStore()
-    taskStore.tasks = [{
-      id: 'task-1',
-      title: 'Todo Task',
-      assignee: '@alice:muon.dev',
-      dueAt: Date.now() + 60_000,
-      status: 'todo',
-      sourceRef: { roomId: '!room:muon.dev', eventId: '$event-1' },
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    }]
+    taskStore.tasks = [
+      {
+        id: 'task-1',
+        title: 'Todo Task',
+        assignee: '@alice:muon.dev',
+        dueAt: Date.now() + 60_000,
+        status: 'todo',
+        sourceRef: { roomId: '!room:muon.dev', eventId: '$event-1' },
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      },
+    ]
     loadInboxEventContextMock.mockResolvedValue({})
 
     const wrapper = mount(TaskPanel)
@@ -144,16 +146,18 @@ describe('taskPanel', () => {
 
   it('jump to source message: falls back to navigation when preload fails', async () => {
     const taskStore = useTaskStore()
-    taskStore.tasks = [{
-      id: 'task-1',
-      title: 'Todo Task',
-      assignee: '@alice:muon.dev',
-      dueAt: Date.now() + 60_000,
-      status: 'todo',
-      sourceRef: { roomId: '!room:muon.dev', eventId: '$event-1' },
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    }]
+    taskStore.tasks = [
+      {
+        id: 'task-1',
+        title: 'Todo Task',
+        assignee: '@alice:muon.dev',
+        dueAt: Date.now() + 60_000,
+        status: 'todo',
+        sourceRef: { roomId: '!room:muon.dev', eventId: '$event-1' },
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      },
+    ]
     loadInboxEventContextMock.mockRejectedValue(new Error('network error'))
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
 

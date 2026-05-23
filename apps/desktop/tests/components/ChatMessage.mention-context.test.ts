@@ -13,9 +13,7 @@ vi.mock('@/desktop/dialog', () => ({
 
 describe('chatMessage mention context', () => {
   it('dims timeline mentions for users outside the current room', async () => {
-    const ChatMessage = (
-      await import('@/features/chat/components/ChatMessage.vue')
-    ).default
+    const ChatMessage = (await import('@/features/chat/components/ChatMessage.vue')).default
 
     const event = {
       getId: () => '$mention1',
@@ -25,7 +23,8 @@ describe('chatMessage mention context', () => {
         msgtype: 'm.text',
         body: '@小红 @小伟',
         format: 'org.matrix.custom.html',
-        formatted_body: '<p><a href="https://matrix.to/#/@alice:localhost">小红</a> <a href="https://matrix.to/#/@edward:localhost">小伟</a></p>',
+        formatted_body:
+          '<p><a href="https://matrix.to/#/@alice:localhost">小红</a> <a href="https://matrix.to/#/@edward:localhost">小伟</a></p>',
       }),
       getTs: () => 1767225600000,
       isRedacted: () => false,

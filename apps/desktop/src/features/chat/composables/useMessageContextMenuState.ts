@@ -9,21 +9,13 @@ export function useMessageContextMenuState(open: MaybeRefOrGetter<boolean>) {
   let contributes = false
 
   function setContributes(shouldContribute: boolean): void {
-    if (shouldContribute === contributes)
-      return
+    if (shouldContribute === contributes) return
 
     contributes = shouldContribute
-    openMessageContextMenuCount.value = Math.max(
-      0,
-      openMessageContextMenuCount.value + (shouldContribute ? 1 : -1),
-    )
+    openMessageContextMenuCount.value = Math.max(0, openMessageContextMenuCount.value + (shouldContribute ? 1 : -1))
   }
 
-  watch(
-    () => Boolean(toValue(open)),
-    setContributes,
-    { immediate: true },
-  )
+  watch(() => Boolean(toValue(open)), setContributes, { immediate: true })
 
   onUnmounted(() => setContributes(false))
 

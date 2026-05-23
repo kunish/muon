@@ -29,7 +29,7 @@ describe('projectStore', () => {
     projectRepoMock.getProject.mockReset()
     projectRepoMock.listProjects.mockReset()
     projectRepoMock.saveProject.mockReset()
-    projectRepoMock.saveProject.mockImplementation(project => Promise.resolve(project))
+    projectRepoMock.saveProject.mockImplementation((project) => Promise.resolve(project))
   })
 
   it('syncs project name and description updates to the Matrix room', async () => {
@@ -55,11 +55,13 @@ describe('projectStore', () => {
 
     expect(matrixClientMock.setRoomName).toHaveBeenCalledWith('!project:localhost', '新项目')
     expect(matrixClientMock.setRoomTopic).toHaveBeenCalledWith('!project:localhost', '新的项目描述')
-    expect(projectRepoMock.saveProject).toHaveBeenCalledWith(expect.objectContaining({
-      id: '!project:localhost',
-      name: '新项目',
-      description: '新的项目描述',
-    }))
+    expect(projectRepoMock.saveProject).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: '!project:localhost',
+        name: '新项目',
+        description: '新的项目描述',
+      }),
+    )
     expect(updated.name).toBe('新项目')
   })
 

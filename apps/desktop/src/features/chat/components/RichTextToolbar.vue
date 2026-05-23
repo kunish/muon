@@ -1,52 +1,39 @@
 <script setup lang="ts">
-import type { Editor } from '@tiptap/core'
-import {
-  Bold,
-  Braces,
-  Italic,
-  Link2,
-  List,
-  ListOrdered,
-  Quote,
-  Strikethrough,
-  Underline,
-  X,
-} from 'lucide-vue-next'
-import { ref } from 'vue'
-import { useI18n } from 'vue-i18n'
+import type { Editor } from '@tiptap/core';
+import { Bold, Braces, Italic, Link2, List, ListOrdered, Quote, Strikethrough, Underline, X } from 'lucide-vue-next';
+import { ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 const props = defineProps<{
-  editor: Editor | null
-  variant: 'compact' | 'expanded'
-}>()
+  editor: Editor | null;
+  variant: 'compact' | 'expanded';
+}>();
 
-const { t } = useI18n()
+const { t } = useI18n();
 
-const showLinkEditor = ref(false)
-const linkUrl = ref('')
+const showLinkEditor = ref(false);
+const linkUrl = ref('');
 
 function toggleLinkEditor() {
-  if (!props.editor)
-    return
-  linkUrl.value = (props.editor.getAttributes('link').href as string | undefined) || ''
-  showLinkEditor.value = !showLinkEditor.value
+  if (!props.editor) return;
+  linkUrl.value = (props.editor.getAttributes('link').href as string | undefined) || '';
+  showLinkEditor.value = !showLinkEditor.value;
 }
 
 function applyLink() {
-  if (!props.editor)
-    return
-  const nextHref = linkUrl.value.trim()
+  if (!props.editor) return;
+  const nextHref = linkUrl.value.trim();
   if (!nextHref) {
-    props.editor.chain().focus().extendMarkRange('link').unsetLink().run()
-    showLinkEditor.value = false
-    return
+    props.editor.chain().focus().extendMarkRange('link').unsetLink().run();
+    showLinkEditor.value = false;
+    return;
   }
-  props.editor.chain().focus().extendMarkRange('link').setLink({ href: nextHref }).run()
-  showLinkEditor.value = false
+  props.editor.chain().focus().extendMarkRange('link').setLink({ href: nextHref }).run();
+  showLinkEditor.value = false;
 }
 
 function closeLinkEditor() {
-  showLinkEditor.value = false
+  showLinkEditor.value = false;
 }
 </script>
 
@@ -209,11 +196,15 @@ function closeLinkEditor() {
         :class="variant === 'compact' ? 'w-40' : 'w-44'"
         :placeholder="t('chat.format_link_prompt')"
         @keydown.stop
-      >
+      />
       <button type="submit" class="inline-flex h-6 w-6 items-center justify-center rounded hover:bg-accent">
         <Link2 :size="13" />
       </button>
-      <button type="button" class="inline-flex h-6 w-6 items-center justify-center rounded hover:bg-accent" @click="closeLinkEditor">
+      <button
+        type="button"
+        class="inline-flex h-6 w-6 items-center justify-center rounded hover:bg-accent"
+        @click="closeLinkEditor"
+      >
         <X :size="13" />
       </button>
     </form>

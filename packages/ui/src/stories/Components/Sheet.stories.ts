@@ -1,13 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/vue3'
 import { Button } from '../../atoms/button'
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from '../../components/ui/sheet'
+import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '../../components/ui/sheet'
 
 const meta: Meta<typeof Sheet> = {
   title: 'Components/Sheet',

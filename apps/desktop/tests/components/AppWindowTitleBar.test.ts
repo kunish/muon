@@ -19,8 +19,8 @@ vi.mock('@/auth/lifecycle', () => ({
   bootstrap: lifecycleMocks.bootstrap,
 }))
 
-vi.mock('vue-router', async importOriginal => ({
-  ...await importOriginal<typeof import('vue-router')>(),
+vi.mock('vue-router', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('vue-router')>()),
   useRouter: () => ({
     replace: routerReplace,
   }),

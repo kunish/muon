@@ -28,19 +28,21 @@ export default meta
 type Story = StoryObj
 
 export const Success: Story = {
-  render: () => makeToastStory(() => {
-    toast.success('设置已保存', {
-      description: '所有偏好同步到了云端账号。',
-      duration: Number.POSITIVE_INFINITY,
-    })
-  }),
+  render: () =>
+    makeToastStory(() => {
+      toast.success('设置已保存', {
+        description: '所有偏好同步到了云端账号。',
+        duration: Number.POSITIVE_INFINITY,
+      })
+    }),
 }
 
 export const Error: Story = {
-  render: () => makeToastStory(() => {
-    toast.error('网络连接失败', {
-      description: '请检查网络后重试。',
-      duration: Number.POSITIVE_INFINITY,
-    })
-  }),
+  render: () =>
+    makeToastStory(() => {
+      toast.error('网络连接失败', {
+        description: '请检查网络后重试。',
+        duration: Number.POSITIVE_INFINITY,
+      })
+    }),
 }

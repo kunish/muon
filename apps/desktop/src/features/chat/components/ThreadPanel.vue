@@ -1,108 +1,102 @@
 <script setup lang="ts">
-import type { MatrixEvent } from 'matrix-js-sdk'
-import { getClient } from '@matrix/client'
-import { matrixEvents } from '@matrix/events'
-import { getThreadReplies, sendThreadReply } from '@matrix/index'
-import { format } from 'date-fns'
-import { MessageSquare, Send, X } from 'lucide-vue-next'
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { toast } from 'vue-sonner'
-import { useChatStore } from '../stores/chatStore'
+import type { MatrixEvent } from 'matrix-js-sdk';
+import { getClient } from '@matrix/client';
+import { matrixEvents } from '@matrix/events';
+import { getThreadReplies, sendThreadReply } from '@matrix/index';
+import { format } from 'date-fns';
+import { MessageSquare, Send, X } from 'lucide-vue-next';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { toast } from 'vue-sonner';
+import { useChatStore } from '../stores/chatStore';
 
 const props = defineProps<{
-  roomId: string
-  threadRootId: string
-}>()
+  roomId: string;
+  threadRootId: string;
+}>();
 
-const store = useChatStore()
-const { t } = useI18n()
-const replyText = ref('')
-const sending = ref(false)
-const listRef = ref<HTMLElement | null>(null)
+const store = useChatStore();
+const { t } = useI18n();
+const replyText = ref('');
+const sending = ref(false);
+const listRef = ref<HTMLElement | null>(null);
 
-const client = getClient()
+const client = getClient();
 
 // --- Thread root event ---
 const rootEvent = computed(() => {
-  const room = client.getRoom(props.roomId)
-  return room?.findEventById(props.threadRootId) || null
-})
+  const room = client.getRoom(props.roomId);
+  return room?.findEventById(props.threadRootId) || null;
+});
 
-const rootBody = computed(() => rootEvent.value?.getContent()?.body || '')
+const rootBody = computed(() => rootEvent.value?.getContent()?.body || '');
 const rootSender = computed(() => {
-  if (!rootEvent.value)
-    return ''
-  const room = client.getRoom(props.roomId)
-  const member = room?.getMember(rootEvent.value.getSender()!)
-  return member?.name || rootEvent.value.getSender() || ''
-})
+  if (!rootEvent.value) return '';
+  const room = client.getRoom(props.roomId);
+  const member = room?.getMember(rootEvent.value.getSender()!);
+  return member?.name || rootEvent.value.getSender() || '';
+});
 const rootTime = computed(() => {
-  if (!rootEvent.value)
-    return ''
-  return format(rootEvent.value.getTs(), 'MM/dd HH:mm')
-})
+  if (!rootEvent.value) return '';
+  return format(rootEvent.value.getTs(), 'MM/dd HH:mm');
+});
 
 // --- Thread replies ---
-const replies = shallowRef<MatrixEvent[]>(getThreadReplies(props.roomId, props.threadRootId))
+const replies = shallowRef<MatrixEvent[]>(getThreadReplies(props.roomId, props.threadRootId));
 
 function refreshReplies(payload: { roomId: string }) {
-  if (payload.roomId === props.roomId)
-    replies.value = getThreadReplies(props.roomId, props.threadRootId)
+  if (payload.roomId === props.roomId) replies.value = getThreadReplies(props.roomId, props.threadRootId);
 }
 
 onMounted(() => {
-  matrixEvents.on('room.timeline', refreshReplies)
-  matrixEvents.on('room.localEchoUpdated', refreshReplies)
-})
+  matrixEvents.on('room.timeline', refreshReplies);
+  matrixEvents.on('room.localEchoUpdated', refreshReplies);
+});
 
 onBeforeUnmount(() => {
-  matrixEvents.off('room.timeline', refreshReplies)
-  matrixEvents.off('room.localEchoUpdated', refreshReplies)
-})
+  matrixEvents.off('room.timeline', refreshReplies);
+  matrixEvents.off('room.localEchoUpdated', refreshReplies);
+});
 
 function getSenderName(event: MatrixEvent): string {
-  const room = client.getRoom(props.roomId)
-  const member = room?.getMember(event.getSender()!)
-  return member?.name || event.getSender() || ''
+  const room = client.getRoom(props.roomId);
+  const member = room?.getMember(event.getSender()!);
+  return member?.name || event.getSender() || '';
 }
 
 function getTime(event: MatrixEvent): string {
-  return format(event.getTs(), 'HH:mm')
+  return format(event.getTs(), 'HH:mm');
 }
 
 // --- Send reply ---
 async function onSend() {
-  const text = replyText.value.trim()
-  if (!text || sending.value)
-    return
-  sending.value = true
+  const text = replyText.value.trim();
+  if (!text || sending.value) return;
+  sending.value = true;
   try {
-    await sendThreadReply(props.roomId, props.threadRootId, text)
-    replyText.value = ''
-    await nextTick()
-    listRef.value?.scrollTo({ top: listRef.value.scrollHeight, behavior: 'smooth' })
-  }
-  catch {
-    toast.error(t('chat.send_failed'))
-  }
-  finally {
-    sending.value = false
+    await sendThreadReply(props.roomId, props.threadRootId, text);
+    replyText.value = '';
+    await nextTick();
+    listRef.value?.scrollTo({ top: listRef.value.scrollHeight, behavior: 'smooth' });
+  } catch {
+    toast.error(t('chat.send_failed'));
+  } finally {
+    sending.value = false;
   }
 }
 
 function onKeydown(e: KeyboardEvent) {
   if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault()
-    onSend()
+    e.preventDefault();
+    onSend();
   }
 }
 
 // Auto scroll on new replies
 watch(replies, async () => {
-  await nextTick()
-  listRef.value?.scrollTo({ top: listRef.value.scrollHeight, behavior: 'smooth' })
-})
+  await nextTick();
+  listRef.value?.scrollTo({ top: listRef.value.scrollHeight, behavior: 'smooth' });
+});
 </script>
 
 <template>
@@ -135,15 +129,14 @@ watch(replies, async () => {
 
     <!-- Replies list -->
     <div ref="listRef" class="flex-1 overflow-y-auto px-4 py-2 space-y-3">
-      <div v-if="replies.length === 0" class="flex flex-col items-center justify-center h-full text-muted-foreground text-sm">
+      <div
+        v-if="replies.length === 0"
+        class="flex flex-col items-center justify-center h-full text-muted-foreground text-sm"
+      >
         <MessageSquare :size="32" class="mb-2 opacity-30" />
         {{ t('chat.thread_no_replies') }}
       </div>
-      <div
-        v-for="ev in replies"
-        :key="ev.getId()"
-        class="group"
-      >
+      <div v-for="ev in replies" :key="ev.getId()" class="group">
         <div class="flex items-baseline gap-2 mb-0.5">
           <span class="text-xs font-medium">{{ getSenderName(ev) }}</span>
           <span class="text-[10px] text-muted-foreground">{{ getTime(ev) }}</span>
@@ -166,9 +159,11 @@ watch(replies, async () => {
         />
         <button
           class="shrink-0 p-2 rounded-lg transition-colors cursor-pointer"
-          :class="replyText.trim()
-            ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-            : 'bg-muted text-muted-foreground'"
+          :class="
+            replyText.trim()
+              ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+              : 'bg-muted text-muted-foreground'
+          "
           :disabled="!replyText.trim() || sending"
           @click="onSend"
         >

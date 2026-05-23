@@ -15,15 +15,12 @@ export function setAuthMediaResolver(resolver: AuthMediaResolver | undefined): v
 }
 
 async function resolve(mxcUrl: string, width?: number, height?: number): Promise<string | undefined> {
-  if (!authMediaResolver)
-    return undefined
+  if (!authMediaResolver) return undefined
 
   const key = `${mxcUrl}|${width ?? 0}|${height ?? 0}`
-  if (cache.has(key))
-    return cache.get(key)
+  if (cache.has(key)) return cache.get(key)
 
-  if (pending.has(key))
-    return pending.get(key)
+  if (pending.has(key)) return pending.get(key)
 
   const p = authMediaResolver(mxcUrl, width, height).then((blob) => {
     cache.set(key, blob)
@@ -34,24 +31,24 @@ async function resolve(mxcUrl: string, width?: number, height?: number): Promise
   return p
 }
 
-export function useAuthMedia(
-  mxcUrl: Ref<string | undefined> | (() => string | undefined),
-  width = 48,
-  height = 48,
-) {
+export function useAuthMedia(mxcUrl: Ref<string | undefined> | (() => string | undefined), width = 48, height = 48) {
   const src = ref<string | undefined>()
 
-  watch(mxcUrl, async (url) => {
-    if (!url) {
-      src.value = undefined
-      return
-    }
-    if (!url.startsWith('mxc://')) {
-      src.value = url
-      return
-    }
-    src.value = await resolve(url, width, height)
-  }, { immediate: true })
+  watch(
+    mxcUrl,
+    async (url) => {
+      if (!url) {
+        src.value = undefined
+        return
+      }
+      if (!url.startsWith('mxc://')) {
+        src.value = url
+        return
+      }
+      src.value = await resolve(url, width, height)
+    },
+    { immediate: true },
+  )
 
   return src
 }

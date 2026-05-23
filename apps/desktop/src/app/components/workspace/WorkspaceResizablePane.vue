@@ -1,17 +1,17 @@
 <script setup lang="ts">
-import { useResizablePane } from '@/shared/composables/useResizablePane'
+import { useResizablePane } from '@/shared/composables/useResizablePane';
 
 interface Props {
-  widthStorageKey: string
-  defaultWidth: number
-  minWidth: number
-  maxWidth: number
-  resizeLabel: string
-  as?: 'aside' | 'nav' | 'div'
-  paneTestId?: string
-  contentTestId?: string
-  handleTestId?: string
-  contentClass?: string
+  widthStorageKey: string;
+  defaultWidth: number;
+  minWidth: number;
+  maxWidth: number;
+  resizeLabel: string;
+  as?: 'aside' | 'nav' | 'div';
+  paneTestId?: string;
+  contentTestId?: string;
+  handleTestId?: string;
+  contentClass?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -20,21 +20,14 @@ const props = withDefaults(defineProps<Props>(), {
   contentTestId: undefined,
   handleTestId: undefined,
   contentClass: 'flex h-full min-h-0 flex-col overflow-hidden',
-})
+});
 
-const {
-  paneWidth,
-  paneStyle,
-  isResizing,
-  startResize,
-  restorePane,
-  onResizeHandleKeydown,
-} = useResizablePane({
+const { paneWidth, paneStyle, isResizing, startResize, restorePane, onResizeHandleKeydown } = useResizablePane({
   widthStorageKey: props.widthStorageKey,
   defaultWidth: props.defaultWidth,
   minWidth: props.minWidth,
   maxWidth: props.maxWidth,
-})
+});
 </script>
 
 <template>
@@ -45,10 +38,7 @@ const {
     :class="isResizing && 'transition-none'"
     :style="paneStyle"
   >
-    <div
-      :data-testid="contentTestId"
-      :class="contentClass"
-    >
+    <div :data-testid="contentTestId" :class="contentClass">
       <slot />
     </div>
 

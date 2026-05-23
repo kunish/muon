@@ -25,13 +25,9 @@ describe('useDocCursor', () => {
   })
 
   it('subscribes to provider cursor events and exposes remote collaborators', () => {
-    let remoteHandler: ((cursor: {
-      userId: string
-      name: string
-      color: string
-      from: number
-      to: number
-    }) => void) | undefined
+    let remoteHandler:
+      | ((cursor: { userId: string; name: string; color: string; from: number; to: number }) => void)
+      | undefined
     const dispose = vi.fn()
     const provider = {
       sendCursor: vi.fn(),
@@ -52,13 +48,15 @@ describe('useDocCursor', () => {
       to: 7,
     })
 
-    expect(cursor.others.value).toEqual([{
-      userId: '@alice:localhost',
-      name: 'Alice',
-      color: '#2563eb',
-      from: 2,
-      to: 7,
-    }])
+    expect(cursor.others.value).toEqual([
+      {
+        userId: '@alice:localhost',
+        name: 'Alice',
+        color: '#2563eb',
+        from: 2,
+        to: 7,
+      },
+    ])
 
     scope.stop()
     expect(dispose).toHaveBeenCalled()

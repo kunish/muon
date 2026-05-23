@@ -22,7 +22,7 @@ const AdminRoutePlaceholder = {
 }
 
 export function isAdminSection(value: unknown): value is AdminSection {
-  return adminSections.some(section => section.id === value)
+  return adminSections.some((section) => section.id === value)
 }
 
 export const adminRoutes: RouteRecordRaw[] = [
@@ -30,7 +30,7 @@ export const adminRoutes: RouteRecordRaw[] = [
     path: '/',
     redirect: { name: 'admin-organizations' },
   },
-  ...adminSections.map(section => ({
+  ...adminSections.map((section) => ({
     path: `/${section.id}`,
     name: section.routeName,
     component: AdminRoutePlaceholder,
@@ -43,12 +43,10 @@ export const adminRoutes: RouteRecordRaw[] = [
 ]
 
 export function normalizeLegacyAdminHash() {
-  if (typeof window === 'undefined')
-    return
+  if (typeof window === 'undefined') return
 
   const section = window.location.hash.replace(/^#/, '')
-  if (!isAdminSection(section))
-    return
+  if (!isAdminSection(section)) return
 
   window.history.replaceState(
     window.history.state,

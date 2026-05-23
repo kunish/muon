@@ -6,24 +6,18 @@ import { INBOX_PROCESSED_STORAGE_KEY } from '../types/unifiedInbox'
 function loadProcessedIds(): Set<string> {
   try {
     const raw = localStorage.getItem(INBOX_PROCESSED_STORAGE_KEY)
-    if (!raw)
-      return new Set()
+    if (!raw) return new Set()
     const parsed = JSON.parse(raw) as { processedIds?: string[] }
     return new Set(parsed.processedIds ?? [])
-  }
-  catch {
+  } catch {
     return new Set()
   }
 }
 
 function persistProcessedIds(ids: Set<string>) {
   try {
-    localStorage.setItem(
-      INBOX_PROCESSED_STORAGE_KEY,
-      JSON.stringify({ processedIds: [...ids] }),
-    )
-  }
-  catch {
+    localStorage.setItem(INBOX_PROCESSED_STORAGE_KEY, JSON.stringify({ processedIds: [...ids] }))
+  } catch {
     // 忽略持久化异常（如隐私模式）
   }
 }
@@ -35,8 +29,7 @@ export const useInboxStore = defineStore('inbox', () => {
   const hydrated = ref(false)
 
   function hydrateProcessed() {
-    if (hydrated.value)
-      return
+    if (hydrated.value) return
     hydrated.value = true
     processedItemIds.clear()
     for (const id of loadProcessedIds()) {
@@ -49,8 +42,7 @@ export const useInboxStore = defineStore('inbox', () => {
   }
 
   function toggleSelection(itemId: string) {
-    if (selectedItemIds.has(itemId))
-      selectedItemIds.delete(itemId)
+    if (selectedItemIds.has(itemId)) selectedItemIds.delete(itemId)
     else selectedItemIds.add(itemId)
   }
 
@@ -82,8 +74,7 @@ export const useInboxStore = defineStore('inbox', () => {
   }
 
   function markSelectedProcessed() {
-    if (selectedItemIds.size === 0)
-      return
+    if (selectedItemIds.size === 0) return
     markProcessedBatch([...selectedItemIds])
     clearSelection()
   }

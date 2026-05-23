@@ -68,9 +68,7 @@ function createChannel(overrides: Partial<ChannelInfo> = {}): ChannelInfo {
 
 describe('context menu hover state', () => {
   it('keeps a chat message visually hovered while its context menu is open', async () => {
-    const ChatMessage = (
-      await import('@/features/chat/components/ChatMessage.vue')
-    ).default
+    const ChatMessage = (await import('@/features/chat/components/ChatMessage.vue')).default
 
     const event = {
       getId: () => '$event1',
@@ -108,9 +106,7 @@ describe('context menu hover state', () => {
   })
 
   it('hides the chat message action bar while its context menu is open', async () => {
-    const ChatMessage = (
-      await import('@/features/chat/components/ChatMessage.vue')
-    ).default
+    const ChatMessage = (await import('@/features/chat/components/ChatMessage.vue')).default
 
     const event = {
       getId: () => '$event1',
@@ -153,9 +149,7 @@ describe('context menu hover state', () => {
   })
 
   it('keeps the chat message context menu away from the viewport edge', async () => {
-    const ChatMessage = (
-      await import('@/features/chat/components/ChatMessage.vue')
-    ).default
+    const ChatMessage = (await import('@/features/chat/components/ChatMessage.vue')).default
 
     const event = {
       getId: () => '$event1',
@@ -225,14 +219,15 @@ describe('context menu hover state', () => {
       await nextTick()
       await nextTick()
 
-      const menu = Array.from(document.body.querySelectorAll<HTMLElement>('div.fixed'))
-        .find(el => el.textContent?.includes('回复')) ?? null
+      const menu =
+        Array.from(document.body.querySelectorAll<HTMLElement>('div.fixed')).find((el) =>
+          el.textContent?.includes('回复'),
+        ) ?? null
 
       expect(menu).not.toBeNull()
       expect(menu?.style.left).toBe('124px')
       expect(menu?.style.top).toBe('72px')
-    }
-    finally {
+    } finally {
       rectSpy.mockRestore()
       Object.defineProperty(window, 'innerHeight', { configurable: true, value: originalInnerHeight })
       Object.defineProperty(window, 'innerWidth', { configurable: true, value: originalInnerWidth })
@@ -242,9 +237,7 @@ describe('context menu hover state', () => {
   })
 
   it('hides action bars from adjacent messages while a context menu is open', async () => {
-    const ChatMessage = (
-      await import('@/features/chat/components/ChatMessage.vue')
-    ).default
+    const ChatMessage = (await import('@/features/chat/components/ChatMessage.vue')).default
 
     const firstEvent = {
       getId: () => '$event1',
@@ -303,9 +296,7 @@ describe('context menu hover state', () => {
   })
 
   it('renders the chat message action bar as a fixed body-level overlay', async () => {
-    const ChatMessage = (
-      await import('@/features/chat/components/ChatMessage.vue')
-    ).default
+    const ChatMessage = (await import('@/features/chat/components/ChatMessage.vue')).default
 
     const event = {
       getId: () => '$event1',
@@ -392,8 +383,7 @@ describe('context menu hover state', () => {
       expect(actionBarHost?.classList.contains('z-[190]')).toBe(true)
       expect(actionBarHost?.style.left).not.toBe('')
       expect(actionBarHost?.style.top).not.toBe('')
-    }
-    finally {
+    } finally {
       rectSpy.mockRestore()
       Object.defineProperty(window, 'innerHeight', { configurable: true, value: originalInnerHeight })
       Object.defineProperty(window, 'innerWidth', { configurable: true, value: originalInnerWidth })
@@ -403,9 +393,7 @@ describe('context menu hover state', () => {
   })
 
   it('keeps the chat message action bar mounted while its menu is open', async () => {
-    const ChatMessage = (
-      await import('@/features/chat/components/ChatMessage.vue')
-    ).default
+    const ChatMessage = (await import('@/features/chat/components/ChatMessage.vue')).default
 
     const event = {
       getId: () => '$event1',
@@ -453,9 +441,7 @@ describe('context menu hover state', () => {
   })
 
   it('hides the chat message action bar after an outside pointer down', async () => {
-    const ChatMessage = (
-      await import('@/features/chat/components/ChatMessage.vue')
-    ).default
+    const ChatMessage = (await import('@/features/chat/components/ChatMessage.vue')).default
 
     const event = {
       getId: () => '$event1',
@@ -498,17 +484,14 @@ describe('context menu hover state', () => {
       await nextTick()
 
       expect(document.body.querySelector('[data-testid="chat-message-action-bar"]')).toBeNull()
-    }
-    finally {
+    } finally {
       wrapper.unmount()
       document.body.innerHTML = ''
     }
   })
 
   it('keeps a conversation row visually hovered while its context menu is open', async () => {
-    const ConversationItem = (
-      await import('@/features/chat/components/ConversationItem.vue')
-    ).default
+    const ConversationItem = (await import('@/features/chat/components/ConversationItem.vue')).default
 
     const wrapper = mount(ConversationItem, {
       props: {
@@ -523,9 +506,7 @@ describe('context menu hover state', () => {
   })
 
   it('keeps the conversation context menu away from the viewport edge', async () => {
-    const ConversationContextMenu = (
-      await import('@/features/chat/components/ConversationContextMenu.vue')
-    ).default
+    const ConversationContextMenu = (await import('@/features/chat/components/ConversationContextMenu.vue')).default
     const { useChatStore } = await import('@/features/chat/stores/chatStore')
     const store = useChatStore()
 
@@ -576,8 +557,7 @@ describe('context menu hover state', () => {
       expect(menu).not.toBeNull()
       expect(menu?.style.left).toBe('124px')
       expect(menu?.style.top).toBe('48px')
-    }
-    finally {
+    } finally {
       rectSpy.mockRestore()
       Object.defineProperty(window, 'innerHeight', { configurable: true, value: originalInnerHeight })
       Object.defineProperty(window, 'innerWidth', { configurable: true, value: originalInnerWidth })
@@ -588,9 +568,7 @@ describe('context menu hover state', () => {
   })
 
   it('keeps a text channel row visually hovered while its context menu is open', async () => {
-    const TextChannelItem = (
-      await import('@/features/server/components/TextChannelItem.vue')
-    ).default
+    const TextChannelItem = (await import('@/features/server/components/TextChannelItem.vue')).default
     const serverStore = useServerStore()
     serverStore.currentChannelId = '!other:localhost'
 

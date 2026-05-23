@@ -1,24 +1,24 @@
 <script setup lang="ts">
-import { Button } from '@muon/ui/button'
-import { Plus } from 'lucide-vue-next'
-import { onMounted, ref } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
-import { useProjectStore } from '../composables/useProjectStore'
-import ProjectCreateDialog from './ProjectCreateDialog.vue'
+import { Button } from '@muon/ui/button';
+import { Plus } from 'lucide-vue-next';
+import { onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useRouter } from 'vue-router';
+import { useProjectStore } from '../composables/useProjectStore';
+import ProjectCreateDialog from './ProjectCreateDialog.vue';
 
-const { t } = useI18n()
-const router = useRouter()
-const store = useProjectStore()
-const showCreateDialog = ref(false)
+const { t } = useI18n();
+const router = useRouter();
+const store = useProjectStore();
+const showCreateDialog = ref(false);
 
 onMounted(() => {
-  store.loadProjects()
-})
+  store.loadProjects();
+});
 
 function openProject(id: string) {
-  store.setCurrentProject(id)
-  router.push(`/projects/${id}`)
+  store.setCurrentProject(id);
+  router.push(`/projects/${id}`);
 }
 </script>
 
@@ -38,14 +38,20 @@ function openProject(id: string) {
       {{ t('common.loading') }}
     </div>
 
-    <div v-else-if="store.projects.length === 0" class="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 text-muted-foreground">
+    <div
+      v-else-if="store.projects.length === 0"
+      class="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 text-muted-foreground"
+    >
       <p>{{ t('projects.empty') }}</p>
       <Button variant="outline" @click="showCreateDialog = true">
         {{ t('projects.create_first') }}
       </Button>
     </div>
 
-    <div v-else class="grid min-h-0 flex-1 auto-rows-[10rem] gap-4 overflow-auto p-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+    <div
+      v-else
+      class="grid min-h-0 flex-1 auto-rows-[10rem] gap-4 overflow-auto p-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+    >
       <button
         v-for="project in store.projects"
         :key="project.id"

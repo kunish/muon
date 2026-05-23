@@ -91,14 +91,14 @@ describe('taskStore', () => {
 
     const grouped = store.tasksByStatus
     const allIds = new Set([
-      ...grouped.todo.map(item => item.id),
-      ...grouped.doing.map(item => item.id),
-      ...grouped.done.map(item => item.id),
+      ...grouped.todo.map((item) => item.id),
+      ...grouped.doing.map((item) => item.id),
+      ...grouped.done.map((item) => item.id),
     ])
 
-    expect(grouped.todo.map(item => item.id)).toContain('todo-1')
-    expect(grouped.doing.map(item => item.id)).toContain('doing-1')
-    expect(grouped.done.map(item => item.id)).toContain('done-1')
+    expect(grouped.todo.map((item) => item.id)).toContain('todo-1')
+    expect(grouped.doing.map((item) => item.id)).toContain('doing-1')
+    expect(grouped.done.map((item) => item.id)).toContain('done-1')
     expect(allIds.size).toBe(3)
   })
 

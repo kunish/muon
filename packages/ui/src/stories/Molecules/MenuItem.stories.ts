@@ -18,7 +18,12 @@ export default meta
 type Story = StoryObj<typeof MenuItem>
 
 export const Default: Story = {
-  render: args => ({ components: { MenuItem }, setup: () => ({ args }), template: '<div class="w-56 rounded-lg border border-border bg-popover p-1"><MenuItem v-bind="args">Edit</MenuItem></div>' }),
+  render: (args) => ({
+    components: { MenuItem },
+    setup: () => ({ args }),
+    template:
+      '<div class="w-56 rounded-lg border border-border bg-popover p-1"><MenuItem v-bind="args">Edit</MenuItem></div>',
+  }),
 }
 
 export const Variants: Story = {

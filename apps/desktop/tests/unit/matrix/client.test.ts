@@ -41,9 +41,11 @@ describe('matrix client', () => {
       deviceId: 'MOCK_DEVICE',
     })
 
-    expect(mocks.createClient).toHaveBeenCalledWith(expect.objectContaining({
-      fetchFn: matrixFetch,
-      logger: matrixClientLogger,
-    }))
+    expect(mocks.createClient).toHaveBeenCalledWith(
+      expect.objectContaining({
+        fetchFn: matrixFetch,
+        logger: matrixClientLogger,
+      }),
+    )
   })
 })

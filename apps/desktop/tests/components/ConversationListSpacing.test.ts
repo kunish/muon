@@ -88,8 +88,7 @@ function mountConversationList() {
 
 describe('conversation list spacing', () => {
   beforeEach(() => {
-    for (const key of Object.keys(routeParams))
-      delete routeParams[key]
+    for (const key of Object.keys(routeParams)) delete routeParams[key]
     rooms.splice(
       0,
       rooms.length,
@@ -218,8 +217,8 @@ describe('conversation list spacing', () => {
 
     const wrapper = mountConversationList()
     const rows = wrapper.findAllComponents({ name: 'ConversationItem' })
-    const oldRow = rows.find(row => row.props('room').roomId === '!old:localhost')
-    const currentRow = rows.find(row => row.props('room').roomId === '!current:localhost')
+    const oldRow = rows.find((row) => row.props('room').roomId === '!old:localhost')
+    const currentRow = rows.find((row) => row.props('room').roomId === '!current:localhost')
 
     expect(oldRow?.props('active')).toBe(false)
     expect(currentRow?.props('active')).toBe(true)

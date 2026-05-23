@@ -1,231 +1,266 @@
 <script setup lang="ts">
-import {
-  CalendarDays,
-  ChevronLeft,
-  ChevronRight,
-  Clock,
-  MapPin,
-  Plus,
-  Users,
-} from 'lucide-vue-next'
-import { computed, onMounted, ref, shallowRef } from 'vue'
-import { useI18n } from 'vue-i18n'
-import WorkspacePageFrame from '@/app/components/workspace/WorkspacePageFrame.vue'
-import GroupMemberPicker from '@/features/contacts/components/GroupMemberPicker.vue'
-import { projectRepo } from '@/features/projects/db/projectDb'
-import { useContactList } from '@/shared/composables/useContactList'
+import { CalendarDays, ChevronLeft, ChevronRight, Clock, MapPin, Plus, Users } from 'lucide-vue-next';
+import { computed, onMounted, ref, shallowRef } from 'vue';
+import { useI18n } from 'vue-i18n';
+import WorkspacePageFrame from '@/app/components/workspace/WorkspacePageFrame.vue';
+import GroupMemberPicker from '@/features/contacts/components/GroupMemberPicker.vue';
+import { projectRepo } from '@/features/projects/db/projectDb';
+import { useContactList } from '@/shared/composables/useContactList';
 
-const { t } = useI18n()
-const contactList = useContactList()
+const { t } = useI18n();
+const contactList = useContactList();
 
 // ── View mode ──
-type CalendarView = 'month' | 'week' | 'day'
-const viewMode = ref<CalendarView>('month')
+type CalendarView = 'month' | 'week' | 'day';
+const viewMode = ref<CalendarView>('month');
 
 // ── Date state ──
-const today = new Date()
-const cursorDate = ref(new Date(today.getFullYear(), today.getMonth(), 1))
-const selectedDate = ref(new Date(today.getFullYear(), today.getMonth(), today.getDate()))
+const today = new Date();
+const cursorDate = ref(new Date(today.getFullYear(), today.getMonth(), 1));
+const selectedDate = ref(new Date(today.getFullYear(), today.getMonth(), today.getDate()));
 
-const cursorYear = computed(() => cursorDate.value.getFullYear())
-const cursorMonth = computed(() => cursorDate.value.getMonth())
+const cursorYear = computed(() => cursorDate.value.getFullYear());
+const cursorMonth = computed(() => cursorDate.value.getMonth());
 
 // ── Weekday labels ──
-const weekDays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+const weekDays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
 
 // ── Navigation ──
 function goToday() {
-  cursorDate.value = new Date(today.getFullYear(), today.getMonth(), 1)
-  selectedDate.value = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+  cursorDate.value = new Date(today.getFullYear(), today.getMonth(), 1);
+  selectedDate.value = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 }
 
 function prevMonth() {
-  cursorDate.value = new Date(cursorYear.value, cursorMonth.value - 1, 1)
+  cursorDate.value = new Date(cursorYear.value, cursorMonth.value - 1, 1);
 }
 
 function nextMonth() {
-  cursorDate.value = new Date(cursorYear.value, cursorMonth.value + 1, 1)
+  cursorDate.value = new Date(cursorYear.value, cursorMonth.value + 1, 1);
 }
 
 function prevWeek() {
-  const d = new Date(selectedDate.value)
-  d.setDate(d.getDate() - 7)
-  selectedDate.value = d
-  cursorDate.value = new Date(d.getFullYear(), d.getMonth(), 1)
+  const d = new Date(selectedDate.value);
+  d.setDate(d.getDate() - 7);
+  selectedDate.value = d;
+  cursorDate.value = new Date(d.getFullYear(), d.getMonth(), 1);
 }
 
 function nextWeek() {
-  const d = new Date(selectedDate.value)
-  d.setDate(d.getDate() + 7)
-  selectedDate.value = d
-  cursorDate.value = new Date(d.getFullYear(), d.getMonth(), 1)
+  const d = new Date(selectedDate.value);
+  d.setDate(d.getDate() + 7);
+  selectedDate.value = d;
+  cursorDate.value = new Date(d.getFullYear(), d.getMonth(), 1);
 }
 
 function prevDay() {
-  const d = new Date(selectedDate.value)
-  d.setDate(d.getDate() - 1)
-  selectedDate.value = d
-  cursorDate.value = new Date(d.getFullYear(), d.getMonth(), 1)
+  const d = new Date(selectedDate.value);
+  d.setDate(d.getDate() - 1);
+  selectedDate.value = d;
+  cursorDate.value = new Date(d.getFullYear(), d.getMonth(), 1);
 }
 
 function nextDay() {
-  const d = new Date(selectedDate.value)
-  d.setDate(d.getDate() + 1)
-  selectedDate.value = d
-  cursorDate.value = new Date(d.getFullYear(), d.getMonth(), 1)
+  const d = new Date(selectedDate.value);
+  d.setDate(d.getDate() + 1);
+  selectedDate.value = d;
+  cursorDate.value = new Date(d.getFullYear(), d.getMonth(), 1);
 }
 
 // ── Month label ──
 const monthLabel = computed(() => {
-  const y = cursorYear.value
-  const m = cursorMonth.value + 1
-  return `${y} 年 ${m} 月`
-})
+  const y = cursorYear.value;
+  const m = cursorMonth.value + 1;
+  return `${y} 年 ${m} 月`;
+});
 
 // ── Week range label for week view ──
 const weekStartDate = computed(() => {
-  const d = new Date(selectedDate.value)
-  const day = d.getDay()
-  const diff = day === 0 ? -6 : 1 - day
-  d.setDate(d.getDate() + diff)
-  return d
-})
+  const d = new Date(selectedDate.value);
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setDate(d.getDate() + diff);
+  return d;
+});
 
 const weekRangeLabel = computed(() => {
-  const start = weekStartDate.value
-  const end = new Date(start)
-  end.setDate(end.getDate() + 6)
-  const fmt = (d: Date) => `${d.getMonth() + 1}/${d.getDate()}`
-  return `${fmt(start)} - ${fmt(end)}`
-})
+  const start = weekStartDate.value;
+  const end = new Date(start);
+  end.setDate(end.getDate() + 6);
+  const fmt = (d: Date) => `${d.getMonth() + 1}/${d.getDate()}`;
+  return `${fmt(start)} - ${fmt(end)}`;
+});
 
 // ── Day label ──
 const selectedDayLabel = computed(() => {
-  const d = selectedDate.value
-  return `${d.getMonth() + 1}月${d.getDate()}日 ${weekDays[d.getDay()]}`
-})
+  const d = selectedDate.value;
+  return `${d.getMonth() + 1}月${d.getDate()}日 ${weekDays[d.getDay()]}`;
+});
 
 // ── Month grid ──
 interface CalendarCell {
-  date: number
-  fullDate: Date
-  isCurrentMonth: boolean
-  isToday: boolean
-  isSelected: boolean
+  date: number;
+  fullDate: Date;
+  isCurrentMonth: boolean;
+  isToday: boolean;
+  isSelected: boolean;
 }
 
 const monthGrid = computed(() => {
-  const year = cursorYear.value
-  const month = cursorMonth.value
-  const firstDay = new Date(year, month, 1).getDay()
-  const daysInMonth = new Date(year, month + 1, 0).getDate()
-  const daysInPrevMonth = new Date(year, month, 0).getDate()
+  const year = cursorYear.value;
+  const month = cursorMonth.value;
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const daysInPrevMonth = new Date(year, month, 0).getDate();
 
-  const cells: CalendarCell[] = []
+  const cells: CalendarCell[] = [];
 
   // Previous month fill
   for (let i = firstDay - 1; i >= 0; i--) {
-    const d = daysInPrevMonth - i
-    const fullDate = new Date(year, month - 1, d)
+    const d = daysInPrevMonth - i;
+    const fullDate = new Date(year, month - 1, d);
     cells.push({
       date: d,
       fullDate,
       isCurrentMonth: false,
       isToday: isSameDay(fullDate, today),
       isSelected: isSameDay(fullDate, selectedDate.value),
-    })
+    });
   }
 
   // Current month
   for (let d = 1; d <= daysInMonth; d++) {
-    const fullDate = new Date(year, month, d)
+    const fullDate = new Date(year, month, d);
     cells.push({
       date: d,
       fullDate,
       isCurrentMonth: true,
       isToday: isSameDay(fullDate, today),
       isSelected: isSameDay(fullDate, selectedDate.value),
-    })
+    });
   }
 
   // Next month fill
-  const remaining = 42 - cells.length
+  const remaining = 42 - cells.length;
   for (let d = 1; d <= remaining; d++) {
-    const fullDate = new Date(year, month + 1, d)
+    const fullDate = new Date(year, month + 1, d);
     cells.push({
       date: d,
       fullDate,
       isCurrentMonth: false,
       isToday: isSameDay(fullDate, today),
       isSelected: isSameDay(fullDate, selectedDate.value),
-    })
+    });
   }
 
-  return cells
-})
+  return cells;
+});
 
 function isSameDay(a: Date, b: Date): boolean {
-  return a.getFullYear() === b.getFullYear()
-    && a.getMonth() === b.getMonth()
-    && a.getDate() === b.getDate()
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
 
 // ── Week grid (for week view: 7 columns × 24 hours) ──
 const weekViewDays = computed(() => {
-  const start = weekStartDate.value
-  const days: Date[] = []
+  const start = weekStartDate.value;
+  const days: Date[] = [];
   for (let i = 0; i < 7; i++) {
-    const d = new Date(start)
-    d.setDate(d.getDate() + i)
-    days.push(d)
+    const d = new Date(start);
+    d.setDate(d.getDate() + i);
+    days.push(d);
   }
-  return days
-})
+  return days;
+});
 
 const dayViewHours = computed(() => {
-  return Array.from({ length: 14 }, (_, i) => `${String(i + 8).padStart(2, '0')}:00`)
-})
+  return Array.from({ length: 14 }, (_, i) => `${String(i + 8).padStart(2, '0')}:00`);
+});
 
 // ── Events ──
 interface CalendarEvent {
-  id: string
-  title: string
-  date: string // YYYY-MM-DD
-  time: string // HH:mm
-  endTime?: string
-  participants: string
-  color: string
-  description?: string
-  rsvpStatus: string
+  id: string;
+  title: string;
+  date: string; // YYYY-MM-DD
+  time: string; // HH:mm
+  endTime?: string;
+  participants: string;
+  color: string;
+  description?: string;
+  rsvpStatus: string;
 }
 
 // Seed events initialized directly for immediate rendering
-const seedToday = fmtDate(today)
-const seedT2 = fmtDate(addDays(today, 2))
-const seedT5 = fmtDate(addDays(today, 5))
+const seedToday = fmtDate(today);
+const seedT2 = fmtDate(addDays(today, 2));
+const seedT5 = fmtDate(addDays(today, 5));
 
 const events = shallowRef<CalendarEvent[]>([
-  { id: 'e1', title: '产品周会', date: seedToday, time: '09:30', endTime: '10:30', participants: '产品团队', color: 'blue', rsvpStatus: '待回复' },
-  { id: 'e2', title: '设计评审', date: seedToday, time: '14:00', endTime: '15:30', participants: '设计团队', color: 'orange', rsvpStatus: '已接受' },
-  { id: 'e3', title: '1:1 沟通', date: seedT2, time: '11:00', endTime: '11:30', participants: '张三', color: 'green', rsvpStatus: '待回复' },
-  { id: 'e4', title: '发布准备会', date: seedT2, time: '15:00', endTime: '16:00', participants: '工程团队', color: 'purple', rsvpStatus: '待回复' },
-  { id: 'e5', title: '专注时间', date: seedT5, time: '10:00', endTime: '12:00', participants: '个人', color: 'slate', rsvpStatus: '无需回复' },
-])
+  {
+    id: 'e1',
+    title: '产品周会',
+    date: seedToday,
+    time: '09:30',
+    endTime: '10:30',
+    participants: '产品团队',
+    color: 'blue',
+    rsvpStatus: '待回复',
+  },
+  {
+    id: 'e2',
+    title: '设计评审',
+    date: seedToday,
+    time: '14:00',
+    endTime: '15:30',
+    participants: '设计团队',
+    color: 'orange',
+    rsvpStatus: '已接受',
+  },
+  {
+    id: 'e3',
+    title: '1:1 沟通',
+    date: seedT2,
+    time: '11:00',
+    endTime: '11:30',
+    participants: '张三',
+    color: 'green',
+    rsvpStatus: '待回复',
+  },
+  {
+    id: 'e4',
+    title: '发布准备会',
+    date: seedT2,
+    time: '15:00',
+    endTime: '16:00',
+    participants: '工程团队',
+    color: 'purple',
+    rsvpStatus: '待回复',
+  },
+  {
+    id: 'e5',
+    title: '专注时间',
+    date: seedT5,
+    time: '10:00',
+    endTime: '12:00',
+    participants: '个人',
+    color: 'slate',
+    rsvpStatus: '无需回复',
+  },
+]);
 
-const projectTaskEvents = shallowRef<CalendarEvent[]>([])
+const projectTaskEvents = shallowRef<CalendarEvent[]>([]);
 
 onMounted(async () => {
-  contactList.ensureContactsLoaded()
+  contactList.ensureContactsLoaded();
 
   // Load project tasks asynchronously
   try {
-    const projects = await projectRepo.listProjects()
-    const results: CalendarEvent[] = []
+    const projects = await projectRepo.listProjects();
+    const results: CalendarEvent[] = [];
     for (const p of projects) {
-      const items = await projectRepo.listWorkItems(p.id)
+      const items = await projectRepo.listWorkItems(p.id);
       for (const item of items) {
         if (item.dueDate) {
-          const d = new Date(item.dueDate)
+          const d = new Date(item.dueDate);
           results.push({
             id: `proj-${item.id}`,
             title: `${p.name}: ${item.title}`,
@@ -234,66 +269,66 @@ onMounted(async () => {
             participants: '项目任务',
             color: 'violet',
             rsvpStatus: item.status,
-          })
+          });
         }
       }
     }
-    projectTaskEvents.value = results
+    projectTaskEvents.value = results;
+  } catch {
+    /* Dexie unavailable */
   }
-  catch { /* Dexie unavailable */ }
-})
+});
 
 function fmtDate(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 function addDays(d: Date, n: number): Date {
-  const r = new Date(d)
-  r.setDate(r.getDate() + n)
-  return r
+  const r = new Date(d);
+  r.setDate(r.getDate() + n);
+  return r;
 }
 
-const allEvents = computed(() => [...events.value, ...projectTaskEvents.value])
+const allEvents = computed(() => [...events.value, ...projectTaskEvents.value]);
 
 // ── Events for a specific day ──
 function eventsForDay(date: Date): CalendarEvent[] {
-  const key = fmtDate(date)
-  return allEvents.value.filter(e => e.date === key)
+  const key = fmtDate(date);
+  return allEvents.value.filter((e) => e.date === key);
 }
 
-const selectedDayEvents = computed(() => eventsForDay(selectedDate.value))
+const selectedDayEvents = computed(() => eventsForDay(selectedDate.value));
 
 function eventsForCell(cell: CalendarCell): CalendarEvent[] {
-  return eventsForDay(cell.fullDate)
+  return eventsForDay(cell.fullDate);
 }
 
-const selectedEventId = ref<string>('')
+const selectedEventId = ref<string>('');
 
 const selectedEvent = computed(() => {
-  return selectedDayEvents.value.find(e => e.id === selectedEventId.value)
-    ?? selectedDayEvents.value[0]
-})
+  return selectedDayEvents.value.find((e) => e.id === selectedEventId.value) ?? selectedDayEvents.value[0];
+});
 
 // ── Statistics cards ──
-const statMeetings = computed(() => allEvents.value.filter(e => e.rsvpStatus !== '无需回复').length)
-const statPending = computed(() => allEvents.value.filter(e => e.rsvpStatus === '待回复').length)
-const statFocus = computed(() => allEvents.value.filter(e => e.title.includes('专注')).length)
+const statMeetings = computed(() => allEvents.value.filter((e) => e.rsvpStatus !== '无需回复').length);
+const statPending = computed(() => allEvents.value.filter((e) => e.rsvpStatus === '待回复').length);
+const statFocus = computed(() => allEvents.value.filter((e) => e.title.includes('专注')).length);
 
 // ── Select day ──
 function selectDay(date: Date) {
-  selectedDate.value = date
-  selectedEventId.value = ''
+  selectedDate.value = date;
+  selectedEventId.value = '';
 }
 
 // ── Event editor ──
-const showEventEditor = ref(false)
+const showEventEditor = ref(false);
 const eventDraft = ref({
   title: '',
   date: '',
   time: '',
   endTime: '',
   participantIds: [] as string[],
-})
+});
 
 function openNewEvent() {
   eventDraft.value = {
@@ -302,74 +337,74 @@ function openNewEvent() {
     time: '09:00',
     endTime: '10:00',
     participantIds: [],
-  }
-  showEventEditor.value = true
+  };
+  showEventEditor.value = true;
 }
 
 function saveNewEvent() {
-  if (!eventDraft.value.title.trim())
-    return
-  const participants = eventDraft.value.participantIds.length > 0
-    ? eventDraft.value.participantIds.map(id => contactList.contacts.find(c => c.userId === id)?.displayName ?? id).join('、')
-    : '我'
+  if (!eventDraft.value.title.trim()) return;
+  const participants =
+    eventDraft.value.participantIds.length > 0
+      ? eventDraft.value.participantIds
+          .map((id) => contactList.contacts.find((c) => c.userId === id)?.displayName ?? id)
+          .join('、')
+      : '我';
 
-  events.value = [{
-    id: `event-${Date.now()}`,
-    title: eventDraft.value.title.trim(),
-    date: eventDraft.value.date,
-    time: eventDraft.value.time,
-    endTime: eventDraft.value.endTime || undefined,
-    participants,
-    color: 'blue',
-    rsvpStatus: '已创建',
-  }, ...events.value]
+  events.value = [
+    {
+      id: `event-${Date.now()}`,
+      title: eventDraft.value.title.trim(),
+      date: eventDraft.value.date,
+      time: eventDraft.value.time,
+      endTime: eventDraft.value.endTime || undefined,
+      participants,
+      color: 'blue',
+      rsvpStatus: '已创建',
+    },
+    ...events.value,
+  ];
 
-  showEventEditor.value = false
+  showEventEditor.value = false;
 }
 
 // ── RSVP actions ──
 function acceptEvent(event: CalendarEvent) {
-  events.value = events.value.map(e =>
-    e.id === event.id ? { ...e, rsvpStatus: '已接受' } : e,
-  )
+  events.value = events.value.map((e) => (e.id === event.id ? { ...e, rsvpStatus: '已接受' } : e));
 }
 
 interface RescheduleDraft {
-  date: string
-  time: string
-  endTime: string
+  date: string;
+  time: string;
+  endTime: string;
 }
 
-const showReschedule = ref(false)
-const rescheduleDraft = ref<RescheduleDraft>({ date: '', time: '', endTime: '' })
+const showReschedule = ref(false);
+const rescheduleDraft = ref<RescheduleDraft>({ date: '', time: '', endTime: '' });
 
 function openReschedule(event: CalendarEvent) {
   rescheduleDraft.value = {
     date: event.date,
     time: event.time,
     endTime: event.endTime ?? event.time,
-  }
-  showReschedule.value = true
+  };
+  showReschedule.value = true;
 }
 
 function rescheduleConfirmDisabled(): boolean {
-  const { date, time, endTime } = rescheduleDraft.value
-  return !date || !time || !endTime || endTime <= time
+  const { date, time, endTime } = rescheduleDraft.value;
+  return !date || !time || !endTime || endTime <= time;
 }
 
 function rescheduleEvent(event: CalendarEvent) {
-  if (rescheduleConfirmDisabled())
-    return
-  const { date, time, endTime } = rescheduleDraft.value
-  events.value = events.value.map(e =>
-    e.id === event.id ? { ...e, date, time, endTime } : e,
-  )
-  const parts = date.split('-').map(Number)
-  if (parts.length === 3 && parts.every(n => Number.isFinite(n))) {
-    selectedDate.value = new Date(parts[0], parts[1] - 1, parts[2])
+  if (rescheduleConfirmDisabled()) return;
+  const { date, time, endTime } = rescheduleDraft.value;
+  events.value = events.value.map((e) => (e.id === event.id ? { ...e, date, time, endTime } : e));
+  const parts = date.split('-').map(Number);
+  if (parts.length === 3 && parts.every((n) => Number.isFinite(n))) {
+    selectedDate.value = new Date(parts[0], parts[1] - 1, parts[2]);
   }
-  selectedEventId.value = event.id
-  showReschedule.value = false
+  selectedEventId.value = event.id;
+  showReschedule.value = false;
 }
 
 function colorBar(color: string): string {
@@ -380,8 +415,8 @@ function colorBar(color: string): string {
     purple: 'bg-purple-500',
     slate: 'bg-slate-400',
     violet: 'bg-violet-500',
-  }
-  return map[color] ?? 'bg-blue-500'
+  };
+  return map[color] ?? 'bg-blue-500';
 }
 
 function colorBg(color: string): string {
@@ -392,17 +427,13 @@ function colorBg(color: string): string {
     purple: 'bg-purple-500/10 text-purple-600',
     slate: 'bg-slate-400/10 text-slate-500',
     violet: 'bg-violet-500/10 text-violet-600',
-  }
-  return map[color] ?? 'bg-blue-500/10 text-blue-600'
+  };
+  return map[color] ?? 'bg-blue-500/10 text-blue-600';
 }
 </script>
 
 <template>
-  <WorkspacePageFrame
-    :title="t('sidebar.calendar')"
-    :subtitle="t('calendar.subtitle')"
-    :icon="CalendarDays"
-  >
+  <WorkspacePageFrame :title="t('sidebar.calendar')" :subtitle="t('calendar.subtitle')" :icon="CalendarDays">
     <template #actions>
       <!-- 今天按钮 -->
       <button
@@ -469,15 +500,23 @@ function colorBg(color: string): string {
       <!-- 视图切换 -->
       <div class="flex items-center rounded-md border border-border p-0.5">
         <button
-          v-for="mode in (['month', 'week', 'day'] as CalendarView[])"
+          v-for="mode in ['month', 'week', 'day'] as CalendarView[]"
           :key="mode"
           class="flex h-7 items-center rounded-sm px-3 text-[12px] font-medium transition-colors"
-          :class="viewMode === mode
-            ? 'bg-primary text-primary-foreground shadow-sm'
-            : 'text-muted-foreground hover:text-foreground'"
+          :class="
+            viewMode === mode
+              ? 'bg-primary text-primary-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground'
+          "
           @click="viewMode = mode"
         >
-          {{ mode === 'month' ? t('calendar.month_view') : mode === 'week' ? t('calendar.week_view') : t('calendar.day_view') }}
+          {{
+            mode === 'month'
+              ? t('calendar.month_view')
+              : mode === 'week'
+                ? t('calendar.week_view')
+                : t('calendar.day_view')
+          }}
         </button>
       </div>
 
@@ -508,9 +547,7 @@ function colorBg(color: string): string {
         <div class="text-[11px] font-bold uppercase leading-4 tracking-[0.05em] text-muted-foreground">
           {{ t('calendar.stat_focus') }}
         </div>
-        <div class="mt-3 text-2xl font-semibold leading-8">
-          {{ statFocus }}h
-        </div>
+        <div class="mt-3 text-2xl font-semibold leading-8">{{ statFocus }}h</div>
         <p class="mt-1 text-[13px] text-muted-foreground">
           {{ t('calendar.stat_focus_hint', { count: statFocus }) }}
         </p>
@@ -556,11 +593,13 @@ function colorBg(color: string): string {
           >
             <span
               class="inline-flex size-6 items-center justify-center rounded-full text-[12px] font-semibold"
-              :class="cell.isToday
-                ? 'bg-primary text-primary-foreground'
-                : cell.isSelected
-                  ? 'text-primary'
-                  : 'text-foreground'"
+              :class="
+                cell.isToday
+                  ? 'bg-primary text-primary-foreground'
+                  : cell.isSelected
+                    ? 'text-primary'
+                    : 'text-foreground'
+              "
             >
               {{ cell.date }}
             </span>
@@ -575,10 +614,7 @@ function colorBg(color: string): string {
                 <span class="h-1.5 w-1.5 shrink-0 rounded-full" :class="colorBar(event.color)" />
                 <span class="truncate">{{ event.title }}</span>
               </div>
-              <div
-                v-if="eventsForCell(cell).length > 3"
-                class="pl-1 text-[10px] text-muted-foreground"
-              >
+              <div v-if="eventsForCell(cell).length > 3" class="pl-1 text-[10px] text-muted-foreground">
                 +{{ eventsForCell(cell).length - 3 }} 更多
               </div>
             </div>
@@ -592,9 +628,7 @@ function colorBg(color: string): string {
           <h2 class="text-[14px] font-semibold text-foreground">
             {{ selectedDayLabel }}
           </h2>
-          <span class="ml-auto text-[12px] text-muted-foreground">
-            {{ selectedDayEvents.length }} 个日程
-          </span>
+          <span class="ml-auto text-[12px] text-muted-foreground"> {{ selectedDayEvents.length }} 个日程 </span>
         </div>
 
         <div v-if="selectedDayEvents.length === 0" class="px-4 py-8 text-center">
@@ -650,7 +684,10 @@ function colorBg(color: string): string {
           <div class="mt-2 grid gap-1.5 text-[12px] text-muted-foreground">
             <div class="flex items-center gap-1.5">
               <Clock :size="12" />
-              <span data-testid="event-detail-time">{{ selectedEvent.date }} {{ selectedEvent.time }}{{ selectedEvent.endTime ? ` - ${selectedEvent.endTime}` : '' }}</span>
+              <span data-testid="event-detail-time"
+                >{{ selectedEvent.date }} {{ selectedEvent.time
+                }}{{ selectedEvent.endTime ? ` - ${selectedEvent.endTime}` : '' }}</span
+              >
             </div>
             <div class="flex items-center gap-1.5">
               <Users :size="12" />
@@ -687,25 +724,29 @@ function colorBg(color: string): string {
                   data-testid="reschedule-date"
                   type="date"
                   class="w-full rounded-md border border-border bg-background px-2 py-1 text-xs"
-                >
+                />
                 <div class="mt-2 grid grid-cols-2 gap-2">
                   <div>
-                    <label class="mb-1 block text-[11px] text-muted-foreground">{{ t('calendar.reschedule_start') }}</label>
+                    <label class="mb-1 block text-[11px] text-muted-foreground">{{
+                      t('calendar.reschedule_start')
+                    }}</label>
                     <input
                       v-model="rescheduleDraft.time"
                       data-testid="reschedule-start"
                       type="time"
                       class="w-full rounded-md border border-border bg-background px-2 py-1 text-xs"
-                    >
+                    />
                   </div>
                   <div>
-                    <label class="mb-1 block text-[11px] text-muted-foreground">{{ t('calendar.reschedule_end') }}</label>
+                    <label class="mb-1 block text-[11px] text-muted-foreground">{{
+                      t('calendar.reschedule_end')
+                    }}</label>
                     <input
                       v-model="rescheduleDraft.endTime"
                       data-testid="reschedule-end"
                       type="time"
                       class="w-full rounded-md border border-border bg-background px-2 py-1 text-xs"
-                    >
+                    />
                   </div>
                 </div>
                 <button
@@ -755,14 +796,11 @@ function colorBg(color: string): string {
             v-for="(day, di) in weekViewDays"
             :key="`${hour}-${di}`"
             class="relative min-h-[36px] border-b border-r border-border"
-            :class="[
-              isSameDay(day, selectedDate) ? 'bg-primary/5' : '',
-              di === 6 ? 'border-r-0' : '',
-            ]"
+            :class="[isSameDay(day, selectedDate) ? 'bg-primary/5' : '', di === 6 ? 'border-r-0' : '']"
           >
             <!-- 事件块 -->
             <div
-              v-for="event in eventsForDay(day).filter(e => e.time.startsWith(hour.slice(0, 2)))"
+              v-for="event in eventsForDay(day).filter((e) => e.time.startsWith(hour.slice(0, 2)))"
               :key="event.id"
               class="absolute inset-x-0.5 top-0 z-10 rounded-sm px-1.5 py-0.5 text-[10px] leading-tight"
               :class="colorBg(event.color)"
@@ -783,17 +821,15 @@ function colorBg(color: string): string {
         </h2>
       </div>
       <div class="overflow-y-auto" style="max-height: 500px">
-        <div
-          v-for="hour in dayViewHours"
-          :key="hour"
-          class="flex border-b border-border"
-        >
-          <div class="w-[60px] shrink-0 border-r border-border px-2 py-1.5 text-right text-[11px] text-muted-foreground">
+        <div v-for="hour in dayViewHours" :key="hour" class="flex border-b border-border">
+          <div
+            class="w-[60px] shrink-0 border-r border-border px-2 py-1.5 text-right text-[11px] text-muted-foreground"
+          >
             {{ hour }}
           </div>
           <div class="relative min-h-[40px] flex-1">
             <div
-              v-for="event in eventsForDay(selectedDate).filter(e => e.time.startsWith(hour.slice(0, 2)))"
+              v-for="event in eventsForDay(selectedDate).filter((e) => e.time.startsWith(hour.slice(0, 2)))"
               :key="event.id"
               class="mx-1 my-0.5 rounded-sm px-3 py-1.5"
               :class="colorBg(event.color)"
@@ -828,23 +864,20 @@ function colorBg(color: string): string {
               type="text"
               :placeholder="t('calendar.event_title_placeholder')"
               class="h-9 rounded-md border border-border bg-background px-3 text-[13px] text-foreground outline-none focus:border-primary"
-            >
+            />
             <div class="grid grid-cols-2 gap-2">
               <input
                 v-model="eventDraft.date"
                 type="date"
                 class="h-9 rounded-md border border-border bg-background px-3 text-[13px] text-foreground outline-none focus:border-primary"
-              >
+              />
               <input
                 v-model="eventDraft.time"
                 type="time"
                 class="h-9 rounded-md border border-border bg-background px-3 text-[13px] text-foreground outline-none focus:border-primary"
-              >
+              />
             </div>
-            <GroupMemberPicker
-              v-model="eventDraft.participantIds"
-              label="参与人"
-            />
+            <GroupMemberPicker v-model="eventDraft.participantIds" label="参与人" />
             <div class="flex justify-end gap-2 pt-1">
               <button
                 class="h-8 rounded-md border border-border px-4 text-[13px] font-medium text-foreground transition-colors hover:bg-accent"

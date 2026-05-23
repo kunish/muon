@@ -47,7 +47,7 @@ export function useMediaUpload(roomId: () => string | null) {
     }
     const totalProgress = all.reduce((sum, u) => sum + u.progress, 0)
     progress.value = Math.round(totalProgress / all.length)
-    uploading.value = all.some(u => u.status !== 'done' && u.status !== 'error')
+    uploading.value = all.some((u) => u.status !== 'done' && u.status !== 'error')
   }
 
   /** Stage a file for pre-upload. Returns the upload object for progress tracking. */
@@ -87,19 +87,16 @@ export function useMediaUpload(roomId: () => string | null) {
 
   async function withUpload(fn: (id: string) => Promise<unknown>) {
     const id = roomId()
-    if (!id)
-      return
+    if (!id) return
     uploading.value = true
     progress.value = 0
     try {
       progress.value = 50
       await fn(id)
       progress.value = 100
-    }
-    catch {
+    } catch {
       toast.error(t('chat.upload_failed'))
-    }
-    finally {
+    } finally {
       uploading.value = false
     }
   }
@@ -113,7 +110,7 @@ export function useMediaUpload(roomId: () => string | null) {
       toast.error(t('chat.invalid_file_type'))
       return
     }
-    await withUpload(id => sendImageMessage(id, file))
+    await withUpload((id) => sendImageMessage(id, file))
   }
 
   async function uploadVideo(file: File) {
@@ -125,8 +122,7 @@ export function useMediaUpload(roomId: () => string | null) {
       let meta
       try {
         meta = await extractVideoMeta(file)
-      }
-      catch (e) {
+      } catch (e) {
         console.warn('[upload] failed to extract video meta', e)
       }
       progress.value = 30
@@ -135,7 +131,7 @@ export function useMediaUpload(roomId: () => string | null) {
   }
 
   async function uploadAudio(blob: Blob, duration: number) {
-    await withUpload(id => sendAudioMessage(id, blob, duration))
+    await withUpload((id) => sendAudioMessage(id, blob, duration))
   }
 
   async function uploadFile(file: File) {
@@ -143,7 +139,7 @@ export function useMediaUpload(roomId: () => string | null) {
       toast.error(t('chat.file_too_large'))
       return
     }
-    await withUpload(id => sendFileMessage(id, file))
+    await withUpload((id) => sendFileMessage(id, file))
   }
 
   return {

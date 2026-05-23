@@ -17,11 +17,6 @@ describe('chat history scroll layout', () => {
 
     const main = wrapper.find('main')
 
-    expect(main.classes()).toEqual(expect.arrayContaining([
-      'flex',
-      'h-full',
-      'min-h-0',
-      'overflow-hidden',
-    ]))
+    expect(main.classes()).toEqual(expect.arrayContaining(['flex', 'h-full', 'min-h-0', 'overflow-hidden']))
   })
 })

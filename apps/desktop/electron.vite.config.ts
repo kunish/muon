@@ -9,19 +9,20 @@ import { defineConfig } from 'electron-vite'
 const pkg = JSON.parse(readFileSync(resolve(__dirname, 'package.json'), 'utf8')) as { version: string }
 
 function rendererManualChunks(id: string): string | undefined {
-  if (!id.includes('node_modules'))
-    return undefined
+  if (!id.includes('node_modules')) return undefined
   // 大体积 SDK 独立分块，利用浏览器并行加载 + 长效缓存
-  if (id.includes('matrix-js-sdk'))
-    return 'matrix-sdk'
-  if (id.includes('@tiptap/'))
-    return 'editor'
-  if (id.includes('lottie-web'))
-    return 'lottie'
-  if (id.includes('livekit-client'))
-    return 'livekit'
+  if (id.includes('matrix-js-sdk')) return 'matrix-sdk'
+  if (id.includes('@tiptap/')) return 'editor'
+  if (id.includes('lottie-web')) return 'lottie'
+  if (id.includes('livekit-client')) return 'livekit'
   // 框架运行时合并为 vendor chunk（vue, pinia, vue-router, vue-i18n）
-  if (id.includes('vue') || id.includes('pinia') || id.includes('vue-router') || id.includes('vue-i18n') || id.includes('@vue'))
+  if (
+    id.includes('vue') ||
+    id.includes('pinia') ||
+    id.includes('vue-router') ||
+    id.includes('vue-i18n') ||
+    id.includes('@vue')
+  )
     return 'vendor'
   return undefined
 }
@@ -90,7 +91,10 @@ export default defineConfig({
         '@muon/rich-text/html': resolve(__dirname, '../../packages/rich-text/src/htmlSanitizer.ts'),
         '@muon/rich-text/linkify': resolve(__dirname, '../../packages/rich-text/src/linkify.ts'),
         '@muon/rich-text/markdown': resolve(__dirname, '../../packages/rich-text/src/markdown.ts'),
-        '@muon/rich-text/message-content': resolve(__dirname, '../../packages/rich-text/src/components/RichMessageContent.vue'),
+        '@muon/rich-text/message-content': resolve(
+          __dirname,
+          '../../packages/rich-text/src/components/RichMessageContent.vue',
+        ),
         '@muon/rich-text': resolve(__dirname, '../../packages/rich-text/src/index.ts'),
       },
     },

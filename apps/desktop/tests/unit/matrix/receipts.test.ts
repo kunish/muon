@@ -110,7 +110,7 @@ describe('matrix receipts', () => {
   describe('getReadUsers', () => {
     function makeTimeline(ids: string[]) {
       return {
-        getEvents: () => ids.map(id => ({ getId: () => id })),
+        getEvents: () => ids.map((id) => ({ getId: () => id })),
       }
     }
 
@@ -120,14 +120,10 @@ describe('matrix receipts', () => {
         { userId: '@alice:localhost', name: 'Alice', getMxcAvatarUrl: () => 'mxc://localhost/alice' },
         { userId: '@bob:localhost', name: 'Bob', getMxcAvatarUrl: () => null },
       ])
-      mockRoom.getLiveTimeline.mockReturnValue(
-        makeTimeline(['$evt1', '$evt2', '$evt3']),
-      )
+      mockRoom.getLiveTimeline.mockReturnValue(makeTimeline(['$evt1', '$evt2', '$evt3']))
       mockRoom.getEventReadUpTo.mockImplementation((userId: string) => {
-        if (userId === '@alice:localhost')
-          return '$evt2'
-        if (userId === '@bob:localhost')
-          return '$evt3'
+        if (userId === '@alice:localhost') return '$evt2'
+        if (userId === '@bob:localhost') return '$evt3'
         return null
       })
 
@@ -135,8 +131,8 @@ describe('matrix receipts', () => {
       const users = getReadUsers('!room:localhost', '$evt2')
 
       expect(users).toHaveLength(2)
-      expect(users.map(u => u.userId)).toContain('@alice:localhost')
-      expect(users.map(u => u.userId)).toContain('@bob:localhost')
+      expect(users.map((u) => u.userId)).toContain('@alice:localhost')
+      expect(users.map((u) => u.userId)).toContain('@bob:localhost')
     })
 
     it('should exclude the current user from read users list', async () => {
@@ -168,8 +164,7 @@ describe('matrix receipts', () => {
       ])
       mockRoom.getLiveTimeline.mockReturnValue(makeTimeline(['$evt1', '$evt2']))
       mockRoom.getEventReadUpTo.mockImplementation((userId: string) => {
-        if (userId === '@alice:localhost')
-          return '$evt2'
+        if (userId === '@alice:localhost') return '$evt2'
         return null
       })
 

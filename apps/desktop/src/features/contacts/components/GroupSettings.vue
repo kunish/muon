@@ -1,131 +1,126 @@
 <script setup lang="ts">
-import { getClient } from '@matrix/client'
-import { getRoomAnnouncement, getRoomTopic, leaveRoom, setRoomAnnouncement, setRoomName, setRoomTopic } from '@matrix/index'
-import { Textarea } from '@muon/ui/textarea'
-import { useRoomNavigation } from '@shared/composables/useRoomNavigation'
+import { getClient } from '@matrix/client';
 import {
-  Check,
-  LogOut,
-  Megaphone,
-  Pencil,
-  Shield,
-  UserMinus,
-  UserPlus,
-  X,
-} from 'lucide-vue-next'
-import { computed, ref, toRef } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { toast } from 'vue-sonner'
-import { ask } from '@/desktop/dialog'
-import { useRoomPermissions } from '@/shared/composables/useRoomPermissions'
-import { useConversations } from '../../chat/composables/useConversations'
-import { useGroupManagement } from '../composables/useGroupManagement'
-import GroupMemberPicker from './GroupMemberPicker.vue'
+  getRoomAnnouncement,
+  getRoomTopic,
+  leaveRoom,
+  setRoomAnnouncement,
+  setRoomName,
+  setRoomTopic,
+} from '@matrix/index';
+import { Textarea } from '@muon/ui/textarea';
+import { useRoomNavigation } from '@shared/composables/useRoomNavigation';
+import { Check, LogOut, Megaphone, Pencil, Shield, UserMinus, UserPlus, X } from 'lucide-vue-next';
+import { computed, ref, toRef } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { toast } from 'vue-sonner';
+import { ask } from '@/desktop/dialog';
+import { useRoomPermissions } from '@/shared/composables/useRoomPermissions';
+import { useConversations } from '../../chat/composables/useConversations';
+import { useGroupManagement } from '../composables/useGroupManagement';
+import GroupMemberPicker from './GroupMemberPicker.vue';
 
 const props = defineProps<{
-  roomId: string
-}>()
+  roomId: string;
+}>();
 
 const emit = defineEmits<{
-  leave: []
-}>()
+  leave: [];
+}>();
 
-const { t } = useI18n()
-const { inviteUser, kickUser, setUserPowerLevel } = useGroupManagement()
-const { removeRoom } = useConversations()
-const chatStore = useRoomNavigation()
+const { t } = useI18n();
+const { inviteUser, kickUser, setUserPowerLevel } = useGroupManagement();
+const { removeRoom } = useConversations();
+const chatStore = useRoomNavigation();
 
-const client = getClient()
-const room = computed(() => client.getRoom(props.roomId))
-const members = computed(() => room.value?.getJoinedMembers() || [])
-const myUserId = client.getUserId()!
+const client = getClient();
+const room = computed(() => client.getRoom(props.roomId));
+const members = computed(() => room.value?.getJoinedMembers() || []);
+const myUserId = client.getUserId()!;
 
-const inviteIds = ref<string[]>([])
-const showInvite = ref(false)
+const inviteIds = ref<string[]>([]);
+const showInvite = ref(false);
 
 function closeInvitePicker(): void {
-  inviteIds.value = []
-  showInvite.value = false
+  inviteIds.value = [];
+  showInvite.value = false;
 }
 
 function toggleInvitePicker(): void {
   if (showInvite.value) {
-    closeInvitePicker()
-    return
+    closeInvitePicker();
+    return;
   }
-  showInvite.value = true
+  showInvite.value = true;
 }
 
 // --- 群名称编辑 ---
-const editingName = ref(false)
-const nameInput = ref('')
+const editingName = ref(false);
+const nameInput = ref('');
 
 function startEditName() {
-  nameInput.value = room.value?.name || ''
-  editingName.value = true
+  nameInput.value = room.value?.name || '';
+  editingName.value = true;
 }
 
 async function saveName() {
-  const name = nameInput.value.trim()
+  const name = nameInput.value.trim();
   if (!name || name === room.value?.name) {
-    editingName.value = false
-    return
+    editingName.value = false;
+    return;
   }
   try {
-    await setRoomName(props.roomId, name)
+    await setRoomName(props.roomId, name);
+  } catch {
+    toast.error(t('contacts.update_failed'));
   }
-  catch {
-    toast.error(t('contacts.update_failed'))
-  }
-  editingName.value = false
+  editingName.value = false;
 }
 
 // --- 群话题/描述编辑 ---
-const editingTopic = ref(false)
-const topicInput = ref('')
-const currentTopic = computed(() => getRoomTopic(props.roomId))
+const editingTopic = ref(false);
+const topicInput = ref('');
+const currentTopic = computed(() => getRoomTopic(props.roomId));
 
 function startEditTopic() {
-  topicInput.value = currentTopic.value
-  editingTopic.value = true
+  topicInput.value = currentTopic.value;
+  editingTopic.value = true;
 }
 
 async function saveTopic() {
   if (topicInput.value.trim() === currentTopic.value) {
-    editingTopic.value = false
-    return
+    editingTopic.value = false;
+    return;
   }
   try {
-    await setRoomTopic(props.roomId, topicInput.value.trim())
+    await setRoomTopic(props.roomId, topicInput.value.trim());
+  } catch {
+    toast.error(t('contacts.update_failed'));
   }
-  catch {
-    toast.error(t('contacts.update_failed'))
-  }
-  editingTopic.value = false
+  editingTopic.value = false;
 }
 
 // --- 群公告 ---
-const editingAnnouncement = ref(false)
-const announcementInput = ref('')
-const currentAnnouncement = computed(() => getRoomAnnouncement(props.roomId))
+const editingAnnouncement = ref(false);
+const announcementInput = ref('');
+const currentAnnouncement = computed(() => getRoomAnnouncement(props.roomId));
 
 function startEditAnnouncement() {
-  announcementInput.value = currentAnnouncement.value
-  editingAnnouncement.value = true
+  announcementInput.value = currentAnnouncement.value;
+  editingAnnouncement.value = true;
 }
 
 async function saveAnnouncement() {
   if (announcementInput.value.trim() === currentAnnouncement.value) {
-    editingAnnouncement.value = false
-    return
+    editingAnnouncement.value = false;
+    return;
   }
   try {
-    await setRoomAnnouncement(props.roomId, announcementInput.value.trim())
+    await setRoomAnnouncement(props.roomId, announcementInput.value.trim());
+  } catch {
+    toast.error(t('contacts.update_failed'));
   }
-  catch {
-    toast.error(t('contacts.update_failed'))
-  }
-  editingAnnouncement.value = false
+  editingAnnouncement.value = false;
 }
 
 // --- 退出/解散群组 ---
@@ -133,50 +128,44 @@ async function handleLeave() {
   const confirmed = await ask(t('contacts.leave_confirm'), {
     title: t('contacts.leave_group'),
     kind: 'warning',
-  })
-  if (!confirmed)
-    return
+  });
+  if (!confirmed) return;
   try {
-    await leaveRoom(props.roomId)
+    await leaveRoom(props.roomId);
     if (chatStore.currentRoomId.value === props.roomId) {
-      chatStore.navigateToRoom(null)
+      chatStore.navigateToRoom(null);
     }
-    removeRoom(props.roomId)
-    emit('leave')
-  }
-  catch {
-    toast.error(t('contacts.update_failed'))
+    removeRoom(props.roomId);
+    emit('leave');
+  } catch {
+    toast.error(t('contacts.update_failed'));
   }
 }
 
 async function handleInvite() {
-  const targetIds = [...inviteIds.value]
-  if (targetIds.length === 0)
-    return
+  const targetIds = [...inviteIds.value];
+  if (targetIds.length === 0) return;
   try {
-    await Promise.all(targetIds.map(userId => inviteUser(props.roomId, userId)))
-    closeInvitePicker()
-  }
-  catch {
-    toast.error(t('server.invite_failed'))
+    await Promise.all(targetIds.map((userId) => inviteUser(props.roomId, userId)));
+    closeInvitePicker();
+  } catch {
+    toast.error(t('server.invite_failed'));
   }
 }
 
 function getPowerLevel(userId: string): number {
-  const plEvent = room.value?.currentState.getStateEvents('m.room.power_levels', '')
-  return plEvent?.getContent()?.users?.[userId] || 0
+  const plEvent = room.value?.currentState.getStateEvents('m.room.power_levels', '');
+  return plEvent?.getContent()?.users?.[userId] || 0;
 }
 
 function getRoleLabel(level: number): string {
-  if (level >= 100)
-    return t('contacts.role_owner')
-  if (level >= 50)
-    return t('contacts.role_admin')
-  return t('contacts.role_member')
+  if (level >= 100) return t('contacts.role_owner');
+  if (level >= 50) return t('contacts.role_admin');
+  return t('contacts.role_member');
 }
 
-const { isModerator: isAdmin } = useRoomPermissions(toRef(props, 'roomId'))
-const memberUserIds = computed(() => members.value.map(member => member.userId))
+const { isModerator: isAdmin } = useRoomPermissions(toRef(props, 'roomId'));
+const memberUserIds = computed(() => members.value.map((member) => member.userId));
 </script>
 
 <template>
@@ -201,7 +190,7 @@ const memberUserIds = computed(() => members.value.map(member => member.userId))
           class="flex-1 h-8 px-2 text-sm font-medium rounded border border-border bg-background outline-none focus:ring-1 focus:ring-primary"
           @keydown.enter="saveName"
           @keydown.escape="editingName = false"
-        >
+        />
         <button class="p-1 rounded hover:bg-accent text-primary" @click="saveName">
           <Check :size="14" />
         </button>
@@ -302,15 +291,9 @@ const memberUserIds = computed(() => members.value.map(member => member.userId))
       </div>
 
       <div v-if="showInvite" class="mb-2 space-y-2 rounded-lg border border-border bg-muted/20 p-2">
-        <GroupMemberPicker
-          v-model="inviteIds"
-          :exclude-ids="memberUserIds"
-        />
+        <GroupMemberPicker v-model="inviteIds" :exclude-ids="memberUserIds" />
         <div class="flex justify-end gap-2">
-          <button
-            class="h-8 px-3 text-xs rounded hover:bg-accent"
-            @click="closeInvitePicker"
-          >
+          <button class="h-8 px-3 text-xs rounded hover:bg-accent" @click="closeInvitePicker">
             {{ t('common.cancel') }}
           </button>
           <button

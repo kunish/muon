@@ -1,19 +1,20 @@
 <script setup lang="ts">
-import type { DocEntry } from '../types/doc'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@muon/ui/tooltip'
-import { Eye, FileText, FolderInput, Pencil, Star, Trash2 } from 'lucide-vue-next'
+import type { DocEntry } from '../types/doc';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@muon/ui/tooltip';
+import { Eye, FileText, FolderInput, Pencil, Star, Trash2 } from 'lucide-vue-next';
 
-defineProps<{ doc: DocEntry, isSelected: boolean }>()
+defineProps<{ doc: DocEntry; isSelected: boolean }>();
 const emit = defineEmits<{
-  select: [id: string]
-  rename: [doc: DocEntry]
-  move: [doc: DocEntry]
-  star: [doc: DocEntry, starred: boolean]
-  status: [doc: DocEntry, status: DocEntry['status']]
-  delete: [doc: DocEntry]
-}>()
-const titleTooltipContentClass = 'relative max-w-[420px] overflow-visible break-words rounded-lg bg-[#1f2329] px-3 py-2 text-[13px] leading-[18px] text-white shadow-[0_8px_24px_rgba(31,35,41,0.18)] before:absolute before:left-[-4px] before:top-1/2 before:size-2 before:-translate-y-1/2 before:rotate-45 before:bg-[#1f2329]'
-const statusOptions: DocEntry['status'][] = ['草稿', '进行中', '评审中', '稳定']
+  select: [id: string];
+  rename: [doc: DocEntry];
+  move: [doc: DocEntry];
+  star: [doc: DocEntry, starred: boolean];
+  status: [doc: DocEntry, status: DocEntry['status']];
+  delete: [doc: DocEntry];
+}>();
+const titleTooltipContentClass =
+  'relative max-w-[420px] overflow-visible break-words rounded-lg bg-[#1f2329] px-3 py-2 text-[13px] leading-[18px] text-white shadow-[0_8px_24px_rgba(31,35,41,0.18)] before:absolute before:left-[-4px] before:top-1/2 before:size-2 before:-translate-y-1/2 before:rotate-45 before:bg-[#1f2329]';
+const statusOptions: DocEntry['status'][] = ['草稿', '进行中', '评审中', '稳定'];
 </script>
 
 <template>
@@ -27,7 +28,9 @@ const statusOptions: DocEntry['status'][] = ['草稿', '进行中', '评审中',
         data-testid="docs-open-row"
         @click="emit('select', doc.id)"
       >
-        <span class="flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-muted text-primary">
+        <span
+          class="flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-muted text-primary"
+        >
           <FileText :size="16" />
         </span>
         <span class="min-w-0">
@@ -41,11 +44,7 @@ const statusOptions: DocEntry['status'][] = ['草稿', '进行中', '评审中',
                 {{ doc.title }}
               </span>
             </TooltipTrigger>
-            <TooltipContent
-              side="right"
-              :side-offset="12"
-              :class="titleTooltipContentClass"
-            >
+            <TooltipContent side="right" :side-offset="12" :class="titleTooltipContentClass">
               {{ doc.title }}
             </TooltipContent>
           </Tooltip>
@@ -61,11 +60,7 @@ const statusOptions: DocEntry['status'][] = ['草稿', '进行中', '评审中',
         aria-label="文档状态"
         @change="emit('status', doc, ($event.target as HTMLSelectElement).value as DocEntry['status'])"
       >
-        <option
-          v-for="status in statusOptions"
-          :key="status"
-          :value="status"
-        >
+        <option v-for="status in statusOptions" :key="status" :value="status">
           {{ status }}
         </option>
       </select>
@@ -73,7 +68,9 @@ const statusOptions: DocEntry['status'][] = ['草稿', '进行中', '评审中',
         <button
           data-testid="docs-star"
           class="inline-flex size-8 items-center justify-center rounded-md transition-colors hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          :class="doc.sectionIds.includes('starred') ? 'text-yellow-500' : 'text-muted-foreground hover:text-foreground'"
+          :class="
+            doc.sectionIds.includes('starred') ? 'text-yellow-500' : 'text-muted-foreground hover:text-foreground'
+          "
           :title="doc.sectionIds.includes('starred') ? '取消收藏' : '收藏'"
           :aria-label="doc.sectionIds.includes('starred') ? '取消收藏' : '收藏'"
           @click="emit('star', doc, !doc.sectionIds.includes('starred'))"

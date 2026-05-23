@@ -48,10 +48,12 @@ describe('create group dialog', () => {
     await wrapper.get('[data-testid="create-group-submit"]').trigger('click')
     await flushPromises()
 
-    expect(mockClient.createRoom).toHaveBeenCalledWith(expect.objectContaining({
-      name: '设计讨论',
-      invite: ['@alice:localhost', '@bob:localhost'],
-    }))
+    expect(mockClient.createRoom).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: '设计讨论',
+        invite: ['@alice:localhost', '@bob:localhost'],
+      }),
+    )
     expect(wrapper.emitted('created')).toEqual([['!team:localhost']])
   })
 
@@ -80,8 +82,10 @@ describe('create group dialog', () => {
     await wrapper.get('[data-testid="create-group-submit"]').trigger('click')
     await flushPromises()
 
-    expect(mockClient.createRoom).toHaveBeenCalledWith(expect.objectContaining({
-      invite: ['@zoe:localhost'],
-    }))
+    expect(mockClient.createRoom).toHaveBeenCalledWith(
+      expect.objectContaining({
+        invite: ['@zoe:localhost'],
+      }),
+    )
   })
 })

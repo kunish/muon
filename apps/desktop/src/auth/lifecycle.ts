@@ -1,7 +1,14 @@
 import type { LoginCredentials, RegisterParams } from '@matrix/types'
 import type { MatrixSession } from '@muon/enterprise-contracts'
 import type { SignOutReason } from './lifecycleEvents'
-import { clear as clearEnterprise, complete as completeEnterprise, defaultEnterpriseSessionDeps, isEnterpriseAuthConfigured, restore as restoreEnterprise, start as startEnterprise } from '@/enterprise/session'
+import {
+  clear as clearEnterprise,
+  complete as completeEnterprise,
+  defaultEnterpriseSessionDeps,
+  isEnterpriseAuthConfigured,
+  restore as restoreEnterprise,
+  start as startEnterprise,
+} from '@/enterprise/session'
 import { loginWithPassword, readMatrixSessionFromStore, register } from '@/matrix/auth'
 import { setMyDisplayName } from '@/matrix/profile'
 import { activate, deactivate } from '@/matrix/sessionLifecycle'
@@ -13,8 +20,7 @@ export interface BootstrapResult {
 
 async function activateSession(session: MatrixSession): Promise<void> {
   const activated = await activate(session)
-  if (activated)
-    emitSignIn(session)
+  if (activated) emitSignIn(session)
 }
 
 export async function bootstrap(): Promise<BootstrapResult> {
@@ -45,8 +51,7 @@ export async function signUpWithPassword(serverUrl: string, params: RegisterPara
   const session = await register(serverUrl, params)
   await activateSession(session)
 
-  if (params.displayName)
-    await setMyDisplayName(params.displayName)
+  if (params.displayName) await setMyDisplayName(params.displayName)
 }
 
 export async function signInWithEnterprise(callbackUrl: string): Promise<void> {
@@ -63,8 +68,7 @@ export async function signOut(reason: SignOutReason = 'user-initiated'): Promise
   emitSignOut(reason)
   try {
     await deactivate({ revoke: true })
-  }
-  finally {
+  } finally {
     clearEnterprise(defaultEnterpriseSessionDeps())
   }
 }

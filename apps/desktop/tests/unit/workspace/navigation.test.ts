@@ -4,7 +4,7 @@ import { getWorkspaceAppForPath, workspaceApps } from '@/app/components/workspac
 describe('workspace navigation', () => {
   it('lists app-first workspace entries in display order', () => {
     // 飞书风格应用栏顺序：消息 → 日历 → 云文档 → 工作台 → 通讯录 → 组织 → 视频会议 → 邮箱 → 审批 → 项目
-    expect(workspaceApps.map(app => app.id)).toEqual([
+    expect(workspaceApps.map((app) => app.id)).toEqual([
       'messages',
       'calendar',
       'docs',

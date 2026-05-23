@@ -1,29 +1,31 @@
 <script setup lang="ts">
-import type { DropdownMenuContentEmits, DropdownMenuContentProps } from 'reka-ui'
-import type { HTMLAttributes } from 'vue'
-import { DropdownMenuContent, DropdownMenuPortal, useForwardPropsEmits } from 'reka-ui'
-import { cn } from '../../../utils'
+import type { DropdownMenuContentEmits, DropdownMenuContentProps } from 'reka-ui';
+import type { HTMLAttributes } from 'vue';
+import { DropdownMenuContent, DropdownMenuPortal, useForwardPropsEmits } from 'reka-ui';
+import { cn } from '../../../utils';
 
 interface Props extends DropdownMenuContentProps {
-  class?: HTMLAttributes['class']
+  class?: HTMLAttributes['class'];
 }
 
 const props = withDefaults(defineProps<Props>(), {
   sideOffset: 4,
-})
+});
 
-const emits = defineEmits<DropdownMenuContentEmits>()
-const forwarded = useForwardPropsEmits(props, emits)
+const emits = defineEmits<DropdownMenuContentEmits>();
+const forwarded = useForwardPropsEmits(props, emits);
 </script>
 
 <template>
   <DropdownMenuPortal>
     <DropdownMenuContent
       v-bind="{ ...forwarded, class: undefined }"
-      :class="cn(
-        'z-50 min-w-[180px] max-w-[320px] rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
-        props.class,
-      )"
+      :class="
+        cn(
+          'z-50 min-w-[180px] max-w-[320px] rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
+          props.class,
+        )
+      "
     >
       <slot />
     </DropdownMenuContent>

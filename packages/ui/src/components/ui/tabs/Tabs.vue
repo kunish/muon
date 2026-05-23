@@ -1,18 +1,18 @@
 <script setup lang="ts">
-import type { TabsRootProps } from 'reka-ui'
-import { TabsRoot, useForwardPropsEmits } from 'reka-ui'
-import { cn } from '../../../utils'
+import type { TabsRootProps } from 'reka-ui';
+import { TabsRoot, useForwardPropsEmits } from 'reka-ui';
+import { cn } from '../../../utils';
 
-const props = defineProps<TabsRootProps & { class?: string }>()
+const props = defineProps<TabsRootProps & { class?: string }>();
 
 const emits = defineEmits<{
-  'update:modelValue': [payload: string | number]
-}>()
+  'update:modelValue': [payload: string | number];
+}>();
 
 const forwarded = useForwardPropsEmits(() => {
-  const { class: _, ...delegated } = props
-  return delegated
-}, emits)
+  const { class: _, ...delegated } = props;
+  return delegated;
+}, emits);
 </script>
 
 <template>

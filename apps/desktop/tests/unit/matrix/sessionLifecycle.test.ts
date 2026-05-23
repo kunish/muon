@@ -72,7 +72,9 @@ describe('matrix session lifecycle', () => {
     const { activate } = await import('@/matrix/sessionLifecycle')
 
     await activate(matrixSession)
-    await expect(activate({ ...matrixSession, userId: '@other:example.com' })).rejects.toThrow(/different MatrixSession/)
+    await expect(activate({ ...matrixSession, userId: '@other:example.com' })).rejects.toThrow(
+      /different MatrixSession/,
+    )
 
     expect(mockActivateMatrixSession).toHaveBeenCalledTimes(1)
   })

@@ -23,7 +23,11 @@ export default meta
 type Story = StoryObj<typeof SegmentedControl>
 
 export const Default: Story = {
-  render: args => ({ components: { SegmentedControl }, setup: () => ({ args }), template: '<SegmentedControl v-bind="args" />' }),
+  render: (args) => ({
+    components: { SegmentedControl },
+    setup: () => ({ args }),
+    template: '<SegmentedControl v-bind="args" />',
+  }),
 }
 
 export const Variants: Story = {

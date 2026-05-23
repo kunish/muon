@@ -47,13 +47,16 @@ function createMatrixEvent(content: ReturnType<typeof createSyncContent>, eventI
   }
 }
 
-function createCursorMatrixEvent(content: {
-  userId: string
-  name: string
-  color: string
-  from: number
-  to: number
-}, targetRoomId = roomId) {
+function createCursorMatrixEvent(
+  content: {
+    userId: string
+    name: string
+    color: string
+    from: number
+    to: number
+  },
+  targetRoomId = roomId,
+) {
   return {
     getType: () => MATRIX_EVENT_TYPES.DOC_CURSOR,
     getContent: () => content,
@@ -72,8 +75,7 @@ function createClient(events: unknown[] = []) {
       }),
     })),
     on: vi.fn((eventName: string, handler: (event: unknown) => void) => {
-      if (eventName === RoomEvent.Timeline)
-        timelineHandlers.push(handler)
+      if (eventName === RoomEvent.Timeline) timelineHandlers.push(handler)
     }),
     off: vi.fn(),
     timelineHandlers,
@@ -179,13 +181,15 @@ describe('matrixSyncProvider', () => {
     const handler = vi.fn()
 
     provider.onCursor(handler)
-    client.timelineHandlers[0]?.(createCursorMatrixEvent({
-      userId: '@alice:localhost',
-      name: 'Alice',
-      color: '#2563eb',
-      from: 3,
-      to: 8,
-    }))
+    client.timelineHandlers[0]?.(
+      createCursorMatrixEvent({
+        userId: '@alice:localhost',
+        name: 'Alice',
+        color: '#2563eb',
+        from: 3,
+        to: 8,
+      }),
+    )
 
     expect(handler).toHaveBeenCalledWith({
       userId: '@alice:localhost',
@@ -205,13 +209,18 @@ describe('matrixSyncProvider', () => {
     const handler = vi.fn()
 
     provider.onCursor(handler)
-    client.timelineHandlers[0]?.(createCursorMatrixEvent({
-      userId: '@alice:localhost',
-      name: 'Alice',
-      color: '#2563eb',
-      from: 3,
-      to: 8,
-    }, '!other:localhost'))
+    client.timelineHandlers[0]?.(
+      createCursorMatrixEvent(
+        {
+          userId: '@alice:localhost',
+          name: 'Alice',
+          color: '#2563eb',
+          from: 3,
+          to: 8,
+        },
+        '!other:localhost',
+      ),
+    )
 
     expect(handler).not.toHaveBeenCalled()
 

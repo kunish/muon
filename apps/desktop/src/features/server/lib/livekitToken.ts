@@ -14,7 +14,9 @@ interface LiveKitTokenResponse {
 export async function getLiveKitToken(request: LiveKitTokenRequest): Promise<string> {
   const tokenEndpoint = import.meta.env.VITE_LIVEKIT_TOKEN_ENDPOINT as string | undefined
   if (!tokenEndpoint) {
-    throw new Error('LiveKit token endpoint is not configured. Set VITE_LIVEKIT_TOKEN_ENDPOINT to a backend endpoint that returns a participant token.')
+    throw new Error(
+      'LiveKit token endpoint is not configured. Set VITE_LIVEKIT_TOKEN_ENDPOINT to a backend endpoint that returns a participant token.',
+    )
   }
 
   const response = await fetch(tokenEndpoint, {
@@ -32,7 +34,7 @@ export async function getLiveKitToken(request: LiveKitTokenRequest): Promise<str
     throw new Error(`LiveKit token endpoint failed with ${response.status}`)
   }
 
-  const data = await response.json() as LiveKitTokenResponse
+  const data = (await response.json()) as LiveKitTokenResponse
   const token = data.token ?? data.accessToken ?? data.participantToken
   if (!token) {
     throw new Error('LiveKit token endpoint response did not include a token')

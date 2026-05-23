@@ -1,50 +1,49 @@
 <script setup lang="ts">
-import { getMyAvatarUrl, getMyDisplayName, getMyStatus, setMyAvatar, setMyDisplayName } from '@matrix/index'
-import { Avatar } from '@muon/ui/avatar'
-import { Input } from '@muon/ui/input'
-import { Label } from '@muon/ui/label'
-import { Popover, PopoverContent, PopoverTrigger } from '@muon/ui/popover'
-import { Camera, Check, Pencil, SmilePlus, X } from 'lucide-vue-next'
-import { ref } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { open } from '@/desktop/dialog'
-import { readFile } from '@/desktop/fs'
-import { useAuthMedia } from '@/shared/composables/useAuthMedia'
-import StatusPicker from './StatusPicker.vue'
+import { getMyAvatarUrl, getMyDisplayName, getMyStatus, setMyAvatar, setMyDisplayName } from '@matrix/index';
+import { Avatar } from '@muon/ui/avatar';
+import { Input } from '@muon/ui/input';
+import { Label } from '@muon/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '@muon/ui/popover';
+import { Camera, Check, Pencil, SmilePlus, X } from 'lucide-vue-next';
+import { ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { open } from '@/desktop/dialog';
+import { readFile } from '@/desktop/fs';
+import { useAuthMedia } from '@/shared/composables/useAuthMedia';
+import StatusPicker from './StatusPicker.vue';
 
-const { t } = useI18n()
-const displayName = ref(getMyDisplayName())
-const mxcAvatar = ref(getMyAvatarUrl())
-const avatarUrl = useAuthMedia(mxcAvatar, 96, 96)
-const editingName = ref(false)
-const nameInput = ref('')
-const saving = ref(false)
-const currentStatus = ref(getMyStatus())
-const showStatusPicker = ref(false)
+const { t } = useI18n();
+const displayName = ref(getMyDisplayName());
+const mxcAvatar = ref(getMyAvatarUrl());
+const avatarUrl = useAuthMedia(mxcAvatar, 96, 96);
+const editingName = ref(false);
+const nameInput = ref('');
+const saving = ref(false);
+const currentStatus = ref(getMyStatus());
+const showStatusPicker = ref(false);
 
 function onStatusUpdated(status: string) {
-  currentStatus.value = status
+  currentStatus.value = status;
 }
 
 function startEditName() {
-  nameInput.value = displayName.value
-  editingName.value = true
+  nameInput.value = displayName.value;
+  editingName.value = true;
 }
 
 async function saveName() {
-  const name = nameInput.value.trim()
+  const name = nameInput.value.trim();
   if (!name || name === displayName.value) {
-    editingName.value = false
-    return
+    editingName.value = false;
+    return;
   }
-  saving.value = true
+  saving.value = true;
   try {
-    await setMyDisplayName(name)
-    displayName.value = name
-  }
-  finally {
-    saving.value = false
-    editingName.value = false
+    await setMyDisplayName(name);
+    displayName.value = name;
+  } finally {
+    saving.value = false;
+    editingName.value = false;
   }
 }
 
@@ -52,28 +51,26 @@ async function changeAvatar() {
   const path = await open({
     multiple: false,
     filters: [{ name: t('settings.filter_image'), extensions: ['png', 'jpg', 'jpeg', 'webp', 'gif'] }],
-  })
-  if (!path)
-    return
+  });
+  if (!path) return;
 
-  saving.value = true
+  saving.value = true;
   try {
-    const bytes = await readFile(path)
-    const ext = path.split('.').pop()?.toLowerCase() || 'png'
+    const bytes = await readFile(path);
+    const ext = path.split('.').pop()?.toLowerCase() || 'png';
     const mimeMap: Record<string, string> = {
       png: 'image/png',
       jpg: 'image/jpeg',
       jpeg: 'image/jpeg',
       webp: 'image/webp',
       gif: 'image/gif',
-    }
-    const file = new File([bytes], `avatar.${ext}`, { type: mimeMap[ext] || 'image/png' })
-    await setMyAvatar(file)
+    };
+    const file = new File([bytes], `avatar.${ext}`, { type: mimeMap[ext] || 'image/png' });
+    await setMyAvatar(file);
     // 本地预览用 blob URL，useAuthMedia 会直接透传非 mxc URL
-    mxcAvatar.value = URL.createObjectURL(file)
-  }
-  finally {
-    saving.value = false
+    mxcAvatar.value = URL.createObjectURL(file);
+  } finally {
+    saving.value = false;
   }
 }
 </script>
@@ -86,11 +83,7 @@ async function changeAvatar() {
 
     <!-- 头像 -->
     <div class="flex items-center gap-4">
-      <button
-        type="button"
-        class="relative group rounded-md cursor-pointer"
-        @click="changeAvatar"
-      >
+      <button type="button" class="relative group rounded-md cursor-pointer" @click="changeAvatar">
         <Avatar
           :src="avatarUrl"
           :alt="displayName"
@@ -99,7 +92,9 @@ async function changeAvatar() {
           size="2xl"
           shape="rounded"
         />
-        <div class="absolute inset-0 rounded-md bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+        <div
+          class="absolute inset-0 rounded-md bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+        >
           <Camera :size="20" class="text-white" />
         </div>
       </button>
@@ -126,12 +121,7 @@ async function changeAvatar() {
         </button>
       </div>
       <div v-else class="flex items-center gap-2">
-        <Input
-          v-model="nameInput"
-          class="flex-1"
-          @keydown.enter="saveName"
-          @keydown.escape="editingName = false"
-        />
+        <Input v-model="nameInput" class="flex-1" @keydown.enter="saveName" @keydown.escape="editingName = false" />
         <button class="p-1 rounded hover:bg-accent text-primary" :disabled="saving" @click="saveName">
           <Check :size="14" />
         </button>
@@ -146,17 +136,16 @@ async function changeAvatar() {
       <Label class="text-sm font-medium text-muted-foreground mb-1.5 block">{{ t('settings.status') }}</Label>
       <Popover v-model:open="showStatusPicker">
         <PopoverTrigger as-child>
-          <button class="flex items-center gap-2 group text-sm text-muted-foreground hover:text-foreground transition-colors">
+          <button
+            class="flex items-center gap-2 group text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
             <SmilePlus :size="14" class="opacity-60 group-hover:opacity-100" />
             <span v-if="currentStatus" class="truncate max-w-[240px]">{{ currentStatus }}</span>
             <span v-else class="italic opacity-60">{{ t('settings.status_placeholder') }}</span>
           </button>
         </PopoverTrigger>
         <PopoverContent align="start" class="p-0">
-          <StatusPicker
-            @close="showStatusPicker = false"
-            @updated="onStatusUpdated"
-          />
+          <StatusPicker @close="showStatusPicker = false" @updated="onStatusUpdated" />
         </PopoverContent>
       </Popover>
     </div>

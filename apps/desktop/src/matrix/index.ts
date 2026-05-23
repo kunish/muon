@@ -52,12 +52,41 @@ export {
   sendVideoMessage,
 } from './messages'
 export type { ReactionSummary, SystemEventInfo, TimelineRelationSummaries } from './messages'
-export { clearMyStatus, getMyAvatarUrl, getMyDisplayName, getMyStatus, getUserPresenceInfo, setMyAvatar, setMyDisplayName, setMyStatus } from './profile'
+export {
+  clearMyStatus,
+  getMyAvatarUrl,
+  getMyDisplayName,
+  getMyStatus,
+  getUserPresenceInfo,
+  setMyAvatar,
+  setMyDisplayName,
+  setMyStatus,
+} from './profile'
 export { isProjectSyncEvent, parseProjectSyncPayload, sendProjectSyncEvent } from './projects'
 export { getReadMarkerEventId, getReadUsers, sendReadReceipt } from './receipts'
 export { backPaginateRoomEventsSearch, searchRoomEvents } from './retrieval'
 export type { RetrievalItem, RetrievalPage, RetrievalSession } from './retrieval'
-export { findOrCreateDm, getRoom, getRoomAnnouncement, getRoomSummaries, getRoomTopic, invalidateRoomSummariesCache, isMessagePinned, isMessageStarred, leaveRoom, markRoomAsRead, pinMessage, setRoomAnnouncement, setRoomName, setRoomTopic, starMessage, toggleRoomMute, toggleRoomPin, unpinMessage, unstarMessage } from './rooms'
+export {
+  findOrCreateDm,
+  getRoom,
+  getRoomAnnouncement,
+  getRoomSummaries,
+  getRoomTopic,
+  invalidateRoomSummariesCache,
+  isMessagePinned,
+  isMessageStarred,
+  leaveRoom,
+  markRoomAsRead,
+  pinMessage,
+  setRoomAnnouncement,
+  setRoomName,
+  setRoomTopic,
+  starMessage,
+  toggleRoomMute,
+  toggleRoomPin,
+  unpinMessage,
+  unstarMessage,
+} from './rooms'
 export { isDirectRoom, normalizeRoomId } from './roomUtils'
 export {
   addRoomToSpace,

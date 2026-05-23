@@ -23,9 +23,7 @@ vi.mock('@/desktop/dialog', () => ({
 
 describe('chatMessage redaction updates', () => {
   it('updates redaction state when the timeline refreshes the same MatrixEvent object', async () => {
-    const ChatMessage = (
-      await import('@/features/chat/components/ChatMessage.vue')
-    ).default
+    const ChatMessage = (await import('@/features/chat/components/ChatMessage.vue')).default
 
     let redacted = false
     const event = {

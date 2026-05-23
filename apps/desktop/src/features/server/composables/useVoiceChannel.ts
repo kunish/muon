@@ -40,8 +40,7 @@ export function useVoiceChannel() {
   function addSelfToUsers() {
     const client = getClient()
     const userId = client.getUserId()
-    if (!userId)
-      return
+    if (!userId) return
 
     const user = client.getUser(userId)
     connectedUsers.value = [
@@ -60,30 +59,25 @@ export function useVoiceChannel() {
   function removeSelfFromUsers() {
     const client = getClient()
     const userId = client.getUserId()
-    if (!userId)
-      return
-    connectedUsers.value = connectedUsers.value.filter(u => u.userId !== userId)
+    if (!userId) return
+    connectedUsers.value = connectedUsers.value.filter((u) => u.userId !== userId)
   }
 
   /** Update the current user's mute/deafen state in the local list */
   function updateSelfInUsers() {
     const client = getClient()
     const userId = client.getUserId()
-    if (!userId)
-      return
+    if (!userId) return
 
-    connectedUsers.value = connectedUsers.value.map(u =>
-      u.userId === userId
-        ? { ...u, isMuted: isMuted.value, isDeafened: isDeafened.value }
-        : u,
+    connectedUsers.value = connectedUsers.value.map((u) =>
+      u.userId === userId ? { ...u, isMuted: isMuted.value, isDeafened: isDeafened.value } : u,
     )
   }
 
   /** Connect to a voice channel's LiveKit room */
   async function joinVoiceChannel(roomId: string, channelName: string, serverId: string) {
     // Already connected to this channel
-    if (currentChannelId.value === roomId && isConnected.value)
-      return
+    if (currentChannelId.value === roomId && isConnected.value) return
 
     // Disconnect from any existing voice channel first
     if (isConnected.value) {
@@ -126,8 +120,7 @@ export function useVoiceChannel() {
 
       // Add self to the local participant list until remote participant rendering is wired.
       addSelfToUsers()
-    }
-    catch (err) {
+    } catch (err) {
       console.error('[useVoiceChannel] Failed to join:', err)
       toast.error(localizedText('server.voice_join_failed'))
       resetState()
@@ -140,8 +133,7 @@ export function useVoiceChannel() {
       room.value.removeAllListeners()
       try {
         await room.value.disconnect()
-      }
-      catch {
+      } catch {
         // Ignore disconnect errors
       }
       room.value = null
@@ -164,8 +156,7 @@ export function useVoiceChannel() {
     if (room.value) {
       try {
         await room.value.localParticipant.setMicrophoneEnabled(!isMuted.value)
-      }
-      catch {
+      } catch {
         isMuted.value = !isMuted.value
         toast.error(localizedText('server.microphone_toggle_failed'))
       }
@@ -177,8 +168,7 @@ export function useVoiceChannel() {
   /** Toggle deafen (mutes audio output; also mutes mic when deafened) */
   async function toggleDeafen() {
     const nextDeafened = !isDeafened.value
-    if (nextDeafened)
-      wasMutedBeforeDeafen.value = isMuted.value
+    if (nextDeafened) wasMutedBeforeDeafen.value = isMuted.value
 
     isDeafened.value = nextDeafened
 
@@ -188,8 +178,7 @@ export function useVoiceChannel() {
       if (room.value) {
         try {
           await room.value.localParticipant.setMicrophoneEnabled(false)
-        }
-        catch {
+        } catch {
           toast.error(localizedText('server.microphone_toggle_failed'))
         }
       }
@@ -201,14 +190,12 @@ export function useVoiceChannel() {
       if (room.value) {
         try {
           await room.value.localParticipant.setMicrophoneEnabled(true)
-        }
-        catch {
+        } catch {
           toast.error(localizedText('server.microphone_toggle_failed'))
         }
       }
     }
-    if (!isDeafened.value)
-      wasMutedBeforeDeafen.value = false
+    if (!isDeafened.value) wasMutedBeforeDeafen.value = false
 
     updateSelfInUsers()
   }

@@ -138,9 +138,12 @@ const MessageGroupStub = defineComponent({
     },
   },
   setup(props) {
-    return () => h('div', {}, (props.events as MatrixEvent[]).map(event =>
-      h('div', { 'data-event-id': event.getId() }, event.getId()),
-    ))
+    return () =>
+      h(
+        'div',
+        {},
+        (props.events as MatrixEvent[]).map((event) => h('div', { 'data-event-id': event.getId() }, event.getId())),
+      )
   },
 })
 
@@ -157,13 +160,18 @@ const MessageGroupUnreadStub = defineComponent({
     },
   },
   setup(props) {
-    return () => h('div', {}, (props.events as MatrixEvent[]).flatMap((event) => {
-      const nodes = []
-      if (props.unreadEventId === event.getId())
-        nodes.push(h('span', { 'data-testid': 'new-message-separator' }, 'NEW'))
-      nodes.push(h('div', { 'data-event-id': event.getId() }, event.getId()))
-      return nodes
-    }))
+    return () =>
+      h(
+        'div',
+        {},
+        (props.events as MatrixEvent[]).flatMap((event) => {
+          const nodes = []
+          if (props.unreadEventId === event.getId())
+            nodes.push(h('span', { 'data-testid': 'new-message-separator' }, 'NEW'))
+          nodes.push(h('div', { 'data-event-id': event.getId() }, event.getId()))
+          return nodes
+        }),
+      )
   },
 })
 
@@ -453,9 +461,12 @@ describe('message list room switching', () => {
     getTimelineMock.mockClear()
     paginateBackMock.mockClear()
     let resolvePaginate: ((loaded: boolean) => void) | null = null
-    paginateBackMock.mockImplementationOnce(() => new Promise<boolean>((resolve) => {
-      resolvePaginate = resolve
-    }))
+    paginateBackMock.mockImplementationOnce(
+      () =>
+        new Promise<boolean>((resolve) => {
+          resolvePaginate = resolve
+        }),
+    )
 
     timelines.set('!room-a:localhost', [createEvent('$a-new')])
     timelines.set('!room-uncached:localhost', [])
@@ -566,9 +577,12 @@ describe('message list room switching', () => {
     vi.stubGlobal('ResizeObserver', MockResizeObserver)
     vi.stubGlobal('CSS', { escape: (value: string) => value })
     let resolvePaginate: ((loaded: boolean) => void) | null = null
-    paginateBackMock.mockImplementationOnce(() => new Promise<boolean>((resolve) => {
-      resolvePaginate = resolve
-    }))
+    paginateBackMock.mockImplementationOnce(
+      () =>
+        new Promise<boolean>((resolve) => {
+          resolvePaginate = resolve
+        }),
+    )
     timelines.clear()
     getTimelineMock.mockClear()
 
@@ -635,11 +649,7 @@ describe('message list room switching', () => {
     getTimelineMock.mockClear()
     paginateBackMock.mockClear()
 
-    timelines.set('!room-a:localhost', [
-      createEvent('$a-old'),
-      createEvent('$a-middle'),
-      createEvent('$a-new'),
-    ])
+    timelines.set('!room-a:localhost', [createEvent('$a-old'), createEvent('$a-middle'), createEvent('$a-new')])
 
     const store = useChatStore()
     store.setCurrentRoom('!room-a:localhost')

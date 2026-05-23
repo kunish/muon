@@ -119,8 +119,7 @@ export function createUploadManager(on: UploadManagerEvents) {
             upload.width = compressed.width
             upload.height = compressed.height
           }
-        }
-        catch {
+        } catch {
           upload.uploadFile = upload.file
         }
       }
@@ -138,8 +137,7 @@ export function createUploadManager(on: UploadManagerEvents) {
       hashDedupCache.set(hash, mxcUrl)
 
       on.complete(upload)
-    }
-    catch (err) {
+    } catch (err) {
       upload.status = 'error'
       upload.error = err instanceof Error ? err.message : 'Upload failed'
       on.error(upload)
@@ -153,7 +151,7 @@ export function createUploadManager(on: UploadManagerEvents) {
   /** Get all completed uploads for media IDs in the HTML */
   function collectCompleted(ids: string[]): PendingUpload[] {
     return ids
-      .map(id => pendingUploads.get(id))
+      .map((id) => pendingUploads.get(id))
       .filter((u): u is PendingUpload => !!u && u.status === 'done' && !!u.mxcUrl)
   }
 
@@ -172,8 +170,7 @@ export function createUploadManager(on: UploadManagerEvents) {
       return u && u.status !== 'done' && u.status !== 'error'
     })
 
-    if (remaining.length === 0)
-      return collectCompleted(ids)
+    if (remaining.length === 0) return collectCompleted(ids)
 
     return new Promise((resolve) => {
       const check = () => {

@@ -29,15 +29,15 @@ function createLoggerMock(): Logger & {
 
 describe('matrix logger', () => {
   it('recognizes the Matrix SDK default push-rule warnings that are safe to suppress', () => {
-    expect(isIgnoredMatrixSdkWarning([
-      'Adding default global override push rule .org.matrix.msc3786.rule.room.server_acl',
-    ])).toBe(true)
-    expect(isIgnoredMatrixSdkWarning([
-      'Adding default global underride push rule .org.matrix.msc3914.rule.room.call',
-    ])).toBe(true)
-    expect(isIgnoredMatrixSdkWarning([
-      'Missing default global override push rule .org.matrix.msc3786.rule.room.server_acl',
-    ])).toBe(false)
+    expect(
+      isIgnoredMatrixSdkWarning(['Adding default global override push rule .org.matrix.msc3786.rule.room.server_acl']),
+    ).toBe(true)
+    expect(
+      isIgnoredMatrixSdkWarning(['Adding default global underride push rule .org.matrix.msc3914.rule.room.call']),
+    ).toBe(true)
+    expect(
+      isIgnoredMatrixSdkWarning(['Missing default global override push rule .org.matrix.msc3786.rule.room.server_acl']),
+    ).toBe(false)
   })
 
   it('filters only the known push-rule warning noise from Matrix SDK logs', () => {

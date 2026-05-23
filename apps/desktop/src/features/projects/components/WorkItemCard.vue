@@ -1,20 +1,20 @@
 <script setup lang="ts">
-import type { StatusCategory, WorkItem } from '../types'
-import { CalendarDays, User } from 'lucide-vue-next'
-import { computed } from 'vue'
-import { useI18n } from 'vue-i18n'
+import type { StatusCategory, WorkItem } from '../types';
+import { CalendarDays, User } from 'lucide-vue-next';
+import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 const props = defineProps<{
-  item: WorkItem
-  isDragging?: boolean
-  statusCategory?: StatusCategory
-}>()
+  item: WorkItem;
+  isDragging?: boolean;
+  statusCategory?: StatusCategory;
+}>();
 
 const emit = defineEmits<{
-  click: [item: WorkItem]
-}>()
+  click: [item: WorkItem];
+}>();
 
-const { t } = useI18n()
+const { t } = useI18n();
 
 const priorityColor = computed(() => {
   const map: Record<string, string> = {
@@ -23,15 +23,14 @@ const priorityColor = computed(() => {
     medium: 'bg-yellow-500',
     low: 'bg-blue-500',
     none: 'bg-transparent',
-  }
-  return map[props.item.priority] ?? map.none
-})
+  };
+  return map[props.item.priority] ?? map.none;
+});
 
 const isOverdue = computed(() => {
-  if (!props.item.dueDate)
-    return false
-  return props.item.dueDate < Date.now() && props.statusCategory !== 'done'
-})
+  if (!props.item.dueDate) return false;
+  return props.item.dueDate < Date.now() && props.statusCategory !== 'done';
+});
 </script>
 
 <template>
@@ -41,11 +40,7 @@ const isOverdue = computed(() => {
     @click="emit('click', item)"
   >
     <div class="mb-2 flex items-start gap-2">
-      <div
-        v-if="item.priority !== 'none'"
-        class="mt-0.5 h-2.5 w-2.5 shrink-0 rounded-full"
-        :class="priorityColor"
-      />
+      <div v-if="item.priority !== 'none'" class="mt-0.5 h-2.5 w-2.5 shrink-0 rounded-full" :class="priorityColor" />
       <span class="text-sm font-medium leading-snug">{{ item.title }}</span>
     </div>
 

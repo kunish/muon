@@ -1,28 +1,28 @@
 <script setup lang="ts">
-import type { MessageAlignment, ThemeMode } from '../stores/settingsStore'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@muon/ui/select'
-import { Check } from 'lucide-vue-next'
-import { useI18n } from 'vue-i18n'
-import { useSettingsStore } from '../stores/settingsStore'
+import type { MessageAlignment, ThemeMode } from '../stores/settingsStore';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@muon/ui/select';
+import { Check } from 'lucide-vue-next';
+import { useI18n } from 'vue-i18n';
+import { useSettingsStore } from '../stores/settingsStore';
 
-const { t } = useI18n()
-const store = useSettingsStore()
+const { t } = useI18n();
+const store = useSettingsStore();
 
-const themeOptions: { value: ThemeMode, label: () => string }[] = [
+const themeOptions: { value: ThemeMode; label: () => string }[] = [
   { value: 'light', label: () => t('settings.theme_light') },
   { value: 'dark', label: () => t('settings.theme_dark') },
   { value: 'system', label: () => t('settings.theme_system') },
-]
+];
 
 const localeOptions = [
   { value: 'zh', label: () => t('settings.lang_zh') },
   { value: 'en', label: () => 'English' },
-]
+];
 
-const alignmentOptions: { value: MessageAlignment, label: () => string, desc: () => string }[] = [
+const alignmentOptions: { value: MessageAlignment; label: () => string; desc: () => string }[] = [
   { value: 'left', label: () => t('settings.align_left'), desc: () => t('settings.align_left_desc') },
   { value: 'leftright', label: () => t('settings.align_bubble'), desc: () => t('settings.align_bubble_desc') },
-]
+];
 </script>
 
 <template>
@@ -48,7 +48,13 @@ const alignmentOptions: { value: MessageAlignment, label: () => string, desc: ()
           <!-- preview: stylized mini app frame in this theme -->
           <div
             class="h-16 w-full overflow-hidden rounded border border-border/60 flex"
-            :class="opt.value === 'system' ? 'bg-gradient-to-r from-white to-[#17181c]' : opt.value === 'dark' ? 'bg-[#17181c]' : 'bg-white'"
+            :class="
+              opt.value === 'system'
+                ? 'bg-gradient-to-r from-white to-[#17181c]'
+                : opt.value === 'dark'
+                  ? 'bg-[#17181c]'
+                  : 'bg-white'
+            "
           >
             <!-- sidebar -->
             <div
@@ -57,23 +63,13 @@ const alignmentOptions: { value: MessageAlignment, label: () => string, desc: ()
             />
             <!-- content -->
             <div class="flex-1 p-1.5 flex flex-col gap-1">
-              <div
-                class="h-1.5 w-2/3 rounded-full"
-                :class="opt.value === 'dark' ? 'bg-gray-700' : 'bg-gray-300'"
-              />
-              <div
-                class="h-1.5 w-1/2 rounded-full"
-                :class="opt.value === 'dark' ? 'bg-gray-700' : 'bg-gray-300'"
-              />
+              <div class="h-1.5 w-2/3 rounded-full" :class="opt.value === 'dark' ? 'bg-gray-700' : 'bg-gray-300'" />
+              <div class="h-1.5 w-1/2 rounded-full" :class="opt.value === 'dark' ? 'bg-gray-700' : 'bg-gray-300'" />
               <div class="h-2 w-12 rounded bg-primary mt-auto" />
             </div>
           </div>
           <span class="text-xs font-medium">{{ opt.label() }}</span>
-          <Check
-            v-if="store.theme === opt.value"
-            :size="14"
-            class="absolute right-2 top-2 text-primary"
-          />
+          <Check v-if="store.theme === opt.value" :size="14" class="absolute right-2 top-2 text-primary" />
         </button>
       </div>
     </div>
@@ -83,7 +79,7 @@ const alignmentOptions: { value: MessageAlignment, label: () => string, desc: ()
       <div class="text-sm">
         {{ t('settings.language') }}
       </div>
-      <Select :model-value="store.locale" @update:model-value="v => store.locale = v as string">
+      <Select :model-value="store.locale" @update:model-value="(v) => (store.locale = v as string)">
         <SelectTrigger class="w-56">
           <SelectValue />
         </SelectTrigger>
@@ -120,15 +116,11 @@ const alignmentOptions: { value: MessageAlignment, label: () => string, desc: ()
             <div class="h-2 w-3/5 rounded-full bg-muted self-start" />
           </div>
           <span class="text-xs font-medium">{{ opt.label() }}</span>
-          <Check
-            v-if="store.messageAlignment === opt.value"
-            :size="14"
-            class="absolute right-2 top-2 text-primary"
-          />
+          <Check v-if="store.messageAlignment === opt.value" :size="14" class="absolute right-2 top-2 text-primary" />
         </button>
       </div>
       <p class="text-xs text-muted-foreground">
-        {{ alignmentOptions.find(o => o.value === store.messageAlignment)?.desc() }}
+        {{ alignmentOptions.find((o) => o.value === store.messageAlignment)?.desc() }}
       </p>
     </div>
   </div>

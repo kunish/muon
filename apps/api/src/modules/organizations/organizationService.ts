@@ -5,7 +5,10 @@ import { hashPassword } from '../../security/password'
 import { assertAdminRole } from '../users/rbac'
 
 export interface OrganizationService {
-  createOrganization: (actor: EnterpriseUserRecord, input: CreateOrganizationRequest) => Promise<CreateOrganizationResponse>
+  createOrganization: (
+    actor: EnterpriseUserRecord,
+    input: CreateOrganizationRequest,
+  ) => Promise<CreateOrganizationResponse>
 }
 
 export interface OrganizationServiceDeps {

@@ -5,33 +5,26 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@muon/ui/dropdown-menu'
-import {
-  Bell,
-  FolderPlus,
-  Hash,
-  LogOut,
-  Settings,
-  UserPlus,
-} from 'lucide-vue-next'
-import { computed, ref } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { useServerStore } from '@/features/server/stores/serverStore'
-import { useRoomPermissions } from '@/shared/composables/useRoomPermissions'
+} from '@muon/ui/dropdown-menu';
+import { Bell, FolderPlus, Hash, LogOut, Settings, UserPlus } from 'lucide-vue-next';
+import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useServerStore } from '@/features/server/stores/serverStore';
+import { useRoomPermissions } from '@/shared/composables/useRoomPermissions';
 
 const emit = defineEmits<{
-  createChannel: []
-  createCategory: []
-  invitePeople: []
-  serverSettings: []
-  notificationSettings: []
-  leaveServer: []
-}>()
+  createChannel: [];
+  createCategory: [];
+  invitePeople: [];
+  serverSettings: [];
+  notificationSettings: [];
+  leaveServer: [];
+}>();
 
-const serverStore = useServerStore()
-const open = ref(false)
-const { t } = useI18n()
-const { isModerator: isAdmin } = useRoomPermissions(computed(() => serverStore.currentServerId))
+const serverStore = useServerStore();
+const open = ref(false);
+const { t } = useI18n();
+const { isModerator: isAdmin } = useRoomPermissions(computed(() => serverStore.currentServerId));
 </script>
 
 <template>
@@ -39,11 +32,7 @@ const { isModerator: isAdmin } = useRoomPermissions(computed(() => serverStore.c
     <DropdownMenuTrigger as-child>
       <slot name="trigger" :open="open" />
     </DropdownMenuTrigger>
-    <DropdownMenuContent
-      class="min-w-56 p-1.5 shadow-[0_8px_24px_rgba(0,0,0,0.5)]"
-      :side-offset="6"
-      align="start"
-    >
+    <DropdownMenuContent class="min-w-56 p-1.5 shadow-[0_8px_24px_rgba(0,0,0,0.5)]" :side-offset="6" align="start">
       <!-- Server Settings (admin only) -->
       <DropdownMenuItem
         v-if="isAdmin"

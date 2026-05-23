@@ -24,10 +24,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     },
   })
   if (!response.ok) {
-    const payload = await response.json().catch(() => ({})) as { error?: string }
+    const payload = (await response.json().catch(() => ({}))) as { error?: string }
     throw new Error(payload.error ?? '请求失败')
   }
-  return await response.json() as T
+  return (await response.json()) as T
 }
 
 export function getInstallStatus(): Promise<{ installed: boolean }> {
@@ -41,7 +41,7 @@ export function installMuon(input: InstallRequest): Promise<unknown> {
   })
 }
 
-export function loginAdmin(input: AdminLoginRequest): Promise<{ session: AdminSession, user: EnterpriseUser }> {
+export function loginAdmin(input: AdminLoginRequest): Promise<{ session: AdminSession; user: EnterpriseUser }> {
   return request('/api/admin/login', {
     method: 'POST',
     body: JSON.stringify(input),
@@ -56,7 +56,10 @@ export function listOrganizations(token: string): Promise<{ organizations: Organ
   })
 }
 
-export function createOrganization(token: string, input: CreateOrganizationRequest): Promise<{ organization: Organization, owner: EnterpriseUser }> {
+export function createOrganization(
+  token: string,
+  input: CreateOrganizationRequest,
+): Promise<{ organization: Organization; owner: EnterpriseUser }> {
   return request('/api/admin/organizations', {
     method: 'POST',
     headers: {
@@ -84,7 +87,11 @@ export function createAdminUser(token: string, input: CreateUserRequest): Promis
   })
 }
 
-export function updateAdminUser(token: string, userId: string, input: UpdateUserRequest): Promise<{ user: EnterpriseUser }> {
+export function updateAdminUser(
+  token: string,
+  userId: string,
+  input: UpdateUserRequest,
+): Promise<{ user: EnterpriseUser }> {
   return request(`/api/admin/users/${encodeURIComponent(userId)}`, {
     method: 'PATCH',
     headers: {
@@ -94,7 +101,11 @@ export function updateAdminUser(token: string, userId: string, input: UpdateUser
   })
 }
 
-export function resetAdminUserPassword(token: string, userId: string, input: ResetPasswordRequest): Promise<{ user: EnterpriseUser }> {
+export function resetAdminUserPassword(
+  token: string,
+  userId: string,
+  input: ResetPasswordRequest,
+): Promise<{ user: EnterpriseUser }> {
   return request(`/api/admin/users/${encodeURIComponent(userId)}/password`, {
     method: 'POST',
     headers: {

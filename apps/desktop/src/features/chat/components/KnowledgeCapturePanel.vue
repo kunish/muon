@@ -1,43 +1,46 @@
 <script setup lang="ts">
-import type { KnowledgeTab } from '../types/knowledge'
-import { computed, ref } from 'vue'
-import { useI18n } from 'vue-i18n'
-import CrossSessionQaPanel from './CrossSessionQaPanel.vue'
-import DecisionPanel from './DecisionPanel.vue'
-import OfflineDigestPanel from './OfflineDigestPanel.vue'
+import type { KnowledgeTab } from '../types/knowledge';
+import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+import CrossSessionQaPanel from './CrossSessionQaPanel.vue';
+import DecisionPanel from './DecisionPanel.vue';
+import OfflineDigestPanel from './OfflineDigestPanel.vue';
 
-const props = withDefaults(defineProps<{
-  initialTab?: KnowledgeTab
-}>(), {
-  initialTab: 'digest',
-})
+const props = withDefaults(
+  defineProps<{
+    initialTab?: KnowledgeTab;
+  }>(),
+  {
+    initialTab: 'digest',
+  },
+);
 
 defineSlots<{
-  digest?: () => any
-  decision?: () => any
-  qa?: () => any
-}>()
+  digest?: () => any;
+  decision?: () => any;
+  qa?: () => any;
+}>();
 
-const { t } = useI18n()
+const { t } = useI18n();
 
-const activeTab = ref<KnowledgeTab>(props.initialTab)
+const activeTab = ref<KnowledgeTab>(props.initialTab);
 
-const tabs = computed<Array<{ id: KnowledgeTab, label: string }>>(() => [
+const tabs = computed<Array<{ id: KnowledgeTab; label: string }>>(() => [
   { id: 'digest', label: t('chat.knowledge_tab_digest') },
   { id: 'decision', label: t('chat.knowledge_tab_decision') },
   { id: 'qa', label: t('chat.knowledge_tab_qa') },
-])
+]);
 
 function getTabId(tab: KnowledgeTab) {
-  return `knowledge-tab-${tab}`
+  return `knowledge-tab-${tab}`;
 }
 
 function getPanelId(tab: KnowledgeTab) {
-  return `knowledge-panel-${tab}`
+  return `knowledge-panel-${tab}`;
 }
 
 function setActiveTab(tab: KnowledgeTab) {
-  activeTab.value = tab
+  activeTab.value = tab;
 }
 </script>
 

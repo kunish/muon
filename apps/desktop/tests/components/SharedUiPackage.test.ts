@@ -72,6 +72,6 @@ describe('shared ui package', () => {
     }
 
     expect(Object.keys(packageJson.exports)).not.toContain('./avatar/Avatar.vue')
-    expect(Object.values(packageJson.exports).some(path => path.endsWith('.vue'))).toBe(false)
+    expect(Object.values(packageJson.exports).some((path) => path.endsWith('.vue'))).toBe(false)
   })
 })

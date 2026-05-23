@@ -1,77 +1,72 @@
 <script setup lang="ts">
-import { getClient } from '@matrix/client'
-import { getTimeline, matrixEvents } from '@matrix/index'
-import { MessageSquareText, X } from 'lucide-vue-next'
-import { computed, onMounted, onUnmounted, ref } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { useChatStore } from '../stores/chatStore'
+import { getClient } from '@matrix/client';
+import { getTimeline, matrixEvents } from '@matrix/index';
+import { MessageSquareText, X } from 'lucide-vue-next';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useChatStore } from '../stores/chatStore';
 
 interface ThreadItem {
-  rootId: string
-  rootBody: string
-  rootSender: string
-  replyCount: number
-  lastReplyTs: number
+  rootId: string;
+  rootBody: string;
+  rootSender: string;
+  replyCount: number;
+  lastReplyTs: number;
 }
 
 const props = defineProps<{
-  roomId: string
-}>()
+  roomId: string;
+}>();
 
-const { t } = useI18n()
-const store = useChatStore()
-const version = ref(0)
+const { t } = useI18n();
+const store = useChatStore();
+const version = ref(0);
 
 function bump() {
-  version.value += 1
+  version.value += 1;
 }
 
 onMounted(() => {
-  matrixEvents.on('room.message', bump)
-  matrixEvents.on('room.receipt', bump)
-})
+  matrixEvents.on('room.message', bump);
+  matrixEvents.on('room.receipt', bump);
+});
 
 onUnmounted(() => {
-  matrixEvents.off('room.message', bump)
-  matrixEvents.off('room.receipt', bump)
-})
+  matrixEvents.off('room.message', bump);
+  matrixEvents.off('room.receipt', bump);
+});
 
 const threadItems = computed<ThreadItem[]>(() => {
-  void version.value
-  const room = getClient().getRoom(props.roomId)
-  if (!room)
-    return []
+  void version.value;
+  const room = getClient().getRoom(props.roomId);
+  if (!room) return [];
 
-  const timeline = getTimeline(props.roomId)
-  const threadMeta = new Map<string, { replyCount: number, lastReplyTs: number }>()
+  const timeline = getTimeline(props.roomId);
+  const threadMeta = new Map<string, { replyCount: number; lastReplyTs: number }>();
 
   for (const ev of timeline) {
-    const rel = ev.getContent()?.['m.relates_to']
-    if (rel?.rel_type !== 'm.thread' || !rel?.event_id)
-      continue
+    const rel = ev.getContent()?.['m.relates_to'];
+    if (rel?.rel_type !== 'm.thread' || !rel?.event_id) continue;
 
-    const rootId = rel.event_id as string
-    const ts = ev.getTs() || 0
-    const prev = threadMeta.get(rootId)
+    const rootId = rel.event_id as string;
+    const ts = ev.getTs() || 0;
+    const prev = threadMeta.get(rootId);
     if (prev) {
-      prev.replyCount += 1
-      if (ts > prev.lastReplyTs)
-        prev.lastReplyTs = ts
-    }
-    else {
-      threadMeta.set(rootId, { replyCount: 1, lastReplyTs: ts })
+      prev.replyCount += 1;
+      if (ts > prev.lastReplyTs) prev.lastReplyTs = ts;
+    } else {
+      threadMeta.set(rootId, { replyCount: 1, lastReplyTs: ts });
     }
   }
 
-  const items: ThreadItem[] = []
+  const items: ThreadItem[] = [];
   for (const [rootId, meta] of threadMeta) {
-    const root = room.findEventById(rootId)
-    if (!root)
-      continue
+    const root = room.findEventById(rootId);
+    if (!root) continue;
 
-    const senderId = root.getSender() || ''
-    const sender = room.getMember(senderId)
-    const rootBody = root.getContent()?.body || t('chat.thread')
+    const senderId = root.getSender() || '';
+    const sender = room.getMember(senderId);
+    const rootBody = root.getContent()?.body || t('chat.thread');
 
     items.push({
       rootId,
@@ -79,27 +74,26 @@ const threadItems = computed<ThreadItem[]>(() => {
       rootSender: sender?.name || senderId,
       replyCount: meta.replyCount,
       lastReplyTs: meta.lastReplyTs,
-    })
+    });
   }
 
-  return items.sort((a, b) => b.lastReplyTs - a.lastReplyTs)
-})
+  return items.sort((a, b) => b.lastReplyTs - a.lastReplyTs);
+});
 
 function openThread(rootId: string) {
-  store.openThread(rootId)
-  store.closeSidePanel()
+  store.openThread(rootId);
+  store.closeSidePanel();
 }
 
 function formatTime(ts: number): string {
-  const d = new Date(ts)
-  const today = new Date()
-  const isToday = d.getDate() === today.getDate()
-    && d.getMonth() === today.getMonth()
-    && d.getFullYear() === today.getFullYear()
+  const d = new Date(ts);
+  const today = new Date();
+  const isToday =
+    d.getDate() === today.getDate() && d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear();
   if (isToday) {
-    return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`
+    return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
   }
-  return `${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getDate().toString().padStart(2, '0')}`
+  return `${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getDate().toString().padStart(2, '0')}`;
 }
 </script>
 
@@ -119,7 +113,10 @@ function formatTime(ts: number): string {
       </button>
     </div>
 
-    <div v-if="threadItems.length === 0" class="flex flex-1 flex-col items-center justify-center gap-2 text-muted-foreground">
+    <div
+      v-if="threadItems.length === 0"
+      class="flex flex-1 flex-col items-center justify-center gap-2 text-muted-foreground"
+    >
       <MessageSquareText :size="28" class="opacity-40" />
       <span class="text-sm">{{ t('chat.thread_inbox_empty') }}</span>
     </div>

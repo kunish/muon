@@ -23,8 +23,7 @@ function notifySubscriber<Event>(
   handler: ((event: Event) => void | Promise<void>) | undefined,
   event: Event,
 ): void {
-  if (!handler)
-    return
+  if (!handler) return
 
   try {
     const result = handler.call(subscriber, event)
@@ -33,8 +32,7 @@ function notifySubscriber<Event>(
         console.warn('[auth] session lifecycle subscriber failed', err)
       })
     }
-  }
-  catch (err) {
+  } catch (err) {
     console.warn('[auth] session lifecycle subscriber failed', err)
   }
 }

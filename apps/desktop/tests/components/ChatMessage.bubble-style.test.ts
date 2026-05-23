@@ -23,9 +23,7 @@ function createTextEvent(sender: string, body = 'Hello World') {
 }
 
 async function mountMessage(sender: string) {
-  const ChatMessage = (
-    await import('@/features/chat/components/ChatMessage.vue')
-  ).default
+  const ChatMessage = (await import('@/features/chat/components/ChatMessage.vue')).default
 
   return mount(ChatMessage, {
     props: {
@@ -54,24 +52,15 @@ describe('chatMessage bubble style', () => {
     const wrapper = await mountMessage('@alice:localhost')
 
     const bubble = wrapper.get('.message-selectable-text')
-    expect(bubble.classes()).toEqual(expect.arrayContaining([
-      'rounded-[20px]',
-      'px-4',
-      'py-2.5',
-      'bg-[var(--N200)]',
-    ]))
+    expect(bubble.classes()).toEqual(expect.arrayContaining(['rounded-[20px]', 'px-4', 'py-2.5', 'bg-[var(--N200)]']))
   })
 
   it('keeps text content padded inside outgoing message bubbles', async () => {
     const wrapper = await mountMessage('@test:localhost')
 
     const bubble = wrapper.get('.message-selectable-text')
-    expect(bubble.classes()).toEqual(expect.arrayContaining([
-      'rounded-[20px]',
-      'px-4',
-      'py-2.5',
-      'bg-[var(--B100)]',
-      'self-end',
-    ]))
+    expect(bubble.classes()).toEqual(
+      expect.arrayContaining(['rounded-[20px]', 'px-4', 'py-2.5', 'bg-[var(--B100)]', 'self-end']),
+    )
   })
 })

@@ -38,10 +38,11 @@ function mountMemberPanel(members: SpaceMember[]) {
           name: 'MemberContextMenu',
           emits: ['mention'],
           setup(_, { emit }) {
-            return () => h('button', {
-              'data-testid': 'member-context-mention',
-              'onClick': () => emit('mention', '@alice:localhost'),
-            })
+            return () =>
+              h('button', {
+                'data-testid': 'member-context-mention',
+                onClick: () => emit('mention', '@alice:localhost'),
+              })
           },
         }),
         MemberItem: defineComponent({
@@ -89,12 +90,14 @@ describe('memberPanel localization', () => {
     expect(wrapper.text()).toContain('暂无成员')
     expect(wrapper.text()).not.toContain('No members')
 
-    memberPanelMocks.members = [{
-      userId: '@alice:localhost',
-      displayName: 'Alice',
-      powerLevel: 0,
-      membership: 'join',
-    }]
+    memberPanelMocks.members = [
+      {
+        userId: '@alice:localhost',
+        displayName: 'Alice',
+        powerLevel: 0,
+        membership: 'join',
+      },
+    ]
     const matchingWrapper = mountMemberPanel(memberPanelMocks.members)
     await matchingWrapper.get('input').setValue('nobody')
 
@@ -114,8 +117,6 @@ describe('memberPanel localization', () => {
 
     await wrapper.get('[data-testid="member-context-mention"]').trigger('click')
 
-    expect((useChatStore() as any).pendingMentionRequests).toEqual([
-      { id: '@alice:localhost', label: 'Alice' },
-    ])
+    expect((useChatStore() as any).pendingMentionRequests).toEqual([{ id: '@alice:localhost', label: 'Alice' }])
   })
 })

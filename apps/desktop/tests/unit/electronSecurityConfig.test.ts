@@ -7,10 +7,10 @@ describe('electron security config', () => {
     const csp = indexHtml.match(/http-equiv="Content-Security-Policy"[\s\S]*?content="([^"]+)"/)?.[1]
 
     expect(csp).toBeDefined()
-    expect(csp).toContain('default-src \'self\'')
-    expect(csp).toContain('script-src \'self\'')
-    expect(csp).toContain('connect-src \'self\' http: https: ws: wss:')
-    expect(csp).toContain('object-src \'none\'')
+    expect(csp).toContain("default-src 'self'")
+    expect(csp).toContain("script-src 'self'")
+    expect(csp).toContain("connect-src 'self' http: https: ws: wss:")
+    expect(csp).toContain("object-src 'none'")
     expect(csp).not.toContain('unsafe-eval')
   })
 
@@ -27,8 +27,8 @@ describe('electron security config', () => {
     const mainProcess = readDesktopSource('electron/main.ts')
 
     expect(mainProcess).toContain('fetchManualRedirectResponse')
-    expect(mainProcess).toContain('request.init?.redirect === \'manual\'')
-    expect(mainProcess).toContain('manualRequest.on(\'redirect\'')
+    expect(mainProcess).toContain("request.init?.redirect === 'manual'")
+    expect(mainProcess).toContain("manualRequest.on('redirect'")
     expect(mainProcess).not.toContain('net.fetch(request.url, normalizeFetchInit(request.init))')
   })
 

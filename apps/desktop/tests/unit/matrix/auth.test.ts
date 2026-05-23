@@ -94,12 +94,14 @@ describe('activateMatrixSession', () => {
     expect(localStorage.getItem('muon_auth')).not.toBeNull()
     const stored = JSON.parse(localStorage.getItem('muon_auth')!)
     expect(stored).toEqual(session)
-    expect(mockSdkCreateClient).toHaveBeenCalledWith(expect.objectContaining({
-      accessToken: 'at',
-      baseUrl: 'https://matrix.example.com',
-      deviceId: 'DEV',
-      userId: '@u:example.com',
-    }))
+    expect(mockSdkCreateClient).toHaveBeenCalledWith(
+      expect.objectContaining({
+        accessToken: 'at',
+        baseUrl: 'https://matrix.example.com',
+        deviceId: 'DEV',
+        userId: '@u:example.com',
+      }),
+    )
   })
 })
 

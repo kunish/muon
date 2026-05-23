@@ -9,7 +9,7 @@ import { readDesktopSource } from '../../helpers/paths'
 describe('doc code block highlighting', () => {
   it('offers common languages and normalizes unsupported values', () => {
     expect(DEFAULT_DOC_CODE_LANGUAGE).toBe('typescript')
-    expect(DOC_CODE_LANGUAGE_OPTIONS.map(option => option.value)).toEqual([
+    expect(DOC_CODE_LANGUAGE_OPTIONS.map((option) => option.value)).toEqual([
       'plaintext',
       'typescript',
       'javascript',
@@ -41,7 +41,9 @@ describe('doc code block highlighting', () => {
     expect(editor).not.toContain('VueNodeViewRenderer')
     expect(codeBlockNodeView).toContain('data-testid')
     expect(codeBlockNodeView).toContain('doc-code-block-language-select')
-    expect(codeBlockNodeView).toContain('focus(pos + 1).updateAttributes(\'codeBlock\', { language }).run()')
+    expect(codeBlockNodeView).toMatch(
+      /\.focus\(pos \+ 1\)\s*\.updateAttributes\('codeBlock', \{ language \}\)\s*\.run\(\)/,
+    )
     expect(codeBlockNodeView).toContain('stopEvent: isToolbarEvent')
     expect(styles).toContain('--doc-code-bg:')
     expect(styles).toContain(':global(.dark) .doc-editor-body')

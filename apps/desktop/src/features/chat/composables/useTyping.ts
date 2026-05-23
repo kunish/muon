@@ -8,35 +8,38 @@ export function useTyping() {
   const typingUsers = ref<string[]>([])
   let typingTimer: ReturnType<typeof setTimeout> | null = null
 
-  function onTypingEvent(payload: { roomId: string, userIds: string[] }) {
+  function onTypingEvent(payload: { roomId: string; userIds: string[] }) {
     if (payload.roomId === store.currentRoomId) {
       // 过滤掉当前用户自身
       const myUserId = getClient().getUserId()
-      typingUsers.value = payload.userIds.filter(id => id !== myUserId)
+      typingUsers.value = payload.userIds.filter((id) => id !== myUserId)
     }
   }
 
   function startTyping() {
     const roomId = store.currentRoomId
-    if (!roomId)
-      return
-    sendTyping(roomId, true, 5000).catch(() => { /* typing notification failures are non-critical */ })
-    if (typingTimer)
-      clearTimeout(typingTimer)
+    if (!roomId) return
+    sendTyping(roomId, true, 5000).catch(() => {
+      /* typing notification failures are non-critical */
+    })
+    if (typingTimer) clearTimeout(typingTimer)
     typingTimer = setTimeout(() => {
-      sendTyping(roomId, false).catch(() => { /* typing notification failures are non-critical */ })
+      sendTyping(roomId, false).catch(() => {
+        /* typing notification failures are non-critical */
+      })
     }, 3000)
   }
 
   function stopTyping() {
     const roomId = store.currentRoomId
-    if (!roomId)
-      return
+    if (!roomId) return
     if (typingTimer) {
       clearTimeout(typingTimer)
       typingTimer = null
     }
-    sendTyping(roomId, false).catch(() => { /* typing notification failures are non-critical */ })
+    sendTyping(roomId, false).catch(() => {
+      /* typing notification failures are non-critical */
+    })
   }
 
   onMounted(() => {
@@ -48,10 +51,11 @@ export function useTyping() {
     // 卸载时发送停止输入通知，防止幽灵输入状态
     const roomId = store.currentRoomId
     if (roomId && typingTimer) {
-      sendTyping(roomId, false).catch(() => { /* typing notification failures are non-critical */ })
+      sendTyping(roomId, false).catch(() => {
+        /* typing notification failures are non-critical */
+      })
     }
-    if (typingTimer)
-      clearTimeout(typingTimer)
+    if (typingTimer) clearTimeout(typingTimer)
   })
 
   return { typingUsers, startTyping, stopTyping }

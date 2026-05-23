@@ -16,10 +16,9 @@ async function waitFor(assertion: () => void, attempts = 20) {
     try {
       assertion()
       return
-    }
-    catch (error) {
+    } catch (error) {
       lastError = error
-      await new Promise(resolve => setTimeout(resolve, 20))
+      await new Promise((resolve) => setTimeout(resolve, 20))
     }
   }
 
@@ -45,7 +44,9 @@ describe('unifiedInboxPanel recovery', () => {
     })
 
     vi.mocked(mockClient.getRooms).mockReturnValue([staleRoom])
-    vi.mocked(mockClient.getRoom).mockImplementation((roomId: string) => (roomId === staleRoom.roomId ? staleRoom : null))
+    vi.mocked(mockClient.getRoom).mockImplementation((roomId: string) =>
+      roomId === staleRoom.roomId ? staleRoom : null,
+    )
 
     const wrapper = mount(UnifiedInboxPanel)
     await waitFor(() => {
@@ -54,7 +55,11 @@ describe('unifiedInboxPanel recovery', () => {
 
     expect(wrapper.text()).toContain('stale summary body')
 
-    liveEvents.splice(0, liveEvents.length, createMatrixEvent({ eventId: '$new', ts: 300, body: 'recovered latest body' }))
+    liveEvents.splice(
+      0,
+      liveEvents.length,
+      createMatrixEvent({ eventId: '$new', ts: 300, body: 'recovered latest body' }),
+    )
 
     matrixEvents.emit('sync.state', { state: 'CATCHUP' })
     await waitFor(() => {
@@ -83,10 +88,8 @@ describe('unifiedInboxPanel recovery', () => {
 
     vi.mocked(mockClient.getRooms).mockReturnValue([firstRoom, secondRoom])
     vi.mocked(mockClient.getRoom).mockImplementation((roomId: string) => {
-      if (roomId === firstRoom.roomId)
-        return firstRoom
-      if (roomId === secondRoom.roomId)
-        return secondRoom
+      if (roomId === firstRoom.roomId) return firstRoom
+      if (roomId === secondRoom.roomId) return secondRoom
       return null
     })
 

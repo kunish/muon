@@ -1,20 +1,20 @@
 <script setup lang="ts">
-import type { CustomField } from '../../types'
-import { Button } from '@muon/ui/button'
-import { Input } from '@muon/ui/input'
-import { Plus, Trash2 } from 'lucide-vue-next'
-import { onMounted, ref } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { projectRepo } from '../../db/projectDb'
+import type { CustomField } from '../../types';
+import { Button } from '@muon/ui/button';
+import { Input } from '@muon/ui/input';
+import { Plus, Trash2 } from 'lucide-vue-next';
+import { onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { projectRepo } from '../../db/projectDb';
 
-const props = defineProps<{ projectId: string }>()
+const props = defineProps<{ projectId: string }>();
 
-const { t } = useI18n()
-const fields = ref<CustomField[]>([])
+const { t } = useI18n();
+const fields = ref<CustomField[]>([]);
 
 onMounted(async () => {
-  fields.value = await projectRepo.listCustomFields(props.projectId)
-})
+  fields.value = await projectRepo.listCustomFields(props.projectId);
+});
 
 async function addField() {
   const field: CustomField = {
@@ -25,50 +25,49 @@ async function addField() {
     options: [],
     required: false,
     order: fields.value.length,
-  }
-  await projectRepo.saveCustomField(field)
-  fields.value.push(field)
+  };
+  await projectRepo.saveCustomField(field);
+  fields.value.push(field);
 }
 
 async function removeField(id: string) {
-  await projectRepo.deleteCustomField(id)
-  fields.value = fields.value.filter(f => f.id !== id)
+  await projectRepo.deleteCustomField(id);
+  fields.value = fields.value.filter((f) => f.id !== id);
 }
 
 async function saveField(field: CustomField) {
-  await projectRepo.saveCustomField(field)
+  await projectRepo.saveCustomField(field);
 }
 
 function fieldTypeLabel(type: CustomField['type']): string {
-  return t(`projects.field_type_${type}`)
+  return t(`projects.field_type_${type}`);
 }
 
 function supportsOptions(field: CustomField): boolean {
-  return field.type === 'select' || field.type === 'multiSelect'
+  return field.type === 'select' || field.type === 'multiSelect';
 }
 
 function updateFieldType(field: CustomField, value: string) {
-  field.type = value as CustomField['type']
-  if (!supportsOptions(field))
-    field.options = []
-  void saveField(field)
+  field.type = value as CustomField['type'];
+  if (!supportsOptions(field)) field.options = [];
+  void saveField(field);
 }
 
 function updateFieldOptions(field: CustomField, value: string | number) {
   field.options = String(value)
     .split(',')
-    .map(option => option.trim())
-    .filter(Boolean)
-  void saveField(field)
+    .map((option) => option.trim())
+    .filter(Boolean);
+  void saveField(field);
 }
 
 function fieldOptionsDraft(field: CustomField): string {
-  return field.options.join(', ')
+  return field.options.join(', ');
 }
 
 function updateRequired(field: CustomField, event: Event) {
-  field.required = (event.target as HTMLInputElement).checked
-  void saveField(field)
+  field.required = (event.target as HTMLInputElement).checked;
+  void saveField(field);
 }
 </script>
 
@@ -125,11 +124,7 @@ function updateRequired(field: CustomField, event: Event) {
             </option>
           </select>
           <label class="flex items-center gap-1 text-sm">
-            <input
-              type="checkbox"
-              :checked="field.required"
-              @change="updateRequired(field, $event)"
-            >
+            <input type="checkbox" :checked="field.required" @change="updateRequired(field, $event)" />
             {{ t('projects.field_required') }}
           </label>
           <Button variant="ghost" size="icon" @click="removeField(field.id)">

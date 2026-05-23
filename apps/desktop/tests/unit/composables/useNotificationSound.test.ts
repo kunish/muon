@@ -8,7 +8,7 @@ import { useSettingsStore } from '@/features/settings/stores/settingsStore'
 import { matrixEvents } from '@/matrix/events'
 
 const playNotificationSound = vi.hoisted(() => vi.fn())
-const shownNotifications = vi.hoisted<{ title: string, options?: NotificationOptions }[]>(() => [])
+const shownNotifications = vi.hoisted<{ title: string; options?: NotificationOptions }[]>(() => [])
 
 vi.mock('@/shared/lib/audio', () => ({
   playNotificationSound,

@@ -117,14 +117,14 @@ describe('globalSearch performance', () => {
     expect(firstRenderCount).toBeGreaterThan(0)
     expect(wrapper.find('[data-testid="global-search-hit-$event-left-0"]').exists()).toBe(false)
 
-    const loadMoreButton = wrapper.findAll('button').find(button => button.text() === 'chat.search_load_more')
+    const loadMoreButton = wrapper.findAll('button').find((button) => button.text() === 'chat.search_load_more')
     expect(loadMoreButton).toBeTruthy()
     await loadMoreButton!.trigger('click')
     await flushUi()
 
     expect(retrievalStore.results).toHaveLength(290)
-    expect(retrievalStore.results.some(item => item.eventId === '$event-joined-0')).toBe(true)
-    expect(retrievalStore.results.some(item => item.eventId === '$event-joined-239')).toBe(true)
+    expect(retrievalStore.results.some((item) => item.eventId === '$event-joined-0')).toBe(true)
+    expect(retrievalStore.results.some((item) => item.eventId === '$event-joined-239')).toBe(true)
     expect(wrapper.find('[data-testid="global-search-hit-$event-left-31"]').exists()).toBe(false)
     expect(wrapper.findAll('[data-testid^="global-search-hit-"]').length).toBeLessThan(100)
   })

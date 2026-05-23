@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import type { HTMLAttributes } from 'vue'
-import { ScrollAreaRoot, ScrollAreaViewport } from 'reka-ui'
-import { cn } from '../../../utils'
-import ScrollBar from './ScrollBar.vue'
+import type { HTMLAttributes } from 'vue';
+import { ScrollAreaRoot, ScrollAreaViewport } from 'reka-ui';
+import { cn } from '../../../utils';
+import ScrollBar from './ScrollBar.vue';
 
 const props = defineProps<{
-  class?: HTMLAttributes['class']
-}>()
+  class?: HTMLAttributes['class'];
+}>();
 </script>
 
 <template>

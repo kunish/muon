@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import type { DialogTitleProps } from 'reka-ui'
-import { DialogTitle, useForwardProps } from 'reka-ui'
-import { cn } from '../../../utils'
+import type { DialogTitleProps } from 'reka-ui';
+import { DialogTitle, useForwardProps } from 'reka-ui';
+import { cn } from '../../../utils';
 
-const props = defineProps<DialogTitleProps & { class?: string }>()
+const props = defineProps<DialogTitleProps & { class?: string }>();
 const forwardedProps = useForwardProps(() => {
-  const { class: _, ...delegated } = props
-  return delegated
-})
+  const { class: _, ...delegated } = props;
+  return delegated;
+});
 </script>
 
 <template>

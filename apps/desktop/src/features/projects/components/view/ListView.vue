@@ -1,25 +1,25 @@
 <script setup lang="ts">
-import type { Priority } from '../../types'
-import { Button } from '@muon/ui/button'
-import { ArrowDown, ArrowUp, Plus } from 'lucide-vue-next'
-import { computed, ref, watch } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { useWorkflow } from '../../composables/useWorkflow'
-import { useWorkItemStore } from '../../composables/useWorkItemStore'
-import WorkItemCreateDialog from '../WorkItemCreateDialog.vue'
-import WorkItemDetail from '../WorkItemDetail.vue'
+import type { Priority } from '../../types';
+import { Button } from '@muon/ui/button';
+import { ArrowDown, ArrowUp, Plus } from 'lucide-vue-next';
+import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useWorkflow } from '../../composables/useWorkflow';
+import { useWorkItemStore } from '../../composables/useWorkItemStore';
+import WorkItemCreateDialog from '../WorkItemCreateDialog.vue';
+import WorkItemDetail from '../WorkItemDetail.vue';
 
-const props = defineProps<{ projectId: string }>()
+const props = defineProps<{ projectId: string }>();
 
-const { t } = useI18n()
-const store = useWorkItemStore()
-const { loadWorkflow } = useWorkflow(() => props.projectId)
+const { t } = useI18n();
+const store = useWorkItemStore();
+const { loadWorkflow } = useWorkflow(() => props.projectId);
 
-const sortBy = ref<'priority' | 'dueDate' | 'createdAt' | 'title'>('createdAt')
-const sortDir = ref<'asc' | 'desc'>('desc')
-const showCreateDialog = ref(false)
-const selectedItemId = ref<string | null>(null)
-const statuses = ref<Array<{ key: string, name: string }>>([])
+const sortBy = ref<'priority' | 'dueDate' | 'createdAt' | 'title'>('createdAt');
+const sortDir = ref<'asc' | 'desc'>('desc');
+const showCreateDialog = ref(false);
+const selectedItemId = ref<string | null>(null);
+const statuses = ref<Array<{ key: string; name: string }>>([]);
 
 const priorityOrder: Record<Priority, number> = {
   urgent: 0,
@@ -27,56 +27,52 @@ const priorityOrder: Record<Priority, number> = {
   medium: 2,
   low: 3,
   none: 4,
-}
+};
 
 const sortedItems = computed(() => {
-  const items = [...store.currentItems]
+  const items = [...store.currentItems];
   items.sort((a, b) => {
-    let cmp = 0
+    let cmp = 0;
     if (sortBy.value === 'priority') {
-      cmp = (priorityOrder[a.priority] ?? 4) - (priorityOrder[b.priority] ?? 4)
+      cmp = (priorityOrder[a.priority] ?? 4) - (priorityOrder[b.priority] ?? 4);
+    } else if (sortBy.value === 'dueDate') {
+      cmp = (a.dueDate ?? Infinity) - (b.dueDate ?? Infinity);
+    } else if (sortBy.value === 'title') {
+      cmp = a.title.localeCompare(b.title);
+    } else {
+      cmp = a.createdAt - b.createdAt;
     }
-    else if (sortBy.value === 'dueDate') {
-      cmp = (a.dueDate ?? Infinity) - (b.dueDate ?? Infinity)
-    }
-    else if (sortBy.value === 'title') {
-      cmp = a.title.localeCompare(b.title)
-    }
-    else {
-      cmp = a.createdAt - b.createdAt
-    }
-    return sortDir.value === 'desc' ? -cmp : cmp
-  })
-  return items
-})
+    return sortDir.value === 'desc' ? -cmp : cmp;
+  });
+  return items;
+});
 
-const statusByKey = computed(() => new Map(statuses.value.map(status => [status.key, status])))
-const defaultCreateStatus = computed(() => statuses.value[0]?.key ?? 'todo')
+const statusByKey = computed(() => new Map(statuses.value.map((status) => [status.key, status])));
+const defaultCreateStatus = computed(() => statuses.value[0]?.key ?? 'todo');
 
 watch(
   () => props.projectId,
   async () => {
-    const workflow = await loadWorkflow()
-    statuses.value = workflow.statuses.map(status => ({
+    const workflow = await loadWorkflow();
+    statuses.value = workflow.statuses.map((status) => ({
       key: status.key,
       name: status.name,
-    }))
+    }));
   },
   { immediate: true },
-)
+);
 
 function toggleSort(field: typeof sortBy.value) {
   if (sortBy.value === field) {
-    sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
-  }
-  else {
-    sortBy.value = field
-    sortDir.value = 'asc'
+    sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc';
+  } else {
+    sortBy.value = field;
+    sortDir.value = 'asc';
   }
 }
 
 function statusLabel(statusKey: string): string {
-  return statusByKey.value.get(statusKey)?.name || statusKey
+  return statusByKey.value.get(statusKey)?.name || statusKey;
 }
 </script>
 
@@ -154,10 +150,6 @@ function statusLabel(statusKey: string): string {
       :project-id="props.projectId"
       :default-status="defaultCreateStatus"
     />
-    <WorkItemDetail
-      v-if="selectedItemId"
-      :item-id="selectedItemId"
-      @close="selectedItemId = null"
-    />
+    <WorkItemDetail v-if="selectedItemId" :item-id="selectedItemId" @close="selectedItemId = null" />
   </div>
 </template>

@@ -1,49 +1,48 @@
 <script setup lang="ts">
-import type { AnimationItem } from 'lottie-web'
-import { onBeforeUnmount, onMounted, ref } from 'vue'
-import { fetchEmojiLottie, splitEmojis } from '@/shared/lib/emojiLottie'
+import type { AnimationItem } from 'lottie-web';
+import { onBeforeUnmount, onMounted, ref } from 'vue';
+import { fetchEmojiLottie, splitEmojis } from '@/shared/lib/emojiLottie';
 
 const props = defineProps<{
-  emoji: string
-}>()
+  emoji: string;
+}>();
 
 const emit = defineEmits<{
-  effect: [emoji: string, rect: DOMRect]
-}>()
+  effect: [emoji: string, rect: DOMRect];
+}>();
 
-const emojis = splitEmojis(props.emoji)
-const containerRef = ref<HTMLElement | null>(null)
-const slotRefs = ref<HTMLElement[]>([])
-const bouncing = ref(false)
+const emojis = splitEmojis(props.emoji);
+const containerRef = ref<HTMLElement | null>(null);
+const slotRefs = ref<HTMLElement[]>([]);
+const bouncing = ref(false);
 
-const animations: (AnimationItem | null)[] = []
-const timers: ReturnType<typeof setTimeout>[] = []
-const loaded = ref<boolean[]>(emojis.map(() => false))
-const failed = ref<boolean[]>(emojis.map(() => false))
-const entered = ref(false)
+const animations: (AnimationItem | null)[] = [];
+const timers: ReturnType<typeof setTimeout>[] = [];
+const loaded = ref<boolean[]>(emojis.map(() => false));
+const failed = ref<boolean[]>(emojis.map(() => false));
+const entered = ref(false);
 
 function clearAllTimers() {
-  for (const t of timers)
-    clearTimeout(t)
-  timers.length = 0
+  for (const t of timers) clearTimeout(t);
+  timers.length = 0;
 }
 
 onMounted(async () => {
-  const lottieModule = await import('lottie-web')
-  const lottie = lottieModule.default
+  const lottieModule = await import('lottie-web');
+  const lottie = lottieModule.default;
 
   for (let i = 0; i < emojis.length; i++) {
-    const el = slotRefs.value[i]
+    const el = slotRefs.value[i];
     if (!el) {
-      failed.value[i] = true
-      continue
+      failed.value[i] = true;
+      continue;
     }
 
-    const data = await fetchEmojiLottie(emojis[i])
+    const data = await fetchEmojiLottie(emojis[i]);
     if (!data) {
-      failed.value[i] = true
-      animations.push(null)
-      continue
+      failed.value[i] = true;
+      animations.push(null);
+      continue;
     }
 
     const anim = lottie.loadAnimation({
@@ -52,81 +51,81 @@ onMounted(async () => {
       loop: false,
       autoplay: false,
       animationData: data,
-    })
+    });
 
-    animations.push(anim)
-    loaded.value[i] = true
+    animations.push(anim);
+    loaded.value[i] = true;
 
-    timers.push(setTimeout(() => {
-      anim.goToAndPlay(0, true)
-    }, i * 120))
+    timers.push(
+      setTimeout(() => {
+        anim.goToAndPlay(0, true);
+      }, i * 120),
+    );
   }
 
   requestAnimationFrame(() => {
-    entered.value = true
-  })
-})
+    entered.value = true;
+  });
+});
 
-const SHAKE_EMOJIS = new Set(['🎉', '🎊', '🔥', '👍', '💩', '😂', '🥳', '💀', '🚀'])
+const SHAKE_EMOJIS = new Set(['🎉', '🎊', '🔥', '👍', '💩', '😂', '🥳', '💀', '🚀']);
 
 // --- 屏幕震动 ---
 function shakeScreen() {
-  if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)
-    return
-  const chatArea = containerRef.value?.closest('[data-chat-area]') as HTMLElement | null
-  if (!chatArea)
-    return
-  chatArea.classList.remove('emoji-shake')
+  if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+  const chatArea = containerRef.value?.closest('[data-chat-area]') as HTMLElement | null;
+  if (!chatArea) return;
+  chatArea.classList.remove('emoji-shake');
   requestAnimationFrame(() => {
-    chatArea.classList.add('emoji-shake')
-    chatArea.addEventListener('animationend', () => {
-      chatArea.classList.remove('emoji-shake')
-    }, { once: true })
-  })
+    chatArea.classList.add('emoji-shake');
+    chatArea.addEventListener(
+      'animationend',
+      () => {
+        chatArea.classList.remove('emoji-shake');
+      },
+      { once: true },
+    );
+  });
 }
 
 // --- 点击：弹跳 + 重播 + 震动 + 全屏特效 ---
 function onTap() {
   // 弹跳动画
-  bouncing.value = false
+  bouncing.value = false;
   requestAnimationFrame(() => {
-    bouncing.value = true
-  })
+    bouncing.value = true;
+  });
 
   // 重播 Lottie
   for (let i = 0; i < animations.length; i++) {
-    const anim = animations[i]
+    const anim = animations[i];
     if (anim) {
-      timers.push(setTimeout(() => anim.goToAndPlay(0, true), i * 80))
+      timers.push(setTimeout(() => anim.goToAndPlay(0, true), i * 80));
     }
   }
 
   // 屏幕震动
-  if (SHAKE_EMOJIS.has(emojis[0]))
-    shakeScreen()
+  if (SHAKE_EMOJIS.has(emojis[0])) shakeScreen();
 
   // 全屏特效
-  const container = containerRef.value
+  const container = containerRef.value;
   if (container) {
-    emit('effect', emojis[0], container.getBoundingClientRect())
+    emit('effect', emojis[0], container.getBoundingClientRect());
   }
 }
 
 onBeforeUnmount(() => {
-  clearAllTimers()
-  for (const anim of animations) anim?.destroy()
-  animations.length = 0
-})
+  clearAllTimers();
+  for (const anim of animations) anim?.destroy();
+  animations.length = 0;
+});
 </script>
 
 <template>
   <span
     ref="containerRef"
     class="inline-flex cursor-pointer items-center gap-0.5 transition-[transform,opacity] duration-[400ms] ease-[cubic-bezier(0.34,1.56,0.64,1)]"
-    :class="[
-      entered ? 'scale-100 opacity-100' : 'scale-[0.3] opacity-0',
-      bouncing && 'animate-emoji-bounce',
-    ]"
+    :class="[entered ? 'scale-100 opacity-100' : 'scale-[0.3] opacity-0', bouncing && 'animate-emoji-bounce']"
     @click="onTap"
     @animationend="bouncing = false"
   >
@@ -137,15 +136,16 @@ onBeforeUnmount(() => {
     >
       <!-- Lottie 容器 -->
       <span
-        :ref="(el: any) => { if (el) slotRefs[i] = el as HTMLElement }"
+        :ref="
+          (el: any) => {
+            if (el) slotRefs[i] = el as HTMLElement;
+          }
+        "
         class="size-full opacity-0 transition-opacity duration-[250ms] ease-out [&_svg]:!h-full [&_svg]:!w-full"
         :class="{ 'opacity-100': loaded[i] }"
       />
       <!-- 回退：静态 emoji -->
-      <span
-        v-if="failed[i]"
-        class="text-[5rem] leading-none"
-      >{{ e }}</span>
+      <span v-if="failed[i]" class="text-[5rem] leading-none">{{ e }}</span>
     </span>
   </span>
 </template>

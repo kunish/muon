@@ -10,12 +10,10 @@ function createColorSchemeQuery(initialMatches: boolean) {
     media: '(prefers-color-scheme: dark)',
     onchange: null,
     addEventListener: vi.fn((event: string, listener: (event: MediaQueryListEvent) => void) => {
-      if (event === 'change')
-        listeners.add(listener)
+      if (event === 'change') listeners.add(listener)
     }),
     removeEventListener: vi.fn((event: string, listener: (event: MediaQueryListEvent) => void) => {
-      if (event === 'change')
-        listeners.delete(listener)
+      if (event === 'change') listeners.delete(listener)
     }),
     addListener: vi.fn((listener: (event: MediaQueryListEvent) => void) => listeners.add(listener)),
     removeListener: vi.fn((listener: (event: MediaQueryListEvent) => void) => listeners.delete(listener)),
@@ -23,7 +21,7 @@ function createColorSchemeQuery(initialMatches: boolean) {
     dispatchChange(matches: boolean) {
       query.matches = matches
       const event = { matches, media: query.media } as MediaQueryListEvent
-      listeners.forEach(listener => listener(event))
+      listeners.forEach((listener) => listener(event))
     },
   }
 

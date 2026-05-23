@@ -35,10 +35,8 @@ describe('matrix event bridge', () => {
     decryptedListener = undefined
 
     vi.mocked(mockClient.on).mockImplementation((eventName: any, listener: any) => {
-      if (eventName === RoomEvent.Timeline)
-        timelineListener = listener
-      if (eventName === MatrixEventEvent.Decrypted)
-        decryptedListener = listener
+      if (eventName === RoomEvent.Timeline) timelineListener = listener
+      if (eventName === MatrixEventEvent.Decrypted) decryptedListener = listener
       return mockClient as any
     })
   })

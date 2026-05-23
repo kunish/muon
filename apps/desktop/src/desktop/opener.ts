@@ -2,16 +2,14 @@ import { getDesktopBridge } from './bridge'
 
 export async function openPath(path: string): Promise<string> {
   const bridge = getDesktopBridge()
-  if (!bridge)
-    return ''
+  if (!bridge) return ''
 
   return bridge.shell.openPath(path)
 }
 
 export async function revealItemInDir(path: string): Promise<void> {
   const bridge = getDesktopBridge()
-  if (!bridge)
-    return
+  if (!bridge) return
 
   await bridge.shell.revealItemInDir(path)
 }

@@ -5,6 +5,5 @@ export function hasAdminRole(user: EnterpriseUserRecord): boolean {
 }
 
 export function assertAdminRole(user: EnterpriseUserRecord): void {
-  if (!hasAdminRole(user))
-    throw new Error('Requires admin role')
+  if (!hasAdminRole(user)) throw new Error('Requires admin role')
 }

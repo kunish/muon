@@ -28,10 +28,7 @@ export function canCompress(file: File | Blob): boolean {
   return file.type.startsWith('image/') && file.type !== 'image/gif' && file.type !== 'image/svg+xml'
 }
 
-export async function compressImage(
-  file: File | Blob,
-  options: CompressOptions = {},
-): Promise<CompressedImage> {
+export async function compressImage(file: File | Blob, options: CompressOptions = {}): Promise<CompressedImage> {
   const {
     maxWidth = DEFAULT_MAX_WIDTH,
     maxHeight = DEFAULT_MAX_HEIGHT,
@@ -157,11 +154,7 @@ export async function generateThumbnail(file: File | Blob): Promise<Blob | null>
       ctx.imageSmoothingEnabled = true
       ctx.drawImage(img, 0, 0, width, height)
 
-      canvas.toBlob(
-        blob => resolve(blob || null),
-        'image/jpeg',
-        THUMBNAIL_QUALITY,
-      )
+      canvas.toBlob((blob) => resolve(blob || null), 'image/jpeg', THUMBNAIL_QUALITY)
     }
 
     img.onerror = () => {
@@ -217,7 +210,7 @@ function calculateDimensions(
   originalHeight: number,
   maxWidth: number,
   maxHeight: number,
-): { width: number, height: number } {
+): { width: number; height: number } {
   let width = originalWidth
   let height = originalHeight
 

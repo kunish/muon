@@ -13,14 +13,14 @@ function bridgeSafeStorage(): SafeStorageLike {
   if (!isElectronRuntime()) {
     return {
       isAvailable: async () => false,
-      encrypt: async s => s,
-      decrypt: async s => s,
+      encrypt: async (s) => s,
+      decrypt: async (s) => s,
     }
   }
   return {
     isAvailable: () => getDesktopBridge()!.safeStorage.isAvailable(),
-    encrypt: s => getDesktopBridge()!.safeStorage.encrypt(s),
-    decrypt: s => getDesktopBridge()!.safeStorage.decrypt(s),
+    encrypt: (s) => getDesktopBridge()!.safeStorage.encrypt(s),
+    decrypt: (s) => getDesktopBridge()!.safeStorage.decrypt(s),
   }
 }
 

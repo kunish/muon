@@ -11,18 +11,9 @@ import { z } from 'zod'
 // Import for local use within this module
 import { citationRefSchema as _citationRefSchema } from '@/matrix/digestTypes'
 
-export {
-  citationRefSchema,
-  DIGEST_RELEVANCE,
-  digestEntrySchema,
-  toCitationEventIds,
-} from '@/matrix/digestTypes'
+export { citationRefSchema, DIGEST_RELEVANCE, digestEntrySchema, toCitationEventIds } from '@/matrix/digestTypes'
 
-export type {
-  CitationRef,
-  DigestEntry,
-  DigestRelevance,
-} from '@/matrix/digestTypes'
+export type { CitationRef, DigestEntry, DigestRelevance } from '@/matrix/digestTypes'
 
 export const KNOWLEDGE_TABS = ['digest', 'decision', 'qa'] as const
 
@@ -30,9 +21,9 @@ export const DECISION_STATUSES = ['open', 'confirmed', 'superseded'] as const
 
 export const SUGGESTION_DISPOSITIONS = ['pending', 'accepted', 'rejected'] as const
 
-export type KnowledgeTab = typeof KNOWLEDGE_TABS[number]
-export type DecisionStatus = typeof DECISION_STATUSES[number]
-export type SuggestionDisposition = typeof SUGGESTION_DISPOSITIONS[number]
+export type KnowledgeTab = (typeof KNOWLEDGE_TABS)[number]
+export type DecisionStatus = (typeof DECISION_STATUSES)[number]
+export type SuggestionDisposition = (typeof SUGGESTION_DISPOSITIONS)[number]
 
 export const decisionSuggestionSchema = z.object({
   id: z.string().min(1),

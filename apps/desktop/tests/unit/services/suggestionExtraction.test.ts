@@ -41,10 +41,12 @@ describe('suggestionExtraction', () => {
   it('returns an empty array when digest summary has no action or blocker signal', async () => {
     const { extractSuggestionsFromSummary } = await import('@/features/chat/services/suggestionExtraction')
 
-    const suggestions = extractSuggestionsFromSummary(createDigestEntry({
-      id: 'digest-2',
-      summary: 'General discussion recap without any explicit next step.',
-    }))
+    const suggestions = extractSuggestionsFromSummary(
+      createDigestEntry({
+        id: 'digest-2',
+        summary: 'General discussion recap without any explicit next step.',
+      }),
+    )
 
     expect(suggestions).toEqual([])
   })

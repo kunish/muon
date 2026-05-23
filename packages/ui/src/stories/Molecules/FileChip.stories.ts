@@ -17,7 +17,7 @@ export default meta
 type Story = StoryObj<typeof FileChip>
 
 export const Default: Story = {
-  render: args => ({ components: { FileChip }, setup: () => ({ args }), template: '<FileChip v-bind="args" />' }),
+  render: (args) => ({ components: { FileChip }, setup: () => ({ args }), template: '<FileChip v-bind="args" />' }),
 }
 
 export const Variants: Story = {

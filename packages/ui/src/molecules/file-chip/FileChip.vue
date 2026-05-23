@@ -1,35 +1,34 @@
 <script setup lang="ts">
-import type { HTMLAttributes } from 'vue'
-import type { FileChipVariants } from '.'
-import { Download, File, X } from 'lucide-vue-next'
-import { computed } from 'vue'
-import { fileChipVariants, inferKind, KIND_COLOR } from '.'
-import { cn } from '../../utils'
+import type { HTMLAttributes } from 'vue';
+import type { FileChipVariants } from '.';
+import { Download, File, X } from 'lucide-vue-next';
+import { computed } from 'vue';
+import { fileChipVariants, inferKind, KIND_COLOR } from '.';
+import { cn } from '../../utils';
 
-const props = withDefaults(defineProps<{
-  name: string
-  size?: FileChipVariants['size']
-  byteSize?: string
-  removable?: boolean
-  downloadable?: boolean
-  class?: HTMLAttributes['class']
-}>(), { size: 'md', removable: false, downloadable: false })
+const props = withDefaults(
+  defineProps<{
+    name: string;
+    size?: FileChipVariants['size'];
+    byteSize?: string;
+    removable?: boolean;
+    downloadable?: boolean;
+    class?: HTMLAttributes['class'];
+  }>(),
+  { size: 'md', removable: false, downloadable: false },
+);
 
 const emits = defineEmits<{
-  remove: []
-  download: []
-}>()
+  remove: [];
+  download: [];
+}>();
 
-const kind = computed(() => inferKind(props.name))
-const iconColor = computed(() => KIND_COLOR[kind.value])
+const kind = computed(() => inferKind(props.name));
+const iconColor = computed(() => KIND_COLOR[kind.value]);
 </script>
 
 <template>
-  <span
-    :class="cn(fileChipVariants({ size }), props.class)"
-    :data-testid="$attrs['data-testid']"
-    :data-kind="kind"
-  >
+  <span :class="cn(fileChipVariants({ size }), props.class)" :data-testid="$attrs['data-testid']" :data-kind="kind">
     <File class="size-4 shrink-0" :style="{ color: iconColor }" aria-hidden="true" />
     <span class="max-w-[200px] truncate text-foreground">{{ name }}</span>
     <span v-if="byteSize" class="text-[11px] text-gray-500">{{ byteSize }}</span>

@@ -1,54 +1,50 @@
 <script setup lang="ts">
-import { Button } from '@muon/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@muon/ui/dialog'
-import { Input } from '@muon/ui/input'
-import { Label } from '@muon/ui/label'
-import { Check, Copy, Link } from 'lucide-vue-next'
-import { computed, ref } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { toast } from 'vue-sonner'
-import { getClient } from '@/matrix/client'
+import { Button } from '@muon/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@muon/ui/dialog';
+import { Input } from '@muon/ui/input';
+import { Label } from '@muon/ui/label';
+import { Check, Copy, Link } from 'lucide-vue-next';
+import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { toast } from 'vue-sonner';
+import { getClient } from '@/matrix/client';
 
 const props = defineProps<{
-  spaceId: string
-}>()
+  spaceId: string;
+}>();
 
-const { t } = useI18n()
-const open = defineModel<boolean>('open', { default: false })
+const { t } = useI18n();
+const open = defineModel<boolean>('open', { default: false });
 
-const copied = ref(false)
+const copied = ref(false);
 
 const roomAlias = computed(() => {
   try {
-    const client = getClient()
-    const room = client.getRoom(props.spaceId)
-    if (!room)
-      return props.spaceId
+    const client = getClient();
+    const room = client.getRoom(props.spaceId);
+    if (!room) return props.spaceId;
 
     // Try canonical alias first
-    const aliasEvent = room.currentState.getStateEvents('m.room.canonical_alias', '')
-    const alias = aliasEvent?.getContent()?.alias
-    if (alias)
-      return alias
+    const aliasEvent = room.currentState.getStateEvents('m.room.canonical_alias', '');
+    const alias = aliasEvent?.getContent()?.alias;
+    if (alias) return alias;
 
     // Fallback to room ID
-    return props.spaceId
+    return props.spaceId;
+  } catch {
+    return props.spaceId;
   }
-  catch {
-    return props.spaceId
-  }
-})
+});
 
 async function copyToClipboard() {
   try {
-    await navigator.clipboard.writeText(roomAlias.value)
-    copied.value = true
+    await navigator.clipboard.writeText(roomAlias.value);
+    copied.value = true;
     setTimeout(() => {
-      copied.value = false
-    }, 2000)
-  }
-  catch {
-    toast.error(t('server.invite_copy_failed'))
+      copied.value = false;
+    }, 2000);
+  } catch {
+    toast.error(t('server.invite_copy_failed'));
   }
 }
 </script>
@@ -82,12 +78,7 @@ async function copyToClipboard() {
               @focus="($event.target as HTMLInputElement).select()"
             />
           </div>
-          <Button
-            :variant="copied ? 'secondary' : 'default'"
-            size="default"
-            class="shrink-0"
-            @click="copyToClipboard"
-          >
+          <Button :variant="copied ? 'secondary' : 'default'" size="default" class="shrink-0" @click="copyToClipboard">
             <Check v-if="copied" :size="16" class="mr-1.5 text-success" />
             <Copy v-else :size="16" class="mr-1.5" />
             {{ copied ? t('server.invite_copied') : t('common.copy') }}

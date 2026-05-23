@@ -58,7 +58,11 @@ describe('messages', () => {
   it('should send editor-produced rich text as Matrix HTML', async () => {
     const { sendTextMessage } = await import('@/matrix/messages')
 
-    await sendTextMessage('!room:localhost', 'Bold and Muon', '<p><strong>Bold</strong> and <a href="https://example.com">Muon</a></p>')
+    await sendTextMessage(
+      '!room:localhost',
+      'Bold and Muon',
+      '<p><strong>Bold</strong> and <a href="https://example.com">Muon</a></p>',
+    )
 
     expect(mockSendMessage).toHaveBeenCalledWith('!room:localhost', {
       msgtype: 'm.text',
@@ -81,7 +85,8 @@ describe('messages', () => {
       msgtype: 'm.text',
       body: 'Caption\n[pasted.png]',
       format: 'org.matrix.custom.html',
-      formatted_body: '<p>Caption</p><p><img src="mxc://server/media" alt="pasted.png" title="pasted.png" data-width="640" data-height="360"></p>',
+      formatted_body:
+        '<p>Caption</p><p><img src="mxc://server/media" alt="pasted.png" title="pasted.png" data-width="640" data-height="360"></p>',
     })
   })
 
@@ -91,10 +96,10 @@ describe('messages', () => {
     await replyToMessage('!room:localhost', '$event1', 'quoted', '<blockquote><p>quoted</p></blockquote>')
 
     expect(mockSendMessage).toHaveBeenCalledWith('!room:localhost', {
-      'msgtype': 'm.text',
-      'body': 'quoted',
-      'format': 'org.matrix.custom.html',
-      'formatted_body': '<blockquote><p>quoted</p></blockquote>',
+      msgtype: 'm.text',
+      body: 'quoted',
+      format: 'org.matrix.custom.html',
+      formatted_body: '<blockquote><p>quoted</p></blockquote>',
       'm.relates_to': { 'm.in_reply_to': { event_id: '$event1' } },
     })
   })
@@ -105,10 +110,10 @@ describe('messages', () => {
     await editMessage('!room:localhost', '$event1', 'code', '<p><code>code</code></p>')
 
     expect(mockSendMessage).toHaveBeenCalledWith('!room:localhost', {
-      'msgtype': 'm.text',
-      'body': '* code',
-      'format': 'org.matrix.custom.html',
-      'formatted_body': '<p>* <code>code</code></p>',
+      msgtype: 'm.text',
+      body: '* code',
+      format: 'org.matrix.custom.html',
+      formatted_body: '<p>* <code>code</code></p>',
       'm.new_content': {
         msgtype: 'm.text',
         body: 'code',
@@ -127,10 +132,10 @@ describe('messages', () => {
 
     expect(mockExtractImageMeta).toHaveBeenCalledWith(file)
     expect(mockSendMessage).toHaveBeenCalledWith('!room:localhost', {
-      'msgtype': 'm.image',
-      'body': 'poster.png',
-      'url': 'mxc://server/media',
-      'info': {
+      msgtype: 'm.image',
+      body: 'poster.png',
+      url: 'mxc://server/media',
+      info: {
         mimetype: 'image/png',
         size: file.size,
         w: 640,
@@ -144,12 +149,7 @@ describe('messages', () => {
     const { redactMessage } = await import('@/matrix/messages')
     await redactMessage('!room:localhost', '$event1', 'spam')
 
-    expect(mockRedactEvent).toHaveBeenCalledWith(
-      '!room:localhost',
-      '$event1',
-      undefined,
-      { reason: 'spam' },
-    )
+    expect(mockRedactEvent).toHaveBeenCalledWith('!room:localhost', '$event1', undefined, { reason: 'spam' })
   })
 
   it('should get timeline events', async () => {
@@ -193,16 +193,14 @@ describe('messages', () => {
       getContent: () => ({ msgtype: 'm.text', body: 'new' }),
       isRedacted: () => false,
     }
-    let liveTimeline: { getEvents: () => unknown[], getNeighbouringTimeline: (direction: string) => unknown }
+    let liveTimeline: { getEvents: () => unknown[]; getNeighbouringTimeline: (direction: string) => unknown }
     const olderTimeline = {
       getEvents: () => [oldEvent],
-      getNeighbouringTimeline: (direction: string) =>
-        direction === EventTimeline.FORWARDS ? liveTimeline : null,
+      getNeighbouringTimeline: (direction: string) => (direction === EventTimeline.FORWARDS ? liveTimeline : null),
     }
     liveTimeline = {
       getEvents: () => [newEvent],
-      getNeighbouringTimeline: (direction: string) =>
-        direction === EventTimeline.BACKWARDS ? olderTimeline : null,
+      getNeighbouringTimeline: (direction: string) => (direction === EventTimeline.BACKWARDS ? olderTimeline : null),
     }
     mockGetRoom.mockReturnValue({
       getLiveTimeline: () => liveTimeline,
@@ -211,7 +209,7 @@ describe('messages', () => {
     const { getTimeline } = await import('@/matrix/messages')
     const events = getTimeline('!room:localhost', 50)
 
-    expect(events.map(event => event.getId())).toEqual(['$old', '$new'])
+    expect(events.map((event) => event.getId())).toEqual(['$old', '$new'])
   })
 
   it('filters member avatar profile updates from the chat timeline', async () => {
@@ -245,7 +243,7 @@ describe('messages', () => {
     const { getTimeline } = await import('@/matrix/messages')
     const events = getTimeline('!room:localhost', 50)
 
-    expect(events.map(event => event.getId())).toEqual(['$message'])
+    expect(events.map((event) => event.getId())).toEqual(['$message'])
   })
 
   it('filters room avatar state events from the chat timeline', async () => {
@@ -270,7 +268,7 @@ describe('messages', () => {
     const { getTimeline } = await import('@/matrix/messages')
     const events = getTimeline('!room:localhost', 50)
 
-    expect(events.map(event => event.getId())).toEqual(['$message'])
+    expect(events.map((event) => event.getId())).toEqual(['$message'])
   })
 
   it('keeps membership transitions as timeline system notices', async () => {
@@ -290,7 +288,7 @@ describe('messages', () => {
     const { getTimeline } = await import('@/matrix/messages')
     const events = getTimeline('!room:localhost', 50)
 
-    expect(events.map(event => event.getId())).toEqual(['$join'])
+    expect(events.map((event) => event.getId())).toEqual(['$join'])
   })
 
   it('localizes system event copy for the active locale', async () => {
@@ -308,7 +306,9 @@ describe('messages', () => {
     })
 
     const { getSystemEventInfo } = await import('@/matrix/messages')
-    const text = getSystemEventInfo(joinEvent as any).parts.map(part => part.text).join('')
+    const text = getSystemEventInfo(joinEvent as any)
+      .parts.map((part) => part.text)
+      .join('')
 
     expect(text).toBe('Alice joined the group chat')
   })
@@ -326,8 +326,8 @@ describe('messages', () => {
       getId: () => '$reply',
       getType: () => 'm.room.message',
       getContent: () => ({
-        'msgtype': 'm.text',
-        'body': 'reply',
+        msgtype: 'm.text',
+        body: 'reply',
         'm.relates_to': { rel_type: 'm.thread', event_id: '$root' },
       }),
       getSender: () => '@bob:localhost',
@@ -351,16 +351,14 @@ describe('messages', () => {
       getSender: () => '@bob:localhost',
       isRedacted: () => false,
     }
-    let liveTimeline: { getEvents: () => unknown[], getNeighbouringTimeline: (direction: string) => unknown }
+    let liveTimeline: { getEvents: () => unknown[]; getNeighbouringTimeline: (direction: string) => unknown }
     const olderTimeline = {
       getEvents: () => [rootEvent],
-      getNeighbouringTimeline: (direction: string) =>
-        direction === EventTimeline.FORWARDS ? liveTimeline : null,
+      getNeighbouringTimeline: (direction: string) => (direction === EventTimeline.FORWARDS ? liveTimeline : null),
     }
     liveTimeline = {
       getEvents: () => [threadReply, myReaction, otherReaction],
-      getNeighbouringTimeline: (direction: string) =>
-        direction === EventTimeline.BACKWARDS ? olderTimeline : null,
+      getNeighbouringTimeline: (direction: string) => (direction === EventTimeline.BACKWARDS ? olderTimeline : null),
     }
     mockGetRoom.mockReturnValue({
       getLiveTimeline: () => liveTimeline,
@@ -370,9 +368,7 @@ describe('messages', () => {
     const summaries = getTimelineRelationSummaries('!room:localhost')
 
     expect(summaries.threadReplyCountsByEventId.get('$root')).toBe(1)
-    expect(summaries.reactionsByEventId.get('$root')).toEqual([
-      { key: '👍', count: 2, myReaction: true },
-    ])
+    expect(summaries.reactionsByEventId.get('$root')).toEqual([{ key: '👍', count: 2, myReaction: true }])
   })
 
   it('should return empty array for unknown room', async () => {

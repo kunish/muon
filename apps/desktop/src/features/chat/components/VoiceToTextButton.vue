@@ -1,28 +1,26 @@
 <script setup lang="ts">
-import { Mic, MicOff } from 'lucide-vue-next'
-import { onBeforeUnmount, ref } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { toast } from 'vue-sonner'
-import { createSpeechRecognizer, isSpeechRecognitionSupported } from '@/shared/lib/speechToText'
+import { Mic, MicOff } from 'lucide-vue-next';
+import { onBeforeUnmount, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { toast } from 'vue-sonner';
+import { createSpeechRecognizer, isSpeechRecognitionSupported } from '@/shared/lib/speechToText';
 
 const emit = defineEmits<{
-  transcript: [text: string]
-}>()
+  transcript: [text: string];
+}>();
 
-const { t, locale } = useI18n()
+const { t, locale } = useI18n();
 
-const supported = isSpeechRecognitionSupported()
-const isListening = ref(false)
-let recognizer: ReturnType<typeof createSpeechRecognizer> | null = null
+const supported = isSpeechRecognitionSupported();
+const isListening = ref(false);
+let recognizer: ReturnType<typeof createSpeechRecognizer> | null = null;
 
 function toggle() {
-  if (!supported)
-    return
+  if (!supported) return;
   if (isListening.value) {
-    stop()
-  }
-  else {
-    start()
+    stop();
+  } else {
+    start();
   }
 }
 
@@ -32,30 +30,30 @@ function start() {
     continuous: true,
     onResult: (result) => {
       if (result.isFinal) {
-        emit('transcript', result.text)
+        emit('transcript', result.text);
       }
     },
     onError: () => {
-      isListening.value = false
-      toast.error(t('chat.stt_failed'))
+      isListening.value = false;
+      toast.error(t('chat.stt_failed'));
     },
     onEnd: () => {
-      isListening.value = false
+      isListening.value = false;
     },
-  })
-  recognizer.start()
-  isListening.value = true
+  });
+  recognizer.start();
+  isListening.value = true;
 }
 
 function stop() {
-  recognizer?.stop()
-  recognizer = null
-  isListening.value = false
+  recognizer?.stop();
+  recognizer = null;
+  isListening.value = false;
 }
 
 onBeforeUnmount(() => {
-  recognizer?.abort()
-})
+  recognizer?.abort();
+});
 </script>
 
 <template>
@@ -75,9 +73,6 @@ onBeforeUnmount(() => {
     <Mic v-if="!isListening" :size="18" />
     <MicOff v-else :size="18" />
     <!-- 脉冲动画 -->
-    <span
-      v-if="isListening"
-      class="absolute inset-0 rounded-md border-2 border-destructive animate-ping opacity-40"
-    />
+    <span v-if="isListening" class="absolute inset-0 rounded-md border-2 border-destructive animate-ping opacity-40" />
   </button>
 </template>

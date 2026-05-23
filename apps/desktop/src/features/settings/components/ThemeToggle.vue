@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { Moon, Sun } from 'lucide-vue-next'
-import { useTheme } from '../composables/useTheme'
+import { Moon, Sun } from 'lucide-vue-next';
+import { useTheme } from '../composables/useTheme';
 
-const { theme } = useTheme()
+const { theme } = useTheme();
 
 function toggle() {
-  theme.value = theme.value === 'dark' ? 'light' : 'dark'
+  theme.value = theme.value === 'dark' ? 'light' : 'dark';
 }
 </script>
 

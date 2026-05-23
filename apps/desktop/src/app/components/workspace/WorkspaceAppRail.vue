@@ -1,26 +1,29 @@
 <script setup lang="ts">
-import { Search } from 'lucide-vue-next'
-import { computed } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { useRoute, useRouter } from 'vue-router'
-import { useGlobalUiStore } from '../../stores/globalUiStore'
-import { footerWorkspaceApps, getWorkspaceAppForPath, primaryWorkspaceApps } from './navigation'
+import { Search } from 'lucide-vue-next';
+import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useRoute, useRouter } from 'vue-router';
+import { useGlobalUiStore } from '../../stores/globalUiStore';
+import { footerWorkspaceApps, getWorkspaceAppForPath, primaryWorkspaceApps } from './navigation';
 
-withDefaults(defineProps<{
-  messageUnreadCount?: number
-}>(), {
-  messageUnreadCount: 0,
-})
+withDefaults(
+  defineProps<{
+    messageUnreadCount?: number;
+  }>(),
+  {
+    messageUnreadCount: 0,
+  },
+);
 
-const route = useRoute()
-const router = useRouter()
-const { t } = useI18n()
-const globalUi = useGlobalUiStore()
+const route = useRoute();
+const router = useRouter();
+const { t } = useI18n();
+const globalUi = useGlobalUiStore();
 
-const activeApp = computed(() => getWorkspaceAppForPath(route.path))
+const activeApp = computed(() => getWorkspaceAppForPath(route.path));
 
 function openApp(path: string): void {
-  router.push(path)
+  router.push(path);
 }
 </script>
 
@@ -29,10 +32,7 @@ function openApp(path: string): void {
     data-testid="workspace-app-rail"
     class="workspace-rail relative flex h-full w-16 shrink-0 select-none flex-col items-center overflow-hidden border-r border-sidebar-border bg-server-bar py-4"
   >
-    <div
-      data-testid="workspace-app-rail-content"
-      class="flex h-full w-full flex-col items-center overflow-hidden"
-    >
+    <div data-testid="workspace-app-rail-content" class="flex h-full w-full flex-col items-center overflow-hidden">
       <div
         class="mb-6 flex size-10 items-center justify-center rounded-lg border border-primary/25 bg-primary/12"
         title="Muon"
@@ -43,7 +43,7 @@ function openApp(path: string): void {
           alt="Muon"
           class="size-8 rounded-md"
           draggable="false"
-        >
+        />
       </div>
 
       <div class="muon-scrollbar-hidden flex w-full flex-1 flex-col items-center gap-2 overflow-y-auto px-2">
@@ -51,7 +51,11 @@ function openApp(path: string): void {
           v-for="app in primaryWorkspaceApps"
           :key="app.id"
           class="group relative flex h-10 w-full items-center justify-center rounded-md text-muted-foreground transition-colors duration-150 hover:bg-sidebar-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          :class="activeApp.id === app.id ? 'bg-sidebar-accent text-primary before:absolute before:left-[-8px] before:top-1/2 before:h-6 before:w-[3px] before:-translate-y-1/2 before:bg-primary before:content-[\'\']' : ''"
+          :class="
+            activeApp.id === app.id
+              ? 'bg-sidebar-accent text-primary before:absolute before:left-[-8px] before:top-1/2 before:h-6 before:w-[3px] before:-translate-y-1/2 before:bg-primary before:content-[\'\']'
+              : ''
+          "
           :data-testid="`workspace-app-${app.id}`"
           :aria-current="activeApp.id === app.id ? 'page' : undefined"
           :aria-label="t(app.labelKey)"
@@ -83,7 +87,11 @@ function openApp(path: string): void {
           v-for="app in footerWorkspaceApps"
           :key="app.id"
           class="group relative flex h-10 w-full items-center justify-center rounded-md text-muted-foreground transition-colors duration-150 hover:bg-sidebar-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          :class="activeApp.id === app.id ? 'bg-sidebar-accent text-primary before:absolute before:left-[-8px] before:top-1/2 before:h-6 before:w-[3px] before:-translate-y-1/2 before:bg-primary before:content-[\'\']' : ''"
+          :class="
+            activeApp.id === app.id
+              ? 'bg-sidebar-accent text-primary before:absolute before:left-[-8px] before:top-1/2 before:h-6 before:w-[3px] before:-translate-y-1/2 before:bg-primary before:content-[\'\']'
+              : ''
+          "
           :data-testid="`workspace-app-${app.id}`"
           :aria-current="activeApp.id === app.id ? 'page' : undefined"
           :aria-label="t(app.labelKey)"

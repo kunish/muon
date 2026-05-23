@@ -1,165 +1,144 @@
 <script setup lang="ts">
-import { getClient } from '@matrix/client'
-import { getRoomTopic, leaveRoom, setRoomTopic, toggleRoomMute, toggleRoomPin } from '@matrix/rooms'
-import { isDirectRoom } from '@matrix/roomUtils'
-import { Avatar } from '@muon/ui/avatar'
-import { Switch } from '@muon/ui/switch'
-import { Textarea } from '@muon/ui/textarea'
-import {
-  Bell,
-  BellOff,
-  Check,
-  ChevronRight,
-  Copy,
-  Pin,
-  Shield,
-  X,
-} from 'lucide-vue-next'
-import { computed, onUnmounted, ref } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { toast } from 'vue-sonner'
-import { ask } from '@/desktop/dialog'
-import { useChatStore } from '../stores/chatStore'
+import { getClient } from '@matrix/client';
+import { getRoomTopic, leaveRoom, setRoomTopic, toggleRoomMute, toggleRoomPin } from '@matrix/rooms';
+import { isDirectRoom } from '@matrix/roomUtils';
+import { Avatar } from '@muon/ui/avatar';
+import { Switch } from '@muon/ui/switch';
+import { Textarea } from '@muon/ui/textarea';
+import { Bell, BellOff, Check, ChevronRight, Copy, Pin, Shield, X } from 'lucide-vue-next';
+import { computed, onUnmounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { toast } from 'vue-sonner';
+import { ask } from '@/desktop/dialog';
+import { useChatStore } from '../stores/chatStore';
 
-const { t } = useI18n()
-const store = useChatStore()
+const { t } = useI18n();
+const store = useChatStore();
 
 // ── Room data ───────────────────────────────────────────────
 
 const room = computed(() => {
-  const client = getClient()
-  return store.currentRoomId ? client.getRoom(store.currentRoomId) : null
-})
+  const client = getClient();
+  return store.currentRoomId ? client.getRoom(store.currentRoomId) : null;
+});
 
-const roomName = computed(() => room.value?.name || '')
+const roomName = computed(() => room.value?.name || '');
 
-const roomMxcAvatar = computed(() => room.value?.getMxcAvatarUrl() || undefined)
+const roomMxcAvatar = computed(() => room.value?.getMxcAvatarUrl() || undefined);
 
 const roomTopic = computed(() => {
-  if (!store.currentRoomId)
-    return ''
-  return getRoomTopic(store.currentRoomId)
-})
+  if (!store.currentRoomId) return '';
+  return getRoomTopic(store.currentRoomId);
+});
 
 const isEncrypted = computed(() => {
-  if (!room.value)
-    return false
-  return room.value.hasEncryptionStateEvent()
-})
+  if (!room.value) return false;
+  return room.value.hasEncryptionStateEvent();
+});
 
-const isDirect = computed(() => store.currentRoomId ? isDirectRoom(store.currentRoomId) : false)
+const isDirect = computed(() => (store.currentRoomId ? isDirectRoom(store.currentRoomId) : false));
 
-const memberCount = computed(() => room.value?.getJoinedMemberCount() || 0)
+const memberCount = computed(() => room.value?.getJoinedMemberCount() || 0);
 
-const isPinned = computed(() => store.currentRoomId ? store.isPinned(store.currentRoomId) : false)
-const isMuted = computed(() => store.currentRoomId ? store.isMuted(store.currentRoomId) : false)
+const isPinned = computed(() => (store.currentRoomId ? store.isPinned(store.currentRoomId) : false));
+const isMuted = computed(() => (store.currentRoomId ? store.isMuted(store.currentRoomId) : false));
 
 // ── Members preview (top 8) ─────────────────────────────────
 
 interface MemberPreview {
-  userId: string
-  displayName: string
-  mxcAvatar?: string
-  powerLevel: number
+  userId: string;
+  displayName: string;
+  mxcAvatar?: string;
+  powerLevel: number;
 }
 
 const memberPreviews = computed<MemberPreview[]>(() => {
-  if (!room.value)
-    return []
-  const joinedMembers = room.value.getJoinedMembers()
+  if (!room.value) return [];
+  const joinedMembers = room.value.getJoinedMembers();
   return joinedMembers
-    .map(m => ({
+    .map((m) => ({
       userId: m.userId,
       displayName: m.name || m.userId.split(':')[0]?.slice(1) || m.userId,
       mxcAvatar: m.getMxcAvatarUrl() || undefined,
       powerLevel: room.value!.getMember(m.userId)?.powerLevel ?? 0,
     }))
     .sort((a, b) => b.powerLevel - a.powerLevel)
-    .slice(0, 8)
-})
+    .slice(0, 8);
+});
 
 // ── Actions ─────────────────────────────────────────────────
 
 async function onTogglePin() {
-  if (!store.currentRoomId)
-    return
-  const targetRoomId = store.currentRoomId
-  const nextPinned = !store.isPinned(targetRoomId)
-  store.setPin(targetRoomId, nextPinned)
+  if (!store.currentRoomId) return;
+  const targetRoomId = store.currentRoomId;
+  const nextPinned = !store.isPinned(targetRoomId);
+  store.setPin(targetRoomId, nextPinned);
   try {
-    await toggleRoomPin(targetRoomId)
+    await toggleRoomPin(targetRoomId);
+  } catch {
+    /* Conduit 可能不支持 */
   }
-  catch { /* Conduit 可能不支持 */ }
 }
 
 async function onToggleMute() {
-  if (!store.currentRoomId)
-    return
-  await toggleRoomMute(store.currentRoomId)
-  store.toggleMute(store.currentRoomId)
+  if (!store.currentRoomId) return;
+  await toggleRoomMute(store.currentRoomId);
+  store.toggleMute(store.currentRoomId);
 }
 
 async function onLeaveRoom() {
-  if (!store.currentRoomId)
-    return
-  const msg = isDirect.value
-    ? t('chat.ctx_leave_dm_msg')
-    : t('chat.ctx_leave_group_msg')
+  if (!store.currentRoomId) return;
+  const msg = isDirect.value ? t('chat.ctx_leave_dm_msg') : t('chat.ctx_leave_group_msg');
   const confirmed = await ask(msg, {
     title: t('chat.ctx_leave_title'),
     kind: 'warning',
-  })
-  if (!confirmed)
-    return
-  await leaveRoom(store.currentRoomId)
-  store.setCurrentRoom(null)
+  });
+  if (!confirmed) return;
+  await leaveRoom(store.currentRoomId);
+  store.setCurrentRoom(null);
 }
 
 // ── Copy Room ID ────────────────────────────────────────────
 
-const copied = ref(false)
-let copyTimer: ReturnType<typeof setTimeout> | undefined
+const copied = ref(false);
+let copyTimer: ReturnType<typeof setTimeout> | undefined;
 
 async function copyRoomId() {
-  if (!store.currentRoomId)
-    return
+  if (!store.currentRoomId) return;
   try {
-    await navigator.clipboard.writeText(store.currentRoomId)
-    copied.value = true
-    clearTimeout(copyTimer)
+    await navigator.clipboard.writeText(store.currentRoomId);
+    copied.value = true;
+    clearTimeout(copyTimer);
     copyTimer = setTimeout(() => {
-      copied.value = false
-    }, 2000)
-  }
-  catch {
-    toast.error(t('chat.copy_room_id_failed'))
+      copied.value = false;
+    }, 2000);
+  } catch {
+    toast.error(t('chat.copy_room_id_failed'));
   }
 }
 
 onUnmounted(() => {
-  if (copyTimer)
-    clearTimeout(copyTimer)
-})
+  if (copyTimer) clearTimeout(copyTimer);
+});
 
 // ── Topic editing ───────────────────────────────────────────
 
-const editingTopic = ref(false)
-const topicDraft = ref('')
+const editingTopic = ref(false);
+const topicDraft = ref('');
 
 function startEditTopic() {
-  topicDraft.value = roomTopic.value
-  editingTopic.value = true
+  topicDraft.value = roomTopic.value;
+  editingTopic.value = true;
 }
 
 async function saveTopic() {
-  if (!store.currentRoomId)
-    return
-  await setRoomTopic(store.currentRoomId, topicDraft.value.trim())
-  editingTopic.value = false
+  if (!store.currentRoomId) return;
+  await setRoomTopic(store.currentRoomId, topicDraft.value.trim());
+  editingTopic.value = false;
 }
 
 function cancelEditTopic() {
-  editingTopic.value = false
+  editingTopic.value = false;
 }
 </script>
 
@@ -168,10 +147,7 @@ function cancelEditTopic() {
     <!-- Header -->
     <div class="flex items-center justify-between px-4 h-12 border-b border-border shrink-0">
       <span class="font-medium text-sm">{{ t('chat.room_settings') }}</span>
-      <button
-        class="p-1 rounded-md hover:bg-accent text-muted-foreground"
-        @click="store.closeSidePanel()"
-      >
+      <button class="p-1 rounded-md hover:bg-accent text-muted-foreground" @click="store.closeSidePanel()">
         <X :size="16" />
       </button>
     </div>
@@ -180,13 +156,7 @@ function cancelEditTopic() {
     <div class="flex-1 overflow-y-auto">
       <!-- Room info header -->
       <div class="flex items-center gap-3 px-4 py-4">
-        <Avatar
-          :src="roomMxcAvatar"
-          :alt="roomName"
-          :color-id="store.currentRoomId || ''"
-          size="lg"
-          shape="circle"
-        />
+        <Avatar :src="roomMxcAvatar" :alt="roomName" :color-id="store.currentRoomId || ''" size="lg" shape="circle" />
         <div class="min-w-0 flex-1">
           <div class="font-medium truncate">
             {{ roomName }}
@@ -248,10 +218,7 @@ function cancelEditTopic() {
 
       <!-- Members preview -->
       <div class="px-4 py-3">
-        <button
-          class="flex items-center justify-between w-full group"
-          @click="store.toggleSidePanel('members')"
-        >
+        <button class="flex items-center justify-between w-full group" @click="store.toggleSidePanel('members')">
           <span class="text-sm font-medium">{{ t('chat.member_list') }}</span>
           <span class="flex items-center gap-1 text-xs text-muted-foreground/60">
             {{ memberCount }}
@@ -260,13 +227,7 @@ function cancelEditTopic() {
         </button>
         <div class="flex items-center gap-1.5 mt-2.5 flex-wrap">
           <template v-for="m in memberPreviews" :key="m.userId">
-            <Avatar
-              :src="m.mxcAvatar"
-              :alt="m.displayName"
-              :color-id="m.userId"
-              size="sm"
-              shape="circle"
-            />
+            <Avatar :src="m.mxcAvatar" :alt="m.displayName" :color-id="m.userId" size="sm" shape="circle" />
           </template>
           <button
             v-if="memberCount > 8"
@@ -316,15 +277,16 @@ function cancelEditTopic() {
         <div class="text-[11px] text-muted-foreground/40 mb-1">
           {{ t('chat.room_id_label') }}
         </div>
-        <button
-          class="flex items-center gap-2 group w-full"
-          @click="copyRoomId"
-        >
+        <button class="flex items-center gap-2 group w-full" @click="copyRoomId">
           <span class="text-[11px] text-muted-foreground/60 truncate flex-1 text-left font-mono">
             {{ store.currentRoomId }}
           </span>
           <Check v-if="copied" :size="12" class="shrink-0 text-success" />
-          <Copy v-else :size="12" class="shrink-0 text-muted-foreground/30 group-hover:text-muted-foreground/60 transition-colors" />
+          <Copy
+            v-else
+            :size="12"
+            class="shrink-0 text-muted-foreground/30 group-hover:text-muted-foreground/60 transition-colors"
+          />
         </button>
       </div>
 

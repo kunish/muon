@@ -97,8 +97,7 @@ declare global {
 }
 
 export function getDesktopBridge(): MuonDesktopBridge | undefined {
-  if (typeof window === 'undefined')
-    return undefined
+  if (typeof window === 'undefined') return undefined
 
   return window.muonDesktop
 }

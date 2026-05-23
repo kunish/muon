@@ -1,65 +1,60 @@
 <script setup lang="ts">
-import type { ProjectView } from '../types'
-import { Button } from '@muon/ui/button'
-import { Kanban, LayoutList, Settings, Trash2 } from 'lucide-vue-next'
-import { computed, watch } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { useRoute, useRouter } from 'vue-router'
-import { ask } from '@/desktop/dialog'
-import { useProjectStore } from '../composables/useProjectStore'
-import { useWorkItemStore } from '../composables/useWorkItemStore'
-import BoardView from './view/BoardView.vue'
-import GanttView from './view/GanttView.vue'
-import ListView from './view/ListView.vue'
+import type { ProjectView } from '../types';
+import { Button } from '@muon/ui/button';
+import { Kanban, LayoutList, Settings, Trash2 } from 'lucide-vue-next';
+import { computed, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useRoute, useRouter } from 'vue-router';
+import { ask } from '@/desktop/dialog';
+import { useProjectStore } from '../composables/useProjectStore';
+import { useWorkItemStore } from '../composables/useWorkItemStore';
+import BoardView from './view/BoardView.vue';
+import GanttView from './view/GanttView.vue';
+import ListView from './view/ListView.vue';
 
-const props = defineProps<{ projectId: string }>()
+const props = defineProps<{ projectId: string }>();
 
-const { t } = useI18n()
-const route = useRoute()
-const router = useRouter()
-const projectStore = useProjectStore()
-const itemStore = useWorkItemStore()
+const { t } = useI18n();
+const route = useRoute();
+const router = useRouter();
+const projectStore = useProjectStore();
+const itemStore = useWorkItemStore();
 
-const project = computed(() =>
-  projectStore.projects.find(p => p.id === props.projectId),
-)
+const project = computed(() => projectStore.projects.find((p) => p.id === props.projectId));
 
 const currentView = computed<ProjectView>(() => {
-  const v = route.query.view as string
-  if (v === 'list' || v === 'gantt')
-    return v
-  return 'board'
-})
+  const v = route.query.view as string;
+  if (v === 'list' || v === 'gantt') return v;
+  return 'board';
+});
 
 watch(
   () => props.projectId,
   async (projectId) => {
-    projectStore.setCurrentProject(projectId)
-    itemStore.setCurrentProject(projectId)
-    if (!project.value)
-      await projectStore.loadProjects()
-    await itemStore.loadItems(projectId)
+    projectStore.setCurrentProject(projectId);
+    itemStore.setCurrentProject(projectId);
+    if (!project.value) await projectStore.loadProjects();
+    await itemStore.loadItems(projectId);
   },
   { immediate: true },
-)
+);
 
 function setView(view: ProjectView) {
-  router.replace({ query: { view } })
+  router.replace({ query: { view } });
 }
 
 function openSettings() {
-  router.push(`/projects/${props.projectId}/settings`)
+  router.push(`/projects/${props.projectId}/settings`);
 }
 
 async function deleteProject() {
   const confirmed = await ask(t('projects.delete_project_confirm'), {
     title: t('projects.delete_project'),
     kind: 'warning',
-  })
-  if (!confirmed)
-    return
-  await projectStore.deleteProject(props.projectId)
-  router.push('/projects')
+  });
+  if (!confirmed) return;
+  await projectStore.deleteProject(props.projectId);
+  router.push('/projects');
 }
 </script>
 
@@ -77,7 +72,7 @@ async function deleteProject() {
       <div class="flex shrink-0 items-center gap-2">
         <div class="flex rounded-lg border bg-muted/50 p-0.5">
           <button
-            v-for="v in (['board', 'list', 'gantt'] as ProjectView[])"
+            v-for="v in ['board', 'list', 'gantt'] as ProjectView[]"
             :key="v"
             class="rounded-md px-3 py-1.5 text-sm"
             :class="currentView === v ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground'"

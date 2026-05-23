@@ -62,8 +62,7 @@ export function getSystemEventInfo(eventOrEvents: MatrixEvent | MatrixEvent[]): 
 
   if (events.length > 1) {
     const mergedInfo = getMergedSystemEventInfo(events)
-    if (mergedInfo)
-      return mergedInfo
+    if (mergedInfo) return mergedInfo
   }
 
   const evType = ev.getType()
@@ -78,7 +77,8 @@ export function getSystemEventInfo(eventOrEvents: MatrixEvent | MatrixEvent[]): 
     const prevMembership = ev.getPrevContent()?.membership
     const targetId = ev.getStateKey() || ''
     const targetMember = room?.getMember(targetId)
-    const targetName = targetMember?.name || ev.getContent()?.displayname || targetId.split(':')[0]?.slice(1) || targetId
+    const targetName =
+      targetMember?.name || ev.getContent()?.displayname || targetId.split(':')[0]?.slice(1) || targetId
 
     // 加入
     if (membership === 'join' && prevMembership !== 'join') {
@@ -86,10 +86,7 @@ export function getSystemEventInfo(eventOrEvents: MatrixEvent | MatrixEvent[]): 
         // 自己加入（通过链接等）
         return {
           kind: 'join',
-          parts: [
-            { type: 'user', text: targetName, userId: targetId },
-            systemEventText('joined_group'),
-          ],
+          parts: [{ type: 'user', text: targetName, userId: targetId }, systemEventText('joined_group')],
         }
       }
       // 被邀请加入
@@ -109,10 +106,7 @@ export function getSystemEventInfo(eventOrEvents: MatrixEvent | MatrixEvent[]): 
       if (sender === targetId) {
         return {
           kind: 'leave',
-          parts: [
-            { type: 'user', text: targetName, userId: targetId },
-            systemEventText('left_group'),
-          ],
+          parts: [{ type: 'user', text: targetName, userId: targetId }, systemEventText('left_group')],
         }
       }
       // 被踢出
@@ -154,10 +148,7 @@ export function getSystemEventInfo(eventOrEvents: MatrixEvent | MatrixEvent[]): 
 
     return {
       kind: 'unknown',
-      parts: [
-        { type: 'user', text: targetName, userId: targetId },
-        systemEventText('membership_changed'),
-      ],
+      parts: [{ type: 'user', text: targetName, userId: targetId }, systemEventText('membership_changed')],
     }
   }
 
@@ -188,19 +179,13 @@ export function getSystemEventInfo(eventOrEvents: MatrixEvent | MatrixEvent[]): 
   if (evType === 'm.room.create') {
     return {
       kind: 'room_create',
-      parts: [
-        { type: 'user', text: senderName, userId: sender },
-        systemEventText('created_this_group'),
-      ],
+      parts: [{ type: 'user', text: senderName, userId: sender }, systemEventText('created_this_group')],
     }
   }
 
   return {
     kind: 'unknown',
-    parts: [
-      { type: 'user', text: senderName, userId: sender },
-      systemEventText('triggered_event'),
-    ],
+    parts: [{ type: 'user', text: senderName, userId: sender }, systemEventText('triggered_event')],
   }
 }
 
@@ -211,24 +196,18 @@ function fallbackNameFromUserId(userId: string): string {
 }
 
 function getMergeableMemberEvent(ev: MatrixEvent): MergeableMemberEvent | null {
-  if (ev.getType() !== 'm.room.member')
-    return null
+  if (ev.getType() !== 'm.room.member') return null
 
   const membership = ev.getContent()?.membership
   const prevMembership = ev.getPrevContent()?.membership
   const roomId = ev.getRoomId()
   const sender = ev.getSender()
   const targetId = ev.getStateKey()
-  if (!roomId || !sender || !targetId || sender === targetId)
-    return null
+  if (!roomId || !sender || !targetId || sender === targetId) return null
 
-  const kind = membership === 'invite'
-    ? 'invite'
-    : membership === 'join' && prevMembership === 'invite'
-      ? 'invite_join'
-      : null
-  if (!kind)
-    return null
+  const kind =
+    membership === 'invite' ? 'invite' : membership === 'join' && prevMembership === 'invite' ? 'invite_join' : null
+  if (!kind) return null
 
   const targetFallbackName = ev.getContent()?.displayname || fallbackNameFromUserId(targetId)
 
@@ -246,8 +225,7 @@ function getMergeableMemberEvent(ev: MatrixEvent): MergeableMemberEvent | null {
 function getRoomCreationSetupEvent(ev: MatrixEvent): RoomCreationSetupEvent | null {
   const roomId = ev.getRoomId()
   const actor = ev.getSender()
-  if (!roomId || !actor)
-    return null
+  if (!roomId || !actor) return null
 
   const evType = ev.getType()
   const ts = ev.getTs()
@@ -283,14 +261,12 @@ function getRoomCreationSetupEvent(ev: MatrixEvent): RoomCreationSetupEvent | nu
     }
   }
 
-  if (evType !== 'm.room.member')
-    return null
+  if (evType !== 'm.room.member') return null
 
   const membership = ev.getContent()?.membership
   const prevMembership = ev.getPrevContent()?.membership
   const targetId = ev.getStateKey()
-  if (!targetId)
-    return null
+  if (!targetId) return null
 
   if (membership === 'join' && prevMembership !== 'join' && targetId === actor) {
     return {
@@ -319,19 +295,18 @@ function getRoomCreationSetupEvent(ev: MatrixEvent): RoomCreationSetupEvent | nu
 
 function canMergeRoomCreationSetupEvents(previousEvents: MatrixEvent[], next: MatrixEvent): boolean {
   const setupEvents = previousEvents.map(getRoomCreationSetupEvent)
-  if (setupEvents.includes(null))
-    return false
+  if (setupEvents.includes(null)) return false
 
   const first = setupEvents[0]
   const nextSetup = getRoomCreationSetupEvent(next)
-  if (!first || first.kind !== 'create' || !nextSetup || nextSetup.kind === 'create')
-    return false
+  if (!first || first.kind !== 'create' || !nextSetup || nextSetup.kind === 'create') return false
 
-  return [...setupEvents, nextSetup].every(item =>
-    item !== null
-    && item.roomId === first.roomId
-    && item.actor === first.actor
-    && Math.abs(item.ts - first.ts) <= SYSTEM_EVENT_MERGE_WINDOW_MS,
+  return [...setupEvents, nextSetup].every(
+    (item) =>
+      item !== null &&
+      item.roomId === first.roomId &&
+      item.actor === first.actor &&
+      Math.abs(item.ts - first.ts) <= SYSTEM_EVENT_MERGE_WINDOW_MS,
   )
 }
 
@@ -341,8 +316,7 @@ function findLastSetupEvent(
 ): RoomCreationSetupEvent | undefined {
   for (let index = events.length - 1; index >= 0; index--) {
     const event = events[index]
-    if (predicate(event))
-      return event
+    if (predicate(event)) return event
   }
   return undefined
 }
@@ -350,35 +324,29 @@ function findLastSetupEvent(
 export function canMergeSystemEvents(previous: MatrixEvent | MatrixEvent[], next: MatrixEvent): boolean {
   const previousEvents = Array.isArray(previous) ? previous : [previous]
   const prev = previousEvents.at(-1)
-  if (!prev)
-    return false
+  if (!prev) return false
 
-  if (canMergeRoomCreationSetupEvents(previousEvents, next))
-    return true
+  if (canMergeRoomCreationSetupEvents(previousEvents, next)) return true
 
   const prevMerge = getMergeableMemberEvent(prev)
   const nextMerge = getMergeableMemberEvent(next)
-  if (!prevMerge || !nextMerge || prevMerge.key !== nextMerge.key)
-    return false
+  if (!prevMerge || !nextMerge || prevMerge.key !== nextMerge.key) return false
 
   return Math.abs(nextMerge.ts - prevMerge.ts) <= SYSTEM_EVENT_MERGE_WINDOW_MS
 }
 
 function getMergedSystemEventInfo(events: MatrixEvent[]): SystemEventInfo | null {
   const roomCreationInfo = getMergedRoomCreationSystemEventInfo(events)
-  if (roomCreationInfo)
-    return roomCreationInfo
+  if (roomCreationInfo) return roomCreationInfo
 
   const first = getMergeableMemberEvent(events[0])
-  if (!first)
-    return null
+  if (!first) return null
 
   const memberEvents = events
     .map(getMergeableMemberEvent)
     .filter((item): item is MergeableMemberEvent => item !== null && item.key === first.key)
 
-  if (memberEvents.length !== events.length || memberEvents.length < 2)
-    return null
+  if (memberEvents.length !== events.length || memberEvents.length < 2) return null
 
   const client = getClient()
   const room = client.getRoom(first.roomId)
@@ -391,19 +359,16 @@ function getMergedSystemEventInfo(events: MatrixEvent[]): SystemEventInfo | null
   const seenTargets = new Set<string>()
 
   for (const memberEvent of memberEvents) {
-    if (seenTargets.has(memberEvent.targetId))
-      continue
+    if (seenTargets.has(memberEvent.targetId)) continue
     seenTargets.add(memberEvent.targetId)
-    if (seenTargets.size > 1)
-      parts.push(systemEventText('list_separator'))
+    if (seenTargets.size > 1) parts.push(systemEventText('list_separator'))
 
     const targetMember = room?.getMember(memberEvent.targetId)
     const targetName = targetMember?.name || memberEvent.targetFallbackName
     parts.push({ type: 'user', text: targetName, userId: memberEvent.targetId })
   }
 
-  if (first.kind === 'invite_join')
-    parts.push(systemEventText('to_join_group'))
+  if (first.kind === 'invite_join') parts.push(systemEventText('to_join_group'))
 
   return {
     kind: first.kind === 'invite' ? 'invite' : 'join',
@@ -415,20 +380,21 @@ function getMergedRoomCreationSystemEventInfo(events: MatrixEvent[]): SystemEven
   const setupEvents: RoomCreationSetupEvent[] = []
   for (const event of events) {
     const setupEvent = getRoomCreationSetupEvent(event)
-    if (!setupEvent)
-      return null
+    if (!setupEvent) return null
     setupEvents.push(setupEvent)
   }
 
   const first = setupEvents[0]
-  if (!first || first.kind !== 'create' || setupEvents.length < 2)
-    return null
+  if (!first || first.kind !== 'create' || setupEvents.length < 2) return null
 
-  if (!setupEvents.every(item =>
-    item.roomId === first.roomId
-    && item.actor === first.actor
-    && Math.abs(item.ts - first.ts) <= SYSTEM_EVENT_MERGE_WINDOW_MS,
-  )) {
+  if (
+    !setupEvents.every(
+      (item) =>
+        item.roomId === first.roomId &&
+        item.actor === first.actor &&
+        Math.abs(item.ts - first.ts) <= SYSTEM_EVENT_MERGE_WINDOW_MS,
+    )
+  ) {
     return null
   }
 
@@ -436,44 +402,33 @@ function getMergedRoomCreationSystemEventInfo(events: MatrixEvent[]): SystemEven
   const room = client.getRoom(first.roomId)
   const actorMember = room?.getMember(first.actor)
   const actorName = actorMember?.name || fallbackNameFromUserId(first.actor)
-  const roomName = findLastSetupEvent(setupEvents, item => item.kind === 'room_name' && !!item.name)?.name
-  const roomTopic = findLastSetupEvent(setupEvents, item => item.kind === 'room_topic' && !!item.topic)?.topic
-  const inviteEvents = setupEvents.filter(item => item.kind === 'invite' && item.targetId)
+  const roomName = findLastSetupEvent(setupEvents, (item) => item.kind === 'room_name' && !!item.name)?.name
+  const roomTopic = findLastSetupEvent(setupEvents, (item) => item.kind === 'room_topic' && !!item.topic)?.topic
+  const inviteEvents = setupEvents.filter((item) => item.kind === 'invite' && item.targetId)
 
-  const parts: SystemEventPart[] = [
-    { type: 'user', text: actorName, userId: first.actor },
-  ]
+  const parts: SystemEventPart[] = [{ type: 'user', text: actorName, userId: first.actor }]
 
   if (roomName) {
-    parts.push(
-      systemEventText('created_group_named'),
-      { type: 'highlight', text: `"${roomName}"` },
-    )
-  }
-  else {
+    parts.push(systemEventText('created_group_named'), { type: 'highlight', text: `"${roomName}"` })
+  } else {
     parts.push(systemEventText('created_this_group'))
   }
 
   if (roomTopic) {
-    parts.push(
-      systemEventText('with_topic'),
-      { type: 'highlight', text: `"${roomTopic}"` },
-    )
+    parts.push(systemEventText('with_topic'), { type: 'highlight', text: `"${roomTopic}"` })
   }
 
   const seenTargets = new Set<string>()
   for (const inviteEvent of inviteEvents) {
-    if (!inviteEvent.targetId || seenTargets.has(inviteEvent.targetId))
-      continue
+    if (!inviteEvent.targetId || seenTargets.has(inviteEvent.targetId)) continue
     seenTargets.add(inviteEvent.targetId)
 
-    if (seenTargets.size === 1)
-      parts.push(systemEventText('and_invited'))
-    else
-      parts.push(systemEventText('list_separator'))
+    if (seenTargets.size === 1) parts.push(systemEventText('and_invited'))
+    else parts.push(systemEventText('list_separator'))
 
     const targetMember = room?.getMember(inviteEvent.targetId)
-    const targetName = targetMember?.name || inviteEvent.targetFallbackName || fallbackNameFromUserId(inviteEvent.targetId)
+    const targetName =
+      targetMember?.name || inviteEvent.targetFallbackName || fallbackNameFromUserId(inviteEvent.targetId)
     parts.push({ type: 'user', text: targetName, userId: inviteEvent.targetId })
   }
 

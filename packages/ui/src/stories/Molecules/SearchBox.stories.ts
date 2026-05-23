@@ -16,7 +16,7 @@ export default meta
 type Story = StoryObj<typeof SearchBox>
 
 export const Default: Story = {
-  render: args => ({
+  render: (args) => ({
     components: { SearchBox },
     setup: () => ({ args }),
     template: '<div class="w-80"><SearchBox v-bind="args" /></div>',

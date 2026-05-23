@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Editor } from '@tiptap/core'
+import type { Editor } from '@tiptap/core';
 import {
   Bold,
   Code2,
@@ -16,51 +16,47 @@ import {
   Table,
   Underline as UnderlineIcon,
   Undo2,
-} from 'lucide-vue-next'
-import { computed, shallowRef, watch } from 'vue'
-import {
-  DEFAULT_DOC_CODE_LANGUAGE,
-} from '../../lib/codeBlockLanguages'
+} from 'lucide-vue-next';
+import { computed, shallowRef, watch } from 'vue';
+import { DEFAULT_DOC_CODE_LANGUAGE } from '../../lib/codeBlockLanguages';
 
-const props = defineProps<{ editor: Editor | null }>()
-const emit = defineEmits<{ insertImage: [] }>()
+const props = defineProps<{ editor: Editor | null }>();
+const emit = defineEmits<{ insertImage: [] }>();
 
-const toolbarRevision = shallowRef(0)
+const toolbarRevision = shallowRef(0);
 
 watch(
   () => props.editor,
   (editor, _previousEditor, onCleanup) => {
-    if (!editor)
-      return
+    if (!editor) return;
 
     const bumpToolbarState = (): void => {
-      toolbarRevision.value += 1
-    }
+      toolbarRevision.value += 1;
+    };
 
-    editor.on('selectionUpdate', bumpToolbarState)
-    editor.on('transaction', bumpToolbarState)
-    bumpToolbarState()
+    editor.on('selectionUpdate', bumpToolbarState);
+    editor.on('transaction', bumpToolbarState);
+    bumpToolbarState();
 
     onCleanup(() => {
-      editor.off('selectionUpdate', bumpToolbarState)
-      editor.off('transaction', bumpToolbarState)
-    })
+      editor.off('selectionUpdate', bumpToolbarState);
+      editor.off('transaction', bumpToolbarState);
+    });
   },
   { immediate: true },
-)
+);
 
 function canRun(command: () => boolean): boolean {
   try {
-    return command()
-  }
-  catch {
-    return false
+    return command();
+  } catch {
+    return false;
   }
 }
 
 const formattingActions = computed(() => {
-  const editor = props.editor
-  const editorReady = toolbarRevision.value >= 0 && !!editor
+  const editor = props.editor;
+  const editorReady = toolbarRevision.value >= 0 && !!editor;
 
   return [
     {
@@ -148,13 +144,12 @@ const formattingActions = computed(() => {
       title: '代码块',
       icon: Code2,
       action: () => {
-        if (!editor)
-          return
+        if (!editor) return;
         if (editor.isActive('codeBlock')) {
-          editor.chain().focus().toggleCodeBlock().run()
-          return
+          editor.chain().focus().toggleCodeBlock().run();
+          return;
         }
-        editor.chain().focus().setCodeBlock({ language: DEFAULT_DOC_CODE_LANGUAGE }).run()
+        editor.chain().focus().setCodeBlock({ language: DEFAULT_DOC_CODE_LANGUAGE }).run();
       },
       active: !!editor?.isActive('codeBlock'),
       disabled: !editorReady,
@@ -183,14 +178,13 @@ const formattingActions = computed(() => {
       active: false,
       disabled: !editorReady || !canRun(() => editor.can().chain().focus().redo().run()),
     },
-  ]
-})
+  ];
+});
 
-function runAction(action: { action: () => unknown, disabled: boolean }): void {
-  if (action.disabled)
-    return
+function runAction(action: { action: () => unknown; disabled: boolean }): void {
+  if (action.disabled) return;
 
-  action.action()
+  action.action();
 }
 </script>
 

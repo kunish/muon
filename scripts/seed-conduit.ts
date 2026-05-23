@@ -1,5 +1,9 @@
 #!/usr/bin/env tsx
-import type { LocalServiceChannel, LocalServiceMessage, LocalServiceSpace } from '../apps/desktop/src/shared/data/localServiceMock'
+import type {
+  LocalServiceChannel,
+  LocalServiceMessage,
+  LocalServiceSpace,
+} from '../apps/desktop/src/shared/data/localServiceMock'
 import process from 'node:process'
 import { LOCAL_SERVICE_MOCK_DATA } from '../apps/desktop/src/shared/data/localServiceMock'
 
@@ -99,9 +103,11 @@ function createEmptyMarker(ownerUserId: string): SeedMarker {
 }
 
 function isCurrentSeedMarker(value: unknown): value is SeedMarker {
-  return isRecord(value)
-    && value.version === LOCAL_SERVICE_MOCK_DATA.version
-    && value.serverName === LOCAL_SERVICE_MOCK_DATA.serverName
+  return (
+    isRecord(value) &&
+    value.version === LOCAL_SERVICE_MOCK_DATA.version &&
+    value.serverName === LOCAL_SERVICE_MOCK_DATA.serverName
+  )
 }
 
 function normalizeSeedMarker(marker: SeedMarker): SeedMarker {
@@ -115,19 +121,19 @@ function normalizeSeedMarker(marker: SeedMarker): SeedMarker {
 
 function expectedSeedKeys() {
   const rooms = [
-    ...LOCAL_SERVICE_MOCK_DATA.dmRooms.map(room => room.key),
-    ...LOCAL_SERVICE_MOCK_DATA.groupRooms.map(room => room.key),
+    ...LOCAL_SERVICE_MOCK_DATA.dmRooms.map((room) => room.key),
+    ...LOCAL_SERVICE_MOCK_DATA.groupRooms.map((room) => room.key),
   ]
-  const spaces = LOCAL_SERVICE_MOCK_DATA.spaces.map(space => space.key)
-  const categories = LOCAL_SERVICE_MOCK_DATA.spaces.flatMap(space => space.categories.map(category => category.key))
-  const channels = LOCAL_SERVICE_MOCK_DATA.spaces.flatMap(space => [
-    ...space.channels.map(channel => channel.key),
-    ...space.categories.flatMap(category => category.channels.map(channel => channel.key)),
+  const spaces = LOCAL_SERVICE_MOCK_DATA.spaces.map((space) => space.key)
+  const categories = LOCAL_SERVICE_MOCK_DATA.spaces.flatMap((space) => space.categories.map((category) => category.key))
+  const channels = LOCAL_SERVICE_MOCK_DATA.spaces.flatMap((space) => [
+    ...space.channels.map((channel) => channel.key),
+    ...space.categories.flatMap((category) => category.channels.map((channel) => channel.key)),
   ])
   const avatars = [
     LOCAL_SERVICE_MOCK_DATA.owner.localpart,
-    ...LOCAL_SERVICE_MOCK_DATA.users.map(user => user.localpart),
-    ...LOCAL_SERVICE_MOCK_DATA.profileUsers.map(user => user.localpart),
+    ...LOCAL_SERVICE_MOCK_DATA.users.map((user) => user.localpart),
+    ...LOCAL_SERVICE_MOCK_DATA.profileUsers.map((user) => user.localpart),
   ]
 
   return { avatars, rooms, spaces, categories, channels }
@@ -135,11 +141,13 @@ function expectedSeedKeys() {
 
 function isCompleteSeedMarker(marker: SeedMarker): boolean {
   const expected = expectedSeedKeys()
-  return expected.avatars.every(key => !!marker.avatars[key])
-    && expected.rooms.every(key => !!marker.rooms[key])
-    && expected.spaces.every(key => !!marker.spaces[key])
-    && expected.categories.every(key => !!marker.categories[key])
-    && expected.channels.every(key => !!marker.channels[key])
+  return (
+    expected.avatars.every((key) => !!marker.avatars[key]) &&
+    expected.rooms.every((key) => !!marker.rooms[key]) &&
+    expected.spaces.every((key) => !!marker.spaces[key]) &&
+    expected.categories.every((key) => !!marker.categories[key]) &&
+    expected.channels.every((key) => !!marker.channels[key])
+  )
 }
 
 async function matrixFetch<T extends Record<string, unknown> = Record<string, unknown>>(
@@ -148,8 +156,7 @@ async function matrixFetch<T extends Record<string, unknown> = Record<string, un
 ): Promise<T | MatrixErrorResponse> {
   const { method = 'GET', body, token } = opts
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  if (token)
-    headers.Authorization = `Bearer ${token}`
+  if (token) headers.Authorization = `Bearer ${token}`
 
   const res = await fetch(`${BASE_URL}${path}`, {
     method,
@@ -161,8 +168,7 @@ async function matrixFetch<T extends Record<string, unknown> = Record<string, un
   if (text) {
     try {
       payload = JSON.parse(text)
-    }
-    catch {
+    } catch {
       payload = { error: text }
     }
   }
@@ -186,7 +192,7 @@ async function uploadAvatarMedia(user: SeededUser): Promise<string | null> {
       method: 'POST',
       headers: {
         'Content-Type': 'image/svg+xml',
-        'Authorization': `Bearer ${user.token}`,
+        Authorization: `Bearer ${user.token}`,
       },
       body: svg,
     },
@@ -196,8 +202,7 @@ async function uploadAvatarMedia(user: SeededUser): Promise<string | null> {
   if (text) {
     try {
       payload = JSON.parse(text)
-    }
-    catch {
+    } catch {
       payload = { error: text }
     }
   }
@@ -228,8 +233,7 @@ function createAvatarSvg(user: SeededUser): string {
 
 function hashHue(value: string): number {
   let hash = 0
-  for (const ch of value)
-    hash = ch.charCodeAt(0) + ((hash << 5) - hash)
+  for (const ch of value) hash = ch.charCodeAt(0) + ((hash << 5) - hash)
   return Math.abs(hash) % 360
 }
 
@@ -239,7 +243,7 @@ function escapeXml(value: string): string {
     .replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
-    .replaceAll('\'', '&apos;')
+    .replaceAll("'", '&apos;')
 }
 
 async function loginWithPassword(localpart: string, password: string): Promise<SeededUser | MatrixErrorResponse> {
@@ -251,8 +255,7 @@ async function loginWithPassword(localpart: string, password: string): Promise<S
       password,
     },
   })
-  if (isMatrixError(loginRes))
-    return loginRes
+  if (isMatrixError(loginRes)) return loginRes
 
   if (typeof loginRes.access_token !== 'string' || typeof loginRes.user_id !== 'string') {
     return {
@@ -275,8 +278,7 @@ async function loginWithCandidates(localpart: string, passwords: string[]): Prom
   let lastError: MatrixErrorResponse | null = null
   for (const password of passwords) {
     const loginRes = await loginWithPassword(localpart, password)
-    if (!isMatrixError(loginRes))
-      return loginRes
+    if (!isMatrixError(loginRes)) return loginRes
     lastError = loginRes
   }
   return lastError ?? { _error: true, _status: 500, error: `No password candidate for ${localpart}` }
@@ -304,8 +306,7 @@ async function ensureUser(
       return null
     }
     user = await loginWithCandidates(localpart, passwords)
-  }
-  else if (typeof regResult.access_token === 'string' && typeof regResult.user_id === 'string') {
+  } else if (typeof regResult.access_token === 'string' && typeof regResult.user_id === 'string') {
     user = {
       localpart,
       userId: regResult.user_id,
@@ -313,8 +314,7 @@ async function ensureUser(
       displayName,
       password: registrationPassword,
     }
-  }
-  else {
+  } else {
     console.error(`  FAIL register ${localpart}: invalid registration response`)
     return null
   }
@@ -348,9 +348,8 @@ async function setProfile(user: SeededUser, displayName: string, avatarUrl?: str
 async function ensureUserAvatar(user: SeededUser, marker: SeedMarker): Promise<void> {
   let avatarUrl = !FORCE_SEED ? marker.avatars[user.localpart] : undefined
   if (!avatarUrl) {
-    avatarUrl = await uploadAvatarMedia(user) ?? undefined
-    if (!avatarUrl)
-      return
+    avatarUrl = (await uploadAvatarMedia(user)) ?? undefined
+    if (!avatarUrl) return
     marker.avatars[user.localpart] = avatarUrl
     console.log(`  OK avatar ${user.localpart}: ${avatarUrl}`)
   }
@@ -371,8 +370,7 @@ async function setAccountData(user: SeededUser, type: string, content: Record<st
     `/_matrix/client/v3/user/${encodeURIComponent(user.userId)}/account_data/${encodeURIComponent(type)}`,
     { method: 'PUT', token: user.token, body: content },
   )
-  if (isMatrixError(res))
-    console.error(`  WARN set account data ${type} failed:`, res.error ?? res)
+  if (isMatrixError(res)) console.error(`  WARN set account data ${type} failed:`, res.error ?? res)
 }
 
 async function upsertDirectRoom(owner: SeededUser, peer: SeededUser, roomId: string): Promise<void> {
@@ -384,8 +382,7 @@ async function upsertDirectAccountData(user: SeededUser, peerUserId: string, roo
   const existing = await getAccountData(user, 'm.direct')
   const directContent = isRecord(existing) ? { ...existing } : {}
   const roomIds = readStringArray(directContent[peerUserId])
-  if (!roomIds.includes(roomId))
-    roomIds.push(roomId)
+  if (!roomIds.includes(roomId)) roomIds.push(roomId)
   directContent[peerUserId] = roomIds
   await setAccountData(user, 'm.direct', directContent)
 }
@@ -409,15 +406,13 @@ async function joinRoom(roomId: string, user: SeededUser): Promise<void> {
     token: user.token,
     body: {},
   })
-  if (isMatrixError(res))
-    console.error(`    WARN ${user.localpart} join ${roomId} failed:`, res.error ?? res)
+  if (isMatrixError(res)) console.error(`    WARN ${user.localpart} join ${roomId} failed:`, res.error ?? res)
 }
 
 async function joinMembers(roomId: string, members: string[], users: Map<string, SeededUser>): Promise<void> {
   for (const localpart of members) {
     const user = users.get(localpart)
-    if (user)
-      await joinRoom(roomId, user)
+    if (user) await joinRoom(roomId, user)
   }
 }
 
@@ -432,8 +427,7 @@ async function sendStateEvent(
     `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/state/${encodeURIComponent(eventType)}/${encodeURIComponent(stateKey)}`,
     { method: 'PUT', token: owner.token, body: content },
   )
-  if (isMatrixError(res))
-    console.error(`    WARN state ${eventType} on ${roomId} failed:`, res.error ?? res)
+  if (isMatrixError(res)) console.error(`    WARN state ${eventType} on ${roomId} failed:`, res.error ?? res)
 }
 
 async function syncSeededMemberProfiles(users: Map<string, SeededUser>, marker: SeedMarker): Promise<void> {
@@ -441,13 +435,11 @@ async function syncSeededMemberProfiles(users: Map<string, SeededUser>, marker: 
   let updated = 0
 
   async function updateRoomMembers(roomId: string | undefined, members: string[]): Promise<void> {
-    if (!roomId)
-      return
+    if (!roomId) return
     for (const localpart of ['kunish', ...members]) {
       const user = users.get(localpart)
       const avatarUrl = marker.avatars[localpart]
-      if (!user || !avatarUrl)
-        continue
+      if (!user || !avatarUrl) continue
 
       const res = await matrixFetch(
         `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/state/m.room.member/${encodeURIComponent(user.userId)}`,
@@ -469,20 +461,16 @@ async function syncSeededMemberProfiles(users: Map<string, SeededUser>, marker: 
     }
   }
 
-  for (const dm of LOCAL_SERVICE_MOCK_DATA.dmRooms)
-    await updateRoomMembers(marker.rooms[dm.key], [dm.peer])
+  for (const dm of LOCAL_SERVICE_MOCK_DATA.dmRooms) await updateRoomMembers(marker.rooms[dm.key], [dm.peer])
 
-  for (const room of LOCAL_SERVICE_MOCK_DATA.groupRooms)
-    await updateRoomMembers(marker.rooms[room.key], room.members)
+  for (const room of LOCAL_SERVICE_MOCK_DATA.groupRooms) await updateRoomMembers(marker.rooms[room.key], room.members)
 
   for (const space of LOCAL_SERVICE_MOCK_DATA.spaces) {
     await updateRoomMembers(marker.spaces[space.key], space.members)
-    for (const channel of space.channels)
-      await updateRoomMembers(marker.channels[channel.key], channel.members)
+    for (const channel of space.channels) await updateRoomMembers(marker.channels[channel.key], channel.members)
     for (const category of space.categories) {
       await updateRoomMembers(marker.categories[category.key], space.members)
-      for (const channel of category.channels)
-        await updateRoomMembers(marker.channels[channel.key], channel.members)
+      for (const channel of category.channels) await updateRoomMembers(marker.channels[channel.key], channel.members)
     }
   }
 
@@ -523,9 +511,7 @@ async function sendRoomMessages(
 }
 
 function resolveMemberIds(members: string[], users: Map<string, SeededUser>): string[] {
-  return members
-    .map(localpart => users.get(localpart)?.userId)
-    .filter((userId): userId is string => !!userId)
+  return members.map((localpart) => users.get(localpart)?.userId).filter((userId): userId is string => !!userId)
 }
 
 async function seedDirectRooms(owner: SeededUser, users: Map<string, SeededUser>, marker: SeedMarker): Promise<void> {
@@ -547,8 +533,7 @@ async function seedDirectRooms(owner: SeededUser, users: Map<string, SeededUser>
       invite: [peer.userId],
       preset: 'trusted_private_chat',
     })
-    if (!roomId)
-      continue
+    if (!roomId) continue
 
     await joinRoom(roomId, peer)
     await upsertDirectRoom(owner, peer, roomId)
@@ -572,8 +557,7 @@ async function seedGroupRooms(owner: SeededUser, users: Map<string, SeededUser>,
       invite: resolveMemberIds(room.members, users),
       preset: 'private_chat',
     })
-    if (!roomId)
-      continue
+    if (!roomId) continue
 
     await joinMembers(roomId, room.members, users)
     const sent = await sendRoomMessages(roomId, room.key, room.messages, users)
@@ -588,12 +572,10 @@ async function seedSpaces(owner: SeededUser, users: Map<string, SeededUser>, mar
     let spaceId: string | undefined = marker.spaces[space.key]
     if (!FORCE_SEED && spaceId) {
       console.log(`  SKIP ${space.name}: ${spaceId}`)
+    } else {
+      spaceId = (await createSpace(owner, users, space)) ?? undefined
     }
-    else {
-      spaceId = await createSpace(owner, users, space) ?? undefined
-    }
-    if (!spaceId)
-      continue
+    if (!spaceId) continue
     marker.spaces[space.key] = spaceId
 
     await seedChannels(owner, users, marker, spaceId, space.channels)
@@ -602,18 +584,23 @@ async function seedSpaces(owner: SeededUser, users: Map<string, SeededUser>, mar
       let categoryId: string | undefined = marker.categories[category.key]
       if (!FORCE_SEED && categoryId) {
         console.log(`    SKIP ${category.name}: ${categoryId}`)
+      } else {
+        categoryId =
+          (await createSpace(
+            owner,
+            users,
+            {
+              key: category.key,
+              name: category.name,
+              members: space.members,
+              channels: [],
+              categories: [],
+            },
+            spaceId,
+            category.order,
+          )) ?? undefined
       }
-      else {
-        categoryId = await createSpace(owner, users, {
-          key: category.key,
-          name: category.name,
-          members: space.members,
-          channels: [],
-          categories: [],
-        }, spaceId, category.order) ?? undefined
-      }
-      if (!categoryId)
-        continue
+      if (!categoryId) continue
       marker.categories[category.key] = categoryId
       await seedChannels(owner, users, marker, categoryId, category.channels)
     }
@@ -630,11 +617,13 @@ async function createSpace(
   order?: string,
 ): Promise<string | null> {
   const initialState: InitialStateEvent[] = parentSpaceId
-    ? [{
-        type: 'm.space.parent',
-        state_key: parentSpaceId,
-        content: { via: [LOCAL_SERVICE_MOCK_DATA.serverName], canonical: true },
-      }]
+    ? [
+        {
+          type: 'm.space.parent',
+          state_key: parentSpaceId,
+          content: { via: [LOCAL_SERVICE_MOCK_DATA.serverName], canonical: true },
+        },
+      ]
     : []
 
   const spaceId = await createMatrixRoom(owner, {
@@ -645,17 +634,22 @@ async function createSpace(
     creation_content: { type: 'm.space' },
     initial_state: initialState,
   })
-  if (!spaceId)
-    return null
+  if (!spaceId) return null
 
   await joinMembers(spaceId, space.members, users)
 
   if (parentSpaceId) {
-    await sendStateEvent(parentSpaceId, 'm.space.child', spaceId, {
-      via: [LOCAL_SERVICE_MOCK_DATA.serverName],
-      suggested: true,
-      order,
-    }, owner)
+    await sendStateEvent(
+      parentSpaceId,
+      'm.space.child',
+      spaceId,
+      {
+        via: [LOCAL_SERVICE_MOCK_DATA.serverName],
+        suggested: true,
+        order,
+      },
+      owner,
+    )
   }
 
   return spaceId
@@ -696,15 +690,20 @@ async function seedChannels(
       preset: 'private_chat',
       initial_state: initialState,
     })
-    if (!roomId)
-      continue
+    if (!roomId) continue
 
     await joinMembers(roomId, channel.members, users)
-    await sendStateEvent(parentSpaceId, 'm.space.child', roomId, {
-      via: [LOCAL_SERVICE_MOCK_DATA.serverName],
-      suggested: true,
-      order: channel.order,
-    }, owner)
+    await sendStateEvent(
+      parentSpaceId,
+      'm.space.child',
+      roomId,
+      {
+        via: [LOCAL_SERVICE_MOCK_DATA.serverName],
+        suggested: true,
+        order: channel.order,
+      },
+      owner,
+    )
 
     const sent = await sendRoomMessages(roomId, channel.key, channel.messages, users)
     marker.channels[channel.key] = roomId
@@ -713,15 +712,14 @@ async function seedChannels(
 }
 
 function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms))
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 async function main(): Promise<void> {
   console.log('=== Muon local service seed ===')
   console.log(`Base URL: ${BASE_URL}`)
   console.log(`Seed version: ${LOCAL_SERVICE_MOCK_DATA.version}`)
-  if (FORCE_SEED)
-    console.log('Force mode: enabled')
+  if (FORCE_SEED) console.log('Force mode: enabled')
   console.log()
 
   console.log('1. Ensure users')
@@ -768,13 +766,13 @@ async function main(): Promise<void> {
 
   console.log('2. Check seed marker')
   const existingMarker = await getAccountData(owner, SEED_ACCOUNT_DATA_TYPE)
-  const marker = isCurrentSeedMarker(existingMarker) && !FORCE_SEED
-    ? normalizeSeedMarker(existingMarker)
-    : createEmptyMarker(owner.userId)
+  const marker =
+    isCurrentSeedMarker(existingMarker) && !FORCE_SEED
+      ? normalizeSeedMarker(existingMarker)
+      : createEmptyMarker(owner.userId)
 
   console.log('3. Ensure uploaded avatars')
-  for (const user of users.values())
-    await ensureUserAvatar(user, marker)
+  for (const user of users.values()) await ensureUserAvatar(user, marker)
 
   if (isCurrentSeedMarker(existingMarker) && isCompleteSeedMarker(marker) && !FORCE_SEED) {
     console.log(`  OK already seeded for version ${existingMarker.version}; skip.`)
@@ -785,8 +783,7 @@ async function main(): Promise<void> {
   }
   if (isCurrentSeedMarker(existingMarker) && !FORCE_SEED)
     console.log('  Existing seed marker is incomplete; missing data will be filled.')
-  else
-    console.log('  Continue seeding local mock data')
+  else console.log('  Continue seeding local mock data')
 
   await seedDirectRooms(owner, users, marker)
   await seedGroupRooms(owner, users, marker)

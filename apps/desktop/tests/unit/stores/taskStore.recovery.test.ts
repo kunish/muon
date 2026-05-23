@@ -36,9 +36,7 @@ describe('taskStore recovery continuity', () => {
   })
 
   it('repeated hydrate/recovery entry restores persisted tasks exactly once', () => {
-    seedPersistedTasks([
-      createPersistedTask('persisted-task'),
-    ])
+    seedPersistedTasks([createPersistedTask('persisted-task')])
 
     const store = useTaskStore()
 
@@ -46,7 +44,7 @@ describe('taskStore recovery continuity', () => {
     store.hydrate()
     store.hydrate()
 
-    expect(store.tasks.map(task => task.id)).toEqual(['persisted-task'])
+    expect(store.tasks.map((task) => task.id)).toEqual(['persisted-task'])
   })
 
   it('recovery bootstrap filters invalid legacy rows and rewrites a deterministic payload', () => {
@@ -61,7 +59,7 @@ describe('taskStore recovery continuity', () => {
     const store = useTaskStore()
     store.hydrate()
 
-    expect(store.tasks.map(task => task.id)).toEqual(['persisted-task'])
+    expect(store.tasks.map((task) => task.id)).toEqual(['persisted-task'])
 
     const persisted = JSON.parse(localStorage.getItem(TASK_STORAGE_KEY) ?? '{}')
     expect(persisted.items).toHaveLength(1)
@@ -69,9 +67,7 @@ describe('taskStore recovery continuity', () => {
   })
 
   it('task creation and status updates still work after recovery hydrate restores persisted tasks', () => {
-    seedPersistedTasks([
-      createPersistedTask('persisted-task'),
-    ])
+    seedPersistedTasks([createPersistedTask('persisted-task')])
 
     const store = useTaskStore()
 
@@ -90,7 +86,7 @@ describe('taskStore recovery continuity', () => {
       now: 200,
     })
 
-    expect(store.tasks.map(task => ({ id: task.id, status: task.status }))).toEqual([
+    expect(store.tasks.map((task) => ({ id: task.id, status: task.status }))).toEqual([
       { id: 'persisted-task', status: 'doing' },
       { id: 'fresh-task', status: 'todo' },
     ])

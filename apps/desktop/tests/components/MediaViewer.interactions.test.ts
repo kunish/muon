@@ -105,8 +105,9 @@ describe('media viewer interactions', () => {
   it('uses localized toolbar labels', async () => {
     await openMountedImage()
 
-    const labels = [...document.body.querySelectorAll<HTMLButtonElement>('[aria-label]')]
-      .map(button => button.getAttribute('aria-label'))
+    const labels = [...document.body.querySelectorAll<HTMLButtonElement>('[aria-label]')].map((button) =>
+      button.getAttribute('aria-label'),
+    )
 
     expect(labels).toEqual(['放大', '缩小', '旋转', '下载', '关闭'])
     expect(document.body.textContent).not.toContain('Zoom in')

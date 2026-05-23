@@ -4,11 +4,11 @@ import { cva } from 'class-variance-authority'
 export { default as Input } from './Input.vue'
 
 export const inputVariants = cva(
-  'flex w-full rounded-md border bg-card px-3 text-sm text-foreground transition-colors '
-  + 'placeholder:text-gray-400 placeholder:not-italic '
-  + 'focus-visible:outline-none '
-  + 'disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400 disabled:border-gray-200 '
-  + 'file:border-0 file:bg-transparent file:text-sm file:font-medium',
+  'flex w-full rounded-md border bg-card px-3 text-sm text-foreground transition-colors ' +
+    'placeholder:text-gray-400 placeholder:not-italic ' +
+    'focus-visible:outline-none ' +
+    'disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400 disabled:border-gray-200 ' +
+    'file:border-0 file:bg-transparent file:text-sm file:font-medium',
   {
     variants: {
       variant: {

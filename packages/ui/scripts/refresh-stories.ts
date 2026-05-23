@@ -15,19 +15,22 @@ const PORT = Number(process.env.STORYBOOK_PORT ?? 6010)
 const OUT = resolve(import.meta.dirname, '../tests/visual/stories.json')
 const URL = `http://localhost:${PORT}/index.json`
 
-interface IndexEntry { id: string, type: string }
-interface IndexFile { entries: Record<string, IndexEntry> }
+interface IndexEntry {
+  id: string
+  type: string
+}
+interface IndexFile {
+  entries: Record<string, IndexEntry>
+}
 
 async function waitForUrl(url: string, timeoutMs = 120_000) {
   const deadline = Date.now() + timeoutMs
   while (Date.now() < deadline) {
     try {
       const res = await fetch(url)
-      if (res.ok)
-        return res
-    }
-    catch {}
-    await new Promise(r => setTimeout(r, 500))
+      if (res.ok) return res
+    } catch {}
+    await new Promise((r) => setTimeout(r, 500))
   }
   throw new Error(`Timed out waiting for ${url}`)
 }
@@ -43,19 +46,20 @@ async function main() {
     const res = await waitForUrl(URL)
     const data = (await res.json()) as IndexFile
     const ids = Object.values(data.entries)
-      .filter(e => e.type === 'story' && (
-        e.id.startsWith('atoms-')
-        || e.id.startsWith('foundation-')
-        || e.id.startsWith('components-')
-        || e.id.startsWith('molecules-')
-      ))
-      .map(e => e.id)
+      .filter(
+        (e) =>
+          e.type === 'story' &&
+          (e.id.startsWith('atoms-') ||
+            e.id.startsWith('foundation-') ||
+            e.id.startsWith('components-') ||
+            e.id.startsWith('molecules-')),
+      )
+      .map((e) => e.id)
       .sort()
 
     writeFileSync(OUT, `${JSON.stringify(ids, null, 2)}\n`)
     console.log(`[refresh-stories] wrote ${ids.length} story ids → ${OUT}`)
-  }
-  finally {
+  } finally {
     sb.kill('SIGKILL')
   }
 }

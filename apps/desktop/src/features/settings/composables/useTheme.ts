@@ -8,14 +8,12 @@ export function useTheme() {
   const systemTheme = window.matchMedia('(prefers-color-scheme: dark)')
 
   function applyTheme() {
-    const isDark = theme.value === 'dark'
-      || (theme.value === 'system' && systemTheme.matches)
+    const isDark = theme.value === 'dark' || (theme.value === 'system' && systemTheme.matches)
     document.documentElement.classList.toggle('dark', isDark)
   }
 
   function handleSystemThemeChange() {
-    if (theme.value === 'system')
-      applyTheme()
+    if (theme.value === 'system') applyTheme()
   }
 
   watch(theme, applyTheme, { immediate: true })

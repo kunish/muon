@@ -13,12 +13,7 @@ const toastMocks = vi.hoisted(() => ({
   error: vi.fn(),
 }))
 
-function createEvent(overrides: {
-  body: string
-  info?: Record<string, unknown>
-  msgtype: string
-  url: string
-}) {
+function createEvent(overrides: { body: string; info?: Record<string, unknown>; msgtype: string; url: string }) {
   return {
     getContent: () => overrides,
     getId: () => '$file-event',

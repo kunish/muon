@@ -33,9 +33,12 @@ const {
         matrixEventHandlers.get(event)?.delete(handler)
       }),
     },
-    paginateBackMock: vi.fn((roomId: string) => new Promise<boolean>((resolve) => {
-      paginateResolvers.set(roomId, resolve)
-    })),
+    paginateBackMock: vi.fn(
+      (roomId: string) =>
+        new Promise<boolean>((resolve) => {
+          paginateResolvers.set(roomId, resolve)
+        }),
+    ),
     relationSummariesMock: vi.fn(() => ({
       reactionsByEventId: new Map(),
       threadReplyCountsByEventId: new Map(),
@@ -59,7 +62,7 @@ function createEvent(id: string): MatrixEvent {
 }
 
 function eventIds(events: MatrixEvent[]): string[] {
-  return events.map(event => event.getId() ?? '')
+  return events.map((event) => event.getId() ?? '')
 }
 
 describe('useMessages', () => {
@@ -128,8 +131,7 @@ describe('useMessages', () => {
     expect(eventIds(api.messages.value)).toEqual(['$old'])
 
     timelines.set('!room:localhost', [createEvent('$old'), createEvent('$latest')])
-    for (const handler of matrixEventHandlers.get('sync.state') ?? [])
-      handler({ state: 'PREPARED' })
+    for (const handler of matrixEventHandlers.get('sync.state') ?? []) handler({ state: 'PREPARED' })
     await nextTick()
 
     expect(eventIds(api.messages.value)).toEqual(['$old', '$latest'])

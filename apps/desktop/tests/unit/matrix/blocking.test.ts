@@ -69,15 +69,12 @@ describe('matrix blocking', () => {
       const { blockUser } = await import('@/matrix/blocking')
       await blockUser('@troll:localhost')
 
-      expect(mockClient.setAccountData).toHaveBeenCalledWith(
-        'm.ignored_user_list',
-        {
-          ignored_users: {
-            '@spammer:localhost': {},
-            '@troll:localhost': {},
-          },
+      expect(mockClient.setAccountData).toHaveBeenCalledWith('m.ignored_user_list', {
+        ignored_users: {
+          '@spammer:localhost': {},
+          '@troll:localhost': {},
         },
-      )
+      })
     })
 
     it('should not duplicate a user already in the ignored list', async () => {
@@ -95,12 +92,9 @@ describe('matrix blocking', () => {
       const { blockUser } = await import('@/matrix/blocking')
       await blockUser('@first:localhost')
 
-      expect(mockClient.setAccountData).toHaveBeenCalledWith(
-        'm.ignored_user_list',
-        {
-          ignored_users: { '@first:localhost': {} },
-        },
-      )
+      expect(mockClient.setAccountData).toHaveBeenCalledWith('m.ignored_user_list', {
+        ignored_users: { '@first:localhost': {} },
+      })
     })
   })
 
@@ -115,12 +109,9 @@ describe('matrix blocking', () => {
       const { unblockUser } = await import('@/matrix/blocking')
       await unblockUser('@spammer:localhost')
 
-      expect(mockClient.setAccountData).toHaveBeenCalledWith(
-        'm.ignored_user_list',
-        {
-          ignored_users: { '@troll:localhost': {} },
-        },
-      )
+      expect(mockClient.setAccountData).toHaveBeenCalledWith('m.ignored_user_list', {
+        ignored_users: { '@troll:localhost': {} },
+      })
     })
 
     it('should not fail when unblocking a user not in the list', async () => {
@@ -130,12 +121,9 @@ describe('matrix blocking', () => {
       const { unblockUser } = await import('@/matrix/blocking')
       await unblockUser('@unknown:localhost')
 
-      expect(mockClient.setAccountData).toHaveBeenCalledWith(
-        'm.ignored_user_list',
-        {
-          ignored_users: { '@spammer:localhost': {} },
-        },
-      )
+      expect(mockClient.setAccountData).toHaveBeenCalledWith('m.ignored_user_list', {
+        ignored_users: { '@spammer:localhost': {} },
+      })
     })
   })
 })

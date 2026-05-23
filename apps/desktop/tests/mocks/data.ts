@@ -21,14 +21,54 @@ export interface MockUser {
 export const SELF_USER_ID = '@test:localhost'
 
 export const USERS: Record<string, MockUser> = {
-  '@test:localhost': { userId: '@test:localhost', displayName: '我', avatarUrl: 'mxc://localhost/avatar_test', presence: 'online' },
-  '@alice:localhost': { userId: '@alice:localhost', displayName: '小红', avatarUrl: 'mxc://localhost/avatar_alice', presence: 'online' },
-  '@bob:localhost': { userId: '@bob:localhost', displayName: '小明', avatarUrl: 'mxc://localhost/avatar_bob', presence: 'offline' },
-  '@charlie:localhost': { userId: '@charlie:localhost', displayName: '小刚', avatarUrl: 'mxc://localhost/avatar_charlie', presence: 'online' },
-  '@diana:localhost': { userId: '@diana:localhost', displayName: '小丽', avatarUrl: 'mxc://localhost/avatar_diana', presence: 'unavailable' },
-  '@edward:localhost': { userId: '@edward:localhost', displayName: '小伟', avatarUrl: 'mxc://localhost/avatar_edward', presence: 'offline' },
-  '@fiona:localhost': { userId: '@fiona:localhost', displayName: '小芳', avatarUrl: 'mxc://localhost/avatar_fiona', presence: 'online' },
-  '@george:localhost': { userId: '@george:localhost', displayName: '小杰', avatarUrl: 'mxc://localhost/avatar_george', presence: 'offline' },
+  '@test:localhost': {
+    userId: '@test:localhost',
+    displayName: '我',
+    avatarUrl: 'mxc://localhost/avatar_test',
+    presence: 'online',
+  },
+  '@alice:localhost': {
+    userId: '@alice:localhost',
+    displayName: '小红',
+    avatarUrl: 'mxc://localhost/avatar_alice',
+    presence: 'online',
+  },
+  '@bob:localhost': {
+    userId: '@bob:localhost',
+    displayName: '小明',
+    avatarUrl: 'mxc://localhost/avatar_bob',
+    presence: 'offline',
+  },
+  '@charlie:localhost': {
+    userId: '@charlie:localhost',
+    displayName: '小刚',
+    avatarUrl: 'mxc://localhost/avatar_charlie',
+    presence: 'online',
+  },
+  '@diana:localhost': {
+    userId: '@diana:localhost',
+    displayName: '小丽',
+    avatarUrl: 'mxc://localhost/avatar_diana',
+    presence: 'unavailable',
+  },
+  '@edward:localhost': {
+    userId: '@edward:localhost',
+    displayName: '小伟',
+    avatarUrl: 'mxc://localhost/avatar_edward',
+    presence: 'offline',
+  },
+  '@fiona:localhost': {
+    userId: '@fiona:localhost',
+    displayName: '小芳',
+    avatarUrl: 'mxc://localhost/avatar_fiona',
+    presence: 'online',
+  },
+  '@george:localhost': {
+    userId: '@george:localhost',
+    displayName: '小杰',
+    avatarUrl: 'mxc://localhost/avatar_george',
+    presence: 'offline',
+  },
 }
 
 export const ALL_USER_IDS = Object.keys(USERS)
@@ -123,8 +163,8 @@ function _replyMsg(sender: string, body: string, replyToEventId: string, minute:
     sender,
     ts: ts(minute),
     content: {
-      'msgtype': 'm.text',
-      'body': body,
+      msgtype: 'm.text',
+      body,
       'm.relates_to': { 'm.in_reply_to': { event_id: replyToEventId } },
     },
   }
@@ -155,7 +195,7 @@ function stickerMsg(sender: string, emoji: string, minute: number): MockEvent {
     content: {
       body: emoji,
       url: '',
-      info: { 'mimetype': 'text/plain', 'xyz.muon.emoji': emoji },
+      info: { mimetype: 'text/plain', 'xyz.muon.emoji': emoji },
     },
   }
 }
@@ -240,7 +280,11 @@ const dmBobEvents: MockEvent[] = [
   textMsg('@bob:localhost', '竞态条件的 bug 你搞定了吗？', 2000),
   textMsg('@test:localhost', '搞定了，用 AbortController 解决的', 2001),
   textMsg('@bob:localhost', '代码发我看看？', 2002),
-  textMsg('@test:localhost', '```\nconst controller = new AbortController()\nfetch(url, { signal: controller.signal })\n```', 2003),
+  textMsg(
+    '@test:localhost',
+    '```\nconst controller = new AbortController()\nfetch(url, { signal: controller.signal })\n```',
+    2003,
+  ),
   textMsg('@bob:localhost', '不错不错，这个方案简洁', 2004),
 ]
 const bugReportEvt = dmBobEvents[6]
@@ -284,7 +328,11 @@ const dmEdwardEvents: MockEvent[] = [
   textMsg('@edward:localhost', '大佬，问个技术问题', 70),
   textMsg('@test:localhost', '你说', 71),
   textMsg('@edward:localhost', 'Vue 3 的 shallowRef 和 ref 有什么区别？', 72),
-  textMsg('@test:localhost', 'ref 会深度追踪响应性，shallowRef 只追踪 .value 本身的变化。如果你放的是大数组或复杂对象，用 shallowRef 性能更好', 73),
+  textMsg(
+    '@test:localhost',
+    'ref 会深度追踪响应性，shallowRef 只追踪 .value 本身的变化。如果你放的是大数组或复杂对象，用 shallowRef 性能更好',
+    73,
+  ),
   textMsg('@edward:localhost', '懂了，那我列表数据应该用 shallowRef？', 74),
   textMsg('@test:localhost', '对，替换整个数组触发更新，内部变化用 triggerRef', 75),
   textMsg('@edward:localhost', '太有帮助了，谢谢大佬！', 76),
@@ -439,7 +487,14 @@ export const GROUP_ROOMS: MockRoom[] = [
     roomId: '!group_tech:localhost',
     name: '技术交流群',
     isDirect: false,
-    members: ['@test:localhost', '@bob:localhost', '@charlie:localhost', '@edward:localhost', '@fiona:localhost', '@george:localhost'],
+    members: [
+      '@test:localhost',
+      '@bob:localhost',
+      '@charlie:localhost',
+      '@edward:localhost',
+      '@fiona:localhost',
+      '@george:localhost',
+    ],
     events: groupTechEvents,
   },
 ]
@@ -470,7 +525,13 @@ export function createMockEvent(evt: MockEvent) {
     getDate: () => new Date(evt.ts),
     getContent: () => ({ ...evt.content }),
     isRedacted: () => !!evt.redacted,
-    event: { type: evt.type, content: evt.content, sender: evt.sender, event_id: evt.eventId, origin_server_ts: evt.ts },
+    event: {
+      type: evt.type,
+      content: evt.content,
+      sender: evt.sender,
+      event_id: evt.eventId,
+      origin_server_ts: evt.ts,
+    },
   }
 }
 
@@ -490,7 +551,7 @@ export function createMockMember(userId: string, _roomId?: string) {
 /** 创建一个模拟的 Room 对象 */
 export function createMockRoom(room: MockRoom) {
   const events = room.events.map(createMockEvent)
-  const members = room.members.map(uid => createMockMember(uid, room.roomId))
+  const members = room.members.map((uid) => createMockMember(uid, room.roomId))
 
   return {
     roomId: room.roomId,
@@ -501,17 +562,15 @@ export function createMockRoom(room: MockRoom) {
     getMyMembership: () => 'join',
     getJoinedMembers: () => members,
     getJoinedMemberCount: () => members.length,
-    getMember: (userId: string) => members.find(m => m.userId === userId) ?? null,
+    getMember: (userId: string) => members.find((m) => m.userId === userId) ?? null,
     getMxcAvatarUrl: () => room.avatarUrl ?? null,
     getLiveTimeline: () => ({
       getEvents: () => events,
     }),
     getUnreadNotificationCount: (_type?: string) => {
       // DM 房间模拟 1-3 条未读
-      if (room.isDirect && room.roomId === '!dm_alice:localhost')
-        return 3
-      if (room.roomId === '!group_project:localhost')
-        return 5
+      if (room.isDirect && room.roomId === '!dm_alice:localhost') return 3
+      if (room.roomId === '!group_project:localhost') return 5
       return 0
     },
     currentState: {
@@ -526,5 +585,5 @@ export function createMockRoom(room: MockRoom) {
 export const MOCK_ROOM_OBJECTS = ALL_ROOMS.map(createMockRoom)
 
 export function getMockRoomById(roomId: string) {
-  return MOCK_ROOM_OBJECTS.find(r => r.roomId === roomId) ?? null
+  return MOCK_ROOM_OBJECTS.find((r) => r.roomId === roomId) ?? null
 }

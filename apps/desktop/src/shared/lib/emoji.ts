@@ -10,9 +10,6 @@ const emojiPresentationRegex = /^\p{Emoji_Presentation}/u
 export function isFullEmojiText(text: string): boolean {
   const trimmed = text.trim()
   const segments = splitEmojis(trimmed)
-  if (segments.length < 1 || segments.length > 3)
-    return false
-  return segments.every(
-    s => emojiRegex.test(s) || emojiPresentationRegex.test(s),
-  )
+  if (segments.length < 1 || segments.length > 3) return false
+  return segments.every((s) => emojiRegex.test(s) || emojiPresentationRegex.test(s))
 }

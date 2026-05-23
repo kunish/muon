@@ -1,29 +1,31 @@
 <script setup lang="ts">
-import type { HTMLAttributes } from 'vue'
-import { computed } from 'vue'
-import { sanitizeMatrixHtml } from '../htmlSanitizer'
+import type { HTMLAttributes } from 'vue';
+import { computed } from 'vue';
+import { sanitizeMatrixHtml } from '../htmlSanitizer';
 
 defineOptions({
   inheritAttrs: false,
-})
+});
 
-const props = withDefaults(defineProps<{
-  class?: HTMLAttributes['class']
-  html: string
-  sanitize?: boolean
-}>(), {
-  sanitize: true,
-})
+const props = withDefaults(
+  defineProps<{
+    class?: HTMLAttributes['class'];
+    html: string;
+    sanitize?: boolean;
+  }>(),
+  {
+    sanitize: true,
+  },
+);
 
 const emit = defineEmits<{
-  click: [event: MouseEvent]
-}>()
+  click: [event: MouseEvent];
+}>();
 
 const renderedHtml = computed(() => {
-  if (!props.html)
-    return ''
-  return props.sanitize ? sanitizeMatrixHtml(props.html) : props.html
-})
+  if (!props.html) return '';
+  return props.sanitize ? sanitizeMatrixHtml(props.html) : props.html;
+});
 </script>
 
 <template>

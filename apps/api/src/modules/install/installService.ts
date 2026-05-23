@@ -16,8 +16,7 @@ export function createInstallService({ repository }: InstallServiceDeps): Instal
   return {
     async install(input) {
       const request = installRequestSchema.parse(input)
-      if (await repository.isInstalled())
-        throw new Error('Muon is already installed')
+      if (await repository.isInstalled()) throw new Error('Muon is already installed')
 
       const organization = await repository.createOrganization({
         name: request.organizationName,

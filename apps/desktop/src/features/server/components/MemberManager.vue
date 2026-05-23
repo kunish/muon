@@ -1,30 +1,30 @@
 <script setup lang="ts">
-import type { SpaceMember } from '@/matrix/spaces'
-import { Avatar } from '@muon/ui/avatar'
-import { Input } from '@muon/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@muon/ui/select'
-import { Search, ShieldAlert, UserX } from 'lucide-vue-next'
-import { computed, onMounted, ref } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { toast } from 'vue-sonner'
-import { getClient } from '@/matrix/client'
-import { getSpaceMembers, setSpacePowerLevel } from '@/matrix/spaces'
-import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
-import { useMemberActions } from '@/shared/composables/useMemberActions'
+import type { SpaceMember } from '@/matrix/spaces';
+import { Avatar } from '@muon/ui/avatar';
+import { Input } from '@muon/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@muon/ui/select';
+import { Search, ShieldAlert, UserX } from 'lucide-vue-next';
+import { computed, onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { toast } from 'vue-sonner';
+import { getClient } from '@/matrix/client';
+import { getSpaceMembers, setSpacePowerLevel } from '@/matrix/spaces';
+import ConfirmDialog from '@/shared/components/ConfirmDialog.vue';
+import { useMemberActions } from '@/shared/composables/useMemberActions';
 
 const props = defineProps<{
-  serverId: string
-}>()
+  serverId: string;
+}>();
 
-const { t } = useI18n()
-const { kickMember, banMember } = useMemberActions()
+const { t } = useI18n();
+const { kickMember, banMember } = useMemberActions();
 
 // ── Role definitions (matching MemberPanel) ──
 
 interface RoleOption {
-  label: string
-  powerLevel: number
-  color: string
+  label: string;
+  powerLevel: number;
+  color: string;
 }
 
 const roleOptions = computed<RoleOption[]>(() => [
@@ -32,151 +32,133 @@ const roleOptions = computed<RoleOption[]>(() => [
   { label: t('role.admin'), powerLevel: 75, color: '#b85c4a' },
   { label: t('role.moderator'), powerLevel: 50, color: '#4a9882' },
   { label: t('role.member'), powerLevel: 0, color: 'var(--color-muted-foreground)' },
-])
+]);
 
 function getRoleForPowerLevel(level: number): RoleOption {
-  if (level >= 100)
-    return roleOptions.value[0]
-  if (level >= 75)
-    return roleOptions.value[1]
-  if (level >= 50)
-    return roleOptions.value[2]
-  return roleOptions.value[3]
+  if (level >= 100) return roleOptions.value[0];
+  if (level >= 75) return roleOptions.value[1];
+  if (level >= 50) return roleOptions.value[2];
+  return roleOptions.value[3];
 }
 
 // ── State ──
 
-const members = ref<SpaceMember[]>([])
-const searchQuery = ref('')
-const isChangingRole = ref<string | null>(null)
+const members = ref<SpaceMember[]>([]);
+const searchQuery = ref('');
+const isChangingRole = ref<string | null>(null);
 
 // Confirm dialogs
-const kickTarget = ref<SpaceMember | null>(null)
-const showKickDialog = ref(false)
-const isKicking = ref(false)
+const kickTarget = ref<SpaceMember | null>(null);
+const showKickDialog = ref(false);
+const isKicking = ref(false);
 
-const banTarget = ref<SpaceMember | null>(null)
-const showBanDialog = ref(false)
-const isBanning = ref(false)
+const banTarget = ref<SpaceMember | null>(null);
+const showBanDialog = ref(false);
+const isBanning = ref(false);
 
 // Current user for permission checks
 const myUserId = computed(() => {
   try {
-    return getClient().getUserId()
+    return getClient().getUserId();
+  } catch {
+    return null;
   }
-  catch {
-    return null
-  }
-})
+});
 
 const myPowerLevel = computed(() => {
-  const me = members.value.find(m => m.userId === myUserId.value)
-  return me?.powerLevel ?? 0
-})
+  const me = members.value.find((m) => m.userId === myUserId.value);
+  return me?.powerLevel ?? 0;
+});
 
 // ── Filtered list ──
 
 const filteredMembers = computed(() => {
-  if (!searchQuery.value.trim())
-    return members.value
-  const q = searchQuery.value.toLowerCase()
-  return members.value.filter(
-    m => m.displayName.toLowerCase().includes(q) || m.userId.toLowerCase().includes(q),
-  )
-})
+  if (!searchQuery.value.trim()) return members.value;
+  const q = searchQuery.value.toLowerCase();
+  return members.value.filter((m) => m.displayName.toLowerCase().includes(q) || m.userId.toLowerCase().includes(q));
+});
 
 // ── Load ──
 
 function loadMembers() {
-  members.value = getSpaceMembers(props.serverId)
+  members.value = getSpaceMembers(props.serverId);
 }
 
 // ── Resolve avatar URL ──
 
 function resolveAvatar(mxcUrl?: string): string | undefined {
-  if (!mxcUrl)
-    return undefined
+  if (!mxcUrl) return undefined;
   try {
-    return getClient().mxcUrlToHttp(mxcUrl, 40, 40, 'crop') ?? undefined
-  }
-  catch {
-    return undefined
+    return getClient().mxcUrlToHttp(mxcUrl, 40, 40, 'crop') ?? undefined;
+  } catch {
+    return undefined;
   }
 }
 
 // ── Role change ──
 
 async function changeRole(member: SpaceMember, newLevel: number) {
-  if (isChangingRole.value)
-    return
-  isChangingRole.value = member.userId
+  if (isChangingRole.value) return;
+  isChangingRole.value = member.userId;
 
   try {
-    await setSpacePowerLevel(props.serverId, member.userId, newLevel)
-    loadMembers()
-  }
-  catch (err) {
-    console.error('Failed to change role:', err)
-    toast.error(t('server.role_failed'))
-  }
-  finally {
-    isChangingRole.value = null
+    await setSpacePowerLevel(props.serverId, member.userId, newLevel);
+    loadMembers();
+  } catch (err) {
+    console.error('Failed to change role:', err);
+    toast.error(t('server.role_failed'));
+  } finally {
+    isChangingRole.value = null;
   }
 }
 
 // ── Kick ──
 
 function confirmKick(member: SpaceMember) {
-  kickTarget.value = member
-  showKickDialog.value = true
+  kickTarget.value = member;
+  showKickDialog.value = true;
 }
 
 async function handleKick() {
-  if (!kickTarget.value || isKicking.value)
-    return
-  isKicking.value = true
+  if (!kickTarget.value || isKicking.value) return;
+  isKicking.value = true;
 
   try {
-    await kickMember(props.serverId, kickTarget.value.userId, 'Kicked by admin')
-    loadMembers()
-    showKickDialog.value = false
-    kickTarget.value = null
-  }
-  catch {
+    await kickMember(props.serverId, kickTarget.value.userId, 'Kicked by admin');
+    loadMembers();
+    showKickDialog.value = false;
+    kickTarget.value = null;
+  } catch {
     // error already handled by useMemberActions
-  }
-  finally {
-    isKicking.value = false
+  } finally {
+    isKicking.value = false;
   }
 }
 
 // ── Ban ──
 
 function confirmBan(member: SpaceMember) {
-  banTarget.value = member
-  showBanDialog.value = true
+  banTarget.value = member;
+  showBanDialog.value = true;
 }
 
 async function handleBan() {
-  if (!banTarget.value || isBanning.value)
-    return
-  isBanning.value = true
+  if (!banTarget.value || isBanning.value) return;
+  isBanning.value = true;
 
   try {
-    await banMember(props.serverId, banTarget.value.userId, 'Banned by admin')
-    loadMembers()
-    showBanDialog.value = false
-    banTarget.value = null
-  }
-  catch {
+    await banMember(props.serverId, banTarget.value.userId, 'Banned by admin');
+    loadMembers();
+    showBanDialog.value = false;
+    banTarget.value = null;
+  } catch {
     // error already handled by useMemberActions
-  }
-  finally {
-    isBanning.value = false
+  } finally {
+    isBanning.value = false;
   }
 }
 
-onMounted(loadMembers)
+onMounted(loadMembers);
 </script>
 
 <template>
@@ -191,11 +173,7 @@ onMounted(loadMembers)
         :size="14"
         class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/40"
       />
-      <Input
-        v-model="searchQuery"
-        :placeholder="t('member.search_members_placeholder')"
-        class="pl-9"
-      />
+      <Input v-model="searchQuery" :placeholder="t('member.search_members_placeholder')" class="pl-9" />
     </div>
 
     <!-- Member count -->
@@ -206,7 +184,9 @@ onMounted(loadMembers)
     <!-- Member table -->
     <div v-if="filteredMembers.length > 0">
       <!-- Header -->
-      <div class="mb-1 flex items-center gap-3 px-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground/40">
+      <div
+        class="mb-1 flex items-center gap-3 px-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground/40"
+      >
         <div class="w-10" />
         <div class="flex-1">
           {{ t('member.name_col') }}
@@ -249,11 +229,9 @@ onMounted(loadMembers)
             <Select
               :model-value="String(getRoleForPowerLevel(member.powerLevel).powerLevel)"
               :disabled="
-                member.userId === myUserId
-                  || member.powerLevel >= myPowerLevel
-                  || isChangingRole === member.userId
+                member.userId === myUserId || member.powerLevel >= myPowerLevel || isChangingRole === member.userId
               "
-              @update:model-value="val => changeRole(member, Number(val))"
+              @update:model-value="(val) => changeRole(member, Number(val))"
             >
               <SelectTrigger
                 class="w-full cursor-pointer rounded-md border border-transparent bg-transparent px-2 py-1 text-xs transition-colors hover:border-border focus:border-ring focus:outline-none disabled:cursor-not-allowed disabled:opacity-40"
@@ -262,11 +240,7 @@ onMounted(loadMembers)
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem
-                  v-for="role in roleOptions"
-                  :key="role.powerLevel"
-                  :value="String(role.powerLevel)"
-                >
+                <SelectItem v-for="role in roleOptions" :key="role.powerLevel" :value="String(role.powerLevel)">
                   {{ role.label }}
                 </SelectItem>
               </SelectContent>

@@ -54,7 +54,7 @@ describe('deferStore', () => {
 
     store.markCompleted('late')
 
-    expect(store.activeItems.map(item => item.id)).toEqual(['early'])
+    expect(store.activeItems.map((item) => item.id)).toEqual(['early'])
   })
 
   it('markCompleted/markArchived 后进入 historyItems 并移出 activeItems', () => {
@@ -80,7 +80,7 @@ describe('deferStore', () => {
     store.markArchived('defer-2')
 
     expect(store.activeItems).toHaveLength(0)
-    expect(store.historyItems.map(item => item.status).sort()).toEqual(['archived', 'completed'])
+    expect(store.historyItems.map((item) => item.status).sort()).toEqual(['archived', 'completed'])
   })
 
   it('hydrate 可恢复 localStorage，schema 无效时降级为空', () => {
@@ -88,21 +88,23 @@ describe('deferStore', () => {
       DEFER_STORAGE_KEY,
       JSON.stringify({
         version: 1,
-        items: [{
-          id: 'persisted',
-          roomId: '!room:example.org',
-          eventId: '$event:persisted',
-          dueAt: 123,
-          status: 'deferred',
-          createdAt: 100,
-          updatedAt: 100,
-        }],
+        items: [
+          {
+            id: 'persisted',
+            roomId: '!room:example.org',
+            eventId: '$event:persisted',
+            dueAt: 123,
+            status: 'deferred',
+            createdAt: 100,
+            updatedAt: 100,
+          },
+        ],
       }),
     )
 
     const store = useDeferStore()
     store.hydrate()
-    expect(store.activeItems.map(item => item.id)).toEqual(['persisted'])
+    expect(store.activeItems.map((item) => item.id)).toEqual(['persisted'])
 
     localStorage.setItem(DEFER_STORAGE_KEY, JSON.stringify({ version: 1, items: [{ bad: true }] }))
     setActivePinia(createPinia())

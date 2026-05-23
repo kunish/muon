@@ -1,95 +1,83 @@
 <script setup lang="ts">
-import type { SpaceMember } from '@/matrix/spaces'
-import { useRoomNavigation } from '@shared/composables/useRoomNavigation'
-import { onClickOutside } from '@vueuse/core'
-import {
-  AtSign,
-  Ban,
-  MessageCircle,
-  MicOff,
-  Pencil,
-  User,
-  UserX,
-} from 'lucide-vue-next'
-import { EventType } from 'matrix-js-sdk'
-import { computed, ref } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
-import { toast } from 'vue-sonner'
-import { ask } from '@/desktop/dialog'
-import { useConversations } from '@/features/chat/composables/useConversations'
-import { blockUser } from '@/matrix/blocking'
-import { getClient } from '@/matrix/client'
-import { findOrCreateDm } from '@/matrix/rooms'
-import { useContextMenuScrollLock } from '@/shared/composables/useContextMenuScrollLock'
-import { useMemberActions } from '@/shared/composables/useMemberActions'
-import { useRoomPermissions } from '@/shared/composables/useRoomPermissions'
-import { useViewportClampedFloating } from '@/shared/composables/useViewportClampedFloating'
+import type { SpaceMember } from '@/matrix/spaces';
+import { useRoomNavigation } from '@shared/composables/useRoomNavigation';
+import { onClickOutside } from '@vueuse/core';
+import { AtSign, Ban, MessageCircle, MicOff, Pencil, User, UserX } from 'lucide-vue-next';
+import { EventType } from 'matrix-js-sdk';
+import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useRouter } from 'vue-router';
+import { toast } from 'vue-sonner';
+import { ask } from '@/desktop/dialog';
+import { useConversations } from '@/features/chat/composables/useConversations';
+import { blockUser } from '@/matrix/blocking';
+import { getClient } from '@/matrix/client';
+import { findOrCreateDm } from '@/matrix/rooms';
+import { useContextMenuScrollLock } from '@/shared/composables/useContextMenuScrollLock';
+import { useMemberActions } from '@/shared/composables/useMemberActions';
+import { useRoomPermissions } from '@/shared/composables/useRoomPermissions';
+import { useViewportClampedFloating } from '@/shared/composables/useViewportClampedFloating';
 
 const props = defineProps<{
-  member: SpaceMember | null
-  serverId?: string
-  position: { x: number, y: number }
-}>()
+  member: SpaceMember | null;
+  serverId?: string;
+  position: { x: number; y: number };
+}>();
 
 const emit = defineEmits<{
-  close: []
-  mention: [userId: string]
-  profile: [userId: string]
-}>()
+  close: [];
+  mention: [userId: string];
+  profile: [userId: string];
+}>();
 
-const menuRef = ref<HTMLElement | null>(null)
-const isOpen = computed(() => !!props.member)
-const { t } = useI18n()
-const router = useRouter()
-const chatStore = useRoomNavigation()
-const { restoreRoom } = useConversations()
-const { kickMember, banMember } = useMemberActions()
+const menuRef = ref<HTMLElement | null>(null);
+const isOpen = computed(() => !!props.member);
+const { t } = useI18n();
+const router = useRouter();
+const chatStore = useRoomNavigation();
+const { restoreRoom } = useConversations();
+const { kickMember, banMember } = useMemberActions();
 
-useContextMenuScrollLock(isOpen)
+useContextMenuScrollLock(isOpen);
 
 // ── 权限判断 ──
 
-const { isModerator: isAdmin } = useRoomPermissions(computed(() => props.serverId ?? null))
+const { isModerator: isAdmin } = useRoomPermissions(computed(() => props.serverId ?? null));
 const isSelf = computed(() => {
-  if (!props.member)
-    return false
-  return props.member.userId === getClient().getUserId()
-})
+  if (!props.member) return false;
+  return props.member.userId === getClient().getUserId();
+});
 
 // ── 定位 ──
 
-const menuPosition = computed(() => props.position)
+const menuPosition = computed(() => props.position);
 const { style } = useViewportClampedFloating({
   open: isOpen,
   position: menuPosition,
   element: menuRef,
   fallbackSize: { width: 200, height: 280 },
-})
+});
 
 // ── 点击外部关闭 ──
 
 onClickOutside(menuRef, () => {
-  if (isOpen.value)
-    emit('close')
-})
+  if (isOpen.value) emit('close');
+});
 
 // ── 操作 ──
 
 function onProfile() {
-  if (!props.member)
-    return
-  emit('profile', props.member.userId)
-  emit('close')
+  if (!props.member) return;
+  emit('profile', props.member.userId);
+  emit('close');
 }
 
 async function onMessage() {
-  if (!props.member)
-    return
-  emit('close')
+  if (!props.member) return;
+  emit('close');
   try {
-    const roomId = await findOrCreateDm(props.member.userId)
-    restoreRoom(roomId)
+    const roomId = await findOrCreateDm(props.member.userId);
+    restoreRoom(roomId);
     chatStore.navigateToRoom(roomId, {
       sidebarPlacement: 'promote',
       sidebarPreview: {
@@ -99,36 +87,32 @@ async function onMessage() {
         dmUserAvatar: props.member.avatarUrl,
         isDirect: true,
       },
-    })
-    await router.push(`/dm/${encodeURIComponent(roomId)}`)
-  }
-  catch (err) {
-    console.error('Failed to open DM:', err)
-    toast.error(t('server.dm_failed'))
+    });
+    await router.push(`/dm/${encodeURIComponent(roomId)}`);
+  } catch (err) {
+    console.error('Failed to open DM:', err);
+    toast.error(t('server.dm_failed'));
   }
 }
 
 function onMention() {
-  if (!props.member)
-    return
-  emit('mention', props.member.userId)
-  emit('close')
+  if (!props.member) return;
+  emit('mention', props.member.userId);
+  emit('close');
 }
 
 async function onChangeNickname() {
-  if (!props.member || !props.serverId)
-    return
+  if (!props.member || !props.serverId) return;
 
   // eslint-disable-next-line no-alert -- Electron has no native input prompt dialog; window.prompt is the simplest option
-  const nextNickname = window.prompt(t('member.change_nickname'), props.member.displayName)?.trim()
-  if (!nextNickname || nextNickname === props.member.displayName)
-    return
+  const nextNickname = window.prompt(t('member.change_nickname'), props.member.displayName)?.trim();
+  if (!nextNickname || nextNickname === props.member.displayName) return;
 
   try {
-    const client = getClient()
-    const room = client.getRoom(props.serverId)
-    const memberState = room?.currentState.getStateEvents('m.room.member', props.member.userId)
-    const currentContent = memberState?.getContent?.() ?? {}
+    const client = getClient();
+    const room = client.getRoom(props.serverId);
+    const memberState = room?.currentState.getStateEvents('m.room.member', props.member.userId);
+    const currentContent = memberState?.getContent?.() ?? {};
 
     await client.sendStateEvent(
       props.serverId,
@@ -139,62 +123,53 @@ async function onChangeNickname() {
         displayname: nextNickname,
       },
       props.member.userId,
-    )
-    emit('close')
-  }
-  catch (err) {
-    console.error('Failed to change nickname:', err)
-    toast.error(t('server.update_failed'))
+    );
+    emit('close');
+  } catch (err) {
+    console.error('Failed to change nickname:', err);
+    toast.error(t('server.update_failed'));
   }
 }
 
 async function onMute() {
-  if (!props.member)
-    return
+  if (!props.member) return;
   try {
-    await blockUser(props.member.userId)
-    emit('close')
-  }
-  catch (err) {
-    console.error('Failed to mute user:', err)
-    toast.error(t('server.mute_failed'))
+    await blockUser(props.member.userId);
+    emit('close');
+  } catch (err) {
+    console.error('Failed to mute user:', err);
+    toast.error(t('server.mute_failed'));
   }
 }
 
 async function onKick() {
-  if (!props.member || !props.serverId)
-    return
+  if (!props.member || !props.serverId) return;
   const confirmKick = await ask(t('member.kick_confirm_msg', { name: props.member.displayName }), {
     title: t('member.kick'),
     kind: 'warning',
-  })
-  if (!confirmKick)
-    return
+  });
+  if (!confirmKick) return;
 
   try {
-    await kickMember(props.serverId, props.member.userId, 'Kicked by admin')
-    emit('close')
-  }
-  catch {
+    await kickMember(props.serverId, props.member.userId, 'Kicked by admin');
+    emit('close');
+  } catch {
     // error already handled by useMemberActions
   }
 }
 
 async function onBan() {
-  if (!props.member || !props.serverId)
-    return
+  if (!props.member || !props.serverId) return;
   const confirmBan = await ask(t('member.ban_confirm_msg', { name: props.member.displayName }), {
     title: t('member.ban'),
     kind: 'warning',
-  })
-  if (!confirmBan)
-    return
+  });
+  if (!confirmBan) return;
 
   try {
-    await banMember(props.serverId, props.member.userId, 'Banned by admin')
-    emit('close')
-  }
-  catch {
+    await banMember(props.serverId, props.member.userId, 'Banned by admin');
+    emit('close');
+  } catch {
     // error already handled by useMemberActions
   }
 }
@@ -216,17 +191,28 @@ async function onBan() {
         @contextmenu.prevent
       >
         <!-- 基础操作 -->
-        <button class="mx-1 flex w-[calc(100%-8px)] items-center gap-2.5 rounded-md px-3.5 py-[7px] text-[13px] text-foreground transition-all duration-100 hover:bg-accent active:scale-[0.98]" @click="onProfile">
+        <button
+          class="mx-1 flex w-[calc(100%-8px)] items-center gap-2.5 rounded-md px-3.5 py-[7px] text-[13px] text-foreground transition-all duration-100 hover:bg-accent active:scale-[0.98]"
+          @click="onProfile"
+        >
           <User :size="14" />
           <span>{{ t('member.profile') }}</span>
         </button>
 
-        <button v-if="!isSelf" data-testid="member-context-message" class="mx-1 flex w-[calc(100%-8px)] items-center gap-2.5 rounded-md px-3.5 py-[7px] text-[13px] text-foreground transition-all duration-100 hover:bg-accent active:scale-[0.98]" @click="onMessage">
+        <button
+          v-if="!isSelf"
+          data-testid="member-context-message"
+          class="mx-1 flex w-[calc(100%-8px)] items-center gap-2.5 rounded-md px-3.5 py-[7px] text-[13px] text-foreground transition-all duration-100 hover:bg-accent active:scale-[0.98]"
+          @click="onMessage"
+        >
           <MessageCircle :size="14" />
           <span>{{ t('member.message') }}</span>
         </button>
 
-        <button class="mx-1 flex w-[calc(100%-8px)] items-center gap-2.5 rounded-md px-3.5 py-[7px] text-[13px] text-foreground transition-all duration-100 hover:bg-accent active:scale-[0.98]" @click="onMention">
+        <button
+          class="mx-1 flex w-[calc(100%-8px)] items-center gap-2.5 rounded-md px-3.5 py-[7px] text-[13px] text-foreground transition-all duration-100 hover:bg-accent active:scale-[0.98]"
+          @click="onMention"
+        >
           <AtSign :size="14" />
           <span>{{ t('member.mention') }}</span>
         </button>
@@ -235,24 +221,42 @@ async function onBan() {
         <template v-if="isAdmin && !isSelf">
           <div class="mx-3 my-1 h-px bg-border/50" />
 
-          <button class="mx-1 flex w-[calc(100%-8px)] items-center gap-2.5 rounded-md px-3.5 py-[7px] text-[13px] text-foreground transition-all duration-100 hover:bg-accent active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent" :disabled="!serverId" :title="!serverId ? t('member.missing_server_id') : undefined" @click="onChangeNickname">
+          <button
+            class="mx-1 flex w-[calc(100%-8px)] items-center gap-2.5 rounded-md px-3.5 py-[7px] text-[13px] text-foreground transition-all duration-100 hover:bg-accent active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+            :disabled="!serverId"
+            :title="!serverId ? t('member.missing_server_id') : undefined"
+            @click="onChangeNickname"
+          >
             <Pencil :size="14" />
             <span>{{ t('member.change_nickname') }}</span>
           </button>
 
-          <button class="mx-1 flex w-[calc(100%-8px)] items-center gap-2.5 rounded-md px-3.5 py-[7px] text-[13px] text-foreground transition-all duration-100 hover:bg-accent active:scale-[0.98]" @click="onMute">
+          <button
+            class="mx-1 flex w-[calc(100%-8px)] items-center gap-2.5 rounded-md px-3.5 py-[7px] text-[13px] text-foreground transition-all duration-100 hover:bg-accent active:scale-[0.98]"
+            @click="onMute"
+          >
             <MicOff :size="14" />
             <span>{{ t('member.mute') }}</span>
           </button>
 
           <div class="mx-3 my-1 h-px bg-border/50" />
 
-          <button class="mx-1 flex w-[calc(100%-8px)] items-center gap-2.5 rounded-md px-3.5 py-[7px] text-[13px] text-destructive transition-all duration-100 hover:bg-[color-mix(in_srgb,var(--color-destructive)_10%,transparent)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent" :disabled="!serverId" :title="!serverId ? t('member.missing_server_id') : undefined" @click="onKick">
+          <button
+            class="mx-1 flex w-[calc(100%-8px)] items-center gap-2.5 rounded-md px-3.5 py-[7px] text-[13px] text-destructive transition-all duration-100 hover:bg-[color-mix(in_srgb,var(--color-destructive)_10%,transparent)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+            :disabled="!serverId"
+            :title="!serverId ? t('member.missing_server_id') : undefined"
+            @click="onKick"
+          >
             <UserX :size="14" />
             <span>{{ t('member.kick_title') }}</span>
           </button>
 
-          <button class="mx-1 flex w-[calc(100%-8px)] items-center gap-2.5 rounded-md px-3.5 py-[7px] text-[13px] text-destructive transition-all duration-100 hover:bg-[color-mix(in_srgb,var(--color-destructive)_10%,transparent)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent" :disabled="!serverId" :title="!serverId ? t('member.missing_server_id') : undefined" @click="onBan">
+          <button
+            class="mx-1 flex w-[calc(100%-8px)] items-center gap-2.5 rounded-md px-3.5 py-[7px] text-[13px] text-destructive transition-all duration-100 hover:bg-[color-mix(in_srgb,var(--color-destructive)_10%,transparent)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+            :disabled="!serverId"
+            :title="!serverId ? t('member.missing_server_id') : undefined"
+            @click="onBan"
+          >
             <Ban :size="14" />
             <span>{{ t('member.ban_title') }}</span>
           </button>

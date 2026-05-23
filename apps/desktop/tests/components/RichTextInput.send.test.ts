@@ -29,19 +29,23 @@ const mocks = vi.hoisted(() => ({
   editorInstance: undefined as any,
   onSubmit: undefined as undefined | ((html: string, text: string) => unknown),
   onPasteFiles: undefined as undefined | ((files: File[]) => unknown),
-  onPasteMediaSources: undefined as undefined | ((sources: Array<{ index: number, src: string, name: string, kind: 'image' | 'video' | 'file' }>) => unknown),
+  onPasteMediaSources: undefined as
+    | undefined
+    | ((sources: Array<{ index: number; src: string; name: string; kind: 'image' | 'video' | 'file' }>) => unknown),
   pendingMediaGetAttachment: undefined as undefined | ((id: string) => unknown),
   insertPendingMediaAttachment: vi.fn(),
   clearUploads: vi.fn(),
   getUpload: vi.fn(),
   removeUpload: vi.fn(),
-  stageFile: vi.fn((id: string, file: File) => Promise.resolve({
-    id,
-    file,
-    progress: 0,
-    status: 'pending',
-    mxcUrl: null,
-  })),
+  stageFile: vi.fn((id: string, file: File) =>
+    Promise.resolve({
+      id,
+      file,
+      progress: 0,
+      status: 'pending',
+      mxcUrl: null,
+    }),
+  ),
   uploadFile: vi.fn(),
   uploadImage: vi.fn(),
   uploadVideo: vi.fn(),
@@ -68,7 +72,9 @@ vi.mock('@muon/rich-text/editor', () => ({
   useRichTextEditor: (options: {
     onSubmit: (html: string, text: string) => unknown
     onPasteFiles?: (files: File[]) => unknown
-    onPasteMediaSources?: (sources: Array<{ index: number, src: string, name: string, kind: 'image' | 'video' | 'file' }>) => unknown
+    onPasteMediaSources?: (
+      sources: Array<{ index: number; src: string; name: string; kind: 'image' | 'video' | 'file' }>,
+    ) => unknown
     pendingMedia?: { getAttachment?: (id: string) => unknown }
   }) => {
     mocks.onSubmit = options.onSubmit
@@ -238,7 +244,6 @@ describe('richTextInput send recovery', () => {
     const store = useChatStore()
     store.setCurrentRoom('!room:localhost')
     mountInput()
-
     ;(store as any).requestMention({ id: '@alice:localhost', label: 'Alice' })
     await nextTick()
 
@@ -331,18 +336,26 @@ describe('richTextInput send recovery', () => {
   it('restores pasted image draft metadata after a reload', async () => {
     const pendingMediaId = 'paste-reload-1'
     const pendingMediaHtml = `<div data-pending-media-id="${pendingMediaId}"></div>`
-    localStorage.setItem('muon_chat_drafts:@test:localhost', JSON.stringify({
-      '!room-a:localhost': { html: pendingMediaHtml },
-    }))
-    localStorage.setItem('muon_chat_attachment_drafts:@test:localhost', JSON.stringify({
-      '!room-a:localhost': [{
-        id: pendingMediaId,
-        kind: 'image',
-        fileName: 'draft.png',
-        fileType: 'image/png',
-        dataUrl: 'data:image/png;base64,aW1hZ2U=',
-      }],
-    }))
+    localStorage.setItem(
+      'muon_chat_drafts:@test:localhost',
+      JSON.stringify({
+        '!room-a:localhost': { html: pendingMediaHtml },
+      }),
+    )
+    localStorage.setItem(
+      'muon_chat_attachment_drafts:@test:localhost',
+      JSON.stringify({
+        '!room-a:localhost': [
+          {
+            id: pendingMediaId,
+            kind: 'image',
+            fileName: 'draft.png',
+            fileType: 'image/png',
+            dataUrl: 'data:image/png;base64,aW1hZ2U=',
+          },
+        ],
+      }),
+    )
     const store = useChatStore()
     mountInput()
 
@@ -350,20 +363,25 @@ describe('richTextInput send recovery', () => {
     await nextTick()
 
     expect(mocks.setContent).toHaveBeenCalledWith(pendingMediaHtml)
-    expect(mocks.pendingMediaGetAttachment?.(pendingMediaId)).toEqual(expect.objectContaining({
-      kind: 'image',
-      file: expect.objectContaining({
-        name: 'draft.png',
-        type: 'image/png',
+    expect(mocks.pendingMediaGetAttachment?.(pendingMediaId)).toEqual(
+      expect.objectContaining({
+        kind: 'image',
+        file: expect.objectContaining({
+          name: 'draft.png',
+          type: 'image/png',
+        }),
       }),
-    }))
+    )
   })
 
   it('restores a saved draft when the room is already selected before mount', async () => {
     const savedHtml = '<p>Restored after refresh</p>'
-    localStorage.setItem('muon_chat_drafts:@test:localhost', JSON.stringify({
-      '!room-a:localhost': { text: 'Restored after refresh', html: savedHtml },
-    }))
+    localStorage.setItem(
+      'muon_chat_drafts:@test:localhost',
+      JSON.stringify({
+        '!room-a:localhost': { text: 'Restored after refresh', html: savedHtml },
+      }),
+    )
     const store = useChatStore()
     store.setCurrentRoom('!room-a:localhost')
 
@@ -375,9 +393,12 @@ describe('richTextInput send recovery', () => {
 
   it('restores a saved draft when the editor becomes available after mount', async () => {
     const savedHtml = '<p>Visible after editor ready</p>'
-    localStorage.setItem('muon_chat_drafts:@test:localhost', JSON.stringify({
-      '!room-a:localhost': { text: 'Visible after editor ready', html: savedHtml },
-    }))
+    localStorage.setItem(
+      'muon_chat_drafts:@test:localhost',
+      JSON.stringify({
+        '!room-a:localhost': { text: 'Visible after editor ready', html: savedHtml },
+      }),
+    )
     const store = useChatStore()
     store.setCurrentRoom('!room-a:localhost')
     mocks.editorStartsNull = true
@@ -403,7 +424,10 @@ describe('richTextInput send recovery', () => {
 
     await mocks.onPasteFiles?.([imageFile])
     const insertedId = mocks.insertPendingMediaAttachment.mock.calls[0]?.[0] as string
-    await mocks.onSubmit?.(`<p><strong>Bold caption</strong></p><div data-pending-media-id="${insertedId}"></div>`, 'Bold caption')
+    await mocks.onSubmit?.(
+      `<p><strong>Bold caption</strong></p><div data-pending-media-id="${insertedId}"></div>`,
+      'Bold caption',
+    )
 
     expect(mocks.uploadMedia).toHaveBeenCalledWith(imageFile)
     expect(mocks.extractImageMeta).toHaveBeenCalledWith(imageFile)
@@ -430,10 +454,12 @@ describe('richTextInput send recovery', () => {
 
     expect(ids).toHaveLength(1)
     expect(downloadMedia).toHaveBeenCalledWith('mxc://server/media')
-    expect(mocks.createObjectURL).toHaveBeenCalledWith(expect.objectContaining({
-      name: 'image.png',
-      type: 'image/png',
-    }))
+    expect(mocks.createObjectURL).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'image.png',
+        type: 'image/png',
+      }),
+    )
     expect(mocks.insertPendingMediaAttachment).not.toHaveBeenCalled()
   })
 
@@ -500,7 +526,13 @@ describe('richTextInput send recovery', () => {
 
     await mocks.onSubmit?.('<p>Retry reply</p>', 'Retry reply')
 
-    expect(replyToMessage).toHaveBeenCalledWith('!room:localhost', '$event-2', 'Retry reply', '<p>Retry reply</p>', undefined)
+    expect(replyToMessage).toHaveBeenCalledWith(
+      '!room:localhost',
+      '$event-2',
+      'Retry reply',
+      '<p>Retry reply</p>',
+      undefined,
+    )
     expect(store.replyingTo?.getId()).toBe('$event-2')
     expect(mocks.clear).not.toHaveBeenCalled()
     expect(mocks.stopTyping).not.toHaveBeenCalled()
@@ -566,7 +598,13 @@ describe('richTextInput send recovery', () => {
     pendingReply.resolve('$reply-2')
     await submitPromise
 
-    expect(replyToMessage).toHaveBeenCalledWith('!room:localhost', '$event-4', 'Reply one', '<p>Reply one</p>', undefined)
+    expect(replyToMessage).toHaveBeenCalledWith(
+      '!room:localhost',
+      '$event-4',
+      'Reply one',
+      '<p>Reply one</p>',
+      undefined,
+    )
     expect(store.replyingTo?.getId()).toBe('$event-5')
   })
 
@@ -587,7 +625,13 @@ describe('richTextInput send recovery', () => {
     pendingReply.resolve('$reply-3')
     await submitPromise
 
-    expect(replyToMessage).toHaveBeenCalledWith('!room:localhost', '$event-6', 'First reply', '<p>First reply</p>', undefined)
+    expect(replyToMessage).toHaveBeenCalledWith(
+      '!room:localhost',
+      '$event-6',
+      'First reply',
+      '<p>First reply</p>',
+      undefined,
+    )
     expect(mocks.clear).not.toHaveBeenCalled()
     expect(mocks.stopTyping).not.toHaveBeenCalled()
     expect(store.replyingTo?.getId()).toBe('$event-6')
@@ -610,7 +654,13 @@ describe('richTextInput send recovery', () => {
     pendingReply.resolve('$reply-4')
     await submitPromise
 
-    expect(replyToMessage).toHaveBeenCalledWith('!room:localhost', '$event-7', 'Same reply', '<p>Same reply</p>', undefined)
+    expect(replyToMessage).toHaveBeenCalledWith(
+      '!room:localhost',
+      '$event-7',
+      'Same reply',
+      '<p>Same reply</p>',
+      undefined,
+    )
     expect(store.replyingTo?.getId()).toBe('$event-8')
     expect(mocks.clear).not.toHaveBeenCalled()
     expect(mocks.stopTyping).not.toHaveBeenCalled()
@@ -633,7 +683,12 @@ describe('richTextInput send recovery', () => {
     pendingSend.resolve('$event-9')
     await submitPromise
 
-    expect(sendTextMessage).toHaveBeenCalledWith('!room:localhost', 'Same room text', '<p>Same room text</p>', undefined)
+    expect(sendTextMessage).toHaveBeenCalledWith(
+      '!room:localhost',
+      'Same room text',
+      '<p>Same room text</p>',
+      undefined,
+    )
     expect(store.currentRoomId).toBe('!other:localhost')
     expect(mocks.clear).not.toHaveBeenCalled()
     expect(mocks.stopTyping).not.toHaveBeenCalled()
@@ -719,7 +774,13 @@ describe('richTextInput send recovery', () => {
     store.setCurrentRoom('!room-a:localhost')
     await nextTick()
 
-    expect(replyToMessage).toHaveBeenCalledWith('!room-a:localhost', '$event-17', 'Saved draft', '<p>Saved draft</p>', undefined)
+    expect(replyToMessage).toHaveBeenCalledWith(
+      '!room-a:localhost',
+      '$event-17',
+      'Saved draft',
+      '<p>Saved draft</p>',
+      undefined,
+    )
     expect(mocks.setContent).toHaveBeenCalledWith('<p>Saved draft</p>')
   })
 
@@ -750,7 +811,13 @@ describe('richTextInput send recovery', () => {
     store.setCurrentRoom('!room-a:localhost')
     await nextTick()
 
-    expect(editMessage).toHaveBeenCalledWith('!room-a:localhost', '$event-18', 'Saved draft', '<p>Saved draft</p>', undefined)
+    expect(editMessage).toHaveBeenCalledWith(
+      '!room-a:localhost',
+      '$event-18',
+      'Saved draft',
+      '<p>Saved draft</p>',
+      undefined,
+    )
     expect(mocks.setContent).toHaveBeenCalledWith('<p>Saved draft</p>')
   })
 
@@ -768,7 +835,12 @@ describe('richTextInput send recovery', () => {
     pendingSend.resolve('$event-10')
     await submitPromise
 
-    expect(sendTextMessage).toHaveBeenCalledWith('!room:localhost', 'Formatted text', '<p>Formatted text</p>', undefined)
+    expect(sendTextMessage).toHaveBeenCalledWith(
+      '!room:localhost',
+      'Formatted text',
+      '<p>Formatted text</p>',
+      undefined,
+    )
     expect(mocks.clear).not.toHaveBeenCalled()
     expect(mocks.stopTyping).not.toHaveBeenCalled()
   })
@@ -785,7 +857,13 @@ describe('richTextInput send recovery', () => {
 
     await mocks.onSubmit?.('<p>Edited message</p>', 'Edited message')
 
-    expect(editMessage).toHaveBeenCalledWith('!room:localhost', '$event-11', 'Edited message', '<p>Edited message</p>', undefined)
+    expect(editMessage).toHaveBeenCalledWith(
+      '!room:localhost',
+      '$event-11',
+      'Edited message',
+      '<p>Edited message</p>',
+      undefined,
+    )
     expect(mocks.clear).toHaveBeenCalledTimes(1)
     expect(store.editingEvent).toBeNull()
     expect(store.replyingTo).toBeNull()
@@ -804,7 +882,13 @@ describe('richTextInput send recovery', () => {
 
     await mocks.onSubmit?.('<p>Retry edit</p>', 'Retry edit')
 
-    expect(editMessage).toHaveBeenCalledWith('!room:localhost', '$event-12', 'Retry edit', '<p>Retry edit</p>', undefined)
+    expect(editMessage).toHaveBeenCalledWith(
+      '!room:localhost',
+      '$event-12',
+      'Retry edit',
+      '<p>Retry edit</p>',
+      undefined,
+    )
     expect(store.editingEvent?.getId()).toBe('$event-12')
     expect(mocks.clear).not.toHaveBeenCalled()
     expect(mocks.stopTyping).not.toHaveBeenCalled()
@@ -882,7 +966,13 @@ describe('richTextInput send recovery', () => {
     pendingReply.resolve('$reply-5')
     await submitPromise
 
-    expect(replyToMessage).toHaveBeenCalledWith('!room:localhost', '$event-15', 'Same reply again', '<p>Same reply again</p>', undefined)
+    expect(replyToMessage).toHaveBeenCalledWith(
+      '!room:localhost',
+      '$event-15',
+      'Same reply again',
+      '<p>Same reply again</p>',
+      undefined,
+    )
     expect(store.replyingTo?.getId()).toBe('$event-15')
     expect(mocks.clear).not.toHaveBeenCalled()
     expect(mocks.stopTyping).not.toHaveBeenCalled()
@@ -905,7 +995,13 @@ describe('richTextInput send recovery', () => {
     pendingEdit.resolve('$edit-2')
     await submitPromise
 
-    expect(editMessage).toHaveBeenCalledWith('!room:localhost', '$event-16', 'Same edit again', '<p>Same edit again</p>', undefined)
+    expect(editMessage).toHaveBeenCalledWith(
+      '!room:localhost',
+      '$event-16',
+      'Same edit again',
+      '<p>Same edit again</p>',
+      undefined,
+    )
     expect(store.editingEvent?.getId()).toBe('$event-16')
     expect(mocks.clear).not.toHaveBeenCalled()
     expect(mocks.stopTyping).not.toHaveBeenCalled()

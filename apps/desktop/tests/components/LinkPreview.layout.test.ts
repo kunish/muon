@@ -34,9 +34,7 @@ describe('link preview layout', () => {
     ;(globalThis as any).__ogInflight.clear()
     Object.defineProperty(URL, 'createObjectURL', {
       configurable: true,
-      value: vi.fn()
-        .mockReturnValueOnce('blob:favicon')
-        .mockReturnValueOnce('blob:og-image'),
+      value: vi.fn().mockReturnValueOnce('blob:favicon').mockReturnValueOnce('blob:og-image'),
     })
     Object.defineProperty(URL, 'revokeObjectURL', {
       configurable: true,
@@ -133,14 +131,20 @@ describe('link preview layout', () => {
     expect(images[1].attributes('src')).toBe('blob:og-image')
     expect(images[1].classes()).toContain('object-contain')
     expect(images[1].classes()).not.toContain('object-cover')
-    expect(fetchMock).toHaveBeenCalledWith('https://example.com/favicon.ico', expect.objectContaining({
-      headers: expect.objectContaining({ accept: 'image/*,*/*;q=0.8' }),
-      redirect: 'follow',
-    }))
-    expect(fetchMock).toHaveBeenCalledWith('https://example.com/og/release.png', expect.objectContaining({
-      headers: expect.objectContaining({ accept: 'image/*,*/*;q=0.8' }),
-      redirect: 'follow',
-    }))
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://example.com/favicon.ico',
+      expect.objectContaining({
+        headers: expect.objectContaining({ accept: 'image/*,*/*;q=0.8' }),
+        redirect: 'follow',
+      }),
+    )
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://example.com/og/release.png',
+      expect.objectContaining({
+        headers: expect.objectContaining({ accept: 'image/*,*/*;q=0.8' }),
+        redirect: 'follow',
+      }),
+    )
 
     wrapper.unmount()
   })
@@ -188,7 +192,7 @@ describe('link preview layout', () => {
     })
 
     await vi.waitFor(() => {
-      expect(wrapper.text()).toContain('X. It\'s what\'s happening')
+      expect(wrapper.text()).toContain("X. It's what's happening")
     })
     expect(fetchMock).toHaveBeenCalledWith('https://x.com/', expect.anything())
 
@@ -248,18 +252,21 @@ describe('link preview layout', () => {
     })
 
     await vi.waitFor(() => {
-      expect(wrapper.text()).toContain('X. It\'s what\'s happening')
+      expect(wrapper.text()).toContain("X. It's what's happening")
     })
     expect(wrapper.text()).toContain('From breaking news and entertainment to sports and politics')
 
-    expect(fetchMock).toHaveBeenCalledWith('https://x.com/', expect.objectContaining({
-      headers: expect.objectContaining({
-        'accept': 'text/html,application/xhtml+xml',
-        'accept-language': expect.any(String),
-        'user-agent': expect.stringContaining('Slackbot-LinkExpanding'),
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://x.com/',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          accept: 'text/html,application/xhtml+xml',
+          'accept-language': expect.any(String),
+          'user-agent': expect.stringContaining('Slackbot-LinkExpanding'),
+        }),
+        redirect: 'manual',
       }),
-      redirect: 'manual',
-    }))
+    )
 
     await vi.waitFor(() => {
       expect(wrapper.findAll('img')).toHaveLength(2)
@@ -322,16 +329,24 @@ describe('link preview layout', () => {
       expect(wrapper.text()).toContain('百度一下，你就知道')
     })
     expect(wrapper.text()).toContain('全球领先的中文搜索引擎')
-    expect(fetchMock).toHaveBeenNthCalledWith(1, 'https://www.baidu.com/', expect.objectContaining({
-      headers: expect.objectContaining({
-        'user-agent': expect.stringContaining('Slackbot-LinkExpanding'),
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      'https://www.baidu.com/',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'user-agent': expect.stringContaining('Slackbot-LinkExpanding'),
+        }),
       }),
-    }))
-    expect(fetchMock).toHaveBeenNthCalledWith(2, 'https://www.baidu.com/', expect.objectContaining({
-      headers: expect.objectContaining({
-        'user-agent': expect.stringContaining('Mozilla/5.0'),
+    )
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      'https://www.baidu.com/',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'user-agent': expect.stringContaining('Mozilla/5.0'),
+        }),
       }),
-    }))
+    )
 
     wrapper.unmount()
   })

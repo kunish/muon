@@ -23,12 +23,14 @@ describe('decisionStore', () => {
     listDigestEntriesMock.mockReset()
     listDigestEntriesMock.mockResolvedValue([])
     saveDecisionCardMock.mockReset()
-    saveDecisionCardMock.mockImplementation(async card => card)
+    saveDecisionCardMock.mockImplementation(async (card) => card)
     updateSuggestionDispositionMock.mockReset()
-    updateSuggestionDispositionMock.mockImplementation(async (_decisionId, _suggestionId, disposition, updatedBy, updatedAt) => ({
-      suggestions: [{ id: 'suggestion-1', disposition, updatedBy, updatedAt }],
-      updatedAt,
-    }))
+    updateSuggestionDispositionMock.mockImplementation(
+      async (_decisionId, _suggestionId, disposition, updatedBy, updatedAt) => ({
+        suggestions: [{ id: 'suggestion-1', disposition, updatedBy, updatedAt }],
+        updatedAt,
+      }),
+    )
   })
 
   it('createDecisionCard 必须保存 conclusion/context/owner/status/citations', async () => {
@@ -42,7 +44,14 @@ describe('decisionStore', () => {
       owner: '@alice:muon.dev',
       status: 'open',
       citations: [{ roomId: '!room:muon.dev', eventId: '$event-1' }],
-      suggestions: [{ id: 'suggestion-1', kind: 'action', summary: 'Create panel', citations: [{ roomId: '!room:muon.dev', eventId: '$event-1' }] }],
+      suggestions: [
+        {
+          id: 'suggestion-1',
+          kind: 'action',
+          summary: 'Create panel',
+          citations: [{ roomId: '!room:muon.dev', eventId: '$event-1' }],
+        },
+      ],
       now: 100,
     })
 
@@ -90,7 +99,7 @@ describe('decisionStore', () => {
 
     expect(listDecisionCardsMock).toHaveBeenCalledTimes(1)
     expect(listDigestEntriesMock).toHaveBeenCalledTimes(1)
-    expect(store.cards.map(card => card.id)).toEqual(['decision:digest:digest-1', 'decision-saved-1'])
+    expect(store.cards.map((card) => card.id)).toEqual(['decision:digest:digest-1', 'decision-saved-1'])
     expect(store.cards[0]).toMatchObject({
       conclusion: 'Digest: rollout follow-up',
       context: 'Action: Follow up with Alice. Blocker: Waiting on legal sign-off.',
@@ -197,14 +206,29 @@ describe('decisionStore', () => {
       owner: '@alice:muon.dev',
       status: 'open',
       citations: [{ roomId: '!room:muon.dev', eventId: '$event-1' }],
-      suggestions: [{ id: 'suggestion-1', kind: 'action', summary: 'Create panel', citations: [{ roomId: '!room:muon.dev', eventId: '$event-1' }] }],
+      suggestions: [
+        {
+          id: 'suggestion-1',
+          kind: 'action',
+          summary: 'Create panel',
+          citations: [{ roomId: '!room:muon.dev', eventId: '$event-1' }],
+        },
+      ],
       now: 100,
     })
 
     expect(store.cards[0]?.suggestions[0]?.disposition).toBe('pending')
     await store.setSuggestionDisposition('decision-1', 'suggestion-1', 'accepted', '@alice:muon.dev', 120)
-    expect(updateSuggestionDispositionMock).toHaveBeenCalledWith('decision-1', 'suggestion-1', 'accepted', '@alice:muon.dev', 120)
-    await expect(store.setSuggestionDisposition('decision-1', 'suggestion-1', 'pending', '@alice:muon.dev', 121)).rejects.toThrowError()
+    expect(updateSuggestionDispositionMock).toHaveBeenCalledWith(
+      'decision-1',
+      'suggestion-1',
+      'accepted',
+      '@alice:muon.dev',
+      120,
+    )
+    await expect(
+      store.setSuggestionDisposition('decision-1', 'suggestion-1', 'pending', '@alice:muon.dev', 121),
+    ).rejects.toThrowError()
   })
 
   it('hydrateCards only materializes digest-backed suggestions from the latest session', async () => {
@@ -252,9 +276,7 @@ describe('decisionStore', () => {
 
     // Only the 2 current-session entries should produce decision cards,
     // the old-session entry should NOT generate suggestions
-    const digestCardIds = store.cards
-      .filter(card => card.owner === 'digest')
-      .map(card => card.id)
+    const digestCardIds = store.cards.filter((card) => card.owner === 'digest').map((card) => card.id)
 
     expect(digestCardIds).toContain('decision:digest:digest-current-1')
     expect(digestCardIds).toContain('decision:digest:digest-current-2')
@@ -307,7 +329,7 @@ describe('decisionStore', () => {
     // The stale entries (session-ancient) should NOT produce digest-backed cards
     // Only the current session entry should be materialized, but it has no action/blocker
     // keywords so it should also produce no cards
-    const digestCards = store.cards.filter(card => card.owner === 'digest')
+    const digestCards = store.cards.filter((card) => card.owner === 'digest')
     expect(digestCards).toHaveLength(0)
   })
 
@@ -322,7 +344,14 @@ describe('decisionStore', () => {
       owner: '@alice:muon.dev',
       status: 'open',
       citations: [{ roomId: '!room:muon.dev', eventId: '$event-1' }],
-      suggestions: [{ id: 'suggestion-1', kind: 'action', summary: 'Create panel', citations: [{ roomId: '!room:muon.dev', eventId: '$event-1' }] }],
+      suggestions: [
+        {
+          id: 'suggestion-1',
+          kind: 'action',
+          summary: 'Create panel',
+          citations: [{ roomId: '!room:muon.dev', eventId: '$event-1' }],
+        },
+      ],
       now: 100,
     })
 

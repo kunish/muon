@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import type { Component } from 'vue'
-import type { DocSectionId } from '../types/doc'
+import type { Component } from 'vue';
+import type { DocSectionId } from '../types/doc';
 
 defineProps<{
-  sections: Array<{ id: DocSectionId, label: string, icon: Component }>
-  activeSection: DocSectionId
-}>()
+  sections: Array<{ id: DocSectionId; label: string; icon: Component }>;
+  activeSection: DocSectionId;
+}>();
 
-const emit = defineEmits<{ select: [id: DocSectionId] }>()
+const emit = defineEmits<{ select: [id: DocSectionId] }>();
 </script>
 
 <template>

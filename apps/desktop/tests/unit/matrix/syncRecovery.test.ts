@@ -17,8 +17,7 @@ describe('matrix sync recovery', () => {
     let syncListener: ((state: string) => void) | undefined
 
     vi.mocked(mockClient.on).mockImplementation((event: any, callback: any) => {
-      if (event === 'sync')
-        syncListener = callback
+      if (event === 'sync') syncListener = callback
     })
 
     const emitSpy = vi.spyOn(matrixEvents, 'emit')
@@ -112,13 +111,11 @@ describe('matrix sync recovery', () => {
     }
     const earlierTimeline = {
       getEvents: () => [historicalMessage],
-      getNeighbouringTimeline: (direction: string) =>
-        direction === EventTimeline.FORWARDS ? liveTimeline : null,
+      getNeighbouringTimeline: (direction: string) => (direction === EventTimeline.FORWARDS ? liveTimeline : null),
     }
     liveTimeline = {
       getEvents: () => [liveMembershipEvent],
-      getNeighbouringTimeline: (direction: string) =>
-        direction === EventTimeline.BACKWARDS ? earlierTimeline : null,
+      getNeighbouringTimeline: (direction: string) => (direction === EventTimeline.BACKWARDS ? earlierTimeline : null),
     }
 
     const room = {

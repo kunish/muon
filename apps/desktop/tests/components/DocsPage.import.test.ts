@@ -58,7 +58,7 @@ describe('docsPage import-doc handler', () => {
     ;(button.vm as { triggerImport: (file: File) => void }).triggerImport(file)
     await nextTick()
     // allow promise chain to settle
-    await new Promise(resolve => setTimeout(resolve, 0))
+    await new Promise((resolve) => setTimeout(resolve, 0))
 
     expect(createDocument).toHaveBeenCalledTimes(1)
     const [title] = createDocument.mock.calls[0]!
@@ -80,7 +80,7 @@ describe('docsPage import-doc handler', () => {
     const big = new File([new Uint8Array(1024 * 1024 + 1)], 'big.md', { type: 'text/markdown' })
     ;(button.vm as { triggerImport: (file: File) => void }).triggerImport(big)
     await nextTick()
-    await new Promise(resolve => setTimeout(resolve, 0))
+    await new Promise((resolve) => setTimeout(resolve, 0))
 
     expect(createDocument).not.toHaveBeenCalled()
     expect(appendMarkdown).not.toHaveBeenCalled()

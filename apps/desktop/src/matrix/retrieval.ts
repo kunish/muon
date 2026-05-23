@@ -38,9 +38,10 @@ export async function searchRoomEvents(term: string, limit = 20): Promise<Retrie
   }
 
   const client = getClient()
-  const joinedRoomIds: string[] = client.getRooms()
-    .filter(room => room.getMyMembership() === 'join')
-    .map(room => room.roomId)
+  const joinedRoomIds: string[] = client
+    .getRooms()
+    .filter((room) => room.getMyMembership() === 'join')
+    .map((room) => room.roomId)
     .filter((roomId): roomId is string => typeof roomId === 'string' && roomId.length > 0)
 
   if (joinedRoomIds.length === 0) {
@@ -59,7 +60,7 @@ export async function searchRoomEvents(term: string, limit = 20): Promise<Retrie
 
   const allowedRoomIds = new Set(joinedRoomIds)
   const items = mapSearchResults(searchResults?.results, allowedRoomIds)
-  const seenEventIds = new Set(items.map(item => item.eventId))
+  const seenEventIds = new Set(items.map((item) => item.eventId))
 
   const session: RetrievalSession = {
     term: normalizedTerm,
@@ -94,14 +95,12 @@ export async function backPaginateRoomEventsSearch(session: RetrievalSession): P
   const paginatedItems = mapSearchResults(session.searchResults?.results, session.allowedRoomIds)
   const appended: RetrievalItem[] = []
   for (const item of paginatedItems) {
-    if (session.seenEventIds.has(item.eventId))
-      continue
+    if (session.seenEventIds.has(item.eventId)) continue
     session.seenEventIds.add(item.eventId)
     appended.push(item)
   }
 
-  if (appended.length > 0)
-    session.items = [...session.items, ...appended]
+  if (appended.length > 0) session.items = [...session.items, ...appended]
 
   return {
     items: [...session.items],
@@ -112,18 +111,15 @@ export async function backPaginateRoomEventsSearch(session: RetrievalSession): P
 }
 
 function mapSearchResults(results: SearchResult[] | undefined, allowedRoomIds: Set<string>): RetrievalItem[] {
-  if (!Array.isArray(results))
-    return []
+  if (!Array.isArray(results)) return []
 
   const mapped: RetrievalItem[] = []
   for (const entry of results) {
     const event = entry.context.getEvent()
     const roomId = event.getRoomId()
     const eventId = event.getId()
-    if (!roomId || !eventId)
-      continue
-    if (!allowedRoomIds.has(roomId))
-      continue
+    if (!roomId || !eventId) continue
+    if (!allowedRoomIds.has(roomId)) continue
 
     mapped.push({
       roomId,

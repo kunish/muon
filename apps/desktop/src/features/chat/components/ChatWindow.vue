@@ -1,48 +1,48 @@
 <script setup lang="ts">
-import { provide, shallowRef, watch } from 'vue'
-import { useTyping } from '../composables/useTyping'
-import { useChatStore } from '../stores/chatStore'
-import ChatDocsList from './ChatDocsList.vue'
-import ChatFileList from './ChatFileList.vue'
-import ChatHeader from './ChatHeader.vue'
-import ChatSettingsPanel from './ChatSettingsPanel.vue'
-import EmojiEffectLayer from './EmojiEffectLayer.vue'
-import GlobalSearch from './GlobalSearch.vue'
-import KnowledgeCapturePanel from './KnowledgeCapturePanel.vue'
-import MediaViewer from './MediaViewer.vue'
-import MemberListPanel from './MemberListPanel.vue'
-import MessageList from './MessageList.vue'
-import MultiSelectBar from './MultiSelectBar.vue'
-import PinnedMessages from './PinnedMessages.vue'
-import RichTextInput from './RichTextInput.vue'
-import StarredMessages from './StarredMessages.vue'
-import TaskPanel from './TaskPanel.vue'
-import ThreadInboxPanel from './ThreadInboxPanel.vue'
-import ThreadPanel from './ThreadPanel.vue'
-import TypingIndicator from './TypingIndicator.vue'
+import { provide, shallowRef, watch } from 'vue';
+import { useTyping } from '../composables/useTyping';
+import { useChatStore } from '../stores/chatStore';
+import ChatDocsList from './ChatDocsList.vue';
+import ChatFileList from './ChatFileList.vue';
+import ChatHeader from './ChatHeader.vue';
+import ChatSettingsPanel from './ChatSettingsPanel.vue';
+import EmojiEffectLayer from './EmojiEffectLayer.vue';
+import GlobalSearch from './GlobalSearch.vue';
+import KnowledgeCapturePanel from './KnowledgeCapturePanel.vue';
+import MediaViewer from './MediaViewer.vue';
+import MemberListPanel from './MemberListPanel.vue';
+import MessageList from './MessageList.vue';
+import MultiSelectBar from './MultiSelectBar.vue';
+import PinnedMessages from './PinnedMessages.vue';
+import RichTextInput from './RichTextInput.vue';
+import StarredMessages from './StarredMessages.vue';
+import TaskPanel from './TaskPanel.vue';
+import ThreadInboxPanel from './ThreadInboxPanel.vue';
+import ThreadPanel from './ThreadPanel.vue';
+import TypingIndicator from './TypingIndicator.vue';
 
-const store = useChatStore()
+const store = useChatStore();
 
-const { typingUsers } = useTyping()
-type ChatContentTab = 'chat' | 'docs' | 'files'
+const { typingUsers } = useTyping();
+type ChatContentTab = 'chat' | 'docs' | 'files';
 
-const activeTab = shallowRef<ChatContentTab>('chat')
+const activeTab = shallowRef<ChatContentTab>('chat');
 
 // --- 全屏 emoji 特效 ---
-const effectLayerRef = shallowRef<InstanceType<typeof EmojiEffectLayer> | null>(null)
+const effectLayerRef = shallowRef<InstanceType<typeof EmojiEffectLayer> | null>(null);
 
 function triggerEmojiEffect(emoji: string, rect: DOMRect) {
-  effectLayerRef.value?.trigger(emoji, rect)
+  effectLayerRef.value?.trigger(emoji, rect);
 }
 
-provide('triggerEmojiEffect', triggerEmojiEffect)
+provide('triggerEmojiEffect', triggerEmojiEffect);
 
 watch(
   () => store.currentRoomId,
   () => {
-    activeTab.value = 'chat'
+    activeTab.value = 'chat';
   },
-)
+);
 </script>
 
 <template>
@@ -84,10 +84,7 @@ watch(
           data-testid="chat-side-panel-frame"
           class="h-full w-[320px] overflow-hidden"
         >
-          <GlobalSearch
-            v-if="store.activeSidePanel === 'search'"
-            @close="store.closeSidePanel()"
-          />
+          <GlobalSearch v-if="store.activeSidePanel === 'search'" @close="store.closeSidePanel()" />
           <ThreadInboxPanel
             v-else-if="store.activeSidePanel === 'threads' && store.currentRoomId"
             :room-id="store.currentRoomId"
@@ -102,12 +99,8 @@ watch(
             :room-id="store.currentRoomId"
             @close="store.closeSidePanel()"
           />
-          <MemberListPanel
-            v-else-if="store.activeSidePanel === 'members'"
-          />
-          <ChatSettingsPanel
-            v-else-if="store.activeSidePanel === 'settings'"
-          />
+          <MemberListPanel v-else-if="store.activeSidePanel === 'members'" />
+          <ChatSettingsPanel v-else-if="store.activeSidePanel === 'settings'" />
           <KnowledgeCapturePanel v-else-if="store.activeSidePanel === 'knowledge'" />
           <TaskPanel v-else-if="store.activeSidePanel === 'tasks'" />
         </div>
@@ -134,10 +127,7 @@ watch(
           data-testid="thread-panel-frame"
           class="h-full w-[360px] overflow-hidden"
         >
-          <ThreadPanel
-            :room-id="store.currentRoomId"
-            :thread-root-id="store.activeThreadId"
-          />
+          <ThreadPanel :room-id="store.currentRoomId" :thread-root-id="store.activeThreadId" />
         </div>
       </Transition>
     </aside>

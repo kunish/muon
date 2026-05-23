@@ -1,18 +1,21 @@
 <script setup lang="ts">
-import type { HTMLAttributes } from 'vue'
-import type { ListItemVariants } from '.'
-import { listItemVariants } from '.'
-import { cn } from '../../utils'
+import type { HTMLAttributes } from 'vue';
+import type { ListItemVariants } from '.';
+import { listItemVariants } from '.';
+import { cn } from '../../utils';
 
-const props = withDefaults(defineProps<{
-  selected?: boolean
-  size?: ListItemVariants['size']
-  title?: string
-  description?: string
-  class?: HTMLAttributes['class']
-}>(), { size: 'md', selected: false })
+const props = withDefaults(
+  defineProps<{
+    selected?: boolean;
+    size?: ListItemVariants['size'];
+    title?: string;
+    description?: string;
+    class?: HTMLAttributes['class'];
+  }>(),
+  { size: 'md', selected: false },
+);
 
-const emits = defineEmits<{ click: [event: MouseEvent] }>()
+const emits = defineEmits<{ click: [event: MouseEvent] }>();
 </script>
 
 <template>

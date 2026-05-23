@@ -14,12 +14,14 @@ vi.mock('vue-router', () => ({
 }))
 
 function mountShortcutHost() {
-  return mount(defineComponent({
-    setup() {
-      useGlobalShortcuts()
-      return () => null
-    },
-  }))
+  return mount(
+    defineComponent({
+      setup() {
+        useGlobalShortcuts()
+        return () => null
+      },
+    }),
+  )
 }
 
 function dispatchKey(target: EventTarget, key: string, init: KeyboardEventInit = {}): KeyboardEvent {

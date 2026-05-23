@@ -29,15 +29,13 @@ export async function sendReaction(roomId: string, eventId: string, emoji: strin
 /** 获取某条消息的 thread 回复列表 */
 export function getThreadReplies(roomId: string, threadRootId: string): MatrixEvent[] {
   const room = getClient().getRoom(roomId)
-  if (!room)
-    return []
+  if (!room) return []
 
   return getLinkedTimelineEvents(room).filter((e) => {
     const rel = e.getContent()?.['m.relates_to']
-    return !e.isRedacted()
-      && rel?.rel_type === 'm.thread'
-      && rel?.event_id === threadRootId
-      && isDisplayableTimelineEvent(e)
+    return (
+      !e.isRedacted() && rel?.rel_type === 'm.thread' && rel?.event_id === threadRootId && isDisplayableTimelineEvent(e)
+    )
   })
 }
 
@@ -46,25 +44,21 @@ export function getTimelineRelationSummaries(roomId: string): TimelineRelationSu
   const room = client.getRoom(roomId)
   const reactionsByEventId = new Map<string, ReactionSummary[]>()
   const threadReplyCountsByEventId = new Map<string, number>()
-  if (!room)
-    return { reactionsByEventId, threadReplyCountsByEventId }
+  if (!room) return { reactionsByEventId, threadReplyCountsByEventId }
 
   const userId = client.getUserId()
   const reactionBuckets = new Map<string, Map<string, ReactionSummary>>()
 
   for (const ev of getLinkedTimelineEvents(room)) {
-    if (ev.isRedacted())
-      continue
+    if (ev.isRedacted()) continue
 
     const rel = ev.getContent()?.['m.relates_to']
     const relatedEventId = rel?.event_id
-    if (!relatedEventId)
-      continue
+    if (!relatedEventId) continue
 
     if (ev.getType() === 'm.reaction' && rel.rel_type === RelationType.Annotation) {
       const key = rel.key
-      if (!key)
-        continue
+      if (!key) continue
 
       let eventReactions = reactionBuckets.get(relatedEventId)
       if (!eventReactions) {
@@ -74,17 +68,13 @@ export function getTimelineRelationSummaries(roomId: string): TimelineRelationSu
 
       const existing = eventReactions.get(key) ?? { key, count: 0, myReaction: false }
       existing.count++
-      if (ev.getSender() === userId)
-        existing.myReaction = true
+      if (ev.getSender() === userId) existing.myReaction = true
       eventReactions.set(key, existing)
       continue
     }
 
     if (rel.rel_type === 'm.thread' && isDisplayableTimelineEvent(ev)) {
-      threadReplyCountsByEventId.set(
-        relatedEventId,
-        (threadReplyCountsByEventId.get(relatedEventId) ?? 0) + 1,
-      )
+      threadReplyCountsByEventId.set(relatedEventId, (threadReplyCountsByEventId.get(relatedEventId) ?? 0) + 1)
     }
   }
 
@@ -96,18 +86,14 @@ export function getTimelineRelationSummaries(roomId: string): TimelineRelationSu
 }
 
 /** 在 thread 中发送回复 */
-export async function sendThreadReply(
-  roomId: string,
-  threadRootId: string,
-  body: string,
-): Promise<string> {
+export async function sendThreadReply(roomId: string, threadRootId: string, body: string): Promise<string> {
   const { event_id } = await getClient().sendMessage(roomId, {
-    'msgtype': MsgType.Text,
+    msgtype: MsgType.Text,
     body,
     'm.relates_to': {
-      'rel_type': 'm.thread',
-      'event_id': threadRootId,
-      'is_falling_back': true,
+      rel_type: 'm.thread',
+      event_id: threadRootId,
+      is_falling_back: true,
       'm.in_reply_to': { event_id: threadRootId },
     },
   } as RoomMessageEventContent)

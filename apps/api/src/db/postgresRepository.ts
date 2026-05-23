@@ -49,7 +49,7 @@ function userFromRow(row: Record<string, unknown>): EnterpriseUserRecord {
     passwordHash: String(row.password_hash),
     status: row.status as EnterpriseUserRecord['status'],
     mustChangePassword: Boolean(row.must_change_password),
-    roles: Array.isArray(row.roles) ? row.roles as EnterpriseUserRecord['roles'] : [],
+    roles: Array.isArray(row.roles) ? (row.roles as EnterpriseUserRecord['roles']) : [],
     createdAt: iso(row.created_at as string | Date),
     updatedAt: iso(row.updated_at as string | Date),
   }
@@ -63,7 +63,7 @@ function auditLogFromRow(row: Record<string, unknown>): AuditLog {
     action: String(row.action),
     targetType: String(row.target_type),
     targetId: row.target_id ? String(row.target_id) : null,
-    metadata: row.metadata && typeof row.metadata === 'object' ? row.metadata as Record<string, unknown> : {},
+    metadata: row.metadata && typeof row.metadata === 'object' ? (row.metadata as Record<string, unknown>) : {},
     ipAddress: row.ip_address ? String(row.ip_address) : null,
     userAgent: row.user_agent ? String(row.user_agent) : null,
     createdAt: iso(row.created_at as string | Date),
@@ -135,17 +135,18 @@ export interface MigrationFile {
 export async function loadMigrationFiles(dirUrl: URL): Promise<MigrationFile[]> {
   const dirPath = fileURLToPath(dirUrl)
   const entries = await readdir(dirPath)
-  const sqlFiles = entries.filter(entry => entry.endsWith('.sql')).sort()
-  return Promise.all(sqlFiles.map(async (name) => {
-    const sql = await readFile(new URL(name, dirUrl), 'utf8')
-    return { name, sql }
-  }))
+  const sqlFiles = entries.filter((entry) => entry.endsWith('.sql')).sort()
+  return Promise.all(
+    sqlFiles.map(async (name) => {
+      const sql = await readFile(new URL(name, dirUrl), 'utf8')
+      return { name, sql }
+    }),
+  )
 }
 
 export async function migratePostgres(pool: Pool): Promise<void> {
   const migrations = await loadMigrationFiles(new URL('./migrations/', import.meta.url))
-  for (const migration of migrations)
-    await pool.query(migration.sql)
+  for (const migration of migrations) await pool.query(migration.sql)
 }
 
 export async function createPostgresEnterpriseRepository(databaseUrl: string): Promise<EnterpriseRepository> {
@@ -290,10 +291,7 @@ export async function createPostgresEnterpriseRepository(databaseUrl: string): P
     },
 
     async findAdminSessionByTokenHash(accessTokenHash: string) {
-      const result = await pool.query(
-        'SELECT * FROM admin_sessions WHERE access_token_hash = $1',
-        [accessTokenHash],
-      )
+      const result = await pool.query('SELECT * FROM admin_sessions WHERE access_token_hash = $1', [accessTokenHash])
       return result.rows[0] ? adminSessionFromRow(result.rows[0]) : null
     },
 
@@ -303,23 +301,20 @@ export async function createPostgresEnterpriseRepository(databaseUrl: string): P
     },
 
     async findDeviceSessionById(id: string) {
-      const result = await pool.query(
-        'SELECT * FROM device_sessions WHERE id = $1',
-        [id],
-      )
+      const result = await pool.query('SELECT * FROM device_sessions WHERE id = $1', [id])
       return result.rows[0] ? deviceSessionFromRow(result.rows[0]) : null
     },
 
     async findDeviceSessionByRefreshTokenHash(refreshTokenHash: string) {
-      const result = await pool.query(
-        'SELECT * FROM device_sessions WHERE refresh_token_hash = $1',
-        [refreshTokenHash],
-      )
+      const result = await pool.query('SELECT * FROM device_sessions WHERE refresh_token_hash = $1', [refreshTokenHash])
       return result.rows[0] ? deviceSessionFromRow(result.rows[0]) : null
     },
 
     async findMatrixAccount(organizationId: string, userId: string) {
-      const result = await pool.query('SELECT * FROM matrix_accounts WHERE organization_id = $1 AND user_id = $2', [organizationId, userId])
+      const result = await pool.query('SELECT * FROM matrix_accounts WHERE organization_id = $1 AND user_id = $2', [
+        organizationId,
+        userId,
+      ])
       return result.rows[0] ? matrixAccountFromRow(result.rows[0]) : null
     },
 
@@ -329,15 +324,18 @@ export async function createPostgresEnterpriseRepository(databaseUrl: string): P
     },
 
     async findUserById(organizationId: string, userId: string) {
-      const result = await pool.query(
-        'SELECT * FROM users WHERE organization_id = $1 AND id = $2',
-        [organizationId, userId],
-      )
+      const result = await pool.query('SELECT * FROM users WHERE organization_id = $1 AND id = $2', [
+        organizationId,
+        userId,
+      ])
       return result.rows[0] ? userFromRow(result.rows[0]) : null
     },
 
     async findUserByUsername(organizationId: string, username: string) {
-      const result = await pool.query('SELECT * FROM users WHERE organization_id = $1 AND username = $2', [organizationId, username])
+      const result = await pool.query('SELECT * FROM users WHERE organization_id = $1 AND username = $2', [
+        organizationId,
+        username,
+      ])
       return result.rows[0] ? userFromRow(result.rows[0]) : null
     },
 
@@ -352,7 +350,9 @@ export async function createPostgresEnterpriseRepository(databaseUrl: string): P
     },
 
     async listAuditLogsByOrganization(organizationId: string) {
-      const result = await pool.query('SELECT * FROM audit_logs WHERE organization_id = $1 ORDER BY created_at DESC', [organizationId])
+      const result = await pool.query('SELECT * FROM audit_logs WHERE organization_id = $1 ORDER BY created_at DESC', [
+        organizationId,
+      ])
       return result.rows.map(auditLogFromRow)
     },
 
@@ -362,25 +362,23 @@ export async function createPostgresEnterpriseRepository(databaseUrl: string): P
     },
 
     async listUsersByOrganization(organizationId: string) {
-      const result = await pool.query('SELECT * FROM users WHERE organization_id = $1 ORDER BY created_at ASC', [organizationId])
+      const result = await pool.query('SELECT * FROM users WHERE organization_id = $1 ORDER BY created_at ASC', [
+        organizationId,
+      ])
       return result.rows.map(userFromRow)
     },
 
     async markAuthorizationCodeUsed(id: string) {
-      const result = await pool.query(
-        'UPDATE oauth_authorization_codes SET used_at = $2 WHERE id = $1 RETURNING *',
-        [id, nowIso()],
-      )
-      if (!result.rows[0])
-        throw new Error('Authorization code not found')
+      const result = await pool.query('UPDATE oauth_authorization_codes SET used_at = $2 WHERE id = $1 RETURNING *', [
+        id,
+        nowIso(),
+      ])
+      if (!result.rows[0]) throw new Error('Authorization code not found')
       return authorizationCodeFromRow(result.rows[0])
     },
 
     async revokeAdminSession(id: string) {
-      await pool.query(
-        'UPDATE admin_sessions SET revoked_at = COALESCE(revoked_at, $2) WHERE id = $1',
-        [id, nowIso()],
-      )
+      await pool.query('UPDATE admin_sessions SET revoked_at = COALESCE(revoked_at, $2) WHERE id = $1', [id, nowIso()])
     },
 
     async revokeDeviceSession(id: string) {
@@ -411,16 +409,12 @@ export async function createPostgresEnterpriseRepository(databaseUrl: string): P
          RETURNING *`,
         [organizationId, userId, input.passwordHash, input.mustChangePassword, nowIso()],
       )
-      if (!result.rows[0])
-        throw new Error('User not found')
+      if (!result.rows[0]) throw new Error('User not found')
       return userFromRow(result.rows[0])
     },
 
     async touchAdminSession(id: string) {
-      await pool.query(
-        'UPDATE admin_sessions SET last_seen_at = $2 WHERE id = $1',
-        [id, nowIso()],
-      )
+      await pool.query('UPDATE admin_sessions SET last_seen_at = $2 WHERE id = $1', [id, nowIso()])
     },
 
     async updateUser(organizationId: string, userId: string, input: UpdateUserInput) {
@@ -445,8 +439,7 @@ export async function createPostgresEnterpriseRepository(databaseUrl: string): P
           nowIso(),
         ],
       )
-      if (!result.rows[0])
-        throw new Error('User not found')
+      if (!result.rows[0]) throw new Error('User not found')
       return userFromRow(result.rows[0])
     },
 
@@ -461,14 +454,7 @@ export async function createPostgresEnterpriseRepository(databaseUrl: string): P
            provisioning_status = 'active',
            last_provisioned_at = EXCLUDED.last_provisioned_at
          RETURNING *`,
-        [
-          input.organizationId,
-          input.userId,
-          input.matrixUserId,
-          input.matrixDeviceId,
-          input.accessToken,
-          nowIso(),
-        ],
+        [input.organizationId, input.userId, input.matrixUserId, input.matrixDeviceId, input.accessToken, nowIso()],
       )
       return matrixAccountFromRow(result.rows[0])
     },

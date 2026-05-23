@@ -35,7 +35,7 @@ describe('crossSessionQa service', () => {
         },
       ],
     })
-    saveQaSessionMock.mockImplementation(async answer => answer)
+    saveQaSessionMock.mockImplementation(async (answer) => answer)
 
     const { askCrossSessionQuestion } = await import('@/features/chat/services/crossSessionQa')
     const answer = await askCrossSessionQuestion('What should ship this week?')
@@ -60,7 +60,7 @@ describe('crossSessionQa service', () => {
         },
       ],
     })
-    saveQaSessionMock.mockImplementation(async answer => answer)
+    saveQaSessionMock.mockImplementation(async (answer) => answer)
 
     const { askCrossSessionQuestion } = await import('@/features/chat/services/crossSessionQa')
     await askCrossSessionQuestion('What is the current status?')
@@ -94,6 +94,6 @@ describe('crossSessionQa service', () => {
     const history = await listSavedQaSessions()
 
     expect(listQaSessionsMock).toHaveBeenCalledTimes(1)
-    expect(history.map(item => item.id)).toEqual(['qa-2', 'qa-1'])
+    expect(history.map((item) => item.id)).toEqual(['qa-2', 'qa-1'])
   })
 })

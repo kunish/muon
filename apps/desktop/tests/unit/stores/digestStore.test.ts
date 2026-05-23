@@ -8,7 +8,7 @@ const matrixOffMock = vi.fn()
 const getRoomSummariesMock = vi.fn()
 const getUserIdMock = vi.fn()
 
-type MatrixMessageHandler = (payload: { roomId: string, event: any }) => void
+type MatrixMessageHandler = (payload: { roomId: string; event: any }) => void
 
 const runtimeHandlers = new Map<string, MatrixMessageHandler>()
 
@@ -103,7 +103,7 @@ describe('digestStore', () => {
 
     expect(listDigestEntriesMock).toHaveBeenCalledTimes(1)
     expect(callSequence[0]).toBe('list')
-    expect(store.visibleEntries.map(entry => entry.eventId)).toEqual(['$inside-window'])
+    expect(store.visibleEntries.map((entry) => entry.eventId)).toEqual(['$inside-window'])
     expect(saveDigestEntryMock).toHaveBeenCalledTimes(1)
   })
 
@@ -175,8 +175,8 @@ describe('digestStore', () => {
     // After initialize, hydrated entries from Dexie should be preserved
     // (not overwritten by empty materialization from sourceEvents)
     expect(store.entries).toHaveLength(2)
-    expect(store.entries.map(e => e.id)).toContain('digest:$persisted-1')
-    expect(store.entries.map(e => e.id)).toContain('digest:$persisted-2')
+    expect(store.entries.map((e) => e.id)).toContain('digest:$persisted-1')
+    expect(store.entries.map((e) => e.id)).toContain('digest:$persisted-2')
   })
 
   it('buildDigestSession does not overwrite hydrated entries with empty materialization', async () => {
@@ -216,8 +216,8 @@ describe('digestStore', () => {
 
     // Hydrated entries should still be present (merge-on-empty semantics)
     expect(store.entries).toHaveLength(2)
-    expect(store.entries.map(e => e.id)).toContain('digest:$hydrated-1')
-    expect(store.entries.map(e => e.id)).toContain('digest:$hydrated-2')
+    expect(store.entries.map((e) => e.id)).toContain('digest:$hydrated-1')
+    expect(store.entries.map((e) => e.id)).toContain('digest:$hydrated-2')
   })
 
   it('materializes responsibility > follow > mention from real room and user signals', async () => {
@@ -230,13 +230,33 @@ describe('digestStore', () => {
     const { useDigestStore } = await import('@/features/chat/stores/digestStore')
     const store = useDigestStore()
 
-    store.ingestEvent({ roomId: '!mention:muon.dev', eventId: '$mention', sender: '@alice:muon.dev', body: 'General mention', ts: 170 })
-    store.ingestEvent({ roomId: '!follow:muon.dev', eventId: '$follow', sender: '@alice:muon.dev', body: 'Pinned room update', ts: 180 })
-    store.ingestEvent({ roomId: '!responsibility:muon.dev', eventId: '$responsibility', sender: '@alice:muon.dev', body: 'Action needed from @me:muon.dev', ts: 160 })
+    store.ingestEvent({
+      roomId: '!mention:muon.dev',
+      eventId: '$mention',
+      sender: '@alice:muon.dev',
+      body: 'General mention',
+      ts: 170,
+    })
+    store.ingestEvent({
+      roomId: '!follow:muon.dev',
+      eventId: '$follow',
+      sender: '@alice:muon.dev',
+      body: 'Pinned room update',
+      ts: 180,
+    })
+    store.ingestEvent({
+      roomId: '!responsibility:muon.dev',
+      eventId: '$responsibility',
+      sender: '@alice:muon.dev',
+      body: 'Action needed from @me:muon.dev',
+      ts: 160,
+    })
 
     await store.buildDigestSession({ now: 200 })
 
-    expect(store.entries.map(entry => ({ eventId: entry.citations[0]?.eventId, relevance: entry.relevance }))).toEqual([
+    expect(
+      store.entries.map((entry) => ({ eventId: entry.citations[0]?.eventId, relevance: entry.relevance })),
+    ).toEqual([
       { eventId: '$responsibility', relevance: 'responsibility' },
       { eventId: '$follow', relevance: 'follow' },
       { eventId: '$mention', relevance: 'mention' },

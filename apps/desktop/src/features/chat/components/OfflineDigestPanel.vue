@@ -1,39 +1,39 @@
 <script setup lang="ts">
-import type { DigestFilter } from '../types/digest'
-import type { DigestRelevance } from '../types/knowledge'
-import { computed, onMounted, onUnmounted } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
-import { preloadAndNavigate } from '@/shared/lib/contextPreload'
-import { useDigestStore } from '../stores/digestStore'
+import type { DigestFilter } from '../types/digest';
+import type { DigestRelevance } from '../types/knowledge';
+import { computed, onMounted, onUnmounted } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useRouter } from 'vue-router';
+import { preloadAndNavigate } from '@/shared/lib/contextPreload';
+import { useDigestStore } from '../stores/digestStore';
 
-const router = useRouter()
-const digestStore = useDigestStore()
-const { t } = useI18n()
+const router = useRouter();
+const digestStore = useDigestStore();
+const { t } = useI18n();
 
-const filters = computed<Array<{ id: DigestFilter, label: string }>>(() => [
+const filters = computed<Array<{ id: DigestFilter; label: string }>>(() => [
   { id: 'all', label: t('chat.digest_filter_all') },
   { id: 'responsibility', label: t('chat.digest_relevance_responsibility') },
   { id: 'follow', label: t('chat.digest_relevance_follow') },
   { id: 'mention', label: t('chat.digest_relevance_mention') },
-])
+]);
 
-const entries = computed(() => digestStore.visibleEntries)
+const entries = computed(() => digestStore.visibleEntries);
 
 function relevanceLabel(relevance: DigestRelevance) {
-  return t(`chat.digest_relevance_${relevance}`)
+  return t(`chat.digest_relevance_${relevance}`);
 }
 
 onMounted(() => {
-  void digestStore.initializeDigest()
-})
+  void digestStore.initializeDigest();
+});
 
 onUnmounted(() => {
-  digestStore.stopRuntimeSync()
-})
+  digestStore.stopRuntimeSync();
+});
 
 async function openCitation(roomId: string, eventId: string) {
-  await preloadAndNavigate(router, roomId, eventId, 'OfflineDigestPanel')
+  await preloadAndNavigate(router, roomId, eventId, 'OfflineDigestPanel');
 }
 </script>
 
@@ -49,7 +49,11 @@ async function openCitation(roomId: string, eventId: string) {
           :key="filter.id"
           type="button"
           class="rounded-md border px-2 py-1 text-xs"
-          :class="digestStore.activeFilter === filter.id ? 'border-primary text-primary' : 'border-border text-muted-foreground'"
+          :class="
+            digestStore.activeFilter === filter.id
+              ? 'border-primary text-primary'
+              : 'border-border text-muted-foreground'
+          "
           :data-testid="`digest-filter-${filter.id}`"
           @click="digestStore.setFilter(filter.id)"
         >

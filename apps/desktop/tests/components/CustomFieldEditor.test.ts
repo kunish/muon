@@ -31,11 +31,12 @@ const InputStub = defineComponent({
   },
   emits: ['update:modelValue'],
   setup(props, { attrs, emit }) {
-    return () => h('input', {
-      ...attrs,
-      value: props.modelValue,
-      onInput: (event: Event) => emit('update:modelValue', (event.target as HTMLInputElement).value),
-    })
+    return () =>
+      h('input', {
+        ...attrs,
+        value: props.modelValue,
+        onInput: (event: Event) => emit('update:modelValue', (event.target as HTMLInputElement).value),
+      })
   },
 })
 
@@ -92,14 +93,18 @@ describe('customFieldEditor', () => {
     await flushPromises()
 
     expect(wrapper.get('[data-testid="project-custom-field-type"]').text()).toContain('单选')
-    expect((wrapper.get('[data-testid="project-custom-field-options"]').element as HTMLInputElement).value).toBe('待确认, 通过')
+    expect((wrapper.get('[data-testid="project-custom-field-options"]').element as HTMLInputElement).value).toBe(
+      '待确认, 通过',
+    )
 
     await wrapper.get('[data-testid="project-custom-field-options"]').setValue('待确认, 通过, 驳回')
 
-    expect(projectRepoMock.saveCustomField).toHaveBeenCalledWith(expect.objectContaining({
-      id: 'field-1',
-      options: ['待确认', '通过', '驳回'],
-    }))
+    expect(projectRepoMock.saveCustomField).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'field-1',
+        options: ['待确认', '通过', '驳回'],
+      }),
+    )
   })
 
   it('clears stale options when an option field changes to a plain field', async () => {
@@ -113,10 +118,12 @@ describe('customFieldEditor', () => {
 
     await wrapper.get('[data-testid="project-custom-field-type"]').setValue('text')
 
-    expect(projectRepoMock.saveCustomField).toHaveBeenCalledWith(expect.objectContaining({
-      id: 'field-1',
-      type: 'text',
-      options: [],
-    }))
+    expect(projectRepoMock.saveCustomField).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'field-1',
+        type: 'text',
+        options: [],
+      }),
+    )
   })
 })

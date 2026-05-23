@@ -1,26 +1,26 @@
 <script setup lang="ts">
-import { Avatar } from '@muon/ui/avatar'
-import { SearchBox } from '@muon/ui/search-box'
-import { useI18n } from 'vue-i18n'
-import { useContactStore } from '../stores/contactStore'
-import ContactItem from './ContactItem.vue'
+import { Avatar } from '@muon/ui/avatar';
+import { SearchBox } from '@muon/ui/search-box';
+import { useI18n } from 'vue-i18n';
+import { useContactStore } from '../stores/contactStore';
+import ContactItem from './ContactItem.vue';
 
 const props = defineProps<{
-  selectedGroupId?: string | null
-}>()
+  selectedGroupId?: string | null;
+}>();
 
 const emit = defineEmits<{
-  select: [userId: string]
-  open: [userId: string]
-  selectGroup: [roomId: string]
-}>()
+  select: [userId: string];
+  open: [userId: string];
+  selectGroup: [roomId: string];
+}>();
 
-const { t } = useI18n()
-const store = useContactStore()
+const { t } = useI18n();
+const store = useContactStore();
 
 function handleSelectContact(userId: string): void {
-  store.selectedContactId = userId
-  emit('select', userId)
+  store.selectedContactId = userId;
+  emit('select', userId);
 }
 </script>
 
@@ -33,10 +33,7 @@ function handleSelectContact(userId: string): void {
         :placeholder="t('contacts.search')"
       />
     </div>
-    <div
-      data-testid="contacts-list-scroll-container"
-      class="min-h-0 flex-1 overflow-y-auto px-2 pb-3"
-    >
+    <div data-testid="contacts-list-scroll-container" class="min-h-0 flex-1 overflow-y-auto px-2 pb-3">
       <section v-if="store.filteredContacts.length > 0" class="space-y-0.5">
         <div class="px-2 pb-1 pt-1 text-[11px] font-bold uppercase leading-4 tracking-[0.05em] text-muted-foreground">
           {{ t('contacts.contacts') }}

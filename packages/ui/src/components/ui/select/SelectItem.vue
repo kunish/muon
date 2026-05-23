@@ -1,15 +1,15 @@
 <script setup lang="ts">
-import type { SelectItemProps } from 'reka-ui'
-import { CheckIcon } from 'lucide-vue-next'
-import { SelectItem, SelectItemIndicator, useForwardProps } from 'reka-ui'
-import { cn } from '../../../utils'
+import type { SelectItemProps } from 'reka-ui';
+import { CheckIcon } from 'lucide-vue-next';
+import { SelectItem, SelectItemIndicator, useForwardProps } from 'reka-ui';
+import { cn } from '../../../utils';
 
-const props = defineProps<SelectItemProps & { class?: string }>()
+const props = defineProps<SelectItemProps & { class?: string }>();
 
 const forwardedProps = useForwardProps(() => {
-  const { class: _, ...delegated } = props
-  return delegated
-})
+  const { class: _, ...delegated } = props;
+  return delegated;
+});
 </script>
 
 <template>

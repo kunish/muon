@@ -145,7 +145,7 @@ describe('docsPage navigation', () => {
 
   it('navigates from the list to a selected document route', async () => {
     const wrapper = mountDocsPage()
-    const docRow = wrapper.findAll('button').find(button => button.text().includes('接口设计评审'))
+    const docRow = wrapper.findAll('button').find((button) => button.text().includes('接口设计评审'))
 
     expect(docRow).toBeDefined()
     await docRow!.trigger('click')
@@ -204,7 +204,10 @@ describe('docsPage navigation', () => {
   it('moves documents to another folder from the list quick action', async () => {
     const wrapper = mountDocsPage()
 
-    await wrapper.findAll('[data-testid="docs-folder-row"]').find(row => row.text().includes('工程文档'))!.trigger('click')
+    await wrapper
+      .findAll('[data-testid="docs-folder-row"]')
+      .find((row) => row.text().includes('工程文档'))!
+      .trigger('click')
     expect(wrapper.text()).toContain('接口设计评审')
 
     await wrapper.get('[data-testid="docs-move"]').trigger('click')
@@ -220,14 +223,17 @@ describe('docsPage navigation', () => {
 
     await wrapper.get('[data-testid="docs-star"]').trigger('click')
     await flushPromises()
-    await wrapper.findAll('button').find(button => button.text().includes('已收藏'))!.trigger('click')
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text().includes('已收藏'))!
+      .trigger('click')
 
     expect(wrapper.text()).toContain('接口设计评审')
   })
 
   it('navigates to a newly created document', async () => {
     const wrapper = mountDocsPage()
-    const createButton = wrapper.findAll('button').find(button => button.text().includes('新建文档'))
+    const createButton = wrapper.findAll('button').find((button) => button.text().includes('新建文档'))
 
     expect(createButton).toBeDefined()
     await createButton!.trigger('click')
@@ -240,7 +246,10 @@ describe('docsPage navigation', () => {
     routeParams.mockReturnValue({ docId: '!doc:localhost' })
     const wrapper = mountDocsPage()
 
-    await wrapper.findAll('button').find(button => button.text().includes('最近更新'))!.trigger('click')
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text().includes('最近更新'))!
+      .trigger('click')
 
     expect(routerPush).toHaveBeenCalledWith('/docs')
   })

@@ -1,42 +1,39 @@
 <script setup lang="ts">
-import { Button } from '@muon/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@muon/ui/dialog'
-import { Input } from '@muon/ui/input'
-import { Label } from '@muon/ui/label'
-import { ref } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
-import { toast } from 'vue-sonner'
-import { useServerStore } from '@/features/server/stores/serverStore'
-import { createSpace } from '@/matrix/spaces'
+import { Button } from '@muon/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@muon/ui/dialog';
+import { Input } from '@muon/ui/input';
+import { Label } from '@muon/ui/label';
+import { ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useRouter } from 'vue-router';
+import { toast } from 'vue-sonner';
+import { useServerStore } from '@/features/server/stores/serverStore';
+import { createSpace } from '@/matrix/spaces';
 
-const router = useRouter()
-const serverStore = useServerStore()
-const { t } = useI18n()
+const router = useRouter();
+const serverStore = useServerStore();
+const { t } = useI18n();
 
-const open = ref(false)
-const serverName = ref('')
-const isCreating = ref(false)
+const open = ref(false);
+const serverName = ref('');
+const isCreating = ref(false);
 
 async function handleCreate() {
-  if (!serverName.value.trim() || isCreating.value)
-    return
-  isCreating.value = true
+  if (!serverName.value.trim() || isCreating.value) return;
+  isCreating.value = true;
   try {
-    const spaceId = await createSpace(serverName.value.trim())
-    serverStore.loadServers()
-    serverStore.selectServer(spaceId)
-    open.value = false
-    serverName.value = ''
+    const spaceId = await createSpace(serverName.value.trim());
+    serverStore.loadServers();
+    serverStore.selectServer(spaceId);
+    open.value = false;
+    serverName.value = '';
     // Navigate to the new server (no channels yet)
-    router.push(`/server/${encodeURIComponent(spaceId)}/channel/`)
-  }
-  catch (error) {
-    console.error('Failed to create server:', error)
-    toast.error(t('server.create_failed'))
-  }
-  finally {
-    isCreating.value = false
+    router.push(`/server/${encodeURIComponent(spaceId)}/channel/`);
+  } catch (error) {
+    console.error('Failed to create server:', error);
+    toast.error(t('server.create_failed'));
+  } finally {
+    isCreating.value = false;
   }
 }
 </script>
@@ -55,11 +52,7 @@ async function handleCreate() {
         <Label class="text-xs font-bold text-muted-foreground uppercase tracking-wide">
           {{ t('server.server_name') }}
         </Label>
-        <Input
-          v-model="serverName"
-          :placeholder="t('server.server_name_placeholder')"
-          @keydown.enter="handleCreate"
-        />
+        <Input v-model="serverName" :placeholder="t('server.server_name_placeholder')" @keydown.enter="handleCreate" />
       </div>
       <div class="flex justify-end gap-2">
         <Button variant="ghost" @click="open = false">

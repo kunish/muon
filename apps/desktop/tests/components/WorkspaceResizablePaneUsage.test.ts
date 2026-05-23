@@ -35,18 +35,22 @@ describe('workspace resizable pane usage', () => {
 
     expect(pane.attributes('style')).toContain('width: 240px')
 
-    handle.element.dispatchEvent(new MouseEvent('pointerdown', {
-      bubbles: true,
-      cancelable: true,
-      button: 0,
-      clientX: 240,
-    }))
+    handle.element.dispatchEvent(
+      new MouseEvent('pointerdown', {
+        bubbles: true,
+        cancelable: true,
+        button: 0,
+        clientX: 240,
+      }),
+    )
     await nextTick()
 
-    window.dispatchEvent(new MouseEvent('pointermove', {
-      bubbles: true,
-      clientX: 300,
-    }))
+    window.dispatchEvent(
+      new MouseEvent('pointermove', {
+        bubbles: true,
+        clientX: 300,
+      }),
+    )
     await nextTick()
 
     expect(pane.attributes('style')).toContain('width: 300px')
@@ -75,18 +79,22 @@ describe('workspace resizable pane usage', () => {
 
     expect(pane.attributes('style')).toContain('width: 240px')
 
-    handle.element.dispatchEvent(new MouseEvent('pointerdown', {
-      bubbles: true,
-      cancelable: true,
-      button: 0,
-      clientX: 240,
-    }))
+    handle.element.dispatchEvent(
+      new MouseEvent('pointerdown', {
+        bubbles: true,
+        cancelable: true,
+        button: 0,
+        clientX: 240,
+      }),
+    )
     await nextTick()
 
-    window.dispatchEvent(new MouseEvent('pointermove', {
-      bubbles: true,
-      clientX: 304,
-    }))
+    window.dispatchEvent(
+      new MouseEvent('pointermove', {
+        bubbles: true,
+        clientX: 304,
+      }),
+    )
     await nextTick()
 
     expect(pane.attributes('style')).toContain('width: 304px')

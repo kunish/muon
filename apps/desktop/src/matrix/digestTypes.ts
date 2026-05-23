@@ -5,7 +5,7 @@ import { z } from 'zod'
 // ============================================================================
 
 export const DIGEST_RELEVANCE = ['responsibility', 'follow', 'mention'] as const
-export type DigestRelevance = typeof DIGEST_RELEVANCE[number]
+export type DigestRelevance = (typeof DIGEST_RELEVANCE)[number]
 
 export type DigestFilter = DigestRelevance | 'all'
 
@@ -28,7 +28,7 @@ export const citationRefSchema = z.object({
 export type CitationRef = z.infer<typeof citationRefSchema>
 
 export function toCitationEventIds(citations: CitationRef[]): string[] {
-  return citations.map(citation => citation.eventId)
+  return citations.map((citation) => citation.eventId)
 }
 
 // ============================================================================
@@ -93,8 +93,7 @@ export function createDigestCitation(roomId: string, eventId: string, body: stri
 }
 
 function createMentionTokens(userId?: string | null): string[] {
-  if (!userId)
-    return []
+  if (!userId) return []
 
   const localpart = userId.split(':')[0]
   return [userId, localpart].filter(Boolean)
@@ -108,13 +107,11 @@ export function deriveDigestRelevance(
   } = {},
 ): DigestRelevance {
   const mentionTokens = createMentionTokens(options.currentUserId)
-  const mentionsCurrentUser = mentionTokens.some(token => event.body.includes(token))
+  const mentionsCurrentUser = mentionTokens.some((token) => event.body.includes(token))
 
-  if ((options.roomSignal?.highlightCount ?? 0) > 0 || mentionsCurrentUser)
-    return 'responsibility'
+  if ((options.roomSignal?.highlightCount ?? 0) > 0 || mentionsCurrentUser) return 'responsibility'
 
-  if (options.roomSignal?.isPinned)
-    return 'follow'
+  if (options.roomSignal?.isPinned) return 'follow'
 
   return event.relevanceHint ?? 'mention'
 }
@@ -136,8 +133,7 @@ export function toDigestEntry(sessionId: string, event: DigestSourceEvent, relev
 
 export function compareDigestEntries(a: DigestEntry, b: DigestEntry): number {
   const priorityDiff = DIGEST_RELEVANCE_PRIORITY[a.relevance] - DIGEST_RELEVANCE_PRIORITY[b.relevance]
-  if (priorityDiff !== 0)
-    return priorityDiff
+  if (priorityDiff !== 0) return priorityDiff
 
   return b.createdAt - a.createdAt
 }

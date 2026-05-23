@@ -1,69 +1,98 @@
 <script setup lang="ts">
-import type { AuditLog, DeviceSessionPublic, EnterpriseUser, Organization, UserRole, UserStatus } from '@muon/enterprise-contracts'
-import { Button } from '@muon/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@muon/ui/card'
-import { Input } from '@muon/ui/input'
-import { Label } from '@muon/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@muon/ui/select'
-import { computed, reactive, ref } from 'vue'
-import { RouterLink, useRoute, useRouter } from 'vue-router'
-import { changeOwnPassword, createAdminUser, createOrganization, getAdminMe, installMuon, listAuditLogs, listOrganizations, listUserDeviceSessions, listUsers, loginAdmin, logoutAdmin, resetAdminUserPassword, revokeUserDeviceSession, updateAdminUser } from './api'
-import { adminSections, defaultAdminSection, isAdminSection } from './router'
+import type {
+  AuditLog,
+  DeviceSessionPublic,
+  EnterpriseUser,
+  Organization,
+  UserRole,
+  UserStatus,
+} from '@muon/enterprise-contracts';
+import { Button } from '@muon/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@muon/ui/card';
+import { Input } from '@muon/ui/input';
+import { Label } from '@muon/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@muon/ui/select';
+import { computed, reactive, ref } from 'vue';
+import { RouterLink, useRoute, useRouter } from 'vue-router';
+import {
+  changeOwnPassword,
+  createAdminUser,
+  createOrganization,
+  getAdminMe,
+  installMuon,
+  listAuditLogs,
+  listOrganizations,
+  listUserDeviceSessions,
+  listUsers,
+  loginAdmin,
+  logoutAdmin,
+  resetAdminUserPassword,
+  revokeUserDeviceSession,
+  updateAdminUser,
+} from './api';
+import { adminSections, defaultAdminSection, isAdminSection } from './router';
 
-const props = withDefaults(defineProps<{
-  initialInstalled?: boolean
-  initialAdminToken?: string
-}>(), {
-  initialInstalled: false,
-  initialAdminToken: '',
-})
+const props = withDefaults(
+  defineProps<{
+    initialInstalled?: boolean;
+    initialAdminToken?: string;
+  }>(),
+  {
+    initialInstalled: false,
+    initialAdminToken: '',
+  },
+);
 
-const adminTokenStorageKey = 'muon_admin_token'
-const route = useRoute()
-const router = useRouter()
+const adminTokenStorageKey = 'muon_admin_token';
+const route = useRoute();
+const router = useRouter();
 
 function readStoredAdminToken(): string {
-  if (typeof window === 'undefined')
-    return ''
-  return window.localStorage.getItem(adminTokenStorageKey) ?? ''
+  if (typeof window === 'undefined') return '';
+  return window.localStorage.getItem(adminTokenStorageKey) ?? '';
 }
 
-const installed = ref(props.initialInstalled)
-const adminToken = ref(props.initialAdminToken || readStoredAdminToken())
-const mustChangePassword = ref(false)
-const changePasswordForm = reactive({ currentPassword: '', newPassword: '' })
-const changePasswordSubmitting = ref(false)
-const changePasswordError = ref('')
-const submitting = ref(false)
-const loginSubmitting = ref(false)
-const organizationSubmitting = ref(false)
-const userSubmitting = ref(false)
-const dashboardLoading = ref(false)
-const error = ref('')
-const loginError = ref('')
-const organizationError = ref('')
-const userError = ref('')
-const organizations = ref<Organization[]>([])
-const users = ref<EnterpriseUser[]>([])
-const auditLogs = ref<AuditLog[]>([])
-const organizationSearch = ref('')
-const userSearch = ref('')
-const userStatusFilter = ref<'all' | UserStatus>('all')
-const auditSearch = ref('')
-const userDrafts = reactive<Record<string, {
-  displayName: string
-  email: string
-  role: UserRole
-  username: string
-}>>({})
-const passwordDrafts = reactive<Record<string, string>>({})
-const passwordPolicies = reactive<Record<string, boolean>>({})
-const updatingUsers = reactive<Record<string, boolean>>({})
-const resettingPasswords = reactive<Record<string, boolean>>({})
-const expandedSessions = reactive<Record<string, boolean>>({})
-const userSessions = reactive<Record<string, DeviceSessionPublic[]>>({})
-const sessionLoading = reactive<Record<string, boolean>>({})
-const revokingSession = reactive<Record<string, boolean>>({})
+const installed = ref(props.initialInstalled);
+const adminToken = ref(props.initialAdminToken || readStoredAdminToken());
+const mustChangePassword = ref(false);
+const changePasswordForm = reactive({ currentPassword: '', newPassword: '' });
+const changePasswordSubmitting = ref(false);
+const changePasswordError = ref('');
+const submitting = ref(false);
+const loginSubmitting = ref(false);
+const organizationSubmitting = ref(false);
+const userSubmitting = ref(false);
+const dashboardLoading = ref(false);
+const error = ref('');
+const loginError = ref('');
+const organizationError = ref('');
+const userError = ref('');
+const organizations = ref<Organization[]>([]);
+const users = ref<EnterpriseUser[]>([]);
+const auditLogs = ref<AuditLog[]>([]);
+const organizationSearch = ref('');
+const userSearch = ref('');
+const userStatusFilter = ref<'all' | UserStatus>('all');
+const auditSearch = ref('');
+const userDrafts = reactive<
+  Record<
+    string,
+    {
+      displayName: string;
+      email: string;
+      role: UserRole;
+      username: string;
+    }
+  >
+>({});
+const passwordDrafts = reactive<Record<string, string>>({});
+const passwordPolicies = reactive<Record<string, boolean>>({});
+const updatingUsers = reactive<Record<string, boolean>>({});
+const resettingPasswords = reactive<Record<string, boolean>>({});
+const expandedSessions = reactive<Record<string, boolean>>({});
+const userSessions = reactive<Record<string, DeviceSessionPublic[]>>({});
+const sessionLoading = reactive<Record<string, boolean>>({});
+const revokingSession = reactive<Record<string, boolean>>({});
 const form = reactive({
   organizationName: 'Muon',
   organizationSlug: 'muon',
@@ -71,19 +100,19 @@ const form = reactive({
   ownerEmail: 'owner@muon.local',
   ownerDisplayName: 'Owner',
   ownerPassword: '',
-})
+});
 const loginForm = reactive({
   organizationSlug: 'muon',
   username: 'owner',
   password: '',
-})
+});
 const userForm = reactive({
   username: '',
   email: '',
   displayName: '',
   initialPassword: '',
   role: 'member' as UserRole,
-})
+});
 const organizationForm = reactive({
   organizationName: '',
   organizationSlug: '',
@@ -91,60 +120,55 @@ const organizationForm = reactive({
   ownerEmail: '',
   ownerDisplayName: '',
   ownerPassword: '',
-})
+});
 
 const canSubmitInstall = computed(() => {
-  return form.organizationName
-    && form.organizationSlug
-    && form.ownerUsername
-    && form.ownerEmail
-    && form.ownerDisplayName
-    && form.ownerPassword.length >= 12
-})
+  return (
+    form.organizationName &&
+    form.organizationSlug &&
+    form.ownerUsername &&
+    form.ownerEmail &&
+    form.ownerDisplayName &&
+    form.ownerPassword.length >= 12
+  );
+});
 const canLogin = computed(() => {
-  return loginForm.organizationSlug && loginForm.username && loginForm.password
-})
+  return loginForm.organizationSlug && loginForm.username && loginForm.password;
+});
 const canCreateUser = computed(() => {
-  return userForm.username
-    && userForm.email
-    && userForm.displayName
-    && userForm.initialPassword.length >= 12
-})
+  return userForm.username && userForm.email && userForm.displayName && userForm.initialPassword.length >= 12;
+});
 const canCreateOrganization = computed(() => {
-  return organizationForm.organizationName
-    && organizationForm.organizationSlug
-    && organizationForm.ownerUsername
-    && organizationForm.ownerEmail
-    && organizationForm.ownerDisplayName
-    && organizationForm.ownerPassword.length >= 12
-})
+  return (
+    organizationForm.organizationName &&
+    organizationForm.organizationSlug &&
+    organizationForm.ownerUsername &&
+    organizationForm.ownerEmail &&
+    organizationForm.ownerDisplayName &&
+    organizationForm.ownerPassword.length >= 12
+  );
+});
 
-const loggedIn = computed(() => Boolean(adminToken.value))
+const loggedIn = computed(() => Boolean(adminToken.value));
 const activeAdminSection = computed(() => {
-  return isAdminSection(route.meta.adminSection) ? route.meta.adminSection : defaultAdminSection
-})
-const activeUsers = computed(() => users.value.filter(user => user.status === 'active').length)
-const disabledUsers = computed(() => users.value.filter(user => user.status === 'disabled').length)
+  return isAdminSection(route.meta.adminSection) ? route.meta.adminSection : defaultAdminSection;
+});
+const activeUsers = computed(() => users.value.filter((user) => user.status === 'active').length);
+const disabledUsers = computed(() => users.value.filter((user) => user.status === 'disabled').length);
 const filteredOrganizations = computed(() => {
-  const query = organizationSearch.value.trim().toLowerCase()
-  if (!query)
-    return organizations.value
+  const query = organizationSearch.value.trim().toLowerCase();
+  if (!query) return organizations.value;
   return organizations.value.filter((organization) => {
-    return [
-      organization.name,
-      organization.slug,
-      organization.status,
-      statusLabel(organization.status),
-    ].some(value => value.toLowerCase().includes(query))
-  })
-})
+    return [organization.name, organization.slug, organization.status, statusLabel(organization.status)].some((value) =>
+      value.toLowerCase().includes(query),
+    );
+  });
+});
 const filteredUsers = computed(() => {
-  const query = userSearch.value.trim().toLowerCase()
+  const query = userSearch.value.trim().toLowerCase();
   return users.value.filter((user) => {
-    if (userStatusFilter.value !== 'all' && user.status !== userStatusFilter.value)
-      return false
-    if (!query)
-      return true
+    if (userStatusFilter.value !== 'all' && user.status !== userStatusFilter.value) return false;
+    if (!query) return true;
     return [
       user.username,
       user.email,
@@ -153,43 +177,36 @@ const filteredUsers = computed(() => {
       statusLabel(user.status),
       user.roles.join(' '),
       user.roles.map(roleLabel).join(' '),
-    ].some(value => value.toLowerCase().includes(query))
-  })
-})
+    ].some((value) => value.toLowerCase().includes(query));
+  });
+});
 const filteredAuditLogs = computed(() => {
-  const query = auditSearch.value.trim().toLowerCase()
-  if (!query)
-    return auditLogs.value
+  const query = auditSearch.value.trim().toLowerCase();
+  if (!query) return auditLogs.value;
   return auditLogs.value.filter((entry) => {
-    return [
-      entry.action,
-      entry.targetType,
-      entry.targetId ?? '',
-      entry.actorUserId ?? '',
-      metadataSummary(entry),
-    ].some(value => value.toLowerCase().includes(query))
-  })
-})
+    return [entry.action, entry.targetType, entry.targetId ?? '', entry.actorUserId ?? '', metadataSummary(entry)].some(
+      (value) => value.toLowerCase().includes(query),
+    );
+  });
+});
 
 function persistAdminToken(token: string) {
-  adminToken.value = token
-  if (typeof window !== 'undefined')
-    window.localStorage.setItem(adminTokenStorageKey, token)
+  adminToken.value = token;
+  if (typeof window !== 'undefined') window.localStorage.setItem(adminTokenStorageKey, token);
 }
 
 function clearAdminToken() {
-  adminToken.value = ''
-  void router.replace({ name: 'admin-organizations' })
-  organizationSearch.value = ''
-  userSearch.value = ''
-  userStatusFilter.value = 'all'
-  auditSearch.value = ''
-  if (typeof window !== 'undefined')
-    window.localStorage.removeItem(adminTokenStorageKey)
+  adminToken.value = '';
+  void router.replace({ name: 'admin-organizations' });
+  organizationSearch.value = '';
+  userSearch.value = '';
+  userStatusFilter.value = 'all';
+  auditSearch.value = '';
+  if (typeof window !== 'undefined') window.localStorage.removeItem(adminTokenStorageKey);
 }
 
 function isAuthenticationError(error: unknown) {
-  return error instanceof Error && /authentication|credentials|required/i.test(error.message)
+  return error instanceof Error && /authentication|credentials|required/i.test(error.message);
 }
 
 function syncUserDrafts(nextUsers: EnterpriseUser[]) {
@@ -199,158 +216,141 @@ function syncUserDrafts(nextUsers: EnterpriseUser[]) {
       email: user.email,
       displayName: user.displayName,
       role: user.roles[0] ?? 'member',
-    }
-    passwordDrafts[user.id] = ''
-    passwordPolicies[user.id] = false
+    };
+    passwordDrafts[user.id] = '';
+    passwordPolicies[user.id] = false;
   }
 }
 
 function canUpdateUser(user: EnterpriseUser) {
-  const draft = userDrafts[user.id]
-  return Boolean(draft?.username && draft.email && draft.displayName && draft.role)
+  const draft = userDrafts[user.id];
+  return Boolean(draft?.username && draft.email && draft.displayName && draft.role);
 }
 
 function canResetUserPassword(user: EnterpriseUser) {
-  return (passwordDrafts[user.id]?.length ?? 0) >= 12
+  return (passwordDrafts[user.id]?.length ?? 0) >= 12;
 }
 
 function roleLabel(role: UserRole) {
-  return role === 'owner' ? 'Owner' : role === 'admin' ? '管理员' : '成员'
+  return role === 'owner' ? 'Owner' : role === 'admin' ? '管理员' : '成员';
 }
 
 function statusLabel(status: UserStatus | Organization['status']) {
-  return status === 'active' ? '正常' : status === 'disabled' ? '已停用' : '已暂停'
+  return status === 'active' ? '正常' : status === 'disabled' ? '已停用' : '已暂停';
 }
 
 function formatDate(value: string) {
-  return new Date(value).toLocaleString()
+  return new Date(value).toLocaleString();
 }
 
 function metadataSummary(entry: AuditLog) {
-  const entries = Object.entries(entry.metadata)
-  if (entries.length === 0)
-    return '无附加信息'
-  return entries.map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : String(value)}`).join('；')
+  const entries = Object.entries(entry.metadata);
+  if (entries.length === 0) return '无附加信息';
+  return entries.map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : String(value)}`).join('；');
 }
 
 async function refreshDashboard() {
-  if (!adminToken.value)
-    return
+  if (!adminToken.value) return;
 
-  dashboardLoading.value = true
+  dashboardLoading.value = true;
   try {
-    const token = adminToken.value
+    const token = adminToken.value;
     const [organizationResult, userResult, auditResult] = await Promise.all([
       listOrganizations(token),
       listUsers(token),
       listAuditLogs(token),
-    ])
-    organizations.value = organizationResult.organizations
-    users.value = userResult.users
-    syncUserDrafts(userResult.users)
-    auditLogs.value = auditResult.auditLogs
-  }
-  catch (err) {
-    if (isAuthenticationError(err))
-      clearAdminToken()
-    else
-      userError.value = err instanceof Error ? err.message : '加载后台数据失败'
-  }
-  finally {
-    dashboardLoading.value = false
+    ]);
+    organizations.value = organizationResult.organizations;
+    users.value = userResult.users;
+    syncUserDrafts(userResult.users);
+    auditLogs.value = auditResult.auditLogs;
+  } catch (err) {
+    if (isAuthenticationError(err)) clearAdminToken();
+    else userError.value = err instanceof Error ? err.message : '加载后台数据失败';
+  } finally {
+    dashboardLoading.value = false;
   }
 }
 
 async function submitForceChangePassword() {
-  if (!adminToken.value || changePasswordSubmitting.value)
-    return
+  if (!adminToken.value || changePasswordSubmitting.value) return;
 
-  changePasswordSubmitting.value = true
-  changePasswordError.value = ''
+  changePasswordSubmitting.value = true;
+  changePasswordError.value = '';
   try {
     await changeOwnPassword(adminToken.value, {
       currentPassword: changePasswordForm.currentPassword,
       newPassword: changePasswordForm.newPassword,
-    })
-    changePasswordForm.currentPassword = ''
-    changePasswordForm.newPassword = ''
-    const { user } = await getAdminMe(adminToken.value)
+    });
+    changePasswordForm.currentPassword = '';
+    changePasswordForm.newPassword = '';
+    const { user } = await getAdminMe(adminToken.value);
     if (!user.mustChangePassword) {
-      mustChangePassword.value = false
-      await refreshDashboard()
+      mustChangePassword.value = false;
+      await refreshDashboard();
     }
-  }
-  catch (err) {
-    changePasswordError.value = err instanceof Error ? err.message : '修改密码失败'
-  }
-  finally {
-    changePasswordSubmitting.value = false
+  } catch (err) {
+    changePasswordError.value = err instanceof Error ? err.message : '修改密码失败';
+  } finally {
+    changePasswordSubmitting.value = false;
   }
 }
 
 async function logout() {
-  const token = adminToken.value
+  const token = adminToken.value;
   if (token) {
     try {
-      await logoutAdmin(token)
-    }
-    catch {
+      await logoutAdmin(token);
+    } catch {
       // Best-effort: server may already have invalidated the token.
     }
   }
-  clearAdminToken()
+  clearAdminToken();
 }
 
 async function submitLogin() {
-  if (!canLogin.value || loginSubmitting.value)
-    return
+  if (!canLogin.value || loginSubmitting.value) return;
 
-  loginSubmitting.value = true
-  loginError.value = ''
+  loginSubmitting.value = true;
+  loginError.value = '';
   try {
-    const result = await loginAdmin(loginForm)
-    persistAdminToken(result.session.accessToken)
-    await refreshDashboard()
-  }
-  catch (err) {
-    loginError.value = err instanceof Error ? err.message : '登录失败'
-  }
-  finally {
-    loginSubmitting.value = false
+    const result = await loginAdmin(loginForm);
+    persistAdminToken(result.session.accessToken);
+    await refreshDashboard();
+  } catch (err) {
+    loginError.value = err instanceof Error ? err.message : '登录失败';
+  } finally {
+    loginSubmitting.value = false;
   }
 }
 
 async function submitInstall() {
-  if (!canSubmitInstall.value || submitting.value)
-    return
+  if (!canSubmitInstall.value || submitting.value) return;
 
-  submitting.value = true
-  error.value = ''
+  submitting.value = true;
+  error.value = '';
   try {
-    await installMuon(form)
-    installed.value = true
+    await installMuon(form);
+    installed.value = true;
     const result = await loginAdmin({
       organizationSlug: form.organizationSlug,
       username: form.ownerUsername,
       password: form.ownerPassword,
-    })
-    persistAdminToken(result.session.accessToken)
-    await refreshDashboard()
-  }
-  catch (err) {
-    error.value = err instanceof Error ? err.message : '安装失败'
-  }
-  finally {
-    submitting.value = false
+    });
+    persistAdminToken(result.session.accessToken);
+    await refreshDashboard();
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : '安装失败';
+  } finally {
+    submitting.value = false;
   }
 }
 
 async function submitCreateOrganization() {
-  if (!adminToken.value || !canCreateOrganization.value || organizationSubmitting.value)
-    return
+  if (!adminToken.value || !canCreateOrganization.value || organizationSubmitting.value) return;
 
-  organizationSubmitting.value = true
-  organizationError.value = ''
+  organizationSubmitting.value = true;
+  organizationError.value = '';
   try {
     await createOrganization(adminToken.value, {
       organizationName: organizationForm.organizationName,
@@ -359,29 +359,26 @@ async function submitCreateOrganization() {
       ownerEmail: organizationForm.ownerEmail,
       ownerDisplayName: organizationForm.ownerDisplayName,
       ownerPassword: organizationForm.ownerPassword,
-    })
-    organizationForm.organizationName = ''
-    organizationForm.organizationSlug = ''
-    organizationForm.ownerUsername = ''
-    organizationForm.ownerEmail = ''
-    organizationForm.ownerDisplayName = ''
-    organizationForm.ownerPassword = ''
-    await refreshDashboard()
-  }
-  catch (err) {
-    organizationError.value = err instanceof Error ? err.message : '创建组织失败'
-  }
-  finally {
-    organizationSubmitting.value = false
+    });
+    organizationForm.organizationName = '';
+    organizationForm.organizationSlug = '';
+    organizationForm.ownerUsername = '';
+    organizationForm.ownerEmail = '';
+    organizationForm.ownerDisplayName = '';
+    organizationForm.ownerPassword = '';
+    await refreshDashboard();
+  } catch (err) {
+    organizationError.value = err instanceof Error ? err.message : '创建组织失败';
+  } finally {
+    organizationSubmitting.value = false;
   }
 }
 
 async function submitCreateUser() {
-  if (!adminToken.value || !canCreateUser.value || userSubmitting.value)
-    return
+  if (!adminToken.value || !canCreateUser.value || userSubmitting.value) return;
 
-  userSubmitting.value = true
-  userError.value = ''
+  userSubmitting.value = true;
+  userError.value = '';
   try {
     await createAdminUser(adminToken.value, {
       username: userForm.username,
@@ -389,144 +386,123 @@ async function submitCreateUser() {
       displayName: userForm.displayName,
       initialPassword: userForm.initialPassword,
       roles: [userForm.role],
-    })
-    userForm.username = ''
-    userForm.email = ''
-    userForm.displayName = ''
-    userForm.initialPassword = ''
-    userForm.role = 'member'
-    await refreshDashboard()
-  }
-  catch (err) {
-    userError.value = err instanceof Error ? err.message : '创建用户失败'
-  }
-  finally {
-    userSubmitting.value = false
+    });
+    userForm.username = '';
+    userForm.email = '';
+    userForm.displayName = '';
+    userForm.initialPassword = '';
+    userForm.role = 'member';
+    await refreshDashboard();
+  } catch (err) {
+    userError.value = err instanceof Error ? err.message : '创建用户失败';
+  } finally {
+    userSubmitting.value = false;
   }
 }
 
 async function submitUpdateUser(user: EnterpriseUser) {
-  const draft = userDrafts[user.id]
-  if (!adminToken.value || !draft || !canUpdateUser(user) || updatingUsers[user.id])
-    return
+  const draft = userDrafts[user.id];
+  if (!adminToken.value || !draft || !canUpdateUser(user) || updatingUsers[user.id]) return;
 
-  updatingUsers[user.id] = true
-  userError.value = ''
+  updatingUsers[user.id] = true;
+  userError.value = '';
   try {
     await updateAdminUser(adminToken.value, user.id, {
       username: draft.username,
       email: draft.email,
       displayName: draft.displayName,
       roles: [draft.role],
-    })
-    await refreshDashboard()
-  }
-  catch (err) {
-    userError.value = err instanceof Error ? err.message : '更新用户失败'
-  }
-  finally {
-    updatingUsers[user.id] = false
+    });
+    await refreshDashboard();
+  } catch (err) {
+    userError.value = err instanceof Error ? err.message : '更新用户失败';
+  } finally {
+    updatingUsers[user.id] = false;
   }
 }
 
 async function toggleUserStatus(user: EnterpriseUser) {
-  if (!adminToken.value || updatingUsers[user.id])
-    return
+  if (!adminToken.value || updatingUsers[user.id]) return;
 
-  updatingUsers[user.id] = true
-  userError.value = ''
+  updatingUsers[user.id] = true;
+  userError.value = '';
   try {
     await updateAdminUser(adminToken.value, user.id, {
       status: user.status === 'active' ? 'disabled' : 'active',
-    })
-    await refreshDashboard()
-  }
-  catch (err) {
-    userError.value = err instanceof Error ? err.message : '更新用户状态失败'
-  }
-  finally {
-    updatingUsers[user.id] = false
+    });
+    await refreshDashboard();
+  } catch (err) {
+    userError.value = err instanceof Error ? err.message : '更新用户状态失败';
+  } finally {
+    updatingUsers[user.id] = false;
   }
 }
 
 async function submitResetUserPassword(user: EnterpriseUser) {
-  if (!adminToken.value || !canResetUserPassword(user) || resettingPasswords[user.id])
-    return
+  if (!adminToken.value || !canResetUserPassword(user) || resettingPasswords[user.id]) return;
 
-  resettingPasswords[user.id] = true
-  userError.value = ''
+  resettingPasswords[user.id] = true;
+  userError.value = '';
   try {
     await resetAdminUserPassword(adminToken.value, user.id, {
       newPassword: passwordDrafts[user.id],
       mustChangePassword: passwordPolicies[user.id] ?? false,
-    })
-    passwordDrafts[user.id] = ''
-    await refreshDashboard()
-  }
-  catch (err) {
-    userError.value = err instanceof Error ? err.message : '重置密码失败'
-  }
-  finally {
-    resettingPasswords[user.id] = false
+    });
+    passwordDrafts[user.id] = '';
+    await refreshDashboard();
+  } catch (err) {
+    userError.value = err instanceof Error ? err.message : '重置密码失败';
+  } finally {
+    resettingPasswords[user.id] = false;
   }
 }
 
 async function toggleUserSessions(userId: string) {
-  if (!adminToken.value)
-    return
-  expandedSessions[userId] = !expandedSessions[userId]
+  if (!adminToken.value) return;
+  expandedSessions[userId] = !expandedSessions[userId];
   if (expandedSessions[userId] && !userSessions[userId]) {
-    sessionLoading[userId] = true
+    sessionLoading[userId] = true;
     try {
-      const { sessions } = await listUserDeviceSessions(adminToken.value, userId)
-      userSessions[userId] = sessions
-    }
-    catch (err) {
-      userError.value = err instanceof Error ? err.message : '加载会话失败'
-    }
-    finally {
-      sessionLoading[userId] = false
+      const { sessions } = await listUserDeviceSessions(adminToken.value, userId);
+      userSessions[userId] = sessions;
+    } catch (err) {
+      userError.value = err instanceof Error ? err.message : '加载会话失败';
+    } finally {
+      sessionLoading[userId] = false;
     }
   }
 }
 
 async function revokeSession(userId: string, sessionId: string) {
-  if (!adminToken.value || revokingSession[sessionId])
-    return
-  revokingSession[sessionId] = true
+  if (!adminToken.value || revokingSession[sessionId]) return;
+  revokingSession[sessionId] = true;
   try {
-    await revokeUserDeviceSession(adminToken.value, userId, sessionId)
-    userSessions[userId] = (userSessions[userId] ?? []).filter(s => s.id !== sessionId)
-  }
-  catch (err) {
-    userError.value = err instanceof Error ? err.message : '吊销失败'
-  }
-  finally {
-    revokingSession[sessionId] = false
+    await revokeUserDeviceSession(adminToken.value, userId, sessionId);
+    userSessions[userId] = (userSessions[userId] ?? []).filter((s) => s.id !== sessionId);
+  } catch (err) {
+    userError.value = err instanceof Error ? err.message : '吊销失败';
+  } finally {
+    revokingSession[sessionId] = false;
   }
 }
 
 async function bootstrap() {
-  const token = adminToken.value
-  if (!token)
-    return
+  const token = adminToken.value;
+  if (!token) return;
   try {
-    const { user } = await getAdminMe(token)
+    const { user } = await getAdminMe(token);
     if (user.mustChangePassword) {
-      mustChangePassword.value = true
-      return
+      mustChangePassword.value = true;
+      return;
     }
-    await refreshDashboard()
-  }
-  catch (err) {
-    if (isAuthenticationError(err))
-      clearAdminToken()
-    else
-      userError.value = err instanceof Error ? err.message : '加载后台数据失败'
+    await refreshDashboard();
+  } catch (err) {
+    if (isAuthenticationError(err)) clearAdminToken();
+    else userError.value = err instanceof Error ? err.message : '加载后台数据失败';
   }
 }
 
-void bootstrap()
+void bootstrap();
 </script>
 
 <template>
@@ -563,11 +539,7 @@ void bootstrap()
             autocomplete="new-password"
           />
         </Label>
-        <p
-          v-if="changePasswordError"
-          class="error"
-          data-testid="force-change-password-error"
-        >
+        <p v-if="changePasswordError" class="error" data-testid="force-change-password-error">
           {{ changePasswordError }}
         </p>
         <Button class="w-fit" type="submit" :disabled="changePasswordSubmitting">
@@ -585,9 +557,7 @@ void bootstrap()
     </section>
 
     <aside class="admin-sidebar">
-      <div class="brand">
-        Muon Admin
-      </div>
+      <div class="brand">Muon Admin</div>
       <nav v-if="loggedIn" class="nav-list" aria-label="管理导航">
         <RouterLink
           v-for="section in adminSections"
@@ -617,9 +587,7 @@ void bootstrap()
           组织标识
           <Input v-model="form.organizationSlug" autocomplete="off" />
         </Label>
-        <div class="form-section-title">
-          超级管理员
-        </div>
+        <div class="form-section-title">超级管理员</div>
         <Label class="grid gap-1.5">
           用户名
           <Input v-model="form.ownerUsername" autocomplete="username" />
@@ -680,12 +648,16 @@ void bootstrap()
           <h1>组织、用户与安全</h1>
         </div>
         <div class="dashboard-actions">
-          <Button data-testid="refresh-dashboard" type="button" variant="outline" :disabled="dashboardLoading" @click="refreshDashboard">
+          <Button
+            data-testid="refresh-dashboard"
+            type="button"
+            variant="outline"
+            :disabled="dashboardLoading"
+            @click="refreshDashboard"
+          >
             {{ dashboardLoading ? '刷新中' : '刷新数据' }}
           </Button>
-          <Button data-testid="logout-admin" type="button" variant="secondary" @click="logout">
-            退出登录
-          </Button>
+          <Button data-testid="logout-admin" type="button" variant="secondary" @click="logout"> 退出登录 </Button>
         </div>
       </div>
 
@@ -706,14 +678,24 @@ void bootstrap()
       </div>
 
       <div class="panel-grid">
-        <Card v-if="activeAdminSection === 'organizations'" id="organizations" class="wide-panel" data-testid="organizations-panel">
+        <Card
+          v-if="activeAdminSection === 'organizations'"
+          id="organizations"
+          class="wide-panel"
+          data-testid="organizations-panel"
+        >
           <CardHeader>
             <CardTitle>组织管理</CardTitle>
             <CardDescription>创建新的组织，并为新组织设置独立 owner 账号。</CardDescription>
           </CardHeader>
           <CardContent>
             <div class="panel-toolbar">
-              <Input v-model="organizationSearch" data-testid="organization-search" placeholder="搜索组织名称、标识或状态" autocomplete="off" />
+              <Input
+                v-model="organizationSearch"
+                data-testid="organization-search"
+                placeholder="搜索组织名称、标识或状态"
+                autocomplete="off"
+              />
               <span>{{ filteredOrganizations.length }} / {{ organizations.length }} 个组织</span>
             </div>
             <form class="organization-form" @submit.prevent="submitCreateOrganization">
@@ -722,7 +704,12 @@ void bootstrap()
               <Input v-model="organizationForm.ownerUsername" placeholder="Owner 用户名" autocomplete="off" />
               <Input v-model="organizationForm.ownerEmail" placeholder="Owner 邮箱" autocomplete="off" />
               <Input v-model="organizationForm.ownerDisplayName" placeholder="Owner 显示名称" autocomplete="off" />
-              <Input v-model="organizationForm.ownerPassword" type="password" placeholder="Owner 初始密码，至少 12 位" autocomplete="new-password" />
+              <Input
+                v-model="organizationForm.ownerPassword"
+                type="password"
+                placeholder="Owner 初始密码，至少 12 位"
+                autocomplete="new-password"
+              />
               <Button class="w-fit" type="submit" :disabled="!canCreateOrganization || organizationSubmitting">
                 {{ organizationSubmitting ? '正在创建' : '新建组织' }}
               </Button>
@@ -731,15 +718,17 @@ void bootstrap()
               {{ organizationError }}
             </p>
             <div class="table-list" aria-label="组织列表">
-              <div v-for="organization in filteredOrganizations" :key="organization.id" class="table-row organization-row">
+              <div
+                v-for="organization in filteredOrganizations"
+                :key="organization.id"
+                class="table-row organization-row"
+              >
                 <strong>{{ organization.name }}</strong>
                 <span>{{ organization.slug }}</span>
                 <span>{{ statusLabel(organization.status) }}</span>
                 <span>{{ formatDate(organization.createdAt) }}</span>
               </div>
-              <div v-if="filteredOrganizations.length === 0" class="empty-state">
-                没有匹配的组织
-              </div>
+              <div v-if="filteredOrganizations.length === 0" class="empty-state">没有匹配的组织</div>
             </div>
           </CardContent>
         </Card>
@@ -751,17 +740,16 @@ void bootstrap()
           </CardHeader>
           <CardContent>
             <div class="panel-toolbar">
-              <Input v-model="userSearch" data-testid="user-search" placeholder="搜索用户名、邮箱、显示名称或角色" autocomplete="off" />
+              <Input
+                v-model="userSearch"
+                data-testid="user-search"
+                placeholder="搜索用户名、邮箱、显示名称或角色"
+                autocomplete="off"
+              />
               <select v-model="userStatusFilter" data-testid="user-status-filter" aria-label="用户状态筛选">
-                <option value="all">
-                  全部状态
-                </option>
-                <option value="active">
-                  正常
-                </option>
-                <option value="disabled">
-                  已停用
-                </option>
+                <option value="all">全部状态</option>
+                <option value="active">正常</option>
+                <option value="disabled">已停用</option>
               </select>
               <span>{{ filteredUsers.length }} / {{ users.length }} 个用户</span>
             </div>
@@ -769,21 +757,20 @@ void bootstrap()
               <Input v-model="userForm.username" placeholder="用户名" autocomplete="off" />
               <Input v-model="userForm.email" placeholder="邮箱" autocomplete="off" />
               <Input v-model="userForm.displayName" placeholder="显示名称" autocomplete="off" />
-              <Input v-model="userForm.initialPassword" type="password" placeholder="初始密码，至少 12 位" autocomplete="new-password" />
+              <Input
+                v-model="userForm.initialPassword"
+                type="password"
+                placeholder="初始密码，至少 12 位"
+                autocomplete="new-password"
+              />
               <Select v-model="userForm.role">
                 <SelectTrigger aria-label="角色">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="member">
-                    成员
-                  </SelectItem>
-                  <SelectItem value="admin">
-                    管理员
-                  </SelectItem>
-                  <SelectItem value="owner">
-                    Owner
-                  </SelectItem>
+                  <SelectItem value="member"> 成员 </SelectItem>
+                  <SelectItem value="admin"> 管理员 </SelectItem>
+                  <SelectItem value="owner"> Owner </SelectItem>
                 </SelectContent>
               </Select>
               <Button class="w-fit" type="submit" :disabled="!canCreateUser || userSubmitting">
@@ -806,7 +793,11 @@ void bootstrap()
                     <span v-if="user.mustChangePassword">需改密</span>
                   </div>
                 </div>
-                <form class="user-edit-form" :data-testid="`edit-user-${user.id}`" @submit.prevent="submitUpdateUser(user)">
+                <form
+                  class="user-edit-form"
+                  :data-testid="`edit-user-${user.id}`"
+                  @submit.prevent="submitUpdateUser(user)"
+                >
                   <Input v-model="userDrafts[user.id].username" placeholder="编辑用户名" autocomplete="off" />
                   <Input v-model="userDrafts[user.id].email" placeholder="编辑邮箱" autocomplete="off" />
                   <Input v-model="userDrafts[user.id].displayName" placeholder="编辑显示名称" autocomplete="off" />
@@ -815,15 +806,9 @@ void bootstrap()
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="member">
-                        成员
-                      </SelectItem>
-                      <SelectItem value="admin">
-                        管理员
-                      </SelectItem>
-                      <SelectItem value="owner">
-                        Owner
-                      </SelectItem>
+                      <SelectItem value="member"> 成员 </SelectItem>
+                      <SelectItem value="admin"> 管理员 </SelectItem>
+                      <SelectItem value="owner"> Owner </SelectItem>
                     </SelectContent>
                   </Select>
                   <Button type="submit" :disabled="!canUpdateUser(user) || updatingUsers[user.id]">
@@ -839,32 +824,38 @@ void bootstrap()
                     {{ user.status === 'active' ? '停用用户' : '启用用户' }}
                   </Button>
                 </form>
-                <form class="password-form" :data-testid="`reset-password-${user.id}`" @submit.prevent="submitResetUserPassword(user)">
-                  <Input v-model="passwordDrafts[user.id]" type="password" placeholder="新密码，至少 12 位" autocomplete="new-password" />
+                <form
+                  class="password-form"
+                  :data-testid="`reset-password-${user.id}`"
+                  @submit.prevent="submitResetUserPassword(user)"
+                >
+                  <Input
+                    v-model="passwordDrafts[user.id]"
+                    type="password"
+                    placeholder="新密码，至少 12 位"
+                    autocomplete="new-password"
+                  />
                   <label class="checkbox-row">
-                    <input v-model="passwordPolicies[user.id]" :data-testid="`must-change-password-${user.id}`" type="checkbox">
+                    <input
+                      v-model="passwordPolicies[user.id]"
+                      :data-testid="`must-change-password-${user.id}`"
+                      type="checkbox"
+                    />
                     下次登录必须修改密码
                   </label>
                   <Button type="submit" :disabled="!canResetUserPassword(user) || resettingPasswords[user.id]">
                     {{ resettingPasswords[user.id] ? '正在重置' : '重置密码' }}
                   </Button>
                 </form>
-                <details
-                  class="user-sessions"
-                  :open="expandedSessions[user.id]"
-                >
+                <details class="user-sessions" :open="expandedSessions[user.id]">
                   <summary
                     :data-testid="`user-sessions-summary-${user.id}`"
                     @click.prevent="toggleUserSessions(user.id)"
                   >
                     活跃会话 <span v-if="userSessions[user.id]">({{ userSessions[user.id].length }})</span>
                   </summary>
-                  <div v-if="sessionLoading[user.id]" class="user-sessions-loading">
-                    加载中…
-                  </div>
-                  <div v-else-if="userSessions[user.id]?.length === 0" class="empty-state">
-                    没有活跃会话
-                  </div>
+                  <div v-if="sessionLoading[user.id]" class="user-sessions-loading">加载中…</div>
+                  <div v-else-if="userSessions[user.id]?.length === 0" class="empty-state">没有活跃会话</div>
                   <div v-else-if="userSessions[user.id]" class="user-sessions-list">
                     <div
                       v-for="session in userSessions[user.id]"
@@ -888,9 +879,7 @@ void bootstrap()
                   </div>
                 </details>
               </div>
-              <div v-if="filteredUsers.length === 0" class="empty-state">
-                没有匹配的用户
-              </div>
+              <div v-if="filteredUsers.length === 0" class="empty-state">没有匹配的用户</div>
             </div>
           </CardContent>
         </Card>
@@ -902,7 +891,12 @@ void bootstrap()
           </CardHeader>
           <CardContent>
             <div class="panel-toolbar">
-              <Input v-model="auditSearch" data-testid="audit-search" placeholder="搜索动作、目标、操作者或元数据" autocomplete="off" />
+              <Input
+                v-model="auditSearch"
+                data-testid="audit-search"
+                placeholder="搜索动作、目标、操作者或元数据"
+                autocomplete="off"
+              />
               <span>{{ filteredAuditLogs.length }} / {{ auditLogs.length }} 条记录</span>
             </div>
             <div class="table-list" aria-label="审计日志列表">
@@ -913,9 +907,7 @@ void bootstrap()
                 <span>{{ metadataSummary(entry) }}</span>
                 <span>{{ formatDate(entry.createdAt) }}</span>
               </div>
-              <div v-if="filteredAuditLogs.length === 0" class="empty-state">
-                没有匹配的审计日志
-              </div>
+              <div v-if="filteredAuditLogs.length === 0" class="empty-state">没有匹配的审计日志</div>
             </div>
           </CardContent>
         </Card>

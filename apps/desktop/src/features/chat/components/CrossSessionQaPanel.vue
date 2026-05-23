@@ -1,59 +1,54 @@
 <script setup lang="ts">
-import { Textarea } from '@muon/ui/textarea'
-import { computed, onMounted, ref } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
-import { preloadAndNavigate } from '@/shared/lib/contextPreload'
-import { useQaStore } from '../stores/qaStore'
+import { Textarea } from '@muon/ui/textarea';
+import { computed, onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useRouter } from 'vue-router';
+import { preloadAndNavigate } from '@/shared/lib/contextPreload';
+import { useQaStore } from '../stores/qaStore';
 
-const { t } = useI18n()
-const router = useRouter()
-const qaStore = useQaStore()
+const { t } = useI18n();
+const router = useRouter();
+const qaStore = useQaStore();
 
-const question = ref('')
-const loading = ref(false)
-const error = ref<string | null>(null)
-const answer = computed(() => qaStore.activeAnswer)
-const history = computed(() => qaStore.history)
+const question = ref('');
+const loading = ref(false);
+const error = ref<string | null>(null);
+const answer = computed(() => qaStore.activeAnswer);
+const history = computed(() => qaStore.history);
 
 onMounted(async () => {
   try {
-    await qaStore.hydrateHistory()
+    await qaStore.hydrateHistory();
+  } catch (err) {
+    error.value = formatQaError(err);
   }
-  catch (err) {
-    error.value = formatQaError(err)
-  }
-})
+});
 
 function formatQaError(err: unknown) {
-  const message = err instanceof Error ? err.message : String(err)
-  if (message === 'Question is required')
-    return t('chat.knowledge_question_required')
-  if (message === 'No cited answer available')
-    return t('chat.knowledge_no_cited_answer')
-  return message
+  const message = err instanceof Error ? err.message : String(err);
+  if (message === 'Question is required') return t('chat.knowledge_question_required');
+  if (message === 'No cited answer available') return t('chat.knowledge_no_cited_answer');
+  return message;
 }
 
 async function submitQuestion() {
-  loading.value = true
-  error.value = null
+  loading.value = true;
+  error.value = null;
   try {
-    await qaStore.askQuestion(question.value)
-  }
-  catch (err) {
-    error.value = formatQaError(err)
-  }
-  finally {
-    loading.value = false
+    await qaStore.askQuestion(question.value);
+  } catch (err) {
+    error.value = formatQaError(err);
+  } finally {
+    loading.value = false;
   }
 }
 
 async function openCitation(roomId: string, eventId: string) {
-  await preloadAndNavigate(router, roomId, eventId, 'CrossSessionQaPanel')
+  await preloadAndNavigate(router, roomId, eventId, 'CrossSessionQaPanel');
 }
 
 function openHistoryAnswer(answerId: string) {
-  qaStore.selectAnswer(answerId)
+  qaStore.selectAnswer(answerId);
 }
 </script>
 

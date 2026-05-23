@@ -1,14 +1,17 @@
 <script setup lang="ts">
-import type { HTMLAttributes } from 'vue'
-import type { BadgeVariants } from '.'
-import { badgeVariants } from '.'
-import { cn } from '../../utils'
+import type { HTMLAttributes } from 'vue';
+import type { BadgeVariants } from '.';
+import { badgeVariants } from '.';
+import { cn } from '../../utils';
 
-const props = withDefaults(defineProps<{
-  class?: HTMLAttributes['class']
-  tone?: BadgeVariants['tone']
-  style?: BadgeVariants['style']
-}>(), { tone: 'neutral', style: 'subtle' })
+const props = withDefaults(
+  defineProps<{
+    class?: HTMLAttributes['class'];
+    tone?: BadgeVariants['tone'];
+    style?: BadgeVariants['style'];
+  }>(),
+  { tone: 'neutral', style: 'subtle' },
+);
 </script>
 
 <template>

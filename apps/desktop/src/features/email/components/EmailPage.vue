@@ -1,42 +1,42 @@
 <script setup lang="ts">
-import { Archive, Inbox, Mail, PencilLine, Reply, Search, Send, Star } from 'lucide-vue-next'
-import { computed, onMounted, ref, shallowRef } from 'vue'
-import { useI18n } from 'vue-i18n'
-import WorkspaceResizablePane from '@/app/components/workspace/WorkspaceResizablePane.vue'
-import GroupMemberPicker from '@/features/contacts/components/GroupMemberPicker.vue'
-import { useContactList } from '@/shared/composables/useContactList'
+import { Archive, Inbox, Mail, PencilLine, Reply, Search, Send, Star } from 'lucide-vue-next';
+import { computed, onMounted, ref, shallowRef } from 'vue';
+import { useI18n } from 'vue-i18n';
+import WorkspaceResizablePane from '@/app/components/workspace/WorkspaceResizablePane.vue';
+import GroupMemberPicker from '@/features/contacts/components/GroupMemberPicker.vue';
+import { useContactList } from '@/shared/composables/useContactList';
 
-const { t } = useI18n()
-const contactList = useContactList()
+const { t } = useI18n();
+const contactList = useContactList();
 
-const EMAIL_WIDTH_STORAGE_KEY = 'muon_email_sidebar_width'
-const DEFAULT_EMAIL_WIDTH = 240
-const MIN_EMAIL_WIDTH = 220
-const MAX_EMAIL_WIDTH = 340
+const EMAIL_WIDTH_STORAGE_KEY = 'muon_email_sidebar_width';
+const DEFAULT_EMAIL_WIDTH = 240;
+const MIN_EMAIL_WIDTH = 220;
+const MAX_EMAIL_WIDTH = 340;
 
-const activeFolder = shallowRef('inbox')
-const resizeLabel = computed(() => t('sidebar.resize_email'))
+const activeFolder = shallowRef('inbox');
+const resizeLabel = computed(() => t('sidebar.resize_email'));
 
-const searchQuery = shallowRef('')
-const selectedMessageId = shallowRef('mail-1')
-const messageActionNotices = shallowRef<Record<string, string>>({})
-const replyDraftSubjects = shallowRef<Record<string, string>>({})
-const composeOpen = shallowRef(false)
-const composeDraftId = shallowRef('')
-const composeRecipientIds = ref<string[]>([])
-const composeSubject = shallowRef('')
-const composeBody = shallowRef('')
+const searchQuery = shallowRef('');
+const selectedMessageId = shallowRef('mail-1');
+const messageActionNotices = shallowRef<Record<string, string>>({});
+const replyDraftSubjects = shallowRef<Record<string, string>>({});
+const composeOpen = shallowRef(false);
+const composeDraftId = shallowRef('');
+const composeRecipientIds = ref<string[]>([]);
+const composeSubject = shallowRef('');
+const composeBody = shallowRef('');
 
 interface EmailMessage {
-  id: string
-  folder: string
-  from: string
-  subject: string
-  preview: string
-  time: string
-  unread: boolean
-  starred?: boolean
-  to?: string
+  id: string;
+  folder: string;
+  from: string;
+  subject: string;
+  preview: string;
+  time: string;
+  unread: boolean;
+  starred?: boolean;
+  to?: string;
 }
 
 const folderConfig = computed(() => [
@@ -44,136 +44,215 @@ const folderConfig = computed(() => [
   { id: 'starred', label: t('email.folder_starred'), icon: Star },
   { id: 'sent', label: t('email.folder_sent'), icon: Send },
   { id: 'archive', label: t('email.folder_archive'), icon: Archive },
-])
+]);
 
 const messages = shallowRef<EmailMessage[]>([
-  { id: 'mail-1', folder: 'inbox', from: '上线团队', subject: '上线评审纪要', preview: '最终检查清单已准备好，请完成签核。', time: '09:48', unread: true },
-  { id: 'mail-2', folder: 'inbox', from: '设计运营', subject: '桌面工作区稿件已更新', preview: '最新一轮体验走查稿已共享给你评审。', time: '昨天', unread: false },
-  { id: 'mail-3', folder: 'inbox', from: '安全团队', subject: '访问申请已通过', preview: '你的生产访问申请已完成审批。', time: '周一', unread: false },
-  { id: 'mail-4', folder: 'sent', from: '我', subject: '项目周报', preview: '本周项目状态已同步给核心团队。', time: '周五', unread: false },
-  { id: 'mail-5', folder: 'inbox', from: '产品团队', subject: '重点需求确认', preview: '请优先确认下周规划中的关键需求。', time: '周四', unread: false, starred: true },
-  { id: 'mail-6', folder: 'archive', from: '运营团队', subject: '历史活动归档', preview: '活动复盘资料已归档。', time: '4月20日', unread: false },
-])
+  {
+    id: 'mail-1',
+    folder: 'inbox',
+    from: '上线团队',
+    subject: '上线评审纪要',
+    preview: '最终检查清单已准备好，请完成签核。',
+    time: '09:48',
+    unread: true,
+  },
+  {
+    id: 'mail-2',
+    folder: 'inbox',
+    from: '设计运营',
+    subject: '桌面工作区稿件已更新',
+    preview: '最新一轮体验走查稿已共享给你评审。',
+    time: '昨天',
+    unread: false,
+  },
+  {
+    id: 'mail-3',
+    folder: 'inbox',
+    from: '安全团队',
+    subject: '访问申请已通过',
+    preview: '你的生产访问申请已完成审批。',
+    time: '周一',
+    unread: false,
+  },
+  {
+    id: 'mail-4',
+    folder: 'sent',
+    from: '我',
+    subject: '项目周报',
+    preview: '本周项目状态已同步给核心团队。',
+    time: '周五',
+    unread: false,
+  },
+  {
+    id: 'mail-5',
+    folder: 'inbox',
+    from: '产品团队',
+    subject: '重点需求确认',
+    preview: '请优先确认下周规划中的关键需求。',
+    time: '周四',
+    unread: false,
+    starred: true,
+  },
+  {
+    id: 'mail-6',
+    folder: 'archive',
+    from: '运营团队',
+    subject: '历史活动归档',
+    preview: '活动复盘资料已归档。',
+    time: '4月20日',
+    unread: false,
+  },
+]);
 
-const defaultComposeSubject = computed(() => t('email.default_subject'))
+const defaultComposeSubject = computed(() => t('email.default_subject'));
 
-const folders = computed(() => folderConfig.value.map(folder => ({
-  ...folder,
-  count: messages.value.filter(message => messageBelongsToFolder(message, folder.id)).length,
-})))
+const folders = computed(() =>
+  folderConfig.value.map((folder) => ({
+    ...folder,
+    count: messages.value.filter((message) => messageBelongsToFolder(message, folder.id)).length,
+  })),
+);
 
-const activeFolderLabel = computed(() => folders.value.find(folder => folder.id === activeFolder.value)?.label ?? t('email.folder_inbox'))
+const activeFolderLabel = computed(
+  () => folders.value.find((folder) => folder.id === activeFolder.value)?.label ?? t('email.folder_inbox'),
+);
 
 const filteredMessages = computed(() => {
-  const query = searchQuery.value.trim().toLowerCase()
+  const query = searchQuery.value.trim().toLowerCase();
   return messages.value.filter((message) => {
-    const matchesFolder = messageBelongsToFolder(message, activeFolder.value)
-    const matchesQuery = !query || [message.from, message.subject, message.preview].some(value => value.toLowerCase().includes(query))
-    return matchesFolder && matchesQuery
-  })
-})
+    const matchesFolder = messageBelongsToFolder(message, activeFolder.value);
+    const matchesQuery =
+      !query || [message.from, message.subject, message.preview].some((value) => value.toLowerCase().includes(query));
+    return matchesFolder && matchesQuery;
+  });
+});
 
-const selectedMessage = computed(() => filteredMessages.value.find(message => message.id === selectedMessageId.value) ?? filteredMessages.value[0])
+const selectedMessage = computed(
+  () => filteredMessages.value.find((message) => message.id === selectedMessageId.value) ?? filteredMessages.value[0],
+);
 const selectedMessageActionNotice = computed(() => {
-  const message = selectedMessage.value
-  if (!message)
-    return t('email.notice_pending')
-  return messageActionNotices.value[message.id] ?? t('email.notice_pending')
-})
+  const message = selectedMessage.value;
+  if (!message) return t('email.notice_pending');
+  return messageActionNotices.value[message.id] ?? t('email.notice_pending');
+});
 const selectedReplyDraftSubject = computed(() => {
-  const message = selectedMessage.value
-  if (!message)
-    return ''
-  return replyDraftSubjects.value[message.id] ?? ''
-})
+  const message = selectedMessage.value;
+  if (!message) return '';
+  return replyDraftSubjects.value[message.id] ?? '';
+});
 
 onMounted(() => {
-  composeSubject.value = defaultComposeSubject.value
-  contactList.ensureContactsLoaded()
-})
+  composeSubject.value = defaultComposeSubject.value;
+  contactList.ensureContactsLoaded();
+});
 
 function selectFolder(folderId: string): void {
-  activeFolder.value = folderId
-  searchQuery.value = ''
-  selectedMessageId.value = messages.value.find(message => messageBelongsToFolder(message, folderId))?.id ?? ''
+  activeFolder.value = folderId;
+  searchQuery.value = '';
+  selectedMessageId.value = messages.value.find((message) => messageBelongsToFolder(message, folderId))?.id ?? '';
 }
 
 function composeMessage(): void {
-  const messageId = `mail-${Date.now()}`
-  composeOpen.value = true
-  composeDraftId.value = messageId
-  composeRecipientIds.value = []
-  composeSubject.value = defaultComposeSubject.value
-  composeBody.value = ''
-  contactList.ensureContactsLoaded()
-  activeFolder.value = 'inbox'
-  searchQuery.value = ''
+  const messageId = `mail-${Date.now()}`;
+  composeOpen.value = true;
+  composeDraftId.value = messageId;
+  composeRecipientIds.value = [];
+  composeSubject.value = defaultComposeSubject.value;
+  composeBody.value = '';
+  contactList.ensureContactsLoaded();
+  activeFolder.value = 'inbox';
+  searchQuery.value = '';
   messages.value = [
-    { id: messageId, folder: 'inbox', from: '我', subject: defaultComposeSubject.value, preview: t('email.notice_editing'), time: '刚刚', unread: false },
+    {
+      id: messageId,
+      folder: 'inbox',
+      from: '我',
+      subject: defaultComposeSubject.value,
+      preview: t('email.notice_editing'),
+      time: '刚刚',
+      unread: false,
+    },
     ...messages.value,
-  ]
-  selectedMessageId.value = messageId
-  messageActionNotices.value = { ...messageActionNotices.value, [messageId]: t('email.notice_editing') }
+  ];
+  selectedMessageId.value = messageId;
+  messageActionNotices.value = { ...messageActionNotices.value, [messageId]: t('email.notice_editing') };
 }
 
 function fallbackNameFromUserId(userId: string): string {
-  return userId.split(':')[0]?.replace(/^@/, '') || userId
+  return userId.split(':')[0]?.replace(/^@/, '') || userId;
 }
 
 function displayNameForRecipient(userId: string): string {
-  return contactList.contacts.find(contact => contact.userId === userId)?.displayName ?? fallbackNameFromUserId(userId)
+  return (
+    contactList.contacts.find((contact) => contact.userId === userId)?.displayName ?? fallbackNameFromUserId(userId)
+  );
 }
 
 function messageBelongsToFolder(message: EmailMessage, folderId: string): boolean {
-  return folderId === 'starred' ? !!message.starred : message.folder === folderId
+  return folderId === 'starred' ? !!message.starred : message.folder === folderId;
 }
 
 function selectMessage(messageId: string): void {
-  selectedMessageId.value = messageId
-  messages.value = messages.value.map(message => message.id === messageId ? { ...message, unread: false } : message)
+  selectedMessageId.value = messageId;
+  messages.value = messages.value.map((message) =>
+    message.id === messageId ? { ...message, unread: false } : message,
+  );
 }
 
 function createReplyDraft(): void {
-  const message = selectedMessage.value
-  if (!message)
-    return
+  const message = selectedMessage.value;
+  if (!message) return;
 
-  replyDraftSubjects.value = { ...replyDraftSubjects.value, [message.id]: t('email.reply_draft', { subject: message.subject }) }
-  messageActionNotices.value = { ...messageActionNotices.value, [message.id]: t('email.notice_reply_generated', { subject: message.subject }) }
+  replyDraftSubjects.value = {
+    ...replyDraftSubjects.value,
+    [message.id]: t('email.reply_draft', { subject: message.subject }),
+  };
+  messageActionNotices.value = {
+    ...messageActionNotices.value,
+    [message.id]: t('email.notice_reply_generated', { subject: message.subject }),
+  };
 }
 
 function starSelectedMessage(): void {
-  const message = selectedMessage.value
-  if (!message)
-    return
+  const message = selectedMessage.value;
+  if (!message) return;
 
-  messages.value = messages.value.map(item => item.id === message.id ? { ...item, starred: true, unread: false } : item)
-  selectedMessageId.value = message.id
-  messageActionNotices.value = { ...messageActionNotices.value, [message.id]: t('email.notice_starred', { subject: message.subject }) }
+  messages.value = messages.value.map((item) =>
+    item.id === message.id ? { ...item, starred: true, unread: false } : item,
+  );
+  selectedMessageId.value = message.id;
+  messageActionNotices.value = {
+    ...messageActionNotices.value,
+    [message.id]: t('email.notice_starred', { subject: message.subject }),
+  };
 }
 
 function archiveSelectedMessage(): void {
-  const message = selectedMessage.value
-  if (!message)
-    return
+  const message = selectedMessage.value;
+  if (!message) return;
 
-  messages.value = messages.value.map(item => item.id === message.id ? { ...item, folder: 'archive', unread: false } : item)
-  activeFolder.value = 'archive'
-  searchQuery.value = ''
-  selectedMessageId.value = message.id
-  messageActionNotices.value = { ...messageActionNotices.value, [message.id]: t('email.notice_archived', { subject: message.subject }) }
+  messages.value = messages.value.map((item) =>
+    item.id === message.id ? { ...item, folder: 'archive', unread: false } : item,
+  );
+  activeFolder.value = 'archive';
+  searchQuery.value = '';
+  selectedMessageId.value = message.id;
+  messageActionNotices.value = {
+    ...messageActionNotices.value,
+    [message.id]: t('email.notice_archived', { subject: message.subject }),
+  };
 }
 
 function sendComposeDraft(): void {
-  if (!composeOpen.value)
-    return
+  if (!composeOpen.value) return;
 
-  const subject = composeSubject.value.trim() || t('email.default_subject')
-  const body = composeBody.value.trim() || t('email.default_body')
-  const recipient = composeRecipientIds.value.length > 0
-    ? composeRecipientIds.value.map(displayNameForRecipient).join('、')
-    : t('email.no_recipients')
-  const messageId = composeDraftId.value || `mail-${Date.now()}`
+  const subject = composeSubject.value.trim() || t('email.default_subject');
+  const body = composeBody.value.trim() || t('email.default_body');
+  const recipient =
+    composeRecipientIds.value.length > 0
+      ? composeRecipientIds.value.map(displayNameForRecipient).join('、')
+      : t('email.no_recipients');
+  const messageId = composeDraftId.value || `mail-${Date.now()}`;
   const sentMessage: EmailMessage = {
     id: messageId,
     folder: 'sent',
@@ -183,18 +262,18 @@ function sendComposeDraft(): void {
     preview: body,
     time: '刚刚',
     unread: false,
-  }
+  };
 
-  const replacedDraft = messages.value.some(message => message.id === messageId)
+  const replacedDraft = messages.value.some((message) => message.id === messageId);
   messages.value = replacedDraft
-    ? messages.value.map(message => message.id === messageId ? sentMessage : message)
-    : [sentMessage, ...messages.value]
-  activeFolder.value = 'sent'
-  searchQuery.value = ''
-  selectedMessageId.value = messageId
-  composeOpen.value = false
-  composeDraftId.value = ''
-  messageActionNotices.value = { ...messageActionNotices.value, [messageId]: t('email.notice_sent', { subject }) }
+    ? messages.value.map((message) => (message.id === messageId ? sentMessage : message))
+    : [sentMessage, ...messages.value];
+  activeFolder.value = 'sent';
+  searchQuery.value = '';
+  selectedMessageId.value = messageId;
+  composeOpen.value = false;
+  composeDraftId.value = '';
+  messageActionNotices.value = { ...messageActionNotices.value, [messageId]: t('email.notice_sent', { subject }) };
 }
 </script>
 
@@ -256,7 +335,9 @@ function sendComposeDraft(): void {
 
     <section class="flex min-w-0 flex-1 flex-col bg-background">
       <header class="flex h-14 shrink-0 items-center justify-between border-b border-border bg-sidebar px-4">
-        <label class="flex h-8 w-full max-w-md items-center gap-2 rounded-md border border-border bg-input px-3 text-muted-foreground focus-within:border-primary">
+        <label
+          class="flex h-8 w-full max-w-md items-center gap-2 rounded-md border border-border bg-input px-3 text-muted-foreground focus-within:border-primary"
+        >
           <Search :size="18" />
           <input
             v-model="searchQuery"
@@ -264,7 +345,7 @@ function sendComposeDraft(): void {
             type="text"
             :placeholder="t('email.search_placeholder')"
             class="h-full min-w-0 flex-1 bg-transparent text-[13px] text-foreground outline-none placeholder:text-muted-foreground"
-          >
+          />
         </label>
       </header>
 
@@ -272,10 +353,7 @@ function sendComposeDraft(): void {
         <div class="mx-auto grid w-full max-w-[1180px] gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
           <section class="workspace-surface overflow-hidden rounded-lg">
             <div class="flex h-11 items-center justify-between border-b border-border px-4">
-              <h2
-                class="text-[15px] font-semibold"
-                data-testid="email-active-folder-title"
-              >
+              <h2 class="text-[15px] font-semibold" data-testid="email-active-folder-title">
                 {{ activeFolderLabel }}
               </h2>
               <span class="text-[12px] text-muted-foreground">
@@ -313,38 +391,33 @@ function sendComposeDraft(): void {
           </section>
 
           <aside class="workspace-surface h-fit rounded-lg p-5">
-            <span class="flex size-11 items-center justify-center rounded-lg border border-primary/20 bg-primary/12 text-primary">
+            <span
+              class="flex size-11 items-center justify-center rounded-lg border border-primary/20 bg-primary/12 text-primary"
+            >
               <Mail :size="22" />
             </span>
             <h2 class="mt-4 text-[15px] font-semibold">
               {{ t('email.smart_sort') }}
             </h2>
             <template v-if="selectedMessage">
-              <h3 class="mt-4 text-[14px] font-semibold">
-                当前邮件：{{ selectedMessage.subject }}
-              </h3>
+              <h3 class="mt-4 text-[14px] font-semibold">当前邮件：{{ selectedMessage.subject }}</h3>
               <p class="mt-2 text-[13px] leading-5 text-muted-foreground">
                 {{ selectedMessage.from }}
-                <template v-if="selectedMessage.to">
-                  → {{ selectedMessage.to }}
-                </template>
+                <template v-if="selectedMessage.to"> → {{ selectedMessage.to }} </template>
                 · {{ selectedMessage.time }}
               </p>
               <p class="mt-3 text-[13px] leading-5 text-foreground">
                 {{ selectedMessage.preview }}
               </p>
               <div v-if="composeOpen" class="mt-4 grid gap-2 rounded-lg border border-border p-3">
-                <GroupMemberPicker
-                  v-model="composeRecipientIds"
-                  label="收件人"
-                />
+                <GroupMemberPicker v-model="composeRecipientIds" label="收件人" />
                 <input
                   v-model="composeSubject"
                   data-testid="email-compose-subject"
                   type="text"
                   placeholder="主题"
                   class="h-8 rounded-md border border-border bg-background px-3 text-[12px] text-foreground outline-none focus:border-primary"
-                >
+                />
                 <textarea
                   v-model="composeBody"
                   data-testid="email-compose-body"
@@ -362,7 +435,9 @@ function sendComposeDraft(): void {
               </div>
               <div class="mt-4 grid gap-2 rounded-lg border border-border p-3 text-[12px]">
                 <span class="font-semibold text-foreground">{{ selectedMessageActionNotice }}</span>
-                <span v-if="selectedReplyDraftSubject" class="text-muted-foreground">{{ selectedReplyDraftSubject }}</span>
+                <span v-if="selectedReplyDraftSubject" class="text-muted-foreground">{{
+                  selectedReplyDraftSubject
+                }}</span>
               </div>
               <div class="mt-3 grid gap-2 sm:grid-cols-3">
                 <button

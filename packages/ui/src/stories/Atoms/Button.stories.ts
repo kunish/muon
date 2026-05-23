@@ -20,7 +20,11 @@ export default meta
 type Story = StoryObj<typeof Button>
 
 export const Default: Story = {
-  render: args => ({ components: { Button }, setup: () => ({ args }), template: '<Button v-bind="args">Save</Button>' }),
+  render: (args) => ({
+    components: { Button },
+    setup: () => ({ args }),
+    template: '<Button v-bind="args">Save</Button>',
+  }),
 }
 
 export const Variants: Story = {

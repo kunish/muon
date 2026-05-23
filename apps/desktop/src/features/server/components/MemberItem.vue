@@ -1,32 +1,29 @@
 <script setup lang="ts">
-import type { SpaceMember } from '@/matrix/spaces'
-import { Avatar } from '@muon/ui/avatar'
-import { computed } from 'vue'
-import { getUserPresenceInfo } from '@/matrix/profile'
+import type { SpaceMember } from '@/matrix/spaces';
+import { Avatar } from '@muon/ui/avatar';
+import { computed } from 'vue';
+import { getUserPresenceInfo } from '@/matrix/profile';
 
 const props = defineProps<{
-  member: SpaceMember
-  roleColor: string
-}>()
+  member: SpaceMember;
+  roleColor: string;
+}>();
 
 const emit = defineEmits<{
-  click: [event: MouseEvent]
-  contextmenu: [event: MouseEvent]
-}>()
+  click: [event: MouseEvent];
+  contextmenu: [event: MouseEvent];
+}>();
 
 // 在线状态
-const presence = computed(() => getUserPresenceInfo(props.member.userId))
+const presence = computed(() => getUserPresenceInfo(props.member.userId));
 
 const presenceValue = computed(() => {
-  const p = presence.value.presence
-  if (p === 'online' || p === 'unavailable' || p === 'busy')
-    return p as 'online' | 'unavailable' | 'busy'
-  return 'offline' as const
-})
+  const p = presence.value.presence;
+  if (p === 'online' || p === 'unavailable' || p === 'busy') return p as 'online' | 'unavailable' | 'busy';
+  return 'offline' as const;
+});
 
-const isOffline = computed(() =>
-  presenceValue.value === 'offline',
-)
+const isOffline = computed(() => presenceValue.value === 'offline');
 </script>
 
 <template>
@@ -46,10 +43,7 @@ const isOffline = computed(() =>
     />
 
     <!-- 名称 -->
-    <span
-      class="text-sm truncate leading-tight"
-      :style="{ color: roleColor }"
-    >
+    <span class="text-sm truncate leading-tight" :style="{ color: roleColor }">
       {{ member.displayName }}
     </span>
   </div>

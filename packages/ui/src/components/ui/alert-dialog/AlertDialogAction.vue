@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import type { AlertDialogActionProps } from 'reka-ui'
-import { AlertDialogAction, useForwardProps } from 'reka-ui'
-import { cn } from '../../../utils'
-import { buttonVariants } from '../button'
+import type { AlertDialogActionProps } from 'reka-ui';
+import { AlertDialogAction, useForwardProps } from 'reka-ui';
+import { cn } from '../../../utils';
+import { buttonVariants } from '../button';
 
-const props = defineProps<AlertDialogActionProps & { class?: string }>()
+const props = defineProps<AlertDialogActionProps & { class?: string }>();
 const forwardedProps = useForwardProps(() => {
-  const { class: _, ...delegated } = props
-  return delegated
-})
+  const { class: _, ...delegated } = props;
+  return delegated;
+});
 </script>
 
 <template>

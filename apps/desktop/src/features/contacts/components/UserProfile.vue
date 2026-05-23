@@ -1,129 +1,113 @@
 <script setup lang="ts">
-import { blockUser, getUserPresenceInfo, isUserBlocked, unblockUser } from '@matrix/index'
-import { formatDistanceToNow } from 'date-fns'
-import { enUS, zhCN } from 'date-fns/locale'
-import { Ban, MessageSquare, Phone, Save, Star, StickyNote, Tag, Video } from 'lucide-vue-next'
-import { computed, ref, watch } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { toast } from 'vue-sonner'
-import { useContactStore } from '../stores/contactStore'
+import { blockUser, getUserPresenceInfo, isUserBlocked, unblockUser } from '@matrix/index';
+import { formatDistanceToNow } from 'date-fns';
+import { enUS, zhCN } from 'date-fns/locale';
+import { Ban, MessageSquare, Phone, Save, Star, StickyNote, Tag, Video } from 'lucide-vue-next';
+import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { toast } from 'vue-sonner';
+import { useContactStore } from '../stores/contactStore';
 
 const emit = defineEmits<{
-  message: [userId: string]
-  audioCall: [userId: string]
-  videoCall: [userId: string]
-}>()
+  message: [userId: string];
+  audioCall: [userId: string];
+  videoCall: [userId: string];
+}>();
 
-const { t, locale } = useI18n()
+const { t, locale } = useI18n();
 
-const store = useContactStore()
+const store = useContactStore();
 
-const contact = computed(() =>
-  store.contacts.find(c => c.userId === store.selectedContactId),
-)
+const contact = computed(() => store.contacts.find((c) => c.userId === store.selectedContactId));
 
-const tagInput = ref('')
-const noteInput = ref('')
-const updatingBlock = ref(false)
+const tagInput = ref('');
+const noteInput = ref('');
+const updatingBlock = ref(false);
 
 const profile = computed(() => {
-  if (!contact.value)
-    return store.contactProfileFor('')
-  return store.contactProfileFor(contact.value.userId)
-})
+  if (!contact.value) return store.contactProfileFor('');
+  return store.contactProfileFor(contact.value.userId);
+});
 
 watch(
   () => contact.value?.userId,
   (userId) => {
     if (!userId) {
-      tagInput.value = ''
-      noteInput.value = ''
-      return
+      tagInput.value = '';
+      noteInput.value = '';
+      return;
     }
 
-    const nextProfile = store.contactProfileFor(userId)
+    const nextProfile = store.contactProfileFor(userId);
     store.updateContactProfile(userId, {
       isBlocked: nextProfile.isBlocked || isUserBlocked(userId),
-    })
-    tagInput.value = nextProfile.tag
-    noteInput.value = nextProfile.note
+    });
+    tagInput.value = nextProfile.tag;
+    noteInput.value = nextProfile.note;
   },
   { immediate: true },
-)
+);
 
 const presenceInfo = computed(() => {
-  if (!contact.value)
-    return null
-  return getUserPresenceInfo(contact.value.userId)
-})
+  if (!contact.value) return null;
+  return getUserPresenceInfo(contact.value.userId);
+});
 
 const presenceLabel = computed(() => {
-  if (!presenceInfo.value)
-    return t('contacts.offline')
-  const { presence, lastActiveAgo } = presenceInfo.value
-  if (presence === 'online')
-    return t('contacts.online')
+  if (!presenceInfo.value) return t('contacts.offline');
+  const { presence, lastActiveAgo } = presenceInfo.value;
+  if (presence === 'online') return t('contacts.online');
   if (lastActiveAgo && lastActiveAgo > 0) {
-    const lastSeenDate = new Date(Date.now() - lastActiveAgo)
-    const dateFnsLocale = locale.value === 'zh' ? zhCN : enUS
-    return `${formatDistanceToNow(lastSeenDate, { locale: dateFnsLocale, addSuffix: true })}${t('contacts.online')}`
+    const lastSeenDate = new Date(Date.now() - lastActiveAgo);
+    const dateFnsLocale = locale.value === 'zh' ? zhCN : enUS;
+    return `${formatDistanceToNow(lastSeenDate, { locale: dateFnsLocale, addSuffix: true })}${t('contacts.online')}`;
   }
-  return t('contacts.offline')
-})
+  return t('contacts.offline');
+});
 
 const profileStatus = computed(() => {
-  const states: string[] = []
-  if (profile.value.isFavorite)
-    states.push(t('contacts.favorite_on'))
-  if (profile.value.isBlocked)
-    states.push(t('contacts.blocked_on'))
-  if (profile.value.tag)
-    states.push(profile.value.tag)
+  const states: string[] = [];
+  if (profile.value.isFavorite) states.push(t('contacts.favorite_on'));
+  if (profile.value.isBlocked) states.push(t('contacts.blocked_on'));
+  if (profile.value.tag) states.push(profile.value.tag);
 
-  return states.length > 0 ? states.join(' / ') : t('contacts.relationship_default')
-})
+  return states.length > 0 ? states.join(' / ') : t('contacts.relationship_default');
+});
 
 function saveProfile(): void {
-  if (!contact.value)
-    return
+  if (!contact.value) return;
 
   store.updateContactProfile(contact.value.userId, {
     note: noteInput.value.trim(),
     tag: tagInput.value.trim(),
-  })
+  });
 }
 
 function toggleFavorite(): void {
-  if (!contact.value)
-    return
-  store.toggleContactFavorite(contact.value.userId)
+  if (!contact.value) return;
+  store.toggleContactFavorite(contact.value.userId);
 }
 
 async function toggleBlocked(): Promise<void> {
-  if (!contact.value)
-    return
-  if (updatingBlock.value)
-    return
+  if (!contact.value) return;
+  if (updatingBlock.value) return;
 
-  const userId = contact.value.userId
-  const previousBlocked = profile.value.isBlocked
-  const nextBlocked = !profile.value.isBlocked
-  updatingBlock.value = true
-  store.updateContactProfile(userId, { isBlocked: nextBlocked })
+  const userId = contact.value.userId;
+  const previousBlocked = profile.value.isBlocked;
+  const nextBlocked = !profile.value.isBlocked;
+  updatingBlock.value = true;
+  store.updateContactProfile(userId, { isBlocked: nextBlocked });
   try {
     if (nextBlocked) {
-      await blockUser(userId)
+      await blockUser(userId);
+    } else {
+      await unblockUser(userId);
     }
-    else {
-      await unblockUser(userId)
-    }
-  }
-  catch {
-    store.updateContactProfile(userId, { isBlocked: previousBlocked })
-    toast.error(t('contacts.profile_failed'))
-  }
-  finally {
-    updatingBlock.value = false
+  } catch {
+    store.updateContactProfile(userId, { isBlocked: previousBlocked });
+    toast.error(t('contacts.profile_failed'));
+  } finally {
+    updatingBlock.value = false;
   }
 }
 </script>
@@ -132,7 +116,9 @@ async function toggleBlocked(): Promise<void> {
   <div v-if="contact" class="flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-y-auto p-6">
     <div class="workspace-surface mx-auto w-full max-w-[720px] rounded-lg p-6">
       <div class="flex items-start gap-4">
-        <div class="flex h-20 w-20 shrink-0 items-center justify-center rounded-lg border border-border bg-muted text-2xl font-semibold text-primary">
+        <div
+          class="flex h-20 w-20 shrink-0 items-center justify-center rounded-lg border border-border bg-muted text-2xl font-semibold text-primary"
+        >
           {{ contact.displayName.slice(0, 1) }}
         </div>
         <div class="min-w-0 flex-1">
@@ -152,10 +138,7 @@ async function toggleBlocked(): Promise<void> {
             />
             {{ presenceLabel }}
           </div>
-          <p
-            v-if="presenceInfo?.statusMsg"
-            class="mt-2 max-w-[420px] truncate text-[13px] text-muted-foreground"
-          >
+          <p v-if="presenceInfo?.statusMsg" class="mt-2 max-w-[420px] truncate text-[13px] text-muted-foreground">
             {{ presenceInfo.statusMsg }}
           </p>
         </div>
@@ -191,10 +174,7 @@ async function toggleBlocked(): Promise<void> {
             <div class="text-[13px] font-semibold text-foreground">
               {{ t('contacts.relationship_management') }}
             </div>
-            <div
-              data-testid="contacts-profile-status"
-              class="mt-1 text-[12px] text-muted-foreground"
-            >
+            <div data-testid="contacts-profile-status" class="mt-1 text-[12px] text-muted-foreground">
               {{ profileStatus }}
             </div>
           </div>
@@ -203,7 +183,11 @@ async function toggleBlocked(): Promise<void> {
               data-testid="contacts-toggle-favorite"
               type="button"
               class="inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-[12px] font-semibold transition-colors"
-              :class="profile.isFavorite ? 'border-warning/40 bg-warning/10 text-warning' : 'border-border bg-muted text-muted-foreground hover:bg-accent'"
+              :class="
+                profile.isFavorite
+                  ? 'border-warning/40 bg-warning/10 text-warning'
+                  : 'border-border bg-muted text-muted-foreground hover:bg-accent'
+              "
               :aria-pressed="profile.isFavorite"
               @click="toggleFavorite"
             >
@@ -214,7 +198,11 @@ async function toggleBlocked(): Promise<void> {
               data-testid="contacts-toggle-blocked"
               type="button"
               class="inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-[12px] font-semibold transition-colors"
-              :class="profile.isBlocked ? 'border-destructive/40 bg-destructive/10 text-destructive' : 'border-border bg-muted text-muted-foreground hover:bg-accent'"
+              :class="
+                profile.isBlocked
+                  ? 'border-destructive/40 bg-destructive/10 text-destructive'
+                  : 'border-border bg-muted text-muted-foreground hover:bg-accent'
+              "
               :aria-pressed="profile.isBlocked"
               :disabled="updatingBlock"
               @click="toggleBlocked"
@@ -237,7 +225,7 @@ async function toggleBlocked(): Promise<void> {
               type="text"
               :placeholder="t('contacts.relationship_tag_placeholder')"
               class="h-9 w-full rounded-md border border-border bg-background px-3 text-[13px] font-medium text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary"
-            >
+            />
           </label>
           <label class="min-w-0 text-[12px] font-semibold text-muted-foreground">
             <span class="mb-1 flex items-center gap-1.5">

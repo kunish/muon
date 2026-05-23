@@ -62,7 +62,7 @@ describe('link preview request hardening', () => {
   })
 
   it('accepts modern landing pages whose metadata appears after the old 256KB cap', async () => {
-    const html = `<html><head>${' '.repeat((256 * 1024) + 1)}<meta property="og:title" content="Late metadata"></head></html>`
+    const html = `<html><head>${' '.repeat(256 * 1024 + 1)}<meta property="og:title" content="Late metadata"></head></html>`
     const resp = new Response(html, {
       headers: {
         'content-length': String(new TextEncoder().encode(html).byteLength),
@@ -120,8 +120,12 @@ describe('link preview request hardening', () => {
   })
 
   it('accepts public absolute and relative asset URLs', () => {
-    expect(getPreviewAssetUrl('https://cdn.example.com/image.png', 'https://example.com/page')).toBe('https://cdn.example.com/image.png')
-    expect(getPreviewAssetUrl('/assets/favicon.ico', 'https://example.com/posts/1')).toBe('https://example.com/assets/favicon.ico')
+    expect(getPreviewAssetUrl('https://cdn.example.com/image.png', 'https://example.com/page')).toBe(
+      'https://cdn.example.com/image.png',
+    )
+    expect(getPreviewAssetUrl('/assets/favicon.ico', 'https://example.com/posts/1')).toBe(
+      'https://example.com/assets/favicon.ico',
+    )
   })
 
   it('rejects private and unsupported asset URLs', () => {

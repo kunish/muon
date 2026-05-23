@@ -18,7 +18,11 @@ export default meta
 type Story = StoryObj<typeof ListItem>
 
 export const Default: Story = {
-  render: args => ({ components: { ListItem }, setup: () => ({ args }), template: '<div class="w-80"><ListItem v-bind="args" /></div>' }),
+  render: (args) => ({
+    components: { ListItem },
+    setup: () => ({ args }),
+    template: '<div class="w-80"><ListItem v-bind="args" /></div>',
+  }),
 }
 
 export const Variants: Story = {

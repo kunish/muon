@@ -34,8 +34,9 @@ async function openAttachmentMenu(wrapper: ReturnType<typeof mount<InstanceType<
 }
 
 function getMenuButton(text: string) {
-  const button = Array.from(document.body.querySelectorAll<HTMLButtonElement>('button'))
-    .find(element => element.textContent?.includes(text))
+  const button = Array.from(document.body.querySelectorAll<HTMLButtonElement>('button')).find((element) =>
+    element.textContent?.includes(text),
+  )
   expect(button).not.toBeNull()
   return button!
 }

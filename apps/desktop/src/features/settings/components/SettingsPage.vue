@@ -1,25 +1,25 @@
 <script setup lang="ts">
-import { Bell, Info, Keyboard, Monitor, Settings, Shield, User } from 'lucide-vue-next'
-import { computed, ref, watch } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { useRoute, useRouter } from 'vue-router'
-import WorkspaceResizablePane from '@/app/components/workspace/WorkspaceResizablePane.vue'
-import AboutPage from './AboutPage.vue'
-import AppearanceSettings from './AppearanceSettings.vue'
-import GeneralSettings from './GeneralSettings.vue'
-import NotificationSettings from './NotificationSettings.vue'
-import ProfileSettings from './ProfileSettings.vue'
-import SecuritySettings from './SecuritySettings.vue'
-import ShortcutSettings from './ShortcutSettings.vue'
+import { Bell, Info, Keyboard, Monitor, Settings, Shield, User } from 'lucide-vue-next';
+import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useRoute, useRouter } from 'vue-router';
+import WorkspaceResizablePane from '@/app/components/workspace/WorkspaceResizablePane.vue';
+import AboutPage from './AboutPage.vue';
+import AppearanceSettings from './AppearanceSettings.vue';
+import GeneralSettings from './GeneralSettings.vue';
+import NotificationSettings from './NotificationSettings.vue';
+import ProfileSettings from './ProfileSettings.vue';
+import SecuritySettings from './SecuritySettings.vue';
+import ShortcutSettings from './ShortcutSettings.vue';
 
-const { t } = useI18n()
-const route = useRoute()
-const router = useRouter()
+const { t } = useI18n();
+const route = useRoute();
+const router = useRouter();
 
-const SETTINGS_WIDTH_STORAGE_KEY = 'muon_settings_sidebar_width'
-const DEFAULT_SETTINGS_WIDTH = 240
-const MIN_SETTINGS_WIDTH = 220
-const MAX_SETTINGS_WIDTH = 360
+const SETTINGS_WIDTH_STORAGE_KEY = 'muon_settings_sidebar_width';
+const DEFAULT_SETTINGS_WIDTH = 240;
+const MIN_SETTINGS_WIDTH = 220;
+const MAX_SETTINGS_WIDTH = 360;
 
 const tabs = [
   { id: 'profile', label: () => t('settings.profile'), icon: User },
@@ -29,32 +29,31 @@ const tabs = [
   { id: 'shortcuts', label: () => t('settings.shortcuts'), icon: Keyboard },
   { id: 'security', label: () => t('settings.security'), icon: Shield },
   { id: 'about', label: () => t('settings.about'), icon: Info },
-] as const
+] as const;
 
-type TabId = typeof tabs[number]['id']
+type TabId = (typeof tabs)[number]['id'];
 
-const activeTab = ref<TabId>('profile')
-const settingsResizeLabel = computed(() => t('sidebar.resize_settings'))
+const activeTab = ref<TabId>('profile');
+const settingsResizeLabel = computed(() => t('sidebar.resize_settings'));
 
 function isTabId(tab: unknown): tab is TabId {
-  return typeof tab === 'string' && tabs.some(item => item.id === tab)
+  return typeof tab === 'string' && tabs.some((item) => item.id === tab);
 }
 
 watch(
   () => route.query.tab,
   (tab) => {
     if (isTabId(tab)) {
-      activeTab.value = tab
+      activeTab.value = tab;
     }
   },
   { immediate: true },
-)
+);
 
 watch(activeTab, (tab) => {
-  if (route.query.tab === tab)
-    return
-  router.replace({ query: { ...route.query, tab } })
-})
+  if (route.query.tab === tab) return;
+  router.replace({ query: { ...route.query, tab } });
+});
 </script>
 
 <template>

@@ -7,7 +7,7 @@ const speechMocks = vi.hoisted(() => ({
   options: null as null | {
     onEnd: () => void
     onError: (error: string) => void
-    onResult: (result: { text: string, isFinal: boolean }) => void
+    onResult: (result: { text: string; isFinal: boolean }) => void
   },
   start: vi.fn(),
   stop: vi.fn(),

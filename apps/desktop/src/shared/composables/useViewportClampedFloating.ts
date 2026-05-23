@@ -40,12 +40,7 @@ function readViewportSize(): ViewportSize {
   }
 }
 
-function getClampedPosition(
-  position: ViewportPoint,
-  size: FloatingSize,
-  viewport: ViewportSize,
-  margin: number,
-) {
+function getClampedPosition(position: ViewportPoint, size: FloatingSize, viewport: ViewportSize, margin: number) {
   const maxLeft = Math.max(margin, viewport.width - size.width - margin)
   const maxTop = Math.max(margin, viewport.height - size.height - margin)
 
@@ -64,8 +59,7 @@ export function useViewportClampedFloating(options: UseViewportClampedFloatingOp
     viewportSize.value = readViewportSize()
 
     const rect = options.element.value?.getBoundingClientRect()
-    if (!rect)
-      return
+    if (!rect) return
 
     floatingSize.value = {
       width: rect.width || options.fallbackSize.width,
@@ -75,8 +69,7 @@ export function useViewportClampedFloating(options: UseViewportClampedFloatingOp
 
   async function syncFloatingLayoutAfterRender() {
     await nextTick()
-    if (toValue(options.open))
-      syncFloatingLayout()
+    if (toValue(options.open)) syncFloatingLayout()
   }
 
   const style = computed(() => {
@@ -84,32 +77,24 @@ export function useViewportClampedFloating(options: UseViewportClampedFloatingOp
       return { display: 'none' }
     }
 
-    return getClampedPosition(
-      toValue(options.position),
-      floatingSize.value,
-      viewportSize.value,
-      margin,
-    )
+    return getClampedPosition(toValue(options.position), floatingSize.value, viewportSize.value, margin)
   })
 
   function onResize() {
-    if (toValue(options.open))
-      syncFloatingLayout()
+    if (toValue(options.open)) syncFloatingLayout()
   }
 
   watch(
     () => toValue(options.open),
     (open) => {
-      if (open)
-        void syncFloatingLayoutAfterRender()
+      if (open) void syncFloatingLayoutAfterRender()
     },
   )
 
   watch(
     () => toValue(options.position),
     () => {
-      if (toValue(options.open))
-        void syncFloatingLayoutAfterRender()
+      if (toValue(options.open)) void syncFloatingLayoutAfterRender()
     },
   )
 

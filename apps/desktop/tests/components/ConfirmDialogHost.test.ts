@@ -31,7 +31,7 @@ describe('confirmDialogHost', () => {
     expect(document.body.textContent).toContain('Delete this channel?')
 
     const buttons = Array.from(document.body.querySelectorAll('button'))
-    buttons.find(button => button.textContent?.trim() === 'Delete')?.click()
+    buttons.find((button) => button.textContent?.trim() === 'Delete')?.click()
     await flushPromises()
 
     await expect(result).resolves.toBe(true)
@@ -52,7 +52,7 @@ describe('confirmDialogHost', () => {
     await flushPromises()
 
     const buttons = Array.from(document.body.querySelectorAll('button'))
-    buttons.find(button => button.textContent?.trim() === 'Stay')?.click()
+    buttons.find((button) => button.textContent?.trim() === 'Stay')?.click()
     await flushPromises()
 
     await expect(result).resolves.toBe(false)
@@ -78,7 +78,7 @@ describe('confirmDialogHost', () => {
     expect(document.body.textContent).not.toContain('Second request')
 
     Array.from(document.body.querySelectorAll('button'))
-      .find(button => button.textContent?.trim() === 'Delete first')
+      .find((button) => button.textContent?.trim() === 'Delete first')
       ?.click()
     await flushPromises()
 
@@ -86,7 +86,7 @@ describe('confirmDialogHost', () => {
     expect(document.body.textContent).toContain('Second request')
 
     Array.from(document.body.querySelectorAll('button'))
-      .find(button => button.textContent?.trim() === 'Delete second')
+      .find((button) => button.textContent?.trim() === 'Delete second')
       ?.click()
     await flushPromises()
 

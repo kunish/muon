@@ -1,134 +1,128 @@
 <script setup lang="ts">
-import { findOrCreateDm } from '@matrix/rooms'
-import { Avatar } from '@muon/ui/avatar'
-import { Label } from '@muon/ui/label'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@muon/ui/tabs'
-import { useContactList } from '@shared/composables/useContactList'
-import { Search, Users, X } from 'lucide-vue-next'
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
-import { toast } from 'vue-sonner'
-import GroupMemberPicker from '@/features/contacts/components/GroupMemberPicker.vue'
-import { useContacts } from '@/features/contacts/composables/useContacts'
-import { useGroupManagement } from '@/features/contacts/composables/useGroupManagement'
-import { useChatStore } from '../stores/chatStore'
+import { findOrCreateDm } from '@matrix/rooms';
+import { Avatar } from '@muon/ui/avatar';
+import { Label } from '@muon/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@muon/ui/tabs';
+import { useContactList } from '@shared/composables/useContactList';
+import { Search, Users, X } from 'lucide-vue-next';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useRouter } from 'vue-router';
+import { toast } from 'vue-sonner';
+import GroupMemberPicker from '@/features/contacts/components/GroupMemberPicker.vue';
+import { useContacts } from '@/features/contacts/composables/useContacts';
+import { useGroupManagement } from '@/features/contacts/composables/useGroupManagement';
+import { useChatStore } from '../stores/chatStore';
 
 const emit = defineEmits<{
-  close: []
-}>()
+  close: [];
+}>();
 
-const { t } = useI18n()
-const router = useRouter()
-const store = useChatStore()
-const contactList = useContactList()
-const { searchUsers } = useContacts()
+const { t } = useI18n();
+const router = useRouter();
+const store = useChatStore();
+const contactList = useContactList();
+const { searchUsers } = useContacts();
 
 // --- 状态 ---
-type Tab = 'dm' | 'group'
-const activeTab = ref<Tab>('dm')
-const query = ref('')
-const loading = ref(false)
-const starting = ref(false)
+type Tab = 'dm' | 'group';
+const activeTab = ref<Tab>('dm');
+const query = ref('');
+const loading = ref(false);
+const starting = ref(false);
 
 // 用户目录搜索结果
-const directoryResults = ref<{ user_id: string, display_name?: string, avatar_url?: string }[]>([])
+const directoryResults = ref<{ user_id: string; display_name?: string; avatar_url?: string }[]>([]);
 
 // 群组创建
-const { createGroup } = useGroupManagement()
-const groupName = ref('')
-const groupTopic = ref('')
-const groupMemberIds = ref<string[]>([])
-const creatingGroup = ref(false)
+const { createGroup } = useGroupManagement();
+const groupName = ref('');
+const groupTopic = ref('');
+const groupMemberIds = ref<string[]>([]);
+const creatingGroup = ref(false);
 
 function onKeydown(event: KeyboardEvent): void {
-  if (event.key === 'Escape')
-    emit('close')
+  if (event.key === 'Escape') emit('close');
 }
 
 onMounted(() => {
-  contactList.loadContacts()
-  document.addEventListener('keydown', onKeydown)
-})
+  contactList.loadContacts();
+  document.addEventListener('keydown', onKeydown);
+});
 
 // --- 搜索逻辑（私聊模式） ---
-let searchTimer: ReturnType<typeof setTimeout> | null = null
+let searchTimer: ReturnType<typeof setTimeout> | null = null;
 
 watch(query, (val) => {
-  if (searchTimer)
-    clearTimeout(searchTimer)
+  if (searchTimer) clearTimeout(searchTimer);
   if (!val.trim()) {
-    directoryResults.value = []
-    return
+    directoryResults.value = [];
+    return;
   }
   searchTimer = setTimeout(async () => {
-    loading.value = true
+    loading.value = true;
     try {
-      directoryResults.value = await searchUsers(val.trim())
+      directoryResults.value = await searchUsers(val.trim());
+    } catch {
+      directoryResults.value = [];
+    } finally {
+      loading.value = false;
     }
-    catch {
-      directoryResults.value = []
-    }
-    finally {
-      loading.value = false
-    }
-  }, 300)
-})
+  }, 300);
+});
 
 onUnmounted(() => {
-  if (searchTimer)
-    clearTimeout(searchTimer)
-  document.removeEventListener('keydown', onKeydown)
-})
+  if (searchTimer) clearTimeout(searchTimer);
+  document.removeEventListener('keydown', onKeydown);
+});
 
 // 合并已有联系人 + 搜索结果（去重）
 const dmList = computed(() => {
-  const q = query.value.toLowerCase()
+  const q = query.value.toLowerCase();
 
   // 无搜索词时，显示已有联系人
   if (!q) {
-    return contactList.contacts.map(c => ({
+    return contactList.contacts.map((c) => ({
       userId: c.userId,
       displayName: c.displayName,
       avatarMxc: c.avatarUrl || undefined,
-    }))
+    }));
   }
 
   // 有搜索词时，合并联系人过滤 + 目录搜索结果
-  const seen = new Set<string>()
-  const result: { userId: string, displayName: string, avatarMxc?: string }[] = []
+  const seen = new Set<string>();
+  const result: { userId: string; displayName: string; avatarMxc?: string }[] = [];
 
   // 先放匹配的已有联系人
   for (const c of contactList.contacts) {
     if (c.displayName.toLowerCase().includes(q) || c.userId.toLowerCase().includes(q)) {
-      seen.add(c.userId)
-      result.push({ userId: c.userId, displayName: c.displayName, avatarMxc: c.avatarUrl || undefined })
+      seen.add(c.userId);
+      result.push({ userId: c.userId, displayName: c.displayName, avatarMxc: c.avatarUrl || undefined });
     }
   }
 
   // 再放目录搜索结果
   for (const r of directoryResults.value) {
     if (!seen.has(r.user_id)) {
-      seen.add(r.user_id)
+      seen.add(r.user_id);
       result.push({
         userId: r.user_id,
         displayName: r.display_name || r.user_id.split(':')[0].slice(1),
         avatarMxc: r.avatar_url || undefined,
-      })
+      });
     }
   }
 
-  return result
-})
+  return result;
+});
 
 // --- 选择用户开始私聊 ---
 async function startDm(userId: string) {
-  if (starting.value)
-    return
-  starting.value = true
+  if (starting.value) return;
+  starting.value = true;
   try {
-    const user = dmList.value.find(item => item.userId === userId)
-    const roomId = await findOrCreateDm(userId)
+    const user = dmList.value.find((item) => item.userId === userId);
+    const roomId = await findOrCreateDm(userId);
     store.setCurrentRoom(roomId, {
       sidebarPlacement: 'promote',
       sidebarPreview: {
@@ -138,45 +132,40 @@ async function startDm(userId: string) {
         dmUserAvatar: user?.avatarMxc,
         isDirect: true,
       },
-    })
-    router.push(`/dm/${encodeURIComponent(roomId)}`)
-    emit('close')
-  }
-  catch {
-    toast.error(t('auth.error'))
-  }
-  finally {
-    starting.value = false
+    });
+    router.push(`/dm/${encodeURIComponent(roomId)}`);
+    emit('close');
+  } catch {
+    toast.error(t('auth.error'));
+  } finally {
+    starting.value = false;
   }
 }
 
 // --- 创建群组 ---
 async function handleCreateGroup() {
-  if (!groupName.value.trim() || creatingGroup.value)
-    return
-  creatingGroup.value = true
+  if (!groupName.value.trim() || creatingGroup.value) return;
+  creatingGroup.value = true;
   try {
     const roomId = await createGroup({
       name: groupName.value.trim(),
       topic: groupTopic.value.trim() || undefined,
       userIds: groupMemberIds.value,
       isEncrypted: false,
-    })
+    });
     store.setCurrentRoom(roomId, {
       sidebarPlacement: 'promote',
       sidebarPreview: {
         name: groupName.value.trim(),
         isDirect: false,
       },
-    })
-    router.push(`/dm/${encodeURIComponent(roomId)}`)
-    emit('close')
-  }
-  catch {
-    toast.error(t('auth.error'))
-  }
-  finally {
-    creatingGroup.value = false
+    });
+    router.push(`/dm/${encodeURIComponent(roomId)}`);
+    emit('close');
+  } catch {
+    toast.error(t('auth.error'));
+  } finally {
+    creatingGroup.value = false;
   }
 }
 </script>
@@ -199,11 +188,7 @@ async function handleCreateGroup() {
         </div>
 
         <!-- 标签切换 + 内容 -->
-        <Tabs
-          v-model="activeTab"
-          data-testid="new-chat-tabs"
-          class="min-h-0 flex-1 flex flex-col overflow-hidden"
-        >
+        <Tabs v-model="activeTab" data-testid="new-chat-tabs" class="min-h-0 flex-1 flex flex-col overflow-hidden">
           <div class="px-4 pb-2">
             <TabsList class="grid w-full grid-cols-2">
               <TabsTrigger value="dm">
@@ -227,7 +212,7 @@ async function handleCreateGroup() {
                   :placeholder="t('chat.search_user_placeholder')"
                   class="w-full pl-8 pr-3 py-2 text-sm rounded-lg border border-border bg-muted/30 outline-none focus:ring-1 focus:ring-primary/40 transition-all"
                   autofocus
-                >
+                />
               </div>
             </div>
 
@@ -239,17 +224,11 @@ async function handleCreateGroup() {
               </div>
 
               <!-- 空状态 -->
-              <div
-                v-else-if="dmList.length === 0 && query"
-                class="text-center text-sm text-muted-foreground/50 py-8"
-              >
+              <div v-else-if="dmList.length === 0 && query" class="text-center text-sm text-muted-foreground/50 py-8">
                 {{ t('chat.user_not_found') }}
               </div>
 
-              <div
-                v-else-if="dmList.length === 0 && !query"
-                class="text-center text-sm text-muted-foreground/50 py-8"
-              >
+              <div v-else-if="dmList.length === 0 && !query" class="text-center text-sm text-muted-foreground/50 py-8">
                 {{ t('chat.search_to_start') }}
               </div>
 
@@ -280,10 +259,7 @@ async function handleCreateGroup() {
             data-testid="new-chat-group-tab-content"
             class="mt-0 flex min-h-0 flex-1 flex-col overflow-hidden"
           >
-            <div
-              data-testid="new-chat-group-form-scroll"
-              class="min-h-0 flex-1 overflow-y-auto px-4 pb-4 space-y-3"
-            >
+            <div data-testid="new-chat-group-form-scroll" class="min-h-0 flex-1 overflow-y-auto px-4 pb-4 space-y-3">
               <div>
                 <Label class="text-[12px] text-muted-foreground mb-1 block">{{ t('chat.group_name') }}</Label>
                 <input
@@ -292,7 +268,7 @@ async function handleCreateGroup() {
                   :placeholder="t('chat.group_name_placeholder')"
                   class="w-full h-9 px-3 text-sm rounded-lg border border-border bg-background outline-none focus:ring-1 focus:ring-primary/40"
                   autofocus
-                >
+                />
               </div>
 
               <div>
@@ -302,7 +278,7 @@ async function handleCreateGroup() {
                   type="text"
                   :placeholder="t('chat.group_topic_placeholder')"
                   class="w-full h-9 px-3 text-sm rounded-lg border border-border bg-background outline-none focus:ring-1 focus:ring-primary/40"
-                >
+                />
               </div>
 
               <GroupMemberPicker v-model="groupMemberIds" />

@@ -102,9 +102,7 @@ describe('contactList layout', () => {
 
   it('renders contacts and groups inside one bounded scroll container', () => {
     const store = useContactStore()
-    store.contacts = [
-      { userId: '@alice:localhost', displayName: 'Alice', presence: 'online' },
-    ]
+    store.contacts = [{ userId: '@alice:localhost', displayName: 'Alice', presence: 'online' }]
     store.groups = Array.from({ length: 16 }, (_, index) => ({
       roomId: `!group_${index}:localhost`,
       name: `群组 ${index}`,
@@ -113,14 +111,10 @@ describe('contactList layout', () => {
 
     const wrapper = mount(ContactList)
 
-    expect(wrapper.classes()).toEqual(
-      expect.arrayContaining(['min-h-0', 'flex-col']),
-    )
+    expect(wrapper.classes()).toEqual(expect.arrayContaining(['min-h-0', 'flex-col']))
 
     const scroller = wrapper.get('[data-testid="contacts-list-scroll-container"]')
-    expect(scroller.classes()).toEqual(
-      expect.arrayContaining(['min-h-0', 'flex-1', 'overflow-y-auto']),
-    )
+    expect(scroller.classes()).toEqual(expect.arrayContaining(['min-h-0', 'flex-1', 'overflow-y-auto']))
     expect(wrapper.findAll('[data-testid^="contacts-group-row-"]')).toHaveLength(16)
     expect(wrapper.text()).toContain('群组 15')
   })

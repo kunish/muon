@@ -14,8 +14,7 @@ import { expect, test } from '@playwright/test'
 const storiesPath = resolve(import.meta.dirname, './stories.json')
 const STORY_IDS = JSON.parse(readFileSync(storiesPath, 'utf-8')) as string[]
 
-if (STORY_IDS.length === 0)
-  throw new Error('tests/visual/stories.json is empty — run `pnpm refresh-stories`')
+if (STORY_IDS.length === 0) throw new Error('tests/visual/stories.json is empty — run `pnpm refresh-stories`')
 
 // Components that render through a Portal (overlay/popper/teleport) escape
 // #storybook-root — their content lands in <body> and storybook-root gets
@@ -39,7 +38,7 @@ const PORTAL_PREFIXES = [
 ]
 
 function isPortalStory(id: string): boolean {
-  return PORTAL_PREFIXES.some(p => id.startsWith(p))
+  return PORTAL_PREFIXES.some((p) => id.startsWith(p))
 }
 
 for (const id of STORY_IDS) {

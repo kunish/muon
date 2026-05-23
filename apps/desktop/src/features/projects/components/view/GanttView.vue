@@ -1,65 +1,65 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { useWorkItemStore } from '../../composables/useWorkItemStore'
-import WorkItemDetail from '../WorkItemDetail.vue'
+import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useWorkItemStore } from '../../composables/useWorkItemStore';
+import WorkItemDetail from '../WorkItemDetail.vue';
 
-defineProps<{ projectId: string }>()
+defineProps<{ projectId: string }>();
 
-const { t } = useI18n()
-const store = useWorkItemStore()
-const monthsBack = ref(1)
-const monthsForward = ref(3)
-const selectedItemId = ref<string | null>(null)
+const { t } = useI18n();
+const store = useWorkItemStore();
+const monthsBack = ref(1);
+const monthsForward = ref(3);
+const selectedItemId = ref<string | null>(null);
 
 const itemsWithDates = computed(() =>
-  store.currentItems.filter(i => i.dueDate).sort((a, b) => (a.dueDate ?? 0) - (b.dueDate ?? 0)),
-)
+  store.currentItems.filter((i) => i.dueDate).sort((a, b) => (a.dueDate ?? 0) - (b.dueDate ?? 0)),
+);
 
-const MS_PER_DAY = 86_400_000
+const MS_PER_DAY = 86_400_000;
 
 const range = computed(() => {
-  const now = new Date()
-  const start = new Date(now.getFullYear(), now.getMonth() - monthsBack.value, 1)
-  const end = new Date(now.getFullYear(), now.getMonth() + monthsForward.value + 1, 0)
-  const endTime = end.getTime()
-  const days: Date[] = []
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth() - monthsBack.value, 1);
+  const end = new Date(now.getFullYear(), now.getMonth() + monthsForward.value + 1, 0);
+  const endTime = end.getTime();
+  const days: Date[] = [];
   for (let time = start.getTime(); time <= endTime; time += MS_PER_DAY) {
-    days.push(new Date(time))
+    days.push(new Date(time));
   }
-  return { start, end, days }
-})
+  return { start, end, days };
+});
 
 function dateToColumnX(dateMs: number): number {
-  return Math.round((dateMs - range.value.start.getTime()) / MS_PER_DAY)
+  return Math.round((dateMs - range.value.start.getTime()) / MS_PER_DAY);
 }
 
-const todayX = computed(() => dateToColumnX(Date.now()))
+const todayX = computed(() => dateToColumnX(Date.now()));
 
 function totalDays(): number {
-  return Math.round((range.value.end.getTime() - range.value.start.getTime()) / MS_PER_DAY) + 1
+  return Math.round((range.value.end.getTime() - range.value.start.getTime()) / MS_PER_DAY) + 1;
 }
 
 const dayLabels = computed(() => {
-  const months = new Map<string, number>()
+  const months = new Map<string, number>();
   for (const d of range.value.days) {
-    const key = `${d.getFullYear()}-${d.getMonth()}`
-    months.set(key, (months.get(key) ?? 0) + 1)
+    const key = `${d.getFullYear()}-${d.getMonth()}`;
+    months.set(key, (months.get(key) ?? 0) + 1);
   }
-  const result: { label: string, span: number }[] = []
-  let lastKey = ''
+  const result: { label: string; span: number }[] = [];
+  let lastKey = '';
   for (const d of range.value.days) {
-    const key = `${d.getFullYear()}-${d.getMonth()}`
+    const key = `${d.getFullYear()}-${d.getMonth()}`;
     if (key !== lastKey) {
-      result.push({ label: `${d.getMonth() + 1}月`, span: months.get(key)! })
-      lastKey = key
+      result.push({ label: `${d.getMonth() + 1}月`, span: months.get(key)! });
+      lastKey = key;
     }
   }
-  return result
-})
+  return result;
+});
 
-const columnWidth = 24
-const titleColumnWidth = 256
+const columnWidth = 24;
+const titleColumnWidth = 256;
 </script>
 
 <template>
@@ -68,7 +68,11 @@ const titleColumnWidth = 256
       {{ t('projects.no_tasks') }}
     </div>
 
-    <div v-else class="flex min-h-full flex-col" :style="{ width: `${titleColumnWidth + totalDays() * columnWidth}px` }">
+    <div
+      v-else
+      class="flex min-h-full flex-col"
+      :style="{ width: `${titleColumnWidth + totalDays() * columnWidth}px` }"
+    >
       <div class="sticky top-0 z-10 flex shrink-0 border-b bg-background text-xs">
         <div class="w-64 shrink-0 border-r px-3 py-2 font-medium">
           {{ t('projects.task_title') }}
@@ -102,17 +106,10 @@ const titleColumnWidth = 256
           >
             {{ new Date(item.dueDate!).toLocaleDateString() }}
           </div>
-          <div
-            class="absolute top-0 h-full w-px bg-red-500"
-            :style="{ left: `${todayX * columnWidth}px` }"
-          />
+          <div class="absolute top-0 h-full w-px bg-red-500" :style="{ left: `${todayX * columnWidth}px` }" />
         </div>
       </div>
     </div>
-    <WorkItemDetail
-      v-if="selectedItemId"
-      :item-id="selectedItemId"
-      @close="selectedItemId = null"
-    />
+    <WorkItemDetail v-if="selectedItemId" :item-id="selectedItemId" @close="selectedItemId = null" />
   </div>
 </template>

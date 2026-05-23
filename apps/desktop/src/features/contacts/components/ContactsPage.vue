@@ -1,61 +1,61 @@
 <script setup lang="ts">
-import type { ContactCallMode } from '@/features/calls/stores/callLaunchStore'
-import { findOrCreateDm } from '@matrix/index'
-import { useRoomNavigation } from '@shared/composables/useRoomNavigation'
-import { Plus } from 'lucide-vue-next'
-import { computed, onMounted, ref } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
-import { toast } from 'vue-sonner'
-import WorkspaceResizablePane from '@/app/components/workspace/WorkspaceResizablePane.vue'
-import { launchContactCall } from '@/features/calls/stores/callLaunchStore'
-import { useConversations } from '../../chat/composables/useConversations'
-import { useContactStore } from '../stores/contactStore'
-import ContactList from './ContactList.vue'
-import CreateGroupDialog from './CreateGroupDialog.vue'
-import GroupSettings from './GroupSettings.vue'
-import UserProfile from './UserProfile.vue'
+import type { ContactCallMode } from '@/features/calls/stores/callLaunchStore';
+import { findOrCreateDm } from '@matrix/index';
+import { useRoomNavigation } from '@shared/composables/useRoomNavigation';
+import { Plus } from 'lucide-vue-next';
+import { computed, onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useRouter } from 'vue-router';
+import { toast } from 'vue-sonner';
+import WorkspaceResizablePane from '@/app/components/workspace/WorkspaceResizablePane.vue';
+import { launchContactCall } from '@/features/calls/stores/callLaunchStore';
+import { useConversations } from '../../chat/composables/useConversations';
+import { useContactStore } from '../stores/contactStore';
+import ContactList from './ContactList.vue';
+import CreateGroupDialog from './CreateGroupDialog.vue';
+import GroupSettings from './GroupSettings.vue';
+import UserProfile from './UserProfile.vue';
 
-const { t } = useI18n()
-const router = useRouter()
-const store = useContactStore()
-const chatStore = useRoomNavigation()
-const { restoreRoom } = useConversations()
+const { t } = useI18n();
+const router = useRouter();
+const store = useContactStore();
+const chatStore = useRoomNavigation();
+const { restoreRoom } = useConversations();
 
-const showCreateGroup = ref(false)
-const selectedGroupId = ref<string | null>(null)
+const showCreateGroup = ref(false);
+const selectedGroupId = ref<string | null>(null);
 
-const CONTACTS_WIDTH_STORAGE_KEY = 'muon_contacts_sidebar_width'
-const DEFAULT_CONTACTS_WIDTH = 240
-const MIN_CONTACTS_WIDTH = 220
-const MAX_CONTACTS_WIDTH = 360
-const contactsResizeLabel = computed(() => t('sidebar.resize_contacts'))
+const CONTACTS_WIDTH_STORAGE_KEY = 'muon_contacts_sidebar_width';
+const DEFAULT_CONTACTS_WIDTH = 240;
+const MIN_CONTACTS_WIDTH = 220;
+const MAX_CONTACTS_WIDTH = 360;
+const contactsResizeLabel = computed(() => t('sidebar.resize_contacts'));
 
 onMounted(() => {
-  void store.loadContacts()
-  void store.loadGroups()
-})
+  void store.loadContacts();
+  void store.loadGroups();
+});
 
 function handleSelectContact(userId: string): void {
-  selectedGroupId.value = null
-  store.selectedContactId = userId
+  selectedGroupId.value = null;
+  store.selectedContactId = userId;
 }
 
 function handleGroupCreated(roomId: string): void {
-  showCreateGroup.value = false
-  selectedGroupId.value = roomId
+  showCreateGroup.value = false;
+  selectedGroupId.value = roomId;
 }
 
 function handleSelectGroup(roomId: string): void {
-  store.selectedContactId = null
-  selectedGroupId.value = roomId
+  store.selectedContactId = null;
+  selectedGroupId.value = roomId;
 }
 
 async function handleOpenMessage(userId: string): Promise<void> {
   try {
-    const contact = store.contacts.find(item => item.userId === userId)
-    const roomId = await findOrCreateDm(userId)
-    restoreRoom(roomId)
+    const contact = store.contacts.find((item) => item.userId === userId);
+    const roomId = await findOrCreateDm(userId);
+    restoreRoom(roomId);
     chatStore.navigateToRoom(roomId, {
       sidebarPlacement: 'promote',
       sidebarPreview: {
@@ -65,22 +65,21 @@ async function handleOpenMessage(userId: string): Promise<void> {
         dmUserAvatar: contact?.avatarUrl,
         isDirect: true,
       },
-    })
-    router.push(`/dm/${encodeURIComponent(roomId)}`)
-  }
-  catch {
-    toast.error(t('auth.error'))
+    });
+    router.push(`/dm/${encodeURIComponent(roomId)}`);
+  } catch {
+    toast.error(t('auth.error'));
   }
 }
 
 function handleStartContactCall(userId: string, mode: ContactCallMode): void {
-  const contact = store.contacts.find(item => item.userId === userId)
+  const contact = store.contacts.find((item) => item.userId === userId);
   launchContactCall({
     userId,
     displayName: contact?.displayName,
     mode,
-  })
-  router.push('/calls')
+  });
+  router.push('/calls');
 }
 </script>
 
@@ -103,9 +102,7 @@ function handleStartContactCall(userId: string, mode: ContactCallMode): void {
             <h1 class="text-[18px] font-semibold leading-6">
               {{ t('contacts.title') }}
             </h1>
-            <p class="mt-1 text-[13px] text-muted-foreground">
-              Directory &amp; Organization
-            </p>
+            <p class="mt-1 text-[13px] text-muted-foreground">Directory &amp; Organization</p>
           </div>
           <button
             class="rounded-md p-1.5 text-primary transition-colors hover:bg-sidebar-accent"
@@ -138,24 +135,16 @@ function handleStartContactCall(userId: string, mode: ContactCallMode): void {
       </header>
 
       <div class="flex min-h-0 min-w-0 flex-1">
-        <GroupSettings
-          v-if="selectedGroupId"
-          :room-id="selectedGroupId"
-          @leave="selectedGroupId = null"
-        />
+        <GroupSettings v-if="selectedGroupId" :room-id="selectedGroupId" @leave="selectedGroupId = null" />
         <UserProfile
           v-else
           @message="handleOpenMessage"
-          @audio-call="userId => handleStartContactCall(userId, 'audio')"
-          @video-call="userId => handleStartContactCall(userId, 'video')"
+          @audio-call="(userId) => handleStartContactCall(userId, 'audio')"
+          @video-call="(userId) => handleStartContactCall(userId, 'video')"
         />
       </div>
     </section>
 
-    <CreateGroupDialog
-      v-if="showCreateGroup"
-      @close="showCreateGroup = false"
-      @created="handleGroupCreated"
-    />
+    <CreateGroupDialog v-if="showCreateGroup" @close="showCreateGroup = false" @created="handleGroupCreated" />
   </div>
 </template>

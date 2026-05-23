@@ -30,22 +30,18 @@ export interface VoiceConnection {
 
 function loadServerOrder(): string[] {
   try {
-    if (typeof localStorage?.getItem !== 'function')
-      return []
+    if (typeof localStorage?.getItem !== 'function') return []
     const raw = localStorage.getItem('muon_server_order')
     return raw ? JSON.parse(raw) : []
-  }
-  catch {
+  } catch {
     return []
   }
 }
 
 function saveServerOrder(order: string[]): void {
   try {
-    if (typeof localStorage?.setItem === 'function')
-      localStorage.setItem('muon_server_order', JSON.stringify(order))
-  }
-  catch {
+    if (typeof localStorage?.setItem === 'function') localStorage.setItem('muon_server_order', JSON.stringify(order))
+  } catch {
     // Ignore persistence failures; the in-memory order still applies.
   }
 }
@@ -93,9 +89,7 @@ export const useServerStore = defineStore('server', () => {
 
   function loadOrphanRooms() {
     const rooms = getOrphanRooms()
-    orphanChannels.value = rooms.map(room =>
-      buildChannelInfo(room, null),
-    )
+    orphanChannels.value = rooms.map((room) => buildChannelInfo(room, null))
   }
 
   function setServerOrder(order: string[]) {
@@ -105,7 +99,7 @@ export const useServerStore = defineStore('server', () => {
   }
 
   function reorderServer(fromIndex: number, toIndex: number) {
-    const ids = servers.value.map(s => s.spaceId)
+    const ids = servers.value.map((s) => s.spaceId)
     const [moved] = ids.splice(fromIndex, 1)
     ids.splice(toIndex, 0, moved)
     setServerOrder(ids)
@@ -119,8 +113,8 @@ export const useServerStore = defineStore('server', () => {
 
     // Uncategorized channels split into default sections
     if (uncategorizedChannels.length > 0) {
-      const textChannels = uncategorizedChannels.filter(ch => !ch.isVoice)
-      const voiceChannels = uncategorizedChannels.filter(ch => ch.isVoice)
+      const textChannels = uncategorizedChannels.filter((ch) => !ch.isVoice)
+      const voiceChannels = uncategorizedChannels.filter((ch) => ch.isVoice)
 
       if (textChannels.length > 0) {
         tree.push({
@@ -172,11 +166,10 @@ export const useServerStore = defineStore('server', () => {
     const lastChannel = lastVisitedChannel.get(serverId)
     if (lastChannel) {
       currentChannelId.value = lastChannel
-    }
-    else {
+    } else {
       // Auto-select first text channel
       for (const cat of channelTree.value) {
-        const firstText = cat.channels.find(ch => !ch.isVoice)
+        const firstText = cat.channels.find((ch) => !ch.isVoice)
         if (firstText) {
           currentChannelId.value = firstText.roomId
           break
@@ -197,8 +190,7 @@ export const useServerStore = defineStore('server', () => {
   function toggleCategory(categoryId: string) {
     if (collapsedCategories.has(categoryId)) {
       collapsedCategories.delete(categoryId)
-    }
-    else {
+    } else {
       collapsedCategories.add(categoryId)
     }
   }
@@ -240,8 +232,7 @@ export const useServerStore = defineStore('server', () => {
   function isRoomVoiceChannel(roomId: string): boolean {
     const client = getClient()
     const room = client.getRoom(roomId)
-    if (!room)
-      return false
+    if (!room) return false
     return isVoiceChannel(room)
   }
 
@@ -253,7 +244,7 @@ export const useServerStore = defineStore('server', () => {
     // Refresh server list if a top-level space changed
     loadServers()
     // Refresh channel tree if current server's hierarchy changed
-    if (currentServerId.value === spaceId || channelTree.value.some(cat => cat.id === spaceId)) {
+    if (currentServerId.value === spaceId || channelTree.value.some((cat) => cat.id === spaceId)) {
       loadChannelTree(currentServerId.value!)
     }
   }
@@ -271,8 +262,7 @@ export const useServerStore = defineStore('server', () => {
   }
 
   function startListening() {
-    if (eventsListening)
-      return
+    if (eventsListening) return
     eventsListening = true
 
     matrixEvents.on('space.update', onSpaceUpdate)
@@ -281,8 +271,7 @@ export const useServerStore = defineStore('server', () => {
   }
 
   function stopListening() {
-    if (!eventsListening)
-      return
+    if (!eventsListening) return
     matrixEvents.off('space.update', onSpaceUpdate)
     matrixEvents.off('space.member', onSpaceMember)
     matrixEvents.off('room.member', onRoomMember)

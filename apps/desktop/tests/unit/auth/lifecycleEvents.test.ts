@@ -1,5 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { __resetLifecycleEventsForTests, emitSignIn, emitSignOut, registerSessionSubscriber } from '@/auth/lifecycleEvents'
+import {
+  __resetLifecycleEventsForTests,
+  emitSignIn,
+  emitSignOut,
+  registerSessionSubscriber,
+} from '@/auth/lifecycleEvents'
 
 const matrixSession = {
   serverUrl: 'https://matrix.example.com',

@@ -37,9 +37,7 @@ describe('new chat dialog', () => {
   })
 
   async function switchToCreateGroup(wrapper: ReturnType<typeof mountNewChatDialog>) {
-    const createGroupTab = wrapper
-      .findAll('[role="tab"]')
-      .find(tab => tab.text().includes('创建群组'))
+    const createGroupTab = wrapper.findAll('[role="tab"]').find((tab) => tab.text().includes('创建群组'))
 
     expect(createGroupTab).toBeTruthy()
 
@@ -89,7 +87,7 @@ describe('new chat dialog', () => {
 
     const createButton = wrapper
       .findAll('button')
-      .find(button => button.text() === '创建群组' && button.attributes('role') !== 'tab')
+      .find((button) => button.text() === '创建群组' && button.attributes('role') !== 'tab')
 
     expect(createButton).toBeTruthy()
 

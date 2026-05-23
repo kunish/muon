@@ -1,27 +1,21 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed } from 'vue';
 
 const props = defineProps<{
-  users: string[]
-}>()
+  users: string[];
+}>();
 
 const typingText = computed(() => {
-  const u = props.users
-  if (u.length === 0)
-    return ''
-  if (u.length === 1)
-    return `${u[0]} is typing`
-  if (u.length === 2)
-    return `${u[0]}, ${u[1]} are typing`
-  return `${u[0]}, ${u[1]}, and ${u.length - 2} more are typing`
-})
+  const u = props.users;
+  if (u.length === 0) return '';
+  if (u.length === 1) return `${u[0]} is typing`;
+  if (u.length === 2) return `${u[0]}, ${u[1]} are typing`;
+  return `${u[0]}, ${u[1]}, and ${u.length - 2} more are typing`;
+});
 </script>
 
 <template>
-  <div
-    v-if="users.length"
-    class="flex items-center gap-1.5 pl-10 pr-4 h-6 text-sm text-[var(--N500)] select-none"
-  >
+  <div v-if="users.length" class="flex items-center gap-1.5 pl-10 pr-4 h-6 text-sm text-[var(--N500)] select-none">
     <!-- Animated bouncing dots -->
     <span class="inline-flex items-center gap-[3px]">
       <span class="h-1 w-1 rounded-full bg-muted-foreground animate-typing-bounce" />

@@ -1,10 +1,7 @@
 import type { NodeViewRendererProps } from '@tiptap/core'
 import type { Node as ProseMirrorNode } from '@tiptap/pm/model'
 import type { NodeView } from '@tiptap/pm/view'
-import {
-  DOC_CODE_LANGUAGE_OPTIONS,
-  normalizeDocCodeLanguage,
-} from './codeBlockLanguages'
+import { DOC_CODE_LANGUAGE_OPTIONS, normalizeDocCodeLanguage } from './codeBlockLanguages'
 
 const TOOLBAR_EVENTS = ['pointerdown', 'mousedown', 'click', 'keydown'] as const
 
@@ -14,9 +11,9 @@ function stopToolbarEvent(event: Event): void {
 
 function isToolbarEvent(event: Event): boolean {
   const target = event.target
-  return typeof Element !== 'undefined'
-    && target instanceof Element
-    && target.closest('.doc-code-block-toolbar') !== null
+  return (
+    typeof Element !== 'undefined' && target instanceof Element && target.closest('.doc-code-block-toolbar') !== null
+  )
 }
 
 function createLanguageSelect(language: string): HTMLSelectElement {
@@ -74,15 +71,18 @@ export function createDocCodeBlockNodeView(props: NodeViewRendererProps): NodeVi
 
     const language = normalizeDocCodeLanguage(select.value)
     const pos = props.getPos()
-    const didUpdate = typeof pos === 'number'
-      ? props.editor.chain().focus(pos + 1).updateAttributes('codeBlock', { language }).run()
-      : false
+    const didUpdate =
+      typeof pos === 'number'
+        ? props.editor
+            .chain()
+            .focus(pos + 1)
+            .updateAttributes('codeBlock', { language })
+            .run()
+        : false
 
-    if (didUpdate)
-      return
+    if (didUpdate) return
 
-    if (typeof pos !== 'number')
-      return
+    if (typeof pos !== 'number') return
 
     props.view.dispatch(
       props.view.state.tr.setNodeMarkup(pos, undefined, {
@@ -96,8 +96,7 @@ export function createDocCodeBlockNodeView(props: NodeViewRendererProps): NodeVi
     dom,
     contentDOM,
     update(node: ProseMirrorNode) {
-      if (node.type !== currentNode.type)
-        return false
+      if (node.type !== currentNode.type) return false
 
       currentNode = node
       const language = normalizeDocCodeLanguage(node.attrs.language)

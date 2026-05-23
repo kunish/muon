@@ -37,8 +37,7 @@ export function useMention() {
     }
 
     for (const contact of contactList.contacts) {
-      if (candidates.has(contact.userId))
-        continue
+      if (candidates.has(contact.userId)) continue
       candidates.set(contact.userId, {
         id: contact.userId,
         label: contact.displayName || contact.userId,
@@ -53,7 +52,7 @@ export function useMention() {
   function filterMembers(query: string): MentionMember[] {
     const q = query.toLowerCase()
     return mentionCandidates.value
-      .filter(m => m.label.toLowerCase().includes(q) || m.id.toLowerCase().includes(q))
+      .filter((m) => m.label.toLowerCase().includes(q) || m.id.toLowerCase().includes(q))
       .slice(0, 8) // 最多显示 8 个结果
   }
 

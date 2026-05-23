@@ -17,20 +17,17 @@ function createFakeTable<T extends { id: string }>(seed: T[] = []) {
 
   return {
     async put(value: T) {
-      const index = state.findIndex(item => item.id === value.id)
-      if (index >= 0)
-        state[index] = value
-      else
-        state.push(value)
+      const index = state.findIndex((item) => item.id === value.id)
+      if (index >= 0) state[index] = value
+      else state.push(value)
       return value.id
     },
     async get(id: string) {
-      return state.find(item => item.id === id)
+      return state.find((item) => item.id === id)
     },
     async update(id: string, changes: Partial<T>) {
-      const index = state.findIndex(item => item.id === id)
-      if (index < 0)
-        return 0
+      const index = state.findIndex((item) => item.id === id)
+      if (index < 0) return 0
       state[index] = { ...state[index], ...changes }
       return 1
     },
@@ -39,7 +36,7 @@ function createFakeTable<T extends { id: string }>(seed: T[] = []) {
         equals(value: unknown) {
           return {
             async toArray() {
-              return state.filter(item => item[index] === value)
+              return state.filter((item) => item[index] === value)
             },
           }
         },
@@ -152,7 +149,13 @@ describe('knowledge contracts and database', () => {
       expect.arrayContaining([expect.objectContaining({ answer: expect.any(String) })]),
     )
 
-    const updatedDecision = await repository.updateSuggestionDisposition('decision-1', 'suggestion-1', 'accepted', '@alice:muon.dev', 3)
+    const updatedDecision = await repository.updateSuggestionDisposition(
+      'decision-1',
+      'suggestion-1',
+      'accepted',
+      '@alice:muon.dev',
+      3,
+    )
     expect(updatedDecision.suggestions[0]).toMatchObject({
       disposition: 'accepted',
       updatedBy: '@alice:muon.dev',

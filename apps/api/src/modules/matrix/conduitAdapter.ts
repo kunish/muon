@@ -14,7 +14,9 @@ function randomPassword(): string {
   return randomBytes(24).toString('base64url')
 }
 
-export function createConduitProvisioningAdapter(options: ConduitProvisioningAdapterOptions): MatrixProvisioningAdapter {
+export function createConduitProvisioningAdapter(
+  options: ConduitProvisioningAdapterOptions,
+): MatrixProvisioningAdapter {
   const fetchImpl = options.fetch ?? fetch
 
   return {
@@ -31,7 +33,7 @@ export function createConduitProvisioningAdapter(options: ConduitProvisioningAda
           auth: { type: 'm.login.dummy' },
         }),
       })
-      const payload = await response.json() as {
+      const payload = (await response.json()) as {
         access_token?: string
         device_id?: string
         errcode?: string

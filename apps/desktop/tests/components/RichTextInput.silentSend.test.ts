@@ -23,18 +23,22 @@ const mocks = vi.hoisted(() => ({
   editorHtml: '',
   onSubmit: undefined as undefined | ((html: string, text: string) => unknown),
   onPasteFiles: undefined as undefined | ((files: File[]) => unknown),
-  onPasteMediaSources: undefined as undefined | ((sources: Array<{ index: number, src: string, name: string, kind: 'image' | 'video' | 'file' }>) => unknown),
+  onPasteMediaSources: undefined as
+    | undefined
+    | ((sources: Array<{ index: number; src: string; name: string; kind: 'image' | 'video' | 'file' }>) => unknown),
   insertPendingMediaAttachment: vi.fn(),
   clearUploads: vi.fn(),
   getUpload: vi.fn(),
   removeUpload: vi.fn(),
-  stageFile: vi.fn((id: string, file: File) => Promise.resolve({
-    id,
-    file,
-    progress: 0,
-    status: 'pending',
-    mxcUrl: null,
-  })),
+  stageFile: vi.fn((id: string, file: File) =>
+    Promise.resolve({
+      id,
+      file,
+      progress: 0,
+      status: 'pending',
+      mxcUrl: null,
+    }),
+  ),
   uploadFile: vi.fn(),
   uploadImage: vi.fn(),
   uploadVideo: vi.fn(),
@@ -61,7 +65,9 @@ vi.mock('@muon/rich-text/editor', () => ({
   useRichTextEditor: (options: {
     onSubmit: (html: string, text: string) => unknown
     onPasteFiles?: (files: File[]) => unknown
-    onPasteMediaSources?: (sources: Array<{ index: number, src: string, name: string, kind: 'image' | 'video' | 'file' }>) => unknown
+    onPasteMediaSources?: (
+      sources: Array<{ index: number; src: string; name: string; kind: 'image' | 'video' | 'file' }>,
+    ) => unknown
   }) => {
     mocks.onSubmit = options.onSubmit
     mocks.onPasteFiles = options.onPasteFiles

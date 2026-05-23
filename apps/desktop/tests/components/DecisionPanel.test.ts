@@ -49,12 +49,14 @@ describe('decisionPanel', () => {
     listDigestEntriesMock.mockReset()
     listDigestEntriesMock.mockResolvedValue([])
     saveDecisionCardMock.mockReset()
-    saveDecisionCardMock.mockImplementation(async card => card)
+    saveDecisionCardMock.mockImplementation(async (card) => card)
     updateSuggestionDispositionMock.mockReset()
-    updateSuggestionDispositionMock.mockImplementation(async (_decisionId, _suggestionId, disposition, updatedBy, updatedAt) => ({
-      suggestions: [{ id: 'suggestion-1', disposition, updatedBy, updatedAt }],
-      updatedAt,
-    }))
+    updateSuggestionDispositionMock.mockImplementation(
+      async (_decisionId, _suggestionId, disposition, updatedBy, updatedAt) => ({
+        suggestions: [{ id: 'suggestion-1', disposition, updatedBy, updatedAt }],
+        updatedAt,
+      }),
+    )
     routerPush.mockReset()
     loadInboxEventContextMock.mockReset()
     toastErrorMock.mockReset()
@@ -99,14 +101,27 @@ describe('decisionPanel', () => {
       owner: '@alice:muon.dev',
       status: 'open',
       citations: [{ roomId: '!room:muon.dev', eventId: '$event-1' }],
-      suggestions: [{ id: 'suggestion-1', kind: 'action', summary: 'Create panel', citations: [{ roomId: '!room:muon.dev', eventId: '$event-1' }] }],
+      suggestions: [
+        {
+          id: 'suggestion-1',
+          kind: 'action',
+          summary: 'Create panel',
+          citations: [{ roomId: '!room:muon.dev', eventId: '$event-1' }],
+        },
+      ],
       now: 100,
     })
 
     const wrapper = mount(DecisionPanel)
     await wrapper.get('[data-testid="decision-accept-suggestion-1"]').trigger('click')
 
-    expect(updateSuggestionDispositionMock).toHaveBeenCalledWith('decision-1', 'suggestion-1', 'accepted', 'local-user', expect.any(Number))
+    expect(updateSuggestionDispositionMock).toHaveBeenCalledWith(
+      'decision-1',
+      'suggestion-1',
+      'accepted',
+      'local-user',
+      expect.any(Number),
+    )
   })
 
   it('rejects a suggestion through store action', async () => {
@@ -118,38 +133,55 @@ describe('decisionPanel', () => {
       owner: '@alice:muon.dev',
       status: 'open',
       citations: [{ roomId: '!room:muon.dev', eventId: '$event-1' }],
-      suggestions: [{ id: 'suggestion-1', kind: 'blocker', summary: 'Need audit trail', citations: [{ roomId: '!room:muon.dev', eventId: '$event-1' }] }],
+      suggestions: [
+        {
+          id: 'suggestion-1',
+          kind: 'blocker',
+          summary: 'Need audit trail',
+          citations: [{ roomId: '!room:muon.dev', eventId: '$event-1' }],
+        },
+      ],
       now: 100,
     })
 
     const wrapper = mount(DecisionPanel)
     await wrapper.get('[data-testid="decision-reject-suggestion-1"]').trigger('click')
 
-    expect(updateSuggestionDispositionMock).toHaveBeenCalledWith('decision-1', 'suggestion-1', 'rejected', 'local-user', expect.any(Number))
+    expect(updateSuggestionDispositionMock).toHaveBeenCalledWith(
+      'decision-1',
+      'suggestion-1',
+      'rejected',
+      'local-user',
+      expect.any(Number),
+    )
   })
 
   it('localizes decision status and digest suggestion metadata', async () => {
-    listDecisionCardsMock.mockResolvedValue([{
-      id: 'decision-1',
-      conclusion: '确认发布窗口',
-      context: '需要沉淀上下文',
-      owner: '@alice:muon.dev',
-      status: 'confirmed',
-      citations: [{ roomId: '!room:muon.dev', eventId: '$event-1' }],
-      citationEventIds: ['$event-1'],
-      suggestions: [{
-        id: 'suggestion-1',
-        kind: 'action',
-        summary: '同步发布负责人',
-        disposition: 'accepted',
-        updatedAt: 100,
-        updatedBy: '@alice:muon.dev',
+    listDecisionCardsMock.mockResolvedValue([
+      {
+        id: 'decision-1',
+        conclusion: '确认发布窗口',
+        context: '需要沉淀上下文',
+        owner: '@alice:muon.dev',
+        status: 'confirmed',
         citations: [{ roomId: '!room:muon.dev', eventId: '$event-1' }],
         citationEventIds: ['$event-1'],
-      }],
-      createdAt: 100,
-      updatedAt: 100,
-    }])
+        suggestions: [
+          {
+            id: 'suggestion-1',
+            kind: 'action',
+            summary: '同步发布负责人',
+            disposition: 'accepted',
+            updatedAt: 100,
+            updatedBy: '@alice:muon.dev',
+            citations: [{ roomId: '!room:muon.dev', eventId: '$event-1' }],
+            citationEventIds: ['$event-1'],
+          },
+        ],
+        createdAt: 100,
+        updatedAt: 100,
+      },
+    ])
 
     const wrapper = mount(DecisionPanel)
     await flushPromises()
@@ -198,7 +230,7 @@ describe('decisionPanel', () => {
 
     // Verify only the latest-session card exists in the store
     const store = useDecisionStore()
-    const digestCards = store.cards.filter(card => card.owner === 'digest')
+    const digestCards = store.cards.filter((card) => card.owner === 'digest')
     expect(digestCards).toHaveLength(1)
     expect(digestCards[0]?.id).toBe('decision:digest:digest-latest-1')
   })

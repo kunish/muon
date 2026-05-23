@@ -1,40 +1,37 @@
 <script setup lang="ts">
-import { watch } from 'vue'
-import { useRoute } from 'vue-router'
-import { useNotificationSound } from '../composables/useNotificationSound'
-import { useChatStore } from '../stores/chatStore'
-import ChatWindow from './ChatWindow.vue'
-import EmptyState from './EmptyState.vue'
+import { watch } from 'vue';
+import { useRoute } from 'vue-router';
+import { useNotificationSound } from '../composables/useNotificationSound';
+import { useChatStore } from '../stores/chatStore';
+import ChatWindow from './ChatWindow.vue';
+import EmptyState from './EmptyState.vue';
 
-const route = useRoute()
-const store = useChatStore()
+const route = useRoute();
+const store = useChatStore();
 
 // 启用消息通知提示音
-useNotificationSound()
+useNotificationSound();
 
 watch(
   () => (route.params.roomId || route.params.channelId) as string | undefined,
   (encodedRoomId) => {
     if (!encodedRoomId) {
-      store.setCurrentRoom(null)
-      return
+      store.setCurrentRoom(null);
+      return;
     }
 
-    let roomId = encodedRoomId
+    let roomId = encodedRoomId;
     try {
-      roomId = decodeURIComponent(encodedRoomId)
-    }
-    catch {
-      roomId = encodedRoomId
+      roomId = decodeURIComponent(encodedRoomId);
+    } catch {
+      roomId = encodedRoomId;
     }
 
-    if (route.params.roomId)
-      store.setCurrentRoomFromRoute(roomId)
-    else
-      store.setCurrentRoom(roomId)
+    if (route.params.roomId) store.setCurrentRoomFromRoute(roomId);
+    else store.setCurrentRoom(roomId);
   },
   { immediate: true },
-)
+);
 </script>
 
 <template>

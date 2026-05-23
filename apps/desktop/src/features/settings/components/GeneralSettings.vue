@@ -1,17 +1,21 @@
 <script setup lang="ts">
-import { Label } from '@muon/ui/label'
-import { Switch } from '@muon/ui/switch'
-import { watch } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { setAnalyticsEnabled } from '@/shared/lib/analytics'
-import { useSettingsStore } from '../stores/settingsStore'
+import { Label } from '@muon/ui/label';
+import { Switch } from '@muon/ui/switch';
+import { watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { setAnalyticsEnabled } from '@/shared/lib/analytics';
+import { useSettingsStore } from '../stores/settingsStore';
 
-const { t } = useI18n()
-const store = useSettingsStore()
+const { t } = useI18n();
+const store = useSettingsStore();
 
-watch(() => store.analyticsEnabled, (val) => {
-  setAnalyticsEnabled(val)
-}, { immediate: true })
+watch(
+  () => store.analyticsEnabled,
+  (val) => {
+    setAnalyticsEnabled(val);
+  },
+  { immediate: true },
+);
 </script>
 
 <template>

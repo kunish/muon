@@ -4,9 +4,8 @@ import { getClient } from './client'
 
 async function fetchMediaResponse(url: string, headers: Record<string, string>): Promise<Response> {
   try {
-    return await desktopFetch(url, { headers }) as Response
-  }
-  catch {
+    return (await desktopFetch(url, { headers })) as Response
+  } catch {
     return fetch(url, { headers })
   }
 }
@@ -55,15 +54,13 @@ async function fetchMediaBlob(mxcUrl: string, width?: number, height?: number): 
   const baseUrl = client.baseUrl
 
   // Parse mxc://server/mediaId
-  if (!mxcUrl.startsWith('mxc://'))
-    return null
+  if (!mxcUrl.startsWith('mxc://')) return null
   const parts = mxcUrl.slice(6).split('/')
   const serverName = parts[0]
   const mediaId = parts[1]
-  if (!serverName || !mediaId)
-    return null
+  if (!serverName || !mediaId) return null
 
-  const thumbParams = (width && height) ? `?width=${width}&height=${height}&method=crop` : ''
+  const thumbParams = width && height ? `?width=${width}&height=${height}&method=crop` : ''
   const isThumbnail = !!(width && height)
 
   const urls = [
@@ -100,8 +97,7 @@ async function fetchMediaBlob(mxcUrl: string, width?: number, height?: number): 
       }
 
       return blob
-    }
-    catch {
+    } catch {
       continue
     }
   }
@@ -165,20 +161,23 @@ export function extractVideoMeta(file: File | Blob): Promise<VideoMeta> {
       canvas.height = video.videoHeight
       const ctx = canvas.getContext('2d')!
       ctx.drawImage(video, 0, 0)
-      canvas.toBlob((blob) => {
-        URL.revokeObjectURL(url)
-        if (blob) {
-          resolve({
-            thumbnail: blob,
-            width: video.videoWidth,
-            height: video.videoHeight,
-            duration: Math.round(video.duration * 1000),
-          })
-        }
-        else {
-          reject(new Error('Failed to generate thumbnail'))
-        }
-      }, 'image/jpeg', 0.7)
+      canvas.toBlob(
+        (blob) => {
+          URL.revokeObjectURL(url)
+          if (blob) {
+            resolve({
+              thumbnail: blob,
+              width: video.videoWidth,
+              height: video.videoHeight,
+              duration: Math.round(video.duration * 1000),
+            })
+          } else {
+            reject(new Error('Failed to generate thumbnail'))
+          }
+        },
+        'image/jpeg',
+        0.7,
+      )
     }
 
     video.onerror = () => {
@@ -190,7 +189,6 @@ export function extractVideoMeta(file: File | Blob): Promise<VideoMeta> {
 
 export async function downloadMedia(mxcUrl: string): Promise<Blob> {
   const blob = await fetchMediaBlob(mxcUrl)
-  if (!blob)
-    throw new Error('Failed to download Matrix media')
+  if (!blob) throw new Error('Failed to download Matrix media')
   return blob
 }

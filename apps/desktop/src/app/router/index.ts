@@ -110,15 +110,13 @@ async function isAuthenticated(): Promise<boolean> {
   try {
     const session = await readMatrixSessionFromStore()
     return session !== null
-  }
-  catch {
+  } catch {
     return false
   }
 }
 
 router.beforeEach(async (to) => {
-  if (to.meta.requiresAuth && !(await isAuthenticated()))
-    return '/login'
+  if (to.meta.requiresAuth && !(await isAuthenticated())) return '/login'
 })
 
 export default router

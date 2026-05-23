@@ -1,152 +1,141 @@
 <script setup lang="ts">
-import { getClient } from '@matrix/client'
-import { useContactList } from '@shared/composables/useContactList'
-import { Check, Copy, Link2, Loader2, Send, Users, X } from 'lucide-vue-next'
-import { computed, onMounted, ref, shallowRef, watch } from 'vue'
+import { getClient } from '@matrix/client';
+import { useContactList } from '@shared/composables/useContactList';
+import { Check, Copy, Link2, Loader2, Send, Users, X } from 'lucide-vue-next';
+import { computed, onMounted, ref, shallowRef, watch } from 'vue';
 
 interface UserDirectoryResult {
-  user_id: string
-  display_name?: string
-  avatar_url?: string | null
+  user_id: string;
+  display_name?: string;
+  avatar_url?: string | null;
 }
 
 interface DocShareMatrixClient {
-  getDomain?: () => string | null
-  invite: (roomId: string, userId: string) => Promise<unknown>
-  searchUserDirectory?: (query: { term: string, limit: number }) => Promise<{
-    results?: UserDirectoryResult[]
-  }>
+  getDomain?: () => string | null;
+  invite: (roomId: string, userId: string) => Promise<unknown>;
+  searchUserDirectory?: (query: { term: string; limit: number }) => Promise<{
+    results?: UserDirectoryResult[];
+  }>;
 }
 
 interface InviteUserOption {
-  userId: string
-  displayName: string
-  avatarUrl?: string
-  source: 'contact' | 'directory' | 'direct'
+  userId: string;
+  displayName: string;
+  avatarUrl?: string;
+  source: 'contact' | 'directory' | 'direct';
 }
 
-const props = defineProps<{ docId: string, docTitle: string }>()
-const emit = defineEmits<{ close: [] }>()
+const props = defineProps<{ docId: string; docTitle: string }>();
+const emit = defineEmits<{ close: [] }>();
 
-const contactList = useContactList()
-const copied = shallowRef(false)
-const copyError = shallowRef(false)
-const inviteDraft = ref('')
-const inviteOptions = ref<InviteUserOption[]>([])
-const selectedInviteUsers = ref<InviteUserOption[]>([])
-const invitePickerOpen = shallowRef(false)
-const searchingInviteUsers = shallowRef(false)
-const inviteStatus = shallowRef<'idle' | 'inviting' | 'success' | 'error'>('idle')
-const inviteMessage = shallowRef('')
-const invitedUsers = ref<string[]>([])
-let inviteSearchSeq = 0
+const contactList = useContactList();
+const copied = shallowRef(false);
+const copyError = shallowRef(false);
+const inviteDraft = ref('');
+const inviteOptions = ref<InviteUserOption[]>([]);
+const selectedInviteUsers = ref<InviteUserOption[]>([]);
+const invitePickerOpen = shallowRef(false);
+const searchingInviteUsers = shallowRef(false);
+const inviteStatus = shallowRef<'idle' | 'inviting' | 'success' | 'error'>('idle');
+const inviteMessage = shallowRef('');
+const invitedUsers = ref<string[]>([]);
+let inviteSearchSeq = 0;
 
 onMounted(() => {
-  contactList.ensureContactsLoaded()
-})
+  contactList.ensureContactsLoaded();
+});
 
-const shareLink = computed(() => `${window.location.origin}/docs/${encodeURIComponent(props.docId)}`)
+const shareLink = computed(() => `${window.location.origin}/docs/${encodeURIComponent(props.docId)}`);
 const directInviteUserId = computed(() => {
-  const value = inviteDraft.value.trim()
-  return value.startsWith('@') && value.includes(':') ? value : ''
-})
+  const value = inviteDraft.value.trim();
+  return value.startsWith('@') && value.includes(':') ? value : '';
+});
 const contactInviteOptions = computed<InviteUserOption[]>(() =>
-  contactList.contacts.map(contact => ({
+  contactList.contacts.map((contact) => ({
     userId: contact.userId,
     displayName: contact.displayName,
     avatarUrl: contact.avatarUrl,
     source: 'contact',
   })),
-)
-const selectedInviteUserIds = computed(() => new Set(selectedInviteUsers.value.map(user => user.userId)))
+);
+const selectedInviteUserIds = computed(() => new Set(selectedInviteUsers.value.map((user) => user.userId)));
 const visibleInviteOptions = computed(() => {
-  const term = inviteDraft.value.trim().toLowerCase()
-  const options = new Map<string, InviteUserOption>()
+  const term = inviteDraft.value.trim().toLowerCase();
+  const options = new Map<string, InviteUserOption>();
 
-  const matchedContacts = contactInviteOptions.value.filter(option => !term || matchesInviteOption(option, term))
+  const matchedContacts = contactInviteOptions.value.filter((option) => !term || matchesInviteOption(option, term));
   for (const option of matchedContacts) {
-    if (selectedInviteUserIds.value.has(option.userId))
-      continue
-    options.set(option.userId, option)
+    if (selectedInviteUserIds.value.has(option.userId)) continue;
+    options.set(option.userId, option);
   }
 
   if (term) {
-    const directOption = createDirectInviteOption(inviteDraft.value)
-    const shouldShowDirectOption = directOption
-      && (inviteDraft.value.trim().startsWith('@') || (matchedContacts.length === 0 && inviteOptions.value.length === 0))
+    const directOption = createDirectInviteOption(inviteDraft.value);
+    const shouldShowDirectOption =
+      directOption &&
+      (inviteDraft.value.trim().startsWith('@') || (matchedContacts.length === 0 && inviteOptions.value.length === 0));
 
     if (directOption && shouldShowDirectOption && !selectedInviteUserIds.value.has(directOption.userId))
-      options.set(directOption.userId, directOption)
+      options.set(directOption.userId, directOption);
 
     for (const option of inviteOptions.value) {
-      if (selectedInviteUserIds.value.has(option.userId))
-        continue
-      options.set(option.userId, option)
+      if (selectedInviteUserIds.value.has(option.userId)) continue;
+      options.set(option.userId, option);
     }
   }
 
-  return [...options.values()]
-})
-const inviteOptionsEmptyText = computed(() =>
-  inviteDraft.value.trim() ? '未找到匹配用户' : '暂无可选协作者',
-)
+  return [...options.values()];
+});
+const inviteOptionsEmptyText = computed(() => (inviteDraft.value.trim() ? '未找到匹配用户' : '暂无可选协作者'));
 const canInvite = computed(() => {
-  return inviteStatus.value !== 'inviting'
-    && (selectedInviteUsers.value.length > 0 || !!directInviteUserId.value)
-})
+  return inviteStatus.value !== 'inviting' && (selectedInviteUsers.value.length > 0 || !!directInviteUserId.value);
+});
 
 watch(inviteDraft, (value) => {
   if (value.trim() && inviteStatus.value !== 'inviting') {
-    invitePickerOpen.value = true
-    inviteStatus.value = 'idle'
-    inviteMessage.value = ''
+    invitePickerOpen.value = true;
+    inviteStatus.value = 'idle';
+    inviteMessage.value = '';
   }
-  void searchInviteOptions(value)
-})
+  void searchInviteOptions(value);
+});
 
 function normalizePotentialMatrixId(input: string, client: DocShareMatrixClient): string | null {
-  const value = input.trim()
-  if (!value)
-    return null
+  const value = input.trim();
+  if (!value) return null;
 
-  if (value.startsWith('@') && value.includes(':'))
-    return value
+  if (value.startsWith('@') && value.includes(':')) return value;
 
-  const domain = client.getDomain?.()
-  if (!domain)
-    return null
+  const domain = client.getDomain?.();
+  if (!domain) return null;
 
-  if (value.startsWith('@'))
-    return `${value}:${domain}`
+  if (value.startsWith('@')) return `${value}:${domain}`;
 
-  if (/^[\w.=/-]+$/.test(value))
-    return `@${value}:${domain}`
+  if (/^[\w.=/-]+$/.test(value)) return `@${value}:${domain}`;
 
-  return null
+  return null;
 }
 
 function fallbackName(userId: string): string {
-  return userId.split(':')[0]?.replace(/^@/, '') || userId
+  return userId.split(':')[0]?.replace(/^@/, '') || userId;
 }
 
 function matchesInviteOption(option: InviteUserOption, term: string): boolean {
-  return option.displayName.toLowerCase().includes(term) || option.userId.toLowerCase().includes(term)
+  return option.displayName.toLowerCase().includes(term) || option.userId.toLowerCase().includes(term);
 }
 
 function createDirectInviteOption(input: string): InviteUserOption | null {
   try {
-    const client = getClient() as DocShareMatrixClient
-    const userId = normalizePotentialMatrixId(input, client)
-    if (!userId)
-      return null
+    const client = getClient() as DocShareMatrixClient;
+    const userId = normalizePotentialMatrixId(input, client);
+    if (!userId) return null;
     return {
       userId,
       displayName: fallbackName(userId),
       source: 'direct',
-    }
-  }
-  catch {
-    return null
+    };
+  } catch {
+    return null;
   }
 }
 
@@ -156,101 +145,89 @@ function createDirectoryInviteOption(user: UserDirectoryResult): InviteUserOptio
     displayName: user.display_name || fallbackName(user.user_id),
     avatarUrl: user.avatar_url || undefined,
     source: 'directory',
-  }
+  };
 }
 
 async function searchInviteOptions(input: string): Promise<void> {
-  const term = input.trim()
-  const seq = ++inviteSearchSeq
+  const term = input.trim();
+  const seq = ++inviteSearchSeq;
 
   if (!term) {
-    inviteOptions.value = []
-    searchingInviteUsers.value = false
-    return
+    inviteOptions.value = [];
+    searchingInviteUsers.value = false;
+    return;
   }
 
-  searchingInviteUsers.value = true
+  searchingInviteUsers.value = true;
   try {
-    const client = getClient() as DocShareMatrixClient
-    const results = (await client.searchUserDirectory?.({ term, limit: 8 }))?.results ?? []
-    if (seq !== inviteSearchSeq)
-      return
+    const client = getClient() as DocShareMatrixClient;
+    const results = (await client.searchUserDirectory?.({ term, limit: 8 }))?.results ?? [];
+    if (seq !== inviteSearchSeq) return;
 
-    inviteOptions.value = results.map(createDirectoryInviteOption)
-  }
-  catch {
-    if (seq === inviteSearchSeq)
-      inviteOptions.value = []
-  }
-  finally {
-    if (seq === inviteSearchSeq)
-      searchingInviteUsers.value = false
+    inviteOptions.value = results.map(createDirectoryInviteOption);
+  } catch {
+    if (seq === inviteSearchSeq) inviteOptions.value = [];
+  } finally {
+    if (seq === inviteSearchSeq) searchingInviteUsers.value = false;
   }
 }
 
 function selectInviteUser(option: InviteUserOption): void {
   if (!selectedInviteUserIds.value.has(option.userId))
-    selectedInviteUsers.value = [...selectedInviteUsers.value, option]
-  inviteDraft.value = ''
-  inviteOptions.value = []
-  invitePickerOpen.value = true
-  inviteStatus.value = 'idle'
-  inviteMessage.value = ''
+    selectedInviteUsers.value = [...selectedInviteUsers.value, option];
+  inviteDraft.value = '';
+  inviteOptions.value = [];
+  invitePickerOpen.value = true;
+  inviteStatus.value = 'idle';
+  inviteMessage.value = '';
 }
 
 function clearSelectedInviteUser(userId: string): void {
-  selectedInviteUsers.value = selectedInviteUsers.value.filter(user => user.userId !== userId)
-  invitePickerOpen.value = true
+  selectedInviteUsers.value = selectedInviteUsers.value.filter((user) => user.userId !== userId);
+  invitePickerOpen.value = true;
 }
 
 async function inviteCollaborator(): Promise<void> {
-  const targetUserIds = selectedInviteUsers.value.map(user => user.userId)
-  const directUserId = directInviteUserId.value
-  if (directUserId && !targetUserIds.includes(directUserId))
-    targetUserIds.push(directUserId)
+  const targetUserIds = selectedInviteUsers.value.map((user) => user.userId);
+  const directUserId = directInviteUserId.value;
+  if (directUserId && !targetUserIds.includes(directUserId)) targetUserIds.push(directUserId);
 
   if (targetUserIds.length === 0) {
-    inviteStatus.value = 'error'
-    inviteMessage.value = '请选择要邀请的协作者'
-    return
+    inviteStatus.value = 'error';
+    inviteMessage.value = '请选择要邀请的协作者';
+    return;
   }
 
-  inviteStatus.value = 'inviting'
-  inviteMessage.value = ''
+  inviteStatus.value = 'inviting';
+  inviteMessage.value = '';
 
   try {
-    const client = getClient() as DocShareMatrixClient
-    await Promise.all(targetUserIds.map(userId => client.invite(props.docId, userId)))
-    invitedUsers.value = [
-      ...targetUserIds,
-      ...invitedUsers.value.filter(id => !targetUserIds.includes(id)),
-    ]
-    inviteDraft.value = ''
-    inviteOptions.value = []
-    selectedInviteUsers.value = []
-    invitePickerOpen.value = false
-    inviteStatus.value = 'success'
-    inviteMessage.value = targetUserIds.length === 1
-      ? `已邀请 ${targetUserIds[0]}`
-      : `已邀请 ${targetUserIds.length} 位协作者`
-  }
-  catch {
-    inviteStatus.value = 'error'
-    inviteMessage.value = '邀请失败，请稍后重试'
+    const client = getClient() as DocShareMatrixClient;
+    await Promise.all(targetUserIds.map((userId) => client.invite(props.docId, userId)));
+    invitedUsers.value = [...targetUserIds, ...invitedUsers.value.filter((id) => !targetUserIds.includes(id))];
+    inviteDraft.value = '';
+    inviteOptions.value = [];
+    selectedInviteUsers.value = [];
+    invitePickerOpen.value = false;
+    inviteStatus.value = 'success';
+    inviteMessage.value =
+      targetUserIds.length === 1 ? `已邀请 ${targetUserIds[0]}` : `已邀请 ${targetUserIds.length} 位协作者`;
+  } catch {
+    inviteStatus.value = 'error';
+    inviteMessage.value = '邀请失败，请稍后重试';
   }
 }
 
 async function copyLink(): Promise<void> {
-  copyError.value = false
+  copyError.value = false;
   try {
-    await navigator.clipboard.writeText(shareLink.value)
-    copied.value = true
+    await navigator.clipboard.writeText(shareLink.value);
+    copied.value = true;
     setTimeout(() => {
-      copied.value = false
-    }, 2000)
-  }
-  catch {
-    copyError.value = true
+      copied.value = false;
+    }, 2000);
+  } catch {
+    copyError.value = true;
   }
 }
 </script>
@@ -265,9 +242,7 @@ async function copyLink(): Promise<void> {
     <div class="w-[420px] rounded-lg border border-border bg-popover shadow-xl">
       <div class="flex items-center justify-between border-b border-border px-4 py-3">
         <div class="min-w-0">
-          <h3 class="text-sm font-semibold">
-            共享文档
-          </h3>
+          <h3 class="text-sm font-semibold">共享文档</h3>
           <p class="mt-0.5 truncate text-xs text-muted-foreground">
             {{ docTitle }}
           </p>
@@ -292,9 +267,7 @@ async function copyLink(): Promise<void> {
               <Users :size="18" class="text-primary" />
             </div>
             <div class="min-w-0 flex-1">
-              <p class="text-sm font-semibold">
-                邀请协作者
-              </p>
+              <p class="text-sm font-semibold">邀请协作者</p>
               <div class="mt-2 flex items-center gap-2">
                 <input
                   v-model="inviteDraft"
@@ -303,7 +276,7 @@ async function copyLink(): Promise<void> {
                   placeholder="搜索并选择协作者"
                   class="h-8 min-w-0 flex-1 rounded-md border border-border bg-background px-2 text-xs text-foreground outline-none placeholder:text-muted-foreground focus:border-primary"
                   @focus="invitePickerOpen = true"
-                >
+                />
                 <button
                   type="submit"
                   data-testid="doc-share-invite-submit"
@@ -382,10 +355,7 @@ async function copyLink(): Promise<void> {
                 </span>
               </button>
             </template>
-            <div
-              v-else
-              class="px-3 py-5 text-center text-xs text-muted-foreground"
-            >
+            <div v-else class="px-3 py-5 text-center text-xs text-muted-foreground">
               {{ inviteOptionsEmptyText }}
             </div>
           </div>
@@ -397,11 +367,7 @@ async function copyLink(): Promise<void> {
           >
             {{ inviteMessage }}
           </p>
-          <div
-            v-if="invitedUsers.length > 0"
-            class="mt-3 flex flex-wrap gap-1.5"
-            data-testid="doc-share-invited-users"
-          >
+          <div v-if="invitedUsers.length > 0" class="mt-3 flex flex-wrap gap-1.5" data-testid="doc-share-invited-users">
             <span
               v-for="userId in invitedUsers"
               :key="userId"
@@ -417,9 +383,7 @@ async function copyLink(): Promise<void> {
             <Users :size="18" class="text-primary" />
             <span class="text-sm font-semibold">访问权限</span>
           </div>
-          <p class="mt-2 text-xs leading-5 text-muted-foreground">
-            被邀请成员加入文档房间后可实时协作编辑。
-          </p>
+          <p class="mt-2 text-xs leading-5 text-muted-foreground">被邀请成员加入文档房间后可实时协作编辑。</p>
         </div>
 
         <div class="mt-4 rounded-md border border-border p-3">
@@ -443,10 +407,8 @@ async function copyLink(): Promise<void> {
             data-testid="doc-share-link-input"
             class="mt-2 h-8 w-full rounded-md border border-border bg-background px-2 font-mono text-xs text-muted-foreground outline-none focus:border-primary"
             @focus="($event.target as HTMLInputElement).select()"
-          >
-          <p v-if="copyError" class="mt-2 text-xs text-destructive">
-            链接复制失败
-          </p>
+          />
+          <p v-if="copyError" class="mt-2 text-xs text-destructive">链接复制失败</p>
         </div>
       </div>
     </div>

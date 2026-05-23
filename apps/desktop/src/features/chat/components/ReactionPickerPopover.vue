@@ -1,16 +1,16 @@
 <script setup lang="ts">
-import { SmilePlus } from 'lucide-vue-next'
+import { SmilePlus } from 'lucide-vue-next';
 
 defineProps<{
-  showEmojiPicker: boolean
-}>()
+  showEmojiPicker: boolean;
+}>();
 
 const emit = defineEmits<{
-  toggle: []
-  react: [emoji: string]
-}>()
+  toggle: [];
+  react: [emoji: string];
+}>();
 
-const QUICK_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🎉']
+const QUICK_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🎉'];
 const EMOJI_GRID = [
   '👍',
   '👏',
@@ -52,7 +52,7 @@ const EMOJI_GRID = [
   '💬',
   '👌',
   '🆗',
-]
+];
 </script>
 
 <template>

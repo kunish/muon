@@ -229,7 +229,7 @@ describe('workspace secondary pages', () => {
 
     const appCards = wrapper.findAll('[data-testid^="workplace-app-"]')
     expect(wrapper.text()).toContain('已隐藏：站会机器人')
-    expect(appCards.some(card => card.text().includes('站会机器人'))).toBe(false)
+    expect(appCards.some((card) => card.text().includes('站会机器人'))).toBe(false)
   })
 
   it('lets workplace launch apps into existing workspace modules', async () => {
@@ -457,7 +457,9 @@ describe('workspace secondary pages', () => {
     expect(wrapper.text()).toContain('周一')
 
     // Switch to week view - find the "周" button for week view
-    const weekButton = wrapper.findAll('button').find(b => b.text().includes('本周视图') || b.text().trim() === 'Week View')
+    const weekButton = wrapper
+      .findAll('button')
+      .find((b) => b.text().includes('本周视图') || b.text().trim() === 'Week View')
     expect(weekButton).toBeTruthy()
     await weekButton!.trigger('click')
   })
@@ -466,7 +468,7 @@ describe('workspace secondary pages', () => {
     const wrapper = mount(CalendarPage)
 
     // Open new event modal
-    const newEventButton = wrapper.findAll('button').find(b => b.text().includes('新建日程'))
+    const newEventButton = wrapper.findAll('button').find((b) => b.text().includes('新建日程'))
     expect(newEventButton).toBeTruthy()
     await newEventButton!.trigger('click')
 
@@ -493,8 +495,7 @@ describe('workspace secondary pages', () => {
     const allButtons = wrapper.findAll('button')
     const todayCell = allButtons.find((b) => {
       const text = b.text()
-      return text.includes(String(todayDay))
-        && text.includes('产品周会')
+      return text.includes(String(todayDay)) && text.includes('产品周会')
     })
     expect(todayCell).toBeTruthy()
     await todayCell!.trigger('click')

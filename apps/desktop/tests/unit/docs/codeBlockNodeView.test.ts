@@ -7,11 +7,13 @@ import { describe, expect, it, vi } from 'vitest'
 import { DEFAULT_DOC_CODE_LANGUAGE } from '@/features/docs/lib/codeBlockLanguages'
 import { createDocCodeBlockNodeView } from '@/features/docs/lib/codeBlockNodeView'
 
-function createNodeViewProps(options: {
-  language?: string
-  getPos?: () => number | undefined
-  run?: () => boolean
-} = {}) {
+function createNodeViewProps(
+  options: {
+    language?: string
+    getPos?: () => number | undefined
+    run?: () => boolean
+  } = {},
+) {
   const nodeType = { name: 'codeBlock' }
   const chain = {
     focus: vi.fn(() => chain),

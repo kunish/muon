@@ -1,160 +1,168 @@
 <script setup lang="ts">
-import type { DocFolderNode } from '../types/doc'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@muon/ui/tooltip'
-import { Check, ChevronDown, ChevronRight, Folder, FolderOpen, FolderPlus, MoreHorizontal, Pencil, Trash2, X } from 'lucide-vue-next'
-import { computed, nextTick, ref, shallowRef, watch } from 'vue'
+import type { DocFolderNode } from '../types/doc';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@muon/ui/tooltip';
+import {
+  Check,
+  ChevronDown,
+  ChevronRight,
+  Folder,
+  FolderOpen,
+  FolderPlus,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
+  X,
+} from 'lucide-vue-next';
+import { computed, nextTick, ref, shallowRef, watch } from 'vue';
 
 const props = defineProps<{
-  root: DocFolderNode
-  activeFolder: string
-}>()
+  root: DocFolderNode;
+  activeFolder: string;
+}>();
 
 const emit = defineEmits<{
-  select: [folderId: string]
-  create: [parentId: string, name: string]
-  rename: [folderId: string, name: string]
-  delete: [folderId: string]
-}>()
+  select: [folderId: string];
+  create: [parentId: string, name: string];
+  rename: [folderId: string, name: string];
+  delete: [folderId: string];
+}>();
 
-const expandedFolderIds = shallowRef(new Set<string>(['']))
-const creatingParentId = shallowRef<string | null>(null)
-const createDraft = shallowRef('新建文件夹')
-const renamingFolderId = shallowRef<string | null>(null)
-const renameDraft = shallowRef('')
-const menuFolderId = shallowRef<string | null>(null)
-const createInput = ref<HTMLInputElement>()
-const renameInput = ref<HTMLInputElement>()
-const titleTooltipContentClass = 'relative max-w-[420px] overflow-visible break-words rounded-lg bg-[#1f2329] px-3 py-2 text-[13px] leading-[18px] text-white shadow-[0_8px_24px_rgba(31,35,41,0.18)] before:absolute before:left-[-4px] before:top-1/2 before:size-2 before:-translate-y-1/2 before:rotate-45 before:bg-[#1f2329]'
+const expandedFolderIds = shallowRef(new Set<string>(['']));
+const creatingParentId = shallowRef<string | null>(null);
+const createDraft = shallowRef('新建文件夹');
+const renamingFolderId = shallowRef<string | null>(null);
+const renameDraft = shallowRef('');
+const menuFolderId = shallowRef<string | null>(null);
+const createInput = ref<HTMLInputElement>();
+const renameInput = ref<HTMLInputElement>();
+const titleTooltipContentClass =
+  'relative max-w-[420px] overflow-visible break-words rounded-lg bg-[#1f2329] px-3 py-2 text-[13px] leading-[18px] text-white shadow-[0_8px_24px_rgba(31,35,41,0.18)] before:absolute before:left-[-4px] before:top-1/2 before:size-2 before:-translate-y-1/2 before:rotate-45 before:bg-[#1f2329]';
 
 const folderById = computed(() => {
-  const map = new Map<string, DocFolderNode>()
+  const map = new Map<string, DocFolderNode>();
   function visit(node: DocFolderNode): void {
-    map.set(node.id, node)
-    node.children.forEach(visit)
+    map.set(node.id, node);
+    node.children.forEach(visit);
   }
-  visit(props.root)
-  return map
-})
+  visit(props.root);
+  return map;
+});
 
 const visibleFolders = computed(() => {
-  const rows: DocFolderNode[] = []
+  const rows: DocFolderNode[] = [];
   function visit(node: DocFolderNode): void {
-    rows.push(node)
+    rows.push(node);
     if (expandedFolderIds.value.has(node.id)) {
-      node.children.forEach(visit)
+      node.children.forEach(visit);
     }
   }
-  visit(props.root)
-  return rows
-})
+  visit(props.root);
+  return rows;
+});
 
-watch(() => props.activeFolder, (folderId) => {
-  const next = new Set(expandedFolderIds.value)
-  let current = folderById.value.get(folderId)
-  while (current) {
-    next.add(current.parentId)
-    if (!current.parentId || current.parentId === current.id)
-      break
-    current = folderById.value.get(current.parentId)
-  }
-  next.add('')
-  expandedFolderIds.value = next
-}, { immediate: true })
+watch(
+  () => props.activeFolder,
+  (folderId) => {
+    const next = new Set(expandedFolderIds.value);
+    let current = folderById.value.get(folderId);
+    while (current) {
+      next.add(current.parentId);
+      if (!current.parentId || current.parentId === current.id) break;
+      current = folderById.value.get(current.parentId);
+    }
+    next.add('');
+    expandedFolderIds.value = next;
+  },
+  { immediate: true },
+);
 
-watch(() => props.root, () => {
-  expandedFolderIds.value = new Set([...expandedFolderIds.value, ''])
-})
+watch(
+  () => props.root,
+  () => {
+    expandedFolderIds.value = new Set([...expandedFolderIds.value, '']);
+  },
+);
 
 function rowPadding(node: DocFolderNode): string {
-  return `${8 + node.depth * 12}px`
+  return `${8 + node.depth * 12}px`;
 }
 
 function toggleFolder(node: DocFolderNode): void {
-  if (node.children.length === 0)
-    return
+  if (node.children.length === 0) return;
 
-  const next = new Set(expandedFolderIds.value)
-  if (next.has(node.id))
-    next.delete(node.id)
-  else
-    next.add(node.id)
-  expandedFolderIds.value = next
+  const next = new Set(expandedFolderIds.value);
+  if (next.has(node.id)) next.delete(node.id);
+  else next.add(node.id);
+  expandedFolderIds.value = next;
 }
 
 function beginCreate(parentId: string): void {
-  const next = new Set(expandedFolderIds.value)
-  next.add(parentId)
-  expandedFolderIds.value = next
-  creatingParentId.value = parentId
-  menuFolderId.value = null
-  createDraft.value = '新建文件夹'
+  const next = new Set(expandedFolderIds.value);
+  next.add(parentId);
+  expandedFolderIds.value = next;
+  creatingParentId.value = parentId;
+  menuFolderId.value = null;
+  createDraft.value = '新建文件夹';
   void nextTick(() => {
-    createInput.value?.focus()
-    createInput.value?.select()
-  })
+    createInput.value?.focus();
+    createInput.value?.select();
+  });
 }
 
 function cancelCreate(): void {
-  creatingParentId.value = null
-  createDraft.value = '新建文件夹'
+  creatingParentId.value = null;
+  createDraft.value = '新建文件夹';
 }
 
 function submitCreate(): void {
-  if (creatingParentId.value === null)
-    return
+  if (creatingParentId.value === null) return;
 
-  const name = createDraft.value.trim()
-  if (!name)
-    return
+  const name = createDraft.value.trim();
+  if (!name) return;
 
-  emit('create', creatingParentId.value, name)
-  cancelCreate()
+  emit('create', creatingParentId.value, name);
+  cancelCreate();
 }
 
 function beginRename(node: DocFolderNode): void {
-  if (!node.id)
-    return
+  if (!node.id) return;
 
-  renamingFolderId.value = node.id
-  menuFolderId.value = null
-  renameDraft.value = node.name
+  renamingFolderId.value = node.id;
+  menuFolderId.value = null;
+  renameDraft.value = node.name;
   void nextTick(() => {
-    renameInput.value?.focus()
-    renameInput.value?.select()
-  })
+    renameInput.value?.focus();
+    renameInput.value?.select();
+  });
 }
 
 function cancelRename(): void {
-  renamingFolderId.value = null
-  renameDraft.value = ''
+  renamingFolderId.value = null;
+  renameDraft.value = '';
 }
 
 function submitRename(folderId: string): void {
-  const name = renameDraft.value.trim()
-  if (!name)
-    return
+  const name = renameDraft.value.trim();
+  if (!name) return;
 
-  emit('rename', folderId, name)
-  cancelRename()
+  emit('rename', folderId, name);
+  cancelRename();
 }
 
 function toggleMenu(folderId: string): void {
-  menuFolderId.value = menuFolderId.value === folderId ? null : folderId
+  menuFolderId.value = menuFolderId.value === folderId ? null : folderId;
 }
 
 function requestDelete(folderId: string): void {
-  menuFolderId.value = null
-  emit('delete', folderId)
+  menuFolderId.value = null;
+  emit('delete', folderId);
 }
 </script>
 
 <template>
   <TooltipProvider :delay-duration="400">
     <div class="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-2">
-      <template
-        v-for="folder in visibleFolders"
-        :key="folder.id || 'root'"
-      >
+      <template v-for="folder in visibleFolders" :key="folder.id || 'root'">
         <div
           class="workspace-row group/folder relative flex min-w-0 items-center gap-1 py-2 pr-2 text-muted-foreground"
           :class="{ 'workspace-row-active': activeFolder === folder.id }"
@@ -193,11 +201,7 @@ function requestDelete(folderId: string): void {
                   {{ folder.name }}
                 </span>
               </TooltipTrigger>
-              <TooltipContent
-                side="right"
-                :side-offset="12"
-                :class="titleTooltipContentClass"
-              >
+              <TooltipContent side="right" :side-offset="12" :class="titleTooltipContentClass">
                 {{ folder.name }}
               </TooltipContent>
             </Tooltip>
@@ -221,7 +225,7 @@ function requestDelete(folderId: string): void {
               data-testid="docs-folder-rename-input"
               class="h-7 min-w-0 flex-1 rounded-md border border-border bg-background px-2 text-[13px] text-foreground outline-none focus:border-primary"
               @keydown.esc.prevent="cancelRename"
-            >
+            />
             <button
               type="submit"
               class="inline-flex size-7 items-center justify-center rounded-md text-primary transition-colors hover:bg-sidebar-accent"
@@ -241,10 +245,7 @@ function requestDelete(folderId: string): void {
             </button>
           </form>
 
-          <div
-            v-if="renamingFolderId !== folder.id"
-            class="flex shrink-0 items-center justify-end gap-0.5"
-          >
+          <div v-if="renamingFolderId !== folder.id" class="flex shrink-0 items-center justify-end gap-0.5">
             <button
               type="button"
               data-testid="docs-folder-create"
@@ -261,7 +262,11 @@ function requestDelete(folderId: string): void {
               type="button"
               data-testid="docs-folder-more"
               class="inline-flex size-7 items-center justify-center rounded-md text-muted-foreground transition hover:bg-sidebar-accent hover:text-foreground"
-              :class="menuFolderId === folder.id ? 'opacity-100' : 'opacity-0 group-hover/folder:opacity-100 focus:opacity-100'"
+              :class="
+                menuFolderId === folder.id
+                  ? 'opacity-100'
+                  : 'opacity-0 group-hover/folder:opacity-100 focus:opacity-100'
+              "
               title="更多"
               aria-label="更多"
               @click.stop="toggleMenu(folder.id)"
@@ -310,7 +315,7 @@ function requestDelete(folderId: string): void {
             data-testid="docs-folder-create-input"
             class="h-7 min-w-0 flex-1 rounded-md border border-border bg-background px-2 text-[13px] text-foreground outline-none focus:border-primary"
             @keydown.esc.prevent="cancelCreate"
-          >
+          />
           <button
             type="submit"
             class="inline-flex size-7 items-center justify-center rounded-md text-primary transition-colors hover:bg-sidebar-accent"

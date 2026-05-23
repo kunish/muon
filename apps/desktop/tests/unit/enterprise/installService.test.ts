@@ -20,13 +20,15 @@ describe('install service', () => {
     expect(result.owner.username).toBe('owner')
     expect(result.owner.roles).toContain('owner')
 
-    await expect(service.install({
-      organizationName: 'Second Org',
-      organizationSlug: 'second',
-      ownerUsername: 'owner2',
-      ownerEmail: 'owner2@example.test',
-      ownerDisplayName: 'Owner 2',
-      ownerPassword: 'correct horse battery staple',
-    })).rejects.toThrow('Muon is already installed')
+    await expect(
+      service.install({
+        organizationName: 'Second Org',
+        organizationSlug: 'second',
+        ownerUsername: 'owner2',
+        ownerEmail: 'owner2@example.test',
+        ownerDisplayName: 'Owner 2',
+        ownerPassword: 'correct horse battery staple',
+      }),
+    ).rejects.toThrow('Muon is already installed')
   })
 })

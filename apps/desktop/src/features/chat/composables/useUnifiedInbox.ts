@@ -15,8 +15,7 @@ let listenersBound = false
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
 function scheduleRefresh() {
-  if (debounceTimer)
-    return
+  if (debounceTimer) return
   debounceTimer = setTimeout(() => {
     debounceTimer = null
     refreshNow()
@@ -42,16 +41,14 @@ function handleSyncState({ state }: { state: string }) {
 }
 
 function bindUnifiedInboxListeners() {
-  if (listenersBound)
-    return
+  if (listenersBound) return
 
   listenersBound = true
-  for (const evt of LISTENED_EVENTS)
-    matrixEvents.on(evt, scheduleRefresh)
+  for (const evt of LISTENED_EVENTS) matrixEvents.on(evt, scheduleRefresh)
   matrixEvents.on('sync.state', handleSyncState)
 }
 
-function getLatestEventMeta(roomId: string): { eventId: string, ts: number, sender?: string, body?: string } {
+function getLatestEventMeta(roomId: string): { eventId: string; ts: number; sender?: string; body?: string } {
   const room = getRoom(roomId)
   const events = room?.getLiveTimeline().getEvents() ?? []
   const latest = events.at(-1)
@@ -64,11 +61,9 @@ function getLatestEventMeta(roomId: string): { eventId: string, ts: number, send
 }
 
 function includesMention(body: string | undefined, userId: string | undefined): boolean {
-  if (!body || !userId)
-    return false
+  if (!body || !userId) return false
   const localpart = userId.split(':')[0]?.replace('@', '')
-  if (!localpart)
-    return false
+  if (!localpart) return false
   return body.includes(`@${localpart}`) || body.includes(userId)
 }
 
@@ -124,8 +119,7 @@ export function useUnifiedInbox() {
       bindUnifiedInboxListeners()
       refreshNow()
     })
-  }
-  else {
+  } else {
     bindUnifiedInboxListeners()
     refreshNow()
   }
@@ -136,19 +130,18 @@ export function useUnifiedInbox() {
   })
 
   const items = computed(() => {
-    let list = allItems.value.filter(item => !store.isProcessed(item.id))
-    if (store.filter !== 'all')
-      list = list.filter(item => item.type === store.filter)
+    let list = allItems.value.filter((item) => !store.isProcessed(item.id))
+    if (store.filter !== 'all') list = list.filter((item) => item.type === store.filter)
     return list
   })
 
   const counts = computed(() => {
-    const raw = allItems.value.filter(item => !store.isProcessed(item.id))
+    const raw = allItems.value.filter((item) => !store.isProcessed(item.id))
     return {
-      'all': raw.length,
-      'mention': raw.filter(item => item.type === 'mention').length,
-      'priority-unread': raw.filter(item => item.type === 'priority-unread').length,
-      'reply-needed': raw.filter(item => item.type === 'reply-needed').length,
+      all: raw.length,
+      mention: raw.filter((item) => item.type === 'mention').length,
+      'priority-unread': raw.filter((item) => item.type === 'priority-unread').length,
+      'reply-needed': raw.filter((item) => item.type === 'reply-needed').length,
     }
   })
 
@@ -163,8 +156,7 @@ export function useUnifiedInbox() {
 
 /** Unbind module-level mitt listeners and reset state. Call on logout. */
 export function resetUnifiedInboxListeners() {
-  for (const evt of LISTENED_EVENTS)
-    matrixEvents.off(evt, scheduleRefresh)
+  for (const evt of LISTENED_EVENTS) matrixEvents.off(evt, scheduleRefresh)
   matrixEvents.off('sync.state', handleSyncState)
   invalidateRoomSummariesCache()
   summaries.value = []

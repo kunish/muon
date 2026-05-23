@@ -1,60 +1,57 @@
 <script setup lang="ts">
-import { FilePlus2, FolderPlus, Upload } from 'lucide-vue-next'
-import { onBeforeUnmount, onMounted, ref } from 'vue'
-import { useI18n } from 'vue-i18n'
+import { FilePlus2, FolderPlus, Upload } from 'lucide-vue-next';
+import { onBeforeUnmount, onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 const emit = defineEmits<{
-  createDoc: []
-  createFolder: []
-  importDoc: [file: File]
-}>()
+  createDoc: [];
+  createFolder: [];
+  importDoc: [file: File];
+}>();
 
-const { t } = useI18n()
-const open = ref(false)
-const btnRef = ref<HTMLElement>()
-const menuRef = ref<HTMLElement>()
-const fileInput = ref<HTMLInputElement>()
+const { t } = useI18n();
+const open = ref(false);
+const btnRef = ref<HTMLElement>();
+const menuRef = ref<HTMLElement>();
+const fileInput = ref<HTMLInputElement>();
 
 function toggle() {
-  open.value = !open.value
+  open.value = !open.value;
 }
 
 function handleCreateDoc() {
-  open.value = false
-  emit('createDoc')
+  open.value = false;
+  emit('createDoc');
 }
 
 function handleCreateFolder() {
-  open.value = false
-  emit('createFolder')
+  open.value = false;
+  emit('createFolder');
 }
 
 function triggerImport() {
-  open.value = false
-  fileInput.value?.click()
+  open.value = false;
+  fileInput.value?.click();
 }
 
 function onFileChosen(event: Event) {
-  const input = event.target as HTMLInputElement
-  const file = input.files?.[0]
-  if (file)
-    emit('importDoc', file)
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (file) emit('importDoc', file);
   // reset so selecting the same file twice still fires change
-  input.value = ''
-  open.value = false
+  input.value = '';
+  open.value = false;
 }
 
 function onClickOutside(e: MouseEvent) {
-  if (!open.value)
-    return
-  const target = e.target as HTMLElement
-  if (btnRef.value?.contains(target) || menuRef.value?.contains(target))
-    return
-  open.value = false
+  if (!open.value) return;
+  const target = e.target as HTMLElement;
+  if (btnRef.value?.contains(target) || menuRef.value?.contains(target)) return;
+  open.value = false;
 }
 
-onMounted(() => document.addEventListener('pointerdown', onClickOutside))
-onBeforeUnmount(() => document.removeEventListener('pointerdown', onClickOutside))
+onMounted(() => document.addEventListener('pointerdown', onClickOutside));
+onBeforeUnmount(() => document.removeEventListener('pointerdown', onClickOutside));
 </script>
 
 <template>
@@ -67,20 +64,17 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', onClickOutside
       <span>新建</span>
     </button>
 
-    <input
-      ref="fileInput"
-      type="file"
-      accept=".md,.markdown,.txt"
-      class="hidden"
-      @change="onFileChosen"
-    >
+    <input ref="fileInput" type="file" accept=".md,.markdown,.txt" class="hidden" @change="onFileChosen" />
 
     <Teleport to="body">
       <div
         v-if="open"
         ref="menuRef"
         class="fixed z-50 min-w-[160px] rounded-lg border border-border bg-card py-1 shadow-lg"
-        :style="{ left: `${btnRef?.getBoundingClientRect().left ?? 0}px`, top: `${(btnRef?.getBoundingClientRect().bottom ?? 0) + 4}px` }"
+        :style="{
+          left: `${btnRef?.getBoundingClientRect().left ?? 0}px`,
+          top: `${(btnRef?.getBoundingClientRect().bottom ?? 0) + 4}px`,
+        }"
       >
         <button
           class="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-foreground transition-colors hover:bg-accent"

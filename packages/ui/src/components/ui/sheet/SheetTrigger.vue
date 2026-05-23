@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import type { DialogTriggerProps } from 'reka-ui'
-import { DialogTrigger, useForwardProps } from 'reka-ui'
+import type { DialogTriggerProps } from 'reka-ui';
+import { DialogTrigger, useForwardProps } from 'reka-ui';
 
-const props = defineProps<DialogTriggerProps>()
-const forwardedProps = useForwardProps(props)
+const props = defineProps<DialogTriggerProps>();
+const forwardedProps = useForwardProps(props);
 </script>
 
 <template>

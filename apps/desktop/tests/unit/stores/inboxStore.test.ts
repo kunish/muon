@@ -12,7 +12,7 @@ describe('inboxStore + useUnifiedInbox', () => {
 
   it('aggregates unified inbox items', () => {
     const { allItems } = useUnifiedInbox()
-    const types = new Set(allItems.value.map(item => item.type))
+    const types = new Set(allItems.value.map((item) => item.type))
 
     expect(types.has('mention')).toBe(true)
     expect(types.has('priority-unread')).toBe(true)
@@ -25,7 +25,7 @@ describe('inboxStore + useUnifiedInbox', () => {
 
     store.setFilter('mention')
     expect(items.value.length).toBeGreaterThan(0)
-    expect(items.value.every(item => item.type === 'mention')).toBe(true)
+    expect(items.value.every((item) => item.type === 'mention')).toBe(true)
 
     store.setFilter('all')
     expect(items.value.length).toBeGreaterThan(0)
@@ -34,13 +34,13 @@ describe('inboxStore + useUnifiedInbox', () => {
   it('batch processes selected items', () => {
     const store = useInboxStore()
     const { items } = useUnifiedInbox()
-    const targets = items.value.slice(0, 2).map(item => item.id)
+    const targets = items.value.slice(0, 2).map((item) => item.id)
 
     store.selectAll(targets)
     store.markSelectedProcessed()
 
     expect(store.selectedItemIds.size).toBe(0)
-    expect(targets.every(id => store.isProcessed(id))).toBe(true)
+    expect(targets.every((id) => store.isProcessed(id))).toBe(true)
   })
 
   it('restores processed state from localStorage', () => {

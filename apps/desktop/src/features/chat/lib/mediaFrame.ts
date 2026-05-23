@@ -17,10 +17,7 @@ function toPositiveNumber(value: unknown) {
   return Number.isFinite(number) && number > 0 ? number : null
 }
 
-export function getMediaFrameStyle(
-  info: MediaInfoLike | undefined,
-  options: MediaFrameOptions,
-): CSSProperties {
+export function getMediaFrameStyle(info: MediaInfoLike | undefined, options: MediaFrameOptions): CSSProperties {
   const metadataWidth = toPositiveNumber(info?.w)
   const metadataHeight = toPositiveNumber(info?.h)
   const width = metadataWidth ?? options.fallbackWidth ?? options.maxWidth

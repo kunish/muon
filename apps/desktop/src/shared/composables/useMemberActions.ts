@@ -8,8 +8,7 @@ export function useMemberActions() {
   async function kickMember(roomId: string, userId: string, reason?: string) {
     try {
       await getClient().kick(roomId, userId, reason)
-    }
-    catch (err) {
+    } catch (err) {
       console.error('Failed to kick member:', err)
       toast.error(t('server.kick_failed'))
       throw err
@@ -19,8 +18,7 @@ export function useMemberActions() {
   async function banMember(roomId: string, userId: string, reason?: string) {
     try {
       await getClient().ban(roomId, userId, reason)
-    }
-    catch (err) {
+    } catch (err) {
       console.error('Failed to ban member:', err)
       toast.error(t('server.ban_failed'))
       throw err

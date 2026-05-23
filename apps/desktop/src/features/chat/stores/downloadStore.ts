@@ -17,16 +17,14 @@ export interface DownloadItem {
 export const useDownloadStore = defineStore('downloads', () => {
   const items = ref<DownloadItem[]>([])
 
-  const activeCount = computed(() =>
-    items.value.filter(i => i.status === 'downloading').length,
-  )
+  const activeCount = computed(() => items.value.filter((i) => i.status === 'downloading').length)
 
   function removeDownload(id: string) {
-    items.value = items.value.filter(i => i.id !== id)
+    items.value = items.value.filter((i) => i.id !== id)
   }
 
   function clearCompleted() {
-    items.value = items.value.filter(i => i.status !== 'completed')
+    items.value = items.value.filter((i) => i.status !== 'completed')
   }
 
   return {

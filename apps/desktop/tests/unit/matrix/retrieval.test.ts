@@ -19,9 +19,7 @@ describe('matrix retrieval service', () => {
     await searchRoomEvents('release')
 
     expect(mockClient.searchRoomEvents).toHaveBeenCalledTimes(1)
-    expect(mockClient.searchRoomEvents).toHaveBeenCalledWith(
-      expect.objectContaining({ term: 'release' }),
-    )
+    expect(mockClient.searchRoomEvents).toHaveBeenCalledWith(expect.objectContaining({ term: 'release' }))
   })
 
   it('joined-room scope only includes joined rooms in filter.rooms', async () => {
@@ -50,7 +48,7 @@ describe('matrix retrieval service', () => {
     expect(firstPage.session).toBeTruthy()
 
     const paged = await backPaginateRoomEventsSearch(firstPage.session!)
-    const eventIds = paged.items.map(item => item.eventId)
+    const eventIds = paged.items.map((item) => item.eventId)
 
     expect(mockBackPaginateRoomEventsSearch).toHaveBeenCalledTimes(1)
     expect(eventIds).toEqual(['$evt-1', '$evt-2', '$evt-3'])

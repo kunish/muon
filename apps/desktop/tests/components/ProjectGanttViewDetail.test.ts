@@ -20,10 +20,11 @@ const WorkItemDetailStub = defineComponent({
     },
   },
   setup(props) {
-    return () => h('div', {
-      'data-testid': 'project-gantt-work-item-detail',
-      'data-item-id': props.itemId,
-    })
+    return () =>
+      h('div', {
+        'data-testid': 'project-gantt-work-item-detail',
+        'data-item-id': props.itemId,
+      })
   },
 })
 

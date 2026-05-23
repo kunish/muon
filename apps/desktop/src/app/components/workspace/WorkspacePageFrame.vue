@@ -1,18 +1,20 @@
 <script setup lang="ts">
-import type { Component } from 'vue'
+import type { Component } from 'vue';
 
 defineProps<{
-  title: string
-  subtitle: string
-  icon: Component
-}>()
+  title: string;
+  subtitle: string;
+  icon: Component;
+}>();
 </script>
 
 <template>
   <section class="flex h-full min-w-0 flex-1 flex-col bg-background text-foreground">
     <header class="flex h-16 shrink-0 items-center justify-between border-b border-border bg-sidebar px-5">
       <div class="flex min-w-0 items-center gap-3">
-        <span class="flex size-10 shrink-0 items-center justify-center rounded-lg border border-primary/20 bg-primary/12 text-primary">
+        <span
+          class="flex size-10 shrink-0 items-center justify-center rounded-lg border border-primary/20 bg-primary/12 text-primary"
+        >
           <component :is="icon" :size="20" aria-hidden="true" />
         </span>
         <span class="min-w-0">

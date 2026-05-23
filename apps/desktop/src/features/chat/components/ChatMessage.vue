@@ -1,42 +1,42 @@
 <script setup lang="ts">
-import type { ReactionSummary } from '@matrix/index'
-import type { MatrixEvent } from 'matrix-js-sdk'
-import { getClient } from '@matrix/client'
-import { getReactions, getThreadReplies, redactMessage } from '@matrix/index'
-import { fetchMediaBlobUrl } from '@matrix/media'
-import { hasPlainUrl, linkifyPlainText, sanitizeMatrixHtml } from '@muon/rich-text'
-import RichMessageContent from '@muon/rich-text/message-content'
-import { Avatar } from '@muon/ui/avatar'
-import { Dialog } from '@muon/ui/dialog'
-import { useSettingsStore } from '@shared/stores/settingsStore'
-import { useClipboard } from '@vueuse/core'
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { toast } from 'vue-sonner'
-import { ask } from '@/desktop/dialog'
-import { useAuthMedia } from '@/shared/composables/useAuthMedia'
-import { useContextMenuScrollLock } from '@/shared/composables/useContextMenuScrollLock'
-import { useViewportClampedFloating } from '@/shared/composables/useViewportClampedFloating'
-import { isFullEmojiText } from '@/shared/lib/emoji'
-import { handleMatrixLinkClick } from '@/shared/lib/matrixLinks'
-import { safeJsonStringify } from '@/shared/lib/utils'
-import { getFloatingPosition } from '../composables/useFloatingPosition'
-import { useMediaViewer } from '../composables/useMediaViewer'
-import { useMessageClipboardFeedback } from '../composables/useMessageClipboardFeedback'
-import { useMessageContextMenuState } from '../composables/useMessageContextMenuState'
-import { getMediaFrameStyle } from '../lib/mediaFrame'
-import { useChatStore } from '../stores/chatStore'
-import LinkPreview from './LinkPreview.vue'
-import MessageActionBar from './MessageActionBar.vue'
-import MessageContextMenu from './MessageContextMenu.vue'
-import AudioMessage from './messages/AudioMessage.vue'
-import ContactCardMessage from './messages/ContactCardMessage.vue'
-import FileMessage from './messages/FileMessage.vue'
-import ImageMessage from './messages/ImageMessage.vue'
-import VideoMessage from './messages/VideoMessage.vue'
-import RawMessageDialog from './RawMessageDialog.vue'
-import ReactionBar from './ReactionBar.vue'
-import ReplyReference from './ReplyReference.vue'
+import type { ReactionSummary } from '@matrix/index';
+import type { MatrixEvent } from 'matrix-js-sdk';
+import { getClient } from '@matrix/client';
+import { getReactions, getThreadReplies, redactMessage } from '@matrix/index';
+import { fetchMediaBlobUrl } from '@matrix/media';
+import { hasPlainUrl, linkifyPlainText, sanitizeMatrixHtml } from '@muon/rich-text';
+import RichMessageContent from '@muon/rich-text/message-content';
+import { Avatar } from '@muon/ui/avatar';
+import { Dialog } from '@muon/ui/dialog';
+import { useSettingsStore } from '@shared/stores/settingsStore';
+import { useClipboard } from '@vueuse/core';
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { toast } from 'vue-sonner';
+import { ask } from '@/desktop/dialog';
+import { useAuthMedia } from '@/shared/composables/useAuthMedia';
+import { useContextMenuScrollLock } from '@/shared/composables/useContextMenuScrollLock';
+import { useViewportClampedFloating } from '@/shared/composables/useViewportClampedFloating';
+import { isFullEmojiText } from '@/shared/lib/emoji';
+import { handleMatrixLinkClick } from '@/shared/lib/matrixLinks';
+import { safeJsonStringify } from '@/shared/lib/utils';
+import { getFloatingPosition } from '../composables/useFloatingPosition';
+import { useMediaViewer } from '../composables/useMediaViewer';
+import { useMessageClipboardFeedback } from '../composables/useMessageClipboardFeedback';
+import { useMessageContextMenuState } from '../composables/useMessageContextMenuState';
+import { getMediaFrameStyle } from '../lib/mediaFrame';
+import { useChatStore } from '../stores/chatStore';
+import LinkPreview from './LinkPreview.vue';
+import MessageActionBar from './MessageActionBar.vue';
+import MessageContextMenu from './MessageContextMenu.vue';
+import AudioMessage from './messages/AudioMessage.vue';
+import ContactCardMessage from './messages/ContactCardMessage.vue';
+import FileMessage from './messages/FileMessage.vue';
+import ImageMessage from './messages/ImageMessage.vue';
+import VideoMessage from './messages/VideoMessage.vue';
+import RawMessageDialog from './RawMessageDialog.vue';
+import ReactionBar from './ReactionBar.vue';
+import ReplyReference from './ReplyReference.vue';
 
 /**
  * 单条消息组件
@@ -48,208 +48,193 @@ import ReplyReference from './ReplyReference.vue'
  * - 引用消息在内容上方显示：竖线 + 小头像 + 用户名 + 截断文本
  */
 const props = defineProps<{
-  event: MatrixEvent
-  isFirst: boolean
-  roomId: string
-  hideAvatarColumn?: boolean
-  reactions?: ReactionSummary[]
-  threadReplyCount?: number
-  timelineVersion?: number
-}>()
+  event: MatrixEvent;
+  isFirst: boolean;
+  roomId: string;
+  hideAvatarColumn?: boolean;
+  reactions?: ReactionSummary[];
+  threadReplyCount?: number;
+  timelineVersion?: number;
+}>();
 
 const emit = defineEmits<{
-  avatarClick: [userId: string, event: MouseEvent]
-}>()
+  avatarClick: [userId: string, event: MouseEvent];
+}>();
 
-const RICH_MEDIA_PLACEHOLDER_SRC = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw=='
-const RICH_MEDIA_MAX_WIDTH = 300
-const RICH_MEDIA_MAX_HEIGHT = 400
-const RICH_MEDIA_FALLBACK_WIDTH = 300
-const RICH_MEDIA_FALLBACK_HEIGHT = 180
+const RICH_MEDIA_PLACEHOLDER_SRC = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
+const RICH_MEDIA_MAX_WIDTH = 300;
+const RICH_MEDIA_MAX_HEIGHT = 400;
+const RICH_MEDIA_FALLBACK_WIDTH = 300;
+const RICH_MEDIA_FALLBACK_HEIGHT = 180;
 
-const { t } = useI18n()
-const { copy: copyToClipboard } = useClipboard()
-const store = useChatStore()
-const settingsStore = useSettingsStore()
-const { openImage } = useMediaViewer()
-const { copyMessageContentWithFeedback } = useMessageClipboardFeedback()
-const hovered = ref(false)
-const showEmojiPicker = ref(false)
-const showContextMenu = ref(false)
-const actionMenuOpen = ref(false)
-const actionBarHovered = ref(false)
-const messageRef = ref<HTMLElement | null>(null)
-const richContentRef = ref<HTMLElement | null>(null)
-const actionBarRef = ref<HTMLElement | null>(null)
-const actionBarStyle = ref({ left: '0px', top: '0px' })
-const actionBarPositioned = ref(false)
-const contextMenuRef = ref<HTMLElement | null>(null)
-const contextMenuPos = ref({ x: 0, y: 0 })
+const { t } = useI18n();
+const { copy: copyToClipboard } = useClipboard();
+const store = useChatStore();
+const settingsStore = useSettingsStore();
+const { openImage } = useMediaViewer();
+const { copyMessageContentWithFeedback } = useMessageClipboardFeedback();
+const hovered = ref(false);
+const showEmojiPicker = ref(false);
+const showContextMenu = ref(false);
+const actionMenuOpen = ref(false);
+const actionBarHovered = ref(false);
+const messageRef = ref<HTMLElement | null>(null);
+const richContentRef = ref<HTMLElement | null>(null);
+const actionBarRef = ref<HTMLElement | null>(null);
+const actionBarStyle = ref({ left: '0px', top: '0px' });
+const actionBarPositioned = ref(false);
+const contextMenuRef = ref<HTMLElement | null>(null);
+const contextMenuPos = ref({ x: 0, y: 0 });
 const { style: contextMenuStyle } = useViewportClampedFloating({
   open: showContextMenu,
   position: contextMenuPos,
   element: contextMenuRef,
   fallbackSize: { width: 180, height: 152 },
-})
-const { isAnyMessageContextMenuOpen } = useMessageContextMenuState(showContextMenu)
-const isVisuallyHovered = computed(() => hovered.value || showContextMenu.value || actionMenuOpen.value || actionBarHovered.value)
-const shouldShowActionBar = computed(() => !isAnyMessageContextMenuOpen.value && (hovered.value || actionMenuOpen.value || actionBarHovered.value))
-let hoverCloseTimer: ReturnType<typeof setTimeout> | null = null
-let contextMenuListenerTimer: ReturnType<typeof setTimeout> | null = null
-let richMediaHydrationRun = 0
+});
+const { isAnyMessageContextMenuOpen } = useMessageContextMenuState(showContextMenu);
+const isVisuallyHovered = computed(
+  () => hovered.value || showContextMenu.value || actionMenuOpen.value || actionBarHovered.value,
+);
+const shouldShowActionBar = computed(
+  () => !isAnyMessageContextMenuOpen.value && (hovered.value || actionMenuOpen.value || actionBarHovered.value),
+);
+let hoverCloseTimer: ReturnType<typeof setTimeout> | null = null;
+let contextMenuListenerTimer: ReturnType<typeof setTimeout> | null = null;
+let richMediaHydrationRun = 0;
 
-useContextMenuScrollLock(showContextMenu)
+useContextMenuScrollLock(showContextMenu);
 
 // --- 基础信息 ---
-const eventId = computed(() => props.event.getId() || '')
-const eventType = computed(() => props.event.getType())
-const sender = computed(() => props.event.getSender() || '')
+const eventId = computed(() => props.event.getId() || '');
+const eventType = computed(() => props.event.getType());
+const sender = computed(() => props.event.getSender() || '');
 const isRedacted = computed(() => {
-  void props.timelineVersion
-  return props.event.isRedacted()
-})
-const msgtype = computed(() => props.event.getContent()?.msgtype)
-const body = computed(() => props.event.getContent()?.body || '')
+  void props.timelineVersion;
+  return props.event.isRedacted();
+});
+const msgtype = computed(() => props.event.getContent()?.msgtype);
+const body = computed(() => props.event.getContent()?.body || '');
 
-const myUserId = computed(() => getClient().getUserId() || '')
-const isMine = computed(() => !!sender.value && sender.value === myUserId.value)
-const isRightAligned = computed(() =>
-  settingsStore.messageAlignment === 'leftright' && isMine.value,
-)
+const myUserId = computed(() => getClient().getUserId() || '');
+const isMine = computed(() => !!sender.value && sender.value === myUserId.value);
+const isRightAligned = computed(() => settingsStore.messageAlignment === 'leftright' && isMine.value);
 const textBubbleClass = computed(() => [
   'w-fit max-w-full rounded-[20px] px-4 py-2.5',
   isRightAligned.value ? 'self-end bg-[var(--B100)]' : 'bg-[var(--N200)]',
-])
+]);
 
-const avatarColumnHidden = computed(() => props.hideAvatarColumn === true)
+const avatarColumnHidden = computed(() => props.hideAvatarColumn === true);
 
 function clearHoverCloseTimer() {
-  if (!hoverCloseTimer)
-    return
-  clearTimeout(hoverCloseTimer)
-  hoverCloseTimer = null
+  if (!hoverCloseTimer) return;
+  clearTimeout(hoverCloseTimer);
+  hoverCloseTimer = null;
 }
 
 function targetIsInside(element: HTMLElement | null, target: EventTarget | null) {
-  return !!(target instanceof Node && element?.contains(target))
+  return !!(target instanceof Node && element?.contains(target));
 }
 
 function hideActionBarFromOutsideInteraction() {
-  clearHoverCloseTimer()
-  hovered.value = false
-  actionBarHovered.value = false
-  showEmojiPicker.value = false
-  if (!actionMenuOpen.value)
-    actionBarPositioned.value = false
+  clearHoverCloseTimer();
+  hovered.value = false;
+  actionBarHovered.value = false;
+  showEmojiPicker.value = false;
+  if (!actionMenuOpen.value) actionBarPositioned.value = false;
 }
 
 function onMessageMouseEnter() {
-  clearHoverCloseTimer()
-  hovered.value = true
+  clearHoverCloseTimer();
+  hovered.value = true;
 }
 
 function onMessageMouseLeave() {
-  clearHoverCloseTimer()
-  showEmojiPicker.value = false
+  clearHoverCloseTimer();
+  showEmojiPicker.value = false;
   hoverCloseTimer = setTimeout(() => {
-    hovered.value = false
-  }, 120)
+    hovered.value = false;
+  }, 120);
 }
 
 function onActionBarMouseEnter() {
-  clearHoverCloseTimer()
-  actionBarHovered.value = true
+  clearHoverCloseTimer();
+  actionBarHovered.value = true;
 }
 
 function onActionBarMouseLeave() {
-  actionBarHovered.value = false
+  actionBarHovered.value = false;
 }
 
 function updateActionBarPosition() {
-  const message = messageRef.value
-  const actionBar = actionBarRef.value
-  if (!message || !actionBar)
-    return
-  actionBarStyle.value = getFloatingPosition(message, actionBar, { margin: 8, offset: 6, align: 'end' })
-  actionBarPositioned.value = true
+  const message = messageRef.value;
+  const actionBar = actionBarRef.value;
+  if (!message || !actionBar) return;
+  actionBarStyle.value = getFloatingPosition(message, actionBar, { margin: 8, offset: 6, align: 'end' });
+  actionBarPositioned.value = true;
 }
 
 async function positionActionBarAfterRender() {
-  actionBarPositioned.value = false
-  await nextTick()
-  if (shouldShowActionBar.value && !isRedacted.value)
-    updateActionBarPosition()
+  actionBarPositioned.value = false;
+  await nextTick();
+  if (shouldShowActionBar.value && !isRedacted.value) updateActionBarPosition();
 }
 
 function onViewportChange() {
-  if (shouldShowActionBar.value && !isRedacted.value)
-    updateActionBarPosition()
+  if (shouldShowActionBar.value && !isRedacted.value) updateActionBarPosition();
 }
 
 function onDocumentActionBarPointerDown(event: PointerEvent) {
-  if (!shouldShowActionBar.value || isRedacted.value)
-    return
-  if (
-    targetIsInside(messageRef.value, event.target)
-    || targetIsInside(actionBarRef.value, event.target)
-  ) {
-    return
+  if (!shouldShowActionBar.value || isRedacted.value) return;
+  if (targetIsInside(messageRef.value, event.target) || targetIsInside(actionBarRef.value, event.target)) {
+    return;
   }
-  hideActionBarFromOutsideInteraction()
+  hideActionBarFromOutsideInteraction();
 }
 
 // --- Sticker support (m.sticker) ---
-const isSticker = computed(() => eventType.value === 'm.sticker')
+const isSticker = computed(() => eventType.value === 'm.sticker');
 const stickerEmoji = computed(() => {
-  if (!isSticker.value)
-    return ''
-  return (
-    props.event.getContent()?.info?.['xyz.muon.emoji']
-    || props.event.getContent()?.body
-    || ''
-  )
-})
+  if (!isSticker.value) return '';
+  return props.event.getContent()?.info?.['xyz.muon.emoji'] || props.event.getContent()?.body || '';
+});
 const isImageSticker = computed(() => {
-  if (!isSticker.value)
-    return false
-  const content = props.event.getContent()
-  const url = content?.url || ''
-  const mimetype = content?.info?.mimetype || ''
-  return typeof url === 'string' && url.startsWith('mxc://') && mimetype.startsWith('image/')
-})
+  if (!isSticker.value) return false;
+  const content = props.event.getContent();
+  const url = content?.url || '';
+  const mimetype = content?.info?.mimetype || '';
+  return typeof url === 'string' && url.startsWith('mxc://') && mimetype.startsWith('image/');
+});
 const imageStickerMxcUrl = computed(() => {
-  if (!isImageSticker.value)
-    return undefined
-  return props.event.getContent()?.url as string | undefined
-})
-const imageStickerSrc = useAuthMedia(imageStickerMxcUrl, 240, 240)
+  if (!isImageSticker.value) return undefined;
+  return props.event.getContent()?.url as string | undefined;
+});
+const imageStickerSrc = useAuthMedia(imageStickerMxcUrl, 240, 240);
 const imageStickerFrameStyle = computed(() => {
-  const info = props.event.getContent()?.info as { w?: unknown, h?: unknown } | undefined
+  const info = props.event.getContent()?.info as { w?: unknown; h?: unknown } | undefined;
   return getMediaFrameStyle(info, {
     maxWidth: 220,
     maxHeight: 220,
     fallbackWidth: 120,
     fallbackHeight: 120,
-  })
-})
+  });
+});
 
 // --- Full emoji text support (1-3 emojis) ---
 const isFullEmoji = computed(() => {
-  if (msgtype.value !== 'm.text' || !body.value)
-    return false
-  return isFullEmojiText(body.value)
-})
+  if (msgtype.value !== 'm.text' || !body.value) return false;
+  return isFullEmojiText(body.value);
+});
 
 // --- 发送者信息 ---
 const senderMember = computed(() => {
-  const client = getClient()
-  const room = client.getRoom(props.roomId)
-  return room?.getMember(sender.value)
-})
+  const client = getClient();
+  const room = client.getRoom(props.roomId);
+  return room?.getMember(sender.value);
+});
 
-const senderName = computed(() => senderMember.value?.name || sender.value)
+const senderName = computed(() => senderMember.value?.name || sender.value);
 
-const senderMxcAvatar = computed(() => senderMember.value?.getMxcAvatarUrl() || undefined)
+const senderMxcAvatar = computed(() => senderMember.value?.getMxcAvatarUrl() || undefined);
 
 // --- 用户名颜色（基于用户 ID 的确定性颜色） ---
 const NAME_COLORS = [
@@ -261,395 +246,357 @@ const NAME_COLORS = [
   '#5a7a9a', // slate
   '#8b6fb0', // lavender
   '#b06878', // dusty rose
-]
+];
 
 const nameColor = computed(() => {
-  let hash = 0
+  let hash = 0;
   for (const ch of sender.value) {
-    hash = ch.charCodeAt(0) + ((hash << 5) - hash)
+    hash = ch.charCodeAt(0) + ((hash << 5) - hash);
   }
-  return NAME_COLORS[Math.abs(hash) % NAME_COLORS.length]
-})
+  return NAME_COLORS[Math.abs(hash) % NAME_COLORS.length];
+});
 
 // --- 时间戳 ---
 const fullTimestamp = computed(() => {
-  const ts = props.event.getTs()
-  if (!ts)
-    return ''
-  const d = new Date(ts)
-  const today = new Date()
-  const isToday = d.getDate() === today.getDate()
-    && d.getMonth() === today.getMonth()
-    && d.getFullYear() === today.getFullYear()
-  const timeStr = `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`
-  if (isToday)
-    return t('chat.today_at', { time: timeStr })
-  const yesterday = new Date(today)
-  yesterday.setDate(yesterday.getDate() - 1)
-  const isYesterday = d.getDate() === yesterday.getDate()
-    && d.getMonth() === yesterday.getMonth()
-    && d.getFullYear() === yesterday.getFullYear()
-  if (isYesterday)
-    return t('chat.yesterday_at', { time: timeStr })
-  return `${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getDate().toString().padStart(2, '0')}/${d.getFullYear()} ${timeStr}`
-})
+  const ts = props.event.getTs();
+  if (!ts) return '';
+  const d = new Date(ts);
+  const today = new Date();
+  const isToday =
+    d.getDate() === today.getDate() && d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear();
+  const timeStr = `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+  if (isToday) return t('chat.today_at', { time: timeStr });
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const isYesterday =
+    d.getDate() === yesterday.getDate() &&
+    d.getMonth() === yesterday.getMonth() &&
+    d.getFullYear() === yesterday.getFullYear();
+  if (isYesterday) return t('chat.yesterday_at', { time: timeStr });
+  return `${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getDate().toString().padStart(2, '0')}/${d.getFullYear()} ${timeStr}`;
+});
 
 const shortTime = computed(() => {
-  const ts = props.event.getTs()
-  if (!ts)
-    return ''
-  const d = new Date(ts)
-  return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`
-})
+  const ts = props.event.getTs();
+  if (!ts) return '';
+  const d = new Date(ts);
+  return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+});
 
 // --- 引用消息 ---
 const replyEvent = computed(() => {
-  const inReplyTo = props.event.getContent()?.['m.relates_to']?.['m.in_reply_to']?.event_id
-  if (!inReplyTo)
-    return null
-  const client = getClient()
-  const room = client.getRoom(props.roomId)
-  return room?.findEventById(inReplyTo) || null
-})
+  const inReplyTo = props.event.getContent()?.['m.relates_to']?.['m.in_reply_to']?.event_id;
+  if (!inReplyTo) return null;
+  const client = getClient();
+  const room = client.getRoom(props.roomId);
+  return room?.findEventById(inReplyTo) || null;
+});
 
-const replyBody = computed(() => replyEvent.value?.getContent()?.body || '')
-const replySender = computed(() => replyEvent.value?.getSender() || '')
+const replyBody = computed(() => replyEvent.value?.getContent()?.body || '');
+const replySender = computed(() => replyEvent.value?.getSender() || '');
 
 const replySenderName = computed(() => {
-  if (!replySender.value)
-    return ''
-  const client = getClient()
-  const room = client.getRoom(props.roomId)
-  const member = room?.getMember(replySender.value)
-  return member?.name || replySender.value
-})
+  if (!replySender.value) return '';
+  const client = getClient();
+  const room = client.getRoom(props.roomId);
+  const member = room?.getMember(replySender.value);
+  return member?.name || replySender.value;
+});
 
 const replySenderMxcAvatar = computed(() => {
-  if (!replySender.value)
-    return undefined
-  const client = getClient()
-  const room = client.getRoom(props.roomId)
-  const member = room?.getMember(replySender.value)
-  return member?.getMxcAvatarUrl() || undefined
-})
+  if (!replySender.value) return undefined;
+  const client = getClient();
+  const room = client.getRoom(props.roomId);
+  const member = room?.getMember(replySender.value);
+  return member?.getMxcAvatarUrl() || undefined;
+});
 
 // --- HTML 内容 ---
 const formattedBody = computed(() => {
-  const content = props.event.getContent()
-  if (content?.format === 'org.matrix.custom.html' && content?.formatted_body)
-    return content.formatted_body
-  return ''
-})
+  const content = props.event.getContent();
+  if (content?.format === 'org.matrix.custom.html' && content?.formatted_body) return content.formatted_body;
+  return '';
+});
 
 const currentRoomMemberIds = computed(() => {
-  void props.timelineVersion
-  const room = getClient().getRoom(props.roomId)
-  if (!room)
-    return null
-  return new Set(room.getJoinedMembers().map(member => member.userId))
-})
+  void props.timelineVersion;
+  const room = getClient().getRoom(props.roomId);
+  if (!room) return null;
+  return new Set(room.getJoinedMembers().map((member) => member.userId));
+});
 
-const urlRegex = /https?:\/\/[^\s<>"]+/gi
+const urlRegex = /https?:\/\/[^\s<>"]+/gi;
 
 function getMatrixToUserId(href: string): string {
   try {
-    const url = new URL(href, 'https://matrix.to')
-    if (url.hostname !== 'matrix.to')
-      return ''
-    const hashPath = url.hash.replace(/^#\/?/, '')
-    const rawUserId = hashPath.split(/[?#]/)[0]
-    const userId = decodeURIComponent(rawUserId)
-    return userId.startsWith('@') ? userId : ''
-  }
-  catch {
-    return ''
+    const url = new URL(href, 'https://matrix.to');
+    if (url.hostname !== 'matrix.to') return '';
+    const hashPath = url.hash.replace(/^#\/?/, '');
+    const rawUserId = hashPath.split(/[?#]/)[0];
+    const userId = decodeURIComponent(rawUserId);
+    return userId.startsWith('@') ? userId : '';
+  } catch {
+    return '';
   }
 }
 
 function markOutOfContextMentions(html: string): string {
-  const memberIds = currentRoomMemberIds.value
-  if (!memberIds || typeof document === 'undefined')
-    return html
+  const memberIds = currentRoomMemberIds.value;
+  if (!memberIds || typeof document === 'undefined') return html;
 
-  const template = document.createElement('template')
-  template.innerHTML = html
+  const template = document.createElement('template');
+  template.innerHTML = html;
   for (const anchor of template.content.querySelectorAll<HTMLAnchorElement>('a[href]')) {
-    const userId = getMatrixToUserId(anchor.getAttribute('href') || '')
-    if (userId && !memberIds.has(userId))
-      anchor.classList.add('mention-out-of-context', 'opacity-50')
+    const userId = getMatrixToUserId(anchor.getAttribute('href') || '');
+    if (userId && !memberIds.has(userId)) anchor.classList.add('mention-out-of-context', 'opacity-50');
   }
 
-  return template.innerHTML
+  return template.innerHTML;
 }
 
 const linkifiedPlainBodyHtml = computed(() => {
-  if (formattedBody.value || (msgtype.value !== 'm.text' && msgtype.value !== 'm.notice') || !body.value)
-    return ''
-  if (!hasPlainUrl(body.value))
-    return ''
-  return linkifyPlainText(body.value)
-})
+  if (formattedBody.value || (msgtype.value !== 'm.text' && msgtype.value !== 'm.notice') || !body.value) return '';
+  if (!hasPlainUrl(body.value)) return '';
+  return linkifyPlainText(body.value);
+});
 
 const sanitizedHtml = computed(() => {
-  const html = formattedBody.value || linkifiedPlainBodyHtml.value
-  if (!html)
-    return ''
-  return prepareRichMediaHtml(sanitizeMatrixHtml(markOutOfContextMentions(html)))
-})
+  const html = formattedBody.value || linkifiedPlainBodyHtml.value;
+  if (!html) return '';
+  return prepareRichMediaHtml(sanitizeMatrixHtml(markOutOfContextMentions(html)));
+});
 
 function prepareRichMediaHtml(html: string): string {
-  if (typeof document === 'undefined')
-    return html
+  if (typeof document === 'undefined') return html;
 
-  const template = document.createElement('template')
-  template.innerHTML = html
+  const template = document.createElement('template');
+  template.innerHTML = html;
   for (const image of template.content.querySelectorAll<HTMLImageElement>('img[src^="mxc://"]')) {
-    const mxcUrl = image.getAttribute('src') || ''
-    image.dataset.richMediaMxcSrc = mxcUrl
-    image.dataset.richMediaPending = 'true'
-    image.loading = 'lazy'
-    image.decoding = 'async'
-    image.src = RICH_MEDIA_PLACEHOLDER_SRC
-    image.setAttribute('style', getRichMediaImageStyle(image))
+    const mxcUrl = image.getAttribute('src') || '';
+    image.dataset.richMediaMxcSrc = mxcUrl;
+    image.dataset.richMediaPending = 'true';
+    image.loading = 'lazy';
+    image.decoding = 'async';
+    image.src = RICH_MEDIA_PLACEHOLDER_SRC;
+    image.setAttribute('style', getRichMediaImageStyle(image));
   }
 
-  return template.innerHTML
+  return template.innerHTML;
 }
 
 function getRichMediaImageStyle(image: HTMLImageElement): string {
-  const sourceWidth = Number(image.dataset.width)
-  const sourceHeight = Number(image.dataset.height)
+  const sourceWidth = Number(image.dataset.width);
+  const sourceHeight = Number(image.dataset.height);
   if (!Number.isFinite(sourceWidth) || sourceWidth <= 0 || !Number.isFinite(sourceHeight) || sourceHeight <= 0) {
-    return `width: ${RICH_MEDIA_FALLBACK_WIDTH}px; height: ${RICH_MEDIA_FALLBACK_HEIGHT}px;`
+    return `width: ${RICH_MEDIA_FALLBACK_WIDTH}px; height: ${RICH_MEDIA_FALLBACK_HEIGHT}px;`;
   }
 
-  const scale = Math.min(
-    RICH_MEDIA_MAX_WIDTH / sourceWidth,
-    RICH_MEDIA_MAX_HEIGHT / sourceHeight,
-    1,
-  )
-  const width = Math.max(1, Math.round(sourceWidth * scale))
-  const height = Math.max(1, Math.round(sourceHeight * scale))
-  return `width: ${width}px; height: ${height}px; aspect-ratio: ${sourceWidth} / ${sourceHeight};`
+  const scale = Math.min(RICH_MEDIA_MAX_WIDTH / sourceWidth, RICH_MEDIA_MAX_HEIGHT / sourceHeight, 1);
+  const width = Math.max(1, Math.round(sourceWidth * scale));
+  const height = Math.max(1, Math.round(sourceHeight * scale));
+  return `width: ${width}px; height: ${height}px; aspect-ratio: ${sourceWidth} / ${sourceHeight};`;
 }
 
 // --- Contact card support ---
-const isContactCard = computed(() => msgtype.value === 'im.muon.contact_card')
+const isContactCard = computed(() => msgtype.value === 'im.muon.contact_card');
 const contactCardData = computed(() => {
-  if (!isContactCard.value)
-    return null
-  return props.event.getContent()?.['im.muon.contact_card'] || null
-})
+  if (!isContactCard.value) return null;
+  return props.event.getContent()?.['im.muon.contact_card'] || null;
+});
 
 // --- 编辑标记 ---
 const isEdited = computed(() => {
-  const content = props.event.getContent()
-  return !!content?.['m.new_content']
-})
+  const content = props.event.getContent();
+  return !!content?.['m.new_content'];
+});
 
 // --- Reactions ---
 const messageReactions = computed(() => {
-  if (props.reactions)
-    return props.reactions
-  if (!props.roomId || !eventId.value)
-    return []
-  return getReactions(props.roomId, eventId.value)
-})
+  if (props.reactions) return props.reactions;
+  if (!props.roomId || !eventId.value) return [];
+  return getReactions(props.roomId, eventId.value);
+});
 
 const extractedUrls = computed((): string[] => {
-  if (msgtype.value !== 'm.text' || !body.value)
-    return []
-  const matches: string[] | null = body.value.match(urlRegex)
-  return matches ? Array.from(new Set(matches)).slice(0, 2) : []
-})
+  if (msgtype.value !== 'm.text' || !body.value) return [];
+  const matches: string[] | null = body.value.match(urlRegex);
+  return matches ? Array.from(new Set(matches)).slice(0, 2) : [];
+});
 
 const threadReplyCount = computed(() => {
-  if (typeof props.threadReplyCount === 'number')
-    return props.threadReplyCount
-  if (!props.roomId || !eventId.value)
-    return 0
-  return getThreadReplies(props.roomId, eventId.value).length
-})
+  if (typeof props.threadReplyCount === 'number') return props.threadReplyCount;
+  if (!props.roomId || !eventId.value) return 0;
+  return getThreadReplies(props.roomId, eventId.value).length;
+});
 
 /** Mention 链接点击：打开用户卡片 */
 function onRichContentClick(e: MouseEvent) {
-  const target = e.target instanceof HTMLElement ? e.target : null
-  const image = target?.closest('img[data-rich-media-full-src]') as HTMLImageElement | null
-  const fullSrc = image?.dataset.richMediaFullSrc
+  const target = e.target instanceof HTMLElement ? e.target : null;
+  const image = target?.closest('img[data-rich-media-full-src]') as HTMLImageElement | null;
+  const fullSrc = image?.dataset.richMediaFullSrc;
   if (fullSrc) {
-    e.preventDefault()
-    e.stopPropagation()
-    openImage(fullSrc)
-    return
+    e.preventDefault();
+    e.stopPropagation();
+    openImage(fullSrc);
+    return;
   }
 
-  handleMatrixLinkClick(e, (userId, event) => emit('avatarClick', userId, event))
+  handleMatrixLinkClick(e, (userId, event) => emit('avatarClick', userId, event));
 }
 
 async function hydrateRichMediaImages() {
-  const run = ++richMediaHydrationRun
-  await nextTick()
-  const root = richContentRef.value
-  if (!root)
-    return
+  const run = ++richMediaHydrationRun;
+  await nextTick();
+  const root = richContentRef.value;
+  if (!root) return;
 
-  const images = [...root.querySelectorAll<HTMLImageElement>('img[data-rich-media-mxc-src]')]
-  await Promise.all(images.map(async (image) => {
-    if (image.dataset.richMediaFullSrc)
-      return
-    const mxcUrl = image.dataset.richMediaMxcSrc
-    if (!mxcUrl)
-      return
+  const images = [...root.querySelectorAll<HTMLImageElement>('img[data-rich-media-mxc-src]')];
+  await Promise.all(
+    images.map(async (image) => {
+      if (image.dataset.richMediaFullSrc) return;
+      const mxcUrl = image.dataset.richMediaMxcSrc;
+      if (!mxcUrl) return;
 
-    image.loading = 'lazy'
-    const thumbSrc = await fetchMediaBlobUrl(mxcUrl, 300, 300)
-    const fullSrc = await fetchMediaBlobUrl(mxcUrl)
-    if (run !== richMediaHydrationRun)
-      return
-    if (thumbSrc)
-      image.src = thumbSrc
-    if (fullSrc) {
-      image.dataset.richMediaFullSrc = fullSrc
-      delete image.dataset.richMediaPending
-    }
-  }))
+      image.loading = 'lazy';
+      const thumbSrc = await fetchMediaBlobUrl(mxcUrl, 300, 300);
+      const fullSrc = await fetchMediaBlobUrl(mxcUrl);
+      if (run !== richMediaHydrationRun) return;
+      if (thumbSrc) image.src = thumbSrc;
+      if (fullSrc) {
+        image.dataset.richMediaFullSrc = fullSrc;
+        delete image.dataset.richMediaPending;
+      }
+    }),
+  );
 }
 
 function onActionReact() {
-  showEmojiPicker.value = !showEmojiPicker.value
+  showEmojiPicker.value = !showEmojiPicker.value;
 }
 
 function openThread() {
-  if (!eventId.value)
-    return
-  store.openThread(eventId.value)
+  if (!eventId.value) return;
+  store.openThread(eventId.value);
 }
 
 function closeContextMenu() {
-  showContextMenu.value = false
+  showContextMenu.value = false;
 }
 
 function onMessageContextMenu(event: MouseEvent) {
-  event.preventDefault()
-  event.stopPropagation()
-  contextMenuPos.value = { x: event.clientX, y: event.clientY }
-  showContextMenu.value = true
+  event.preventDefault();
+  event.stopPropagation();
+  contextMenuPos.value = { x: event.clientX, y: event.clientY };
+  showContextMenu.value = true;
 }
 
 function onReplyFromContextMenu() {
-  store.setReplyingTo(props.event)
-  closeContextMenu()
+  store.setReplyingTo(props.event);
+  closeContextMenu();
 }
 
 function onCopyFromContextMenu() {
-  void copyMessageContentWithFeedback(props.event.getContent() ?? {})
-  closeContextMenu()
+  void copyMessageContentWithFeedback(props.event.getContent() ?? {});
+  closeContextMenu();
 }
 
 function onOpenThreadFromContextMenu() {
-  openThread()
-  closeContextMenu()
+  openThread();
+  closeContextMenu();
 }
 
 async function onDeleteFromContextMenu() {
-  if (!eventId.value)
-    return
+  if (!eventId.value) return;
   const confirmed = await ask(t('chat.delete_confirm'), {
     title: t('chat.delete_message'),
     kind: 'warning',
-  })
-  if (!confirmed)
-    return
-  await redactMessage(props.roomId, eventId.value)
-  closeContextMenu()
+  });
+  if (!confirmed) return;
+  await redactMessage(props.roomId, eventId.value);
+  closeContextMenu();
 }
 
-const showRawMessageDialog = ref(false)
+const showRawMessageDialog = ref(false);
 
 function onViewRawJsonFromContextMenu() {
-  showRawMessageDialog.value = true
-  closeContextMenu()
+  showRawMessageDialog.value = true;
+  closeContextMenu();
 }
 
 async function onCopyRawJsonFromContextMenu() {
   try {
-    const parts: string[] = []
+    const parts: string[] = [];
     const add = (key: string, val: unknown) => {
       try {
-        parts.push(`"${key}": ${safeJsonStringify(val)}`)
+        parts.push(`"${key}": ${safeJsonStringify(val)}`);
+      } catch {
+        parts.push(`"${key}": "[Error]"`);
       }
-      catch {
-        parts.push(`"${key}": "[Error]"`)
-      }
-    }
-    add('event_id', props.event.getId())
-    add('type', props.event.getType())
-    add('sender', props.event.getSender())
-    add('room_id', props.event.getRoomId())
-    add('origin_server_ts', props.event.getTs())
-    add('content', props.event.getContent())
-    add('unsigned', props.event.getUnsigned())
-    const json = `{\n  ${parts.join(',\n  ')}\n}`
-    await copyToClipboard(json)
-    toast.success(t('chat.copy_raw_json'))
+    };
+    add('event_id', props.event.getId());
+    add('type', props.event.getType());
+    add('sender', props.event.getSender());
+    add('room_id', props.event.getRoomId());
+    add('origin_server_ts', props.event.getTs());
+    add('content', props.event.getContent());
+    add('unsigned', props.event.getUnsigned());
+    const json = `{\n  ${parts.join(',\n  ')}\n}`;
+    await copyToClipboard(json);
+    toast.success(t('chat.copy_raw_json'));
+  } catch {
+    toast.error('Copy failed');
   }
-  catch {
-    toast.error('Copy failed')
-  }
-  closeContextMenu()
+  closeContextMenu();
 }
 
 function onDocumentPointerDown(event: MouseEvent) {
-  if (!showContextMenu.value)
-    return
-  if (contextMenuRef.value?.contains(event.target as Node))
-    return
-  closeContextMenu()
+  if (!showContextMenu.value) return;
+  if (contextMenuRef.value?.contains(event.target as Node)) return;
+  closeContextMenu();
 }
 
 watch(showContextMenu, (open) => {
   if (open) {
-    contextMenuListenerTimer = setTimeout(() => document.addEventListener('mousedown', onDocumentPointerDown), 0)
+    contextMenuListenerTimer = setTimeout(() => document.addEventListener('mousedown', onDocumentPointerDown), 0);
+  } else {
+    clearContextMenuListener();
   }
-  else {
-    clearContextMenuListener()
-  }
-})
+});
 
 function clearContextMenuListener() {
   if (contextMenuListenerTimer) {
-    clearTimeout(contextMenuListenerTimer)
-    contextMenuListenerTimer = null
+    clearTimeout(contextMenuListenerTimer);
+    contextMenuListenerTimer = null;
   }
-  document.removeEventListener('mousedown', onDocumentPointerDown)
+  document.removeEventListener('mousedown', onDocumentPointerDown);
 }
 
 watch(shouldShowActionBar, (visible) => {
   if (!visible || isRedacted.value) {
-    actionBarPositioned.value = false
-    return
+    actionBarPositioned.value = false;
+    return;
   }
-  void positionActionBarAfterRender()
-})
+  void positionActionBarAfterRender();
+});
 
 watch(sanitizedHtml, () => {
-  void hydrateRichMediaImages()
-})
+  void hydrateRichMediaImages();
+});
 
 onMounted(() => {
-  void hydrateRichMediaImages()
-  document.addEventListener('pointerdown', onDocumentActionBarPointerDown, true)
-  window.addEventListener('resize', onViewportChange)
-  document.addEventListener('scroll', onViewportChange, true)
-})
+  void hydrateRichMediaImages();
+  document.addEventListener('pointerdown', onDocumentActionBarPointerDown, true);
+  window.addEventListener('resize', onViewportChange);
+  document.addEventListener('scroll', onViewportChange, true);
+});
 
 onUnmounted(() => {
-  clearHoverCloseTimer()
-  clearContextMenuListener()
-  document.removeEventListener('pointerdown', onDocumentActionBarPointerDown, true)
-  window.removeEventListener('resize', onViewportChange)
-  document.removeEventListener('scroll', onViewportChange, true)
-})
+  clearHoverCloseTimer();
+  clearContextMenuListener();
+  document.removeEventListener('pointerdown', onDocumentActionBarPointerDown, true);
+  window.removeEventListener('resize', onViewportChange);
+  document.removeEventListener('scroll', onViewportChange, true);
+});
 </script>
 
 <template>
@@ -659,11 +606,13 @@ onUnmounted(() => {
     data-testid="chat-message-row"
     :class="[
       avatarColumnHidden
-        ? (isRightAligned ? 'justify-end px-0' : 'w-full px-0')
-        : (isRightAligned ? 'justify-end pr-4 pl-12' : 'pr-12 pl-4'),
-      isFirst
-        ? (avatarColumnHidden ? 'pt-0.5' : 'mt-[1.0625rem] pt-0.5')
-        : '',
+        ? isRightAligned
+          ? 'justify-end px-0'
+          : 'w-full px-0'
+        : isRightAligned
+          ? 'justify-end pr-4 pl-12'
+          : 'pr-12 pl-4',
+      isFirst ? (avatarColumnHidden ? 'pt-0.5' : 'mt-[1.0625rem] pt-0.5') : '',
       isVisuallyHovered ? 'bg-accent/30' : 'hover:bg-accent/30',
     ]"
     @mouseenter="onMessageMouseEnter"
@@ -674,10 +623,7 @@ onUnmounted(() => {
     <div
       v-if="!avatarColumnHidden"
       class="w-8 shrink-0 flex items-start justify-center select-none"
-      :class="[
-        isRightAligned ? 'order-2 ml-3 mr-0' : 'order-1 mr-4',
-        isFirst ? 'sticky top-2 self-start z-[1]' : '',
-      ]"
+      :class="[isRightAligned ? 'order-2 ml-3 mr-0' : 'order-1 mr-4', isFirst ? 'sticky top-2 self-start z-[1]' : '']"
     >
       <!-- 首条消息：显示头像 -->
       <template v-if="isFirst">
@@ -703,16 +649,18 @@ onUnmounted(() => {
     <!-- 内容列 -->
     <div
       class="min-w-0 flex flex-col"
-      :class="avatarColumnHidden
-        ? (isRightAligned ? 'items-end' : 'w-full items-start')
-        : (isRightAligned ? 'order-1 items-end max-w-[min(70%,900px)]' : 'order-2 items-start flex-1')"
+      :class="
+        avatarColumnHidden
+          ? isRightAligned
+            ? 'items-end'
+            : 'w-full items-start'
+          : isRightAligned
+            ? 'order-1 items-end max-w-[min(70%,900px)]'
+            : 'order-2 items-start flex-1'
+      "
     >
       <!-- 首条消息：用户名 + 时间戳 -->
-      <div
-        v-if="isFirst"
-        class="mb-0.5 flex items-baseline gap-2"
-        :class="isRightAligned ? 'justify-end' : ''"
-      >
+      <div v-if="isFirst" class="mb-0.5 flex items-baseline gap-2" :class="isRightAligned ? 'justify-end' : ''">
         <span
           class="text-sm font-medium leading-snug cursor-pointer hover:underline underline-offset-2"
           :style="{ color: nameColor }"
@@ -753,17 +701,10 @@ onUnmounted(() => {
               :alt="body"
               :title="body"
               class="h-full w-full object-contain select-none"
-            >
-            <div
-              v-else
-              class="h-full w-full animate-pulse rounded-lg bg-muted/40"
             />
+            <div v-else class="h-full w-full animate-pulse rounded-lg bg-muted/40" />
           </div>
-          <span
-            v-else
-            class="select-none text-6xl leading-none"
-            :title="body"
-          >{{ stickerEmoji }}</span>
+          <span v-else class="select-none text-6xl leading-none" :title="body">{{ stickerEmoji }}</span>
         </div>
         <ImageMessage v-else-if="msgtype === 'm.image'" :event="event" />
         <VideoMessage v-else-if="msgtype === 'm.video'" :event="event" />
@@ -776,11 +717,7 @@ onUnmounted(() => {
           :avatar-url="contactCardData.avatar_url"
           @open-profile="(userId, e) => emit('avatarClick', userId, e)"
         />
-        <div
-          v-else-if="sanitizedHtml"
-          ref="richContentRef"
-          :class="textBubbleClass"
-        >
+        <div v-else-if="sanitizedHtml" ref="richContentRef" :class="textBubbleClass">
           <RichMessageContent
             :html="sanitizedHtml"
             :sanitize="false"
@@ -800,16 +737,12 @@ onUnmounted(() => {
           class="message-selectable-text text-sm leading-[20px] text-foreground/90 whitespace-pre-wrap break-words"
           :class="textBubbleClass"
         >
-          {{ body }}<span v-if="isEdited" class="text-[10px] text-muted-foreground/30 ml-1">({{ t('chat.edited') }})</span>
+          {{ body
+          }}<span v-if="isEdited" class="text-[10px] text-muted-foreground/30 ml-1">({{ t('chat.edited') }})</span>
         </p>
       </template>
 
-      <LinkPreview
-        v-for="url in extractedUrls"
-        :key="url"
-        :url="url"
-        :class="isRightAligned ? 'self-end' : ''"
-      />
+      <LinkPreview v-for="url in extractedUrls" :key="url" :url="url" :class="isRightAligned ? 'self-end' : ''" />
 
       <!-- Reactions -->
       <ReactionBar
@@ -819,11 +752,7 @@ onUnmounted(() => {
         :room-id="roomId"
       />
 
-      <button
-        v-if="threadReplyCount > 0"
-        class="mt-1 text-xs text-primary hover:underline"
-        @click.stop="openThread"
-      >
+      <button v-if="threadReplyCount > 0" class="mt-1 text-xs text-primary hover:underline" @click.stop="openThread">
         {{ t('chat.thread_replies_count', { count: threadReplyCount }) }}
       </button>
     </div>
@@ -856,12 +785,7 @@ onUnmounted(() => {
         enter-from-class="scale-[0.92] opacity-0 -translate-y-1"
         leave-to-class="scale-95 opacity-0"
       >
-        <div
-          v-if="showContextMenu"
-          ref="contextMenuRef"
-          class="fixed z-[220]"
-          :style="contextMenuStyle"
-        >
+        <div v-if="showContextMenu" ref="contextMenuRef" class="fixed z-[220]" :style="contextMenuStyle">
           <MessageContextMenu
             :is-mine="isMine"
             :show-debug="settingsStore.debugMode"
@@ -877,11 +801,7 @@ onUnmounted(() => {
     </Teleport>
 
     <Dialog :open="showRawMessageDialog" @update:open="showRawMessageDialog = $event">
-      <RawMessageDialog
-        v-if="showRawMessageDialog"
-        :event="event"
-        @close="showRawMessageDialog = false"
-      />
+      <RawMessageDialog v-if="showRawMessageDialog" :event="event" @close="showRawMessageDialog = false" />
     </Dialog>
   </div>
 </template>

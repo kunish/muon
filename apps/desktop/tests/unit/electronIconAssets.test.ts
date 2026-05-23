@@ -27,13 +27,7 @@ describe('electron icon assets', () => {
   it('does not keep the old mobile/store icon sets in the Electron package assets', () => {
     const iconDir = resolve(repoRoot, 'build/icons/png-set')
 
-    expect(readdirSync(iconDir).sort()).toEqual([
-      '128x128.png',
-      '128x128@2x.png',
-      '32x32.png',
-      '64x64.png',
-      'icon.png',
-    ])
+    expect(readdirSync(iconDir).sort()).toEqual(['128x128.png', '128x128@2x.png', '32x32.png', '64x64.png', 'icon.png'])
     expect(existsSync(resolve(iconDir, 'android'))).toBe(false)
     expect(existsSync(resolve(iconDir, 'ios'))).toBe(false)
     expect(existsSync(resolve(iconDir, 'StoreLogo.png'))).toBe(false)

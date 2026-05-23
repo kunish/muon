@@ -63,8 +63,7 @@ describe('message list scroll layout', () => {
       const scroller = wrapper.get('[data-testid="message-list-scroller"]')
       expect(scroller.classes()).toContain('min-h-0')
       expect(scroller.classes()).toContain('h-full')
-    }
-    finally {
+    } finally {
       wrapper.unmount()
     }
   })

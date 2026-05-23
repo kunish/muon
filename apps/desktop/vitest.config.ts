@@ -35,7 +35,10 @@ export default defineConfig({
       '@muon/rich-text/html': resolve(__dirname, '../../packages/rich-text/src/htmlSanitizer.ts'),
       '@muon/rich-text/linkify': resolve(__dirname, '../../packages/rich-text/src/linkify.ts'),
       '@muon/rich-text/markdown': resolve(__dirname, '../../packages/rich-text/src/markdown.ts'),
-      '@muon/rich-text/message-content': resolve(__dirname, '../../packages/rich-text/src/components/RichMessageContent.vue'),
+      '@muon/rich-text/message-content': resolve(
+        __dirname,
+        '../../packages/rich-text/src/components/RichMessageContent.vue',
+      ),
       '@muon/rich-text': resolve(__dirname, '../../packages/rich-text/src/index.ts'),
     },
   },

@@ -15,8 +15,7 @@ export const useProjectStore = defineStore('projects', () => {
     loading.value = true
     try {
       projects.value = await projectRepo.listProjects()
-    }
-    finally {
+    } finally {
       loading.value = false
     }
   }
@@ -56,22 +55,19 @@ export const useProjectStore = defineStore('projects', () => {
 
   async function updateProject(id: string, changes: Partial<Project>): Promise<Project> {
     const existing = await projectRepo.getProject(id)
-    if (!existing)
-      throw new Error(`Project ${id} not found`)
+    if (!existing) throw new Error(`Project ${id} not found`)
 
     const updated = projectSchema.parse({ ...existing, ...changes, updatedAt: Date.now() })
     const client = getClient()
 
-    if (changes.name !== undefined && updated.name !== existing.name)
-      await client.setRoomName(id, updated.name)
+    if (changes.name !== undefined && updated.name !== existing.name) await client.setRoomName(id, updated.name)
     if (changes.description !== undefined && updated.description !== existing.description)
       await client.setRoomTopic(id, updated.description)
 
     await projectRepo.saveProject(updated)
 
-    const idx = projects.value.findIndex(p => p.id === id)
-    if (idx !== -1)
-      projects.value.splice(idx, 1, updated)
+    const idx = projects.value.findIndex((p) => p.id === id)
+    if (idx !== -1) projects.value.splice(idx, 1, updated)
 
     return updated
   }
@@ -80,7 +76,7 @@ export const useProjectStore = defineStore('projects', () => {
     const client = getClient()
     await client.leave(id)
     await projectRepo.deleteProject(id)
-    projects.value = projects.value.filter(p => p.id !== id)
+    projects.value = projects.value.filter((p) => p.id !== id)
   }
 
   function setCurrentProject(id: string | null) {

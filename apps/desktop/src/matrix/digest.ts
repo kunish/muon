@@ -10,11 +10,11 @@ interface MaterializeOptions {
 }
 
 export function materializeOfflineDigest(events: DigestSourceEvent[], options: MaterializeOptions): DigestSession {
-  const roomSignals = new Map(getRoomSummaries().map(summary => [summary.roomId, summary]))
+  const roomSignals = new Map(getRoomSummaries().map((summary) => [summary.roomId, summary]))
   const currentUserId = getClient().getUserId?.() ?? null
 
   const entries: DigestEntry[] = events
-    .filter(event => event.ts >= options.windowStart && event.ts <= options.windowEnd)
+    .filter((event) => event.ts >= options.windowStart && event.ts <= options.windowEnd)
     .map((event) => {
       const relevance = deriveDigestRelevance(event, {
         roomSignal: roomSignals.get(event.roomId),

@@ -58,7 +58,9 @@ describe('contactStore', () => {
       userId: '@avatar:localhost',
       name: 'Avatar User',
       getMxcAvatarUrl: vi.fn().mockReturnValue('mxc://localhost/avatar_uploaded'),
-      getAvatarUrl: vi.fn().mockReturnValue('http://127.0.0.1:6167/_matrix/media/v3/thumbnail/localhost/avatar_uploaded'),
+      getAvatarUrl: vi
+        .fn()
+        .mockReturnValue('http://127.0.0.1:6167/_matrix/media/v3/thumbnail/localhost/avatar_uploaded'),
     }
     const meMember = {
       userId: '@test:localhost',

@@ -19,7 +19,7 @@ export default meta
 type Story = StoryObj<typeof FormField>
 
 export const Default: Story = {
-  render: args => ({
+  render: (args) => ({
     components: { FormField, Input },
     setup: () => ({ args }),
     template: `

@@ -1,20 +1,20 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { useDeferStore } from '../stores/deferStore'
+import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useDeferStore } from '../stores/deferStore';
 
-const { t } = useI18n()
-const deferStore = useDeferStore()
-const activeTab = ref<'active' | 'history'>('active')
+const { t } = useI18n();
+const deferStore = useDeferStore();
+const activeTab = ref<'active' | 'history'>('active');
 
-const now = computed(() => Date.now())
+const now = computed(() => Date.now());
 
 function formatDueAt(dueAt: number) {
-  return new Date(dueAt).toLocaleString()
+  return new Date(dueAt).toLocaleString();
 }
 
 function isOverdue(dueAt: number) {
-  return dueAt <= now.value
+  return dueAt <= now.value;
 }
 </script>
 
@@ -31,9 +31,7 @@ function isOverdue(dueAt: number) {
       <button
         type="button"
         class="rounded px-2 py-1 text-xs"
-        :class="activeTab === 'active'
-          ? 'bg-primary/10 text-primary'
-          : 'text-muted-foreground hover:bg-accent'"
+        :class="activeTab === 'active' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-accent'"
         data-testid="defer-active-tab"
         @click="activeTab = 'active'"
       >
@@ -42,9 +40,7 @@ function isOverdue(dueAt: number) {
       <button
         type="button"
         class="rounded px-2 py-1 text-xs"
-        :class="activeTab === 'history'
-          ? 'bg-primary/10 text-primary'
-          : 'text-muted-foreground hover:bg-accent'"
+        :class="activeTab === 'history' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-accent'"
         data-testid="defer-history-tab"
         @click="activeTab = 'history'"
       >
@@ -57,10 +53,7 @@ function isOverdue(dueAt: number) {
       class="mt-2 max-h-56 overflow-y-auto pr-1"
       data-testid="defer-active-scroll-container"
     >
-      <ul
-        class="space-y-1"
-        data-testid="defer-active-list"
-      >
+      <ul class="space-y-1" data-testid="defer-active-list">
         <li
           v-for="item in deferStore.activeItems"
           :key="item.id"
@@ -102,15 +95,8 @@ function isOverdue(dueAt: number) {
       </ul>
     </div>
 
-    <div
-      v-else
-      class="mt-2 max-h-56 overflow-y-auto pr-1"
-      data-testid="defer-history-scroll-container"
-    >
-      <ul
-        class="space-y-1"
-        data-testid="defer-history-list"
-      >
+    <div v-else class="mt-2 max-h-56 overflow-y-auto pr-1" data-testid="defer-history-scroll-container">
+      <ul class="space-y-1" data-testid="defer-history-list">
         <li
           v-for="item in deferStore.historyItems"
           :key="item.id"

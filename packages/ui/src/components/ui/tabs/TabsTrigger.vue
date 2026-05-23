@@ -1,20 +1,20 @@
 <script setup lang="ts">
-import type { TabsTriggerProps } from 'reka-ui'
-import type { TabsVariant } from './TabsList.vue'
-import { TabsTrigger, useForwardProps } from 'reka-ui'
-import { inject } from 'vue'
-import { cn } from '../../../utils'
+import type { TabsTriggerProps } from 'reka-ui';
+import type { TabsVariant } from './TabsList.vue';
+import { TabsTrigger, useForwardProps } from 'reka-ui';
+import { inject } from 'vue';
+import { cn } from '../../../utils';
 
-const props = defineProps<TabsTriggerProps & { class?: string }>()
+const props = defineProps<TabsTriggerProps & { class?: string }>();
 
 // Read the variant the surrounding TabsList provided. Default to 'segmented'
 // so a Trigger used outside TabsList still renders.
-const variant = inject<TabsVariant>('tabsListVariant', 'segmented')
+const variant = inject<TabsVariant>('tabsListVariant', 'segmented');
 
 const forwardedProps = useForwardProps(() => {
-  const { class: _, ...delegated } = props
-  return delegated
-})
+  const { class: _, ...delegated } = props;
+  return delegated;
+});
 
 // Underline variant — Feishu approval-form / contacts-organization tab style.
 // Active indicator is a centered 18×2px brand-500 pill rendered via the
@@ -25,14 +25,14 @@ const UNDERLINE_CLASSES = [
   'px-3 py-2 text-sm',
   'text-muted-foreground hover:text-foreground transition-colors',
   'data-[state=active]:text-gray-900 data-[state=active]:font-medium',
-  'data-[state=active]:after:content-[\'\'] data-[state=active]:after:absolute',
+  "data-[state=active]:after:content-[''] data-[state=active]:after:absolute",
   'data-[state=active]:after:bottom-0 data-[state=active]:after:left-1/2',
   'data-[state=active]:after:-translate-x-1/2 data-[state=active]:after:h-0.5',
   'data-[state=active]:after:w-[18px] data-[state=active]:after:bg-brand-500 data-[state=active]:after:rounded-full',
   'focus-visible:outline-none focus-visible:text-foreground',
   'disabled:pointer-events-none disabled:opacity-50',
   '[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg]:size-4',
-].join(' ')
+].join(' ');
 
 // Segmented variant — h-8 list, h-7 trigger, Feishu card-on-rail look.
 const SEGMENTED_CLASSES = [
@@ -46,7 +46,7 @@ const SEGMENTED_CLASSES = [
   'focus-visible:ring-[3px] focus-visible:outline-1',
   'disabled:pointer-events-none disabled:opacity-50',
   '[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg]:size-4',
-].join(' ')
+].join(' ');
 </script>
 
 <template>

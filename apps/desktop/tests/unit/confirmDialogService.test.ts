@@ -51,8 +51,7 @@ describe('confirm dialog service', () => {
         title: 'Delete message',
       })
       expect(desktopAsk).not.toHaveBeenCalled()
-    }
-    finally {
+    } finally {
       unregister()
     }
   })

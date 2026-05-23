@@ -65,15 +65,13 @@ export function isVoiceChannel(room: Room): boolean {
 }
 
 /** Get child rooms/spaces from a Space via m.space.child state events */
-function getSpaceChildren(spaceId: string): { roomId: string, order?: string, isSpace: boolean }[] {
+function getSpaceChildren(spaceId: string): { roomId: string; order?: string; isSpace: boolean }[] {
   const client = getClient()
   const space = client.getRoom(spaceId)
-  if (!space)
-    return []
+  if (!space) return []
 
   const childEvents = space.currentState.getStateEvents(EventType.SpaceChild)
-  if (!Array.isArray(childEvents))
-    return []
+  if (!Array.isArray(childEvents)) return []
 
   return childEvents
     .filter((ev: MatrixEvent) => {
@@ -99,9 +97,7 @@ function getSpaceChildren(spaceId: string): { roomId: string, order?: string, is
 /** Get all top-level Spaces (servers) the user has joined */
 export function getTopLevelSpaces(): SpaceInfo[] {
   const client = getClient()
-  const rooms = client.getRooms().filter(room =>
-    room.getMyMembership() === 'join' && isSpace(room),
-  )
+  const rooms = client.getRooms().filter((room) => room.getMyMembership() === 'join' && isSpace(room))
 
   // Build a set of all child space IDs to identify non-top-level ones
   const childSpaceIds = new Set<string>()
@@ -115,9 +111,7 @@ export function getTopLevelSpaces(): SpaceInfo[] {
   }
 
   // Top-level = space rooms that are NOT children of any other space
-  return rooms
-    .filter(room => !childSpaceIds.has(room.roomId))
-    .map(room => buildSpaceInfo(room))
+  return rooms.filter((room) => !childSpaceIds.has(room.roomId)).map((room) => buildSpaceInfo(room))
 }
 
 /** Build SpaceInfo for a given Space room */
@@ -129,13 +123,16 @@ function buildSpaceInfo(room: Room): SpaceInfo {
     avatar: room.getMxcAvatarUrl() || undefined,
     topic: room.currentState.getStateEvents('m.room.topic', '')?.getContent()?.topic,
     memberCount: room.getJoinedMemberCount(),
-    childRoomIds: children.filter(c => !c.isSpace).map(c => c.roomId),
-    childSpaceIds: children.filter(c => c.isSpace).map(c => c.roomId),
+    childRoomIds: children.filter((c) => !c.isSpace).map((c) => c.roomId),
+    childSpaceIds: children.filter((c) => c.isSpace).map((c) => c.roomId),
   }
 }
 
 /** Get the full hierarchy for a Space: categories and channels */
-export function getSpaceHierarchy(spaceId: string): { categories: CategoryInfo[], uncategorizedChannels: ChannelInfo[] } {
+export function getSpaceHierarchy(spaceId: string): {
+  categories: CategoryInfo[]
+  uncategorizedChannels: ChannelInfo[]
+} {
   const client = getClient()
   const children = getSpaceChildren(spaceId)
   const categories: CategoryInfo[] = []
@@ -143,8 +140,7 @@ export function getSpaceHierarchy(spaceId: string): { categories: CategoryInfo[]
 
   for (const child of children) {
     const childRoom = client.getRoom(child.roomId)
-    if (!childRoom || childRoom.getMyMembership() !== 'join')
-      continue
+    if (!childRoom || childRoom.getMyMembership() !== 'join') continue
 
     if (child.isSpace) {
       // This is a category (sub-space)
@@ -152,11 +148,10 @@ export function getSpaceHierarchy(spaceId: string): { categories: CategoryInfo[]
       categories.push({
         spaceId: child.roomId,
         name: childRoom.name || 'Unnamed Category',
-        childRoomIds: catChildren.filter(c => !c.isSpace).map(c => c.roomId),
+        childRoomIds: catChildren.filter((c) => !c.isSpace).map((c) => c.roomId),
         order: child.order,
       })
-    }
-    else {
+    } else {
       // Direct child room — uncategorized channel
       uncategorizedChannels.push(buildChannelInfo(childRoom, null, child.order))
     }
@@ -188,11 +183,9 @@ export function getCategoryChannels(categorySpaceId: string): ChannelInfo[] {
   const channels: ChannelInfo[] = []
 
   for (const child of children) {
-    if (child.isSpace)
-      continue
+    if (child.isSpace) continue
     const room = client.getRoom(child.roomId)
-    if (!room || room.getMyMembership() !== 'join')
-      continue
+    if (!room || room.getMyMembership() !== 'join') continue
     channels.push(buildChannelInfo(room, categorySpaceId, child.order))
   }
 
@@ -200,12 +193,15 @@ export function getCategoryChannels(categorySpaceId: string): ChannelInfo[] {
 }
 
 /** Create a new Space (server or category) */
-export async function createSpace(name: string, opts: {
-  topic?: string
-  avatar?: string
-  isPublic?: boolean
-  parentSpaceId?: string
-} = {}): Promise<string> {
+export async function createSpace(
+  name: string,
+  opts: {
+    topic?: string
+    avatar?: string
+    isPublic?: boolean
+    parentSpaceId?: string
+  } = {},
+): Promise<string> {
   const client = getClient()
 
   const { room_id } = await client.createRoom({
@@ -213,9 +209,7 @@ export async function createSpace(name: string, opts: {
     topic: opts.topic,
     preset: opts.isPublic ? Preset.PublicChat : Preset.PrivateChat,
     creation_content: { type: 'm.space' },
-    initial_state: opts.avatar
-      ? [{ type: 'm.room.avatar', content: { url: opts.avatar } }]
-      : [],
+    initial_state: opts.avatar ? [{ type: 'm.room.avatar', content: { url: opts.avatar } }] : [],
     power_level_content_override: {
       events_default: 0,
       invite: 50,
@@ -235,17 +229,26 @@ export async function createSpace(name: string, opts: {
 }
 
 /** Add a room as a child of a Space */
-export async function addRoomToSpace(spaceId: string, roomId: string, opts: {
-  order?: string
-  suggested?: boolean
-} = {}): Promise<void> {
+export async function addRoomToSpace(
+  spaceId: string,
+  roomId: string,
+  opts: {
+    order?: string
+    suggested?: boolean
+  } = {},
+): Promise<void> {
   const client = getClient()
   const homeserver = client.getDomain() ?? ''
-  await client.sendStateEvent(spaceId, EventType.SpaceChild, {
-    via: [homeserver],
-    order: opts.order,
-    suggested: opts.suggested ?? true,
-  }, roomId)
+  await client.sendStateEvent(
+    spaceId,
+    EventType.SpaceChild,
+    {
+      via: [homeserver],
+      order: opts.order,
+      suggested: opts.suggested ?? true,
+    },
+    roomId,
+  )
 }
 
 /** Remove a room from a Space */
@@ -259,14 +262,13 @@ export async function removeRoomFromSpace(spaceId: string, roomId: string): Prom
 export function getSpaceMembers(spaceId: string): SpaceMember[] {
   const client = getClient()
   const room = client.getRoom(spaceId)
-  if (!room)
-    return []
+  if (!room) return []
 
   const powerLevelsEvent = room.currentState.getStateEvents('m.room.power_levels', '')
   const powerLevels: Record<string, number> = powerLevelsEvent?.getContent()?.users || {}
   const defaultPowerLevel = powerLevelsEvent?.getContent()?.users_default ?? 0
 
-  return room.getJoinedMembers().map(member => ({
+  return room.getJoinedMembers().map((member) => ({
     userId: member.userId,
     displayName: member.name || member.userId.split(':')[0].slice(1),
     avatarUrl: member.getMxcAvatarUrl() || undefined,
@@ -279,8 +281,7 @@ export function getSpaceMembers(spaceId: string): SpaceMember[] {
 export async function setSpacePowerLevel(spaceId: string, userId: string, level: number): Promise<void> {
   const client = getClient()
   const room = client.getRoom(spaceId)
-  if (!room)
-    throw new Error(`Space ${spaceId} not found`)
+  if (!room) throw new Error(`Space ${spaceId} not found`)
 
   const powerLevelsEvent = room.currentState.getStateEvents('m.room.power_levels', '')
   const content = powerLevelsEvent?.getContent() || {}
@@ -294,12 +295,16 @@ export async function setSpacePowerLevel(spaceId: string, userId: string, level:
 }
 
 /** Create a channel (room) within a Space */
-export async function createChannel(spaceId: string, name: string, opts: {
-  topic?: string
-  isVoice?: boolean
-  isPrivate?: boolean
-  categoryId?: string
-} = {}): Promise<string> {
+export async function createChannel(
+  spaceId: string,
+  name: string,
+  opts: {
+    topic?: string
+    isVoice?: boolean
+    isPrivate?: boolean
+    categoryId?: string
+  } = {},
+): Promise<string> {
   const client = getClient()
   const homeserver = client.getDomain() ?? ''
 
@@ -343,13 +348,12 @@ export async function createChannel(spaceId: string, name: string, opts: {
 /** Get rooms that don't belong to any Space (orphan rooms for "uncategorized" server) */
 export function getOrphanRooms(): Room[] {
   const client = getClient()
-  const allRooms = client.getRooms().filter(r => r.getMyMembership() === 'join')
+  const allRooms = client.getRooms().filter((r) => r.getMyMembership() === 'join')
 
   // Collect all rooms that are children of some space
   const spaceManagedRoomIds = new Set<string>()
   for (const room of allRooms) {
-    if (!isSpace(room))
-      continue
+    if (!isSpace(room)) continue
     const children = getSpaceChildren(room.roomId)
     for (const child of children) {
       spaceManagedRoomIds.add(child.roomId)
@@ -376,9 +380,7 @@ export function getOrphanRooms(): Room[] {
     }
   }
 
-  return allRooms.filter(room =>
-    !isSpace(room)
-    && !spaceManagedRoomIds.has(room.roomId)
-    && !dmRoomIds.has(room.roomId),
+  return allRooms.filter(
+    (room) => !isSpace(room) && !spaceManagedRoomIds.has(room.roomId) && !dmRoomIds.has(room.roomId),
   )
 }

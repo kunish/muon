@@ -26,8 +26,7 @@ function matrixClientOptions(config: MatrixConfig) {
 }
 
 export function getClient(): MatrixClient {
-  if (!client)
-    throw new Error('Matrix client not initialized')
+  if (!client) throw new Error('Matrix client not initialized')
   return client
 }
 

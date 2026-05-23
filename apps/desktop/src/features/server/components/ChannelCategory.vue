@@ -1,39 +1,37 @@
 <script setup lang="ts">
-import type { ChannelTreeCategory } from '@/features/server/stores/serverStore'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@muon/ui/tooltip'
-import { ChevronDown, Plus } from 'lucide-vue-next'
-import { computed } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { useServerStore } from '@/features/server/stores/serverStore'
+import type { ChannelTreeCategory } from '@/features/server/stores/serverStore';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@muon/ui/tooltip';
+import { ChevronDown, Plus } from 'lucide-vue-next';
+import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useServerStore } from '@/features/server/stores/serverStore';
 
 const props = defineProps<{
-  category: ChannelTreeCategory
-}>()
+  category: ChannelTreeCategory;
+}>();
 
 const emit = defineEmits<{
-  createChannel: [categoryId: string]
-}>()
+  createChannel: [categoryId: string];
+}>();
 
-const serverStore = useServerStore()
-const { t } = useI18n()
+const serverStore = useServerStore();
+const { t } = useI18n();
 
-const isCollapsed = computed(() => serverStore.isCategoryCollapsed(props.category.id))
+const isCollapsed = computed(() => serverStore.isCategoryCollapsed(props.category.id));
 
 const displayName = computed(() => {
-  if (props.category.name === '__text_channels__')
-    return t('channel.text_channels')
-  if (props.category.name === '__voice_channels__')
-    return t('channel.voice_channels')
-  return props.category.name
-})
+  if (props.category.name === '__text_channels__') return t('channel.text_channels');
+  if (props.category.name === '__voice_channels__') return t('channel.voice_channels');
+  return props.category.name;
+});
 
 function toggle() {
-  serverStore.toggleCategory(props.category.id)
+  serverStore.toggleCategory(props.category.id);
 }
 
 function onCreateChannel(e: MouseEvent) {
-  e.stopPropagation()
-  emit('createChannel', props.category.id)
+  e.stopPropagation();
+  emit('createChannel', props.category.id);
 }
 </script>
 

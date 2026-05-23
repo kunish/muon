@@ -16,13 +16,12 @@ export const DOC_CODE_LANGUAGE_OPTIONS = [
   { value: 'markdown', label: 'Markdown' },
 ] as const
 
-export type DocCodeLanguage = typeof DOC_CODE_LANGUAGE_OPTIONS[number]['value']
+export type DocCodeLanguage = (typeof DOC_CODE_LANGUAGE_OPTIONS)[number]['value']
 
 export function normalizeDocCodeLanguage(language: unknown): DocCodeLanguage {
-  if (typeof language !== 'string')
-    return DEFAULT_DOC_CODE_LANGUAGE
+  if (typeof language !== 'string') return DEFAULT_DOC_CODE_LANGUAGE
 
-  return DOC_CODE_LANGUAGE_OPTIONS.some(option => option.value === language)
-    ? language as DocCodeLanguage
+  return DOC_CODE_LANGUAGE_OPTIONS.some((option) => option.value === language)
+    ? (language as DocCodeLanguage)
     : DEFAULT_DOC_CODE_LANGUAGE
 }

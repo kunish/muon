@@ -38,9 +38,11 @@ describe('getLiveKitToken', () => {
   })
 
   it('fails before connecting when no real token source is configured', async () => {
-    await expect(getLiveKitToken({
-      roomName: '!room:muon.dev',
-      identity: '@alice:muon.dev',
-    })).rejects.toThrow('LiveKit token endpoint')
+    await expect(
+      getLiveKitToken({
+        roomName: '!room:muon.dev',
+        identity: '@alice:muon.dev',
+      }),
+    ).rejects.toThrow('LiveKit token endpoint')
   })
 })

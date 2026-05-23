@@ -31,12 +31,24 @@ vi.mock('vue-router', () => ({
 vi.mock('@matrix/client', () => ({
   getClient: () => ({
     getRooms: () => [
-      { roomId: '!joined:muon.dev', name: 'Joined Room', getMyMembership: () => 'join', getJoinedMemberCount: () => 2, hasEncryptionStateEvent: () => false },
-      { roomId: '!left:muon.dev', name: 'Left Room', getMyMembership: () => 'leave', getJoinedMemberCount: () => 0, hasEncryptionStateEvent: () => false },
+      {
+        roomId: '!joined:muon.dev',
+        name: 'Joined Room',
+        getMyMembership: () => 'join',
+        getJoinedMemberCount: () => 2,
+        hasEncryptionStateEvent: () => false,
+      },
+      {
+        roomId: '!left:muon.dev',
+        name: 'Left Room',
+        getMyMembership: () => 'leave',
+        getJoinedMemberCount: () => 0,
+        hasEncryptionStateEvent: () => false,
+      },
     ],
     getRoom: (roomId: string) => ({
       name: roomId === '!joined:muon.dev' ? 'Joined Room' : 'Left Room',
-      getMyMembership: () => roomId === '!joined:muon.dev' ? 'join' : 'leave',
+      getMyMembership: () => (roomId === '!joined:muon.dev' ? 'join' : 'leave'),
       getJoinedMemberCount: () => 2,
       hasEncryptionStateEvent: () => false,
     }),
@@ -48,7 +60,7 @@ function mockGetRoom(roomId: string) {
   return {
     roomId,
     name: roomId === '!joined:muon.dev' ? 'Joined Room' : 'Left Room',
-    getMyMembership: () => roomId === '!joined:muon.dev' ? 'join' : 'leave',
+    getMyMembership: () => (roomId === '!joined:muon.dev' ? 'join' : 'leave'),
     getJoinedMemberCount: () => 2,
     hasEncryptionStateEvent: () => false,
   }
@@ -143,8 +155,22 @@ describe('chatWindow search integration', () => {
   it('submits search and renders cross-conversation results with joined-room filtering', async () => {
     searchRoomEventsMock.mockResolvedValue({
       items: [
-        { roomId: '!joined:muon.dev', eventId: '$hit-1', body: 'Cross-conv result', sender: '@alice:muon.dev', ts: 1700000000000, rank: 1 },
-        { roomId: '!left:muon.dev', eventId: '$hit-left', body: 'Left room result', sender: '@bob:muon.dev', ts: 1700000000001, rank: 2 },
+        {
+          roomId: '!joined:muon.dev',
+          eventId: '$hit-1',
+          body: 'Cross-conv result',
+          sender: '@alice:muon.dev',
+          ts: 1700000000000,
+          rank: 1,
+        },
+        {
+          roomId: '!left:muon.dev',
+          eventId: '$hit-left',
+          body: 'Left room result',
+          sender: '@bob:muon.dev',
+          ts: 1700000000001,
+          rank: 2,
+        },
       ],
       session: { batch: 1 },
       canPaginate: true,
@@ -213,7 +239,7 @@ describe('chatWindow search integration', () => {
     expect(wrapper.find('[data-testid="global-search-hit-$page1-0"]').exists()).toBe(true)
 
     // Load more button should be present
-    const loadMoreBtn = wrapper.findAll('button').find(b => b.text() === 'chat.search_load_more')
+    const loadMoreBtn = wrapper.findAll('button').find((b) => b.text() === 'chat.search_load_more')
     expect(loadMoreBtn).toBeTruthy()
     await loadMoreBtn!.trigger('click')
     await flushUi()
@@ -225,7 +251,14 @@ describe('chatWindow search integration', () => {
   it('jumps to result using canonical /dm navigation with focusEventId', async () => {
     searchRoomEventsMock.mockResolvedValue({
       items: [
-        { roomId: '!joined:muon.dev', eventId: '$jump-target', body: 'Jump here', sender: '@alice:muon.dev', ts: 1700000000000, rank: 1 },
+        {
+          roomId: '!joined:muon.dev',
+          eventId: '$jump-target',
+          body: 'Jump here',
+          sender: '@alice:muon.dev',
+          ts: 1700000000000,
+          rank: 1,
+        },
       ],
       session: null,
       canPaginate: false,
@@ -258,7 +291,14 @@ describe('chatWindow search integration', () => {
   it('closes cleanly and reopening does not show stale results', async () => {
     searchRoomEventsMock.mockResolvedValue({
       items: [
-        { roomId: '!joined:muon.dev', eventId: '$stale', body: 'Stale result', sender: '@alice:muon.dev', ts: 1700000000000, rank: 1 },
+        {
+          roomId: '!joined:muon.dev',
+          eventId: '$stale',
+          body: 'Stale result',
+          sender: '@alice:muon.dev',
+          ts: 1700000000000,
+          rank: 1,
+        },
       ],
       session: null,
       canPaginate: false,

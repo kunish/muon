@@ -78,8 +78,7 @@ function mountPanel() {
 }
 
 function getRoomIdCopyButton(wrapper: ReturnType<typeof mountPanel>) {
-  const button = wrapper.findAll('button')
-    .find(element => element.text().includes('!project:localhost'))
+  const button = wrapper.findAll('button').find((element) => element.text().includes('!project:localhost'))
   expect(button).toBeTruthy()
   return button!
 }

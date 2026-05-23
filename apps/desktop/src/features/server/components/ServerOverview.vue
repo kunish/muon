@@ -1,127 +1,118 @@
 <script setup lang="ts">
-import { Button } from '@muon/ui/button'
-import { Input } from '@muon/ui/input'
-import { Label } from '@muon/ui/label'
-import { Textarea } from '@muon/ui/textarea'
-import { Camera } from 'lucide-vue-next'
-import { computed, ref, watch } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { toast } from 'vue-sonner'
-import { useServerStore } from '@/features/server/stores/serverStore'
-import { getClient } from '@/matrix/client'
-import { setRoomName, setRoomTopic } from '@/matrix/rooms'
+import { Button } from '@muon/ui/button';
+import { Input } from '@muon/ui/input';
+import { Label } from '@muon/ui/label';
+import { Textarea } from '@muon/ui/textarea';
+import { Camera } from 'lucide-vue-next';
+import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { toast } from 'vue-sonner';
+import { useServerStore } from '@/features/server/stores/serverStore';
+import { getClient } from '@/matrix/client';
+import { setRoomName, setRoomTopic } from '@/matrix/rooms';
 
 const props = defineProps<{
-  serverId: string
-  serverName: string
-  serverTopic?: string
-  serverAvatar?: string
-}>()
+  serverId: string;
+  serverName: string;
+  serverTopic?: string;
+  serverAvatar?: string;
+}>();
 
-const serverStore = useServerStore()
-const { t } = useI18n()
+const serverStore = useServerStore();
+const { t } = useI18n();
 
-const name = ref(props.serverName)
-const topic = ref(props.serverTopic ?? '')
-const isSaving = ref(false)
-const saveError = ref('')
+const name = ref(props.serverName);
+const topic = ref(props.serverTopic ?? '');
+const isSaving = ref(false);
+const saveError = ref('');
 
 // Reset when props change
 watch(
   () => [props.serverName, props.serverTopic],
   () => {
-    name.value = props.serverName
-    topic.value = props.serverTopic ?? ''
+    name.value = props.serverName;
+    topic.value = props.serverTopic ?? '';
   },
-)
+);
 
 const isDirty = computed(() => {
-  return name.value !== props.serverName || topic.value !== (props.serverTopic ?? '')
-})
+  return name.value !== props.serverName || topic.value !== (props.serverTopic ?? '');
+});
 
 function resetChanges() {
-  name.value = props.serverName
-  topic.value = props.serverTopic ?? ''
-  saveError.value = ''
+  name.value = props.serverName;
+  topic.value = props.serverTopic ?? '';
+  saveError.value = '';
 }
 
 async function saveChanges() {
-  if (!isDirty.value || isSaving.value)
-    return
-  isSaving.value = true
-  saveError.value = ''
+  if (!isDirty.value || isSaving.value) return;
+  isSaving.value = true;
+  saveError.value = '';
 
   try {
     if (name.value !== props.serverName) {
-      await setRoomName(props.serverId, name.value.trim())
+      await setRoomName(props.serverId, name.value.trim());
     }
     if (topic.value !== (props.serverTopic ?? '')) {
-      await setRoomTopic(props.serverId, topic.value.trim())
+      await setRoomTopic(props.serverId, topic.value.trim());
     }
     // Refresh server data
-    serverStore.loadServers()
+    serverStore.loadServers();
     if (serverStore.currentServerId) {
-      serverStore.loadChannelTree(serverStore.currentServerId)
+      serverStore.loadChannelTree(serverStore.currentServerId);
     }
-  }
-  catch (err: unknown) {
-    saveError.value = err instanceof Error ? err.message : t('server.update_failed')
-  }
-  finally {
-    isSaving.value = false
+  } catch (err: unknown) {
+    saveError.value = err instanceof Error ? err.message : t('server.update_failed');
+  } finally {
+    isSaving.value = false;
   }
 }
 
 // Avatar upload
-const avatarInput = ref<HTMLInputElement | null>(null)
-const avatarPreview = ref<string | null>(null)
-const isUploadingAvatar = ref(false)
+const avatarInput = ref<HTMLInputElement | null>(null);
+const avatarPreview = ref<string | null>(null);
+const isUploadingAvatar = ref(false);
 
 function triggerAvatarUpload() {
-  avatarInput.value?.click()
+  avatarInput.value?.click();
 }
 
 async function handleAvatarChange(event: Event) {
-  const file = (event.target as HTMLInputElement).files?.[0]
-  if (!file)
-    return
+  const file = (event.target as HTMLInputElement).files?.[0];
+  if (!file) return;
 
-  isUploadingAvatar.value = true
+  isUploadingAvatar.value = true;
   try {
     // Show preview immediately
-    avatarPreview.value = URL.createObjectURL(file)
+    avatarPreview.value = URL.createObjectURL(file);
 
     // Upload to Matrix
-    const client = getClient()
-    const { content_uri } = await client.uploadContent(file)
-    await client.sendStateEvent(props.serverId, 'm.room.avatar', { url: content_uri })
+    const client = getClient();
+    const { content_uri } = await client.uploadContent(file);
+    await client.sendStateEvent(props.serverId, 'm.room.avatar', { url: content_uri });
 
-    serverStore.loadServers()
-  }
-  catch (err) {
-    console.error('Failed to upload avatar:', err)
-    toast.error(t('server.update_failed'))
-    avatarPreview.value = null
-  }
-  finally {
-    isUploadingAvatar.value = false
+    serverStore.loadServers();
+  } catch (err) {
+    console.error('Failed to upload avatar:', err);
+    toast.error(t('server.update_failed'));
+    avatarPreview.value = null;
+  } finally {
+    isUploadingAvatar.value = false;
   }
 }
 
 // Resolve MXC avatar URL for display
 const resolvedAvatar = computed(() => {
-  if (avatarPreview.value)
-    return avatarPreview.value
-  if (!props.serverAvatar)
-    return null
+  if (avatarPreview.value) return avatarPreview.value;
+  if (!props.serverAvatar) return null;
   try {
-    const client = getClient()
-    return client.mxcUrlToHttp(props.serverAvatar, 128, 128, 'crop') ?? null
+    const client = getClient();
+    return client.mxcUrlToHttp(props.serverAvatar, 128, 128, 'crop') ?? null;
+  } catch {
+    return null;
   }
-  catch {
-    return null
-  }
-})
+});
 </script>
 
 <template>
@@ -137,20 +128,14 @@ const resolvedAvatar = computed(() => {
           class="group relative flex h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-muted transition-colors hover:bg-accent"
           @click="triggerAvatarUpload"
         >
-          <img
-            v-if="resolvedAvatar"
-            :src="resolvedAvatar"
-            alt="Server avatar"
-            class="h-full w-full object-cover"
-          >
-          <span
-            v-else
-            class="text-2xl font-bold text-muted-foreground"
-          >
+          <img v-if="resolvedAvatar" :src="resolvedAvatar" alt="Server avatar" class="h-full w-full object-cover" />
+          <span v-else class="text-2xl font-bold text-muted-foreground">
             {{ serverName.charAt(0).toUpperCase() }}
           </span>
           <!-- Overlay on hover -->
-          <div class="absolute inset-0 flex flex-col items-center justify-center bg-black/60 opacity-0 transition-opacity group-hover:opacity-100">
+          <div
+            class="absolute inset-0 flex flex-col items-center justify-center bg-black/60 opacity-0 transition-opacity group-hover:opacity-100"
+          >
             <Camera :size="20" class="text-white" />
             <span class="mt-1 text-[10px] font-bold uppercase text-white">{{ t('server.change_avatar') }}</span>
           </div>
@@ -158,13 +143,7 @@ const resolvedAvatar = computed(() => {
         <span class="text-[11px] text-muted-foreground">
           {{ isUploadingAvatar ? t('server.uploading') : t('server.min_size') }}
         </span>
-        <input
-          ref="avatarInput"
-          type="file"
-          accept="image/*"
-          class="hidden"
-          @change="handleAvatarChange"
-        >
+        <input ref="avatarInput" type="file" accept="image/*" class="hidden" @change="handleAvatarChange" />
       </div>
 
       <!-- Form fields -->
@@ -174,10 +153,7 @@ const resolvedAvatar = computed(() => {
           <Label class="text-xs font-bold uppercase tracking-wide text-muted-foreground">
             {{ t('server.server_name') }}
           </Label>
-          <Input
-            v-model="name"
-            :placeholder="t('server.server_name_placeholder')"
-          />
+          <Input v-model="name" :placeholder="t('server.server_name_placeholder')" />
         </div>
 
         <!-- Description / Topic -->
@@ -207,10 +183,7 @@ const resolvedAvatar = computed(() => {
       enter-from-class="translate-y-2 opacity-0"
       leave-to-class="translate-y-2 opacity-0"
     >
-      <div
-        v-if="isDirty"
-        class="mt-6 flex items-center justify-between rounded-md bg-popover p-3"
-      >
+      <div v-if="isDirty" class="mt-6 flex items-center justify-between rounded-md bg-popover p-3">
         <span class="text-sm text-muted-foreground">
           {{ t('server.unsaved_changes') }}
         </span>

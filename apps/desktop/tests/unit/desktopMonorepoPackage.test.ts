@@ -36,23 +36,23 @@ function readDesktopJson<T>(path: string): T {
 }
 
 function listFiles(root: string): string[] {
-  if (!existsSync(root))
-    return []
+  if (!existsSync(root)) return []
 
-  const entries = readdirSync(root).filter(entry => !['.git', 'coverage', 'dist', 'node_modules', 'out'].includes(entry))
+  const entries = readdirSync(root).filter(
+    (entry) => !['.git', 'coverage', 'dist', 'node_modules', 'out'].includes(entry),
+  )
   return entries.flatMap((entry) => {
     const path = join(root, entry)
-    if (statSync(path).isDirectory())
-      return listFiles(path)
+    if (statSync(path).isDirectory()) return listFiles(path)
     return [path]
   })
 }
 
 function findFilesContaining(root: string, needle: string): string[] {
   return listFiles(root)
-    .filter(path => /\.(?:ts|vue)$/.test(path))
-    .filter(path => readFileSync(path, 'utf8').includes(needle))
-    .map(path => path.slice(repoRoot.length + 1))
+    .filter((path) => /\.(?:ts|vue)$/.test(path))
+    .filter((path) => readFileSync(path, 'utf8').includes(needle))
+    .map((path) => path.slice(repoRoot.length + 1))
     .sort()
 }
 

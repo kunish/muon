@@ -14,7 +14,7 @@ async function setupOwner() {
     ownerDisplayName: 'Owner',
     ownerPassword: 'correct horse battery staple',
   })
-  return { repository, owner: repository.users.find(user => user.id === install.owner.id)! }
+  return { repository, owner: repository.users.find((user) => user.id === install.owner.id)! }
 }
 
 describe('admin organizations', () => {
@@ -36,7 +36,7 @@ describe('admin organizations', () => {
     expect(result.owner.roles).toEqual(['owner'])
     expect(await repository.isInstalled()).toBe(true)
     expect(await repository.listOrganizations()).toHaveLength(2)
-    expect(repository.auditLogs.filter(event => event.action === 'organization.created')).toHaveLength(2)
+    expect(repository.auditLogs.filter((event) => event.action === 'organization.created')).toHaveLength(2)
   })
 
   it('rejects member access to organization creation', async () => {
@@ -53,13 +53,15 @@ describe('admin organizations', () => {
       status: 'active',
     })
 
-    await expect(service.createOrganization(member, {
-      organizationName: 'Blocked',
-      organizationSlug: 'blocked',
-      ownerUsername: 'blocked-owner',
-      ownerEmail: 'owner@blocked.test',
-      ownerDisplayName: 'Blocked Owner',
-      ownerPassword: 'correct horse battery staple',
-    })).rejects.toThrow('Requires admin role')
+    await expect(
+      service.createOrganization(member, {
+        organizationName: 'Blocked',
+        organizationSlug: 'blocked',
+        ownerUsername: 'blocked-owner',
+        ownerEmail: 'owner@blocked.test',
+        ownerDisplayName: 'Blocked Owner',
+        ownerPassword: 'correct horse battery staple',
+      }),
+    ).rejects.toThrow('Requires admin role')
   })
 })

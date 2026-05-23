@@ -50,9 +50,7 @@ describe('chatStore', () => {
     const store = useChatStore()
     store.togglePin('!room:localhost')
 
-    store.syncServerState([
-      createRoom({ roomId: '!room:localhost', isPinned: false }),
-    ])
+    store.syncServerState([createRoom({ roomId: '!room:localhost', isPinned: false })])
 
     expect(store.isPinned('!room:localhost')).toBe(true)
   })

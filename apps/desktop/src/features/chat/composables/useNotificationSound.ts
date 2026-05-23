@@ -9,13 +9,11 @@ import { useChatStore } from '../stores/chatStore'
 
 function parseTimeToMinutes(value: string): number | null {
   const match = /^(\d{2}):(\d{2})$/.exec(value)
-  if (!match)
-    return null
+  if (!match) return null
 
   const hours = Number(match[1])
   const minutes = Number(match[2])
-  if (hours > 23 || minutes > 59)
-    return null
+  if (hours > 23 || minutes > 59) return null
 
   return hours * 60 + minutes
 }
@@ -23,12 +21,10 @@ function parseTimeToMinutes(value: string): number | null {
 function isWithinDoNotDisturb(start: string, end: string, now = new Date()): boolean {
   const startMinutes = parseTimeToMinutes(start)
   const endMinutes = parseTimeToMinutes(end)
-  if (startMinutes === null || endMinutes === null || startMinutes === endMinutes)
-    return false
+  if (startMinutes === null || endMinutes === null || startMinutes === endMinutes) return false
 
   const nowMinutes = now.getHours() * 60 + now.getMinutes()
-  if (startMinutes < endMinutes)
-    return nowMinutes >= startMinutes && nowMinutes < endMinutes
+  if (startMinutes < endMinutes) return nowMinutes >= startMinutes && nowMinutes < endMinutes
 
   return nowMinutes >= startMinutes || nowMinutes < endMinutes
 }
@@ -47,22 +43,17 @@ export function useNotificationSound() {
 
   function notificationBodyFor(event: MatrixEvent): string {
     const sender = senderNameFor(event)
-    if (!settingsStore.notificationPreview)
-      return t('notifications.new_message_from', { name: sender })
+    if (!settingsStore.notificationPreview) return t('notifications.new_message_from', { name: sender })
 
     const body = event.getContent()?.body
-    return typeof body === 'string' && body.trim()
-      ? body
-      : t('notifications.new_message_from', { name: sender })
+    return typeof body === 'string' && body.trim() ? body : t('notifications.new_message_from', { name: sender })
   }
 
-  function showDesktopNotification(payload: { roomId: string, event: MatrixEvent }): void {
+  function showDesktopNotification(payload: { roomId: string; event: MatrixEvent }): void {
     const NotificationCtor = globalThis.Notification
-    if (typeof NotificationCtor !== 'function')
-      return
+    if (typeof NotificationCtor !== 'function') return
 
-    if (NotificationCtor.permission !== 'granted')
-      return
+    if (NotificationCtor.permission !== 'granted') return
 
     const notification = new NotificationCtor(t('notifications.new_message'), {
       body: notificationBodyFor(payload.event),
@@ -71,40 +62,32 @@ export function useNotificationSound() {
     void notification
   }
 
-  function shouldHandleMessageNotification(payload: { roomId: string, event: MatrixEvent }): boolean {
-    if (!settingsStore.notificationsEnabled)
-      return false
+  function shouldHandleMessageNotification(payload: { roomId: string; event: MatrixEvent }): boolean {
+    if (!settingsStore.notificationsEnabled) return false
 
-    if (settingsStore.notificationChannels.messages === false)
-      return false
+    if (settingsStore.notificationChannels.messages === false) return false
 
-    if (isWithinDoNotDisturb(settingsStore.dndStart, settingsStore.dndEnd))
-      return false
+    if (isWithinDoNotDisturb(settingsStore.dndStart, settingsStore.dndEnd)) return false
 
     const client = getClient()
     const myUserId = client.getUserId()
 
     // 不对自己发的消息播放提示音
-    if (payload.event.getSender() === myUserId)
-      return false
+    if (payload.event.getSender() === myUserId) return false
 
     // 当前正在查看的房间不播放提示音
-    if (payload.roomId === store.currentRoomId)
-      return false
+    if (payload.roomId === store.currentRoomId) return false
 
     // 免打扰的房间不播放
-    if (store.isMuted(payload.roomId))
-      return false
+    if (store.isMuted(payload.roomId)) return false
 
     return true
   }
 
-  function onNewMessage(payload: { roomId: string, event: MatrixEvent }) {
-    if (!shouldHandleMessageNotification(payload))
-      return
+  function onNewMessage(payload: { roomId: string; event: MatrixEvent }) {
+    if (!shouldHandleMessageNotification(payload)) return
 
-    if (settingsStore.notificationSound)
-      playNotificationSound()
+    if (settingsStore.notificationSound) playNotificationSound()
 
     showDesktopNotification(payload)
   }

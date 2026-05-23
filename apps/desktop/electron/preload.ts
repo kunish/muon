@@ -23,7 +23,8 @@ contextBridge.exposeInMainWorld('muonDesktop', {
   fetch: (request: unknown) => ipcRenderer.invoke('muon:fetch', request),
   fs: {
     readFile: (filePath: string) => ipcRenderer.invoke('muon:fs:read-file', filePath),
-    writeFile: (filePath: string, bytes: Uint8Array | ArrayBuffer) => ipcRenderer.invoke('muon:fs:write-file', filePath, bytes),
+    writeFile: (filePath: string, bytes: Uint8Array | ArrayBuffer) =>
+      ipcRenderer.invoke('muon:fs:write-file', filePath, bytes),
   },
   isElectron: true,
   runtime: 'electron',

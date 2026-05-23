@@ -68,35 +68,32 @@ describe('matrix rooms', () => {
 
   describe('toggleRoomMute', () => {
     it('should mute a room (add push rule override)', async () => {
-      (mockClient as any).pushRules = ({
+      ;(mockClient as any).pushRules = {
         global: { override: [] },
-      } as any)
+      } as any
 
       const { toggleRoomMute } = await import('@/matrix/rooms')
       const result = await toggleRoomMute('!test:localhost')
 
-      expect(mockClient.addPushRule).toHaveBeenCalledWith(
-        'global',
-        'override',
-        '!test:localhost',
-        {
-          conditions: [{ kind: 'event_match', key: 'room_id', pattern: '!test:localhost' }],
-          actions: ['dont_notify'],
-        },
-      )
+      expect(mockClient.addPushRule).toHaveBeenCalledWith('global', 'override', '!test:localhost', {
+        conditions: [{ kind: 'event_match', key: 'room_id', pattern: '!test:localhost' }],
+        actions: ['dont_notify'],
+      })
       expect(mockClient.deletePushRule).not.toHaveBeenCalled()
       expect(result).toBe(true)
     })
 
     it('should unmute a room (delete push rule override)', async () => {
-      (mockClient as any).pushRules = ({
+      ;(mockClient as any).pushRules = {
         global: {
-          override: [{
-            rule_id: '!test:localhost',
-            actions: ['dont_notify'],
-          }],
+          override: [
+            {
+              rule_id: '!test:localhost',
+              actions: ['dont_notify'],
+            },
+          ],
         },
-      } as any)
+      } as any
 
       const { toggleRoomMute } = await import('@/matrix/rooms')
       const result = await toggleRoomMute('!test:localhost')
@@ -107,7 +104,7 @@ describe('matrix rooms', () => {
     })
 
     it('should mute when pushRules is missing', async () => {
-      (mockClient as any).pushRules = (null as any)
+      ;(mockClient as any).pushRules = null as any
 
       const { toggleRoomMute } = await import('@/matrix/rooms')
       const result = await toggleRoomMute('!test:localhost')
@@ -117,9 +114,9 @@ describe('matrix rooms', () => {
     })
 
     it('should handle unmute when pushRules override array is not present', async () => {
-      (mockClient as any).pushRules = ({
+      ;(mockClient as any).pushRules = {
         global: {},
-      } as any)
+      } as any
 
       const { toggleRoomMute } = await import('@/matrix/rooms')
       const result = await toggleRoomMute('!test:localhost')
@@ -154,11 +151,13 @@ describe('matrix rooms', () => {
     })
 
     it('should get the room topic', async () => {
-      vi.mocked(mockClient.getRoom).mockReturnValue(makeMockRoom({
-        currentState: {
-          getStateEvents: vi.fn().mockReturnValue({ getContent: () => ({ topic: 'My Topic' }) }),
-        },
-      }))
+      vi.mocked(mockClient.getRoom).mockReturnValue(
+        makeMockRoom({
+          currentState: {
+            getStateEvents: vi.fn().mockReturnValue({ getContent: () => ({ topic: 'My Topic' }) }),
+          },
+        }),
+      )
 
       const { getRoomTopic } = await import('@/matrix/rooms')
       const topic = getRoomTopic('!test:localhost')
@@ -176,11 +175,13 @@ describe('matrix rooms', () => {
     })
 
     it('should return empty string when no topic event exists', async () => {
-      vi.mocked(mockClient.getRoom).mockReturnValue(makeMockRoom({
-        currentState: {
-          getStateEvents: vi.fn().mockReturnValue(null),
-        },
-      }))
+      vi.mocked(mockClient.getRoom).mockReturnValue(
+        makeMockRoom({
+          currentState: {
+            getStateEvents: vi.fn().mockReturnValue(null),
+          },
+        }),
+      )
 
       const { getRoomTopic } = await import('@/matrix/rooms')
       const topic = getRoomTopic('!test:localhost')
@@ -194,19 +195,19 @@ describe('matrix rooms', () => {
       const { setRoomAnnouncement } = await import('@/matrix/rooms')
       await setRoomAnnouncement('!test:localhost', 'Welcome everyone!')
 
-      expect(mockClient.sendStateEvent).toHaveBeenCalledWith(
-        '!test:localhost',
-        'im.muon.announcement',
-        { body: 'Welcome everyone!' },
-      )
+      expect(mockClient.sendStateEvent).toHaveBeenCalledWith('!test:localhost', 'im.muon.announcement', {
+        body: 'Welcome everyone!',
+      })
     })
 
     it('should get the room announcement', async () => {
-      vi.mocked(mockClient.getRoom).mockReturnValue(makeMockRoom({
-        currentState: {
-          getStateEvents: vi.fn().mockReturnValue({ getContent: () => ({ body: 'Announcement text' }) }),
-        },
-      }))
+      vi.mocked(mockClient.getRoom).mockReturnValue(
+        makeMockRoom({
+          currentState: {
+            getStateEvents: vi.fn().mockReturnValue({ getContent: () => ({ body: 'Announcement text' }) }),
+          },
+        }),
+      )
 
       const { getRoomAnnouncement } = await import('@/matrix/rooms')
       const announcement = getRoomAnnouncement('!test:localhost')
@@ -236,32 +237,31 @@ describe('matrix rooms', () => {
       const { setMessageRetention } = await import('@/matrix/rooms')
       await setMessageRetention('!test:localhost', 86400000)
 
-      expect(mockClient.sendStateEvent).toHaveBeenCalledWith(
-        '!test:localhost',
-        'im.muon.message_retention',
-        { enabled: true, max_lifetime: 86400000 },
-      )
+      expect(mockClient.sendStateEvent).toHaveBeenCalledWith('!test:localhost', 'im.muon.message_retention', {
+        enabled: true,
+        max_lifetime: 86400000,
+      })
     })
 
     it('should disable message retention when maxLifetimeMs is null', async () => {
       const { setMessageRetention } = await import('@/matrix/rooms')
       await setMessageRetention('!test:localhost', null)
 
-      expect(mockClient.sendStateEvent).toHaveBeenCalledWith(
-        '!test:localhost',
-        'im.muon.message_retention',
-        { enabled: false },
-      )
+      expect(mockClient.sendStateEvent).toHaveBeenCalledWith('!test:localhost', 'im.muon.message_retention', {
+        enabled: false,
+      })
     })
 
     it('should get message retention settings', async () => {
-      vi.mocked(mockClient.getRoom).mockReturnValue(makeMockRoom({
-        currentState: {
-          getStateEvents: vi.fn().mockReturnValue({
-            getContent: () => ({ enabled: true, max_lifetime: 604800000 }),
-          }),
-        },
-      }))
+      vi.mocked(mockClient.getRoom).mockReturnValue(
+        makeMockRoom({
+          currentState: {
+            getStateEvents: vi.fn().mockReturnValue({
+              getContent: () => ({ enabled: true, max_lifetime: 604800000 }),
+            }),
+          },
+        }),
+      )
 
       const { getMessageRetention } = await import('@/matrix/rooms')
       const retention = getMessageRetention('!test:localhost')
@@ -288,28 +288,30 @@ describe('matrix rooms', () => {
 
   describe('pinned messages', () => {
     it('should pin a message', async () => {
-      vi.mocked(mockClient.getRoom).mockReturnValue(makeMockRoom({
-        currentState: {
-          getStateEvents: vi.fn().mockReturnValue({ getContent: () => ({ pinned: ['$existing'] }) }),
-        },
-      }))
+      vi.mocked(mockClient.getRoom).mockReturnValue(
+        makeMockRoom({
+          currentState: {
+            getStateEvents: vi.fn().mockReturnValue({ getContent: () => ({ pinned: ['$existing'] }) }),
+          },
+        }),
+      )
 
       const { pinMessage } = await import('@/matrix/rooms')
       await pinMessage('!test:localhost', '$new_pin')
 
-      expect(mockClient.sendStateEvent).toHaveBeenCalledWith(
-        '!test:localhost',
-        'm.room.pinned_events',
-        { pinned: ['$existing', '$new_pin'] },
-      )
+      expect(mockClient.sendStateEvent).toHaveBeenCalledWith('!test:localhost', 'm.room.pinned_events', {
+        pinned: ['$existing', '$new_pin'],
+      })
     })
 
     it('should not duplicate an already pinned message', async () => {
-      vi.mocked(mockClient.getRoom).mockReturnValue(makeMockRoom({
-        currentState: {
-          getStateEvents: vi.fn().mockReturnValue({ getContent: () => ({ pinned: ['$existing'] }) }),
-        },
-      }))
+      vi.mocked(mockClient.getRoom).mockReturnValue(
+        makeMockRoom({
+          currentState: {
+            getStateEvents: vi.fn().mockReturnValue({ getContent: () => ({ pinned: ['$existing'] }) }),
+          },
+        }),
+      )
 
       const { pinMessage } = await import('@/matrix/rooms')
       await pinMessage('!test:localhost', '$existing')
@@ -318,28 +320,30 @@ describe('matrix rooms', () => {
     })
 
     it('should unpin a message', async () => {
-      vi.mocked(mockClient.getRoom).mockReturnValue(makeMockRoom({
-        currentState: {
-          getStateEvents: vi.fn().mockReturnValue({ getContent: () => ({ pinned: ['$a', '$b', '$c'] }) }),
-        },
-      }))
+      vi.mocked(mockClient.getRoom).mockReturnValue(
+        makeMockRoom({
+          currentState: {
+            getStateEvents: vi.fn().mockReturnValue({ getContent: () => ({ pinned: ['$a', '$b', '$c'] }) }),
+          },
+        }),
+      )
 
       const { unpinMessage } = await import('@/matrix/rooms')
       await unpinMessage('!test:localhost', '$b')
 
-      expect(mockClient.sendStateEvent).toHaveBeenCalledWith(
-        '!test:localhost',
-        'm.room.pinned_events',
-        { pinned: ['$a', '$c'] },
-      )
+      expect(mockClient.sendStateEvent).toHaveBeenCalledWith('!test:localhost', 'm.room.pinned_events', {
+        pinned: ['$a', '$c'],
+      })
     })
 
     it('should not unpin a message that is not pinned', async () => {
-      vi.mocked(mockClient.getRoom).mockReturnValue(makeMockRoom({
-        currentState: {
-          getStateEvents: vi.fn().mockReturnValue({ getContent: () => ({ pinned: ['$a'] }) }),
-        },
-      }))
+      vi.mocked(mockClient.getRoom).mockReturnValue(
+        makeMockRoom({
+          currentState: {
+            getStateEvents: vi.fn().mockReturnValue({ getContent: () => ({ pinned: ['$a'] }) }),
+          },
+        }),
+      )
 
       const { unpinMessage } = await import('@/matrix/rooms')
       await unpinMessage('!test:localhost', '$not_pinned')
@@ -348,11 +352,13 @@ describe('matrix rooms', () => {
     })
 
     it('should check if a message is pinned', async () => {
-      vi.mocked(mockClient.getRoom).mockReturnValue(makeMockRoom({
-        currentState: {
-          getStateEvents: vi.fn().mockReturnValue({ getContent: () => ({ pinned: ['$a', '$b'] }) }),
-        },
-      }))
+      vi.mocked(mockClient.getRoom).mockReturnValue(
+        makeMockRoom({
+          currentState: {
+            getStateEvents: vi.fn().mockReturnValue({ getContent: () => ({ pinned: ['$a', '$b'] }) }),
+          },
+        }),
+      )
 
       const { isMessagePinned } = await import('@/matrix/rooms')
       expect(isMessagePinned('!test:localhost', '$a')).toBe(true)
@@ -376,15 +382,12 @@ describe('matrix rooms', () => {
       const { starMessage } = await import('@/matrix/rooms')
       await starMessage('!test:localhost', '$new_star')
 
-      expect(mockClient.setAccountData).toHaveBeenCalledWith(
-        'im.muon.starred',
-        {
-          starred: [
-            { roomId: '!other:localhost', eventId: '$other' },
-            { roomId: '!test:localhost', eventId: '$new_star' },
-          ],
-        },
-      )
+      expect(mockClient.setAccountData).toHaveBeenCalledWith('im.muon.starred', {
+        starred: [
+          { roomId: '!other:localhost', eventId: '$other' },
+          { roomId: '!test:localhost', eventId: '$new_star' },
+        ],
+      })
     })
 
     it('should not star a message that is already starred', async () => {
@@ -411,18 +414,15 @@ describe('matrix rooms', () => {
       const { unstarMessage } = await import('@/matrix/rooms')
       await unstarMessage('!test:localhost', '$a')
 
-      expect(mockClient.setAccountData).toHaveBeenCalledWith(
-        'im.muon.starred',
-        { starred: [{ roomId: '!test:localhost', eventId: '$b' }] },
-      )
+      expect(mockClient.setAccountData).toHaveBeenCalledWith('im.muon.starred', {
+        starred: [{ roomId: '!test:localhost', eventId: '$b' }],
+      })
     })
 
     it('should check if a message is starred', async () => {
       vi.mocked(mockClient.getAccountData).mockReturnValue({
         getContent: () => ({
-          starred: [
-            { roomId: '!test:localhost', eventId: '$starred' },
-          ],
+          starred: [{ roomId: '!test:localhost', eventId: '$starred' }],
         }),
       } as any)
 
@@ -438,32 +438,30 @@ describe('matrix rooms', () => {
       const { setVoiceChannelState } = await import('@/matrix/rooms')
       await setVoiceChannelState('!test:localhost', true)
 
-      expect(mockClient.sendStateEvent).toHaveBeenCalledWith(
-        '!test:localhost',
-        'im.muon.voice_channel',
-        { enabled: true },
-      )
+      expect(mockClient.sendStateEvent).toHaveBeenCalledWith('!test:localhost', 'im.muon.voice_channel', {
+        enabled: true,
+      })
     })
 
     it('should set voice channel disabled state', async () => {
       const { setVoiceChannelState } = await import('@/matrix/rooms')
       await setVoiceChannelState('!test:localhost', false)
 
-      expect(mockClient.sendStateEvent).toHaveBeenCalledWith(
-        '!test:localhost',
-        'im.muon.voice_channel',
-        { enabled: false },
-      )
+      expect(mockClient.sendStateEvent).toHaveBeenCalledWith('!test:localhost', 'im.muon.voice_channel', {
+        enabled: false,
+      })
     })
 
     it('should get voice channel state', async () => {
-      vi.mocked(mockClient.getRoom).mockReturnValue(makeMockRoom({
-        currentState: {
-          getStateEvents: vi.fn().mockReturnValue({
-            getContent: () => ({ enabled: true }),
-          }),
-        },
-      }))
+      vi.mocked(mockClient.getRoom).mockReturnValue(
+        makeMockRoom({
+          currentState: {
+            getStateEvents: vi.fn().mockReturnValue({
+              getContent: () => ({ enabled: true }),
+            }),
+          },
+        }),
+      )
 
       const { getVoiceChannelState } = await import('@/matrix/rooms')
       const state = getVoiceChannelState('!test:localhost')
@@ -495,10 +493,12 @@ describe('matrix rooms', () => {
           '@alice:localhost': ['!dm_alice:localhost'],
         }),
       } as any)
-      vi.mocked(mockClient.getRoom).mockReturnValue(makeMockRoom({
-        roomId: '!dm_alice:localhost',
-        getMyMembership: () => 'join',
-      }))
+      vi.mocked(mockClient.getRoom).mockReturnValue(
+        makeMockRoom({
+          roomId: '!dm_alice:localhost',
+          getMyMembership: () => 'join',
+        }),
+      )
 
       const { findOrCreateDm } = await import('@/matrix/rooms')
       const roomId = await findOrCreateDm('@alice:localhost')
@@ -513,10 +513,12 @@ describe('matrix rooms', () => {
           '@alice:localhost': ['!dm_alice:localhost'],
         }),
       } as any)
-      vi.mocked(mockClient.getRoom).mockReturnValue(makeMockRoom({
-        roomId: '!dm_alice:localhost',
-        getMyMembership: () => 'leave',
-      }))
+      vi.mocked(mockClient.getRoom).mockReturnValue(
+        makeMockRoom({
+          roomId: '!dm_alice:localhost',
+          getMyMembership: () => 'leave',
+        }),
+      )
       vi.mocked(mockClient.joinRoom).mockResolvedValue({ roomId: '!dm_alice:localhost' } as any)
 
       const { findOrCreateDm } = await import('@/matrix/rooms')

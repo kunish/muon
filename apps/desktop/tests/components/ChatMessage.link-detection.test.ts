@@ -39,9 +39,7 @@ describe('chatMessage link detection', () => {
   })
 
   it('renders plain text URLs as clickable links when no formatted body exists', async () => {
-    const ChatMessage = (
-      await import('@/features/chat/components/ChatMessage.vue')
-    ).default
+    const ChatMessage = (await import('@/features/chat/components/ChatMessage.vue')).default
 
     const event = {
       getId: () => '$link1',
@@ -84,9 +82,7 @@ describe('chatMessage link detection', () => {
 
   it('keeps a fallback link card when metadata cannot be fetched', async () => {
     fetchMock.mockRejectedValueOnce(new Error('network unavailable'))
-    const ChatMessage = (
-      await import('@/features/chat/components/ChatMessage.vue')
-    ).default
+    const ChatMessage = (await import('@/features/chat/components/ChatMessage.vue')).default
 
     const event = {
       getId: () => '$link2',

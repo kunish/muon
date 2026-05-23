@@ -23,7 +23,7 @@ export interface MuonVoiceChannelContent {
 }
 
 export interface MuonStarredContent {
-  starred: { roomId: string, eventId: string }[]
+  starred: { roomId: string; eventId: string }[]
 }
 
 export interface MuonDirectContent {
@@ -35,7 +35,7 @@ declare module 'matrix-js-sdk' {
     'im.muon.announcement': MuonAnnouncementContent
     'im.muon.message_retention': MuonMessageRetentionContent
     'im.muon.voice_channel': MuonVoiceChannelContent
-    'im.muon.roles': { roles: { id: string, name: string, color: string, powerLevel: number, isDefault: boolean }[] }
+    'im.muon.roles': { roles: { id: string; name: string; color: string; powerLevel: number; isDefault: boolean }[] }
     'm.room.avatar': { url: string }
     'm.room.power_levels': {
       users?: Record<string, number>
@@ -57,8 +57,8 @@ declare module 'matrix-js-sdk' {
 
   interface TimelineEvents {
     'im.muon.contact_card': {
-      'msgtype': 'im.muon.contact_card'
-      'body': string
+      msgtype: 'im.muon.contact_card'
+      body: string
       'im.muon.contact_card': {
         user_id: string
         display_name: string

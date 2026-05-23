@@ -1,50 +1,47 @@
 <script setup lang="ts">
-import { Button } from '@muon/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@muon/ui/dialog'
-import { Input } from '@muon/ui/input'
-import { Label } from '@muon/ui/label'
-import { ref, watch } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { toast } from 'vue-sonner'
-import { useServerStore } from '@/features/server/stores/serverStore'
-import { createSpace } from '@/matrix/spaces'
+import { Button } from '@muon/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@muon/ui/dialog';
+import { Input } from '@muon/ui/input';
+import { Label } from '@muon/ui/label';
+import { ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { toast } from 'vue-sonner';
+import { useServerStore } from '@/features/server/stores/serverStore';
+import { createSpace } from '@/matrix/spaces';
 
-const open = defineModel<boolean>('open', { default: false })
+const open = defineModel<boolean>('open', { default: false });
 
-const { t } = useI18n()
-const serverStore = useServerStore()
+const { t } = useI18n();
+const serverStore = useServerStore();
 
-const categoryName = ref('')
-const isCreating = ref(false)
+const categoryName = ref('');
+const isCreating = ref(false);
 
 watch(open, (val) => {
   if (val) {
-    categoryName.value = ''
-    isCreating.value = false
+    categoryName.value = '';
+    isCreating.value = false;
   }
-})
+});
 
 async function handleCreate() {
-  const serverId = serverStore.currentServerId
-  const name = categoryName.value.trim()
-  if (!serverId || !name || isCreating.value)
-    return
+  const serverId = serverStore.currentServerId;
+  const name = categoryName.value.trim();
+  if (!serverId || !name || isCreating.value) return;
 
-  isCreating.value = true
+  isCreating.value = true;
   try {
     await createSpace(name, {
       parentSpaceId: serverId,
       isPublic: false,
-    })
-    serverStore.loadChannelTree(serverId)
-    open.value = false
-  }
-  catch (error) {
-    console.error('Failed to create category:', error)
-    toast.error(t('auth.error'))
-  }
-  finally {
-    isCreating.value = false
+    });
+    serverStore.loadChannelTree(serverId);
+    open.value = false;
+  } catch (error) {
+    console.error('Failed to create category:', error);
+    toast.error(t('auth.error'));
+  } finally {
+    isCreating.value = false;
   }
 }
 </script>

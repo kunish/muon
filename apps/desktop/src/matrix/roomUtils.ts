@@ -8,18 +8,14 @@ export function isDirectRoom(roomId: string): boolean {
   const client = getClient()
   const directEvent = client.getAccountData('m.direct')
   const directContent: Record<string, string[]> = directEvent?.getContent() ?? {}
-  return Object.values(directContent).some(
-    ids => Array.isArray(ids) && ids.includes(roomId),
-  )
+  return Object.values(directContent).some((ids) => Array.isArray(ids) && ids.includes(roomId))
 }
 
 export function normalizeRoomId(id: string | null | undefined): string | null {
-  if (!id)
-    return null
+  if (!id) return null
   try {
     return decodeURIComponent(id)
-  }
-  catch {
+  } catch {
     return id
   }
 }

@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import type { CursorData } from '../../types/doc'
+import type { CursorData } from '../../types/doc';
 
-defineProps<{ cursors: CursorData[] }>()
+defineProps<{ cursors: CursorData[] }>();
 </script>
 
 <template>

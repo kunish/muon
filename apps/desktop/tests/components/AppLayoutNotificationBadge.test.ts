@@ -48,8 +48,8 @@ vi.mock('@matrix/index', () => ({
   getMyDisplayName: myDisplayName,
 }))
 
-vi.mock('vue-router', async importOriginal => ({
-  ...await importOriginal<typeof import('vue-router')>(),
+vi.mock('vue-router', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('vue-router')>()),
   useRoute: () => route,
   useRouter: () => ({
     push,

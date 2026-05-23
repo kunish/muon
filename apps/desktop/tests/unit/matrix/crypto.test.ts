@@ -41,10 +41,12 @@ describe('matrix crypto', () => {
       expect(mockClient.createRoom).toHaveBeenCalledWith({
         name: 'Secret Chat',
         invite: ['@alice:localhost', '@bob:localhost'],
-        initial_state: [{
-          type: 'm.room.encryption',
-          content: { algorithm: 'm.megolm.v1.aes-sha2' },
-        }],
+        initial_state: [
+          {
+            type: 'm.room.encryption',
+            content: { algorithm: 'm.megolm.v1.aes-sha2' },
+          },
+        ],
         preset: 'private_chat',
       })
       expect(roomId).toBe('!encrypted:localhost')
@@ -59,10 +61,12 @@ describe('matrix crypto', () => {
       expect(mockClient.createRoom).toHaveBeenCalledWith({
         name: 'Solo Vault',
         invite: [],
-        initial_state: [{
-          type: 'm.room.encryption',
-          content: { algorithm: 'm.megolm.v1.aes-sha2' },
-        }],
+        initial_state: [
+          {
+            type: 'm.room.encryption',
+            content: { algorithm: 'm.megolm.v1.aes-sha2' },
+          },
+        ],
         preset: 'private_chat',
       })
       expect(roomId).toBe('!solo:localhost')

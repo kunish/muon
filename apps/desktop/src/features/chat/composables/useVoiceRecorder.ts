@@ -20,8 +20,7 @@ export function useVoiceRecorder() {
       audioBlob.value = null
 
       recorder.ondataavailable = (e) => {
-        if (e.data.size > 0)
-          chunks.push(e.data)
+        if (e.data.size > 0) chunks.push(e.data)
       }
 
       recorder.onstop = () => {
@@ -29,8 +28,7 @@ export function useVoiceRecorder() {
         stream.getTracks().forEach((t) => {
           t.stop()
         })
-        if (timer)
-          clearInterval(timer)
+        if (timer) clearInterval(timer)
       }
 
       recorder.start()
@@ -38,8 +36,7 @@ export function useVoiceRecorder() {
       timer = setInterval(() => {
         duration.value++
       }, 1000)
-    }
-    catch (err) {
+    } catch (err) {
       console.error('[useVoiceRecorder] Microphone access failed:', err)
       toast.error(localizedText('chat.record_failed'))
     }
@@ -48,13 +45,16 @@ export function useVoiceRecorder() {
   function stop(): Promise<Blob | null> {
     return new Promise((resolve) => {
       if (recorder?.state === 'recording') {
-        recorder.addEventListener('stop', () => {
-          resolve(audioBlob.value)
-        }, { once: true })
+        recorder.addEventListener(
+          'stop',
+          () => {
+            resolve(audioBlob.value)
+          },
+          { once: true },
+        )
         recorder.stop()
         isRecording.value = false
-      }
-      else {
+      } else {
         resolve(audioBlob.value)
       }
     })

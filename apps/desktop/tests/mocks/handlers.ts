@@ -11,7 +11,7 @@ function buildSyncJoinRooms() {
 
   for (const room of ALL_ROOMS) {
     // timeline events
-    const timelineEvents = room.events.map(evt => ({
+    const timelineEvents = room.events.map((evt) => ({
       type: evt.type,
       event_id: evt.eventId,
       sender: evt.sender,
@@ -47,7 +47,7 @@ function buildSyncJoinRooms() {
         content: { join_rule: room.isDirect ? 'invite' : 'public' },
       },
       // 成员事件
-      ...room.members.map(userId => ({
+      ...room.members.map((userId) => ({
         type: 'm.room.member',
         event_id: `$member_${room.roomId}_${userId}`,
         sender: userId,
@@ -67,7 +67,8 @@ function buildSyncJoinRooms() {
       account_data: { events: [] },
       ephemeral: { events: [] },
       unread_notifications: {
-        notification_count: room.roomId === '!dm_alice:localhost' ? 3 : room.roomId === '!group_project:localhost' ? 5 : 0,
+        notification_count:
+          room.roomId === '!dm_alice:localhost' ? 3 : room.roomId === '!group_project:localhost' ? 5 : 0,
         highlight_count: 0,
       },
     }
@@ -81,8 +82,8 @@ function buildSyncJoinRooms() {
 // ---------------------------------------------------------------------------
 function buildPresenceEvents() {
   return Object.values(USERS)
-    .filter(u => u.userId !== SELF_USER_ID)
-    .map(u => ({
+    .filter((u) => u.userId !== SELF_USER_ID)
+    .map((u) => ({
       type: 'm.presence',
       sender: u.userId,
       content: {
@@ -128,9 +129,7 @@ export const handlers = [
       },
       presence: { events: buildPresenceEvents() },
       account_data: {
-        events: [
-          { type: 'm.direct', content: M_DIRECT_CONTENT },
-        ],
+        events: [{ type: 'm.direct', content: M_DIRECT_CONTENT }],
       },
     })
   }),
@@ -155,31 +154,27 @@ export const handlers = [
 
   // ---- 媒体下载（返回空图片） ----
   http.get(`${BASE}/media/v3/download/:serverName/:mediaId`, () => {
-    return new HttpResponse(new Uint8Array([0x89, 0x50, 0x4E, 0x47]), {
+    return new HttpResponse(new Uint8Array([0x89, 0x50, 0x4e, 0x47]), {
       headers: { 'Content-Type': 'image/png' },
     })
   }),
 
   // ---- 缩略图 ----
   http.get(`${BASE}/media/v3/thumbnail/:serverName/:mediaId`, () => {
-    return new HttpResponse(new Uint8Array([0x89, 0x50, 0x4E, 0x47]), {
+    return new HttpResponse(new Uint8Array([0x89, 0x50, 0x4e, 0x47]), {
       headers: { 'Content-Type': 'image/png' },
     })
   }),
 
   // ---- 用户搜索（返回全部非自身用户） ----
   http.post(`${BASE}/client/v3/user_directory/search`, async ({ request }) => {
-    const body = await request.json() as { search_term?: string }
+    const body = (await request.json()) as { search_term?: string }
     const term = (body.search_term ?? '').toLowerCase()
 
     const results = Object.values(USERS)
-      .filter(u => u.userId !== SELF_USER_ID)
-      .filter(u =>
-        !term
-        || u.displayName.toLowerCase().includes(term)
-        || u.userId.toLowerCase().includes(term),
-      )
-      .map(u => ({
+      .filter((u) => u.userId !== SELF_USER_ID)
+      .filter((u) => !term || u.displayName.toLowerCase().includes(term) || u.userId.toLowerCase().includes(term))
+      .map((u) => ({
         user_id: u.userId,
         display_name: u.displayName,
         avatar_url: u.avatarUrl ?? null,
@@ -229,11 +224,11 @@ export const handlers = [
   // ---- 消息分页（向前加载历史） ----
   http.get(`${BASE}/client/v3/rooms/:roomId/messages`, ({ params }) => {
     const roomId = params.roomId as string
-    const room = ALL_ROOMS.find(r => r.roomId === roomId)
+    const room = ALL_ROOMS.find((r) => r.roomId === roomId)
     if (!room) {
       return HttpResponse.json({ chunk: [], start: '', end: '' })
     }
-    const chunk = room.events.map(evt => ({
+    const chunk = room.events.map((evt) => ({
       type: evt.type,
       event_id: evt.eventId,
       sender: evt.sender,

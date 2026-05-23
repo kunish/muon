@@ -32,14 +32,16 @@ vi.mock('@/features/docs/services/matrixSyncProvider', () => ({
 }))
 
 function mountSyncHarness(docId = '!doc:localhost') {
-  return mount(defineComponent({
-    setup() {
-      const sync = useDocSync(docId)
-      void sync.connect()
-      return { connected: sync.connected }
-    },
-    template: '<div>{{ connected }}</div>',
-  }))
+  return mount(
+    defineComponent({
+      setup() {
+        const sync = useDocSync(docId)
+        void sync.connect()
+        return { connected: sync.connected }
+      },
+      template: '<div>{{ connected }}</div>',
+    }),
+  )
 }
 
 describe('useDocSync', () => {
@@ -61,9 +63,7 @@ describe('useDocSync', () => {
   })
 
   it('uses the joined room id when the Matrix room cache is not populated during refresh', async () => {
-    mockClient.getRoom
-      .mockReturnValueOnce(null)
-      .mockReturnValueOnce(null)
+    mockClient.getRoom.mockReturnValueOnce(null).mockReturnValueOnce(null)
     mockClient.joinRoom.mockResolvedValue({ roomId: '!joined:localhost' })
 
     mountSyncHarness('!alias:localhost')

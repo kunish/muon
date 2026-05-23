@@ -3,19 +3,16 @@ import { cva } from 'class-variance-authority'
 
 export { default as ColorSwatch } from './ColorSwatch.vue'
 
-export const colorSwatchVariants = cva(
-  'inline-block rounded-sm cursor-pointer transition-[outline-width]',
-  {
-    variants: {
-      size: {
-        sm: 'size-3',
-        md: 'size-4',
-        lg: 'size-5',
-      },
+export const colorSwatchVariants = cva('inline-block rounded-sm cursor-pointer transition-[outline-width]', {
+  variants: {
+    size: {
+      sm: 'size-3',
+      md: 'size-4',
+      lg: 'size-5',
     },
-    defaultVariants: { size: 'md' },
   },
-)
+  defaultVariants: { size: 'md' },
+})
 
 export type ColorSwatchVariants = VariantProps<typeof colorSwatchVariants>
 

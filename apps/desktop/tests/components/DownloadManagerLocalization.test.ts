@@ -21,17 +21,19 @@ vi.mock('vue-sonner', () => ({
 }))
 
 function seedCompletedDownload() {
-  useDownloadStore().items = [{
-    id: 'download-1',
-    fileName: 'report.pdf',
-    url: 'mxc://localhost/report',
-    savePath: '/tmp/report.pdf',
-    size: 1024,
-    downloaded: 1024,
-    status: 'completed',
-    startedAt: 100,
-    completedAt: 200,
-  }]
+  useDownloadStore().items = [
+    {
+      id: 'download-1',
+      fileName: 'report.pdf',
+      url: 'mxc://localhost/report',
+      savePath: '/tmp/report.pdf',
+      size: 1024,
+      downloaded: 1024,
+      status: 'completed',
+      startedAt: 100,
+      completedAt: 200,
+    },
+  ]
 }
 
 describe('download manager localization', () => {

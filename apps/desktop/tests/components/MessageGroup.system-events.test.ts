@@ -32,12 +32,7 @@ vi.mock('@matrix/index', async () => {
   }
 })
 
-function createInviteEvent(opts: {
-  id: string
-  stateKey: string
-  displayName: string
-  ts: number
-}) {
+function createInviteEvent(opts: { id: string; stateKey: string; displayName: string; ts: number }) {
   return {
     getId: () => opts.id,
     getType: () => 'm.room.member',
@@ -51,10 +46,7 @@ function createInviteEvent(opts: {
   } as any
 }
 
-function createRoomCreateEvent(opts: {
-  id: string
-  ts: number
-}) {
+function createRoomCreateEvent(opts: { id: string; ts: number }) {
   return {
     getId: () => opts.id,
     getType: () => 'm.room.create',
@@ -68,10 +60,7 @@ function createRoomCreateEvent(opts: {
   } as any
 }
 
-function createSelfJoinEvent(opts: {
-  id: string
-  ts: number
-}) {
+function createSelfJoinEvent(opts: { id: string; ts: number }) {
   return {
     getId: () => opts.id,
     getType: () => 'm.room.member',
@@ -85,11 +74,7 @@ function createSelfJoinEvent(opts: {
   } as any
 }
 
-function createRoomNameEvent(opts: {
-  id: string
-  name: string
-  ts: number
-}) {
+function createRoomNameEvent(opts: { id: string; name: string; ts: number }) {
   return {
     getId: () => opts.id,
     getType: () => 'm.room.name',

@@ -10,15 +10,19 @@ describe('desktop settings bridge', () => {
     expect(mainProcess).toContain('muon:app:set-auto-launch')
     expect(mainProcess).toContain('app.setLoginItemSettings')
     expect(mainProcess).toContain('muon:app:set-close-to-tray')
-    expect(mainProcess).toContain('mainWindow.on(\'close\'')
+    expect(mainProcess).toContain("mainWindow.on('close'")
     expect(mainProcess).toContain('event.preventDefault()')
     expect(mainProcess).toContain('mainWindow?.hide()')
 
-    expect(preload).toContain('setAutoLaunch: (enabled: boolean) => ipcRenderer.invoke(\'muon:app:set-auto-launch\', enabled)')
-    expect(preload).toContain('setCloseToTray: (enabled: boolean) => ipcRenderer.invoke(\'muon:app:set-close-to-tray\', enabled)')
-    expect(preload).toContain('runtime: \'electron\'')
+    expect(preload).toContain(
+      "setAutoLaunch: (enabled: boolean) => ipcRenderer.invoke('muon:app:set-auto-launch', enabled)",
+    )
+    expect(preload).toContain(
+      "setCloseToTray: (enabled: boolean) => ipcRenderer.invoke('muon:app:set-close-to-tray', enabled)",
+    )
+    expect(preload).toContain("runtime: 'electron'")
 
-    expect(bridge).toContain('export type DesktopRuntime = \'electron\' | \'electrobun\'')
+    expect(bridge).toContain("export type DesktopRuntime = 'electron' | 'electrobun'")
     expect(bridge).toContain('runtime: DesktopRuntime')
     expect(bridge).toContain('export function getDesktopRuntime(): DesktopRuntime | undefined')
     expect(bridge).toContain('export function isElectrobunRuntime(): boolean')

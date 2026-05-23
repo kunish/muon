@@ -17,7 +17,11 @@ export default meta
 type Story = StoryObj<typeof Input>
 
 export const Default: Story = {
-  render: args => ({ components: { Input }, setup: () => ({ args }), template: '<Input v-bind="args" class="w-64" />' }),
+  render: (args) => ({
+    components: { Input },
+    setup: () => ({ args }),
+    template: '<Input v-bind="args" class="w-64" />',
+  }),
 }
 
 export const Variants: Story = {

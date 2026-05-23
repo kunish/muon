@@ -1,28 +1,21 @@
 <script setup lang="ts">
-import { HeadphoneOff, Headphones, Mic, MicOff, PhoneOff } from 'lucide-vue-next'
-import { computed } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { useVoiceChannel } from '@/features/server/composables/useVoiceChannel'
-import { useServerStore } from '@/features/server/stores/serverStore'
+import { HeadphoneOff, Headphones, Mic, MicOff, PhoneOff } from 'lucide-vue-next';
+import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useVoiceChannel } from '@/features/server/composables/useVoiceChannel';
+import { useServerStore } from '@/features/server/stores/serverStore';
 
-const serverStore = useServerStore()
-const { t } = useI18n()
-const {
-  isMuted,
-  isDeafened,
-  connectedUsers,
-  toggleMute,
-  toggleDeafen,
-  leaveVoiceChannel,
-} = useVoiceChannel()
+const serverStore = useServerStore();
+const { t } = useI18n();
+const { isMuted, isDeafened, connectedUsers, toggleMute, toggleDeafen, leaveVoiceChannel } = useVoiceChannel();
 
-const connection = computed(() => serverStore.voiceConnection)
-const isConnected = computed(() => !!connection.value)
+const connection = computed(() => serverStore.voiceConnection);
+const isConnected = computed(() => !!connection.value);
 
-const participantCount = computed(() => connectedUsers.value.length)
+const participantCount = computed(() => connectedUsers.value.length);
 
 async function disconnect() {
-  await leaveVoiceChannel()
+  await leaveVoiceChannel();
 }
 </script>
 
@@ -54,7 +47,10 @@ async function disconnect() {
       <!-- 麦克风 -->
       <button
         class="flex h-8 flex-1 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-all duration-[120ms] hover:bg-accent hover:text-foreground active:scale-95"
-        :class="isMuted && 'text-destructive hover:bg-[color-mix(in_srgb,var(--color-destructive)_12%,transparent)] hover:text-destructive'"
+        :class="
+          isMuted &&
+          'text-destructive hover:bg-[color-mix(in_srgb,var(--color-destructive)_12%,transparent)] hover:text-destructive'
+        "
         :title="isMuted ? t('voice.unmute') : t('voice.mute')"
         @click="toggleMute"
       >
@@ -65,7 +61,10 @@ async function disconnect() {
       <!-- 耳机 -->
       <button
         class="flex h-8 flex-1 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-all duration-[120ms] hover:bg-accent hover:text-foreground active:scale-95"
-        :class="isDeafened && 'text-destructive hover:bg-[color-mix(in_srgb,var(--color-destructive)_12%,transparent)] hover:text-destructive'"
+        :class="
+          isDeafened &&
+          'text-destructive hover:bg-[color-mix(in_srgb,var(--color-destructive)_12%,transparent)] hover:text-destructive'
+        "
         :title="isDeafened ? t('voice.undeafen') : t('voice.deafen')"
         @click="toggleDeafen"
       >

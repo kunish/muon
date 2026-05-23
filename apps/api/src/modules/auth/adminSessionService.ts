@@ -53,14 +53,12 @@ export function createAdminSessionService({ repository }: AdminSessionServiceDep
     async login(input) {
       const request = adminLoginRequestSchema.parse(input)
       const organization = await repository.findOrganizationBySlug(request.organizationSlug)
-      if (!organization)
-        throw new Error('Invalid organization or credentials')
+      if (!organization) throw new Error('Invalid organization or credentials')
 
       const user = await repository.findUserByUsername(organization.id, request.username)
-      if (!user || user.status !== 'active')
-        throw new Error('Invalid organization or credentials')
+      if (!user || user.status !== 'active') throw new Error('Invalid organization or credentials')
 
-      if (!await verifyPassword(request.password, user.passwordHash))
+      if (!(await verifyPassword(request.password, user.passwordHash)))
         throw new Error('Invalid organization or credentials')
 
       assertAdminRole(user)
@@ -91,39 +89,31 @@ export function createAdminSessionService({ repository }: AdminSessionServiceDep
     },
 
     async validate(token) {
-      if (!token)
-        throw new AdminAuthenticationError()
+      if (!token) throw new AdminAuthenticationError()
 
       const session = await repository.findAdminSessionByTokenHash(sha256(token))
-      if (!session || session.revokedAt)
-        throw new AdminAuthenticationError()
+      if (!session || session.revokedAt) throw new AdminAuthenticationError()
 
-      if (new Date(session.expiresAt).getTime() <= Date.now())
-        throw new AdminAuthenticationError()
+      if (new Date(session.expiresAt).getTime() <= Date.now()) throw new AdminAuthenticationError()
 
       const user = await repository.findUserById(session.organizationId, session.userId)
-      if (!user || user.status !== 'active')
-        throw new AdminAuthenticationError()
+      if (!user || user.status !== 'active') throw new AdminAuthenticationError()
 
       repository.touchAdminSession(session.id).catch(() => {})
       return user
     },
 
     async revoke(token) {
-      if (!token)
-        return
+      if (!token) return
       const session = await repository.findAdminSessionByTokenHash(sha256(token))
-      if (!session)
-        return
+      if (!session) return
       await repository.revokeAdminSession(session.id)
     },
 
     async revokeOthersForUser(currentToken) {
-      if (!currentToken)
-        return
+      if (!currentToken) return
       const session = await repository.findAdminSessionByTokenHash(sha256(currentToken))
-      if (!session)
-        return
+      if (!session) return
       await repository.revokeAllAdminSessionsForUserExcept(session.organizationId, session.userId, session.id)
     },
   }

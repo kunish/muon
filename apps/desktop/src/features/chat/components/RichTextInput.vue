@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import type { MentionPopupState, PastedMediaSource } from '@muon/rich-text/editor'
-import type { ImageSticker } from '@/shared/data/stickerPacks'
-import type { GifResult } from '@/shared/lib/gifSearch'
-import { getClient } from '@matrix/client'
+import type { MentionPopupState, PastedMediaSource } from '@muon/rich-text/editor';
+import type { ImageSticker } from '@/shared/data/stickerPacks';
+import type { GifResult } from '@/shared/lib/gifSearch';
+import { getClient } from '@matrix/client';
 import {
   downloadMedia,
   editMessage,
@@ -16,56 +16,43 @@ import {
   sendStickerMessage,
   sendTextMessage,
   uploadMedia,
-} from '@matrix/index'
-import { useRichTextEditor } from '@muon/rich-text/editor'
-import { htmlToPlainText } from '@muon/rich-text/markdown'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@muon/ui/dropdown-menu'
-import { EditorContent } from '@tiptap/vue-3'
-import {
-  ALargeSmall,
-  AtSign,
-  ChevronDown,
-  Maximize2,
-  Minimize2,
-  SendHorizontal,
-  Smile,
-} from 'lucide-vue-next'
-import { computed, nextTick, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { useRoute, useRouter } from 'vue-router'
-import { toast } from 'vue-sonner'
-import { escapeHtml } from '@/shared/lib/utils'
-import { useCurrentRoom } from '../composables/useCurrentRoom'
-import { getFloatingPosition } from '../composables/useFloatingPosition'
-import { useMediaUpload } from '../composables/useMediaUpload'
-import { useMediaViewer } from '../composables/useMediaViewer'
-import { useMention } from '../composables/useMention'
-import { useTyping } from '../composables/useTyping'
-import { useChatStore } from '../stores/chatStore'
-import AttachmentMenu from './AttachmentMenu.vue'
-import ContactCardPicker from './ContactCardPicker.vue'
-import ExpressionPicker from './ExpressionPicker.vue'
-import LocationPicker from './LocationPicker.vue'
-import MentionList from './MentionList.vue'
-import ReplyPreviewBar from './ReplyPreviewBar.vue'
-import RichTextToolbar from './RichTextToolbar.vue'
-import ScreenshotButton from './ScreenshotButton.vue'
-import StickerPackManager from './StickerPackManager.vue'
-import UploadProgress from './UploadProgress.vue'
-import VoiceRecorder from './VoiceRecorder.vue'
+} from '@matrix/index';
+import { useRichTextEditor } from '@muon/rich-text/editor';
+import { htmlToPlainText } from '@muon/rich-text/markdown';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@muon/ui/dropdown-menu';
+import { EditorContent } from '@tiptap/vue-3';
+import { ALargeSmall, AtSign, ChevronDown, Maximize2, Minimize2, SendHorizontal, Smile } from 'lucide-vue-next';
+import { computed, nextTick, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useRoute, useRouter } from 'vue-router';
+import { toast } from 'vue-sonner';
+import { escapeHtml } from '@/shared/lib/utils';
+import { useCurrentRoom } from '../composables/useCurrentRoom';
+import { getFloatingPosition } from '../composables/useFloatingPosition';
+import { useMediaUpload } from '../composables/useMediaUpload';
+import { useMediaViewer } from '../composables/useMediaViewer';
+import { useMention } from '../composables/useMention';
+import { useTyping } from '../composables/useTyping';
+import { useChatStore } from '../stores/chatStore';
+import AttachmentMenu from './AttachmentMenu.vue';
+import ContactCardPicker from './ContactCardPicker.vue';
+import ExpressionPicker from './ExpressionPicker.vue';
+import LocationPicker from './LocationPicker.vue';
+import MentionList from './MentionList.vue';
+import ReplyPreviewBar from './ReplyPreviewBar.vue';
+import RichTextToolbar from './RichTextToolbar.vue';
+import ScreenshotButton from './ScreenshotButton.vue';
+import StickerPackManager from './StickerPackManager.vue';
+import UploadProgress from './UploadProgress.vue';
+import VoiceRecorder from './VoiceRecorder.vue';
 
-const store = useChatStore()
-const { t } = useI18n()
-const route = useRoute()
-const router = useRouter()
-const { startTyping, stopTyping } = useTyping()
-const { openImage, openVideo } = useMediaViewer()
-const { room } = useCurrentRoom()
+const store = useChatStore();
+const { t } = useI18n();
+const route = useRoute();
+const router = useRouter();
+const { startTyping, stopTyping } = useTyping();
+const { openImage, openVideo } = useMediaViewer();
+const { room } = useCurrentRoom();
 const {
   uploading,
   progress,
@@ -77,8 +64,8 @@ const {
   waitForAll,
   removeUpload,
   clearUploads,
-} = useMediaUpload(() => store.currentRoomId)
-const { filterMembers } = useMention()
+} = useMediaUpload(() => store.currentRoomId);
+const { filterMembers } = useMention();
 
 // mention 弹窗状态
 const mentionState = ref<MentionPopupState>({
@@ -87,115 +74,106 @@ const mentionState = ref<MentionPopupState>({
   selectedIndex: 0,
   clientRect: null,
   command: null,
-})
-const mentionListRef = ref<InstanceType<typeof MentionList>>()
+});
+const mentionListRef = ref<InstanceType<typeof MentionList>>();
 
 // 计算 mention 弹窗位置
 const mentionPopupStyle = computed(() => {
-  const rect = mentionState.value.clientRect?.()
-  if (!rect)
-    return { display: 'none' }
+  const rect = mentionState.value.clientRect?.();
+  if (!rect) return { display: 'none' };
   return {
     position: 'fixed' as const,
     left: `${rect.left}px`,
     top: `${rect.top - 8}px`,
     transform: 'translateY(-100%)',
     zIndex: '50',
-  }
-})
+  };
+});
 
-function onMentionSelect(item: { id: string, label: string }) {
-  mentionState.value.command?.(item)
+function onMentionSelect(item: { id: string; label: string }) {
+  mentionState.value.command?.(item);
 }
 
 const placeholderText = computed(() => {
-  const name = room.value?.name
-  return name ? t('chat.input_placeholder_channel', { name }) : t('chat.input_placeholder')
-})
+  const name = room.value?.name;
+  return name ? t('chat.input_placeholder_channel', { name }) : t('chat.input_placeholder');
+});
 
-const editorExpanded = shallowRef(false)
-const postTitle = shallowRef('')
+const editorExpanded = shallowRef(false);
+const postTitle = shallowRef('');
 
 interface PendingPasteAttachment {
-  id: string
-  file: File
-  kind: 'image' | 'video' | 'file'
-  previewUrl: string | null
+  id: string;
+  file: File;
+  kind: 'image' | 'video' | 'file';
+  previewUrl: string | null;
   /** Upload progress 0–100 when pre-upload is active */
-  uploadProgress: number
+  uploadProgress: number;
   /** Pre-uploaded mxcUrl (available before send click for 秒发) */
-  preMxcUrl: string | null
+  preMxcUrl: string | null;
   /** Whether pre-upload has completed */
-  preUploadDone: boolean
+  preUploadDone: boolean;
 }
 
-const PENDING_MEDIA_NODE_PATTERN
-  = /<(?:div|span)(?:\s[^>]*)?data-pending-media-id="([^"]+)"[^>]*>\s*<\/(?:div|span)>/g
-const ATTACHMENT_DRAFTS_STORAGE_KEY = 'muon_chat_attachment_drafts'
-const MAX_STORED_ATTACHMENT_BYTES = 8 * 1024 * 1024
-let pendingPasteAttachmentId = 0
-let attachmentDraftPersistVersion = 0
-let pendingDraftRestoreRoomId: string | null = null
-const pendingPasteAttachments = shallowRef<PendingPasteAttachment[]>([])
-const pendingPasteAttachmentDrafts = new Map<string, PendingPasteAttachment[]>()
+const PENDING_MEDIA_NODE_PATTERN = /<(?:div|span)(?:\s[^>]*)?data-pending-media-id="([^"]+)"[^>]*>\s*<\/(?:div|span)>/g;
+const ATTACHMENT_DRAFTS_STORAGE_KEY = 'muon_chat_attachment_drafts';
+const MAX_STORED_ATTACHMENT_BYTES = 8 * 1024 * 1024;
+let pendingPasteAttachmentId = 0;
+let attachmentDraftPersistVersion = 0;
+let pendingDraftRestoreRoomId: string | null = null;
+const pendingPasteAttachments = shallowRef<PendingPasteAttachment[]>([]);
+const pendingPasteAttachmentDrafts = new Map<string, PendingPasteAttachment[]>();
 
 interface StoredAttachmentDraft {
-  id: string
-  kind: 'image' | 'video' | 'file'
-  fileName?: string
-  fileType?: string
-  dataUrl?: string
-  preMxcUrl?: string
+  id: string;
+  kind: 'image' | 'video' | 'file';
+  fileName?: string;
+  fileType?: string;
+  dataUrl?: string;
+  preMxcUrl?: string;
 }
 
 function getAttachmentDraftsStorageKey(): string | null {
   try {
-    const userId = getClient().getUserId?.()
-    return userId ? `${ATTACHMENT_DRAFTS_STORAGE_KEY}:${userId}` : null
-  }
-  catch {
-    return null
+    const userId = getClient().getUserId?.();
+    return userId ? `${ATTACHMENT_DRAFTS_STORAGE_KEY}:${userId}` : null;
+  } catch {
+    return null;
   }
 }
 
 function loadAttachmentDraftsFromStorage() {
   try {
-    const key = getAttachmentDraftsStorageKey()
-    if (!key)
-      return
+    const key = getAttachmentDraftsStorageKey();
+    if (!key) return;
 
-    const stored = localStorage.getItem(key)
-    if (!stored)
-      return
+    const stored = localStorage.getItem(key);
+    if (!stored) return;
 
-    const parsed = JSON.parse(stored) as Record<string, StoredAttachmentDraft[]>
+    const parsed = JSON.parse(stored) as Record<string, StoredAttachmentDraft[]>;
     for (const [roomId, storedAttachments] of Object.entries(parsed)) {
       const attachments = storedAttachments
         .map(createPendingPasteAttachmentFromStoredDraft)
-        .filter((attachment): attachment is PendingPasteAttachment => Boolean(attachment))
+        .filter((attachment): attachment is PendingPasteAttachment => Boolean(attachment));
 
-      if (attachments.length)
-        pendingPasteAttachmentDrafts.set(roomId, attachments)
+      if (attachments.length) pendingPasteAttachmentDrafts.set(roomId, attachments);
       if (attachments.length && !store.getDraftPreview(roomId))
-        store.setDraftPreview(roomId, formatAttachmentDraftPreview(attachments))
+        store.setDraftPreview(roomId, formatAttachmentDraftPreview(attachments));
     }
-  }
-  catch {
+  } catch {
     // Attachment drafts are best-effort; bad storage should not block the composer.
   }
 }
 
 function createPendingPasteAttachmentFromStoredDraft(stored: StoredAttachmentDraft): PendingPasteAttachment | null {
-  if (!stored.id || !stored.kind || (!stored.dataUrl && !stored.preMxcUrl))
-    return null
+  if (!stored.id || !stored.kind || (!stored.dataUrl && !stored.preMxcUrl)) return null;
 
-  const fileName = stored.fileName || 'file'
-  const fileType = stored.fileType || getDefaultMimeTypeForPendingKind(stored.kind)
+  const fileName = stored.fileName || 'file';
+  const fileType = stored.fileType || getDefaultMimeTypeForPendingKind(stored.kind);
   const file = stored.dataUrl
     ? createFileFromDataUrl(stored.dataUrl, fileName, fileType)
-    : new File([], fileName, { type: fileType })
-  if (!file)
-    return null
+    : new File([], fileName, { type: fileType });
+  if (!file) return null;
 
   return {
     id: stored.id,
@@ -205,75 +183,64 @@ function createPendingPasteAttachmentFromStoredDraft(stored: StoredAttachmentDra
     uploadProgress: stored.preMxcUrl ? 100 : 0,
     preMxcUrl: stored.preMxcUrl ?? null,
     preUploadDone: Boolean(stored.preMxcUrl),
-  }
+  };
 }
 
 function getDefaultMimeTypeForPendingKind(kind: 'image' | 'video' | 'file'): string {
-  if (kind === 'image')
-    return 'image/png'
-  if (kind === 'video')
-    return 'video/mp4'
-  return 'application/octet-stream'
+  if (kind === 'image') return 'image/png';
+  if (kind === 'video') return 'video/mp4';
+  return 'application/octet-stream';
 }
 
 function createFileFromDataUrl(dataUrl: string, fileName: string, fileType: string): File | null {
-  const commaIndex = dataUrl.indexOf(',')
-  if (commaIndex === -1 || typeof atob !== 'function')
-    return null
+  const commaIndex = dataUrl.indexOf(',');
+  if (commaIndex === -1 || typeof atob !== 'function') return null;
 
-  const header = dataUrl.slice(0, commaIndex)
-  const base64 = dataUrl.slice(commaIndex + 1)
-  const mimeType = header.match(/^data:([^;]+)/)?.[1] || fileType
-  const binary = atob(base64)
-  const bytes = new Uint8Array(binary.length)
-  for (let i = 0; i < binary.length; i++)
-    bytes[i] = binary.charCodeAt(i)
-  return new File([bytes], fileName, { type: fileType || mimeType })
+  const header = dataUrl.slice(0, commaIndex);
+  const base64 = dataUrl.slice(commaIndex + 1);
+  const mimeType = header.match(/^data:([^;]+)/)?.[1] || fileType;
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new File([bytes], fileName, { type: fileType || mimeType });
 }
 
-async function persistAttachmentDrafts(activeDraft?: { roomId: string, attachments: PendingPasteAttachment[] }) {
+async function persistAttachmentDrafts(activeDraft?: { roomId: string; attachments: PendingPasteAttachment[] }) {
   try {
-    const key = getAttachmentDraftsStorageKey()
-    if (!key)
-      return
-    const persistVersion = ++attachmentDraftPersistVersion
+    const key = getAttachmentDraftsStorageKey();
+    if (!key) return;
+    const persistVersion = ++attachmentDraftPersistVersion;
 
-    const draftEntries = new Map(pendingPasteAttachmentDrafts)
+    const draftEntries = new Map(pendingPasteAttachmentDrafts);
     if (activeDraft) {
-      if (activeDraft.attachments.length)
-        draftEntries.set(activeDraft.roomId, activeDraft.attachments)
-      else
-        draftEntries.delete(activeDraft.roomId)
+      if (activeDraft.attachments.length) draftEntries.set(activeDraft.roomId, activeDraft.attachments);
+      else draftEntries.delete(activeDraft.roomId);
     }
 
-    const data: Record<string, StoredAttachmentDraft[]> = {}
+    const data: Record<string, StoredAttachmentDraft[]> = {};
     for (const [roomId, attachments] of draftEntries) {
-      const storedAttachments = (await Promise.all(attachments.map(createStoredAttachmentDraft)))
-        .filter((attachment): attachment is StoredAttachmentDraft => Boolean(attachment))
-      if (storedAttachments.length)
-        data[roomId] = storedAttachments
+      const storedAttachments = (await Promise.all(attachments.map(createStoredAttachmentDraft))).filter(
+        (attachment): attachment is StoredAttachmentDraft => Boolean(attachment),
+      );
+      if (storedAttachments.length) data[roomId] = storedAttachments;
     }
 
-    if (persistVersion !== attachmentDraftPersistVersion)
-      return
+    if (persistVersion !== attachmentDraftPersistVersion) return;
 
-    if (Object.keys(data).length)
-      localStorage.setItem(key, JSON.stringify(data))
-    else
-      localStorage.removeItem(key)
-  }
-  catch {
+    if (Object.keys(data).length) localStorage.setItem(key, JSON.stringify(data));
+    else localStorage.removeItem(key);
+  } catch {
     // Storage quota or API failures should not interrupt composing.
   }
 }
 
 async function createStoredAttachmentDraft(attachment: PendingPasteAttachment): Promise<StoredAttachmentDraft | null> {
-  const dataUrl = attachment.file.size > 0 && attachment.file.size <= MAX_STORED_ATTACHMENT_BYTES
-    ? await readFileAsDataUrl(attachment.file)
-    : null
-  const preMxcUrl = attachment.preMxcUrl ?? undefined
-  if (!dataUrl && !preMxcUrl)
-    return null
+  const dataUrl =
+    attachment.file.size > 0 && attachment.file.size <= MAX_STORED_ATTACHMENT_BYTES
+      ? await readFileAsDataUrl(attachment.file)
+      : null;
+  const preMxcUrl = attachment.preMxcUrl ?? undefined;
+  if (!dataUrl && !preMxcUrl) return null;
 
   return {
     id: attachment.id,
@@ -282,36 +249,32 @@ async function createStoredAttachmentDraft(attachment: PendingPasteAttachment): 
     fileType: attachment.file.type,
     dataUrl: dataUrl ?? undefined,
     preMxcUrl,
-  }
+  };
 }
 
 function readFileAsDataUrl(file: File): Promise<string | null> {
-  if (typeof FileReader === 'undefined')
-    return Promise.resolve(null)
+  if (typeof FileReader === 'undefined') return Promise.resolve(null);
 
   return new Promise((resolve) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : null)
-    reader.onerror = () => resolve(null)
-    reader.readAsDataURL(file)
-  })
+    const reader = new FileReader();
+    reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : null);
+    reader.onerror = () => resolve(null);
+    reader.readAsDataURL(file);
+  });
 }
 
-loadAttachmentDraftsFromStorage()
-const hasPendingPasteAttachments = computed(() => pendingPasteAttachments.value.length > 0)
-const editorShouldScroll = ref(false)
+loadAttachmentDraftsFromStorage();
+const hasPendingPasteAttachments = computed(() => pendingPasteAttachments.value.length > 0);
+const editorShouldScroll = ref(false);
 const editorHeightClass = computed(() => {
-  if (editorExpanded.value)
-    return 'overflow-y-auto min-h-[320px] max-h-[60vh] [&_.tiptap]:min-h-[304px]'
+  if (editorExpanded.value) return 'overflow-y-auto min-h-[320px] max-h-[60vh] [&_.tiptap]:min-h-[304px]';
 
-  if (hasPendingPasteAttachments.value)
-    return 'overflow-y-auto min-h-[80px] max-h-[40vh] [&_.tiptap]:min-h-[64px]'
+  if (hasPendingPasteAttachments.value) return 'overflow-y-auto min-h-[80px] max-h-[40vh] [&_.tiptap]:min-h-[64px]';
 
-  if (!editorShouldScroll.value)
-    return 'overflow-hidden min-h-[40px] max-h-[40vh] [&_.tiptap]:min-h-[24px]'
+  if (!editorShouldScroll.value) return 'overflow-hidden min-h-[40px] max-h-[40vh] [&_.tiptap]:min-h-[24px]';
 
-  return 'overflow-y-auto min-h-[40px] max-h-[40vh] [&_.tiptap]:min-h-[24px]'
-})
+  return 'overflow-y-auto min-h-[40px] max-h-[40vh] [&_.tiptap]:min-h-[24px]';
+});
 
 const { editor, clear, insertEmoji, insertPendingMediaAttachment } = useRichTextEditor({
   placeholder: placeholderText,
@@ -320,283 +283,261 @@ const { editor, clear, insertEmoji, insertPendingMediaAttachment } = useRichText
   onPasteMediaSources: handlePasteMediaSources,
   canSubmit: hasPendingPasteAttachments,
   pendingMedia: {
-    getAttachment: (id: string) => pendingPasteAttachments.value.find(attachment => attachment.id === id),
+    getAttachment: (id: string) => pendingPasteAttachments.value.find((attachment) => attachment.id === id),
     onPreview: openPendingPasteAttachmentPreview,
     onRemove: removePendingPasteAttachment,
   },
   submitOnEnter: computed(() => !editorExpanded.value),
   mentionSearch: (query: string) => filterMembers(query),
   onMentionState: (state: MentionPopupState) => {
-    mentionState.value = state
+    mentionState.value = state;
   },
-})
+});
 
-watch(editor, (instance, _prev, onCleanup) => {
-  if (!instance)
-    return
+watch(
+  editor,
+  (instance, _prev, onCleanup) => {
+    if (!instance) return;
 
-  if (pendingDraftRestoreRoomId === store.currentRoomId)
-    restoreRoomDraft(store.currentRoomId, { clearWhenMissing: false })
+    if (pendingDraftRestoreRoomId === store.currentRoomId)
+      restoreRoomDraft(store.currentRoomId, { clearWhenMissing: false });
 
-  const handler = () => {
-    instance.commands.scrollIntoView()
-    const html = instance.getHTML()
-    syncPendingPasteAttachmentsFromEditor(html)
-    saveCurrentRoomDraft()
+    const handler = () => {
+      instance.commands.scrollIntoView();
+      const html = instance.getHTML();
+      syncPendingPasteAttachmentsFromEditor(html);
+      saveCurrentRoomDraft();
 
-    const dom = instance.view.dom as HTMLElement
-    const wrapper = dom.parentElement
-    if (!dom || !wrapper)
-      return
+      const dom = instance.view.dom as HTMLElement;
+      const wrapper = dom.parentElement;
+      if (!dom || !wrapper) return;
 
-    const scrollH = dom.scrollHeight
-    const nowScrollable = scrollH > wrapper.clientHeight + 4
+      const scrollH = dom.scrollHeight;
+      const nowScrollable = scrollH > wrapper.clientHeight + 4;
 
-    editorShouldScroll.value = nowScrollable
+      editorShouldScroll.value = nowScrollable;
 
-    // Apply overflow via inline style (not CSS class) for synchronous DOM update.
-    // CSS class changes happen async via Vue — too late for scroll-dimension reset.
-    wrapper.style.overflowY = nowScrollable ? '' : 'hidden'
-  }
-  instance.on('update', handler)
-  onCleanup(() => instance.off('update', handler))
-}, { immediate: true })
+      // Apply overflow via inline style (not CSS class) for synchronous DOM update.
+      // CSS class changes happen async via Vue — too late for scroll-dimension reset.
+      wrapper.style.overflowY = nowScrollable ? '' : 'hidden';
+    };
+    instance.on('update', handler);
+    onCleanup(() => instance.off('update', handler));
+  },
+  { immediate: true },
+);
 
-type ExpressionTab = 'emoji' | 'gif' | 'sticker'
+type ExpressionTab = 'emoji' | 'gif' | 'sticker';
 
-const showExpressionPicker = ref(false)
-const expressionTab = ref<ExpressionTab>('emoji')
-const expressionTriggerRef = ref<HTMLElement>()
-const expressionPickerRef = ref<HTMLElement | null>(null)
-const expressionPickerStyle = ref({ left: '0px', top: '0px' })
-const activeExpressionAnchor = ref<HTMLElement | null>(null)
-const prewarmExpressionPicker = ref(false)
-let prewarmExpressionTimer = 0
+const showExpressionPicker = ref(false);
+const expressionTab = ref<ExpressionTab>('emoji');
+const expressionTriggerRef = ref<HTMLElement>();
+const expressionPickerRef = ref<HTMLElement | null>(null);
+const expressionPickerStyle = ref({ left: '0px', top: '0px' });
+const activeExpressionAnchor = ref<HTMLElement | null>(null);
+const prewarmExpressionPicker = ref(false);
+let prewarmExpressionTimer = 0;
 
 function positionExpressionPicker() {
-  const trigger = activeExpressionAnchor.value || expressionTriggerRef.value
-  if (!trigger || !expressionPickerRef.value)
-    return
-  expressionPickerStyle.value = getFloatingPosition(trigger, expressionPickerRef.value)
+  const trigger = activeExpressionAnchor.value || expressionTriggerRef.value;
+  if (!trigger || !expressionPickerRef.value) return;
+  expressionPickerStyle.value = getFloatingPosition(trigger, expressionPickerRef.value);
 }
 
 async function openExpressionPicker(tab: ExpressionTab, anchor?: HTMLElement | null) {
-  prewarmExpressionPicker.value = true
+  prewarmExpressionPicker.value = true;
 
   if (showExpressionPicker.value && expressionTab.value === tab) {
-    showExpressionPicker.value = false
-    return
+    showExpressionPicker.value = false;
+    return;
   }
 
-  expressionTab.value = tab
-  activeExpressionAnchor.value = anchor ?? expressionTriggerRef.value ?? null
-  showExpressionPicker.value = true
-  await nextTick()
-  positionExpressionPicker()
+  expressionTab.value = tab;
+  activeExpressionAnchor.value = anchor ?? expressionTriggerRef.value ?? null;
+  showExpressionPicker.value = true;
+  await nextTick();
+  positionExpressionPicker();
 }
 
 function onExpressionButtonClick(e: MouseEvent) {
-  void openExpressionPicker(expressionTab.value, e.currentTarget as HTMLElement)
+  void openExpressionPicker(expressionTab.value, e.currentTarget as HTMLElement);
 }
 
 function openEmojiPicker(e: MouseEvent) {
-  void openExpressionPicker('emoji', e.currentTarget as HTMLElement)
+  void openExpressionPicker('emoji', e.currentTarget as HTMLElement);
 }
 
 function toggleGifPicker() {
-  void openExpressionPicker('gif')
+  void openExpressionPicker('gif');
 }
 
 async function handleGifSelect(gif: GifResult) {
-  showExpressionPicker.value = false
-  const roomId = store.currentRoomId
-  if (!roomId)
-    return
+  showExpressionPicker.value = false;
+  const roomId = store.currentRoomId;
+  if (!roomId) return;
   try {
-    await sendGifMessage(roomId, gif.url, gif.width, gif.height)
-  }
-  catch {
-    toast.error(t('chat.send_failed'))
+    await sendGifMessage(roomId, gif.url, gif.width, gif.height);
+  } catch {
+    toast.error(t('chat.send_failed'));
   }
 }
 
 function handleEmojiSelect(emoji: string) {
-  showExpressionPicker.value = false
-  insertEmoji(emoji)
+  showExpressionPicker.value = false;
+  insertEmoji(emoji);
 }
 
 const composeLabel = computed(() => {
-  if (store.editingEvent)
-    return t('chat.edit_label')
-  return ''
-})
+  if (store.editingEvent) return t('chat.edit_label');
+  return '';
+});
 
 const replyingToSenderName = computed(() => {
-  const replyEvent = store.replyingTo
-  if (!replyEvent)
-    return ''
-  const senderId = replyEvent.getSender() || ''
-  const roomId = store.currentRoomId
-  if (!roomId)
-    return senderId
-  const room = getClient().getRoom(roomId)
-  const member = room?.getMember(senderId)
-  return member?.name || senderId
-})
+  const replyEvent = store.replyingTo;
+  if (!replyEvent) return '';
+  const senderId = replyEvent.getSender() || '';
+  const roomId = store.currentRoomId;
+  if (!roomId) return senderId;
+  const room = getClient().getRoom(roomId);
+  const member = room?.getMember(senderId);
+  return member?.name || senderId;
+});
 
 const replyingToPreview = computed(() => {
-  const replyEvent = store.replyingTo
-  if (!replyEvent)
-    return ''
-  const content = replyEvent.getContent() || {}
-  const eventType = replyEvent.getType()
-  const messageType = content.msgtype as string | undefined
+  const replyEvent = store.replyingTo;
+  if (!replyEvent) return '';
+  const content = replyEvent.getContent() || {};
+  const eventType = replyEvent.getType();
+  const messageType = content.msgtype as string | undefined;
 
-  if (eventType === 'm.sticker')
-    return t('chat.sticker_btn')
-  if (messageType === 'm.image')
-    return t('chat.image')
-  if (messageType === 'm.video')
-    return t('chat.video')
-  if (messageType === 'm.audio')
-    return t('chat.voice_message')
-  if (messageType === 'm.file')
-    return t('chat.file')
+  if (eventType === 'm.sticker') return t('chat.sticker_btn');
+  if (messageType === 'm.image') return t('chat.image');
+  if (messageType === 'm.video') return t('chat.video');
+  if (messageType === 'm.audio') return t('chat.voice_message');
+  if (messageType === 'm.file') return t('chat.file');
 
-  return content.body || t('chat.reply_label', { sender: replyingToSenderName.value })
-})
+  return content.body || t('chat.reply_label', { sender: replyingToSenderName.value });
+});
 
 async function jumpToReplyTarget() {
-  const eventId = store.replyingTo?.getId()
-  if (!eventId)
-    return
+  const eventId = store.replyingTo?.getId();
+  if (!eventId) return;
   await router.replace({
     query: {
       ...route.query,
       focusEventId: eventId,
     },
-  })
+  });
 }
 
-const composeVersion = ref(0)
-const sendInFlight = ref(false)
+const composeVersion = ref(0);
+const sendInFlight = ref(false);
 
 function markComposeChanged() {
-  composeVersion.value += 1
+  composeVersion.value += 1;
 }
 
 async function submitComposer(html: string, text: string, options?: { silent?: boolean }): Promise<boolean> {
-  const hasText = text.trim().length > 0
-  if (!hasText && !hasPendingPasteAttachments.value)
-    return false
+  const hasText = text.trim().length > 0;
+  if (!hasText && !hasPendingPasteAttachments.value) return false;
 
-  if (!hasPendingPasteAttachments.value)
-    return handleSend(html, text, options)
+  if (!hasPendingPasteAttachments.value) return handleSend(html, text, options);
 
-  if (sendInFlight.value)
-    return false
+  if (sendInFlight.value) return false;
 
-  const roomId = store.currentRoomId
-  if (!roomId)
-    return false
+  const roomId = store.currentRoomId;
+  if (!roomId) return false;
 
-  sendInFlight.value = true
-  const editingEvent = store.editingEvent
-  const replyingTo = store.replyingTo
-  const submittedHtml = html
-  const submittedText = text.trim()
-  const submittedComposeVersion = composeVersion.value
-  let richPayload: RichMediaSubmitPayload
+  sendInFlight.value = true;
+  const editingEvent = store.editingEvent;
+  const replyingTo = store.replyingTo;
+  const submittedHtml = html;
+  const submittedText = text.trim();
+  const submittedComposeVersion = composeVersion.value;
+  let richPayload: RichMediaSubmitPayload;
 
   try {
-    richPayload = await createRichMediaSubmitPayload(html)
-    if (!richPayload.html)
-      return false
-    const result = await sendTextContent(roomId, richPayload.html, richPayload.text, editingEvent, replyingTo, options)
-    if (!result.ok)
-      return false
-  }
-  catch {
-    toast.error(t('chat.upload_failed'))
-    return false
-  }
-  finally {
-    sendInFlight.value = false
-    uploading.value = false
+    richPayload = await createRichMediaSubmitPayload(html);
+    if (!richPayload.html) return false;
+    const result = await sendTextContent(roomId, richPayload.html, richPayload.text, editingEvent, replyingTo, options);
+    if (!result.ok) return false;
+  } catch {
+    toast.error(t('chat.upload_failed'));
+    return false;
+  } finally {
+    sendInFlight.value = false;
+    uploading.value = false;
   }
 
-  const editorTextUnchanged = editor.value?.getText().trim() === submittedText
-  const editorHtmlUnchanged = editor.value?.getHTML() === submittedHtml
-  const roomUnchanged = store.currentRoomId === roomId
-  const composeUnchanged = store.editingEvent === editingEvent && store.replyingTo === replyingTo
-  const composeVersionUnchanged = composeVersion.value === submittedComposeVersion
-  const canCleanSubmittedState = roomUnchanged && composeUnchanged && composeVersionUnchanged && editorTextUnchanged && editorHtmlUnchanged
+  const editorTextUnchanged = editor.value?.getText().trim() === submittedText;
+  const editorHtmlUnchanged = editor.value?.getHTML() === submittedHtml;
+  const roomUnchanged = store.currentRoomId === roomId;
+  const composeUnchanged = store.editingEvent === editingEvent && store.replyingTo === replyingTo;
+  const composeVersionUnchanged = composeVersion.value === submittedComposeVersion;
+  const canCleanSubmittedState =
+    roomUnchanged && composeUnchanged && composeVersionUnchanged && editorTextUnchanged && editorHtmlUnchanged;
 
-  const submittedAttachmentIds = new Set(richPayload.submittedAttachmentIds)
-  const submittedAttachments = pendingPasteAttachments.value.filter(attachment => submittedAttachmentIds.has(attachment.id))
+  const submittedAttachmentIds = new Set(richPayload.submittedAttachmentIds);
+  const submittedAttachments = pendingPasteAttachments.value.filter((attachment) =>
+    submittedAttachmentIds.has(attachment.id),
+  );
   pendingPasteAttachments.value = pendingPasteAttachments.value.filter(
-    attachment => !submittedAttachmentIds.has(attachment.id),
-  )
-  revokePendingPasteAttachmentUrls(submittedAttachments)
-  if (store.getHtmlDraft(roomId) === submittedHtml)
-    store.clearAllDrafts(roomId)
+    (attachment) => !submittedAttachmentIds.has(attachment.id),
+  );
+  revokePendingPasteAttachmentUrls(submittedAttachments);
+  if (store.getHtmlDraft(roomId) === submittedHtml) store.clearAllDrafts(roomId);
   if (roomId) {
-    pendingPasteAttachmentDrafts.delete(roomId)
-    void persistAttachmentDrafts({ roomId, attachments: pendingPasteAttachments.value })
+    pendingPasteAttachmentDrafts.delete(roomId);
+    void persistAttachmentDrafts({ roomId, attachments: pendingPasteAttachments.value });
   }
   if (canCleanSubmittedState) {
-    clear()
-    stopTyping()
-    store.clearCompose()
+    clear();
+    stopTyping();
+    store.clearCompose();
   }
-  markComposeChanged()
+  markComposeChanged();
 
-  return true
+  return true;
 }
 
 async function handleSend(html: string, text: string, options?: { silent?: boolean }): Promise<boolean> {
-  const roomId = store.currentRoomId
-  if (!roomId || !text.trim())
-    return false
-  if (sendInFlight.value)
-    return false
-  sendInFlight.value = true
-  const editingEvent = store.editingEvent
-  const replyingTo = store.replyingTo
-  const submittedHtml = html
-  const submittedText = text.trim()
-  const submittedComposeVersion = composeVersion.value
-  let sentPlainText = false
+  const roomId = store.currentRoomId;
+  if (!roomId || !text.trim()) return false;
+  if (sendInFlight.value) return false;
+  sendInFlight.value = true;
+  const editingEvent = store.editingEvent;
+  const replyingTo = store.replyingTo;
+  const submittedHtml = html;
+  const submittedText = text.trim();
+  const submittedComposeVersion = composeVersion.value;
+  let sentPlainText = false;
 
   try {
-    const result = await sendTextContent(roomId, html, text, editingEvent, replyingTo, options)
-    if (!result.ok)
-      return false
-    sentPlainText = result.sentPlainText
-  }
-  catch {
-    toast.error(t('chat.send_failed'))
-    return false
-  }
-  finally {
-    sendInFlight.value = false
+    const result = await sendTextContent(roomId, html, text, editingEvent, replyingTo, options);
+    if (!result.ok) return false;
+    sentPlainText = result.sentPlainText;
+  } catch {
+    toast.error(t('chat.send_failed'));
+    return false;
+  } finally {
+    sendInFlight.value = false;
   }
 
-  const editorTextUnchanged = editor.value?.getText().trim() === submittedText
-  const editorHtmlUnchanged = editor.value?.getHTML() === submittedHtml
-  const roomUnchanged = store.currentRoomId === roomId
-  const composeUnchanged = store.editingEvent === editingEvent && store.replyingTo === replyingTo
-  const composeVersionUnchanged = composeVersion.value === submittedComposeVersion
-  const canCleanSubmittedState = roomUnchanged && composeUnchanged && composeVersionUnchanged && editorTextUnchanged && editorHtmlUnchanged
-  if (sentPlainText && store.getHtmlDraft(roomId) === submittedHtml)
-    store.clearAllDrafts(roomId)
+  const editorTextUnchanged = editor.value?.getText().trim() === submittedText;
+  const editorHtmlUnchanged = editor.value?.getHTML() === submittedHtml;
+  const roomUnchanged = store.currentRoomId === roomId;
+  const composeUnchanged = store.editingEvent === editingEvent && store.replyingTo === replyingTo;
+  const composeVersionUnchanged = composeVersion.value === submittedComposeVersion;
+  const canCleanSubmittedState =
+    roomUnchanged && composeUnchanged && composeVersionUnchanged && editorTextUnchanged && editorHtmlUnchanged;
+  if (sentPlainText && store.getHtmlDraft(roomId) === submittedHtml) store.clearAllDrafts(roomId);
   if (canCleanSubmittedState) {
-    clear()
-    stopTyping()
-    store.clearCompose()
+    clear();
+    stopTyping();
+    store.clearCompose();
   }
 
-  return true
+  return true;
 }
 
 async function sendTextContent(
@@ -606,184 +547,152 @@ async function sendTextContent(
   editingEvent: typeof store.editingEvent,
   replyingTo: typeof store.replyingTo,
   options?: { silent?: boolean },
-): Promise<{ ok: boolean, sentPlainText: boolean }> {
+): Promise<{ ok: boolean; sentPlainText: boolean }> {
   try {
     if (editingEvent) {
-      const eventId = editingEvent.getId()
+      const eventId = editingEvent.getId();
       if (!eventId) {
-        toast.error(t('chat.send_failed'))
-        return { ok: false, sentPlainText: false }
+        toast.error(t('chat.send_failed'));
+        return { ok: false, sentPlainText: false };
       }
-      await editMessage(roomId, eventId, text, html, options)
-      return { ok: true, sentPlainText: false }
+      await editMessage(roomId, eventId, text, html, options);
+      return { ok: true, sentPlainText: false };
     }
 
     if (replyingTo) {
-      const eventId = replyingTo.getId()
+      const eventId = replyingTo.getId();
       if (!eventId) {
-        toast.error(t('chat.send_failed'))
-        return { ok: false, sentPlainText: false }
+        toast.error(t('chat.send_failed'));
+        return { ok: false, sentPlainText: false };
       }
-      await replyToMessage(roomId, eventId, text, html, options)
-      return { ok: true, sentPlainText: false }
+      await replyToMessage(roomId, eventId, text, html, options);
+      return { ok: true, sentPlainText: false };
     }
 
-    await sendTextMessage(roomId, text, html, options)
-    return { ok: true, sentPlainText: true }
-  }
-  catch {
-    toast.error(t('chat.send_failed'))
-    return { ok: false, sentPlainText: false }
+    await sendTextMessage(roomId, text, html, options);
+    return { ok: true, sentPlainText: true };
+  } catch {
+    toast.error(t('chat.send_failed'));
+    return { ok: false, sentPlainText: false };
   }
 }
 
 function createSubmitPayload(html: string, text: string) {
-  const title = editorExpanded.value ? postTitle.value.trim() : ''
+  const title = editorExpanded.value ? postTitle.value.trim() : '';
   if (!title) {
-    return { html, text }
+    return { html, text };
   }
 
-  const titleHtml = `<p><strong>${escapeHtml(title)}</strong></p>`
-  const bodyText = text.trim()
+  const titleHtml = `<p><strong>${escapeHtml(title)}</strong></p>`;
+  const bodyText = text.trim();
   return {
     html: bodyText ? `${titleHtml}${html}` : titleHtml,
     text: bodyText ? `${title}\n\n${text}` : title,
-  }
+  };
 }
 
 async function submitEditor(options?: { silent?: boolean }) {
-  const html = editor.value?.getHTML() || ''
-  const text = editor.value?.getText() || ''
-  const payload = createSubmitPayload(html, text)
-  if (!store.currentRoomId || (!payload.text.trim() && !hasPendingPasteAttachments.value))
-    return
-  const submitted = await submitComposer(payload.html, payload.text, options)
-  if (submitted)
-    postTitle.value = ''
+  const html = editor.value?.getHTML() || '';
+  const text = editor.value?.getText() || '';
+  const payload = createSubmitPayload(html, text);
+  if (!store.currentRoomId || (!payload.text.trim() && !hasPendingPasteAttachments.value)) return;
+  const submitted = await submitComposer(payload.html, payload.text, options);
+  if (submitted) postTitle.value = '';
 }
 
 function submitEditorSilent() {
-  void submitEditor({ silent: true })
+  void submitEditor({ silent: true });
 }
 
 function toggleStickerPicker() {
-  void openExpressionPicker('sticker')
+  void openExpressionPicker('sticker');
 }
 
 async function handleStickerSelect(emoji: string, name: string) {
-  showExpressionPicker.value = false
-  const roomId = store.currentRoomId
-  if (!roomId)
-    return
+  showExpressionPicker.value = false;
+  const roomId = store.currentRoomId;
+  if (!roomId) return;
   try {
-    await sendStickerMessage(roomId, emoji, name)
-  }
-  catch {
-    toast.error(t('chat.send_failed'))
+    await sendStickerMessage(roomId, emoji, name);
+  } catch {
+    toast.error(t('chat.send_failed'));
   }
 }
 
 async function handleImageStickerSelect(sticker: ImageSticker) {
-  showExpressionPicker.value = false
-  const roomId = store.currentRoomId
-  if (!roomId)
-    return
+  showExpressionPicker.value = false;
+  const roomId = store.currentRoomId;
+  if (!roomId) return;
   try {
     await sendImageStickerMessage(roomId, sticker.name, sticker.mxcUrl, {
       w: sticker.width,
       h: sticker.height,
       mimetype: sticker.mimetype,
       size: sticker.size,
-    })
-  }
-  catch {
-    toast.error(t('chat.send_failed'))
+    });
+  } catch {
+    toast.error(t('chat.send_failed'));
   }
 }
 
-const showStickerManager = ref(false)
+const showStickerManager = ref(false);
 
 function openStickerManager() {
-  showExpressionPicker.value = false
-  showStickerManager.value = true
+  showExpressionPicker.value = false;
+  showStickerManager.value = true;
 }
 
-const showLocationPicker = ref(false)
-const showContactCardPicker = ref(false)
+const showLocationPicker = ref(false);
+const showContactCardPicker = ref(false);
 
 function toggleLocationPicker() {
-  showLocationPicker.value = !showLocationPicker.value
+  showLocationPicker.value = !showLocationPicker.value;
 }
 
 function toggleContactCardPicker() {
-  showContactCardPicker.value = !showContactCardPicker.value
+  showContactCardPicker.value = !showContactCardPicker.value;
 }
 
-async function handleContactCardSelect(contact: {
-  userId: string
-  displayName: string
-  avatarUrl?: string
-}) {
-  showContactCardPicker.value = false
-  const roomId = store.currentRoomId
-  if (!roomId)
-    return
+async function handleContactCardSelect(contact: { userId: string; displayName: string; avatarUrl?: string }) {
+  showContactCardPicker.value = false;
+  const roomId = store.currentRoomId;
+  if (!roomId) return;
   try {
-    await sendContactCard(
-      roomId,
-      contact.userId,
-      contact.displayName,
-      contact.avatarUrl,
-    )
-  }
-  catch {
-    toast.error(t('chat.send_failed'))
+    await sendContactCard(roomId, contact.userId, contact.displayName, contact.avatarUrl);
+  } catch {
+    toast.error(t('chat.send_failed'));
   }
 }
 
-async function handleLocationSelect(payload: {
-  latitude: number
-  longitude: number
-  description: string
-}) {
-  showLocationPicker.value = false
-  const roomId = store.currentRoomId
-  if (!roomId)
-    return
+async function handleLocationSelect(payload: { latitude: number; longitude: number; description: string }) {
+  showLocationPicker.value = false;
+  const roomId = store.currentRoomId;
+  if (!roomId) return;
   try {
-    await sendLocationMessage(
-      roomId,
-      payload.latitude,
-      payload.longitude,
-      payload.description || undefined,
-    )
-  }
-  catch {
-    toast.error(t('chat.send_failed'))
+    await sendLocationMessage(roomId, payload.latitude, payload.longitude, payload.description || undefined);
+  } catch {
+    toast.error(t('chat.send_failed'));
   }
 }
 
 async function handleVoiceSend(blob: Blob, duration: number) {
-  const roomId = store.currentRoomId
-  if (!roomId)
-    return
+  const roomId = store.currentRoomId;
+  if (!roomId) return;
   try {
-    await sendAudioMessage(roomId, blob, duration)
-  }
-  catch {
-    toast.error(t('auth.error'))
+    await sendAudioMessage(roomId, blob, duration);
+  } catch {
+    toast.error(t('auth.error'));
   }
 }
 
 function handlePasteFiles(files: File[]) {
-  stagePasteFiles(files, { insert: true })
+  stagePasteFiles(files, { insert: true });
 }
 
 function stagePasteFiles(files: File[], options: { insert: boolean }): string[] {
-  if (!files.length)
-    return []
+  if (!files.length) return [];
 
-  const attachments = files.map(file => ({
+  const attachments = files.map((file) => ({
     id: `paste-${Date.now()}-${pendingPasteAttachmentId++}`,
     file,
     kind: getPendingPasteAttachmentKind(file),
@@ -791,54 +700,47 @@ function stagePasteFiles(files: File[], options: { insert: boolean }): string[] 
     uploadProgress: 0,
     preMxcUrl: null,
     preUploadDone: false,
-  }))
+  }));
 
-  pendingPasteAttachments.value = [
-    ...pendingPasteAttachments.value,
-    ...attachments,
-  ]
+  pendingPasteAttachments.value = [...pendingPasteAttachments.value, ...attachments];
   if (options.insert) {
-    for (const attachment of attachments)
-      insertPendingMediaAttachment(attachment.id)
+    for (const attachment of attachments) insertPendingMediaAttachment(attachment.id);
   }
 
   // 秒发: start pre-upload immediately
-  for (const attachment of attachments)
-    kickoffPreUpload(attachment)
+  for (const attachment of attachments) kickoffPreUpload(attachment);
 
-  const roomId = store.currentRoomId
-  if (roomId)
-    void persistAttachmentDrafts({ roomId, attachments: pendingPasteAttachments.value })
+  const roomId = store.currentRoomId;
+  if (roomId) void persistAttachmentDrafts({ roomId, attachments: pendingPasteAttachments.value });
 
-  markComposeChanged()
-  return attachments.map(attachment => attachment.id)
+  markComposeChanged();
+  return attachments.map((attachment) => attachment.id);
 }
 
 /** Start pre-upload as soon as file is staged — core of 秒发 mechanism */
 function kickoffPreUpload(attachment: PendingPasteAttachment) {
   stageFile(attachment.id, attachment.file).then((upload) => {
-    const attachmentIndex = pendingPasteAttachments.value.findIndex(a => a.id === attachment.id)
-    if (attachmentIndex === -1)
-      return
+    const attachmentIndex = pendingPasteAttachments.value.findIndex((a) => a.id === attachment.id);
+    if (attachmentIndex === -1) return;
 
-    const updated = { ...pendingPasteAttachments.value[attachmentIndex] }
-    updated.uploadProgress = upload.progress
-    updated.preMxcUrl = upload.mxcUrl
-    updated.preUploadDone = upload.status === 'done'
-    pendingPasteAttachments.value[attachmentIndex] = updated
+    const updated = { ...pendingPasteAttachments.value[attachmentIndex] };
+    updated.uploadProgress = upload.progress;
+    updated.preMxcUrl = upload.mxcUrl;
+    updated.preUploadDone = upload.status === 'done';
+    pendingPasteAttachments.value[attachmentIndex] = updated;
 
     // Watch for progress updates via polling (the uploadManager emits events)
     const pollInterval = setInterval(() => {
-      const u = getUpload(attachment.id)
+      const u = getUpload(attachment.id);
       if (!u) {
-        clearInterval(pollInterval)
-        return
+        clearInterval(pollInterval);
+        return;
       }
 
-      const idx = pendingPasteAttachments.value.findIndex(a => a.id === attachment.id)
+      const idx = pendingPasteAttachments.value.findIndex((a) => a.id === attachment.id);
       if (idx === -1) {
-        clearInterval(pollInterval)
-        return
+        clearInterval(pollInterval);
+        return;
       }
 
       pendingPasteAttachments.value[idx] = {
@@ -846,194 +748,178 @@ function kickoffPreUpload(attachment: PendingPasteAttachment) {
         uploadProgress: u.progress,
         preMxcUrl: u.mxcUrl,
         preUploadDone: u.status === 'done',
-      }
+      };
 
       if (u.status === 'done') {
-        const roomId = store.currentRoomId
-        if (roomId)
-          void persistAttachmentDrafts({ roomId, attachments: pendingPasteAttachments.value })
+        const roomId = store.currentRoomId;
+        if (roomId) void persistAttachmentDrafts({ roomId, attachments: pendingPasteAttachments.value });
       }
 
-      if (u.status === 'done' || u.status === 'error')
-        clearInterval(pollInterval)
-    }, 200)
-  })
+      if (u.status === 'done' || u.status === 'error') clearInterval(pollInterval);
+    }, 200);
+  });
 }
 
 async function handlePasteMediaSources(sources: PastedMediaSource[]): Promise<string[]> {
-  if (!sources.length)
-    return []
+  if (!sources.length) return [];
 
-  const files = await Promise.all(sources.map(source => createFileFromPastedMediaSource(source)))
-  return stagePasteFiles(files.filter((file): file is File => Boolean(file)), { insert: false })
+  const files = await Promise.all(sources.map((source) => createFileFromPastedMediaSource(source)));
+  return stagePasteFiles(
+    files.filter((file): file is File => Boolean(file)),
+    { insert: false },
+  );
 }
 
 async function createFileFromPastedMediaSource(source: PastedMediaSource): Promise<File | null> {
   try {
-    const blob = await getPastedMediaBlob(source.src)
-    const type = getPastedMediaFileType(source, blob)
-    return new File([blob], source.name, { type })
-  }
-  catch {
-    return null
+    const blob = await getPastedMediaBlob(source.src);
+    const type = getPastedMediaFileType(source, blob);
+    return new File([blob], source.name, { type });
+  } catch {
+    return null;
   }
 }
 
 async function getPastedMediaBlob(src: string): Promise<Blob> {
-  if (src.startsWith('mxc://'))
-    return downloadMedia(src)
+  if (src.startsWith('mxc://')) return downloadMedia(src);
 
-  const response = await fetch(src)
-  if (!response.ok)
-    throw new Error('Failed to fetch pasted media')
-  return response.blob()
+  const response = await fetch(src);
+  if (!response.ok) throw new Error('Failed to fetch pasted media');
+  return response.blob();
 }
 
 function getPastedMediaFileType(source: PastedMediaSource, blob: Blob): string {
   if (source.kind === 'image')
-    return blob.type.startsWith('image/') ? blob.type : getMimeTypeFromFileName(source.name) || 'image/png'
+    return blob.type.startsWith('image/') ? blob.type : getMimeTypeFromFileName(source.name) || 'image/png';
   if (source.kind === 'video')
-    return blob.type.startsWith('video/') ? blob.type : getMimeTypeFromFileName(source.name) || 'video/mp4'
-  return blob.type || getMimeTypeFromFileName(source.name) || 'application/octet-stream'
+    return blob.type.startsWith('video/') ? blob.type : getMimeTypeFromFileName(source.name) || 'video/mp4';
+  return blob.type || getMimeTypeFromFileName(source.name) || 'application/octet-stream';
 }
 
 function getMimeTypeFromFileName(name: string): string {
-  const extension = name.split('.').pop()?.toLowerCase()
+  const extension = name.split('.').pop()?.toLowerCase();
   switch (extension) {
     case 'avif':
-      return 'image/avif'
+      return 'image/avif';
     case 'gif':
-      return 'image/gif'
+      return 'image/gif';
     case 'jpg':
     case 'jpeg':
-      return 'image/jpeg'
+      return 'image/jpeg';
     case 'png':
-      return 'image/png'
+      return 'image/png';
     case 'webp':
-      return 'image/webp'
+      return 'image/webp';
     case 'mp4':
-      return 'video/mp4'
+      return 'video/mp4';
     case 'mov':
-      return 'video/quicktime'
+      return 'video/quicktime';
     case 'webm':
-      return 'video/webm'
+      return 'video/webm';
     default:
-      return ''
+      return '';
   }
 }
 
 function removePendingPasteAttachment(id: string) {
-  const removedAttachment = pendingPasteAttachments.value.find(attachment => attachment.id === id)
-  pendingPasteAttachments.value = pendingPasteAttachments.value.filter(attachment => attachment.id !== id)
-  if (removedAttachment)
-    revokePendingPasteAttachmentUrls([removedAttachment])
-  removeUpload(id)
-  const roomId = store.currentRoomId
-  if (roomId)
-    void persistAttachmentDrafts({ roomId, attachments: pendingPasteAttachments.value })
-  markComposeChanged()
+  const removedAttachment = pendingPasteAttachments.value.find((attachment) => attachment.id === id);
+  pendingPasteAttachments.value = pendingPasteAttachments.value.filter((attachment) => attachment.id !== id);
+  if (removedAttachment) revokePendingPasteAttachmentUrls([removedAttachment]);
+  removeUpload(id);
+  const roomId = store.currentRoomId;
+  if (roomId) void persistAttachmentDrafts({ roomId, attachments: pendingPasteAttachments.value });
+  markComposeChanged();
 }
 
 function syncPendingPasteAttachmentsFromEditor(html: string) {
-  if (!pendingPasteAttachments.value.length)
-    return
+  if (!pendingPasteAttachments.value.length) return;
 
-  const visibleIds = new Set(getPendingMediaIds(html))
-  const removedAttachments = pendingPasteAttachments.value.filter(attachment => !visibleIds.has(attachment.id))
-  if (!removedAttachments.length)
-    return
+  const visibleIds = new Set(getPendingMediaIds(html));
+  const removedAttachments = pendingPasteAttachments.value.filter((attachment) => !visibleIds.has(attachment.id));
+  if (!removedAttachments.length) return;
 
-  pendingPasteAttachments.value = pendingPasteAttachments.value.filter(attachment => visibleIds.has(attachment.id))
-  revokePendingPasteAttachmentUrls(removedAttachments)
-  for (const attachment of removedAttachments)
-    removeUpload(attachment.id)
-  const roomId = store.currentRoomId
-  if (roomId)
-    void persistAttachmentDrafts({ roomId, attachments: pendingPasteAttachments.value })
-  markComposeChanged()
+  pendingPasteAttachments.value = pendingPasteAttachments.value.filter((attachment) => visibleIds.has(attachment.id));
+  revokePendingPasteAttachmentUrls(removedAttachments);
+  for (const attachment of removedAttachments) removeUpload(attachment.id);
+  const roomId = store.currentRoomId;
+  if (roomId) void persistAttachmentDrafts({ roomId, attachments: pendingPasteAttachments.value });
+  markComposeChanged();
 }
 
 function openPendingPasteAttachmentPreview(attachment: Pick<PendingPasteAttachment, 'kind' | 'previewUrl'>) {
-  if (!attachment.previewUrl)
-    return
+  if (!attachment.previewUrl) return;
   if (attachment.kind === 'image') {
-    openImage(attachment.previewUrl)
-    return
+    openImage(attachment.previewUrl);
+    return;
   }
-  if (attachment.kind === 'video')
-    openVideo(attachment.previewUrl)
+  if (attachment.kind === 'video') openVideo(attachment.previewUrl);
 }
 
 function getPendingPasteAttachmentKind(file: File): 'image' | 'video' | 'file' {
-  if (file.type.startsWith('image/'))
-    return 'image'
-  if (file.type.startsWith('video/'))
-    return 'video'
-  return 'file'
+  if (file.type.startsWith('image/')) return 'image';
+  if (file.type.startsWith('video/')) return 'video';
+  return 'file';
 }
 
 function createPendingPastePreviewUrl(file: File): string | null {
-  const kind = getPendingPasteAttachmentKind(file)
-  if (kind === 'file' || typeof URL.createObjectURL !== 'function')
-    return null
-  return URL.createObjectURL(file)
+  const kind = getPendingPasteAttachmentKind(file);
+  if (kind === 'file' || typeof URL.createObjectURL !== 'function') return null;
+  return URL.createObjectURL(file);
 }
 
 interface RichMediaUpload {
-  attachment: PendingPasteAttachment
-  mxcUrl: string
-  width?: number
-  height?: number
+  attachment: PendingPasteAttachment;
+  mxcUrl: string;
+  width?: number;
+  height?: number;
   /** True if the URL came from pre-upload (already uploaded before send click) */
-  fromPreUpload: boolean
+  fromPreUpload: boolean;
 }
 
 interface RichMediaSubmitPayload {
-  html: string
-  text: string
-  submittedAttachmentIds: string[]
+  html: string;
+  text: string;
+  submittedAttachmentIds: string[];
 }
 
 async function createRichMediaSubmitPayload(html: string): Promise<RichMediaSubmitPayload> {
-  const attachmentsById = new Map(pendingPasteAttachments.value.map(attachment => [attachment.id, attachment]))
-  const mediaIds = getPendingMediaIds(html).filter(id => attachmentsById.has(id))
+  const attachmentsById = new Map(pendingPasteAttachments.value.map((attachment) => [attachment.id, attachment]));
+  const mediaIds = getPendingMediaIds(html).filter((id) => attachmentsById.has(id));
   if (!mediaIds.length) {
     return {
       html,
       text: htmlToPlainText(html),
       submittedAttachmentIds: [],
-    }
+    };
   }
 
   // 秒发: check which uploads are already done from pre-upload
   const preDoneIds = mediaIds.filter((id) => {
-    const a = attachmentsById.get(id)
-    return a && a.preUploadDone && a.preMxcUrl
-  })
+    const a = attachmentsById.get(id);
+    return a && a.preUploadDone && a.preMxcUrl;
+  });
 
-  uploading.value = true
-  progress.value = 0
+  uploading.value = true;
+  progress.value = 0;
 
   // Wait for any still-in-progress uploads
   if (preDoneIds.length < mediaIds.length) {
-    const pendingIds = mediaIds.filter(id => !preDoneIds.includes(id))
-    await waitForAll(pendingIds)
+    const pendingIds = mediaIds.filter((id) => !preDoneIds.includes(id));
+    await waitForAll(pendingIds);
   }
 
-  const uploads = new Map<string, RichMediaUpload>()
+  const uploads = new Map<string, RichMediaUpload>();
   for (const [index, id] of mediaIds.entries()) {
-    const attachment = attachmentsById.get(id)
-    if (!attachment)
-      continue
+    const attachment = attachmentsById.get(id);
+    if (!attachment) continue;
 
     // Use pre-uploaded URL if available
     if (attachment.preUploadDone && attachment.preMxcUrl) {
-      let meta = { width: 0, height: 0 }
+      let meta = { width: 0, height: 0 };
       if (attachment.kind === 'image') {
         try {
-          meta = await extractImageMeta(attachment.file)
-        }
-        catch {
+          meta = await extractImageMeta(attachment.file);
+        } catch {
           // continue without dimensions
         }
       }
@@ -1043,51 +929,48 @@ async function createRichMediaSubmitPayload(html: string): Promise<RichMediaSubm
         width: meta.width,
         height: meta.height,
         fromPreUpload: true,
-      })
-    }
-    else {
+      });
+    } else {
       // Fallback: upload now (shouldn't normally happen if pre-upload works)
-      uploads.set(id, await uploadPendingRichMediaAttachment(attachment))
+      uploads.set(id, await uploadPendingRichMediaAttachment(attachment));
     }
 
-    progress.value = Math.round(((index + 1) / mediaIds.length) * 90)
+    progress.value = Math.round(((index + 1) / mediaIds.length) * 90);
   }
 
-  const richHtml = replacePendingMediaNodes(html, id => renderRichMediaUpload(uploads.get(id)))
+  const richHtml = replacePendingMediaNodes(html, (id) => renderRichMediaUpload(uploads.get(id)));
   const plainTextHtml = replacePendingMediaNodes(html, (id) => {
-    const attachment = uploads.get(id)?.attachment
-    return attachment ? `<p>[${escapeHtml(attachment.file.name || 'file')}]</p>` : ''
-  })
-  const richText = htmlToPlainText(plainTextHtml)
-  progress.value = 100
+    const attachment = uploads.get(id)?.attachment;
+    return attachment ? `<p>[${escapeHtml(attachment.file.name || 'file')}]</p>` : '';
+  });
+  const richText = htmlToPlainText(plainTextHtml);
+  progress.value = 100;
 
   return {
     html: richHtml,
     text: richText,
     submittedAttachmentIds: [...uploads.keys()],
-  }
+  };
 }
 
 function getPendingMediaIds(html: string): string[] {
-  const ids: string[] = []
+  const ids: string[] = [];
   for (const match of html.matchAll(PENDING_MEDIA_NODE_PATTERN)) {
-    const id = match[1]
-    if (id && !ids.includes(id))
-      ids.push(id)
+    const id = match[1];
+    if (id && !ids.includes(id)) ids.push(id);
   }
-  return ids
+  return ids;
 }
 
 async function uploadPendingRichMediaAttachment(attachment: PendingPasteAttachment): Promise<RichMediaUpload> {
-  let width: number | undefined
-  let height: number | undefined
+  let width: number | undefined;
+  let height: number | undefined;
   if (attachment.kind === 'image') {
     try {
-      const meta = await extractImageMeta(attachment.file)
-      width = meta.width
-      height = meta.height
-    }
-    catch {
+      const meta = await extractImageMeta(attachment.file);
+      width = meta.width;
+      height = meta.height;
+    } catch {
       // Image dimensions only stabilize the rich-text frame; upload can continue without them.
     }
   }
@@ -1098,350 +981,304 @@ async function uploadPendingRichMediaAttachment(attachment: PendingPasteAttachme
     width,
     height,
     fromPreUpload: false,
-  }
+  };
 }
 
 function replacePendingMediaNodes(html: string, render: (id: string) => string): string {
-  return html.replace(PENDING_MEDIA_NODE_PATTERN, (_match, id: string) => render(id))
+  return html.replace(PENDING_MEDIA_NODE_PATTERN, (_match, id: string) => render(id));
 }
 
 function renderRichMediaUpload(upload: RichMediaUpload | undefined): string {
-  if (!upload)
-    return ''
+  if (!upload) return '';
 
-  const name = escapeHtml(upload.attachment.file.name || 'file')
-  const src = escapeHtml(upload.mxcUrl)
+  const name = escapeHtml(upload.attachment.file.name || 'file');
+  const src = escapeHtml(upload.mxcUrl);
   if (upload.attachment.kind === 'image') {
-    const width = upload.width ? ` data-width="${upload.width}"` : ''
-    const height = upload.height ? ` data-height="${upload.height}"` : ''
-    return `<p><img src="${src}" alt="${name}" title="${name}"${width}${height}></p>`
+    const width = upload.width ? ` data-width="${upload.width}"` : '';
+    const height = upload.height ? ` data-height="${upload.height}"` : '';
+    return `<p><img src="${src}" alt="${name}" title="${name}"${width}${height}></p>`;
   }
 
-  return `<p><a href="${src}">${name}</a></p>`
+  return `<p><a href="${src}">${name}</a></p>`;
 }
 
 function revokePendingPasteAttachmentUrls(attachments: PendingPasteAttachment[]) {
   for (const attachment of attachments) {
-    if (attachment.previewUrl)
-      URL.revokeObjectURL(attachment.previewUrl)
+    if (attachment.previewUrl) URL.revokeObjectURL(attachment.previewUrl);
   }
 }
 
 function revokeAllPendingPasteAttachmentUrls() {
-  const urls = new Set<string>()
+  const urls = new Set<string>();
   for (const attachment of pendingPasteAttachments.value) {
-    if (attachment.previewUrl)
-      urls.add(attachment.previewUrl)
+    if (attachment.previewUrl) urls.add(attachment.previewUrl);
   }
   for (const attachments of pendingPasteAttachmentDrafts.values()) {
     for (const attachment of attachments) {
-      if (attachment.previewUrl)
-        urls.add(attachment.previewUrl)
+      if (attachment.previewUrl) urls.add(attachment.previewUrl);
     }
   }
-  for (const url of urls)
-    URL.revokeObjectURL(url)
-  pendingPasteAttachmentDrafts.clear()
+  for (const url of urls) URL.revokeObjectURL(url);
+  pendingPasteAttachmentDrafts.clear();
 }
 
 function saveRoomDraft(roomId: string, text: string, html: string, attachments: PendingPasteAttachment[]) {
   if (text || attachments.length) {
-    store.setHtmlDraft(roomId, html)
-    store.setDraft(roomId, text)
-    store.setDraftPreview(roomId, text || formatAttachmentDraftPreview(attachments))
+    store.setHtmlDraft(roomId, html);
+    store.setDraft(roomId, text);
+    store.setDraftPreview(roomId, text || formatAttachmentDraftPreview(attachments));
+  } else {
+    store.clearAllDrafts(roomId);
   }
-  else {
-    store.clearAllDrafts(roomId)
-  }
-  void persistAttachmentDrafts({ roomId, attachments })
+  void persistAttachmentDrafts({ roomId, attachments });
 }
 
 function formatAttachmentDraftPreview(attachments: PendingPasteAttachment[]) {
   return attachments
-    .map(attachment => attachment.file.name || getPendingPasteAttachmentLabel(attachment.kind))
-    .join(', ')
+    .map((attachment) => attachment.file.name || getPendingPasteAttachmentLabel(attachment.kind))
+    .join(', ');
 }
 
 function getPendingPasteAttachmentLabel(kind: PendingPasteAttachment['kind']) {
-  if (kind === 'image')
-    return t('chat.image')
-  if (kind === 'video')
-    return t('chat.video')
-  return t('chat.file')
+  if (kind === 'image') return t('chat.image');
+  if (kind === 'video') return t('chat.video');
+  return t('chat.file');
 }
 
 function saveCurrentRoomDraft() {
-  const roomId = store.currentRoomId
-  const activeEditor = editor.value
-  if (!roomId || !activeEditor)
-    return
+  const roomId = store.currentRoomId;
+  const activeEditor = editor.value;
+  if (!roomId || !activeEditor) return;
 
-  saveRoomDraft(
-    roomId,
-    activeEditor.getText().trim(),
-    activeEditor.getHTML(),
-    pendingPasteAttachments.value,
-  )
+  saveRoomDraft(roomId, activeEditor.getText().trim(), activeEditor.getHTML(), pendingPasteAttachments.value);
 }
 
 function onInput() {
-  markComposeChanged()
-  startTyping()
-  saveCurrentRoomDraft()
+  markComposeChanged();
+  startTyping();
+  saveCurrentRoomDraft();
 }
 
-const showFormatBar = ref(false)
+const showFormatBar = ref(false);
 
 function toggleFormatBar() {
-  showFormatBar.value = !showFormatBar.value
+  showFormatBar.value = !showFormatBar.value;
 }
 
 function insertMention() {
-  editor.value?.chain().focus().insertContent('@').run()
+  editor.value?.chain().focus().insertContent('@').run();
 }
 
 function insertQueuedMentions() {
-  const activeEditor = editor.value
-  if (!activeEditor || store.pendingMentionRequests.length === 0)
-    return
+  const activeEditor = editor.value;
+  if (!activeEditor || store.pendingMentionRequests.length === 0) return;
 
-  const mentions = store.consumePendingMentionRequests()
+  const mentions = store.consumePendingMentionRequests();
   for (const mention of mentions) {
-    activeEditor.chain().focus().insertContent([
-      { type: 'mention', attrs: { id: mention.id, label: mention.label } },
-      { type: 'text', text: ' ' },
-    ]).run()
+    activeEditor
+      .chain()
+      .focus()
+      .insertContent([
+        { type: 'mention', attrs: { id: mention.id, label: mention.label } },
+        { type: 'text', text: ' ' },
+      ])
+      .run();
   }
-  markComposeChanged()
-  startTyping()
+  markComposeChanged();
+  startTyping();
 }
 
 function focusEditor() {
-  editor.value?.commands.focus()
+  editor.value?.commands.focus();
 }
 
 function restoreRoomDraft(roomId: string | null, options: { clearWhenMissing: boolean }) {
-  const savedHtml = roomId ? store.getHtmlDraft(roomId) : ''
-  pendingPasteAttachments.value = roomId && savedHtml
-    ? pendingPasteAttachmentDrafts.get(roomId) ?? []
-    : []
+  const savedHtml = roomId ? store.getHtmlDraft(roomId) : '';
+  pendingPasteAttachments.value = roomId && savedHtml ? (pendingPasteAttachmentDrafts.get(roomId) ?? []) : [];
   if (savedHtml) {
     if (editor.value) {
-      editor.value.commands.setContent(savedHtml)
-      pendingDraftRestoreRoomId = null
+      editor.value.commands.setContent(savedHtml);
+      pendingDraftRestoreRoomId = null;
+    } else {
+      pendingDraftRestoreRoomId = roomId;
     }
-    else {
-      pendingDraftRestoreRoomId = roomId
-    }
-  }
-  else {
-    pendingDraftRestoreRoomId = null
-    if (options.clearWhenMissing)
-      clear()
+  } else {
+    pendingDraftRestoreRoomId = null;
+    if (options.clearWhenMissing) clear();
   }
 }
 
 watch(
   () => store.currentRoomId,
   (newId, oldId) => {
-    const isInitialRun = oldId === undefined
-    markComposeChanged()
+    const isInitialRun = oldId === undefined;
+    markComposeChanged();
     // 保存当前房间草稿
     if (oldId && editor.value) {
-      const text = editor.value.getText().trim()
-      const html = editor.value.getHTML()
-      saveRoomDraft(oldId, text, html, pendingPasteAttachments.value)
+      const text = editor.value.getText().trim();
+      const html = editor.value.getHTML();
+      saveRoomDraft(oldId, text, html, pendingPasteAttachments.value);
 
       if (pendingPasteAttachments.value.length) {
-        pendingPasteAttachmentDrafts.set(oldId, pendingPasteAttachments.value)
-      }
-      else {
-        pendingPasteAttachmentDrafts.delete(oldId)
+        pendingPasteAttachmentDrafts.set(oldId, pendingPasteAttachments.value);
+      } else {
+        pendingPasteAttachmentDrafts.delete(oldId);
       }
     }
 
     if (!isInitialRun) {
       // Clean up pre-uploads from the old room
-      for (const a of pendingPasteAttachments.value)
-        removeUpload(a.id)
-      clearUploads()
+      for (const a of pendingPasteAttachments.value) removeUpload(a.id);
+      clearUploads();
     }
 
     // 恢复目标房间草稿或清空
-    restoreRoomDraft(newId, { clearWhenMissing: !isInitialRun })
+    restoreRoomDraft(newId, { clearWhenMissing: !isInitialRun });
     if (!isInitialRun) {
-      store.clearCompose()
-      showExpressionPicker.value = false
-      showLocationPicker.value = false
-      showContactCardPicker.value = false
-      postTitle.value = ''
+      store.clearCompose();
+      showExpressionPicker.value = false;
+      showLocationPicker.value = false;
+      showContactCardPicker.value = false;
+      postTitle.value = '';
     }
   },
   { immediate: true },
-)
+);
 
-watch(
-  () => [store.replyingTo, store.editingEvent],
-  markComposeChanged,
-)
+watch(() => [store.replyingTo, store.editingEvent], markComposeChanged);
 
-watch(
-  [editor, () => store.pendingMentionRequests.length],
-  insertQueuedMentions,
-  { flush: 'post' },
-)
+watch([editor, () => store.pendingMentionRequests.length], insertQueuedMentions, { flush: 'post' });
 
 watch(
   () => store.editingEvent,
   (ev) => {
     if (ev) {
-      const body = ev.getContent()?.body || ''
-      editor.value?.commands.setContent(body)
-      editor.value?.commands.focus('end')
+      const body = ev.getContent()?.body || '';
+      editor.value?.commands.setContent(body);
+      editor.value?.commands.focus('end');
     }
   },
-)
+);
 
 function onWindowResize() {
   if (showExpressionPicker.value) {
-    positionExpressionPicker()
+    positionExpressionPicker();
   }
 }
 
 function onGlobalKeydown(e: KeyboardEvent) {
-  if (!editor.value || editor.value.isFocused)
-    return
-  const target = e.target as HTMLElement
-  if (!target)
-    return
-  const tag = target.tagName
-  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable)
-    return
-  if (e.ctrlKey || e.metaKey || e.altKey)
-    return
-  if (store.multiSelectMode)
-    return
-  if (e.key.length !== 1)
-    return
-  e.preventDefault()
-  focusEditor()
-  editor.value.commands.insertContent(e.key)
+  if (!editor.value || editor.value.isFocused) return;
+  const target = e.target as HTMLElement;
+  if (!target) return;
+  const tag = target.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable) return;
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  if (store.multiSelectMode) return;
+  if (e.key.length !== 1) return;
+  e.preventDefault();
+  focusEditor();
+  editor.value.commands.insertContent(e.key);
 }
 
 function getPastedFiles(dt: DataTransfer): File[] {
-  const files = Array.from(dt.files)
-  if (files.length)
-    return files
+  const files = Array.from(dt.files);
+  if (files.length) return files;
   return Array.from(dt.items)
-    .filter(item => item.kind === 'file')
-    .map(item => item.getAsFile())
-    .filter((f): f is File => !!f)
+    .filter((item) => item.kind === 'file')
+    .map((item) => item.getAsFile())
+    .filter((f): f is File => !!f);
 }
 
-const CLIPBOARD_MEDIA_SELECTOR = 'img, video, audio, source, picture, canvas, iframe, object, embed'
+const CLIPBOARD_MEDIA_SELECTOR = 'img, video, audio, source, picture, canvas, iframe, object, embed';
 
 function extractHtmlMediaSources(html: string): PastedMediaSource[] {
-  if (!html || typeof DOMParser === 'undefined')
-    return []
-  const doc = new DOMParser().parseFromString(html, 'text/html')
-  const sources: PastedMediaSource[] = []
+  if (!html || typeof DOMParser === 'undefined') return [];
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const sources: PastedMediaSource[] = [];
   for (const [index, img] of Array.from(doc.body.querySelectorAll<HTMLImageElement>('img[src]')).entries()) {
-    const src = img.getAttribute('data-rich-media-mxc-src')?.trim()
-      || img.getAttribute('src')?.trim()
-      || ''
-    if (!src)
-      continue
-    const name = img.getAttribute('alt')?.trim()
-      || img.getAttribute('title')?.trim()
-      || 'image.png'
+    const src = img.getAttribute('data-rich-media-mxc-src')?.trim() || img.getAttribute('src')?.trim() || '';
+    if (!src) continue;
+    const name = img.getAttribute('alt')?.trim() || img.getAttribute('title')?.trim() || 'image.png';
     sources.push({
       index,
       src,
       name: name.includes('.') ? name : `${name}.png`,
       kind: 'image',
-    })
+    });
   }
-  return sources
+  return sources;
 }
 
 function stripMediaElements(html: string): string {
-  if (!html || typeof DOMParser === 'undefined')
-    return ''
-  const doc = new DOMParser().parseFromString(html, 'text/html')
-  doc.body.querySelectorAll(CLIPBOARD_MEDIA_SELECTOR).forEach(el => el.remove())
-  return doc.body.innerHTML.trim()
+  if (!html || typeof DOMParser === 'undefined') return '';
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  doc.body.querySelectorAll(CLIPBOARD_MEDIA_SELECTOR).forEach((el) => el.remove());
+  return doc.body.innerHTML.trim();
 }
 
 function onGlobalPaste(e: ClipboardEvent) {
-  if (!editor.value || editor.value.isFocused)
-    return
-  const target = e.target as HTMLElement
-  if (!target)
-    return
-  const tag = target.tagName
-  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable)
-    return
-  if (store.multiSelectMode)
-    return
+  if (!editor.value || editor.value.isFocused) return;
+  const target = e.target as HTMLElement;
+  if (!target) return;
+  const tag = target.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable) return;
+  if (store.multiSelectMode) return;
 
-  const dt = e.clipboardData
-  if (!dt)
-    return
+  const dt = e.clipboardData;
+  if (!dt) return;
 
-  const files = getPastedFiles(dt)
+  const files = getPastedFiles(dt);
   if (files.length) {
-    e.preventDefault()
-    focusEditor()
-    handlePasteFiles(files)
-    return
+    e.preventDefault();
+    focusEditor();
+    handlePasteFiles(files);
+    return;
   }
 
-  const html = dt.getData('text/html')
-  const mediaSources = extractHtmlMediaSources(html)
+  const html = dt.getData('text/html');
+  const mediaSources = extractHtmlMediaSources(html);
   if (mediaSources.length) {
-    e.preventDefault()
-    focusEditor()
+    e.preventDefault();
+    focusEditor();
     void handlePasteMediaSources(mediaSources).then(() => {
-      if (!editor.value)
-        return
-      const stripped = stripMediaElements(html)
+      if (!editor.value) return;
+      const stripped = stripMediaElements(html);
       if (stripped) {
-        editor.value.commands.insertContent(stripped)
+        editor.value.commands.insertContent(stripped);
       }
-    })
-    return
+    });
+    return;
   }
 
-  e.preventDefault()
-  focusEditor()
+  e.preventDefault();
+  focusEditor();
   if (html) {
-    editor.value.commands.insertContent(html)
-  }
-  else {
-    const text = dt.getData('text/plain')
+    editor.value.commands.insertContent(html);
+  } else {
+    const text = dt.getData('text/plain');
     if (text) {
-      editor.value.commands.insertContent(text)
+      editor.value.commands.insertContent(text);
     }
   }
 }
 
 onMounted(() => {
   prewarmExpressionTimer = window.setTimeout(() => {
-    prewarmExpressionPicker.value = true
-  }, 220)
-  window.addEventListener('resize', onWindowResize)
-  document.addEventListener('keydown', onGlobalKeydown)
-  document.addEventListener('paste', onGlobalPaste)
-})
+    prewarmExpressionPicker.value = true;
+  }, 220);
+  window.addEventListener('resize', onWindowResize);
+  document.addEventListener('keydown', onGlobalKeydown);
+  document.addEventListener('paste', onGlobalPaste);
+});
 
 onUnmounted(() => {
-  clearTimeout(prewarmExpressionTimer)
-  window.removeEventListener('resize', onWindowResize)
-  document.removeEventListener('keydown', onGlobalKeydown)
-  document.removeEventListener('paste', onGlobalPaste)
-  revokeAllPendingPasteAttachmentUrls()
-  clearUploads()
-})
+  clearTimeout(prewarmExpressionTimer);
+  window.removeEventListener('resize', onWindowResize);
+  document.removeEventListener('keydown', onGlobalKeydown);
+  document.removeEventListener('paste', onGlobalPaste);
+  revokeAllPendingPasteAttachmentUrls();
+  clearUploads();
+});
 </script>
 
 <template>
@@ -1453,12 +1290,20 @@ onUnmounted(() => {
       :replying-to-preview="replyingToPreview"
       :compose-label="composeLabel"
       :is-replying="!!store.replyingTo"
-      @clear="store.clearCompose(); clear()"
+      @clear="
+        store.clearCompose();
+        clear();
+      "
       @jump-to-reply-target="jumpToReplyTarget"
     />
 
     <!-- 主输入容器 -->
-    <div v-if="!editorExpanded" data-testid="compact-composer" class="flex flex-col rounded-lg bg-input" @input="onInput">
+    <div
+      v-if="!editorExpanded"
+      data-testid="compact-composer"
+      class="flex flex-col rounded-lg bg-input"
+      @input="onInput"
+    >
       <!-- 顶部：编辑区（含可选格式栏） -->
       <div class="min-w-0">
         <!-- 可折叠格式工具栏 — 聚焦 / 点击 Aa 时显示在输入区上方 -->
@@ -1512,11 +1357,7 @@ onUnmounted(() => {
           <button
             v-if="showFormatBar || editor?.getText().trim()"
             class="inline-flex h-8 w-8 items-center justify-center rounded-md transition-colors"
-            :class="
-              showFormatBar
-                ? 'bg-primary/10 text-primary'
-                : 'text-muted-foreground hover:bg-accent'
-            "
+            :class="showFormatBar ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-accent'"
             :title="t('chat.format_menu')"
             @click="toggleFormatBar"
           >
@@ -1535,11 +1376,7 @@ onUnmounted(() => {
           <button
             data-testid="toggle-editor-expanded"
             class="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent"
-            :title="
-              editorExpanded
-                ? t('chat.collapse_editor')
-                : t('chat.expand_editor')
-            "
+            :title="editorExpanded ? t('chat.collapse_editor') : t('chat.expand_editor')"
             @click="editorExpanded = !editorExpanded"
           >
             <Minimize2 v-if="editorExpanded" :size="16" />
@@ -1557,11 +1394,7 @@ onUnmounted(() => {
       @input="onInput"
     >
       <div class="flex h-10 shrink-0 items-center justify-between px-3">
-        <div
-          v-if="editor"
-          data-testid="expanded-format-toolbar"
-          class="flex items-center gap-1 text-muted-foreground"
-        >
+        <div v-if="editor" data-testid="expanded-format-toolbar" class="flex items-center gap-1 text-muted-foreground">
           <RichTextToolbar :editor="editor" variant="expanded" />
         </div>
         <button
@@ -1579,7 +1412,7 @@ onUnmounted(() => {
         class="mx-4 h-9 shrink-0 bg-transparent text-sm font-semibold text-foreground outline-none placeholder:text-muted-foreground"
         :placeholder="t('chat.post_title_placeholder')"
         @keydown.enter.prevent="focusEditor"
-      >
+      />
 
       <div class="min-h-0 flex-1 px-2" @click="focusEditor">
         <EditorContent
@@ -1651,10 +1484,7 @@ onUnmounted(() => {
 
     <!-- Mention 弹窗 -->
     <Teleport to="body">
-      <div
-        v-if="mentionState.visible && mentionState.items.length > 0"
-        :style="mentionPopupStyle"
-      >
+      <div v-if="mentionState.visible && mentionState.items.length > 0" :style="mentionPopupStyle">
         <MentionList
           ref="mentionListRef"
           :items="mentionState.items"
@@ -1670,9 +1500,11 @@ onUnmounted(() => {
         ref="expressionPickerRef"
         class="fixed"
         :class="showExpressionPicker ? 'z-50' : 'pointer-events-none opacity-0 z-[-1]'"
-        :style="showExpressionPicker
-          ? { left: expressionPickerStyle.left, top: expressionPickerStyle.top }
-          : { left: '-99999px', top: '-99999px' }"
+        :style="
+          showExpressionPicker
+            ? { left: expressionPickerStyle.left, top: expressionPickerStyle.top }
+            : { left: '-99999px', top: '-99999px' }
+        "
       >
         <ExpressionPicker
           :initial-tab="expressionTab"
@@ -1684,17 +1516,10 @@ onUnmounted(() => {
           @tab-change="expressionTab = $event"
         />
       </div>
-      <div
-        v-if="showExpressionPicker"
-        class="fixed inset-0 z-40"
-        @click="showExpressionPicker = false"
-      />
+      <div v-if="showExpressionPicker" class="fixed inset-0 z-40" @click="showExpressionPicker = false" />
     </Teleport>
     <!-- 贴纸包管理器 -->
-    <StickerPackManager
-      v-if="showStickerManager"
-      @close="showStickerManager = false"
-    />
+    <StickerPackManager v-if="showStickerManager" @close="showStickerManager = false" />
     <!-- 位置选择面板 -->
     <Teleport to="body">
       <div
@@ -1702,10 +1527,7 @@ onUnmounted(() => {
         class="fixed inset-0 z-50 flex items-center justify-center bg-black/20"
         @click.self="showLocationPicker = false"
       >
-        <LocationPicker
-          @select="handleLocationSelect"
-          @close="showLocationPicker = false"
-        />
+        <LocationPicker @select="handleLocationSelect" @close="showLocationPicker = false" />
       </div>
     </Teleport>
     <!-- 名片选择面板 -->

@@ -6,9 +6,4 @@ export {
   toDigestEntry,
 } from '@/matrix/digestTypes'
 
-export type {
-  DigestFilter,
-  DigestRoomSignal,
-  DigestSession,
-  DigestSourceEvent,
-} from '@/matrix/digestTypes'
+export type { DigestFilter, DigestRoomSignal, DigestSession, DigestSourceEvent } from '@/matrix/digestTypes'

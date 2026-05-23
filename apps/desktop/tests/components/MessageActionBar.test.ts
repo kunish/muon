@@ -60,8 +60,9 @@ async function clickBodyElement(selector: string) {
 }
 
 async function clickBodyButtonByText(text: string) {
-  const button = Array.from(document.body.querySelectorAll<HTMLButtonElement>('button'))
-    .find(element => element.textContent?.includes(text))
+  const button = Array.from(document.body.querySelectorAll<HTMLButtonElement>('button')).find((element) =>
+    element.textContent?.includes(text),
+  )
   expect(button).not.toBeNull()
   button!.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
   await nextTick()
@@ -174,8 +175,7 @@ describe('messageActionBar', () => {
       const top = Number.parseFloat(menu?.style.top || '')
       expect(top).toBeLessThan(560)
       expect(top + 260).toBeLessThanOrEqual(628)
-    }
-    finally {
+    } finally {
       rectSpy.mockRestore()
       Object.defineProperty(window, 'innerHeight', { configurable: true, value: originalInnerHeight })
       Object.defineProperty(window, 'innerWidth', { configurable: true, value: originalInnerWidth })
@@ -192,7 +192,9 @@ describe('messageActionBar', () => {
       attachTo: document.body,
     })
 
-    wrapper.find('[data-testid="message-more-trigger"]').element.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    wrapper
+      .find('[data-testid="message-more-trigger"]')
+      .element.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
     await nextTick()
     const openingMenu = getBodyElement('[data-testid="message-more-menu"]')
 
@@ -390,16 +392,18 @@ describe('messageActionBar', () => {
     await nextTick()
 
     expect(createTaskSpy).toHaveBeenCalledTimes(1)
-    expect(createTaskSpy).toHaveBeenCalledWith(expect.objectContaining({
-      title: 'hello world',
-      assignee: '@alice:localhost',
-      dueAt: '2026-03-06T10:30',
-      status: 'todo',
-      sourceRef: {
-        roomId: '!room:test',
-        eventId: '$event-1',
-      },
-    }))
+    expect(createTaskSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'hello world',
+        assignee: '@alice:localhost',
+        dueAt: '2026-03-06T10:30',
+        status: 'todo',
+        sourceRef: {
+          roomId: '!room:test',
+          eventId: '$event-1',
+        },
+      }),
+    )
   })
 
   it('create task from message prevents duplicate submission while pending', async () => {

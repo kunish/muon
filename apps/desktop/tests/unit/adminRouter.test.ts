@@ -13,13 +13,8 @@ describe('admin router', () => {
     expect(router.currentRoute.value.name).toBe('admin-users')
     expect(router.currentRoute.value.meta.adminSection).toBe('users')
 
-    const routePaths = router.getRoutes().map(route => route.path)
-    expect(routePaths).toEqual(expect.arrayContaining([
-      '/',
-      '/organizations',
-      '/users',
-      '/audit',
-    ]))
+    const routePaths = router.getRoutes().map((route) => route.path)
+    expect(routePaths).toEqual(expect.arrayContaining(['/', '/organizations', '/users', '/audit']))
   })
 
   it('normalizes legacy admin hashes before the router mounts', () => {

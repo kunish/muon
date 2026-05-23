@@ -5,11 +5,10 @@ import { ref, shallowRef } from 'vue'
 
 function mergeResults(current: RetrievalItem[], next: RetrievalItem[]) {
   const merged = [...current]
-  const seenEventIds = new Set(current.map(item => item.eventId))
+  const seenEventIds = new Set(current.map((item) => item.eventId))
 
   for (const item of next) {
-    if (seenEventIds.has(item.eventId))
-      continue
+    if (seenEventIds.has(item.eventId)) continue
     seenEventIds.add(item.eventId)
     merged.push(item)
   }
@@ -57,22 +56,19 @@ export const useRetrievalStore = defineStore('retrieval', () => {
       results.value = [...page.items]
       session.value = page.session
       canLoadMore.value = page.canPaginate
-    }
-    catch (err) {
+    } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       error.value = message
       results.value = []
       canLoadMore.value = false
       session.value = null
-    }
-    finally {
+    } finally {
       loading.value = false
     }
   }
 
   async function loadMore() {
-    if (!session.value || !canLoadMore.value || loading.value || loadingMore.value)
-      return
+    if (!session.value || !canLoadMore.value || loading.value || loadingMore.value) return
 
     loadingMore.value = true
     error.value = null
@@ -82,12 +78,10 @@ export const useRetrievalStore = defineStore('retrieval', () => {
       results.value = mergeResults(results.value, page.items)
       session.value = page.session
       canLoadMore.value = page.canPaginate
-    }
-    catch (err) {
+    } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       error.value = message
-    }
-    finally {
+    } finally {
       loadingMore.value = false
     }
   }

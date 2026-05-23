@@ -155,10 +155,7 @@ export interface EnterpriseRepository {
   createDeviceSession: (input: CreateDeviceSessionInput) => Promise<DeviceSessionRecord>
   createOrganization: (input: CreateOrganizationInput) => Promise<Organization>
   createUser: (input: CreateUserInput) => Promise<EnterpriseUserRecord>
-  findActiveDeviceSessionsByUser: (
-    organizationId: string,
-    userId: string,
-  ) => Promise<DeviceSessionRecord[]>
+  findActiveDeviceSessionsByUser: (organizationId: string, userId: string) => Promise<DeviceSessionRecord[]>
   findAdminSessionByTokenHash: (accessTokenHash: string) => Promise<AdminSessionRecord | null>
   findAuthorizationCodeByHash: (codeHash: string) => Promise<AuthorizationCodeRecord | null>
   findDeviceSessionById: (id: string) => Promise<DeviceSessionRecord | null>
@@ -173,7 +170,11 @@ export interface EnterpriseRepository {
   listOrganizations: () => Promise<Organization[]>
   listUsersByOrganization: (organizationId: string) => Promise<EnterpriseUserRecord[]>
   markAuthorizationCodeUsed: (id: string) => Promise<AuthorizationCodeRecord>
-  resetUserPassword: (organizationId: string, userId: string, input: ResetUserPasswordInput) => Promise<EnterpriseUserRecord>
+  resetUserPassword: (
+    organizationId: string,
+    userId: string,
+    input: ResetUserPasswordInput,
+  ) => Promise<EnterpriseUserRecord>
   revokeAdminSession: (id: string) => Promise<void>
   revokeDeviceSession: (id: string) => Promise<boolean>
   revokeAllAdminSessionsForUserExcept: (
@@ -183,7 +184,9 @@ export interface EnterpriseRepository {
   ) => Promise<void>
   touchAdminSession: (id: string) => Promise<void>
   updateUser: (organizationId: string, userId: string, input: UpdateUserInput) => Promise<EnterpriseUserRecord>
-  upsertMatrixAccount: (input: Omit<MatrixAccountRecord, 'lastProvisionedAt' | 'provisioningStatus'>) => Promise<MatrixAccountRecord>
+  upsertMatrixAccount: (
+    input: Omit<MatrixAccountRecord, 'lastProvisionedAt' | 'provisioningStatus'>,
+  ) => Promise<MatrixAccountRecord>
 }
 
 export function createInMemoryEnterpriseRepository(): EnterpriseRepository {
@@ -222,23 +225,21 @@ export function createInMemoryEnterpriseRepository(): EnterpriseRepository {
     },
 
     async findAdminSessionByTokenHash(accessTokenHash) {
-      return adminSessions.find(session => session.accessTokenHash === accessTokenHash) ?? null
+      return adminSessions.find((session) => session.accessTokenHash === accessTokenHash) ?? null
     },
 
     async touchAdminSession(id) {
-      const session = adminSessions.find(item => item.id === id)
-      if (session)
-        session.lastSeenAt = nowIso()
+      const session = adminSessions.find((item) => item.id === id)
+      if (session) session.lastSeenAt = nowIso()
     },
 
     async revokeAdminSession(id) {
-      const session = adminSessions.find(item => item.id === id)
-      if (session && !session.revokedAt)
-        session.revokedAt = nowIso()
+      const session = adminSessions.find((item) => item.id === id)
+      if (session && !session.revokedAt) session.revokedAt = nowIso()
     },
 
     async revokeDeviceSession(id) {
-      const session = deviceSessions.find(item => item.id === id)
+      const session = deviceSessions.find((item) => item.id === id)
       if (session && !session.revokedAt) {
         session.revokedAt = nowIso()
         return true
@@ -249,14 +250,10 @@ export function createInMemoryEnterpriseRepository(): EnterpriseRepository {
     async revokeAllAdminSessionsForUserExcept(organizationId, userId, exceptSessionId) {
       const nowTimestamp = nowIso()
       for (const session of adminSessions) {
-        if (session.organizationId !== organizationId)
-          continue
-        if (session.userId !== userId)
-          continue
-        if (session.id === exceptSessionId)
-          continue
-        if (session.revokedAt)
-          continue
+        if (session.organizationId !== organizationId) continue
+        if (session.userId !== userId) continue
+        if (session.id === exceptSessionId) continue
+        if (session.revokedAt) continue
         session.revokedAt = nowTimestamp
       }
     },
@@ -314,7 +311,7 @@ export function createInMemoryEnterpriseRepository(): EnterpriseRepository {
     },
 
     async createOrganization(input) {
-      if (organizations.some(organization => organization.slug === input.slug))
+      if (organizations.some((organization) => organization.slug === input.slug))
         throw new Error('Organization slug is already in use')
 
       const createdAt = nowIso()
@@ -331,7 +328,7 @@ export function createInMemoryEnterpriseRepository(): EnterpriseRepository {
     },
 
     async createUser(input) {
-      if (users.some(user => user.organizationId === input.organizationId && user.username === input.username))
+      if (users.some((user) => user.organizationId === input.organizationId && user.username === input.username))
         throw new Error('Username is already in use')
 
       const createdAt = nowIso()
@@ -354,40 +351,43 @@ export function createInMemoryEnterpriseRepository(): EnterpriseRepository {
 
     async findActiveDeviceSessionsByUser(organizationId, userId) {
       const now = Date.now()
-      return deviceSessions.filter(session =>
-        session.organizationId === organizationId
-        && session.userId === userId
-        && session.revokedAt === null
-        && Date.parse(session.expiresAt) > now,
+      return deviceSessions.filter(
+        (session) =>
+          session.organizationId === organizationId &&
+          session.userId === userId &&
+          session.revokedAt === null &&
+          Date.parse(session.expiresAt) > now,
       )
     },
 
     async findAuthorizationCodeByHash(codeHash) {
-      return authorizationCodes.find(code => code.codeHash === codeHash) ?? null
+      return authorizationCodes.find((code) => code.codeHash === codeHash) ?? null
     },
 
     async findDeviceSessionById(id) {
-      return deviceSessions.find(session => session.id === id) ?? null
+      return deviceSessions.find((session) => session.id === id) ?? null
     },
 
     async findDeviceSessionByRefreshTokenHash(refreshTokenHash) {
-      return deviceSessions.find(session => session.refreshTokenHash === refreshTokenHash) ?? null
+      return deviceSessions.find((session) => session.refreshTokenHash === refreshTokenHash) ?? null
     },
 
     async findMatrixAccount(organizationId, userId) {
-      return matrixAccounts.find(account => account.organizationId === organizationId && account.userId === userId) ?? null
+      return (
+        matrixAccounts.find((account) => account.organizationId === organizationId && account.userId === userId) ?? null
+      )
     },
 
     async findOrganizationBySlug(slug) {
-      return organizations.find(organization => organization.slug === slug) ?? null
+      return organizations.find((organization) => organization.slug === slug) ?? null
     },
 
     async findUserById(organizationId, userId) {
-      return users.find(user => user.organizationId === organizationId && user.id === userId) ?? null
+      return users.find((user) => user.organizationId === organizationId && user.id === userId) ?? null
     },
 
     async findUserByUsername(organizationId, username) {
-      return users.find(user => user.organizationId === organizationId && user.username === username) ?? null
+      return users.find((user) => user.organizationId === organizationId && user.username === username) ?? null
     },
 
     getPublicUser: publicUser,
@@ -397,7 +397,7 @@ export function createInMemoryEnterpriseRepository(): EnterpriseRepository {
     },
 
     async listAuditLogsByOrganization(organizationId) {
-      return auditLogs.filter(event => event.organizationId === organizationId)
+      return auditLogs.filter((event) => event.organizationId === organizationId)
     },
 
     async listOrganizations() {
@@ -405,21 +405,19 @@ export function createInMemoryEnterpriseRepository(): EnterpriseRepository {
     },
 
     async listUsersByOrganization(organizationId) {
-      return users.filter(user => user.organizationId === organizationId)
+      return users.filter((user) => user.organizationId === organizationId)
     },
 
     async markAuthorizationCodeUsed(id) {
-      const code = authorizationCodes.find(item => item.id === id)
-      if (!code)
-        throw new Error('Authorization code not found')
+      const code = authorizationCodes.find((item) => item.id === id)
+      if (!code) throw new Error('Authorization code not found')
       code.usedAt = nowIso()
       return code
     },
 
     async resetUserPassword(organizationId, userId, input) {
-      const user = users.find(item => item.organizationId === organizationId && item.id === userId)
-      if (!user)
-        throw new Error('User not found')
+      const user = users.find((item) => item.organizationId === organizationId && item.id === userId)
+      if (!user) throw new Error('User not found')
 
       user.passwordHash = input.passwordHash
       user.mustChangePassword = input.mustChangePassword
@@ -428,10 +426,14 @@ export function createInMemoryEnterpriseRepository(): EnterpriseRepository {
     },
 
     async updateUser(organizationId, userId, input) {
-      const user = users.find(item => item.organizationId === organizationId && item.id === userId)
-      if (!user)
-        throw new Error('User not found')
-      if (input.username && users.some(item => item.organizationId === organizationId && item.id !== userId && item.username === input.username))
+      const user = users.find((item) => item.organizationId === organizationId && item.id === userId)
+      if (!user) throw new Error('User not found')
+      if (
+        input.username &&
+        users.some(
+          (item) => item.organizationId === organizationId && item.id !== userId && item.username === input.username,
+        )
+      )
         throw new Error('Username is already in use')
 
       user.username = input.username ?? user.username
@@ -444,7 +446,9 @@ export function createInMemoryEnterpriseRepository(): EnterpriseRepository {
     },
 
     async upsertMatrixAccount(input) {
-      const existing = matrixAccounts.find(account => account.organizationId === input.organizationId && account.userId === input.userId)
+      const existing = matrixAccounts.find(
+        (account) => account.organizationId === input.organizationId && account.userId === input.userId,
+      )
       const lastProvisionedAt = nowIso()
       if (existing) {
         existing.matrixUserId = input.matrixUserId

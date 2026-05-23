@@ -1,7 +1,7 @@
 import type { CreateDecisionSuggestionInput } from '../types/decision'
 import type { DigestEntry } from '../types/knowledge'
 
-const SUGGESTION_PATTERNS: Array<{ kind: CreateDecisionSuggestionInput['kind'], regex: RegExp }> = [
+const SUGGESTION_PATTERNS: Array<{ kind: CreateDecisionSuggestionInput['kind']; regex: RegExp }> = [
   { kind: 'action', regex: /action:\s*([^.!?]+[.!?]?)/gi },
   { kind: 'blocker', regex: /blocker:\s*([^.!?]+[.!?]?)/gi },
 ]
@@ -15,8 +15,7 @@ export function extractSuggestionsFromSummary(entry: DigestEntry): CreateDecisio
 
     matches.forEach((match, index) => {
       const summary = match[1]?.trim()
-      if (!summary)
-        return
+      if (!summary) return
 
       suggestions.push({
         id: `${entry.id}:${kind}:${index}`,

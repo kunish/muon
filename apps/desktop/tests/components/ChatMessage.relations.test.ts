@@ -19,9 +19,7 @@ vi.mock('@/desktop/dialog', () => ({
 
 describe('chatMessage relation summaries', () => {
   it('uses precomputed reactions and thread count without rescanning the room timeline', async () => {
-    const ChatMessage = (
-      await import('@/features/chat/components/ChatMessage.vue')
-    ).default
+    const ChatMessage = (await import('@/features/chat/components/ChatMessage.vue')).default
 
     const event = {
       getId: () => '$event1',

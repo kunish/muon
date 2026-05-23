@@ -1,56 +1,55 @@
 <script setup lang="ts">
-import { redactMessage } from '@matrix/index'
-import { Forward, Trash2, X } from 'lucide-vue-next'
-import { computed } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { toast } from 'vue-sonner'
-import { ask } from '@/desktop/dialog'
-import { useChatStore } from '../stores/chatStore'
+import { redactMessage } from '@matrix/index';
+import { Forward, Trash2, X } from 'lucide-vue-next';
+import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { toast } from 'vue-sonner';
+import { ask } from '@/desktop/dialog';
+import { useChatStore } from '../stores/chatStore';
 
 const emit = defineEmits<{
-  forward: []
-}>()
+  forward: [];
+}>();
 
-const { t } = useI18n()
+const { t } = useI18n();
 
-const store = useChatStore()
+const store = useChatStore();
 
-const selectedCount = computed(() => store.selectedMessages.size)
+const selectedCount = computed(() => store.selectedMessages.size);
 
 async function onBatchDelete() {
   const confirmed = await ask(t('chat.confirm_batch_redact', { count: selectedCount.value }), {
     title: t('chat.batch_redact'),
     kind: 'warning',
-  })
-  if (!confirmed)
-    return
+  });
+  if (!confirmed) return;
 
-  const roomId = store.currentRoomId
-  if (!roomId)
-    return
+  const roomId = store.currentRoomId;
+  if (!roomId) return;
 
   for (const eventId of store.selectedMessages) {
     try {
-      await redactMessage(roomId, eventId)
-    }
-    catch {
-      toast.error(t('auth.error'))
+      await redactMessage(roomId, eventId);
+    } catch {
+      toast.error(t('auth.error'));
     }
   }
-  store.exitMultiSelect()
+  store.exitMultiSelect();
 }
 
 function onForward() {
-  emit('forward')
+  emit('forward');
 }
 
 function onCancel() {
-  store.exitMultiSelect()
+  store.exitMultiSelect();
 }
 </script>
 
 <template>
-  <div class="bg-background/95 backdrop-blur-xl border-t border-border px-4 py-3 flex items-center justify-between gap-3">
+  <div
+    class="bg-background/95 backdrop-blur-xl border-t border-border px-4 py-3 flex items-center justify-between gap-3"
+  >
     <span class="text-sm text-muted-foreground">
       {{ t('chat.selected_count', { count: selectedCount }) }}
     </span>

@@ -67,13 +67,15 @@ describe('chatWindow side panel layout', () => {
     const wrapper = mountChatWindow()
 
     let shell = wrapper.get('[data-testid="chat-side-panel-shell"]')
-    expect(shell.classes()).toEqual(expect.arrayContaining([
-      'w-0',
-      'border-transparent',
-      'transition-[width,border-color]',
-      'overflow-hidden',
-      'shrink-0',
-    ]))
+    expect(shell.classes()).toEqual(
+      expect.arrayContaining([
+        'w-0',
+        'border-transparent',
+        'transition-[width,border-color]',
+        'overflow-hidden',
+        'shrink-0',
+      ]),
+    )
     expect(shell.classes()).not.toContain('transition-all')
     expect(wrapper.find('[data-testid="chat-side-panel-frame"]').exists()).toBe(false)
 
@@ -86,11 +88,7 @@ describe('chatWindow side panel layout', () => {
     expect(shell.classes()).not.toContain('w-0')
 
     const frame = wrapper.get('[data-testid="chat-side-panel-frame"]')
-    expect(frame.classes()).toEqual(expect.arrayContaining([
-      'h-full',
-      'w-[320px]',
-      'overflow-hidden',
-    ]))
+    expect(frame.classes()).toEqual(expect.arrayContaining(['h-full', 'w-[320px]', 'overflow-hidden']))
     expect(wrapper.get('[data-testid="stub-settings"]').exists()).toBe(true)
 
     store.closeSidePanel()
@@ -106,13 +104,15 @@ describe('chatWindow side panel layout', () => {
     const wrapper = mountChatWindow()
 
     let shell = wrapper.get('[data-testid="thread-panel-shell"]')
-    expect(shell.classes()).toEqual(expect.arrayContaining([
-      'w-0',
-      'border-transparent',
-      'transition-[width,border-color]',
-      'overflow-hidden',
-      'shrink-0',
-    ]))
+    expect(shell.classes()).toEqual(
+      expect.arrayContaining([
+        'w-0',
+        'border-transparent',
+        'transition-[width,border-color]',
+        'overflow-hidden',
+        'shrink-0',
+      ]),
+    )
     expect(shell.classes()).not.toContain('transition-all')
 
     store.openThread('$thread-root')
@@ -123,11 +123,7 @@ describe('chatWindow side panel layout', () => {
     expect(shell.classes()).toContain('border-border')
 
     const frame = wrapper.get('[data-testid="thread-panel-frame"]')
-    expect(frame.classes()).toEqual(expect.arrayContaining([
-      'h-full',
-      'w-[360px]',
-      'overflow-hidden',
-    ]))
+    expect(frame.classes()).toEqual(expect.arrayContaining(['h-full', 'w-[360px]', 'overflow-hidden']))
     expect(wrapper.get('[data-testid="stub-thread-panel"]').exists()).toBe(true)
 
     store.closeThread()

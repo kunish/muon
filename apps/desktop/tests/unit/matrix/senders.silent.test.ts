@@ -34,9 +34,9 @@ describe('sendTextMessage silent option', () => {
 
     const [, content] = sendMessage.mock.calls[0]!
     expect(content).toMatchObject({
-      'msgtype': MsgType.Text,
-      'body': 'hi',
-      'format': 'org.matrix.custom.html',
+      msgtype: MsgType.Text,
+      body: 'hi',
+      format: 'org.matrix.custom.html',
       'org.matrix.msc4019.silent': true,
     })
     expect((content as Record<string, string>).formatted_body).toContain('<strong>hi</strong>')

@@ -2,7 +2,21 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMemoryHistory } from 'vue-router'
 import AdminApp from '../../../admin/src/AdminApp.vue'
-import { changeOwnPassword, createAdminUser, createOrganization, getAdminMe, listAuditLogs, listOrganizations, listUserDeviceSessions, listUsers, loginAdmin, logoutAdmin, resetAdminUserPassword, revokeUserDeviceSession, updateAdminUser } from '../../../admin/src/api'
+import {
+  changeOwnPassword,
+  createAdminUser,
+  createOrganization,
+  getAdminMe,
+  listAuditLogs,
+  listOrganizations,
+  listUserDeviceSessions,
+  listUsers,
+  loginAdmin,
+  logoutAdmin,
+  resetAdminUserPassword,
+  revokeUserDeviceSession,
+  updateAdminUser,
+} from '../../../admin/src/api'
 import { createAdminRouter } from '../../../admin/src/router'
 
 vi.mock('../../../admin/src/api', () => ({
@@ -210,10 +224,12 @@ vi.mocked(listAuditLogs).mockImplementation(async () => ({
   ],
 }))
 
-async function mountAdminApp(options: {
-  props?: InstanceType<typeof AdminApp>['$props']
-  route?: string
-} = {}) {
+async function mountAdminApp(
+  options: {
+    props?: InstanceType<typeof AdminApp>['$props']
+    route?: string
+  } = {},
+) {
   const router = createAdminRouter(createMemoryHistory())
   await router.push(options.route ?? '/organizations')
   const wrapper = mount(AdminApp, {
@@ -334,7 +350,12 @@ describe('adminApp', () => {
     await vi.waitFor(() => {
       expect(wrapper.find('[data-testid="edit-user-user-owner"]').exists()).toBe(true)
     })
-    expect((wrapper.get('[data-testid="edit-user-user-owner"] input[placeholder="编辑显示名称"]').element as HTMLInputElement).value).toBe('Owner')
+    expect(
+      (
+        wrapper.get('[data-testid="edit-user-user-owner"] input[placeholder="编辑显示名称"]')
+          .element as HTMLInputElement
+      ).value,
+    ).toBe('Owner')
   })
 
   it('switches dashboard panels from the sidebar navigation', async () => {
@@ -866,7 +887,7 @@ describe('adminApp', () => {
     expect(wrapper.find('input[autocomplete="organization"]').exists()).toBe(true)
   })
 
-  it('expanding a user\'s sessions panel lazy-loads sessions and shows the device list', async () => {
+  it("expanding a user's sessions panel lazy-loads sessions and shows the device list", async () => {
     window.localStorage.setItem('muon_admin_token', 'session-token')
     const wrapper = mount(AdminApp, {
       props: { initialInstalled: true },

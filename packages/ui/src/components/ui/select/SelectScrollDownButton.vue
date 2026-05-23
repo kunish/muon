@@ -1,15 +1,15 @@
 <script setup lang="ts">
-import type { SelectScrollDownButtonProps } from 'reka-ui'
-import { ChevronDownIcon } from 'lucide-vue-next'
-import { SelectScrollDownButton, useForwardProps } from 'reka-ui'
-import { cn } from '../../../utils'
+import type { SelectScrollDownButtonProps } from 'reka-ui';
+import { ChevronDownIcon } from 'lucide-vue-next';
+import { SelectScrollDownButton, useForwardProps } from 'reka-ui';
+import { cn } from '../../../utils';
 
-const props = defineProps<SelectScrollDownButtonProps & { class?: string }>()
+const props = defineProps<SelectScrollDownButtonProps & { class?: string }>();
 
 const forwardedProps = useForwardProps(() => {
-  const { class: _, ...delegated } = props
-  return delegated
-})
+  const { class: _, ...delegated } = props;
+  return delegated;
+});
 </script>
 
 <template>

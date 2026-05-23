@@ -40,12 +40,13 @@ const CreateDialogStub = defineComponent({
     },
   },
   setup(props) {
-    return () => h('div', {
-      'data-testid': 'project-list-create-dialog',
-      'data-default-status': props.defaultStatus,
-      'data-project-id': props.projectId,
-      'data-open': String(props.open),
-    })
+    return () =>
+      h('div', {
+        'data-testid': 'project-list-create-dialog',
+        'data-default-status': props.defaultStatus,
+        'data-project-id': props.projectId,
+        'data-open': String(props.open),
+      })
   },
 })
 
@@ -58,10 +59,11 @@ const WorkItemDetailStub = defineComponent({
     },
   },
   setup(props) {
-    return () => h('div', {
-      'data-testid': 'project-list-work-item-detail',
-      'data-item-id': props.itemId,
-    })
+    return () =>
+      h('div', {
+        'data-testid': 'project-list-work-item-detail',
+        'data-item-id': props.itemId,
+      })
   },
 })
 

@@ -1,157 +1,147 @@
 <script setup lang="ts">
-import type { ChannelInfo } from '@/matrix/spaces'
-import { Button } from '@muon/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@muon/ui/dialog'
-import { Input } from '@muon/ui/input'
-import { Label } from '@muon/ui/label'
-import { Textarea } from '@muon/ui/textarea'
-import { GripVertical, Hash, Pencil, Trash2, Volume2 } from 'lucide-vue-next'
-import { onMounted, ref } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { toast } from 'vue-sonner'
-import { useServerStore } from '@/features/server/stores/serverStore'
-import { setRoomName, setRoomTopic } from '@/matrix/rooms'
-import { getCategoryChannels, getSpaceHierarchy, removeRoomFromSpace } from '@/matrix/spaces'
-import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
+import type { ChannelInfo } from '@/matrix/spaces';
+import { Button } from '@muon/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@muon/ui/dialog';
+import { Input } from '@muon/ui/input';
+import { Label } from '@muon/ui/label';
+import { Textarea } from '@muon/ui/textarea';
+import { GripVertical, Hash, Pencil, Trash2, Volume2 } from 'lucide-vue-next';
+import { onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { toast } from 'vue-sonner';
+import { useServerStore } from '@/features/server/stores/serverStore';
+import { setRoomName, setRoomTopic } from '@/matrix/rooms';
+import { getCategoryChannels, getSpaceHierarchy, removeRoomFromSpace } from '@/matrix/spaces';
+import ConfirmDialog from '@/shared/components/ConfirmDialog.vue';
 
 const props = defineProps<{
-  serverId: string
-}>()
+  serverId: string;
+}>();
 
-const serverStore = useServerStore()
-const { t } = useI18n()
+const serverStore = useServerStore();
+const { t } = useI18n();
 
 // ── Types ──
 
 interface ChannelGroup {
-  categoryId: string | null
-  categoryName: string
-  channels: ChannelInfo[]
+  categoryId: string | null;
+  categoryName: string;
+  channels: ChannelInfo[];
 }
 
 // ── State ──
 
-const channelGroups = ref<ChannelGroup[]>([])
-const editTarget = ref<ChannelInfo | null>(null)
-const editChannelName = ref('')
-const editChannelTopic = ref('')
-const isSavingEdit = ref(false)
-const deleteTarget = ref<{ channel: ChannelInfo, categoryId: string | null } | null>(null)
-const showDeleteDialog = ref(false)
-const isDeleting = ref(false)
+const channelGroups = ref<ChannelGroup[]>([]);
+const editTarget = ref<ChannelInfo | null>(null);
+const editChannelName = ref('');
+const editChannelTopic = ref('');
+const isSavingEdit = ref(false);
+const deleteTarget = ref<{ channel: ChannelInfo; categoryId: string | null } | null>(null);
+const showDeleteDialog = ref(false);
+const isDeleting = ref(false);
 
 // ── Load data ──
 
 function loadChannels() {
-  const { categories, uncategorizedChannels } = getSpaceHierarchy(props.serverId)
-  const groups: ChannelGroup[] = []
+  const { categories, uncategorizedChannels } = getSpaceHierarchy(props.serverId);
+  const groups: ChannelGroup[] = [];
 
   if (uncategorizedChannels.length > 0) {
     groups.push({
       categoryId: null,
       categoryName: t('channel.uncategorized'),
       channels: uncategorizedChannels,
-    })
+    });
   }
 
   for (const cat of categories) {
-    const channels = getCategoryChannels(cat.spaceId)
+    const channels = getCategoryChannels(cat.spaceId);
     groups.push({
       categoryId: cat.spaceId,
       categoryName: cat.name,
       channels,
-    })
+    });
   }
 
-  channelGroups.value = groups
+  channelGroups.value = groups;
 }
 
 // ── Actions ──
 
 function openEdit(channel: ChannelInfo) {
-  editTarget.value = channel
-  editChannelName.value = channel.name
-  editChannelTopic.value = channel.topic ?? ''
+  editTarget.value = channel;
+  editChannelName.value = channel.name;
+  editChannelTopic.value = channel.topic ?? '';
 }
 
 function closeEdit() {
-  editTarget.value = null
-  editChannelName.value = ''
-  editChannelTopic.value = ''
+  editTarget.value = null;
+  editChannelName.value = '';
+  editChannelTopic.value = '';
 }
 
 async function handleEdit() {
-  if (!editTarget.value || isSavingEdit.value)
-    return
+  if (!editTarget.value || isSavingEdit.value) return;
 
-  const channel = editTarget.value
-  const name = editChannelName.value.trim()
-  if (!name)
-    return
+  const channel = editTarget.value;
+  const name = editChannelName.value.trim();
+  if (!name) return;
 
-  isSavingEdit.value = true
+  isSavingEdit.value = true;
   try {
-    const topic = editChannelTopic.value.trim()
-    if (name !== channel.name)
-      await setRoomName(channel.roomId, name)
-    if (topic !== (channel.topic ?? ''))
-      await setRoomTopic(channel.roomId, topic)
+    const topic = editChannelTopic.value.trim();
+    if (name !== channel.name) await setRoomName(channel.roomId, name);
+    if (topic !== (channel.topic ?? '')) await setRoomTopic(channel.roomId, topic);
 
-    loadChannels()
-    serverStore.loadChannelTree(props.serverId)
-    closeEdit()
-  }
-  catch (err) {
-    console.error('Failed to edit channel:', err)
-    toast.error(t('server.channel_failed'))
-  }
-  finally {
-    isSavingEdit.value = false
+    loadChannels();
+    serverStore.loadChannelTree(props.serverId);
+    closeEdit();
+  } catch (err) {
+    console.error('Failed to edit channel:', err);
+    toast.error(t('server.channel_failed'));
+  } finally {
+    isSavingEdit.value = false;
   }
 }
 
 function confirmDelete(channel: ChannelInfo, categoryId: string | null) {
-  deleteTarget.value = { channel, categoryId }
-  showDeleteDialog.value = true
+  deleteTarget.value = { channel, categoryId };
+  showDeleteDialog.value = true;
 }
 
 async function handleDelete() {
-  if (!deleteTarget.value || isDeleting.value)
-    return
-  isDeleting.value = true
+  if (!deleteTarget.value || isDeleting.value) return;
+  isDeleting.value = true;
 
-  const { channel, categoryId } = deleteTarget.value
+  const { channel, categoryId } = deleteTarget.value;
   try {
     // Remove channel from the space/category
-    const parentId = categoryId ?? props.serverId
-    await removeRoomFromSpace(parentId, channel.roomId)
+    const parentId = categoryId ?? props.serverId;
+    await removeRoomFromSpace(parentId, channel.roomId);
 
     // Also remove from top-level space if it was under a category
     if (categoryId) {
       try {
-        await removeRoomFromSpace(props.serverId, channel.roomId)
-      }
-      catch {
+        await removeRoomFromSpace(props.serverId, channel.roomId);
+      } catch {
         // May not be directly under top-level space, that's fine
       }
     }
 
     // Refresh
-    loadChannels()
-    serverStore.loadChannelTree(props.serverId)
-    showDeleteDialog.value = false
-    deleteTarget.value = null
-  }
-  catch (err) {
-    console.error('Failed to delete channel:', err)
-    toast.error(t('server.channel_failed'))
-  }
-  finally {
-    isDeleting.value = false
+    loadChannels();
+    serverStore.loadChannelTree(props.serverId);
+    showDeleteDialog.value = false;
+    deleteTarget.value = null;
+  } catch (err) {
+    console.error('Failed to delete channel:', err);
+    toast.error(t('server.channel_failed'));
+  } finally {
+    isDeleting.value = false;
   }
 }
 
-onMounted(loadChannels)
+onMounted(loadChannels);
 </script>
 
 <template>
@@ -167,18 +157,13 @@ onMounted(loadChannels)
     </div>
 
     <div v-else class="space-y-6">
-      <div
-        v-for="group in channelGroups"
-        :key="group.categoryId ?? '__uncategorized__'"
-      >
+      <div v-for="group in channelGroups" :key="group.categoryId ?? '__uncategorized__'">
         <!-- Category header -->
         <div class="mb-2 flex items-center gap-2 px-1">
           <span class="text-xs font-bold uppercase tracking-wide text-muted-foreground/60">
             {{ group.categoryName }}
           </span>
-          <span class="text-xs text-muted-foreground/30">
-            — {{ group.channels.length }}
-          </span>
+          <span class="text-xs text-muted-foreground/30"> — {{ group.channels.length }} </span>
         </div>
 
         <!-- Channel list -->
@@ -195,16 +180,8 @@ onMounted(loadChannels)
             />
 
             <!-- Channel icon -->
-            <Hash
-              v-if="!channel.isVoice"
-              :size="18"
-              class="shrink-0 text-muted-foreground/50"
-            />
-            <Volume2
-              v-else
-              :size="18"
-              class="shrink-0 text-muted-foreground/50"
-            />
+            <Hash v-if="!channel.isVoice" :size="18" class="shrink-0 text-muted-foreground/50" />
+            <Volume2 v-else :size="18" class="shrink-0 text-muted-foreground/50" />
 
             <!-- Channel info -->
             <div class="min-w-0 flex-1">
@@ -246,7 +223,11 @@ onMounted(loadChannels)
 
     <Dialog
       :open="Boolean(editTarget)"
-      @update:open="value => { if (!value) closeEdit() }"
+      @update:open="
+        (value) => {
+          if (!value) closeEdit();
+        }
+      "
     >
       <DialogContent v-if="editTarget">
         <DialogHeader>
@@ -257,7 +238,10 @@ onMounted(loadChannels)
         </DialogHeader>
 
         <div class="space-y-2">
-          <Label for="channel-manager-edit-name" class="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+          <Label
+            for="channel-manager-edit-name"
+            class="text-xs font-bold uppercase tracking-wide text-muted-foreground"
+          >
             {{ t('channel.channel_name') }}
           </Label>
           <Input
@@ -270,7 +254,10 @@ onMounted(loadChannels)
         </div>
 
         <div class="space-y-2">
-          <Label for="channel-manager-edit-topic" class="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+          <Label
+            for="channel-manager-edit-topic"
+            class="text-xs font-bold uppercase tracking-wide text-muted-foreground"
+          >
             {{ t('channel.channel_topic') }}
           </Label>
           <Textarea

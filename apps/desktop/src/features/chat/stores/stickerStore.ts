@@ -30,8 +30,7 @@ export const useStickerStore = defineStore('stickers', () => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY)
       return raw ? JSON.parse(raw) : []
-    }
-    catch {
+    } catch {
       return []
     }
   }
@@ -40,8 +39,7 @@ export const useStickerStore = defineStore('stickers', () => {
     try {
       const raw = localStorage.getItem(RECENT_KEY)
       return raw ? JSON.parse(raw) : []
-    }
-    catch {
+    } catch {
       return []
     }
   }
@@ -69,7 +67,7 @@ export const useStickerStore = defineStore('stickers', () => {
   }
 
   function deletePack(packId: string) {
-    const idx = customPacks.value.findIndex(p => p.id === packId)
+    const idx = customPacks.value.findIndex((p) => p.id === packId)
     if (idx >= 0) {
       customPacks.value.splice(idx, 1)
       savePacks()
@@ -77,17 +75,15 @@ export const useStickerStore = defineStore('stickers', () => {
   }
 
   function getPackById(packId: string) {
-    return customPacks.value.find(p => p.id === packId) ?? null
+    return customPacks.value.find((p) => p.id === packId) ?? null
   }
 
   // ─── 贴纸管理 ───────────────────────────────────────
   function addSticker(packId: string, sticker: ImageSticker) {
-    const pack = customPacks.value.find(p => p.id === packId)
-    if (!pack)
-      return
+    const pack = customPacks.value.find((p) => p.id === packId)
+    if (!pack) return
     // 去重
-    if (pack.stickers.some(s => s.mxcUrl === sticker.mxcUrl))
-      return
+    if (pack.stickers.some((s) => s.mxcUrl === sticker.mxcUrl)) return
     pack.stickers.push(sticker)
     // 更新包图标为第一张贴纸
     if (pack.stickers.length === 1) {
@@ -97,17 +93,14 @@ export const useStickerStore = defineStore('stickers', () => {
   }
 
   function removeSticker(packId: string, stickerId: string) {
-    const pack = customPacks.value.find(p => p.id === packId)
-    if (!pack)
-      return
-    const idx = pack.stickers.findIndex(s => s.id === stickerId)
-    if (idx >= 0)
-      pack.stickers.splice(idx, 1)
+    const pack = customPacks.value.find((p) => p.id === packId)
+    if (!pack) return
+    const idx = pack.stickers.findIndex((s) => s.id === stickerId)
+    if (idx >= 0) pack.stickers.splice(idx, 1)
     // 如果删掉的是封面，更新封面
     if (pack.icon && pack.stickers.length > 0) {
       pack.icon = pack.stickers[0].mxcUrl
-    }
-    else if (pack.stickers.length === 0) {
+    } else if (pack.stickers.length === 0) {
       pack.icon = ''
     }
     savePacks()
@@ -115,15 +108,12 @@ export const useStickerStore = defineStore('stickers', () => {
 
   // ─── 最近使用 ───────────────────────────────────────
   function pushRecent(entry: RecentSticker, isDuplicate: (r: RecentSticker) => boolean) {
-    recentStickers.value = [entry, ...recentStickers.value.filter(r => !isDuplicate(r))].slice(0, MAX_RECENT)
+    recentStickers.value = [entry, ...recentStickers.value.filter((r) => !isDuplicate(r))].slice(0, MAX_RECENT)
     saveRecent()
   }
 
   function addRecentEmoji(emoji: string, name: string) {
-    pushRecent(
-      { type: 'emoji', value: emoji, name },
-      r => r.type === 'emoji' && r.value === emoji,
-    )
+    pushRecent({ type: 'emoji', value: emoji, name }, (r) => r.type === 'emoji' && r.value === emoji)
   }
 
   function addRecentImage(sticker: ImageSticker, packId?: string) {
@@ -138,7 +128,7 @@ export const useStickerStore = defineStore('stickers', () => {
         mimetype: sticker.mimetype,
         packId,
       },
-      r => r.type === 'image' && r.value === sticker.mxcUrl,
+      (r) => r.type === 'image' && r.value === sticker.mxcUrl,
     )
   }
 

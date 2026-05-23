@@ -34,9 +34,9 @@ function createMemoryStorage(): Storage {
 
 function ensureLocalStorage(): void {
   if (
-    typeof globalThis.localStorage?.getItem === 'function'
-    && typeof globalThis.localStorage?.setItem === 'function'
-    && typeof globalThis.localStorage?.clear === 'function'
+    typeof globalThis.localStorage?.getItem === 'function' &&
+    typeof globalThis.localStorage?.setItem === 'function' &&
+    typeof globalThis.localStorage?.clear === 'function'
   ) {
     return
   }

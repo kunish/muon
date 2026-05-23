@@ -1,43 +1,30 @@
 <script setup lang="ts">
-import type { DownloadItem } from '../stores/downloadStore'
-import { Progress } from '@muon/ui/progress'
-import {
-  AlertCircle,
-  CheckCircle2,
-  Clock,
-  Download,
-  FileText,
-  FolderOpen,
-  Trash2,
-  X,
-} from 'lucide-vue-next'
-import { computed } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { toast } from 'vue-sonner'
-import { openPath, revealItemInDir } from '@/desktop/opener'
-import { useDownloadStore } from '../stores/downloadStore'
+import type { DownloadItem } from '../stores/downloadStore';
+import { Progress } from '@muon/ui/progress';
+import { AlertCircle, CheckCircle2, Clock, Download, FileText, FolderOpen, Trash2, X } from 'lucide-vue-next';
+import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { toast } from 'vue-sonner';
+import { openPath, revealItemInDir } from '@/desktop/opener';
+import { useDownloadStore } from '../stores/downloadStore';
 
-defineEmits<{ close: [] }>()
+defineEmits<{ close: [] }>();
 
-const { t } = useI18n()
-const downloadStore = useDownloadStore()
+const { t } = useI18n();
+const downloadStore = useDownloadStore();
 
-const hasCompleted = computed(() =>
-  downloadStore.items.some(i => i.status === 'completed'),
-)
+const hasCompleted = computed(() => downloadStore.items.some((i) => i.status === 'completed'));
 
 function formatSize(bytes: number): string {
-  if (bytes === 0)
-    return '0 B'
-  const units = ['B', 'KB', 'MB', 'GB']
-  const i = Math.floor(Math.log(bytes) / Math.log(1024))
-  return `${(bytes / 1024 ** i).toFixed(1)} ${units[i]}`
+  if (bytes === 0) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(1024));
+  return `${(bytes / 1024 ** i).toFixed(1)} ${units[i]}`;
 }
 
 function progressPercent(item: DownloadItem): number {
-  if (item.size === 0)
-    return 0
-  return Math.round((item.downloaded / item.size) * 100)
+  if (item.size === 0) return 0;
+  return Math.round((item.downloaded / item.size) * 100);
 }
 
 const statusIcon: Record<DownloadItem['status'], typeof Download> = {
@@ -45,22 +32,21 @@ const statusIcon: Record<DownloadItem['status'], typeof Download> = {
   downloading: Download,
   completed: CheckCircle2,
   failed: AlertCircle,
-}
+};
 
 const statusColor: Record<DownloadItem['status'], string> = {
   pending: 'text-muted-foreground',
   downloading: 'text-primary',
   completed: 'text-success',
   failed: 'text-destructive',
-}
+};
 
 async function openFile(item: DownloadItem) {
   if (item.savePath) {
     try {
-      await openPath(item.savePath)
-    }
-    catch {
-      toast.error(t('downloads.open_file_failed'))
+      await openPath(item.savePath);
+    } catch {
+      toast.error(t('downloads.open_file_failed'));
     }
   }
 }
@@ -68,10 +54,9 @@ async function openFile(item: DownloadItem) {
 async function openFolder(item: DownloadItem) {
   if (item.savePath) {
     try {
-      await revealItemInDir(item.savePath)
-    }
-    catch {
-      toast.error(t('downloads.open_folder_failed'))
+      await revealItemInDir(item.savePath);
+    } catch {
+      toast.error(t('downloads.open_folder_failed'));
     }
   }
 }
@@ -134,10 +119,7 @@ async function openFolder(item: DownloadItem) {
             </div>
 
             <!-- Progress bar for downloading/pending -->
-            <div
-              v-if="item.status === 'downloading' || item.status === 'pending'"
-              class="mt-1.5"
-            >
+            <div v-if="item.status === 'downloading' || item.status === 'pending'" class="mt-1.5">
               <Progress :model-value="progressPercent(item)" class="h-1.5" />
               <div class="flex justify-between mt-1 text-xs text-muted-foreground">
                 <span>{{ formatSize(item.downloaded) }} / {{ formatSize(item.size) }}</span>

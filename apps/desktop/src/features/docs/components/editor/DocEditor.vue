@@ -1,187 +1,166 @@
 <script setup lang="ts">
-import { ArrowLeft } from 'lucide-vue-next'
-import { computed, onUnmounted, ref, shallowRef, watch } from 'vue'
-import { useRouter } from 'vue-router'
-import MediaViewer from '@/features/chat/components/MediaViewer.vue'
-import { useMediaViewer } from '@/features/chat/composables/useMediaViewer'
-import { useDocComments } from '../../composables/useDocComments'
-import { useDocCursor } from '../../composables/useDocCursor'
-import { useDocEditor } from '../../composables/useDocEditor'
-import { useDocSync } from '../../composables/useDocSync'
-import { resolveCurrentDocUser } from '../../lib/currentDocUser'
-import { useDocsStore } from '../../stores/docsStore'
-import CollaboratorAvatars from '../collaboration/CollaboratorAvatars.vue'
-import CommentsPanel from '../collaboration/CommentsPanel.vue'
-import ShareDialog from '../collaboration/ShareDialog.vue'
-import DocEditorToolbar from './DocEditorToolbar.vue'
-import DocTitleInput from './DocTitleInput.vue'
+import { ArrowLeft } from 'lucide-vue-next';
+import { computed, onUnmounted, ref, shallowRef, watch } from 'vue';
+import { useRouter } from 'vue-router';
+import MediaViewer from '@/features/chat/components/MediaViewer.vue';
+import { useMediaViewer } from '@/features/chat/composables/useMediaViewer';
+import { useDocComments } from '../../composables/useDocComments';
+import { useDocCursor } from '../../composables/useDocCursor';
+import { useDocEditor } from '../../composables/useDocEditor';
+import { useDocSync } from '../../composables/useDocSync';
+import { resolveCurrentDocUser } from '../../lib/currentDocUser';
+import { useDocsStore } from '../../stores/docsStore';
+import CollaboratorAvatars from '../collaboration/CollaboratorAvatars.vue';
+import CommentsPanel from '../collaboration/CommentsPanel.vue';
+import ShareDialog from '../collaboration/ShareDialog.vue';
+import DocEditorToolbar from './DocEditorToolbar.vue';
+import DocTitleInput from './DocTitleInput.vue';
 
 const props = defineProps<{
-  docId: string
-  userName?: string
-}>()
+  docId: string;
+  userName?: string;
+}>();
 
-const currentUser = resolveCurrentDocUser(props.userName)
-const currentUserId = currentUser.id
-const userName = computed(() => props.userName ?? currentUser.name)
-const color = currentUser.color
-const docsStore = useDocsStore()
-const router = useRouter()
-const currentDoc = computed(() => docsStore.documents.find(doc => doc.id === props.docId))
-const initialTitle = computed(() => currentDoc.value?.title ?? '')
+const currentUser = resolveCurrentDocUser(props.userName);
+const currentUserId = currentUser.id;
+const userName = computed(() => props.userName ?? currentUser.name);
+const color = currentUser.color;
+const docsStore = useDocsStore();
+const router = useRouter();
+const currentDoc = computed(() => docsStore.documents.find((doc) => doc.id === props.docId));
+const initialTitle = computed(() => currentDoc.value?.title ?? '');
 
-const { ydoc, provider, connected, error, connect, disconnect } = useDocSync(props.docId)
+const { ydoc, provider, connected, error, connect, disconnect } = useDocSync(props.docId);
 
-const elementRef = ref<HTMLElement>()
-const { editor } = useDocEditor(
-  () => ydoc.value,
-  elementRef,
-  { id: currentUserId, name: userName.value, color },
-)
+const elementRef = ref<HTMLElement>();
+const { editor } = useDocEditor(() => ydoc.value, elementRef, { id: currentUserId, name: userName.value, color });
 
-const { others, updateLocalCursor } = useDocCursor(
-  () => provider.value,
-  currentUserId,
-  userName.value,
-)
+const { others, updateLocalCursor } = useDocCursor(() => provider.value, currentUserId, userName.value);
 
-const { comments, draftText, addComment, resolveComment } = useDocComments(
-  () => ydoc.value,
-  currentUserId,
-)
+const { comments, draftText, addComment, resolveComment } = useDocComments(() => ydoc.value, currentUserId);
 
-const showComments = ref(false)
-const showShareDialog = ref(false)
-const imageInputRef = ref<HTMLInputElement>()
-const imageInsertError = shallowRef('')
-const { openImage } = useMediaViewer()
+const showComments = ref(false);
+const showShareDialog = ref(false);
+const imageInputRef = ref<HTMLInputElement>();
+const imageInsertError = shallowRef('');
+const { openImage } = useMediaViewer();
 
 watch(
   editor,
   (currentEditor, _previousEditor, onCleanup) => {
-    if (!currentEditor)
-      return
+    if (!currentEditor) return;
 
     const publishCursor = (): void => {
-      const { from, to } = currentEditor.state.selection
-      updateLocalCursor(from, to)
-    }
+      const { from, to } = currentEditor.state.selection;
+      updateLocalCursor(from, to);
+    };
 
     if (typeof currentEditor.on !== 'function' || typeof currentEditor.off !== 'function') {
-      publishCursor()
-      return
+      publishCursor();
+      return;
     }
 
-    currentEditor.on('selectionUpdate', publishCursor)
-    publishCursor()
+    currentEditor.on('selectionUpdate', publishCursor);
+    publishCursor();
 
     onCleanup(() => {
-      currentEditor.off('selectionUpdate', publishCursor)
-    })
+      currentEditor.off('selectionUpdate', publishCursor);
+    });
   },
   { immediate: true },
-)
+);
 
 function handleTitleChange(title: string): void {
-  void docsStore.updateDocumentTitle(props.docId, title)
+  void docsStore.updateDocumentTitle(props.docId, title);
 }
 
 function backToDocsList(): void {
-  void router.push('/docs')
+  void router.push('/docs');
 }
 
-function getCurrentCommentSelection(): { from: number, to: number } | undefined {
-  const selection = editor.value?.state.selection
-  if (!selection || selection.empty)
-    return undefined
+function getCurrentCommentSelection(): { from: number; to: number } | undefined {
+  const selection = editor.value?.state.selection;
+  if (!selection || selection.empty) return undefined;
 
-  const from = Math.min(selection.from, selection.to)
-  const to = Math.max(selection.from, selection.to)
-  if (from === to)
-    return undefined
+  const from = Math.min(selection.from, selection.to);
+  const to = Math.max(selection.from, selection.to);
+  if (from === to) return undefined;
 
-  return { from, to }
+  return { from, to };
 }
 
 function handleAddComment(text: string): void {
-  addComment(text, getCurrentCommentSelection())
+  addComment(text, getCurrentCommentSelection());
 }
 
 function focusEditorFromCanvas(event: MouseEvent): void {
-  const target = event.target
-  if (!(target instanceof HTMLElement))
-    return
-  if (target.closest('button, input, textarea, select, a, [contenteditable="true"]'))
-    return
+  const target = event.target;
+  if (!(target instanceof HTMLElement)) return;
+  if (target.closest('button, input, textarea, select, a, [contenteditable="true"]')) return;
 
-  editor.value?.chain().focus('end').run()
+  editor.value?.chain().focus('end').run();
 }
 
 function openImagePicker(): void {
-  imageInputRef.value?.click()
+  imageInputRef.value?.click();
 }
 
 function openEditorImagePreview(event: MouseEvent): void {
-  const target = event.target
-  if (!(target instanceof HTMLElement))
-    return
+  const target = event.target;
+  if (!(target instanceof HTMLElement)) return;
 
-  const image = target.closest('img') as HTMLImageElement | null
-  if (!image || !elementRef.value?.contains(image))
-    return
+  const image = target.closest('img') as HTMLImageElement | null;
+  if (!image || !elementRef.value?.contains(image)) return;
 
-  const src = image.currentSrc || image.src
-  if (!src)
-    return
+  const src = image.currentSrc || image.src;
+  if (!src) return;
 
-  event.preventDefault()
-  event.stopPropagation()
-  openImage(src)
+  event.preventDefault();
+  event.stopPropagation();
+  openImage(src);
 }
 
 function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onerror = () => reject(new Error('Failed to read image file'))
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Failed to read image file'));
     reader.onload = () => {
       if (typeof reader.result === 'string') {
-        resolve(reader.result)
-        return
+        resolve(reader.result);
+        return;
       }
-      reject(new Error('Failed to read image file'))
-    }
-    reader.readAsDataURL(file)
-  })
+      reject(new Error('Failed to read image file'));
+    };
+    reader.readAsDataURL(file);
+  });
 }
 
 async function handleImageInputChange(event: Event): Promise<void> {
-  const input = event.target as HTMLInputElement
-  const file = input.files?.[0]
-  input.value = ''
-  imageInsertError.value = ''
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  input.value = '';
+  imageInsertError.value = '';
 
-  if (!file)
-    return
+  if (!file) return;
 
   if (!file.type.startsWith('image/')) {
-    imageInsertError.value = '请选择图片文件'
-    return
+    imageInsertError.value = '请选择图片文件';
+    return;
   }
 
   try {
-    const src = await readFileAsDataUrl(file)
-    editor.value?.chain().focus().setImage({ src, alt: file.name }).run()
-  }
-  catch {
-    imageInsertError.value = '图片插入失败'
+    const src = await readFileAsDataUrl(file);
+    editor.value?.chain().focus().setImage({ src, alt: file.name }).run();
+  } catch {
+    imageInsertError.value = '图片插入失败';
   }
 }
 
-connect()
+connect();
 
 onUnmounted(() => {
-  disconnect()
-})
+  disconnect();
+});
 </script>
 
 <template>
@@ -247,11 +226,7 @@ onUnmounted(() => {
         @mousedown="focusEditorFromCanvas"
       >
         <main class="mx-auto flex min-h-full w-full max-w-[880px] flex-col px-10 py-9">
-          <DocTitleInput
-            :ydoc="ydoc"
-            :initial-title="initialTitle"
-            @update-title="handleTitleChange"
-          />
+          <DocTitleInput :ydoc="ydoc" :initial-title="initialTitle" @update-title="handleTitleChange" />
           <div
             ref="elementRef"
             class="doc-editor-body min-h-[calc(100vh-260px)]"
@@ -286,7 +261,7 @@ onUnmounted(() => {
       accept="image/*"
       data-testid="doc-image-input"
       @change="handleImageInputChange"
-    >
+    />
 
     <ShareDialog
       v-if="showShareDialog"

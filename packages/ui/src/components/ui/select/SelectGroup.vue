@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import type { SelectGroupProps } from 'reka-ui'
-import { SelectGroup, useForwardProps } from 'reka-ui'
+import type { SelectGroupProps } from 'reka-ui';
+import { SelectGroup, useForwardProps } from 'reka-ui';
 
-const props = defineProps<SelectGroupProps>()
+const props = defineProps<SelectGroupProps>();
 
-const forwardedProps = useForwardProps(props)
+const forwardedProps = useForwardProps(props);
 </script>
 
 <template>

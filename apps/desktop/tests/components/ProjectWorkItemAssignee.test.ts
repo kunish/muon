@@ -63,11 +63,12 @@ const InputStub = defineComponent({
   },
   emits: ['update:modelValue'],
   setup(props, { attrs, emit }) {
-    return () => h('input', {
-      ...attrs,
-      value: props.modelValue,
-      onInput: (event: Event) => emit('update:modelValue', (event.target as HTMLInputElement).value),
-    })
+    return () =>
+      h('input', {
+        ...attrs,
+        value: props.modelValue,
+        onInput: (event: Event) => emit('update:modelValue', (event.target as HTMLInputElement).value),
+      })
   },
 })
 
@@ -81,11 +82,12 @@ const TextareaStub = defineComponent({
   },
   emits: ['update:modelValue'],
   setup(props, { attrs, emit }) {
-    return () => h('textarea', {
-      ...attrs,
-      value: props.modelValue,
-      onInput: (event: Event) => emit('update:modelValue', (event.target as HTMLTextAreaElement).value),
-    })
+    return () =>
+      h('textarea', {
+        ...attrs,
+        value: props.modelValue,
+        onInput: (event: Event) => emit('update:modelValue', (event.target as HTMLTextAreaElement).value),
+      })
   },
 })
 
@@ -99,11 +101,16 @@ const AssigneePickerStub = defineComponent({
   },
   emits: ['update:modelValue'],
   setup(props, { attrs, emit }) {
-    return () => h('button', {
-      ...attrs,
-      type: 'button',
-      onClick: () => emit('update:modelValue', '@alice:localhost'),
-    }, props.modelValue || '选择负责人')
+    return () =>
+      h(
+        'button',
+        {
+          ...attrs,
+          type: 'button',
+          onClick: () => emit('update:modelValue', '@alice:localhost'),
+        },
+        props.modelValue || '选择负责人',
+      )
   },
 })
 
@@ -209,7 +216,9 @@ describe('project work item assignee editing', () => {
 
     expect(wrapper.text()).toContain('自定义字段')
     expect(wrapper.text()).toContain('验收分')
-    expect((wrapper.get('[data-testid="project-task-custom-field-cf_score"]').element as HTMLInputElement).value).toBe('3')
+    expect((wrapper.get('[data-testid="project-task-custom-field-cf_score"]').element as HTMLInputElement).value).toBe(
+      '3',
+    )
 
     await wrapper.get('[data-testid="project-task-custom-field-cf_score"]').setValue('8')
     await flushPromises()
@@ -254,17 +263,23 @@ describe('project work item assignee editing', () => {
 
     await flushPromises()
 
-    expect((wrapper.get('[data-testid="project-task-custom-field-cf_stage"]').element as HTMLSelectElement).value).toBe('待确认')
+    expect((wrapper.get('[data-testid="project-task-custom-field-cf_stage"]').element as HTMLSelectElement).value).toBe(
+      '待确认',
+    )
 
     await wrapper.get('[data-testid="project-task-custom-field-cf_stage"]').setValue('通过')
     await flushPromises()
 
-    expect(storeMock.updateItem).toHaveBeenCalledWith('item-1', { customFields: { cf_stage: '通过', cf_tags: ['移动端'] } })
+    expect(storeMock.updateItem).toHaveBeenCalledWith('item-1', {
+      customFields: { cf_stage: '通过', cf_tags: ['移动端'] },
+    })
 
     await wrapper.get('[data-testid="project-task-custom-field-cf_tags-option-1"]').setValue(true)
     await flushPromises()
 
-    expect(storeMock.updateItem).toHaveBeenCalledWith('item-1', { customFields: { cf_stage: '待确认', cf_tags: ['移动端', '桌面端'] } })
+    expect(storeMock.updateItem).toHaveBeenCalledWith('item-1', {
+      customFields: { cf_stage: '待确认', cf_tags: ['移动端', '桌面端'] },
+    })
   })
 
   it('shows readable workflow transition actions in the task detail drawer', async () => {
@@ -273,9 +288,7 @@ describe('project work item assignee editing', () => {
         { key: 'todo', name: '待办', color: '#e5e7eb', category: 'todo' },
         { key: 'done', name: '已完成', color: '#22c55e', category: 'done' },
       ],
-      transitions: [
-        { from: 'todo', to: 'done', name: '完成验收' },
-      ],
+      transitions: [{ from: 'todo', to: 'done', name: '完成验收' }],
     })
 
     const wrapper = mount(WorkItemDetail, {
@@ -317,7 +330,10 @@ describe('project work item assignee editing', () => {
     await selects[0].vm.$emit('update:modelValue', 'bug')
     await selects[1].vm.$emit('update:modelValue', 'high')
 
-    await wrapper.findAll('button').find(button => button.text() === '确定')!.trigger('click')
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text() === '确定')!
+      .trigger('click')
     await flushPromises()
 
     expect(storeMock.createItem).toHaveBeenCalledWith('project-1', {

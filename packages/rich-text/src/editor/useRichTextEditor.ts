@@ -23,7 +23,7 @@ export interface MentionPopupState {
   items: MentionItem[]
   selectedIndex: number
   clientRect: (() => DOMRect | null) | null
-  command: ((item: { id: string, label: string }) => void) | null
+  command: ((item: { id: string; label: string }) => void) | null
 }
 
 export interface PendingMediaAttachment {
@@ -61,8 +61,8 @@ const PendingMedia = TiptapNode.create<PendingMediaOptions>({
     return {
       id: {
         default: null,
-        parseHTML: element => element.getAttribute('data-pending-media-id'),
-        renderHTML: attributes => ({
+        parseHTML: (element) => element.getAttribute('data-pending-media-id'),
+        renderHTML: (attributes) => ({
           'data-pending-media-id': attributes.id,
         }),
       },
@@ -89,7 +89,8 @@ const PendingMedia = TiptapNode.create<PendingMediaOptions>({
       dom.dataset.pendingMediaId = id
       dom.dataset.testid = 'pending-paste-attachment'
       dom.contentEditable = 'false'
-      dom.className = 'my-1 flex w-fit max-w-[360px] items-center gap-2 rounded-md border border-border/70 bg-background p-1.5 text-xs text-foreground shadow-sm'
+      dom.className =
+        'my-1 flex w-fit max-w-[360px] items-center gap-2 rounded-md border border-border/70 bg-background p-1.5 text-xs text-foreground shadow-sm'
 
       const previewShell = document.createElement(attachment?.previewUrl ? 'button' : 'div')
       previewShell.className = 'flex h-16 w-28 shrink-0 items-center justify-center overflow-hidden rounded bg-muted'
@@ -110,8 +111,7 @@ const PendingMedia = TiptapNode.create<PendingMediaOptions>({
         image.alt = attachment.file.name || 'image'
         image.className = 'h-full w-full object-contain'
         previewShell.append(image)
-      }
-      else if (attachment?.previewUrl && attachment.kind === 'video') {
+      } else if (attachment?.previewUrl && attachment.kind === 'video') {
         const video = document.createElement('video')
         video.dataset.testid = 'pending-paste-video-preview'
         video.src = attachment.previewUrl
@@ -120,8 +120,7 @@ const PendingMedia = TiptapNode.create<PendingMediaOptions>({
         video.playsInline = true
         video.preload = 'metadata'
         previewShell.append(video)
-      }
-      else {
+      } else {
         const fallback = document.createElement('span')
         fallback.className = attachment?.kind === 'file' ? 'text-muted-foreground' : 'text-primary'
         fallback.textContent = attachment?.kind === 'video' ? 'VID' : attachment?.kind === 'image' ? 'IMG' : 'FILE'
@@ -141,7 +140,8 @@ const PendingMedia = TiptapNode.create<PendingMediaOptions>({
 
       const remove = document.createElement('button')
       remove.type = 'button'
-      remove.className = 'inline-flex h-5 w-5 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-foreground'
+      remove.className =
+        'inline-flex h-5 w-5 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-foreground'
       remove.title = 'Delete'
       remove.textContent = 'x'
       remove.addEventListener('click', (event) => {
@@ -207,7 +207,7 @@ export function useRichTextEditor(options: {
         render: () => {
           let selectedIndex = 0
           let currentItems: MentionItem[] = []
-          let currentCommand: ((item: { id: string, label: string }) => void) | null = null
+          let currentCommand: ((item: { id: string; label: string }) => void) | null = null
           let lastClientRect: (() => DOMRect | null) | null = null
 
           function emitState(visible: boolean) {
@@ -223,7 +223,7 @@ export function useRichTextEditor(options: {
           /** TipTap suggestion callback props — @tiptap/suggestion is not a direct dependency */
           interface SuggestionCallbackProps {
             items: MentionItem[]
-            command: (item: { id: string, label: string }) => void
+            command: (item: { id: string; label: string }) => void
             clientRect?: (() => DOMRect | null) | null
           }
 
@@ -233,7 +233,7 @@ export function useRichTextEditor(options: {
               selectedIndex = 0
               currentItems = props.items
               lastClientRect = props.clientRect ?? null
-              currentCommand = (item: { id: string, label: string }) => {
+              currentCommand = (item: { id: string; label: string }) => {
                 props.command({ id: item.id, label: item.label })
               }
               emitState(true)
@@ -242,7 +242,7 @@ export function useRichTextEditor(options: {
               selectedIndex = 0
               currentItems = props.items
               lastClientRect = props.clientRect ?? null
-              currentCommand = (item: { id: string, label: string }) => {
+              currentCommand = (item: { id: string; label: string }) => {
                 props.command({ id: item.id, label: item.label })
               }
               emitState(true)
@@ -257,9 +257,7 @@ export function useRichTextEditor(options: {
                 return true
               }
               if (event.key === 'ArrowDown') {
-                selectedIndex = currentItems.length
-                  ? (selectedIndex + 1) % currentItems.length
-                  : 0
+                selectedIndex = currentItems.length ? (selectedIndex + 1) % currentItems.length : 0
                 emitState(true)
                 return true
               }
@@ -307,21 +305,19 @@ export function useRichTextEditor(options: {
         const mediaSources = getClipboardHtmlMediaSources(html)
         if (mediaSources.length && options.onPasteMediaSources) {
           event.preventDefault()
-          void Promise.resolve(options.onPasteMediaSources(mediaSources))
-            .then((attachmentIds) => {
-              if (attachmentIds.length) {
-                insertHtmlWithPendingMedia(html, attachmentIds)
-                return
-              }
-              insertHtmlWithoutMedia(html)
-            })
+          void Promise.resolve(options.onPasteMediaSources(mediaSources)).then((attachmentIds) => {
+            if (attachmentIds.length) {
+              insertHtmlWithPendingMedia(html, attachmentIds)
+              return
+            }
+            insertHtmlWithoutMedia(html)
+          })
           return true
         }
 
         const text = event.clipboardData?.getData('text/plain') ?? ''
         const markdown = renderMarkdownForMatrix(text)
-        if (!markdown)
-          return false
+        if (!markdown) return false
 
         event.preventDefault()
         editor.value?.chain().focus().insertContent(markdown.formattedBody).run()
@@ -330,15 +326,13 @@ export function useRichTextEditor(options: {
       handleKeyDown(_view, event) {
         if (event.key === 'Enter' && !event.shiftKey && toValue(options.submitOnEnter) !== false) {
           // mention popup 打开时不拦截 Enter，让 suggestion 处理选择
-          if (mentionActive)
-            return false
+          if (mentionActive) return false
 
           event.preventDefault()
           // 使用 TipTap 的 getHTML() 确保 mention 节点被正确序列化
           const html = editor.value?.getHTML() || ''
           const text = editor.value?.getText() || ''
-          if (text.trim() || toValue(options.canSubmit))
-            options.onSubmit(html, text)
+          if (text.trim() || toValue(options.canSubmit)) options.onSubmit(html, text)
           return true
         }
         return false
@@ -356,31 +350,32 @@ export function useRichTextEditor(options: {
   }
 
   function insertPendingMediaAttachment(id: string) {
-    editor.value?.chain().focus().insertContent([
-      {
-        type: 'pendingMedia',
-        attrs: { id },
-      },
-      {
-        type: 'paragraph',
-      },
-    ]).run()
+    editor.value
+      ?.chain()
+      .focus()
+      .insertContent([
+        {
+          type: 'pendingMedia',
+          attrs: { id },
+        },
+        {
+          type: 'paragraph',
+        },
+      ])
+      .run()
   }
 
   function insertHtmlWithoutMedia(html: string) {
     const strippedHtml = stripMediaElementsFromHtml(html)
     const safeHtml = sanitizeMatrixHtml(strippedHtml)
-    if (!safeHtml)
-      return
+    if (!safeHtml) return
     editor.value?.chain().focus().insertContent(safeHtml).run()
   }
 
   function insertHtmlWithPendingMedia(html: string, attachmentIds: string[]) {
     const fragments = createPasteInsertFragments(html, attachmentIds)
-    if (!fragments.length)
-      return
-    if (!editor.value)
-      return
+    if (!fragments.length) return
+    if (!editor.value) return
     const content: JSONContent[] = []
     for (const fragment of fragments) {
       if (fragment.type === 'html') {
@@ -392,8 +387,7 @@ export function useRichTextEditor(options: {
         attrs: { id: fragment.id },
       })
     }
-    if (content.length)
-      editor.value.chain().focus().insertContent(content).run()
+    if (content.length) editor.value.chain().focus().insertContent(content).run()
   }
 
   function htmlFragmentToContent(html: string): JSONContent[] {
@@ -414,21 +408,18 @@ export function useRichTextEditor(options: {
 }
 
 function formatPendingFileSize(size: number): string {
-  if (size < 1024)
-    return `${size} B`
-  if (size < 1024 * 1024)
-    return `${(size / 1024).toFixed(1)} KB`
+  if (size < 1024) return `${size} B`
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`
   return `${(size / 1024 / 1024).toFixed(1)} MB`
 }
 
 function getClipboardFiles(data: DataTransfer | null): File[] {
   const files = Array.from(data?.files ?? [])
-  if (files.length)
-    return files
+  if (files.length) return files
 
   return Array.from(data?.items ?? [])
-    .filter(item => item.kind === 'file')
-    .map(item => item.getAsFile())
+    .filter((item) => item.kind === 'file')
+    .map((item) => item.getAsFile())
     .filter((file): file is File => Boolean(file))
 }
 
@@ -436,17 +427,13 @@ const MEDIA_SELECTOR = 'img, video, audio, source, picture, canvas, iframe, obje
 const EMPTY_BLOCK_SELECTOR = 'p, div, span, figure'
 
 function getClipboardHtmlMediaSources(html: string): PastedMediaSource[] {
-  if (!html || typeof DOMParser === 'undefined')
-    return []
+  if (!html || typeof DOMParser === 'undefined') return []
 
   const doc = new DOMParser().parseFromString(html, 'text/html')
   const sources: PastedMediaSource[] = []
   for (const [index, image] of Array.from(doc.body.querySelectorAll<HTMLImageElement>('img[src]')).entries()) {
-    const src = image.getAttribute('data-rich-media-mxc-src')?.trim()
-      || image.getAttribute('src')?.trim()
-      || ''
-    if (!src)
-      continue
+    const src = image.getAttribute('data-rich-media-mxc-src')?.trim() || image.getAttribute('src')?.trim() || ''
+    if (!src) continue
     sources.push({
       index,
       src,
@@ -458,44 +445,36 @@ function getClipboardHtmlMediaSources(html: string): PastedMediaSource[] {
 }
 
 function getPastedMediaName(image: HTMLImageElement, src: string): string {
-  const name = image.getAttribute('alt')?.trim()
-    || image.getAttribute('title')?.trim()
-    || getFileNameFromUrl(src)
-    || 'image.png'
+  const name =
+    image.getAttribute('alt')?.trim() || image.getAttribute('title')?.trim() || getFileNameFromUrl(src) || 'image.png'
 
   return name.includes('.') ? name : `${name}.png`
 }
 
 function getFileNameFromUrl(src: string): string {
   try {
-    if (src.startsWith('data:'))
-      return ''
+    if (src.startsWith('data:')) return ''
 
     const url = new URL(src, window.location.href)
     return decodeURIComponent(url.pathname.split('/').filter(Boolean).at(-1) ?? '')
-  }
-  catch {
+  } catch {
     return ''
   }
 }
 
 function stripMediaElementsFromHtml(html: string): string {
-  if (!html || typeof DOMParser === 'undefined')
-    return ''
+  if (!html || typeof DOMParser === 'undefined') return ''
 
   const doc = new DOMParser().parseFromString(html, 'text/html')
-  doc.body.querySelectorAll(MEDIA_SELECTOR).forEach(element => element.remove())
+  doc.body.querySelectorAll(MEDIA_SELECTOR).forEach((element) => element.remove())
   pruneEmptyElements(doc.body)
   return doc.body.innerHTML.trim()
 }
 
-type PasteInsertFragment
-  = | { type: 'html', html: string }
-    | { type: 'media', id: string }
+type PasteInsertFragment = { type: 'html'; html: string } | { type: 'media'; id: string }
 
 function createPasteInsertFragments(html: string, attachmentIds: string[]): PasteInsertFragment[] {
-  if (!html || typeof DOMParser === 'undefined')
-    return []
+  if (!html || typeof DOMParser === 'undefined') return []
 
   const doc = new DOMParser().parseFromString(html, 'text/html')
   const fragments: PasteInsertFragment[] = []
@@ -506,41 +485,34 @@ function createPasteInsertFragments(html: string, attachmentIds: string[]): Past
       const element = node as Element
       if (isMediaOnlyBlock(element)) {
         const attachmentId = attachmentIds[mediaIndex++]
-        if (attachmentId)
-          fragments.push({ type: 'media', id: attachmentId })
+        if (attachmentId) fragments.push({ type: 'media', id: attachmentId })
         continue
       }
 
       const clonedElement = element.cloneNode(true) as Element
       clonedElement.querySelectorAll(MEDIA_SELECTOR).forEach((mediaElement) => {
         const attachmentId = attachmentIds[mediaIndex++]
-        if (attachmentId)
-          fragments.push({ type: 'media', id: attachmentId })
+        if (attachmentId) fragments.push({ type: 'media', id: attachmentId })
         mediaElement.remove()
       })
       pruneEmptyElements(clonedElement)
       const safeHtml = sanitizeMatrixHtml(clonedElement.outerHTML.trim())
-      if (safeHtml)
-        fragments.push({ type: 'html', html: safeHtml })
+      if (safeHtml) fragments.push({ type: 'html', html: safeHtml })
       continue
     }
 
     const text = node.textContent?.trim()
-    if (text)
-      fragments.push({ type: 'html', html: text })
+    if (text) fragments.push({ type: 'html', html: text })
   }
   return fragments
 }
 
 function isMediaOnlyBlock(element: Element): boolean {
-  if (!['p', 'figure'].includes(element.tagName.toLowerCase()))
-    return false
+  if (!['p', 'figure'].includes(element.tagName.toLowerCase())) return false
 
   return Array.from(element.childNodes).every((node) => {
-    if (node.nodeType === Node.TEXT_NODE)
-      return !(node.textContent ?? '').trim()
-    if (node.nodeType !== Node.ELEMENT_NODE)
-      return false
+    if (node.nodeType === Node.TEXT_NODE) return !(node.textContent ?? '').trim()
+    if (node.nodeType !== Node.ELEMENT_NODE) return false
     return (node as Element).matches(MEDIA_SELECTOR)
   })
 }
@@ -550,12 +522,9 @@ function pruneEmptyElements(root: ParentNode) {
   do {
     removed = false
     root.querySelectorAll(EMPTY_BLOCK_SELECTOR).forEach((element) => {
-      if (element.hasAttribute('data-pending-media-id'))
-        return
-      if (element.textContent?.trim())
-        return
-      if (element.querySelector('a[href], br'))
-        return
+      if (element.hasAttribute('data-pending-media-id')) return
+      if (element.textContent?.trim()) return
+      if (element.querySelector('a[href], br')) return
       element.remove()
       removed = true
     })

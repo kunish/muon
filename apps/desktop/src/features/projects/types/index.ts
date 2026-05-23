@@ -4,22 +4,22 @@ import { z } from 'zod'
 // Enums
 // ---------------------------------------------------------------------------
 export const WORK_ITEM_TYPES = ['task', 'bug', 'milestone', 'epic'] as const
-export type WorkItemType = typeof WORK_ITEM_TYPES[number]
+export type WorkItemType = (typeof WORK_ITEM_TYPES)[number]
 
 export const PRIORITIES = ['none', 'low', 'medium', 'high', 'urgent'] as const
-export type Priority = typeof PRIORITIES[number]
+export type Priority = (typeof PRIORITIES)[number]
 
 export const PROJECT_VISIBILITY = ['private', 'team', 'public'] as const
-export type ProjectVisibility = typeof PROJECT_VISIBILITY[number]
+export type ProjectVisibility = (typeof PROJECT_VISIBILITY)[number]
 
 export const PROJECT_TEMPLATES = ['kanban', 'scrum', 'custom'] as const
-export type ProjectTemplate = typeof PROJECT_TEMPLATES[number]
+export type ProjectTemplate = (typeof PROJECT_TEMPLATES)[number]
 
 export const CUSTOM_FIELD_TYPES = ['text', 'number', 'select', 'multiSelect', 'date', 'user', 'url'] as const
-export type CustomFieldType = typeof CUSTOM_FIELD_TYPES[number]
+export type CustomFieldType = (typeof CUSTOM_FIELD_TYPES)[number]
 
 export const STATUS_CATEGORIES = ['todo', 'in_progress', 'done'] as const
-export type StatusCategory = typeof STATUS_CATEGORIES[number]
+export type StatusCategory = (typeof STATUS_CATEGORIES)[number]
 
 // ---------------------------------------------------------------------------
 // Project
@@ -117,7 +117,7 @@ export const PROJECT_SYNC_EVENT_TYPES = [
   'muon.project.field.update',
 ] as const
 
-export type ProjectSyncEventType = typeof PROJECT_SYNC_EVENT_TYPES[number]
+export type ProjectSyncEventType = (typeof PROJECT_SYNC_EVENT_TYPES)[number]
 
 export interface ProjectSyncPayload {
   type: ProjectSyncEventType

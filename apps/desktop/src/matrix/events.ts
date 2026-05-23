@@ -6,17 +6,17 @@ import { getClient } from './client'
 
 // eslint-disable-next-line ts/consistent-type-definitions
 type MatrixEvents = {
-  'room.message': { roomId: string, event: MatrixEvent }
-  'room.decrypted': { roomId: string, event: MatrixEvent }
-  'room.redaction': { roomId: string, eventId: string }
+  'room.message': { roomId: string; event: MatrixEvent }
+  'room.decrypted': { roomId: string; event: MatrixEvent }
+  'room.redaction': { roomId: string; eventId: string }
   'room.timeline': { roomId: string }
   'room.localEchoUpdated': { roomId: string }
-  'room.typing': { roomId: string, userIds: string[] }
-  'room.receipt': { roomId: string, eventId: string, userId: string }
-  'room.member': { roomId: string, userId: string, membership: string }
+  'room.typing': { roomId: string; userIds: string[] }
+  'room.receipt': { roomId: string; eventId: string; userId: string }
+  'room.member': { roomId: string; userId: string; membership: string }
   'sync.state': { state: SyncState }
   'space.update': { spaceId: string }
-  'space.member': { spaceId: string, userId: string, membership: string }
+  'space.member': { spaceId: string; userId: string; membership: string }
 }
 
 export const matrixEvents = mitt<MatrixEvents>()
@@ -24,32 +24,32 @@ export const matrixEvents = mitt<MatrixEvents>()
 let bound = false
 
 export function bindClientEvents(): void {
-  if (bound)
-    return
+  if (bound) return
   const client = getClient()
 
-  client.on(RoomEvent.Timeline, (
-    event: MatrixEvent,
-    room: Room | undefined,
-    _toStartOfTimeline?: boolean,
-    _removed?: boolean,
-    data?: { liveEvent?: boolean },
-  ) => {
-    if (!room)
-      return
-    matrixEvents.emit('room.timeline', { roomId: room.roomId })
-    if (data?.liveEvent === true && event.getType() === 'm.room.message') {
-      matrixEvents.emit('room.message', {
-        roomId: room.roomId,
-        event,
-      })
-    }
-  })
+  client.on(
+    RoomEvent.Timeline,
+    (
+      event: MatrixEvent,
+      room: Room | undefined,
+      _toStartOfTimeline?: boolean,
+      _removed?: boolean,
+      data?: { liveEvent?: boolean },
+    ) => {
+      if (!room) return
+      matrixEvents.emit('room.timeline', { roomId: room.roomId })
+      if (data?.liveEvent === true && event.getType() === 'm.room.message') {
+        matrixEvents.emit('room.message', {
+          roomId: room.roomId,
+          event,
+        })
+      }
+    },
+  )
 
   client.on(MatrixEventEvent.Decrypted, (event: MatrixEvent) => {
     const roomId = event.getRoomId()
-    if (!roomId)
-      return
+    if (!roomId) return
     matrixEvents.emit('room.decrypted', { roomId, event })
     matrixEvents.emit('room.timeline', { roomId })
   })
@@ -68,9 +68,9 @@ export function bindClientEvents(): void {
 
   client.on(RoomMemberEvent.Typing, (_event: MatrixEvent, member: RoomMember) => {
     const room = client.getRoom(member.roomId)
-    if (!room)
-      return
-    const typingMembers = room.getMembers()
+    if (!room) return
+    const typingMembers = room
+      .getMembers()
       .filter((m: RoomMember) => m.typing)
       .map((m: RoomMember) => m.userId)
     matrixEvents.emit('room.typing', {
@@ -125,12 +125,10 @@ export function bindClientEvents(): void {
 }
 
 export function unbindClientEvents(): void {
-  if (!bound)
-    return
+  if (!bound) return
   try {
     getClient().removeAllListeners()
-  }
-  catch {
+  } catch {
     // client may already be destroyed
   }
   bound = false

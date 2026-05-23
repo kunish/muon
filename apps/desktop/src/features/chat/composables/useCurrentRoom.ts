@@ -6,8 +6,7 @@ export function useCurrentRoom() {
   const store = useChatStore()
 
   const room = computed(() => {
-    if (!store.currentRoomId)
-      return null
+    if (!store.currentRoomId) return null
     return getRoom(store.currentRoomId)
   })
 

@@ -1,26 +1,24 @@
 <script setup lang="ts">
-import { MapPin } from 'lucide-vue-next'
-import { computed } from 'vue'
+import { MapPin } from 'lucide-vue-next';
+import { computed } from 'vue';
 
 const props = defineProps<{
-  geoUri: string
-  body: string
-}>()
+  geoUri: string;
+  body: string;
+}>();
 
-const GEO_URI_RE = /^geo:([-\d.]+),([-\d.]+)/
+const GEO_URI_RE = /^geo:([-\d.]+),([-\d.]+)/;
 
 const coords = computed(() => {
-  const match = props.geoUri.match(GEO_URI_RE)
-  if (!match)
-    return null
-  return { lat: Number.parseFloat(match[1]), lng: Number.parseFloat(match[2]) }
-})
+  const match = props.geoUri.match(GEO_URI_RE);
+  if (!match) return null;
+  return { lat: Number.parseFloat(match[1]), lng: Number.parseFloat(match[2]) };
+});
 
 const osmUrl = computed(() => {
-  if (!coords.value)
-    return ''
-  return `https://www.openstreetmap.org/?mlat=${coords.value.lat}&mlon=${coords.value.lng}#map=16/${coords.value.lat}/${coords.value.lng}`
-})
+  if (!coords.value) return '';
+  return `https://www.openstreetmap.org/?mlat=${coords.value.lat}&mlon=${coords.value.lng}#map=16/${coords.value.lat}/${coords.value.lng}`;
+});
 </script>
 
 <template>
@@ -36,9 +34,7 @@ const osmUrl = computed(() => {
     </div>
     <div class="flex flex-col gap-0.5 min-w-0">
       <span class="text-sm font-medium text-foreground truncate">{{ body }}</span>
-      <span class="text-[11px] text-muted-foreground">
-        {{ coords.lat.toFixed(6) }}, {{ coords.lng.toFixed(6) }}
-      </span>
+      <span class="text-[11px] text-muted-foreground"> {{ coords.lat.toFixed(6) }}, {{ coords.lng.toFixed(6) }} </span>
     </div>
   </a>
 </template>

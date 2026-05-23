@@ -1,0 +1,15 @@
+{
+  "endOfLine": "lf",
+  "overrides": [
+    {
+      "files": "**/*.vue",
+      "options": {
+        "semi": true
+      }
+    }
+  ],
+  "printWidth": 120,
+  "semi": false,
+  "singleQuote": true,
+  "trailingComma": "all"
+}

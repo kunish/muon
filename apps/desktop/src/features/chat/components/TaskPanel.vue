@@ -1,30 +1,30 @@
 <script setup lang="ts">
-import type { TaskItem } from '../types/task'
-import { computed } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
-import { preloadAndNavigate } from '@/shared/lib/contextPreload'
-import { useTaskStore } from '../stores/taskStore'
+import type { TaskItem } from '../types/task';
+import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useRouter } from 'vue-router';
+import { preloadAndNavigate } from '@/shared/lib/contextPreload';
+import { useTaskStore } from '../stores/taskStore';
 
-const { t } = useI18n()
-const taskStore = useTaskStore()
-const router = useRouter()
+const { t } = useI18n();
+const taskStore = useTaskStore();
+const router = useRouter();
 
-const taskGroups = computed(() => taskStore.tasksByStatus)
+const taskGroups = computed(() => taskStore.tasksByStatus);
 
 const statusMeta: Record<'todo' | 'doing' | 'done', { label: string }> = {
   todo: { label: t('chat.task_status_todo') },
   doing: { label: t('chat.task_status_doing') },
   done: { label: t('chat.task_status_done') },
-}
+};
 
 function transitionTask(task: TaskItem, to: 'todo' | 'doing' | 'done') {
-  taskStore.transitionStatus(task.id, to)
+  taskStore.transitionStatus(task.id, to);
 }
 
 async function jumpToSourceMessage(task: TaskItem) {
-  const { roomId, eventId } = task.sourceRef
-  await preloadAndNavigate(router, roomId, eventId, 'TaskPanel')
+  const { roomId, eventId } = task.sourceRef;
+  await preloadAndNavigate(router, roomId, eventId, 'TaskPanel');
 }
 </script>
 

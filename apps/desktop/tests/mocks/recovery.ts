@@ -56,7 +56,7 @@ export function createRecoveryRoom(options: MockRecoveryRoomOptions) {
     joinedMembers = ['@self:localhost', '@alice:example.com'],
   } = options
 
-  const members = joinedMembers.map(userId => ({
+  const members = joinedMembers.map((userId) => ({
     userId,
     name: userId === '@self:localhost' ? 'Self User' : userId.split(':')[0]?.slice(1),
     getMxcAvatarUrl: () => null,
@@ -70,11 +70,10 @@ export function createRecoveryRoom(options: MockRecoveryRoomOptions) {
     getMyMembership: () => 'join',
     getJoinedMembers: () => members,
     getJoinedMemberCount: () => members.length,
-    getMember: (userId: string) => members.find(member => member.userId === userId) ?? null,
+    getMember: (userId: string) => members.find((member) => member.userId === userId) ?? null,
     getMxcAvatarUrl: () => null,
     getUnreadNotificationCount: (type: NotificationCountType) => {
-      if (type === NotificationCountType.Highlight)
-        return highlightCount
+      if (type === NotificationCountType.Highlight) return highlightCount
       return unreadCount
     },
     getLiveTimeline: vi.fn(() => createTimeline(liveTimelineEvents)),

@@ -22,8 +22,7 @@ function clampWidth(width: number, minWidth: number, maxWidth: number): number {
 function readStorageValue(key: string): string | null {
   try {
     return globalThis.localStorage?.getItem(key) ?? null
-  }
-  catch {
+  } catch {
     return null
   }
 }
@@ -31,16 +30,14 @@ function readStorageValue(key: string): string | null {
 function writeStorageValue(key: string, value: string): void {
   try {
     globalThis.localStorage?.setItem(key, value)
-  }
-  catch {
+  } catch {
     // Persistence is best effort; pane controls still need to work.
   }
 }
 
 function readStoredPaneWidth(options: ResizablePaneOptions): number {
   const storedWidth = readStorageValue(options.widthStorageKey)
-  if (!storedWidth)
-    return options.defaultWidth
+  if (!storedWidth) return options.defaultWidth
 
   const parsedWidth = Number.parseInt(storedWidth, 10)
   return Number.isFinite(parsedWidth)
@@ -49,9 +46,7 @@ function readStoredPaneWidth(options: ResizablePaneOptions): number {
 }
 
 function readStoredCollapsed(options: ResizablePaneOptions): boolean {
-  return options.collapsedStorageKey !== undefined
-    ? readStorageValue(options.collapsedStorageKey) === 'true'
-    : false
+  return options.collapsedStorageKey !== undefined ? readStorageValue(options.collapsedStorageKey) === 'true' : false
 }
 
 export function useResizablePane(options: ResizablePaneOptions) {
@@ -68,14 +63,13 @@ export function useResizablePane(options: ResizablePaneOptions) {
   let previousBodyCursor = ''
   let previousBodyUserSelect = ''
 
-  const visiblePaneWidth = computed(() => canCollapse && isCollapsed.value ? collapsedWidth : paneWidth.value)
+  const visiblePaneWidth = computed(() => (canCollapse && isCollapsed.value ? collapsedWidth : paneWidth.value))
   const paneStyle = computed(() => ({
     width: `${visiblePaneWidth.value}px`,
   }))
 
   function setDocumentResizeState(active: boolean): void {
-    if (typeof document === 'undefined')
-      return
+    if (typeof document === 'undefined') return
 
     if (active) {
       previousBodyCursor = document.body.style.cursor
@@ -90,8 +84,7 @@ export function useResizablePane(options: ResizablePaneOptions) {
   }
 
   function stopResize(): void {
-    if (!isResizing.value)
-      return
+    if (!isResizing.value) return
 
     isResizing.value = false
     if (typeof window !== 'undefined') {
@@ -103,8 +96,7 @@ export function useResizablePane(options: ResizablePaneOptions) {
   }
 
   function onResizeMove(event: PointerEvent): void {
-    if (!isResizing.value)
-      return
+    if (!isResizing.value) return
 
     const nextWidth = resizeStartWidth.value + event.clientX - resizeStartX.value
     if (canCollapse && options.collapseThreshold !== undefined) {
@@ -120,18 +112,15 @@ export function useResizablePane(options: ResizablePaneOptions) {
   }
 
   function startResize(event: PointerEvent): void {
-    if (event.button !== 0)
-      return
+    if (event.button !== 0) return
 
-    if (canCollapse && isCollapsed.value && !options.resizeFromCollapsed)
-      return
+    if (canCollapse && isCollapsed.value && !options.resizeFromCollapsed) return
 
     event.preventDefault()
     isResizing.value = true
     resizeStartX.value = event.clientX
     resizeStartWidth.value = canCollapse && isCollapsed.value ? collapsedWidth : paneWidth.value
-    if (canCollapse && options.collapseThreshold === undefined)
-      isCollapsed.value = false
+    if (canCollapse && options.collapseThreshold === undefined) isCollapsed.value = false
     setDocumentResizeState(true)
 
     if (typeof window !== 'undefined') {
@@ -158,8 +147,7 @@ export function useResizablePane(options: ResizablePaneOptions) {
   }
 
   function resizeBy(delta: number): void {
-    if (canCollapse && isCollapsed.value)
-      return
+    if (canCollapse && isCollapsed.value) return
 
     paneWidth.value = clampWidth(paneWidth.value + delta, options.minWidth, options.maxWidth)
   }
@@ -197,10 +185,9 @@ export function useResizablePane(options: ResizablePaneOptions) {
   onMounted(readStoredPaneState)
   onUnmounted(stopResize)
 
-  watch(paneWidth, width => writeStorageValue(options.widthStorageKey, String(width)))
+  watch(paneWidth, (width) => writeStorageValue(options.widthStorageKey, String(width)))
   watch(isCollapsed, (collapsed) => {
-    if (options.collapsedStorageKey !== undefined)
-      writeStorageValue(options.collapsedStorageKey, String(collapsed))
+    if (options.collapsedStorageKey !== undefined) writeStorageValue(options.collapsedStorageKey, String(collapsed))
   })
 
   return {

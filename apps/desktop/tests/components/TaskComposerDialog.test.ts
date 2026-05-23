@@ -42,13 +42,15 @@ describe('task composer dialog', () => {
     await wrapper.get('[data-testid="task-due-at-input"]').setValue('2026-05-08T10:30')
     await wrapper.get('[data-testid="task-submit"]').trigger('click')
 
-    expect(wrapper.emitted('submit')).toEqual([[
-      {
-        title: '跟进上线风险',
-        assignee: '@bob:localhost',
-        dueAt: '2026-05-08T10:30',
-        status: 'todo',
-      },
-    ]])
+    expect(wrapper.emitted('submit')).toEqual([
+      [
+        {
+          title: '跟进上线风险',
+          assignee: '@bob:localhost',
+          dueAt: '2026-05-08T10:30',
+          status: 'todo',
+        },
+      ],
+    ])
   })
 })

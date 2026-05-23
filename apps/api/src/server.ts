@@ -19,8 +19,7 @@ async function main(): Promise<void> {
 
   createServer(async (incoming, outgoing) => {
     const chunks: Buffer[] = []
-    for await (const chunk of incoming)
-      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))
+    for await (const chunk of incoming) chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))
 
     const request = new Request(new URL(incoming.url ?? '/', config.apiBaseUrl), {
       body: incoming.method === 'GET' || incoming.method === 'HEAD' ? undefined : Buffer.concat(chunks),

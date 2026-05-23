@@ -22,7 +22,7 @@ export function useDocSync(docId: string) {
       const cachedRoom = client.getRoom(docId)
       let roomId = cachedRoom?.roomId ?? docId
       if (!cachedRoom) {
-        const result = await client.joinRoom(docId) as MatrixJoinRoomResult
+        const result = (await client.joinRoom(docId)) as MatrixJoinRoomResult
         roomId = result.roomId ?? result.room_id ?? docId
         roomId = client.getRoom(roomId)?.roomId ?? roomId
       }
@@ -31,8 +31,7 @@ export function useDocSync(docId: string) {
       provider.value.sendSnapshot()
       connected.value = true
       error.value = null
-    }
-    catch (e) {
+    } catch (e) {
       error.value = e instanceof Error ? e.message : 'Failed to connect'
       connected.value = false
     }

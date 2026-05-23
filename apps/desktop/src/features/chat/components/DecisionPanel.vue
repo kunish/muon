@@ -1,17 +1,17 @@
 <script setup lang="ts">
-import type { DecisionStatus, DecisionSuggestion, SuggestionDisposition } from '../types/decision'
-import { Textarea } from '@muon/ui/textarea'
-import { onMounted, reactive, ref, watch } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
-import { toast } from 'vue-sonner'
-import GroupMemberPicker from '@/features/contacts/components/GroupMemberPicker.vue'
-import { preloadAndNavigate } from '@/shared/lib/contextPreload'
-import { useDecisionStore } from '../stores/decisionStore'
+import type { DecisionStatus, DecisionSuggestion, SuggestionDisposition } from '../types/decision';
+import { Textarea } from '@muon/ui/textarea';
+import { onMounted, reactive, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useRouter } from 'vue-router';
+import { toast } from 'vue-sonner';
+import GroupMemberPicker from '@/features/contacts/components/GroupMemberPicker.vue';
+import { preloadAndNavigate } from '@/shared/lib/contextPreload';
+import { useDecisionStore } from '../stores/decisionStore';
 
-const decisionStore = useDecisionStore()
-const router = useRouter()
-const { locale, t } = useI18n()
+const decisionStore = useDecisionStore();
+const router = useRouter();
+const { locale, t } = useI18n();
 
 const form = reactive({
   conclusion: '',
@@ -20,20 +20,20 @@ const form = reactive({
   status: 'open' as const,
   roomId: '',
   eventId: '',
-})
-const ownerIds = ref<string[]>([])
+});
+const ownerIds = ref<string[]>([]);
 
 onMounted(async () => {
-  await decisionStore.hydrateCards()
-})
+  await decisionStore.hydrateCards();
+});
 
 watch(ownerIds, (ids) => {
   if (ids.length > 1) {
-    ownerIds.value = [ids[ids.length - 1]!]
-    return
+    ownerIds.value = [ids[ids.length - 1]!];
+    return;
   }
-  form.owner = ids[0] ?? ''
-})
+  form.owner = ids[0] ?? '';
+});
 
 async function saveDecisionCard() {
   const missingFields = [
@@ -43,13 +43,13 @@ async function saveDecisionCard() {
     { label: t('chat.decision_room_id'), value: form.roomId },
     { label: t('chat.decision_event_id'), value: form.eventId },
   ]
-    .filter(field => !field.value.trim())
-    .map(field => field.label)
+    .filter((field) => !field.value.trim())
+    .map((field) => field.label);
 
   if (missingFields.length > 0) {
-    const formatter = new Intl.ListFormat(locale.value, { type: 'conjunction' })
-    toast.error(t('chat.decision_missing_fields', { fields: formatter.format(missingFields) }))
-    return
+    const formatter = new Intl.ListFormat(locale.value, { type: 'conjunction' });
+    toast.error(t('chat.decision_missing_fields', { fields: formatter.format(missingFields) }));
+    return;
   }
 
   await decisionStore.createDecisionCard({
@@ -59,41 +59,39 @@ async function saveDecisionCard() {
     owner: form.owner.trim(),
     status: form.status,
     citations: [{ roomId: form.roomId.trim(), eventId: form.eventId.trim() }],
-  })
+  });
 }
 
 async function acceptSuggestion(decisionId: string, suggestionId: string) {
   try {
-    await decisionStore.setSuggestionDisposition(decisionId, suggestionId, 'accepted')
-  }
-  catch {
-    toast.error(t('auth.error'))
+    await decisionStore.setSuggestionDisposition(decisionId, suggestionId, 'accepted');
+  } catch {
+    toast.error(t('auth.error'));
   }
 }
 
 async function rejectSuggestion(decisionId: string, suggestionId: string) {
   try {
-    await decisionStore.setSuggestionDisposition(decisionId, suggestionId, 'rejected')
-  }
-  catch {
-    toast.error(t('auth.error'))
+    await decisionStore.setSuggestionDisposition(decisionId, suggestionId, 'rejected');
+  } catch {
+    toast.error(t('auth.error'));
   }
 }
 
 async function openLinkedMessage(roomId: string, eventId: string) {
-  await preloadAndNavigate(router, roomId, eventId, 'DecisionPanel')
+  await preloadAndNavigate(router, roomId, eventId, 'DecisionPanel');
 }
 
 function decisionStatusLabel(status: DecisionStatus) {
-  return t(`chat.decision_status_${status}`)
+  return t(`chat.decision_status_${status}`);
 }
 
 function suggestionKindLabel(kind: DecisionSuggestion['kind']) {
-  return t(`chat.decision_suggestion_kind_${kind}`)
+  return t(`chat.decision_suggestion_kind_${kind}`);
 }
 
 function suggestionDispositionLabel(disposition: SuggestionDisposition) {
-  return t(`chat.decision_suggestion_disposition_${disposition}`)
+  return t(`chat.decision_suggestion_disposition_${disposition}`);
 }
 </script>
 
@@ -106,17 +104,38 @@ function suggestionDispositionLabel(disposition: SuggestionDisposition) {
     </header>
 
     <div class="space-y-3 border-b border-border px-4 py-3">
-      <input v-model="form.conclusion" data-testid="decision-conclusion-input" class="w-full rounded-md border border-border px-3 py-2 text-sm" :placeholder="t('chat.decision_conclusion')">
-      <Textarea v-model="form.context" data-testid="decision-context-input" class="min-h-20 w-full rounded-md border border-border px-3 py-2 text-sm" :placeholder="t('chat.decision_context')" />
-      <GroupMemberPicker
-        v-model="ownerIds"
-        :label="t('chat.decision_owner')"
+      <input
+        v-model="form.conclusion"
+        data-testid="decision-conclusion-input"
+        class="w-full rounded-md border border-border px-3 py-2 text-sm"
+        :placeholder="t('chat.decision_conclusion')"
       />
+      <Textarea
+        v-model="form.context"
+        data-testid="decision-context-input"
+        class="min-h-20 w-full rounded-md border border-border px-3 py-2 text-sm"
+        :placeholder="t('chat.decision_context')"
+      />
+      <GroupMemberPicker v-model="ownerIds" :label="t('chat.decision_owner')" />
       <div class="grid grid-cols-2 gap-3">
-        <input v-model="form.roomId" data-testid="decision-room-input" class="rounded-md border border-border px-3 py-2 text-sm" :placeholder="t('chat.decision_room_id')">
-        <input v-model="form.eventId" data-testid="decision-event-input" class="rounded-md border border-border px-3 py-2 text-sm" :placeholder="t('chat.decision_event_id')">
+        <input
+          v-model="form.roomId"
+          data-testid="decision-room-input"
+          class="rounded-md border border-border px-3 py-2 text-sm"
+          :placeholder="t('chat.decision_room_id')"
+        />
+        <input
+          v-model="form.eventId"
+          data-testid="decision-event-input"
+          class="rounded-md border border-border px-3 py-2 text-sm"
+          :placeholder="t('chat.decision_event_id')"
+        />
       </div>
-      <button data-testid="decision-save-button" class="rounded-md border border-primary px-3 py-2 text-sm text-primary" @click="saveDecisionCard">
+      <button
+        data-testid="decision-save-button"
+        class="rounded-md border border-primary px-3 py-2 text-sm text-primary"
+        @click="saveDecisionCard"
+      >
         {{ t('chat.decision_save') }}
       </button>
     </div>
@@ -134,9 +153,7 @@ function suggestionDispositionLabel(disposition: SuggestionDisposition) {
         <p class="mt-1 text-sm text-muted-foreground">
           {{ card.context }}
         </p>
-        <div class="mt-2 text-xs text-muted-foreground">
-          {{ card.owner }} · {{ decisionStatusLabel(card.status) }}
-        </div>
+        <div class="mt-2 text-xs text-muted-foreground">{{ card.owner }} · {{ decisionStatusLabel(card.status) }}</div>
 
         <div v-if="card.citations.length" class="mt-3 space-y-2">
           <div class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -165,13 +182,22 @@ function suggestionDispositionLabel(disposition: SuggestionDisposition) {
               {{ suggestion.summary }}
             </div>
             <div class="mt-1 text-xs text-muted-foreground">
-              {{ suggestionKindLabel(suggestion.kind) }} · {{ t('chat.decision_suggestion_source_digest') }} · {{ suggestionDispositionLabel(suggestion.disposition) }}
+              {{ suggestionKindLabel(suggestion.kind) }} · {{ t('chat.decision_suggestion_source_digest') }} ·
+              {{ suggestionDispositionLabel(suggestion.disposition) }}
             </div>
             <div class="mt-2 flex gap-2">
-              <button class="rounded border border-border px-2 py-1 text-xs" :data-testid="`decision-accept-${suggestion.id}`" @click="acceptSuggestion(card.id, suggestion.id)">
+              <button
+                class="rounded border border-border px-2 py-1 text-xs"
+                :data-testid="`decision-accept-${suggestion.id}`"
+                @click="acceptSuggestion(card.id, suggestion.id)"
+              >
                 {{ t('chat.decision_accept') }}
               </button>
-              <button class="rounded border border-border px-2 py-1 text-xs" :data-testid="`decision-reject-${suggestion.id}`" @click="rejectSuggestion(card.id, suggestion.id)">
+              <button
+                class="rounded border border-border px-2 py-1 text-xs"
+                :data-testid="`decision-reject-${suggestion.id}`"
+                @click="rejectSuggestion(card.id, suggestion.id)"
+              >
                 {{ t('chat.decision_reject') }}
               </button>
             </div>

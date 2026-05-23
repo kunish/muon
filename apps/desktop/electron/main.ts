@@ -5,7 +5,11 @@ import { createRequire } from 'node:module'
 import { join } from 'node:path'
 import process from 'node:process'
 import { app, BrowserWindow, dialog, ipcMain, net, safeStorage, shell } from 'electron'
-import { ENTERPRISE_AUTH_CALLBACK_CHANNEL, extractEnterpriseAuthCallbackUrl, isEnterpriseAuthCallbackUrl } from './authCallback.js'
+import {
+  ENTERPRISE_AUTH_CALLBACK_CHANNEL,
+  extractEnterpriseAuthCallbackUrl,
+  isEnterpriseAuthCallbackUrl,
+} from './authCallback.js'
 
 let mainWindow: BrowserWindow | null = null
 const runtimeRequire = createRequire(__filename)
@@ -14,8 +18,7 @@ let closeToTrayEnabled = false
 let isQuitting = false
 
 function getMainWindow(): BrowserWindow {
-  if (!mainWindow || mainWindow.isDestroyed())
-    throw new Error('Main window is not available')
+  if (!mainWindow || mainWindow.isDestroyed()) throw new Error('Main window is not available')
 
   return mainWindow
 }
@@ -34,15 +37,13 @@ function getWorkspaceRoot(): string {
 
 function getDevelopmentAppIconPath(): string {
   const iconRoot = join(getWorkspaceRoot(), 'build', 'icons')
-  if (process.platform === 'win32')
-    return join(iconRoot, 'icon.ico')
+  if (process.platform === 'win32') return join(iconRoot, 'icon.ico')
 
   return join(iconRoot, 'png-set', 'icon.png')
 }
 
 function getRuntimeAppIconPath(): string | undefined {
-  if (app.isPackaged)
-    return undefined
+  if (app.isPackaged) return undefined
 
   const appIconPath = getDevelopmentAppIconPath()
   return existsSync(appIconPath) ? appIconPath : undefined
@@ -50,8 +51,7 @@ function getRuntimeAppIconPath(): string | undefined {
 
 function applyRuntimeAppIcon(): void {
   const appIconPath = getRuntimeAppIconPath()
-  if (process.platform === 'darwin' && appIconPath && app.dock)
-    app.dock.setIcon(appIconPath)
+  if (process.platform === 'darwin' && appIconPath && app.dock) app.dock.setIcon(appIconPath)
 }
 
 function sendEnterpriseAuthCallbackUrl(url: string): void {
@@ -73,11 +73,10 @@ function registerEnterpriseProtocol(): void {
 }
 
 function normalizeFilters(filters: unknown): Electron.FileFilter[] | undefined {
-  if (!Array.isArray(filters))
-    return undefined
+  if (!Array.isArray(filters)) return undefined
 
   return filters.map((filter) => {
-    const item = filter as { extensions?: unknown, name?: unknown }
+    const item = filter as { extensions?: unknown; name?: unknown }
     return {
       extensions: Array.isArray(item.extensions) ? item.extensions.map(String) : [],
       name: String(item.name || 'Files'),
@@ -86,12 +85,9 @@ function normalizeFilters(filters: unknown): Electron.FileFilter[] | undefined {
 }
 
 function normalizeMessageBoxKind(kind: unknown): Electron.MessageBoxOptions['type'] {
-  if (kind === 'error')
-    return 'error'
-  if (kind === 'warning')
-    return 'warning'
-  if (kind === 'info')
-    return 'info'
+  if (kind === 'error') return 'error'
+  if (kind === 'warning') return 'warning'
+  if (kind === 'info') return 'info'
   return 'question'
 }
 
@@ -105,17 +101,15 @@ function serializeHeaders(headers: Headers): Array<[string, string]> {
 
 function serializeRecordHeaders(headers: Record<string, string | string[]>): Array<[string, string]> {
   return Object.entries(headers).flatMap(([key, value]) =>
-    Array.isArray(value) ? value.map(item => [key, item] as [string, string]) : [[key, value]],
+    Array.isArray(value) ? value.map((item) => [key, item] as [string, string]) : [[key, value]],
   )
 }
 
 function requestHeadersToRecord(headers: Array<[string, string]> | undefined): Record<string, string> | undefined {
-  if (!headers)
-    return undefined
+  if (!headers) return undefined
 
   const result: Record<string, string> = {}
-  for (const [key, value] of headers)
-    result[key] = value
+  for (const [key, value] of headers) result[key] = value
   return result
 }
 
@@ -125,22 +119,22 @@ function bufferToArrayBuffer(buffer: Buffer): ArrayBuffer {
   return bytes.buffer
 }
 
-function deserializeBody(body: { kind?: string, value?: unknown } | undefined): BodyInit | undefined {
-  if (!body)
-    return undefined
+function deserializeBody(body: { kind?: string; value?: unknown } | undefined): BodyInit | undefined {
+  if (!body) return undefined
 
-  if (body.kind === 'bytes' && body.value instanceof ArrayBuffer)
-    return Buffer.from(body.value)
+  if (body.kind === 'bytes' && body.value instanceof ArrayBuffer) return Buffer.from(body.value)
 
   return typeof body.value === 'string' ? body.value : undefined
 }
 
-function normalizeFetchInit(init: {
-  body?: { kind?: string, value?: unknown }
-  headers?: Array<[string, string]>
-  method?: string
-  redirect?: RequestRedirect
-} = {}): RequestInit {
+function normalizeFetchInit(
+  init: {
+    body?: { kind?: string; value?: unknown }
+    headers?: Array<[string, string]>
+    method?: string
+    redirect?: RequestRedirect
+  } = {},
+): RequestInit {
   const body = deserializeBody(init.body)
   const normalized: RequestInit = {
     headers: init.headers,
@@ -148,15 +142,14 @@ function normalizeFetchInit(init: {
     redirect: init.redirect,
   }
 
-  if (body !== undefined)
-    normalized.body = body
+  if (body !== undefined) normalized.body = body
 
   return normalized
 }
 
 interface MainFetchRequest {
   init?: {
-    body?: { kind?: string, value?: unknown }
+    body?: { kind?: string; value?: unknown }
     headers?: Array<[string, string]>
     method?: string
     redirect?: RequestRedirect
@@ -197,8 +190,7 @@ function fetchManualRedirectResponse(fetchRequest: MainFetchRequest): Promise<Ma
     let settled = false
 
     function settle(fn: () => void): void {
-      if (settled)
-        return
+      if (settled) return
       settled = true
       fn()
     }
@@ -208,36 +200,39 @@ function fetchManualRedirectResponse(fetchRequest: MainFetchRequest): Promise<Ma
         ...responseHeaders,
         location: responseHeaders.location ?? [redirectUrl],
       })
-      settle(() => resolve({
-        body: new ArrayBuffer(0),
-        headers,
-        status: statusCode,
-        statusText: '',
-        url: fetchRequest.url,
-      }))
+      settle(() =>
+        resolve({
+          body: new ArrayBuffer(0),
+          headers,
+          status: statusCode,
+          statusText: '',
+          url: fetchRequest.url,
+        }),
+      )
     })
 
     manualRequest.on('response', (response) => {
       const chunks: Buffer[] = []
-      response.on('data', chunk => chunks.push(chunk))
+      response.on('data', (chunk) => chunks.push(chunk))
       response.on('end', () => {
         const body = bufferToArrayBuffer(Buffer.concat(chunks))
-        settle(() => resolve({
-          body,
-          headers: serializeRecordHeaders(response.headers),
-          status: response.statusCode,
-          statusText: response.statusMessage,
-          url: fetchRequest.url,
-        }))
+        settle(() =>
+          resolve({
+            body,
+            headers: serializeRecordHeaders(response.headers),
+            status: response.statusCode,
+            statusText: response.statusMessage,
+            url: fetchRequest.url,
+          }),
+        )
       })
-      response.on('error', error => settle(() => reject(error)))
+      response.on('error', (error) => settle(() => reject(error)))
     })
 
-    manualRequest.on('error', error => settle(() => reject(error)))
+    manualRequest.on('error', (error) => settle(() => reject(error)))
 
     const body = deserializeBody(init.body)
-    if (Buffer.isBuffer(body) || typeof body === 'string')
-      manualRequest.write(body)
+    if (Buffer.isBuffer(body) || typeof body === 'string') manualRequest.write(body)
     manualRequest.end()
   })
 }
@@ -249,19 +244,18 @@ function registerWindowIpc(): void {
 }
 
 function registerDialogIpc(): void {
-  ipcMain.handle('muon:dialog:open', async (_event, options: { filters?: unknown, multiple?: boolean } = {}) => {
+  ipcMain.handle('muon:dialog:open', async (_event, options: { filters?: unknown; multiple?: boolean } = {}) => {
     const result = await dialog.showOpenDialog(getMainWindow(), {
       filters: normalizeFilters(options.filters),
       properties: options.multiple ? ['openFile', 'multiSelections'] : ['openFile'],
     })
 
-    if (result.canceled || result.filePaths.length === 0)
-      return null
+    if (result.canceled || result.filePaths.length === 0) return null
 
     return options.multiple ? result.filePaths : result.filePaths[0]
   })
 
-  ipcMain.handle('muon:dialog:save', async (_event, options: { defaultPath?: string, filters?: unknown } = {}) => {
+  ipcMain.handle('muon:dialog:save', async (_event, options: { defaultPath?: string; filters?: unknown } = {}) => {
     const result = await dialog.showSaveDialog(getMainWindow(), {
       defaultPath: options.defaultPath,
       filters: normalizeFilters(options.filters),
@@ -270,35 +264,40 @@ function registerDialogIpc(): void {
     return result.canceled ? null : result.filePath || null
   })
 
-  ipcMain.handle('muon:dialog:ask', async (_event, message: string, options: {
-    cancelLabel?: string
-    detail?: string
-    kind?: string
-    okLabel?: string
-    title?: string
-  } = {}) => {
-    const result = await dialog.showMessageBox(getMainWindow(), {
-      buttons: [options.okLabel || 'OK', options.cancelLabel || 'Cancel'],
-      cancelId: 1,
-      defaultId: 0,
-      detail: options.detail,
-      message: String(message),
-      noLink: true,
-      title: options.title,
-      type: normalizeMessageBoxKind(options.kind),
-    })
+  ipcMain.handle(
+    'muon:dialog:ask',
+    async (
+      _event,
+      message: string,
+      options: {
+        cancelLabel?: string
+        detail?: string
+        kind?: string
+        okLabel?: string
+        title?: string
+      } = {},
+    ) => {
+      const result = await dialog.showMessageBox(getMainWindow(), {
+        buttons: [options.okLabel || 'OK', options.cancelLabel || 'Cancel'],
+        cancelId: 1,
+        defaultId: 0,
+        detail: options.detail,
+        message: String(message),
+        noLink: true,
+        title: options.title,
+        type: normalizeMessageBoxKind(options.kind),
+      })
 
-    return result.response === 0
-  })
+      return result.response === 0
+    },
+  )
 }
 
 function validateFilePath(filePath: string): void {
-  if (!filePath || typeof filePath !== 'string')
-    throw new Error('Invalid file path')
+  if (!filePath || typeof filePath !== 'string') throw new Error('Invalid file path')
 
   const resolved = join(filePath)
-  if (resolved.includes('..'))
-    throw new Error('Path traversal is not allowed')
+  if (resolved.includes('..')) throw new Error('Path traversal is not allowed')
 }
 
 function registerFileIpc(): void {
@@ -319,8 +318,7 @@ function isValidExternalUrl(value: string): boolean {
   try {
     const parsed = new URL(value)
     return parsed.protocol === 'http:' || parsed.protocol === 'https:' || parsed.protocol === 'mailto:'
-  }
-  catch {
+  } catch {
     return false
   }
 }
@@ -329,16 +327,14 @@ function registerShellIpc(): void {
   ipcMain.handle('muon:shell:open-path', (_event, targetPath: string) => shell.openPath(targetPath))
   ipcMain.handle('muon:shell:reveal-item-in-dir', (_event, targetPath: string) => shell.showItemInFolder(targetPath))
   ipcMain.handle('muon:shell:open-url', (_event, url: string) => {
-    if (!isValidExternalUrl(url))
-      throw new Error(`Blocked opening URL with disallowed protocol: ${url.slice(0, 50)}`)
+    if (!isValidExternalUrl(url)) throw new Error(`Blocked opening URL with disallowed protocol: ${url.slice(0, 50)}`)
     return shell.openExternal(url)
   })
 }
 
 function registerFetchIpc(): void {
   ipcMain.handle('muon:fetch', async (_event, request: MainFetchRequest) => {
-    if (request.init?.redirect === 'manual')
-      return await fetchManualRedirectResponse(request)
+    if (request.init?.redirect === 'manual') return await fetchManualRedirectResponse(request)
 
     return await fetchNetResponse(request)
   })
@@ -364,8 +360,7 @@ function registerUpdaterIpc(): void {
   // verification. Without signing, auto-updates cannot be cryptographically verified.
   // See: https://www.electron.build/code-signing
   ipcMain.handle('muon:updater:check', async () => {
-    if (!app.isPackaged)
-      return null
+    if (!app.isPackaged) return null
 
     const autoUpdater = getAutoUpdater()
     autoUpdater.autoDownload = false
@@ -454,8 +449,7 @@ function createMainWindow(): void {
   })
 
   mainWindow.on('close', (event) => {
-    if (!closeToTrayEnabled || isQuitting)
-      return
+    if (!closeToTrayEnabled || isQuitting) return
 
     event.preventDefault()
     mainWindow?.hide()
@@ -474,7 +468,7 @@ function createMainWindow(): void {
         responseHeaders: {
           ...details.responseHeaders,
           'content-security-policy': [
-            'default-src \'self\'; base-uri \'self\'; object-src \'none\'; script-src \'self\'; style-src \'self\' \'unsafe-inline\'; img-src \'self\' blob: data: https:; font-src \'self\' data:; media-src \'self\' blob: data: https:; connect-src \'self\' http: https: ws: wss:; worker-src \'self\' blob:; frame-src \'none\'',
+            "default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https:; font-src 'self' data:; media-src 'self' blob: data: https:; connect-src 'self' http: https: ws: wss:; worker-src 'self' blob:; frame-src 'none'",
           ],
         },
       })
@@ -483,33 +477,27 @@ function createMainWindow(): void {
 
   if (!app.isPackaged && process.env.ELECTRON_RENDERER_URL) {
     mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL)
-  }
-  else {
+  } else {
     mainWindow.loadFile(getRendererEntry())
   }
 }
 
 if (!app.requestSingleInstanceLock()) {
   app.quit()
-}
-else {
+} else {
   app.on('second-instance', (_event, argv) => {
-    if (!mainWindow)
-      return
+    if (!mainWindow) return
 
-    if (mainWindow.isMinimized())
-      mainWindow.restore()
+    if (mainWindow.isMinimized()) mainWindow.restore()
     mainWindow.focus()
 
     const authCallbackUrl = extractEnterpriseAuthCallbackUrl(argv)
-    if (authCallbackUrl)
-      sendEnterpriseAuthCallbackUrl(authCallbackUrl)
+    if (authCallbackUrl) sendEnterpriseAuthCallbackUrl(authCallbackUrl)
   })
 
   app.on('open-url', (event, url) => {
     event.preventDefault()
-    if (isEnterpriseAuthCallbackUrl(url))
-      sendEnterpriseAuthCallbackUrl(url)
+    if (isEnterpriseAuthCallbackUrl(url)) sendEnterpriseAuthCallbackUrl(url)
   })
 
   app.on('before-quit', () => {
@@ -523,13 +511,11 @@ else {
     createMainWindow()
 
     app.on('activate', () => {
-      if (BrowserWindow.getAllWindows().length === 0)
-        createMainWindow()
+      if (BrowserWindow.getAllWindows().length === 0) createMainWindow()
     })
   })
 
   app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin')
-      app.quit()
+    if (process.platform !== 'darwin') app.quit()
   })
 }

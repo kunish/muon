@@ -1,90 +1,84 @@
 <script setup lang="ts">
-import { Camera, FileUp, Image, ImagePlus, MapPin, Plus, Sticker, UserCircle, Video } from 'lucide-vue-next'
-import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { toast } from 'vue-sonner'
-import { open as openDialog } from '@/desktop/dialog'
-import { readFile } from '@/desktop/fs'
-import { getFloatingPosition } from '../composables/useFloatingPosition'
+import { Camera, FileUp, Image, ImagePlus, MapPin, Plus, Sticker, UserCircle, Video } from 'lucide-vue-next';
+import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { toast } from 'vue-sonner';
+import { open as openDialog } from '@/desktop/dialog';
+import { readFile } from '@/desktop/fs';
+import { getFloatingPosition } from '../composables/useFloatingPosition';
 
-withDefaults(defineProps<{
-  triggerIcon?: 'plus' | 'image'
-}>(), {
-  triggerIcon: 'plus',
-})
+withDefaults(
+  defineProps<{
+    triggerIcon?: 'plus' | 'image';
+  }>(),
+  {
+    triggerIcon: 'plus',
+  },
+);
 
 const emit = defineEmits<{
-  image: [file: File]
-  video: [file: File]
-  file: [file: File]
-  gif: []
-  sticker: []
-  location: []
-  screenshot: []
-  contactCard: []
-}>()
+  image: [file: File];
+  video: [file: File];
+  file: [file: File];
+  gif: [];
+  sticker: [];
+  location: [];
+  screenshot: [];
+  contactCard: [];
+}>();
 
-const { t } = useI18n()
-const open = ref(false)
-const btnRef = ref<HTMLElement>()
-const menuRef = ref<HTMLElement>()
-const menuStyle = ref({ left: '0px', top: '0px' })
+const { t } = useI18n();
+const open = ref(false);
+const btnRef = ref<HTMLElement>();
+const menuRef = ref<HTMLElement>();
+const menuStyle = ref({ left: '0px', top: '0px' });
 
 interface FileFilter {
-  name: string
-  extensions: string[]
+  name: string;
+  extensions: string[];
 }
 
 const imageFilter: FileFilter[] = [
   { name: t('chat.attach_image'), extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'ico'] },
-]
-const videoFilter: FileFilter[] = [
-  { name: t('chat.attach_video'), extensions: ['mp4', 'webm', 'mov', 'avi', 'mkv'] },
-]
+];
+const videoFilter: FileFilter[] = [{ name: t('chat.attach_video'), extensions: ['mp4', 'webm', 'mov', 'avi', 'mkv'] }];
 
 function updatePosition() {
-  const trigger = btnRef.value
-  const panel = menuRef.value
-  if (!trigger || !panel)
-    return
-  menuStyle.value = getFloatingPosition(trigger, panel)
+  const trigger = btnRef.value;
+  const panel = menuRef.value;
+  if (!trigger || !panel) return;
+  menuStyle.value = getFloatingPosition(trigger, panel);
 }
 
 async function toggle() {
   if (open.value) {
-    open.value = false
-    return
+    open.value = false;
+    return;
   }
 
-  open.value = true
-  await nextTick()
+  open.value = true;
+  await nextTick();
 
-  if (open.value)
-    updatePosition()
+  if (open.value) updatePosition();
 }
 
 async function pickFile(filters: FileFilter[] | undefined, type: 'image' | 'video' | 'file') {
-  open.value = false
+  open.value = false;
   try {
-    const selected = await openDialog({ multiple: false, filters })
-    if (!selected)
-      return
-    const path = selected
-    const name = path.split('/').pop() || path.split('\\').pop() || 'file'
-    const bytes = await readFile(path)
-    const ext = name.split('.').pop()?.toLowerCase() || ''
-    const mime = guessMime(ext, type)
-    const file = new File([bytes], name, { type: mime })
+    const selected = await openDialog({ multiple: false, filters });
+    if (!selected) return;
+    const path = selected;
+    const name = path.split('/').pop() || path.split('\\').pop() || 'file';
+    const bytes = await readFile(path);
+    const ext = name.split('.').pop()?.toLowerCase() || '';
+    const mime = guessMime(ext, type);
+    const file = new File([bytes], name, { type: mime });
 
-    if (type === 'image')
-      emit('image', file)
-    else if (type === 'video')
-      emit('video', file)
-    else
-      emit('file', file)
-  }
-  catch {
-    toast.error(t('chat.upload_failed'))
+    if (type === 'image') emit('image', file);
+    else if (type === 'video') emit('video', file);
+    else emit('file', file);
+  } catch {
+    toast.error(t('chat.upload_failed'));
   }
 }
 
@@ -103,21 +97,19 @@ function guessMime(ext: string, type: string): string {
     mov: 'video/quicktime',
     avi: 'video/x-msvideo',
     mkv: 'video/x-matroska',
-  }
-  return map[ext] || (type === 'image' ? 'image/png' : type === 'video' ? 'video/mp4' : 'application/octet-stream')
+  };
+  return map[ext] || (type === 'image' ? 'image/png' : type === 'video' ? 'video/mp4' : 'application/octet-stream');
 }
 
 function onClickOutside(e: MouseEvent) {
-  if (!open.value)
-    return
-  const target = e.target as HTMLElement
-  if (btnRef.value?.contains(target) || menuRef.value?.contains(target))
-    return
-  open.value = false
+  if (!open.value) return;
+  const target = e.target as HTMLElement;
+  if (btnRef.value?.contains(target) || menuRef.value?.contains(target)) return;
+  open.value = false;
 }
 
-onMounted(() => document.addEventListener('pointerdown', onClickOutside))
-onBeforeUnmount(() => document.removeEventListener('pointerdown', onClickOutside))
+onMounted(() => document.addEventListener('pointerdown', onClickOutside));
+onBeforeUnmount(() => document.removeEventListener('pointerdown', onClickOutside));
 </script>
 
 <template>
@@ -159,35 +151,50 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', onClickOutside
         </button>
         <button
           class="w-full px-3 py-1.5 text-sm text-left flex items-center gap-2 hover:bg-accent"
-          @click="open = false; emit('gif')"
+          @click="
+            open = false;
+            emit('gif');
+          "
         >
           <Image :size="16" />
           {{ t('chat.attach_gif') }}
         </button>
         <button
           class="w-full px-3 py-1.5 text-sm text-left flex items-center gap-2 hover:bg-accent"
-          @click="open = false; emit('sticker')"
+          @click="
+            open = false;
+            emit('sticker');
+          "
         >
           <Sticker :size="16" />
           {{ t('chat.attach_sticker') }}
         </button>
         <button
           class="w-full px-3 py-1.5 text-sm text-left flex items-center gap-2 hover:bg-accent"
-          @click="open = false; emit('screenshot')"
+          @click="
+            open = false;
+            emit('screenshot');
+          "
         >
           <Camera :size="16" />
           {{ $t('chat.screenshot') }}
         </button>
         <button
           class="w-full px-3 py-1.5 text-sm text-left flex items-center gap-2 hover:bg-accent"
-          @click="open = false; emit('contactCard')"
+          @click="
+            open = false;
+            emit('contactCard');
+          "
         >
           <UserCircle :size="16" />
           {{ $t('chat.contact_card') }}
         </button>
         <button
           class="w-full px-3 py-1.5 text-sm text-left flex items-center gap-2 hover:bg-accent"
-          @click="open = false; emit('location')"
+          @click="
+            open = false;
+            emit('location');
+          "
         >
           <MapPin :size="16" />
           {{ t('chat.attach_location') }}

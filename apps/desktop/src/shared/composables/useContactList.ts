@@ -28,9 +28,13 @@ export function useContactList() {
 
   return {
     /** Reactive — delegates to the Pinia store getter on every access. */
-    get contacts() { return store.contacts },
+    get contacts() {
+      return store.contacts
+    },
     /** Reactive — delegates to the Pinia store getter on every access. */
-    get groups() { return store.groups },
+    get groups() {
+      return store.groups
+    },
     loadContacts: store.loadContacts,
     loadGroups: store.loadGroups,
     ensureContactsLoaded,

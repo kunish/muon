@@ -9,8 +9,7 @@ export function useMessageClipboardFeedback() {
     try {
       await copyMessageContentToClipboard(content)
       toast.success(t('chat.message_text_copied'))
-    }
-    catch {
+    } catch {
       toast.error(t('chat.copy_message_text_failed'))
     }
   }

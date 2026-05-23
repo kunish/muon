@@ -13,8 +13,8 @@ interface FakeSafeStorage {
 function makeFakeSafeStorage(available: boolean): FakeSafeStorage {
   return {
     isAvailable: vi.fn().mockResolvedValue(available),
-    encrypt: vi.fn(async s => `ENC(${s})`),
-    decrypt: vi.fn(async s => s.replace(/^ENC\((.*)\)$/, '$1')),
+    encrypt: vi.fn(async (s) => `ENC(${s})`),
+    decrypt: vi.fn(async (s) => s.replace(/^ENC\((.*)\)$/, '$1')),
   }
 }
 

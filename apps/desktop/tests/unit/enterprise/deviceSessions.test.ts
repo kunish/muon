@@ -66,7 +66,7 @@ describe('device session repository methods', () => {
     await repository.revokeDeviceSession(revoked.id)
 
     const list = await repository.findActiveDeviceSessionsByUser(install.organization.id, install.owner.id)
-    expect(list.map(s => s.id)).toEqual([active.id])
+    expect(list.map((s) => s.id)).toEqual([active.id])
 
     void expired
   })
@@ -86,7 +86,7 @@ describe('device session repository methods', () => {
     const firstRevokedAt = (await repository.findDeviceSessionByRefreshTokenHash('plain-r'))?.revokedAt
     expect(firstRevokedAt).toBeTruthy()
 
-    await new Promise(resolve => setTimeout(resolve, 5))
+    await new Promise((resolve) => setTimeout(resolve, 5))
     await repository.revokeDeviceSession(created.id)
     await repository.revokeDeviceSession('unknown-id')
 
