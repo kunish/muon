@@ -39,6 +39,7 @@ export const useChatStore = defineStore('chat', () => {
   const markedUnreadRooms = reactive(new Set<string>())
   const drafts = reactive(new Map<string, string>())
   const htmlDrafts = reactive(new Map<string, string>())
+  const draftPreviews = reactive(new Map<string, string>())
 
   // --- 草稿持久化到 localStorage ---
   const DRAFTS_STORAGE_KEY = 'muon_chat_drafts'
@@ -51,9 +52,10 @@ export const useChatStore = defineStore('chat', () => {
       const stored = localStorage.getItem(key)
       if (!stored) return
       const parsed = JSON.parse(stored)
-      for (const [roomId, entry] of Object.entries(parsed) as [string, { text?: string, html?: string }][]) {
+      for (const [roomId, entry] of Object.entries(parsed) as [string, { text?: string, html?: string, preview?: string }][]) {
         if (entry?.text) drafts.set(roomId, entry.text)
         if (entry?.html) htmlDrafts.set(roomId, entry.html)
+        if (entry?.preview) draftPreviews.set(roomId, entry.preview)
       }
     } catch { /* ignore parse errors */ }
   }
@@ -63,18 +65,20 @@ export const useChatStore = defineStore('chat', () => {
       const userId = getClient().getUserId()
       if (!userId) return
       const key = `${DRAFTS_STORAGE_KEY}:${userId}`
-      const allRoomIds = new Set([...drafts.keys(), ...htmlDrafts.keys()])
+      const allRoomIds = new Set([...drafts.keys(), ...htmlDrafts.keys(), ...draftPreviews.keys()])
       if (allRoomIds.size === 0) {
         localStorage.removeItem(key)
       } else {
-        const data: Record<string, { text?: string, html?: string }> = {}
+        const data: Record<string, { text?: string, html?: string, preview?: string }> = {}
         for (const roomId of allRoomIds) {
           const text = drafts.get(roomId)
           const html = htmlDrafts.get(roomId)
-          if (text || html) {
+          const preview = draftPreviews.get(roomId)
+          if (text || html || preview) {
             data[roomId] = {}
             if (text) data[roomId].text = text
             if (html) data[roomId].html = html
+            if (preview) data[roomId].preview = preview
           }
         }
         localStorage.setItem(key, JSON.stringify(data))
@@ -256,6 +260,21 @@ export const useChatStore = defineStore('chat', () => {
     return drafts.get(roomId) || ''
   }
 
+  function setDraftPreview(roomId: string, preview: string) {
+    const value = preview.trim()
+    if (value) {
+      draftPreviews.set(roomId, value)
+    }
+    else {
+      draftPreviews.delete(roomId)
+    }
+    persistDrafts()
+  }
+
+  function getDraftPreview(roomId: string) {
+    return draftPreviews.get(roomId) || drafts.get(roomId) || ''
+  }
+
   function setHtmlDraft(roomId: string, html: string) {
     if (html.trim()) {
       htmlDrafts.set(roomId, html)
@@ -273,6 +292,7 @@ export const useChatStore = defineStore('chat', () => {
   function clearAllDrafts(roomId: string) {
     drafts.delete(roomId)
     htmlDrafts.delete(roomId)
+    draftPreviews.delete(roomId)
     persistDrafts()
   }
 
@@ -375,6 +395,8 @@ export const useChatStore = defineStore('chat', () => {
     isMarkedUnread,
     setDraft,
     getDraft,
+    setDraftPreview,
+    getDraftPreview,
     setHtmlDraft,
     getHtmlDraft,
     clearAllDrafts,

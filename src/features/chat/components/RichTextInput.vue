@@ -131,72 +131,173 @@ interface PendingPasteAttachment {
 
 const PENDING_MEDIA_NODE_PATTERN
   = /<(?:div|span)(?:\s[^>]*)?data-pending-media-id="([^"]+)"[^>]*>\s*<\/(?:div|span)>/g
+const ATTACHMENT_DRAFTS_STORAGE_KEY = 'muon_chat_attachment_drafts'
+const MAX_STORED_ATTACHMENT_BYTES = 8 * 1024 * 1024
 let pendingPasteAttachmentId = 0
+let attachmentDraftPersistVersion = 0
+let pendingDraftRestoreRoomId: string | null = null
 const pendingPasteAttachments = shallowRef<PendingPasteAttachment[]>([])
 const pendingPasteAttachmentDrafts = new Map<string, PendingPasteAttachment[]>()
-const ATTACHMENT_DRAFTS_KEY = 'muon_attachment_drafts'
 
-function loadAttachmentDrafts() {
-  try {
-    const userId = getClient().getUserId()
-    if (!userId) return
-    const key = `${ATTACHMENT_DRAFTS_KEY}:${userId}`
-    const stored = localStorage.getItem(key)
-    if (!stored) return
-    const parsed = JSON.parse(stored) as Record<string, StoredAttachment[]>
-    for (const [roomId, storedAttachments] of Object.entries(parsed)) {
-      if (!storedAttachments?.length) continue
-      const attachments: PendingPasteAttachment[] = storedAttachments.map(s => ({
-        id: s.id,
-        file: new File([], s.fileName || 'image', { type: s.fileType || 'image/png' }),
-        kind: s.kind,
-        previewUrl: null,
-        uploadProgress: s.preMxcUrl ? 100 : 0,
-        preMxcUrl: s.preMxcUrl ?? null,
-        preUploadDone: !!s.preMxcUrl,
-      }))
-      pendingPasteAttachmentDrafts.set(roomId, attachments)
-    }
-  } catch { /* ignore */ }
-}
-
-interface StoredAttachment {
+interface StoredAttachmentDraft {
   id: string
   kind: 'image' | 'video' | 'file'
   fileName?: string
   fileType?: string
+  dataUrl?: string
   preMxcUrl?: string
 }
 
-function persistAttachmentDrafts() {
+function getAttachmentDraftsStorageKey(): string | null {
   try {
-    const userId = getClient().getUserId()
-    if (!userId) return
-    const key = `${ATTACHMENT_DRAFTS_KEY}:${userId}`
-    if (pendingPasteAttachmentDrafts.size === 0) {
-      localStorage.removeItem(key)
+    const userId = getClient().getUserId?.()
+    return userId ? `${ATTACHMENT_DRAFTS_STORAGE_KEY}:${userId}` : null
+  }
+  catch {
+    return null
+  }
+}
+
+function loadAttachmentDraftsFromStorage() {
+  try {
+    const key = getAttachmentDraftsStorageKey()
+    if (!key)
       return
+
+    const stored = localStorage.getItem(key)
+    if (!stored)
+      return
+
+    const parsed = JSON.parse(stored) as Record<string, StoredAttachmentDraft[]>
+    for (const [roomId, storedAttachments] of Object.entries(parsed)) {
+      const attachments = storedAttachments
+        .map(createPendingPasteAttachmentFromStoredDraft)
+        .filter((attachment): attachment is PendingPasteAttachment => Boolean(attachment))
+
+      if (attachments.length)
+        pendingPasteAttachmentDrafts.set(roomId, attachments)
+      if (attachments.length && !store.getDraftPreview(roomId))
+        store.setDraftPreview(roomId, formatAttachmentDraftPreview(attachments))
     }
-    const data: Record<string, StoredAttachment[]> = {}
-    for (const [roomId, attachments] of pendingPasteAttachmentDrafts) {
-      data[roomId] = attachments
-        .filter(a => a.preUploadDone)
-        .map(a => ({
-          id: a.id,
-          kind: a.kind,
-          fileName: a.file?.name,
-          fileType: a.file?.type,
-          preMxcUrl: a.preMxcUrl ?? undefined,
-        }))
+  }
+  catch {
+    // Attachment drafts are best-effort; bad storage should not block the composer.
+  }
+}
+
+function createPendingPasteAttachmentFromStoredDraft(stored: StoredAttachmentDraft): PendingPasteAttachment | null {
+  if (!stored.id || !stored.kind || (!stored.dataUrl && !stored.preMxcUrl))
+    return null
+
+  const fileName = stored.fileName || 'file'
+  const fileType = stored.fileType || getDefaultMimeTypeForPendingKind(stored.kind)
+  const file = stored.dataUrl
+    ? createFileFromDataUrl(stored.dataUrl, fileName, fileType)
+    : new File([], fileName, { type: fileType })
+  if (!file)
+    return null
+
+  return {
+    id: stored.id,
+    file,
+    kind: stored.kind,
+    previewUrl: stored.dataUrl ? createPendingPastePreviewUrl(file) : null,
+    uploadProgress: stored.preMxcUrl ? 100 : 0,
+    preMxcUrl: stored.preMxcUrl ?? null,
+    preUploadDone: Boolean(stored.preMxcUrl),
+  }
+}
+
+function getDefaultMimeTypeForPendingKind(kind: 'image' | 'video' | 'file'): string {
+  if (kind === 'image')
+    return 'image/png'
+  if (kind === 'video')
+    return 'video/mp4'
+  return 'application/octet-stream'
+}
+
+function createFileFromDataUrl(dataUrl: string, fileName: string, fileType: string): File | null {
+  const commaIndex = dataUrl.indexOf(',')
+  if (commaIndex === -1 || typeof atob !== 'function')
+    return null
+
+  const header = dataUrl.slice(0, commaIndex)
+  const base64 = dataUrl.slice(commaIndex + 1)
+  const mimeType = header.match(/^data:([^;]+)/)?.[1] || fileType
+  const binary = atob(base64)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++)
+    bytes[i] = binary.charCodeAt(i)
+  return new File([bytes], fileName, { type: fileType || mimeType })
+}
+
+async function persistAttachmentDrafts(activeDraft?: { roomId: string, attachments: PendingPasteAttachment[] }) {
+  try {
+    const key = getAttachmentDraftsStorageKey()
+    if (!key)
+      return
+    const persistVersion = ++attachmentDraftPersistVersion
+
+    const draftEntries = new Map(pendingPasteAttachmentDrafts)
+    if (activeDraft) {
+      if (activeDraft.attachments.length)
+        draftEntries.set(activeDraft.roomId, activeDraft.attachments)
+      else
+        draftEntries.delete(activeDraft.roomId)
     }
-    if (Object.keys(data).length > 0)
+
+    const data: Record<string, StoredAttachmentDraft[]> = {}
+    for (const [roomId, attachments] of draftEntries) {
+      const storedAttachments = (await Promise.all(attachments.map(createStoredAttachmentDraft)))
+        .filter((attachment): attachment is StoredAttachmentDraft => Boolean(attachment))
+      if (storedAttachments.length)
+        data[roomId] = storedAttachments
+    }
+
+    if (persistVersion !== attachmentDraftPersistVersion)
+      return
+
+    if (Object.keys(data).length)
       localStorage.setItem(key, JSON.stringify(data))
     else
       localStorage.removeItem(key)
-  } catch { /* ignore */ }
+  }
+  catch {
+    // Storage quota or API failures should not interrupt composing.
+  }
 }
 
-loadAttachmentDrafts()
+async function createStoredAttachmentDraft(attachment: PendingPasteAttachment): Promise<StoredAttachmentDraft | null> {
+  const dataUrl = attachment.file.size > 0 && attachment.file.size <= MAX_STORED_ATTACHMENT_BYTES
+    ? await readFileAsDataUrl(attachment.file)
+    : null
+  const preMxcUrl = attachment.preMxcUrl ?? undefined
+  if (!dataUrl && !preMxcUrl)
+    return null
+
+  return {
+    id: attachment.id,
+    kind: attachment.kind,
+    fileName: attachment.file.name,
+    fileType: attachment.file.type,
+    dataUrl: dataUrl ?? undefined,
+    preMxcUrl,
+  }
+}
+
+function readFileAsDataUrl(file: File): Promise<string | null> {
+  if (typeof FileReader === 'undefined')
+    return Promise.resolve(null)
+
+  return new Promise((resolve) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : null)
+    reader.onerror = () => resolve(null)
+    reader.readAsDataURL(file)
+  })
+}
+
+loadAttachmentDraftsFromStorage()
 const hasPendingPasteAttachments = computed(() => pendingPasteAttachments.value.length > 0)
 const editorShouldScroll = ref(false)
 const editorHeightClass = computed(() => {
@@ -234,9 +335,14 @@ watch(editor, (instance, _prev, onCleanup) => {
   if (!instance)
     return
 
+  if (pendingDraftRestoreRoomId === store.currentRoomId)
+    restoreRoomDraft(store.currentRoomId, { clearWhenMissing: false })
+
   const handler = () => {
     instance.commands.scrollIntoView()
-    syncPendingPasteAttachmentsFromEditor(instance.getHTML())
+    const html = instance.getHTML()
+    syncPendingPasteAttachmentsFromEditor(html)
+    saveCurrentRoomDraft()
 
     const dom = instance.view.dom as HTMLElement
     const wrapper = dom.parentElement
@@ -436,6 +542,7 @@ async function submitComposer(html: string, text: string, options?: { silent?: b
     store.clearAllDrafts(roomId)
   if (roomId) {
     pendingPasteAttachmentDrafts.delete(roomId)
+    void persistAttachmentDrafts({ roomId, attachments: pendingPasteAttachments.value })
   }
   if (canCleanSubmittedState) {
     clear()
@@ -699,6 +806,10 @@ function stagePasteFiles(files: File[], options: { insert: boolean }): string[] 
   for (const attachment of attachments)
     kickoffPreUpload(attachment)
 
+  const roomId = store.currentRoomId
+  if (roomId)
+    void persistAttachmentDrafts({ roomId, attachments: pendingPasteAttachments.value })
+
   markComposeChanged()
   return attachments.map(attachment => attachment.id)
 }
@@ -735,6 +846,12 @@ function kickoffPreUpload(attachment: PendingPasteAttachment) {
         uploadProgress: u.progress,
         preMxcUrl: u.mxcUrl,
         preUploadDone: u.status === 'done',
+      }
+
+      if (u.status === 'done') {
+        const roomId = store.currentRoomId
+        if (roomId)
+          void persistAttachmentDrafts({ roomId, attachments: pendingPasteAttachments.value })
       }
 
       if (u.status === 'done' || u.status === 'error')
@@ -811,6 +928,9 @@ function removePendingPasteAttachment(id: string) {
   if (removedAttachment)
     revokePendingPasteAttachmentUrls([removedAttachment])
   removeUpload(id)
+  const roomId = store.currentRoomId
+  if (roomId)
+    void persistAttachmentDrafts({ roomId, attachments: pendingPasteAttachments.value })
   markComposeChanged()
 }
 
@@ -827,6 +947,9 @@ function syncPendingPasteAttachmentsFromEditor(html: string) {
   revokePendingPasteAttachmentUrls(removedAttachments)
   for (const attachment of removedAttachments)
     removeUpload(attachment.id)
+  const roomId = store.currentRoomId
+  if (roomId)
+    void persistAttachmentDrafts({ roomId, attachments: pendingPasteAttachments.value })
   markComposeChanged()
 }
 
@@ -1021,14 +1144,50 @@ function revokeAllPendingPasteAttachmentUrls() {
   pendingPasteAttachmentDrafts.clear()
 }
 
+function saveRoomDraft(roomId: string, text: string, html: string, attachments: PendingPasteAttachment[]) {
+  if (text || attachments.length) {
+    store.setHtmlDraft(roomId, html)
+    store.setDraft(roomId, text)
+    store.setDraftPreview(roomId, text || formatAttachmentDraftPreview(attachments))
+  }
+  else {
+    store.clearAllDrafts(roomId)
+  }
+  void persistAttachmentDrafts({ roomId, attachments })
+}
+
+function formatAttachmentDraftPreview(attachments: PendingPasteAttachment[]) {
+  return attachments
+    .map(attachment => attachment.file.name || getPendingPasteAttachmentLabel(attachment.kind))
+    .join(', ')
+}
+
+function getPendingPasteAttachmentLabel(kind: PendingPasteAttachment['kind']) {
+  if (kind === 'image')
+    return t('chat.image')
+  if (kind === 'video')
+    return t('chat.video')
+  return t('chat.file')
+}
+
+function saveCurrentRoomDraft() {
+  const roomId = store.currentRoomId
+  const activeEditor = editor.value
+  if (!roomId || !activeEditor)
+    return
+
+  saveRoomDraft(
+    roomId,
+    activeEditor.getText().trim(),
+    activeEditor.getHTML(),
+    pendingPasteAttachments.value,
+  )
+}
+
 function onInput() {
   markComposeChanged()
   startTyping()
-  const roomId = store.currentRoomId
-  if (roomId && editor.value) {
-    const text = editor.value.getText().trim()
-    store.setDraft(roomId, text)
-  }
+  saveCurrentRoomDraft()
 }
 
 const showFormatBar = ref(false)
@@ -1061,55 +1220,64 @@ function focusEditor() {
   editor.value?.commands.focus()
 }
 
+function restoreRoomDraft(roomId: string | null, options: { clearWhenMissing: boolean }) {
+  const savedHtml = roomId ? store.getHtmlDraft(roomId) : ''
+  pendingPasteAttachments.value = roomId && savedHtml
+    ? pendingPasteAttachmentDrafts.get(roomId) ?? []
+    : []
+  if (savedHtml) {
+    if (editor.value) {
+      editor.value.commands.setContent(savedHtml)
+      pendingDraftRestoreRoomId = null
+    }
+    else {
+      pendingDraftRestoreRoomId = roomId
+    }
+  }
+  else {
+    pendingDraftRestoreRoomId = null
+    if (options.clearWhenMissing)
+      clear()
+  }
+}
+
 watch(
   () => store.currentRoomId,
   (newId, oldId) => {
+    const isInitialRun = oldId === undefined
     markComposeChanged()
     // 保存当前房间草稿
     if (oldId && editor.value) {
       const text = editor.value.getText().trim()
       const html = editor.value.getHTML()
-      if (text) {
-        store.setHtmlDraft(oldId, html)
-        store.setDraft(oldId, text)
-      }
-      else {
-        store.clearAllDrafts(oldId)
-      }
+      saveRoomDraft(oldId, text, html, pendingPasteAttachments.value)
 
       if (pendingPasteAttachments.value.length) {
         pendingPasteAttachmentDrafts.set(oldId, pendingPasteAttachments.value)
-        persistAttachmentDrafts()
       }
       else {
         pendingPasteAttachmentDrafts.delete(oldId)
-        persistAttachmentDrafts()
       }
     }
 
-    // Clean up pre-uploads from the old room
-    for (const a of pendingPasteAttachments.value)
-      removeUpload(a.id)
-    clearUploads()
+    if (!isInitialRun) {
+      // Clean up pre-uploads from the old room
+      for (const a of pendingPasteAttachments.value)
+        removeUpload(a.id)
+      clearUploads()
+    }
 
     // 恢复目标房间草稿或清空
-    const savedHtml = newId ? store.getHtmlDraft(newId) : ''
-    if (savedHtml) {
-      editor.value?.commands.setContent(savedHtml)
+    restoreRoomDraft(newId, { clearWhenMissing: !isInitialRun })
+    if (!isInitialRun) {
+      store.clearCompose()
+      showExpressionPicker.value = false
+      showLocationPicker.value = false
+      showContactCardPicker.value = false
+      postTitle.value = ''
     }
-    else {
-      clear()
-    }
-
-    pendingPasteAttachments.value = newId
-      ? pendingPasteAttachmentDrafts.get(newId) ?? []
-      : []
-    store.clearCompose()
-    showExpressionPicker.value = false
-    showLocationPicker.value = false
-    showContactCardPicker.value = false
-    postTitle.value = ''
   },
+  { immediate: true },
 )
 
 watch(
@@ -1140,16 +1308,126 @@ function onWindowResize() {
   }
 }
 
+function onGlobalKeydown(e: KeyboardEvent) {
+  if (!editor.value || editor.value.isFocused) return
+  const target = e.target as HTMLElement
+  if (!target) return
+  const tag = target.tagName
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable) return
+  if (e.ctrlKey || e.metaKey || e.altKey) return
+  if (store.multiSelectMode) return
+  if (e.key.length !== 1) return
+  e.preventDefault()
+  focusEditor()
+  editor.value.commands.insertContent(e.key)
+}
+
+function getPastedFiles(dt: DataTransfer): File[] {
+  const files = Array.from(dt.files)
+  if (files.length)
+    return files
+  return Array.from(dt.items)
+    .filter(item => item.kind === 'file')
+    .map(item => item.getAsFile())
+    .filter((f): f is File => !!f)
+}
+
+const CLIPBOARD_MEDIA_SELECTOR = 'img, video, audio, source, picture, canvas, iframe, object, embed'
+
+function extractHtmlMediaSources(html: string): PastedMediaSource[] {
+  if (!html || typeof DOMParser === 'undefined')
+    return []
+  const doc = new DOMParser().parseFromString(html, 'text/html')
+  const sources: PastedMediaSource[] = []
+  for (const [index, img] of Array.from(doc.body.querySelectorAll<HTMLImageElement>('img[src]')).entries()) {
+    const src = img.getAttribute('data-rich-media-mxc-src')?.trim()
+      || img.getAttribute('src')?.trim()
+      || ''
+    if (!src)
+      continue
+    const name = img.getAttribute('alt')?.trim()
+      || img.getAttribute('title')?.trim()
+      || 'image.png'
+    sources.push({
+      index,
+      src,
+      name: name.includes('.') ? name : `${name}.png`,
+      kind: 'image',
+    })
+  }
+  return sources
+}
+
+function stripMediaElements(html: string): string {
+  if (!html || typeof DOMParser === 'undefined')
+    return ''
+  const doc = new DOMParser().parseFromString(html, 'text/html')
+  doc.body.querySelectorAll(CLIPBOARD_MEDIA_SELECTOR).forEach(el => el.remove())
+  return doc.body.innerHTML.trim()
+}
+
+function onGlobalPaste(e: ClipboardEvent) {
+  if (!editor.value || editor.value.isFocused) return
+  const target = e.target as HTMLElement
+  if (!target) return
+  const tag = target.tagName
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable) return
+  if (store.multiSelectMode) return
+
+  const dt = e.clipboardData
+  if (!dt) return
+
+  const files = getPastedFiles(dt)
+  if (files.length) {
+    e.preventDefault()
+    focusEditor()
+    handlePasteFiles(files)
+    return
+  }
+
+  const html = dt.getData('text/html')
+  const mediaSources = extractHtmlMediaSources(html)
+  if (mediaSources.length) {
+    e.preventDefault()
+    focusEditor()
+    void handlePasteMediaSources(mediaSources).then(() => {
+      if (!editor.value)
+        return
+      const stripped = stripMediaElements(html)
+      if (stripped) {
+        editor.value.commands.insertContent(stripped)
+      }
+    })
+    return
+  }
+
+  e.preventDefault()
+  focusEditor()
+  if (html) {
+    editor.value.commands.insertContent(html)
+  }
+  else {
+    const text = dt.getData('text/plain')
+    if (text) {
+      editor.value.commands.insertContent(text)
+    }
+  }
+}
+
 onMounted(() => {
   prewarmExpressionTimer = window.setTimeout(() => {
     prewarmExpressionPicker.value = true
   }, 220)
   window.addEventListener('resize', onWindowResize)
+  document.addEventListener('keydown', onGlobalKeydown)
+  document.addEventListener('paste', onGlobalPaste)
 })
 
 onUnmounted(() => {
   clearTimeout(prewarmExpressionTimer)
   window.removeEventListener('resize', onWindowResize)
+  document.removeEventListener('keydown', onGlobalKeydown)
+  document.removeEventListener('paste', onGlobalPaste)
   revokeAllPendingPasteAttachmentUrls()
   clearUploads()
 })

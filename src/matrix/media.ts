@@ -1,4 +1,5 @@
 import { fetch as desktopFetch } from '@/electron/http'
+import { cacheMedia, getCachedMedia } from '@/features/chat/lib/mediaCache'
 import { getClient } from './client'
 
 async function fetchMediaResponse(url: string, headers: Record<string, string>): Promise<Response> {
@@ -30,6 +31,8 @@ function _getThumbnailUrl(mxcUrl: string, width: number, height: number): string
 /**
  * Fetch media through the desktop HTTP bridge to bypass webview CORS/auth issues
  * and return a blob: URL usable in <img>/<video> src.
+ *
+ * Uses local media cache for instant display (秒下).
  */
 export async function fetchMediaBlobUrl(mxcUrl: string, width?: number, height?: number): Promise<string> {
   const blob = await fetchMediaBlob(mxcUrl, width, height)
@@ -37,6 +40,16 @@ export async function fetchMediaBlobUrl(mxcUrl: string, width?: number, height?:
 }
 
 async function fetchMediaBlob(mxcUrl: string, width?: number, height?: number): Promise<Blob | null> {
+  // 秒下: check local cache first
+  const cached = await getCachedMedia(mxcUrl, width, height)
+  if (cached) {
+    if (import.meta.env.DEV) {
+      // eslint-disable-next-line no-console
+      console.debug(`[media] cache hit ${mxcUrl} size=${cached.size}`)
+    }
+    return cached
+  }
+
   const client = getClient()
   const token = client.getAccessToken()
   const baseUrl = client.baseUrl
@@ -76,9 +89,16 @@ async function fetchMediaBlob(mxcUrl: string, width?: number, height?: number): 
       const contentType = res.headers.get('content-type') || 'application/octet-stream'
       const buf = await res.arrayBuffer()
       const blob = new Blob([buf], { type: contentType })
-      if (import.meta.env.DEV)
+      if (import.meta.env.DEV) {
         // eslint-disable-next-line no-console
         console.debug(`[media] OK ${url} blob size=${blob.size} type=${blob.type}`)
+      }
+
+      // 秒下: cache for instant future access
+      if (!isThumbnail || blob.size < 5 * 1024 * 1024) {
+        void cacheMedia(mxcUrl, blob, width, height)
+      }
+
       return blob
     }
     catch {

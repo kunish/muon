@@ -17,19 +17,35 @@ const mocks = vi.hoisted(() => ({
   setContent: vi.fn(),
   insertContent: vi.fn(() => ({ run: vi.fn() })),
   getClient: vi.fn(() => ({
+    getUserId: vi.fn(() => '@test:localhost'),
     getRoom: vi.fn(() => ({
       getMember: vi.fn(() => ({ name: 'Alice' })),
     })),
   })),
   editorText: '',
   editorHtml: '',
+  editorStartsNull: false,
+  editorRef: undefined as undefined | { value: any },
+  editorInstance: undefined as any,
   onSubmit: undefined as undefined | ((html: string, text: string) => unknown),
   onPasteFiles: undefined as undefined | ((files: File[]) => unknown),
   onPasteMediaSources: undefined as undefined | ((sources: Array<{ index: number, src: string, name: string, kind: 'image' | 'video' | 'file' }>) => unknown),
+  pendingMediaGetAttachment: undefined as undefined | ((id: string) => unknown),
   insertPendingMediaAttachment: vi.fn(),
+  clearUploads: vi.fn(),
+  getUpload: vi.fn(),
+  removeUpload: vi.fn(),
+  stageFile: vi.fn((id: string, file: File) => Promise.resolve({
+    id,
+    file,
+    progress: 0,
+    status: 'pending',
+    mxcUrl: null,
+  })),
   uploadFile: vi.fn(),
   uploadImage: vi.fn(),
   uploadVideo: vi.fn(),
+  waitForAll: vi.fn(() => Promise.resolve([])),
   uploadMedia: vi.fn((file: File) => Promise.resolve(`mxc://server/${file.name}`)),
   downloadMedia: vi.fn(() => Promise.resolve(new Blob(['image'], { type: 'image/png' }))),
   extractImageMeta: vi.fn(() => Promise.resolve({ width: 640, height: 360 })),
@@ -53,35 +69,41 @@ vi.mock('@muon/rich-text/editor', () => ({
     onSubmit: (html: string, text: string) => unknown
     onPasteFiles?: (files: File[]) => unknown
     onPasteMediaSources?: (sources: Array<{ index: number, src: string, name: string, kind: 'image' | 'video' | 'file' }>) => unknown
+    pendingMedia?: { getAttachment?: (id: string) => unknown }
   }) => {
     mocks.onSubmit = options.onSubmit
     mocks.onPasteFiles = options.onPasteFiles
     mocks.onPasteMediaSources = options.onPasteMediaSources
-    return {
-      editor: ref({
-        getText: vi.fn(() => mocks.editorText),
-        getHTML: vi.fn(() => mocks.editorHtml),
-        isActive: vi.fn(() => false),
-        chain: vi.fn(() => ({
-          focus: vi.fn(() => ({
-            insertContent: mocks.insertContent,
-            toggleBold: vi.fn(() => ({ run: vi.fn() })),
-            toggleItalic: vi.fn(() => ({ run: vi.fn() })),
-            toggleStrike: vi.fn(() => ({ run: vi.fn() })),
-            toggleCode: vi.fn(() => ({ run: vi.fn() })),
-            toggleBulletList: vi.fn(() => ({ run: vi.fn() })),
-            toggleOrderedList: vi.fn(() => ({ run: vi.fn() })),
-            toggleBlockquote: vi.fn(() => ({ run: vi.fn() })),
-          })),
+    mocks.pendingMediaGetAttachment = options.pendingMedia?.getAttachment
+    const editorInstance = {
+      getText: vi.fn(() => mocks.editorText),
+      getHTML: vi.fn(() => mocks.editorHtml),
+      isActive: vi.fn(() => false),
+      chain: vi.fn(() => ({
+        focus: vi.fn(() => ({
+          insertContent: mocks.insertContent,
+          toggleBold: vi.fn(() => ({ run: vi.fn() })),
+          toggleItalic: vi.fn(() => ({ run: vi.fn() })),
+          toggleStrike: vi.fn(() => ({ run: vi.fn() })),
+          toggleCode: vi.fn(() => ({ run: vi.fn() })),
+          toggleBulletList: vi.fn(() => ({ run: vi.fn() })),
+          toggleOrderedList: vi.fn(() => ({ run: vi.fn() })),
+          toggleBlockquote: vi.fn(() => ({ run: vi.fn() })),
         })),
-        commands: {
-          setContent: mocks.setContent,
-          focus: vi.fn(),
-          scrollIntoView: vi.fn(),
-        },
-        on: vi.fn(),
-        off: vi.fn(),
-      }),
+      })),
+      commands: {
+        setContent: mocks.setContent,
+        focus: vi.fn(),
+        scrollIntoView: vi.fn(),
+      },
+      on: vi.fn(),
+      off: vi.fn(),
+    }
+    const editorRef = ref(mocks.editorStartsNull ? null : editorInstance)
+    mocks.editorInstance = editorInstance
+    mocks.editorRef = editorRef
+    return {
+      editor: editorRef,
       clear: mocks.clear,
       insertEmoji: vi.fn(),
       insertPendingMediaAttachment: mocks.insertPendingMediaAttachment,
@@ -104,9 +126,14 @@ vi.mock('@/features/chat/composables/useMediaUpload', () => ({
   useMediaUpload: () => ({
     uploading: ref(false),
     progress: ref(0),
+    clearUploads: mocks.clearUploads,
+    getUpload: mocks.getUpload,
+    removeUpload: mocks.removeUpload,
+    stageFile: mocks.stageFile,
     uploadImage: mocks.uploadImage,
     uploadVideo: mocks.uploadVideo,
     uploadFile: mocks.uploadFile,
+    waitForAll: mocks.waitForAll,
   }),
 }))
 
@@ -197,9 +224,14 @@ describe('richTextInput send recovery', () => {
     })
     mocks.editorText = ''
     mocks.editorHtml = ''
+    mocks.editorStartsNull = false
+    mocks.editorRef = undefined
+    mocks.editorInstance = undefined
     mocks.onSubmit = undefined
     mocks.onPasteFiles = undefined
     mocks.onPasteMediaSources = undefined
+    mocks.pendingMediaGetAttachment = undefined
+    localStorage.clear()
   })
 
   it('inserts queued member mentions into the composer', async () => {
@@ -253,6 +285,111 @@ describe('richTextInput send recovery', () => {
     expect(mocks.uploadFile).not.toHaveBeenCalled()
     expect(mocks.revokeObjectURL).toHaveBeenCalledWith('blob:pasted.png')
     expect(mocks.revokeObjectURL).toHaveBeenCalledWith('blob:pasted.mp4')
+  })
+
+  it('restores an image-only draft when returning to a room', async () => {
+    const store = useChatStore()
+    store.setCurrentRoom('!room-a:localhost')
+    mountInput()
+    const imageFile = new File(['image'], 'draft.png', { type: 'image/png' })
+
+    await mocks.onPasteFiles?.([imageFile])
+    const insertedId = mocks.insertPendingMediaAttachment.mock.calls[0]?.[0] as string
+    const pendingMediaHtml = `<div data-pending-media-id="${insertedId}"></div>`
+    mocks.editorText = ''
+    mocks.editorHtml = pendingMediaHtml
+
+    store.setCurrentRoom('!room-b:localhost')
+    await nextTick()
+    mocks.clear.mockClear()
+    mocks.setContent.mockClear()
+
+    store.setCurrentRoom('!room-a:localhost')
+    await nextTick()
+
+    expect(mocks.setContent).toHaveBeenCalledWith(pendingMediaHtml)
+    expect(mocks.clear).not.toHaveBeenCalled()
+  })
+
+  it('stores a sidebar preview for an image-only draft', async () => {
+    const store = useChatStore()
+    store.setCurrentRoom('!room-a:localhost')
+    mountInput()
+    const imageFile = new File(['image'], 'draft.png', { type: 'image/png' })
+
+    await mocks.onPasteFiles?.([imageFile])
+    const insertedId = mocks.insertPendingMediaAttachment.mock.calls[0]?.[0] as string
+    mocks.editorText = ''
+    mocks.editorHtml = `<div data-pending-media-id="${insertedId}"></div>`
+
+    store.setCurrentRoom('!room-b:localhost')
+    await nextTick()
+
+    expect((store as any).getDraftPreview('!room-a:localhost')).toBe('draft.png')
+  })
+
+  it('restores pasted image draft metadata after a reload', async () => {
+    const pendingMediaId = 'paste-reload-1'
+    const pendingMediaHtml = `<div data-pending-media-id="${pendingMediaId}"></div>`
+    localStorage.setItem('muon_chat_drafts:@test:localhost', JSON.stringify({
+      '!room-a:localhost': { html: pendingMediaHtml },
+    }))
+    localStorage.setItem('muon_chat_attachment_drafts:@test:localhost', JSON.stringify({
+      '!room-a:localhost': [{
+        id: pendingMediaId,
+        kind: 'image',
+        fileName: 'draft.png',
+        fileType: 'image/png',
+        dataUrl: 'data:image/png;base64,aW1hZ2U=',
+      }],
+    }))
+    const store = useChatStore()
+    mountInput()
+
+    store.setCurrentRoom('!room-a:localhost')
+    await nextTick()
+
+    expect(mocks.setContent).toHaveBeenCalledWith(pendingMediaHtml)
+    expect(mocks.pendingMediaGetAttachment?.(pendingMediaId)).toEqual(expect.objectContaining({
+      kind: 'image',
+      file: expect.objectContaining({
+        name: 'draft.png',
+        type: 'image/png',
+      }),
+    }))
+  })
+
+  it('restores a saved draft when the room is already selected before mount', async () => {
+    const savedHtml = '<p>Restored after refresh</p>'
+    localStorage.setItem('muon_chat_drafts:@test:localhost', JSON.stringify({
+      '!room-a:localhost': { text: 'Restored after refresh', html: savedHtml },
+    }))
+    const store = useChatStore()
+    store.setCurrentRoom('!room-a:localhost')
+
+    mountInput()
+    await nextTick()
+
+    expect(mocks.setContent).toHaveBeenCalledWith(savedHtml)
+  })
+
+  it('restores a saved draft when the editor becomes available after mount', async () => {
+    const savedHtml = '<p>Visible after editor ready</p>'
+    localStorage.setItem('muon_chat_drafts:@test:localhost', JSON.stringify({
+      '!room-a:localhost': { text: 'Visible after editor ready', html: savedHtml },
+    }))
+    const store = useChatStore()
+    store.setCurrentRoom('!room-a:localhost')
+    mocks.editorStartsNull = true
+
+    mountInput()
+    await nextTick()
+    expect(mocks.setContent).not.toHaveBeenCalled()
+
+    mocks.editorRef!.value = mocks.editorInstance
+    await nextTick()
+
+    expect(mocks.setContent).toHaveBeenCalledWith(savedHtml)
   })
 
   it('sends rich text and staged media together from one composer submission', async () => {

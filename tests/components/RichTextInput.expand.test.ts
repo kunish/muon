@@ -63,11 +63,16 @@ vi.mock('@/features/chat/composables/useMediaUpload', async () => {
 
   return {
     useMediaUpload: () => ({
+      clearUploads: vi.fn(),
+      getUpload: vi.fn(),
       progress: shallowRef(0),
+      removeUpload: vi.fn(),
+      stageFile: vi.fn(),
       uploadFile: vi.fn(),
       uploadImage: vi.fn(),
       uploading: shallowRef(false),
       uploadVideo: vi.fn(),
+      waitForAll: vi.fn(),
     }),
   }
 })
@@ -107,11 +112,11 @@ describe('rich text input editor expansion', () => {
     })
 
     const editor = wrapper.get('[data-testid="rich-editor"]')
-    expect(editor.classes()).toContain('overflow-y-auto')
+    expect(editor.classes()).toContain('overflow-hidden')
     expect(editor.classes()).toContain('min-h-[40px]')
     expect(editor.classes()).toContain('max-h-[40vh]')
     expect(editor.classes()).toContain('[&_.tiptap]:min-h-[24px]')
-    expect(editor.classes()).not.toContain('overflow-hidden')
+    expect(editor.classes()).not.toContain('overflow-y-auto')
     expect(editor.classes()).not.toContain('max-h-[40px]')
     expect(editor.classes()).not.toContain('[&_.tiptap]:whitespace-nowrap')
     expect(editor.classes()).not.toContain('[&_.tiptap_p]:truncate')

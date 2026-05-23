@@ -43,5 +43,19 @@ watch(() => store.analyticsEnabled, (val) => {
       </div>
       <Switch v-model="store.analyticsEnabled" />
     </Label>
+
+    <div class="space-y-3">
+      <h3 class="text-sm font-medium text-foreground/80">
+        {{ t('settings.developer') }}
+      </h3>
+
+      <Label class="flex items-center justify-between">
+        <div>
+          <div class="text-sm">{{ t('settings.debug_mode') }}</div>
+          <div class="text-xs text-muted-foreground">{{ t('settings.debug_mode_desc') }}</div>
+        </div>
+        <Switch v-model="store.debugMode" />
+      </Label>
+    </div>
   </div>
 </template>

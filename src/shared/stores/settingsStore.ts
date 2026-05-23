@@ -39,6 +39,7 @@ export const useSettingsStore = defineStore('settings', () => {
   const autoLaunch = useStorage('muon_auto_launch', false)
   const analyticsEnabled = useStorage('muon_analytics_enabled', true)
   const watermarkEnabled = useStorage('muon_watermark_enabled', false)
+  const debugMode = useStorage('muon_debug_mode', false)
 
   const normalizedNotificationChannels = computed<NotificationChannels>(() => ({
     ...DEFAULT_NOTIFICATION_CHANNELS,
@@ -72,6 +73,7 @@ export const useSettingsStore = defineStore('settings', () => {
     autoLaunch,
     analyticsEnabled,
     watermarkEnabled,
+    debugMode,
     setNotificationChannel,
   }
 })

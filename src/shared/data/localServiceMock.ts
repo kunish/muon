@@ -1,4 +1,4 @@
-export const MATRIX_HTML_FORMAT = 'org.matrix.custom.html' as const
+const MATRIX_HTML_FORMAT = 'org.matrix.custom.html' as const
 
 export interface LocalServiceUser {
   localpart: string

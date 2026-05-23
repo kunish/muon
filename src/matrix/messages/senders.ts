@@ -3,7 +3,7 @@ import type { VideoInfo } from 'matrix-js-sdk/lib/@types/media'
 import { htmlToPlainText, sanitizeMatrixHtml } from '@muon/rich-text'
 import { EventType, MsgType, RelationType } from 'matrix-js-sdk'
 import { fetch as desktopFetch } from '@/electron/http'
-import { escapeHtml } from '@/shared/lib/utils'
+import { computeSha256, escapeHtml } from '@/shared/lib/utils'
 import { getClient } from '../client'
 import { extractImageMeta, uploadMedia } from '../media'
 import { getTimeline } from './timeline'
@@ -98,22 +98,39 @@ export async function sendImageMessage(roomId: string, file: File): Promise<stri
     info.w = meta.width
     info.h = meta.height
   }
+  // Hash for server-side deduplication (秒传)
+  let fileHash: string | undefined
+  try {
+    fileHash = await computeSha256(file)
+  }
+  catch {
+    // Hash computation is best-effort for dedup
+  }
   const res = await getClient().sendMessage(roomId, {
     msgtype: MsgType.Image,
     body: file.name,
     url: mxcUrl,
     info,
+    ...(fileHash ? { 'xyz.muon.file_hash': fileHash } : {}),
   })
   return res.event_id
 }
 
 export async function sendFileMessage(roomId: string, file: File): Promise<string> {
   const mxcUrl = await uploadMedia(file)
+  let fileHash: string | undefined
+  try {
+    fileHash = await computeSha256(file)
+  }
+  catch {
+    // best-effort
+  }
   const res = await getClient().sendMessage(roomId, {
     msgtype: MsgType.File,
     body: file.name,
     url: mxcUrl,
     info: { mimetype: file.type, size: file.size },
+    ...(fileHash ? { 'xyz.muon.file_hash': fileHash } : {}),
   })
   return res.event_id
 }
@@ -136,11 +153,19 @@ export async function sendVideoMessage(
       h: meta.height,
     }
   }
+  let fileHash: string | undefined
+  try {
+    fileHash = await computeSha256(file)
+  }
+  catch {
+    // best-effort
+  }
   const res = await getClient().sendMessage(roomId, {
     msgtype: MsgType.Video,
     body: file.name,
     url: mxcUrl,
     info,
+    ...(fileHash ? { 'xyz.muon.file_hash': fileHash } : {}),
   } as RoomMessageEventContent)
   return res.event_id
 }

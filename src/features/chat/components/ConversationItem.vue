@@ -29,7 +29,7 @@ const { t } = useI18n()
 const pinned = computed(() => store.isPinned(props.room.roomId))
 const muted = computed(() => store.isMuted(props.room.roomId))
 const markedUnread = computed(() => store.isMarkedUnread(props.room.roomId))
-const draft = computed(() => store.getDraft(props.room.roomId))
+const draftPreview = computed(() => store.getDraftPreview(props.room.roomId))
 
 const timeLabel = computed(() => formatMessageTime(props.room.lastMessageTs))
 const mxcAvatar = computed(() => props.room.avatar || props.room.dmUserAvatar)
@@ -209,9 +209,9 @@ const sender = computed(() => {
             </span>
           </template>
           <!-- 草稿优先显示 -->
-          <template v-else-if="draft">
+          <template v-else-if="draftPreview">
             <span class="shrink-0 text-destructive/70 font-medium">[{{ t('chat.draft') }}]</span>
-            <span class="truncate text-destructive/50">{{ draft }}</span>
+            <span class="truncate text-destructive/50">{{ draftPreview }}</span>
           </template>
           <template v-else>
             <!-- 飞书风格：@提及标识 -->
