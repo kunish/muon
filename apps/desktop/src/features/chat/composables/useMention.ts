@@ -1,6 +1,8 @@
 import { getRoom } from '@matrix/index'
 import { useContactList } from '@shared/composables/useContactList'
+import { Effect } from 'effect'
 import { computed } from 'vue'
+import { fromPromise, runDesktopEffect } from '@/shared/lib/effect'
 import { useChatStore } from '../stores/chatStore'
 
 interface MentionMember {
@@ -16,7 +18,7 @@ export function useMention() {
   const contactList = useContactList()
 
   if (contactList.contacts.length === 0) {
-    void contactList.loadContacts().catch(() => {})
+    void runDesktopEffect(fromPromise(() => contactList.loadContacts()).pipe(Effect.catchAll(() => Effect.void)))
   }
 
   const mentionCandidates = computed<MentionMember[]>(() => {

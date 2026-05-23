@@ -5,6 +5,7 @@ import type {
   ResetPasswordRequest,
   UpdateUserRequest,
 } from '@muon/enterprise-contracts'
+import type { ApiEffect } from '../../effect'
 import type { EnterpriseRepository, EnterpriseUserRecord } from '../../repository'
 import {
   changeOwnPasswordRequestSchema,
@@ -12,7 +13,9 @@ import {
   resetPasswordRequestSchema,
   updateUserRequestSchema,
 } from '@muon/enterprise-contracts'
-import { hashPassword, verifyPassword } from '../../security/password'
+import { Effect } from 'effect'
+import { fromPromise, fromSync, runApiEffect } from '../../effect'
+import { hashPasswordEffect, verifyPasswordEffect } from '../../security/password'
 import { assertAdminRole } from './rbac'
 
 export interface UserService {
@@ -26,102 +29,149 @@ export interface UserService {
   updateUser: (actor: EnterpriseUserRecord, userId: string, input: UpdateUserRequest) => Promise<EnterpriseUser>
 }
 
+export interface UserEffectService {
+  changeOwnPassword: (user: EnterpriseUserRecord, input: ChangeOwnPasswordRequest) => ApiEffect<EnterpriseUser>
+  createUser: (actor: EnterpriseUserRecord, input: CreateUserRequest) => ApiEffect<EnterpriseUser>
+  resetUserPassword: (
+    actor: EnterpriseUserRecord,
+    userId: string,
+    input: ResetPasswordRequest,
+  ) => ApiEffect<EnterpriseUser>
+  updateUser: (actor: EnterpriseUserRecord, userId: string, input: UpdateUserRequest) => ApiEffect<EnterpriseUser>
+}
+
 export interface UserServiceDeps {
   repository: EnterpriseRepository
 }
 
-export function createUserService({ repository }: UserServiceDeps): UserService {
+export function createUserEffectService({ repository }: UserServiceDeps): UserEffectService {
   return {
-    async changeOwnPassword(user, input) {
-      const request = changeOwnPasswordRequestSchema.parse(input)
-      if (!(await verifyPassword(request.currentPassword, user.passwordHash))) throw new Error('Invalid credentials')
+    changeOwnPassword(user, input) {
+      return Effect.gen(function* () {
+        const request = yield* fromSync(() => changeOwnPasswordRequestSchema.parse(input))
+        const passwordMatches = yield* verifyPasswordEffect(request.currentPassword, user.passwordHash)
+        if (!passwordMatches) return yield* Effect.fail(new Error('Invalid credentials'))
 
-      const updated = await repository.resetUserPassword(user.organizationId, user.id, {
-        passwordHash: await hashPassword(request.newPassword),
-        mustChangePassword: false,
+        const passwordHash = yield* hashPasswordEffect(request.newPassword)
+        const updated = yield* fromPromise(() =>
+          repository.resetUserPassword(user.organizationId, user.id, {
+            passwordHash,
+            mustChangePassword: false,
+          }),
+        )
+
+        yield* fromPromise(() =>
+          repository.appendAuditLog({
+            organizationId: user.organizationId,
+            actorUserId: user.id,
+            action: 'user.password_changed',
+            targetType: 'user',
+            targetId: user.id,
+          }),
+        )
+
+        return repository.getPublicUser(updated)
       })
-
-      await repository.appendAuditLog({
-        organizationId: user.organizationId,
-        actorUserId: user.id,
-        action: 'user.password_changed',
-        targetType: 'user',
-        targetId: user.id,
-      })
-
-      return repository.getPublicUser(updated)
     },
 
-    async createUser(actor, input) {
-      assertAdminRole(actor)
-      const request = createUserRequestSchema.parse(input)
-      const user = await repository.createUser({
-        organizationId: actor.organizationId,
-        username: request.username,
-        email: request.email,
-        displayName: request.displayName,
-        passwordHash: await hashPassword(request.initialPassword),
-        status: 'active',
-        mustChangePassword: true,
-        roles: request.roles,
-      })
+    createUser(actor, input) {
+      return Effect.gen(function* () {
+        yield* fromSync(() => assertAdminRole(actor))
+        const request = yield* fromSync(() => createUserRequestSchema.parse(input))
+        const passwordHash = yield* hashPasswordEffect(request.initialPassword)
+        const user = yield* fromPromise(() =>
+          repository.createUser({
+            organizationId: actor.organizationId,
+            username: request.username,
+            email: request.email,
+            displayName: request.displayName,
+            passwordHash,
+            status: 'active',
+            mustChangePassword: true,
+            roles: request.roles,
+          }),
+        )
 
-      await repository.appendAuditLog({
-        organizationId: actor.organizationId,
-        actorUserId: actor.id,
-        action: 'user.created',
-        targetType: 'user',
-        targetId: user.id,
-        metadata: {
-          username: user.username,
-          roles: user.roles,
-        },
-      })
+        yield* fromPromise(() =>
+          repository.appendAuditLog({
+            organizationId: actor.organizationId,
+            actorUserId: actor.id,
+            action: 'user.created',
+            targetType: 'user',
+            targetId: user.id,
+            metadata: {
+              username: user.username,
+              roles: user.roles,
+            },
+          }),
+        )
 
-      return repository.getPublicUser(user)
+        return repository.getPublicUser(user)
+      })
     },
 
-    async resetUserPassword(actor, userId, input) {
-      assertAdminRole(actor)
-      const request = resetPasswordRequestSchema.parse(input)
-      const user = await repository.resetUserPassword(actor.organizationId, userId, {
-        passwordHash: await hashPassword(request.newPassword),
-        mustChangePassword: request.mustChangePassword,
-      })
+    resetUserPassword(actor, userId, input) {
+      return Effect.gen(function* () {
+        yield* fromSync(() => assertAdminRole(actor))
+        const request = yield* fromSync(() => resetPasswordRequestSchema.parse(input))
+        const passwordHash = yield* hashPasswordEffect(request.newPassword)
+        const user = yield* fromPromise(() =>
+          repository.resetUserPassword(actor.organizationId, userId, {
+            passwordHash,
+            mustChangePassword: request.mustChangePassword,
+          }),
+        )
 
-      await repository.appendAuditLog({
-        organizationId: actor.organizationId,
-        actorUserId: actor.id,
-        action: 'user.password_reset',
-        targetType: 'user',
-        targetId: user.id,
-        metadata: {
-          username: user.username,
-          mustChangePassword: user.mustChangePassword,
-        },
-      })
+        yield* fromPromise(() =>
+          repository.appendAuditLog({
+            organizationId: actor.organizationId,
+            actorUserId: actor.id,
+            action: 'user.password_reset',
+            targetType: 'user',
+            targetId: user.id,
+            metadata: {
+              username: user.username,
+              mustChangePassword: user.mustChangePassword,
+            },
+          }),
+        )
 
-      return repository.getPublicUser(user)
+        return repository.getPublicUser(user)
+      })
     },
 
-    async updateUser(actor, userId, input) {
-      assertAdminRole(actor)
-      const request = updateUserRequestSchema.parse(input)
-      const user = await repository.updateUser(actor.organizationId, userId, request)
+    updateUser(actor, userId, input) {
+      return Effect.gen(function* () {
+        yield* fromSync(() => assertAdminRole(actor))
+        const request = yield* fromSync(() => updateUserRequestSchema.parse(input))
+        const user = yield* fromPromise(() => repository.updateUser(actor.organizationId, userId, request))
 
-      await repository.appendAuditLog({
-        organizationId: actor.organizationId,
-        actorUserId: actor.id,
-        action: 'user.updated',
-        targetType: 'user',
-        targetId: user.id,
-        metadata: {
-          username: user.username,
-          roles: user.roles,
-        },
+        yield* fromPromise(() =>
+          repository.appendAuditLog({
+            organizationId: actor.organizationId,
+            actorUserId: actor.id,
+            action: 'user.updated',
+            targetType: 'user',
+            targetId: user.id,
+            metadata: {
+              username: user.username,
+              roles: user.roles,
+            },
+          }),
+        )
+
+        return repository.getPublicUser(user)
       })
-
-      return repository.getPublicUser(user)
     },
+  }
+}
+
+export function createUserService(deps: UserServiceDeps): UserService {
+  const service = createUserEffectService(deps)
+  return {
+    changeOwnPassword: (user, input) => runApiEffect(service.changeOwnPassword(user, input)),
+    createUser: (actor, input) => runApiEffect(service.createUser(actor, input)),
+    resetUserPassword: (actor, userId, input) => runApiEffect(service.resetUserPassword(actor, userId, input)),
+    updateUser: (actor, userId, input) => runApiEffect(service.updateUser(actor, userId, input)),
   }
 }

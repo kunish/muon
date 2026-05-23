@@ -1,4 +1,7 @@
+import type { DesktopEffect } from '@/shared/lib/effect'
+import { Effect } from 'effect'
 import { computed, onMounted, onUnmounted, shallowRef, watch } from 'vue'
+import { fromSync, runDesktopSync } from '@/shared/lib/effect'
 
 export interface ResizablePaneOptions {
   widthStorageKey: string
@@ -20,19 +23,23 @@ function clampWidth(width: number, minWidth: number, maxWidth: number): number {
 }
 
 function readStorageValue(key: string): string | null {
-  try {
+  return runDesktopSync(readStorageValueEffect(key))
+}
+
+function readStorageValueEffect(key: string): DesktopEffect<string | null> {
+  return fromSync(() => {
     return globalThis.localStorage?.getItem(key) ?? null
-  } catch {
-    return null
-  }
+  }).pipe(Effect.catchAll(() => Effect.succeed(null)))
 }
 
 function writeStorageValue(key: string, value: string): void {
-  try {
+  runDesktopSync(writeStorageValueEffect(key, value))
+}
+
+function writeStorageValueEffect(key: string, value: string): DesktopEffect<void> {
+  return fromSync(() => {
     globalThis.localStorage?.setItem(key, value)
-  } catch {
-    // Persistence is best effort; pane controls still need to work.
-  }
+  }).pipe(Effect.catchAll(() => Effect.void))
 }
 
 function readStoredPaneWidth(options: ResizablePaneOptions): number {

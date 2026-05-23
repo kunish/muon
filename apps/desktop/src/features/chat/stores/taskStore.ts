@@ -1,6 +1,9 @@
 import type { TaskItem, TaskSourceRef, TaskStatus } from '../types/task'
+import type { DesktopEffect } from '@/shared/lib/effect'
+import { Effect } from 'effect'
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
+import { fromSync, runDesktopSync } from '@/shared/lib/effect'
 import { canTransitionTaskStatus, createTaskItem, TASK_STORAGE_KEY } from '../types/task'
 
 interface PersistedTaskState {
@@ -91,7 +94,11 @@ function normalizePersistedItems(items: unknown[]): LoadedTaskState {
 }
 
 function loadState(): LoadedTaskState {
-  try {
+  return runDesktopSync(loadStateEffect())
+}
+
+function loadStateEffect(): DesktopEffect<LoadedTaskState> {
+  return fromSync(() => {
     const raw = localStorage.getItem(TASK_STORAGE_KEY)
     if (!raw) return { items: [], normalized: false }
 
@@ -99,9 +106,7 @@ function loadState(): LoadedTaskState {
     if (parsed.version !== 1 || !Array.isArray(parsed.items)) return { items: [], normalized: false }
 
     return normalizePersistedItems(parsed.items)
-  } catch {
-    return { items: [], normalized: false }
-  }
+  }).pipe(Effect.catchAll(() => Effect.succeed({ items: [], normalized: false })))
 }
 
 function persistState(items: TaskItem[]) {
@@ -110,11 +115,13 @@ function persistState(items: TaskItem[]) {
     items,
   }
 
-  try {
-    localStorage.setItem(TASK_STORAGE_KEY, JSON.stringify(payload))
-  } catch (err) {
-    console.warn('[taskStore] Failed to persist tasks:', err)
-  }
+  runDesktopSync(persistStateEffect(payload))
+}
+
+function persistStateEffect(payload: PersistedTaskState): DesktopEffect<void> {
+  return fromSync(() => localStorage.setItem(TASK_STORAGE_KEY, JSON.stringify(payload))).pipe(
+    Effect.catchAll((err) => fromSync(() => console.warn('[taskStore] Failed to persist tasks:', err))),
+  )
 }
 
 export const useTaskStore = defineStore('task', () => {
@@ -133,83 +140,107 @@ export const useTaskStore = defineStore('task', () => {
     }
   })
 
-  function hydrate() {
-    const { items, normalized } = loadState()
-    hydrated.value = true
-    tasks.value = items
+  function hydrateEffect(): DesktopEffect<void> {
+    return fromSync(() => {
+      const { items, normalized } = loadState()
+      hydrated.value = true
+      tasks.value = items
 
-    if (normalized) persistState(items)
+      if (normalized) persistState(items)
+    })
+  }
+
+  function hydrate() {
+    return runDesktopSync(hydrateEffect())
+  }
+
+  function createTaskEffect(input: CreateTaskInput): DesktopEffect<TaskItem> {
+    return fromSync(() => {
+      const title = input.title.trim()
+      const assignee = input.assignee.trim()
+      if (!title || !assignee || !isValidTaskSourceRef(input.sourceRef)) throw new Error('Invalid task input')
+
+      const now = input.now ?? Date.now()
+      const dueAt = parseDueAt(input.dueAt)
+      const id = input.id ?? generateTaskId(now)
+      const status = input.status ?? 'todo'
+
+      if (!isValidTaskStatus(status)) throw new Error('Invalid task status')
+
+      const task = createTaskItem({
+        id,
+        title,
+        assignee,
+        dueAt,
+        sourceRef: input.sourceRef,
+        now,
+      })
+
+      if (status !== 'todo') {
+        if (!canTransitionTaskStatus('todo', status)) throw new Error(`Invalid status transition: todo -> ${status}`)
+        task.status = status
+        task.updatedAt = now
+      }
+
+      tasks.value.push(task)
+      persistState(tasks.value)
+      return task
+    })
   }
 
   function createTask(input: CreateTaskInput): TaskItem {
-    const title = input.title.trim()
-    const assignee = input.assignee.trim()
-    if (!title || !assignee || !isValidTaskSourceRef(input.sourceRef)) throw new Error('Invalid task input')
+    return runDesktopSync(createTaskEffect(input))
+  }
 
-    const now = input.now ?? Date.now()
-    const dueAt = parseDueAt(input.dueAt)
-    const id = input.id ?? generateTaskId(now)
-    const status = input.status ?? 'todo'
+  function updateTaskEffect(id: string, update: UpdateTaskInput): DesktopEffect<void> {
+    return fromSync(() => {
+      const index = tasks.value.findIndex((item) => item.id === id)
+      if (index < 0) return
 
-    if (!isValidTaskStatus(status)) throw new Error('Invalid task status')
+      const current = tasks.value[index]
+      const nextTitle = update.title?.trim() || current.title
+      const nextAssignee = update.assignee?.trim() || current.assignee
+      const nextDueAt = update.dueAt === undefined ? current.dueAt : parseDueAt(update.dueAt)
 
-    const task = createTaskItem({
-      id,
-      title,
-      assignee,
-      dueAt,
-      sourceRef: input.sourceRef,
-      now,
+      tasks.value[index] = {
+        ...current,
+        title: nextTitle,
+        assignee: nextAssignee,
+        dueAt: nextDueAt,
+        updatedAt: Date.now(),
+      }
+
+      persistState(tasks.value)
     })
-
-    if (status !== 'todo') {
-      if (!canTransitionTaskStatus('todo', status)) throw new Error(`Invalid status transition: todo -> ${status}`)
-      task.status = status
-      task.updatedAt = now
-    }
-
-    tasks.value.push(task)
-    persistState(tasks.value)
-    return task
   }
 
   function updateTask(id: string, update: UpdateTaskInput) {
-    const index = tasks.value.findIndex((item) => item.id === id)
-    if (index < 0) return
+    return runDesktopSync(updateTaskEffect(id, update))
+  }
 
-    const current = tasks.value[index]
-    const nextTitle = update.title?.trim() || current.title
-    const nextAssignee = update.assignee?.trim() || current.assignee
-    const nextDueAt = update.dueAt === undefined ? current.dueAt : parseDueAt(update.dueAt)
+  function transitionStatusEffect(id: string, to: TaskStatus): DesktopEffect<void> {
+    return fromSync(() => {
+      const index = tasks.value.findIndex((item) => item.id === id)
+      if (index < 0) return
 
-    tasks.value[index] = {
-      ...current,
-      title: nextTitle,
-      assignee: nextAssignee,
-      dueAt: nextDueAt,
-      updatedAt: Date.now(),
-    }
+      const current = tasks.value[index]
+      if (current.status === to) return
 
-    persistState(tasks.value)
+      if (!canTransitionTaskStatus(current.status, to))
+        throw new Error(`Invalid status transition: ${current.status} -> ${to}`)
+
+      tasks.value[index] = {
+        ...current,
+        status: to,
+        updatedAt: Date.now(),
+      }
+
+      persistState(tasks.value)
+    })
   }
 
   function transitionStatus(id: string, to: TaskStatus) {
-    const index = tasks.value.findIndex((item) => item.id === id)
-    if (index < 0) return
-
-    const current = tasks.value[index]
-    if (current.status === to) return
-
-    if (!canTransitionTaskStatus(current.status, to))
-      throw new Error(`Invalid status transition: ${current.status} -> ${to}`)
-
-    tasks.value[index] = {
-      ...current,
-      status: to,
-      updatedAt: Date.now(),
-    }
-
-    persistState(tasks.value)
+    return runDesktopSync(transitionStatusEffect(id, to))
   }
 
   hydrate()
@@ -218,6 +249,10 @@ export const useTaskStore = defineStore('task', () => {
     tasks,
     hydrated,
     tasksByStatus,
+    hydrateEffect,
+    createTaskEffect,
+    updateTaskEffect,
+    transitionStatusEffect,
     hydrate,
     createTask,
     updateTask,

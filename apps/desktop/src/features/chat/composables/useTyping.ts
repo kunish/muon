@@ -1,6 +1,9 @@
 import { getClient } from '@matrix/client'
-import { matrixEvents, sendTyping } from '@matrix/index'
+import { matrixEvents } from '@matrix/index'
+import { Effect } from 'effect'
 import { onMounted, onUnmounted, ref } from 'vue'
+import { sendTypingEffect } from '@/matrix/typing'
+import { runDesktopEffect } from '@/shared/lib/effect'
 import { useChatStore } from '../stores/chatStore'
 
 export function useTyping() {
@@ -19,14 +22,10 @@ export function useTyping() {
   function startTyping() {
     const roomId = store.currentRoomId
     if (!roomId) return
-    sendTyping(roomId, true, 5000).catch(() => {
-      /* typing notification failures are non-critical */
-    })
+    void runDesktopEffect(sendTypingEffect(roomId, true, 5000).pipe(Effect.catchAll(() => Effect.void)))
     if (typingTimer) clearTimeout(typingTimer)
     typingTimer = setTimeout(() => {
-      sendTyping(roomId, false).catch(() => {
-        /* typing notification failures are non-critical */
-      })
+      void runDesktopEffect(sendTypingEffect(roomId, false).pipe(Effect.catchAll(() => Effect.void)))
     }, 3000)
   }
 
@@ -37,9 +36,7 @@ export function useTyping() {
       clearTimeout(typingTimer)
       typingTimer = null
     }
-    sendTyping(roomId, false).catch(() => {
-      /* typing notification failures are non-critical */
-    })
+    void runDesktopEffect(sendTypingEffect(roomId, false).pipe(Effect.catchAll(() => Effect.void)))
   }
 
   onMounted(() => {
@@ -51,9 +48,7 @@ export function useTyping() {
     // 卸载时发送停止输入通知，防止幽灵输入状态
     const roomId = store.currentRoomId
     if (roomId && typingTimer) {
-      sendTyping(roomId, false).catch(() => {
-        /* typing notification failures are non-critical */
-      })
+      void runDesktopEffect(sendTypingEffect(roomId, false).pipe(Effect.catchAll(() => Effect.void)))
     }
     if (typingTimer) clearTimeout(typingTimer)
   })

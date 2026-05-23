@@ -1,19 +1,35 @@
 <script setup lang="ts">
 import { syncState } from '@matrix/index';
 import { Toaster } from '@muon/ui/sonner';
-import { onBeforeUnmount, onMounted, ref } from 'vue';
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
 import { bootstrap } from '@/auth/lifecycle';
 import { getDesktopBridge, isElectronRuntime } from '@/desktop/bridge';
+import { useTheme } from '@/features/settings/composables/useTheme';
 import ErrorBoundary from './components/ErrorBoundary.vue';
+import StartupSkeleton from './components/StartupSkeleton.vue';
 import WindowTitleBar from './components/window/WindowTitleBar.vue';
 
 const router = useRouter();
 const { t } = useI18n();
 const initializing = ref(true);
 const showWindowTitleBar = ref(isElectronRuntime());
+const restoredSession = ref(false);
+const hasCompletedInitialSync = ref(false);
+
+useTheme();
+
+watch(
+  syncState,
+  (state) => {
+    if (state === 'PREPARED' || state === 'SYNCING') {
+      hasCompletedInitialSync.value = true;
+    }
+  },
+  { immediate: true },
+);
 
 function blockNativeContextMenu(event: MouseEvent) {
   event.preventDefault();
@@ -30,8 +46,14 @@ onMounted(async () => {
 
   try {
     const { restored } = await bootstrap();
-    if (!restored) router.replace('/login');
+    restoredSession.value = !!restored;
+    if (!restored) {
+      hasCompletedInitialSync.value = false;
+      router.replace('/login');
+    }
   } catch (err) {
+    restoredSession.value = false;
+    hasCompletedInitialSync.value = false;
     if (
       err instanceof Error &&
       (err.message?.includes('fetch') ||
@@ -59,16 +81,11 @@ onBeforeUnmount(() => {
     <WindowTitleBar v-if="showWindowTitleBar" />
     <main class="min-h-0 flex-1 overflow-hidden">
       <ErrorBoundary>
-        <div v-if="initializing" class="flex h-full items-center justify-center bg-background">
-          <div class="flex flex-col items-center gap-3">
-            <div class="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-            <span class="text-sm text-muted-foreground">{{ t('common.connecting') }}</span>
-          </div>
-        </div>
-        <div v-else-if="syncState === 'PREPARED' || syncState === 'SYNCING'" class="h-full">
-          <RouterView />
-        </div>
-        <div v-else-if="syncState === 'ERROR'" class="flex h-full items-center justify-center bg-background">
+        <StartupSkeleton v-if="initializing" />
+        <div
+          v-else-if="restoredSession && syncState === 'ERROR'"
+          class="flex h-full items-center justify-center bg-background"
+        >
           <div class="text-center">
             <p class="text-destructive mb-2">
               {{ t('common.sync_error') }}
@@ -78,6 +95,7 @@ onBeforeUnmount(() => {
             </button>
           </div>
         </div>
+        <StartupSkeleton v-else-if="restoredSession && !hasCompletedInitialSync" />
         <div v-else class="h-full">
           <RouterView />
         </div>

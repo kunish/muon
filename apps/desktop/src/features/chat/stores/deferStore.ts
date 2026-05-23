@@ -1,6 +1,9 @@
 import type { DeferItem, DeferStatus, ReminderPreset } from '../types/defer'
+import type { DesktopEffect } from '@/shared/lib/effect'
+import { Effect } from 'effect'
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
+import { fromSync, runDesktopSync } from '@/shared/lib/effect'
 import { createDeferItem, DEFER_STORAGE_KEY, isDeferActive, transitionDeferStatus } from '../types/defer'
 
 interface PersistedDeferState {
@@ -73,7 +76,11 @@ export function resolveReminderDueAt(reminder: ReminderInput, now: number): numb
 }
 
 function loadState(): DeferItem[] {
-  try {
+  return runDesktopSync(loadStateEffect())
+}
+
+function loadStateEffect(): DesktopEffect<DeferItem[]> {
+  return fromSync(() => {
     const raw = localStorage.getItem(DEFER_STORAGE_KEY)
     if (!raw) return []
 
@@ -81,9 +88,7 @@ function loadState(): DeferItem[] {
     if (parsed.version !== 1 || !Array.isArray(parsed.items)) return []
 
     return parsed.items.filter(isValidDeferItem)
-  } catch {
-    return []
-  }
+  }).pipe(Effect.catchAll(() => Effect.succeed([])))
 }
 
 function persistState(items: DeferItem[]) {
@@ -92,11 +97,13 @@ function persistState(items: DeferItem[]) {
     items,
   }
 
-  try {
-    localStorage.setItem(DEFER_STORAGE_KEY, JSON.stringify(payload))
-  } catch {
-    // 忽略持久化失败（例如隐私模式）
-  }
+  runDesktopSync(persistStateEffect(payload))
+}
+
+function persistStateEffect(payload: PersistedDeferState): DesktopEffect<void> {
+  return fromSync(() => localStorage.setItem(DEFER_STORAGE_KEY, JSON.stringify(payload))).pipe(
+    Effect.catchAll(() => Effect.void),
+  )
 }
 
 export const useDeferStore = defineStore('defer', () => {
@@ -117,41 +124,63 @@ export const useDeferStore = defineStore('defer', () => {
       .sort((a, b) => b.updatedAt - a.updatedAt)
   })
 
+  function hydrateEffect(): DesktopEffect<void> {
+    return fromSync(() => {
+      if (hydrated.value) return
+      hydrated.value = true
+      items.value = loadState()
+    })
+  }
+
   function hydrate() {
-    if (hydrated.value) return
-    hydrated.value = true
-    items.value = loadState()
+    return runDesktopSync(hydrateEffect())
+  }
+
+  function createDeferredItemEffect(input: CreateDeferredItemInput): DesktopEffect<DeferItem> {
+    return fromSync(() => {
+      const now = input.now ?? Date.now()
+      const dueAt = resolveReminderDueAt(input.reminder, now)
+      const item = createDeferItem({
+        id: input.id,
+        roomId: input.roomId,
+        eventId: input.eventId,
+        dueAt,
+        now,
+      })
+
+      items.value.push(item)
+      persistState(items.value)
+      return item
+    })
   }
 
   function createDeferredItem(input: CreateDeferredItemInput) {
-    const now = input.now ?? Date.now()
-    const dueAt = resolveReminderDueAt(input.reminder, now)
-    const item = createDeferItem({
-      id: input.id,
-      roomId: input.roomId,
-      eventId: input.eventId,
-      dueAt,
-      now,
-    })
-
-    items.value.push(item)
-    persistState(items.value)
-    return item
+    return runDesktopSync(createDeferredItemEffect(input))
   }
 
-  function updateStatus(id: string, nextStatus: Exclude<DeferStatus, 'deferred'>) {
-    const index = items.value.findIndex((item) => item.id === id)
-    if (index < 0) return
-    items.value[index] = transitionDeferStatus(items.value[index], nextStatus)
-    persistState(items.value)
+  function updateStatusEffect(id: string, nextStatus: Exclude<DeferStatus, 'deferred'>): DesktopEffect<void> {
+    return fromSync(() => {
+      const index = items.value.findIndex((item) => item.id === id)
+      if (index < 0) return
+      items.value[index] = transitionDeferStatus(items.value[index], nextStatus)
+      persistState(items.value)
+    })
+  }
+
+  function markCompletedEffect(id: string): DesktopEffect<void> {
+    return updateStatusEffect(id, 'completed')
   }
 
   function markCompleted(id: string) {
-    updateStatus(id, 'completed')
+    return runDesktopSync(markCompletedEffect(id))
+  }
+
+  function markArchivedEffect(id: string): DesktopEffect<void> {
+    return updateStatusEffect(id, 'archived')
   }
 
   function markArchived(id: string) {
-    updateStatus(id, 'archived')
+    return runDesktopSync(markArchivedEffect(id))
   }
 
   hydrate()
@@ -161,6 +190,11 @@ export const useDeferStore = defineStore('defer', () => {
     hydrated,
     activeItems,
     historyItems,
+    hydrateEffect,
+    createDeferredItemEffect,
+    updateStatusEffect,
+    markCompletedEffect,
+    markArchivedEffect,
     hydrate,
     createDeferredItem,
     markCompleted,

@@ -26,7 +26,7 @@
     "messenger"
   ],
   "scripts": {
-    "dev": "bash scripts/dev-all.sh",
+    "dev": "pnpm services:up && pnpm --parallel --filter @muon/api --filter @muon/admin --filter @muon/desktop dev",
     "dev:desktop": "pnpm --filter @muon/desktop dev",
     "dev:web": "pnpm --filter @muon/desktop dev:web",
     "dev:api": "pnpm --filter @muon/api dev",
@@ -61,17 +61,17 @@
     "test": "pnpm test:unit && pnpm test:e2e"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^8.2.0",
-    "@commitlint/cli": "^21.0.1",
-    "@commitlint/config-conventional": "^21.0.1",
-    "@types/node": "^25.6.0",
-    "eslint": "^10.2.1",
-    "eslint-config-prettier": "^10.1.8",
-    "husky": "^9.1.7",
-    "lint-staged": "^17.0.5",
-    "prettier": "^3.8.3",
-    "tsx": "^4.21.0",
-    "typescript": "^6.0.3"
+    "@antfu/eslint-config": "catalog:",
+    "@commitlint/cli": "catalog:",
+    "@commitlint/config-conventional": "catalog:",
+    "@types/node": "catalog:",
+    "eslint": "catalog:",
+    "eslint-config-prettier": "catalog:",
+    "husky": "catalog:",
+    "lint-staged": "catalog:",
+    "prettier": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:"
   },
   "lint-staged": {
     "*.{cjs,cts,js,jsx,mjs,mts,ts,tsx,vue}": [

@@ -452,14 +452,11 @@ function getPastedMediaName(image: HTMLImageElement, src: string): string {
 }
 
 function getFileNameFromUrl(src: string): string {
-  try {
-    if (src.startsWith('data:')) return ''
+  if (src.startsWith('data:')) return ''
+  if (typeof URL.canParse === 'function' && !URL.canParse(src, window.location.href)) return ''
 
-    const url = new URL(src, window.location.href)
-    return decodeURIComponent(url.pathname.split('/').filter(Boolean).at(-1) ?? '')
-  } catch {
-    return ''
-  }
+  const url = new URL(src, window.location.href)
+  return decodeURIComponent(url.pathname.split('/').filter(Boolean).at(-1) ?? '')
 }
 
 function stripMediaElementsFromHtml(html: string): string {

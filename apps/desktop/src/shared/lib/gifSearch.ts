@@ -1,4 +1,7 @@
+import type { DesktopEffect } from './effect'
+import { Effect } from 'effect'
 import { fetch as desktopFetch } from '@/desktop/http'
+import { fromPromise, fromSync, runDesktopEffect } from './effect'
 
 export interface GifResult {
   id: string
@@ -37,18 +40,33 @@ function mapResults(data: any): GifResult[] {
   })
 }
 
-export async function searchGifs(query: string, limit = 20): Promise<GifResult[]> {
-  const url = buildUrl('search', { q: query, limit: String(limit), media_filter: 'gif,tinygif' })
-  const res = await desktopFetch(url)
-  if (!res.ok) throw new Error(`Tenor search failed: ${res.status}`)
-  const data = await res.json()
-  return mapResults(data)
+function fetchGifResultsEffect(url: string, errorPrefix: string): DesktopEffect<GifResult[]> {
+  return Effect.gen(function* () {
+    const res = yield* fromPromise(() => desktopFetch(url))
+    if (!res.ok) {
+      return yield* fromSync(() => {
+        throw new Error(`${errorPrefix}: ${res.status}`)
+      })
+    }
+    const data = yield* fromPromise(() => res.json())
+    return mapResults(data)
+  })
 }
 
-export async function getTrendingGifs(limit = 20): Promise<GifResult[]> {
+export function searchGifsEffect(query: string, limit = 20): DesktopEffect<GifResult[]> {
+  const url = buildUrl('search', { q: query, limit: String(limit), media_filter: 'gif,tinygif' })
+  return fetchGifResultsEffect(url, 'Tenor search failed')
+}
+
+export function searchGifs(query: string, limit = 20): Promise<GifResult[]> {
+  return runDesktopEffect(searchGifsEffect(query, limit))
+}
+
+export function getTrendingGifsEffect(limit = 20): DesktopEffect<GifResult[]> {
   const url = buildUrl('featured', { limit: String(limit), media_filter: 'gif,tinygif' })
-  const res = await desktopFetch(url)
-  if (!res.ok) throw new Error(`Tenor trending failed: ${res.status}`)
-  const data = await res.json()
-  return mapResults(data)
+  return fetchGifResultsEffect(url, 'Tenor trending failed')
+}
+
+export function getTrendingGifs(limit = 20): Promise<GifResult[]> {
+  return runDesktopEffect(getTrendingGifsEffect(limit))
 }

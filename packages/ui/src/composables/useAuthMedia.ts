@@ -14,13 +14,14 @@ export function setAuthMediaResolver(resolver: AuthMediaResolver | undefined): v
   pending.clear()
 }
 
-async function resolve(mxcUrl: string, width?: number, height?: number): Promise<string | undefined> {
-  if (!authMediaResolver) return undefined
+function resolve(mxcUrl: string, width?: number, height?: number): Promise<string | undefined> {
+  if (!authMediaResolver) return Promise.resolve(undefined)
 
   const key = `${mxcUrl}|${width ?? 0}|${height ?? 0}`
-  if (cache.has(key)) return cache.get(key)
+  if (cache.has(key)) return Promise.resolve(cache.get(key))
 
-  if (pending.has(key)) return pending.get(key)
+  const pendingRequest = pending.get(key)
+  if (pendingRequest) return pendingRequest
 
   const p = authMediaResolver(mxcUrl, width, height).then((blob) => {
     cache.set(key, blob)
@@ -36,7 +37,7 @@ export function useAuthMedia(mxcUrl: Ref<string | undefined> | (() => string | u
 
   watch(
     mxcUrl,
-    async (url) => {
+    (url) => {
       if (!url) {
         src.value = undefined
         return
@@ -45,7 +46,9 @@ export function useAuthMedia(mxcUrl: Ref<string | undefined> | (() => string | u
         src.value = url
         return
       }
-      src.value = await resolve(url, width, height)
+      void resolve(url, width, height).then((resolved) => {
+        src.value = resolved
+      })
     },
     { immediate: true },
   )

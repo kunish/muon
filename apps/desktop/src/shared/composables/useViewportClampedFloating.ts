@@ -1,5 +1,8 @@
 import type { MaybeRefOrGetter, Ref } from 'vue'
+import type { DesktopEffect } from '@/shared/lib/effect'
+import { Effect } from 'effect'
 import { computed, nextTick, onMounted, onUnmounted, shallowRef, toValue, watch } from 'vue'
+import { fromPromise, fromSync, runDesktopEffect } from '@/shared/lib/effect'
 
 export interface ViewportPoint {
   x: number
@@ -67,9 +70,15 @@ export function useViewportClampedFloating(options: UseViewportClampedFloatingOp
     }
   }
 
-  async function syncFloatingLayoutAfterRender() {
-    await nextTick()
-    if (toValue(options.open)) syncFloatingLayout()
+  function syncFloatingLayoutAfterRenderEffect(): DesktopEffect<void> {
+    return Effect.gen(function* () {
+      yield* fromPromise(() => nextTick())
+      if (toValue(options.open)) yield* fromSync(() => syncFloatingLayout())
+    })
+  }
+
+  function syncFloatingLayoutAfterRender() {
+    return runDesktopEffect(syncFloatingLayoutAfterRenderEffect())
   }
 
   const style = computed(() => {

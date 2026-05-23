@@ -1,18 +1,24 @@
+import { Effect } from 'effect'
 import { createApp } from 'vue'
 import AdminApp from './AdminApp.vue'
 import { getInstallStatus } from './api'
+import { fromPromise, fromSync, runAdminEffect } from './effect'
 import { createAdminRouter, normalizeLegacyAdminHash } from './router'
 import './main.css'
 
-async function bootstrap() {
-  const status = await getInstallStatus().catch(() => ({ installed: false }))
-  normalizeLegacyAdminHash()
+function bootstrapEffect() {
+  return Effect.gen(function* () {
+    const status = yield* fromPromise(() => getInstallStatus()).pipe(
+      Effect.catchAll(() => Effect.succeed({ installed: false })),
+    )
+    yield* fromSync(() => normalizeLegacyAdminHash())
 
-  const router = createAdminRouter()
-  const app = createApp(AdminApp, { initialInstalled: status.installed })
-  app.use(router)
-  await router.isReady()
-  app.mount('#app')
+    const router = yield* fromSync(() => createAdminRouter())
+    const app = yield* fromSync(() => createApp(AdminApp, { initialInstalled: status.installed }))
+    yield* fromSync(() => app.use(router))
+    yield* fromPromise(() => router.isReady())
+    yield* fromSync(() => app.mount('#app'))
+  })
 }
 
-void bootstrap()
+void runAdminEffect(bootstrapEffect())

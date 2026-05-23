@@ -471,7 +471,8 @@ async function triggerPagination() {
 
   isPaginating.value = true;
   try {
-    await loadMore();
+    const didLoad = await loadMore();
+    if (!didLoad) return;
     await nextTick();
 
     if (sessionVersion !== restoreSessionVersion || roomId !== store.currentRoomId) return;

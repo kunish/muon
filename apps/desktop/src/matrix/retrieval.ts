@@ -1,5 +1,8 @@
 import type { ISearchResults } from 'matrix-js-sdk'
 import type { SearchResult } from 'matrix-js-sdk/lib/models/search-result'
+import type { DesktopEffect } from '@/shared/lib/effect'
+import { Effect } from 'effect'
+import { fromPromise, runDesktopEffect } from '@/shared/lib/effect'
 import { getClient } from './client'
 
 export interface RetrievalItem {
@@ -26,88 +29,101 @@ export interface RetrievalPage {
   session: RetrievalSession | null
 }
 
-export async function searchRoomEvents(term: string, limit = 20): Promise<RetrievalPage> {
-  const normalizedTerm = term.trim()
-  if (!normalizedTerm) {
-    return {
-      items: [],
-      nextBatch: null,
-      canPaginate: false,
-      session: null,
-    }
-  }
-
-  const client = getClient()
-  const joinedRoomIds: string[] = client
-    .getRooms()
-    .filter((room) => room.getMyMembership() === 'join')
-    .map((room) => room.roomId)
-    .filter((roomId): roomId is string => typeof roomId === 'string' && roomId.length > 0)
-
-  if (joinedRoomIds.length === 0) {
-    return {
-      items: [],
-      nextBatch: null,
-      canPaginate: false,
-      session: null,
-    }
-  }
-
-  const searchResults = await client.searchRoomEvents({
-    term: normalizedTerm,
-    filter: { rooms: joinedRoomIds, limit },
-  })
-
-  const allowedRoomIds = new Set(joinedRoomIds)
-  const items = mapSearchResults(searchResults?.results, allowedRoomIds)
-  const seenEventIds = new Set(items.map((item) => item.eventId))
-
-  const session: RetrievalSession = {
-    term: normalizedTerm,
-    searchResults,
-    items,
-    seenEventIds,
-    allowedRoomIds,
-  }
-
+function emptyRetrievalPage(): RetrievalPage {
   return {
-    items,
-    nextBatch: getNextBatch(searchResults),
-    canPaginate: hasNextBatch(searchResults),
-    session,
+    items: [],
+    nextBatch: null,
+    canPaginate: false,
+    session: null,
   }
 }
 
-export async function backPaginateRoomEventsSearch(session: RetrievalSession): Promise<RetrievalPage> {
-  const nextBatch = getNextBatch(session.searchResults)
-  if (!nextBatch) {
+export function searchRoomEventsEffect(term: string, limit = 20): DesktopEffect<RetrievalPage> {
+  return Effect.gen(function* () {
+    const normalizedTerm = term.trim()
+    if (!normalizedTerm) {
+      return emptyRetrievalPage()
+    }
+
+    const client = getClient()
+    const joinedRoomIds: string[] = client
+      .getRooms()
+      .filter((room) => room.getMyMembership() === 'join')
+      .map((room) => room.roomId)
+      .filter((roomId): roomId is string => typeof roomId === 'string' && roomId.length > 0)
+
+    if (joinedRoomIds.length === 0) {
+      return emptyRetrievalPage()
+    }
+
+    const searchResults = yield* fromPromise(() =>
+      client.searchRoomEvents({
+        term: normalizedTerm,
+        filter: { rooms: joinedRoomIds, limit },
+      }),
+    )
+
+    const allowedRoomIds = new Set(joinedRoomIds)
+    const items = mapSearchResults(searchResults?.results, allowedRoomIds)
+    const seenEventIds = new Set(items.map((item) => item.eventId))
+
+    const session: RetrievalSession = {
+      term: normalizedTerm,
+      searchResults,
+      items,
+      seenEventIds,
+      allowedRoomIds,
+    }
+
     return {
-      items: [...session.items],
-      nextBatch: null,
-      canPaginate: false,
+      items,
+      nextBatch: getNextBatch(searchResults),
+      canPaginate: hasNextBatch(searchResults),
       session,
     }
-  }
+  })
+}
 
-  const client = getClient()
-  await client.backPaginateRoomEventsSearch(session.searchResults)
+export function searchRoomEvents(term: string, limit = 20): Promise<RetrievalPage> {
+  return runDesktopEffect(searchRoomEventsEffect(term, limit))
+}
 
-  const paginatedItems = mapSearchResults(session.searchResults?.results, session.allowedRoomIds)
-  const appended: RetrievalItem[] = []
-  for (const item of paginatedItems) {
-    if (session.seenEventIds.has(item.eventId)) continue
-    session.seenEventIds.add(item.eventId)
-    appended.push(item)
-  }
+export function backPaginateRoomEventsSearchEffect(session: RetrievalSession): DesktopEffect<RetrievalPage> {
+  return Effect.gen(function* () {
+    const nextBatch = getNextBatch(session.searchResults)
+    if (!nextBatch) {
+      return {
+        items: [...session.items],
+        nextBatch: null,
+        canPaginate: false,
+        session,
+      }
+    }
 
-  if (appended.length > 0) session.items = [...session.items, ...appended]
+    const client = getClient()
+    yield* fromPromise(() => client.backPaginateRoomEventsSearch(session.searchResults))
 
-  return {
-    items: [...session.items],
-    nextBatch: getNextBatch(session.searchResults),
-    canPaginate: hasNextBatch(session.searchResults),
-    session,
-  }
+    const paginatedItems = mapSearchResults(session.searchResults?.results, session.allowedRoomIds)
+    const appended: RetrievalItem[] = []
+    for (const item of paginatedItems) {
+      if (session.seenEventIds.has(item.eventId)) continue
+      session.seenEventIds.add(item.eventId)
+      appended.push(item)
+    }
+
+    if (appended.length > 0) session.items = [...session.items, ...appended]
+
+    return {
+      items: [...session.items],
+      nextBatch: getNextBatch(session.searchResults),
+      canPaginate: hasNextBatch(session.searchResults),
+      session,
+    }
+  })
+}
+
+export function backPaginateRoomEventsSearch(session: RetrievalSession): Promise<RetrievalPage> {
+  return runDesktopEffect(backPaginateRoomEventsSearchEffect(session))
 }
 
 function mapSearchResults(results: SearchResult[] | undefined, allowedRoomIds: Set<string>): RetrievalItem[] {

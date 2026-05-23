@@ -1,6 +1,9 @@
 import type { CustomStickerPack, ImageSticker } from '@/shared/data/stickerPacks'
+import type { DesktopEffect } from '@/shared/lib/effect'
+import { Effect } from 'effect'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import { fromSync, runDesktopSync } from '@/shared/lib/effect'
 
 const STORAGE_KEY = 'muon_custom_sticker_packs'
 const RECENT_KEY = 'muon_recent_stickers'
@@ -27,21 +30,25 @@ export const useStickerStore = defineStore('stickers', () => {
   const recentStickers = ref<RecentSticker[]>(loadRecent())
 
   function loadPacks(): CustomStickerPack[] {
-    try {
+    return runDesktopSync(loadPacksEffect())
+  }
+
+  function loadPacksEffect(): DesktopEffect<CustomStickerPack[]> {
+    return fromSync(() => {
       const raw = localStorage.getItem(STORAGE_KEY)
       return raw ? JSON.parse(raw) : []
-    } catch {
-      return []
-    }
+    }).pipe(Effect.catchAll(() => Effect.succeed([])))
   }
 
   function loadRecent(): RecentSticker[] {
-    try {
+    return runDesktopSync(loadRecentEffect())
+  }
+
+  function loadRecentEffect(): DesktopEffect<RecentSticker[]> {
+    return fromSync(() => {
       const raw = localStorage.getItem(RECENT_KEY)
       return raw ? JSON.parse(raw) : []
-    } catch {
-      return []
-    }
+    }).pipe(Effect.catchAll(() => Effect.succeed([])))
   }
 
   function savePacks() {
@@ -53,25 +60,37 @@ export const useStickerStore = defineStore('stickers', () => {
   }
 
   // ─── 包管理 ─────────────────────────────────────────
+  function createPackEffect(name: string): DesktopEffect<CustomStickerPack> {
+    return fromSync(() => {
+      const pack: CustomStickerPack = {
+        id: `pack_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        name,
+        icon: '',
+        stickers: [],
+        createdAt: Date.now(),
+      }
+      customPacks.value.push(pack)
+      savePacks()
+      return pack
+    })
+  }
+
   function createPack(name: string): CustomStickerPack {
-    const pack: CustomStickerPack = {
-      id: `pack_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-      name,
-      icon: '',
-      stickers: [],
-      createdAt: Date.now(),
-    }
-    customPacks.value.push(pack)
-    savePacks()
-    return pack
+    return runDesktopSync(createPackEffect(name))
+  }
+
+  function deletePackEffect(packId: string): DesktopEffect<void> {
+    return fromSync(() => {
+      const idx = customPacks.value.findIndex((p) => p.id === packId)
+      if (idx >= 0) {
+        customPacks.value.splice(idx, 1)
+        savePacks()
+      }
+    })
   }
 
   function deletePack(packId: string) {
-    const idx = customPacks.value.findIndex((p) => p.id === packId)
-    if (idx >= 0) {
-      customPacks.value.splice(idx, 1)
-      savePacks()
-    }
+    return runDesktopSync(deletePackEffect(packId))
   }
 
   function getPackById(packId: string) {
@@ -79,45 +98,63 @@ export const useStickerStore = defineStore('stickers', () => {
   }
 
   // ─── 贴纸管理 ───────────────────────────────────────
+  function addStickerEffect(packId: string, sticker: ImageSticker): DesktopEffect<void> {
+    return fromSync(() => {
+      const pack = customPacks.value.find((p) => p.id === packId)
+      if (!pack) return
+      // 去重
+      if (pack.stickers.some((s) => s.mxcUrl === sticker.mxcUrl)) return
+      pack.stickers.push(sticker)
+      // 更新包图标为第一张贴纸
+      if (pack.stickers.length === 1) {
+        pack.icon = sticker.mxcUrl
+      }
+      savePacks()
+    })
+  }
+
   function addSticker(packId: string, sticker: ImageSticker) {
-    const pack = customPacks.value.find((p) => p.id === packId)
-    if (!pack) return
-    // 去重
-    if (pack.stickers.some((s) => s.mxcUrl === sticker.mxcUrl)) return
-    pack.stickers.push(sticker)
-    // 更新包图标为第一张贴纸
-    if (pack.stickers.length === 1) {
-      pack.icon = sticker.mxcUrl
-    }
-    savePacks()
+    return runDesktopSync(addStickerEffect(packId, sticker))
+  }
+
+  function removeStickerEffect(packId: string, stickerId: string): DesktopEffect<void> {
+    return fromSync(() => {
+      const pack = customPacks.value.find((p) => p.id === packId)
+      if (!pack) return
+      const idx = pack.stickers.findIndex((s) => s.id === stickerId)
+      if (idx >= 0) pack.stickers.splice(idx, 1)
+      // 如果删掉的是封面，更新封面
+      if (pack.icon && pack.stickers.length > 0) {
+        pack.icon = pack.stickers[0].mxcUrl
+      } else if (pack.stickers.length === 0) {
+        pack.icon = ''
+      }
+      savePacks()
+    })
   }
 
   function removeSticker(packId: string, stickerId: string) {
-    const pack = customPacks.value.find((p) => p.id === packId)
-    if (!pack) return
-    const idx = pack.stickers.findIndex((s) => s.id === stickerId)
-    if (idx >= 0) pack.stickers.splice(idx, 1)
-    // 如果删掉的是封面，更新封面
-    if (pack.icon && pack.stickers.length > 0) {
-      pack.icon = pack.stickers[0].mxcUrl
-    } else if (pack.stickers.length === 0) {
-      pack.icon = ''
-    }
-    savePacks()
+    return runDesktopSync(removeStickerEffect(packId, stickerId))
   }
 
   // ─── 最近使用 ───────────────────────────────────────
-  function pushRecent(entry: RecentSticker, isDuplicate: (r: RecentSticker) => boolean) {
-    recentStickers.value = [entry, ...recentStickers.value.filter((r) => !isDuplicate(r))].slice(0, MAX_RECENT)
-    saveRecent()
+  function pushRecentEffect(entry: RecentSticker, isDuplicate: (r: RecentSticker) => boolean): DesktopEffect<void> {
+    return fromSync(() => {
+      recentStickers.value = [entry, ...recentStickers.value.filter((r) => !isDuplicate(r))].slice(0, MAX_RECENT)
+      saveRecent()
+    })
+  }
+
+  function addRecentEmojiEffect(emoji: string, name: string): DesktopEffect<void> {
+    return pushRecentEffect({ type: 'emoji', value: emoji, name }, (r) => r.type === 'emoji' && r.value === emoji)
   }
 
   function addRecentEmoji(emoji: string, name: string) {
-    pushRecent({ type: 'emoji', value: emoji, name }, (r) => r.type === 'emoji' && r.value === emoji)
+    return runDesktopSync(addRecentEmojiEffect(emoji, name))
   }
 
-  function addRecentImage(sticker: ImageSticker, packId?: string) {
-    pushRecent(
+  function addRecentImageEffect(sticker: ImageSticker, packId?: string): DesktopEffect<void> {
+    return pushRecentEffect(
       {
         type: 'image',
         value: sticker.mxcUrl,
@@ -132,9 +169,20 @@ export const useStickerStore = defineStore('stickers', () => {
     )
   }
 
+  function addRecentImage(sticker: ImageSticker, packId?: string) {
+    return runDesktopSync(addRecentImageEffect(sticker, packId))
+  }
+
   return {
     customPacks,
     recentStickers,
+    createPackEffect,
+    deletePackEffect,
+    addStickerEffect,
+    removeStickerEffect,
+    pushRecentEffect,
+    addRecentEmojiEffect,
+    addRecentImageEffect,
     createPack,
     deletePack,
     getPackById,

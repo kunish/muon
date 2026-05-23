@@ -1,3 +1,6 @@
+import type { DesktopEffect } from '@/shared/lib/effect'
+import { Effect } from 'effect'
+import { fromPromise, fromSync, runDesktopEffect } from '@/shared/lib/effect'
 import { getCurrentWindow } from './window'
 
 function delay(ms: number): Promise<void> {
@@ -9,46 +12,63 @@ function stopAllTracks(stream: MediaStream | null): void {
   for (const track of stream.getTracks()) track.stop()
 }
 
-export async function captureScreen(): Promise<Blob | null> {
-  if (!navigator.mediaDevices?.getDisplayMedia) return null
+function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob | null> {
+  return new Promise<Blob | null>((resolve) => canvas.toBlob((blob) => resolve(blob), 'image/png'))
+}
+
+export function captureScreenEffect(): DesktopEffect<Blob | null> {
+  if (!navigator.mediaDevices?.getDisplayMedia) return Effect.succeed(null)
 
   const appWindow = getCurrentWindow()
-
   let stream: MediaStream | null = null
-  try {
-    await appWindow.hide()
-    await delay(300)
 
-    stream = await navigator.mediaDevices.getDisplayMedia({
-      audio: false,
-      video: { displaySurface: 'monitor' } as MediaTrackConstraints,
-    })
+  return Effect.gen(function* () {
+    yield* fromPromise(() => appWindow.hide())
+    yield* fromPromise(() => delay(300))
+
+    stream = yield* fromPromise(() =>
+      navigator.mediaDevices.getDisplayMedia({
+        audio: false,
+        video: { displaySurface: 'monitor' } as MediaTrackConstraints,
+      }),
+    )
 
     const track = stream.getVideoTracks()[0]
     if (!track) return null
 
-    const video = document.createElement('video')
-    video.srcObject = stream
-    video.muted = true
-    await video.play()
+    const video = yield* fromSync(() => document.createElement('video'))
+    yield* fromSync(() => {
+      video.srcObject = stream
+      video.muted = true
+    })
+    yield* fromPromise(() => video.play())
 
-    await delay(100)
+    yield* fromPromise(() => delay(100))
 
-    const canvas = document.createElement('canvas')
-    canvas.width = video.videoWidth
-    canvas.height = video.videoHeight
-    const ctx = canvas.getContext('2d')!
-    ctx.drawImage(video, 0, 0)
+    const canvas = yield* fromSync(() => document.createElement('canvas'))
+    yield* fromSync(() => {
+      canvas.width = video.videoWidth
+      canvas.height = video.videoHeight
+      const ctx = canvas.getContext('2d')!
+      ctx.drawImage(video, 0, 0)
 
-    video.pause()
-    video.srcObject = null
+      video.pause()
+      video.srcObject = null
+    })
 
-    return await new Promise<Blob | null>((resolve) => canvas.toBlob((blob) => resolve(blob), 'image/png'))
-  } catch {
-    return null
-  } finally {
-    stopAllTracks(stream)
-    await appWindow.show()
-    await appWindow.setFocus()
-  }
+    return yield* fromPromise(() => canvasToBlob(canvas))
+  }).pipe(
+    Effect.catchAll(() => Effect.succeed(null)),
+    Effect.ensuring(
+      Effect.gen(function* () {
+        yield* fromSync(() => stopAllTracks(stream))
+        yield* fromPromise(() => appWindow.show())
+        yield* fromPromise(() => appWindow.setFocus())
+      }).pipe(Effect.catchAll(() => Effect.void)),
+    ),
+  )
+}
+
+export function captureScreen(): Promise<Blob | null> {
+  return runDesktopEffect(captureScreenEffect())
 }

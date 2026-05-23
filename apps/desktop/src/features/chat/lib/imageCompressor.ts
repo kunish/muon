@@ -3,6 +3,9 @@
  * Compresses images to reduce upload size and generate thumbnails for instant preview.
  */
 
+import type { DesktopEffect } from '@/shared/lib/effect'
+import { fromPromise, runDesktopEffect } from '@/shared/lib/effect'
+
 interface CompressOptions {
   maxWidth?: number
   maxHeight?: number
@@ -28,7 +31,7 @@ export function canCompress(file: File | Blob): boolean {
   return file.type.startsWith('image/') && file.type !== 'image/gif' && file.type !== 'image/svg+xml'
 }
 
-export async function compressImage(file: File | Blob, options: CompressOptions = {}): Promise<CompressedImage> {
+export function compressImageEffect(file: File | Blob, options: CompressOptions = {}): DesktopEffect<CompressedImage> {
   const {
     maxWidth = DEFAULT_MAX_WIDTH,
     maxHeight = DEFAULT_MAX_HEIGHT,
@@ -36,173 +39,194 @@ export async function compressImage(file: File | Blob, options: CompressOptions 
     targetSizeKB = 300,
   } = options
 
-  return new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(file)
-    const img = new Image()
+  return fromPromise(
+    () =>
+      new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(file)
+        const img = new Image()
 
-    img.onload = () => {
-      URL.revokeObjectURL(url)
-      const originalWidth = img.naturalWidth
-      const originalHeight = img.naturalHeight
+        img.onload = () => {
+          URL.revokeObjectURL(url)
+          const originalWidth = img.naturalWidth
+          const originalHeight = img.naturalHeight
 
-      const { width, height } = calculateDimensions(originalWidth, originalHeight, maxWidth, maxHeight)
+          const { width, height } = calculateDimensions(originalWidth, originalHeight, maxWidth, maxHeight)
 
-      const canvas = document.createElement('canvas')
-      canvas.width = width
-      canvas.height = height
+          const canvas = document.createElement('canvas')
+          canvas.width = width
+          canvas.height = height
 
-      const ctx = canvas.getContext('2d')!
-      ctx.imageSmoothingEnabled = true
-      ctx.imageSmoothingQuality = 'high'
-      ctx.drawImage(img, 0, 0, width, height)
+          const ctx = canvas.getContext('2d')!
+          ctx.imageSmoothingEnabled = true
+          ctx.imageSmoothingQuality = 'high'
+          ctx.drawImage(img, 0, 0, width, height)
 
-      let finalQuality = quality
-      const tryCompress = (q: number) => {
-        canvas.toBlob(
-          (blob) => {
-            if (!blob) {
-              canvas.toBlob(
-                (fallback) => {
-                  if (!fallback) {
-                    reject(new Error('Failed to compress image'))
-                    return
-                  }
+          let finalQuality = quality
+          const tryCompress = (q: number) => {
+            canvas.toBlob(
+              (blob) => {
+                if (!blob) {
+                  canvas.toBlob(
+                    (fallback) => {
+                      if (!fallback) {
+                        reject(new Error('Failed to compress image'))
+                        return
+                      }
+                      resolve({
+                        blob: fallback,
+                        width,
+                        height,
+                        originalSize: file.size,
+                        compressedSize: fallback.size,
+                      })
+                    },
+                    'image/jpeg',
+                    0.6,
+                  )
+                  return
+                }
+
+                if (blob.size > targetSizeKB * 1024 && q > 0.3) {
+                  finalQuality = q - 0.15
+                  tryCompress(finalQuality)
+                  return
+                }
+
+                if (blob.size >= file.size && file.type.startsWith('image/jpeg')) {
                   resolve({
-                    blob: fallback,
-                    width,
-                    height,
+                    blob: file as Blob,
+                    width: originalWidth,
+                    height: originalHeight,
                     originalSize: file.size,
-                    compressedSize: fallback.size,
+                    compressedSize: file.size,
                   })
-                },
-                'image/jpeg',
-                0.6,
-              )
-              return
-            }
+                  return
+                }
 
-            if (blob.size > targetSizeKB * 1024 && q > 0.3) {
-              finalQuality = q - 0.15
-              tryCompress(finalQuality)
-              return
-            }
+                resolve({
+                  blob,
+                  width,
+                  height,
+                  originalSize: file.size,
+                  compressedSize: blob.size,
+                })
+              },
+              'image/jpeg',
+              q,
+            )
+          }
 
-            if (blob.size >= file.size && file.type.startsWith('image/jpeg')) {
-              resolve({
-                blob: file as Blob,
-                width: originalWidth,
-                height: originalHeight,
-                originalSize: file.size,
-                compressedSize: file.size,
-              })
-              return
-            }
+          tryCompress(finalQuality)
+        }
 
-            resolve({
-              blob,
-              width,
-              height,
-              originalSize: file.size,
-              compressedSize: blob.size,
-            })
-          },
-          'image/jpeg',
-          q,
-        )
-      }
+        img.onerror = () => {
+          URL.revokeObjectURL(url)
+          reject(new Error('Failed to load image for compression'))
+        }
 
-      tryCompress(finalQuality)
-    }
-
-    img.onerror = () => {
-      URL.revokeObjectURL(url)
-      reject(new Error('Failed to load image for compression'))
-    }
-
-    img.src = url
-  })
+        img.src = url
+      }),
+  )
 }
 
-export async function generateThumbnail(file: File | Blob): Promise<Blob | null> {
+export function compressImage(file: File | Blob, options: CompressOptions = {}): Promise<CompressedImage> {
+  return runDesktopEffect(compressImageEffect(file, options))
+}
+
+export function generateThumbnailEffect(file: File | Blob): DesktopEffect<Blob | null> {
   if (file.type === 'image/gif' || file.type === 'image/svg+xml') {
-    return null
+    return fromPromise(() => Promise.resolve(null))
   }
 
-  return new Promise((resolve) => {
-    if (!file.type.startsWith('image/')) {
-      resolve(null)
-      return
-    }
+  return fromPromise(
+    () =>
+      new Promise((resolve) => {
+        if (!file.type.startsWith('image/')) {
+          resolve(null)
+          return
+        }
 
-    const url = URL.createObjectURL(file)
-    const img = new Image()
+        const url = URL.createObjectURL(file)
+        const img = new Image()
 
-    img.onload = () => {
-      URL.revokeObjectURL(url)
-      const { width, height } = calculateDimensions(
-        img.naturalWidth,
-        img.naturalHeight,
-        THUMBNAIL_MAX_WIDTH,
-        THUMBNAIL_MAX_WIDTH,
-      )
+        img.onload = () => {
+          URL.revokeObjectURL(url)
+          const { width, height } = calculateDimensions(
+            img.naturalWidth,
+            img.naturalHeight,
+            THUMBNAIL_MAX_WIDTH,
+            THUMBNAIL_MAX_WIDTH,
+          )
 
-      const canvas = document.createElement('canvas')
-      canvas.width = width
-      canvas.height = height
+          const canvas = document.createElement('canvas')
+          canvas.width = width
+          canvas.height = height
 
-      const ctx = canvas.getContext('2d')!
-      ctx.imageSmoothingEnabled = true
-      ctx.drawImage(img, 0, 0, width, height)
+          const ctx = canvas.getContext('2d')!
+          ctx.imageSmoothingEnabled = true
+          ctx.drawImage(img, 0, 0, width, height)
 
-      canvas.toBlob((blob) => resolve(blob || null), 'image/jpeg', THUMBNAIL_QUALITY)
-    }
+          canvas.toBlob((blob) => resolve(blob || null), 'image/jpeg', THUMBNAIL_QUALITY)
+        }
 
-    img.onerror = () => {
-      URL.revokeObjectURL(url)
-      resolve(null)
-    }
+        img.onerror = () => {
+          URL.revokeObjectURL(url)
+          resolve(null)
+        }
 
-    img.src = url
-  })
+        img.src = url
+      }),
+  )
 }
 
-export async function imageToBase64(file: File | Blob): Promise<string | null> {
-  return new Promise((resolve) => {
-    if (!file.type.startsWith('image/')) {
-      resolve(null)
-      return
-    }
+export function generateThumbnail(file: File | Blob): Promise<Blob | null> {
+  return runDesktopEffect(generateThumbnailEffect(file))
+}
 
-    const url = URL.createObjectURL(file)
-    const img = new Image()
+export function imageToBase64Effect(file: File | Blob): DesktopEffect<string | null> {
+  return fromPromise(
+    () =>
+      new Promise((resolve) => {
+        if (!file.type.startsWith('image/')) {
+          resolve(null)
+          return
+        }
 
-    img.onload = () => {
-      URL.revokeObjectURL(url)
-      const { width, height } = calculateDimensions(
-        img.naturalWidth,
-        img.naturalHeight,
-        THUMBNAIL_MAX_WIDTH,
-        THUMBNAIL_MAX_WIDTH,
-      )
+        const url = URL.createObjectURL(file)
+        const img = new Image()
 
-      const canvas = document.createElement('canvas')
-      canvas.width = width
-      canvas.height = height
+        img.onload = () => {
+          URL.revokeObjectURL(url)
+          const { width, height } = calculateDimensions(
+            img.naturalWidth,
+            img.naturalHeight,
+            THUMBNAIL_MAX_WIDTH,
+            THUMBNAIL_MAX_WIDTH,
+          )
 
-      const ctx = canvas.getContext('2d')!
-      ctx.drawImage(img, 0, 0, width, height)
+          const canvas = document.createElement('canvas')
+          canvas.width = width
+          canvas.height = height
 
-      const base64 = canvas.toDataURL('image/jpeg', THUMBNAIL_QUALITY)
-      resolve(base64 || null)
-    }
+          const ctx = canvas.getContext('2d')!
+          ctx.drawImage(img, 0, 0, width, height)
 
-    img.onerror = () => {
-      URL.revokeObjectURL(url)
-      resolve(null)
-    }
+          const base64 = canvas.toDataURL('image/jpeg', THUMBNAIL_QUALITY)
+          resolve(base64 || null)
+        }
 
-    img.src = url
-  })
+        img.onerror = () => {
+          URL.revokeObjectURL(url)
+          resolve(null)
+        }
+
+        img.src = url
+      }),
+  )
+}
+
+export function imageToBase64(file: File | Blob): Promise<string | null> {
+  return runDesktopEffect(imageToBase64Effect(file))
 }
 
 function calculateDimensions(

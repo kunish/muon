@@ -1,6 +1,9 @@
 import type { EntityTable } from 'dexie'
 import type { CustomField, Project, Workflow, WorkItem } from '../types'
+import type { DesktopEffect } from '@/shared/lib/effect'
 import Dexie from 'dexie'
+import { Effect } from 'effect'
+import { fromPromise, fromSync, runDesktopEffect } from '@/shared/lib/effect'
 import { customFieldSchema, projectSchema, workflowSchema, workItemSchema } from '../types'
 
 export const PROJECT_DB_NAME = 'MuonProjectDB'
@@ -31,94 +34,177 @@ export const projectDb = new MuonProjectDB()
 // Repository
 // ---------------------------------------------------------------------------
 export function createProjectRepository(db = projectDb) {
-  return {
-    // ---- Projects ----
-    async saveProject(project: Project) {
+  const saveProjectEffect = (project: Project): DesktopEffect<Project> =>
+    Effect.gen(function* () {
       const parsed = projectSchema.parse(project)
-      await db.projects.put(parsed)
+      yield* fromPromise(() => db.projects.put(parsed))
       return parsed
+    })
+
+  const getProjectEffect = (id: string): DesktopEffect<Project | undefined> => fromPromise(() => db.projects.get(id))
+
+  const listProjectsEffect = (): DesktopEffect<Project[]> =>
+    fromPromise(() => db.projects.orderBy('updatedAt').reverse().toArray())
+
+  const deleteProjectEffect = (id: string): DesktopEffect<void> =>
+    fromPromise(() =>
+      db.transaction('rw', db.projects, db.workItems, db.workflows, db.customFields, () =>
+        db.projects
+          .delete(id)
+          .then(() => db.workItems.where('projectId').equals(id).delete())
+          .then(() => db.workflows.where('projectId').equals(id).delete())
+          .then(() => db.customFields.where('projectId').equals(id).delete()),
+      ),
+    )
+
+  const saveWorkItemEffect = (item: WorkItem): DesktopEffect<WorkItem> =>
+    Effect.gen(function* () {
+      const parsed = workItemSchema.parse(item)
+      yield* fromPromise(() => db.workItems.put(parsed))
+      return parsed
+    })
+
+  const getWorkItemEffect = (id: string): DesktopEffect<WorkItem | undefined> => fromPromise(() => db.workItems.get(id))
+
+  const listWorkItemsEffect = (projectId: string): DesktopEffect<WorkItem[]> =>
+    fromPromise(() => db.workItems.where('projectId').equals(projectId).sortBy('order'))
+
+  const listWorkItemsByStatusEffect = (projectId: string, status: string): DesktopEffect<WorkItem[]> =>
+    fromPromise(() => db.workItems.where('[projectId+status]').equals([projectId, status]).sortBy('order'))
+
+  const updateWorkItemEffect = (id: string, changes: Partial<WorkItem>): DesktopEffect<WorkItem> =>
+    Effect.gen(function* () {
+      const existing = yield* getWorkItemEffect(id)
+      if (!existing) {
+        return yield* fromSync(() => {
+          throw new Error(`WorkItem ${id} not found`)
+        })
+      }
+      const updated = workItemSchema.parse({ ...existing, ...changes, updatedAt: Date.now() })
+      yield* fromPromise(() => db.workItems.update(id, updated))
+      return updated
+    })
+
+  const deleteWorkItemEffect = (id: string): DesktopEffect<void> => fromPromise(() => db.workItems.delete(id))
+
+  const reorderWorkItemEffect = (id: string, newOrder: number, status: string): DesktopEffect<WorkItem> =>
+    Effect.gen(function* () {
+      const existing = yield* getWorkItemEffect(id)
+      if (!existing) {
+        return yield* fromSync(() => {
+          throw new Error(`WorkItem ${id} not found`)
+        })
+      }
+      const updated = workItemSchema.parse({ ...existing, order: newOrder, status, updatedAt: Date.now() })
+      yield* fromPromise(() => db.workItems.update(id, updated))
+      return updated
+    })
+
+  const saveWorkflowEffect = (workflow: Workflow): DesktopEffect<Workflow> =>
+    Effect.gen(function* () {
+      const parsed = workflowSchema.parse(workflow)
+      yield* fromPromise(() => db.workflows.put(parsed))
+      return parsed
+    })
+
+  const getWorkflowEffect = (projectId: string): DesktopEffect<Workflow | undefined> =>
+    fromPromise(() => db.workflows.where('projectId').equals(projectId).first())
+
+  const saveCustomFieldEffect = (field: CustomField): DesktopEffect<CustomField> =>
+    Effect.gen(function* () {
+      const parsed = customFieldSchema.parse(field)
+      yield* fromPromise(() => db.customFields.put(parsed))
+      return parsed
+    })
+
+  const listCustomFieldsEffect = (projectId: string): DesktopEffect<CustomField[]> =>
+    fromPromise(() => db.customFields.where('projectId').equals(projectId).sortBy('order'))
+
+  const deleteCustomFieldEffect = (id: string): DesktopEffect<void> => fromPromise(() => db.customFields.delete(id))
+
+  return {
+    saveProjectEffect,
+    getProjectEffect,
+    listProjectsEffect,
+    deleteProjectEffect,
+    saveWorkItemEffect,
+    getWorkItemEffect,
+    listWorkItemsEffect,
+    listWorkItemsByStatusEffect,
+    updateWorkItemEffect,
+    deleteWorkItemEffect,
+    reorderWorkItemEffect,
+    saveWorkflowEffect,
+    getWorkflowEffect,
+    saveCustomFieldEffect,
+    listCustomFieldsEffect,
+    deleteCustomFieldEffect,
+    // ---- Projects ----
+    saveProject(project: Project) {
+      return runDesktopEffect(saveProjectEffect(project))
     },
 
-    async getProject(id: string) {
-      return db.projects.get(id)
+    getProject(id: string) {
+      return runDesktopEffect(getProjectEffect(id))
     },
 
-    async listProjects() {
-      return db.projects.orderBy('updatedAt').reverse().toArray()
+    listProjects() {
+      return runDesktopEffect(listProjectsEffect())
     },
 
-    async deleteProject(id: string) {
-      await db.transaction('rw', db.projects, db.workItems, db.workflows, db.customFields, async () => {
-        await db.projects.delete(id)
-        await db.workItems.where('projectId').equals(id).delete()
-        await db.workflows.where('projectId').equals(id).delete()
-        await db.customFields.where('projectId').equals(id).delete()
-      })
+    deleteProject(id: string) {
+      return runDesktopEffect(deleteProjectEffect(id))
     },
 
     // ---- Work Items ----
-    async saveWorkItem(item: WorkItem) {
-      const parsed = workItemSchema.parse(item)
-      await db.workItems.put(parsed)
-      return parsed
+    saveWorkItem(item: WorkItem) {
+      return runDesktopEffect(saveWorkItemEffect(item))
     },
 
-    async getWorkItem(id: string) {
-      return db.workItems.get(id)
+    getWorkItem(id: string) {
+      return runDesktopEffect(getWorkItemEffect(id))
     },
 
-    async listWorkItems(projectId: string) {
-      return db.workItems.where('projectId').equals(projectId).sortBy('order')
+    listWorkItems(projectId: string) {
+      return runDesktopEffect(listWorkItemsEffect(projectId))
     },
 
-    async listWorkItemsByStatus(projectId: string, status: string) {
-      return db.workItems.where('[projectId+status]').equals([projectId, status]).sortBy('order')
+    listWorkItemsByStatus(projectId: string, status: string) {
+      return runDesktopEffect(listWorkItemsByStatusEffect(projectId, status))
     },
 
-    async updateWorkItem(id: string, changes: Partial<WorkItem>) {
-      const existing = await db.workItems.get(id)
-      if (!existing) throw new Error(`WorkItem ${id} not found`)
-      const updated = workItemSchema.parse({ ...existing, ...changes, updatedAt: Date.now() })
-      await db.workItems.update(id, updated)
-      return updated
+    updateWorkItem(id: string, changes: Partial<WorkItem>) {
+      return runDesktopEffect(updateWorkItemEffect(id, changes))
     },
 
-    async deleteWorkItem(id: string) {
-      await db.workItems.delete(id)
+    deleteWorkItem(id: string) {
+      return runDesktopEffect(deleteWorkItemEffect(id))
     },
 
-    async reorderWorkItem(id: string, newOrder: number, status: string) {
-      const existing = await db.workItems.get(id)
-      if (!existing) throw new Error(`WorkItem ${id} not found`)
-      const updated = workItemSchema.parse({ ...existing, order: newOrder, status, updatedAt: Date.now() })
-      await db.workItems.update(id, updated)
-      return updated
+    reorderWorkItem(id: string, newOrder: number, status: string) {
+      return runDesktopEffect(reorderWorkItemEffect(id, newOrder, status))
     },
 
     // ---- Workflows ----
-    async saveWorkflow(workflow: Workflow) {
-      const parsed = workflowSchema.parse(workflow)
-      await db.workflows.put(parsed)
-      return parsed
+    saveWorkflow(workflow: Workflow) {
+      return runDesktopEffect(saveWorkflowEffect(workflow))
     },
 
-    async getWorkflow(projectId: string) {
-      return db.workflows.where('projectId').equals(projectId).first()
+    getWorkflow(projectId: string) {
+      return runDesktopEffect(getWorkflowEffect(projectId))
     },
 
     // ---- Custom Fields ----
-    async saveCustomField(field: CustomField) {
-      const parsed = customFieldSchema.parse(field)
-      await db.customFields.put(parsed)
-      return parsed
+    saveCustomField(field: CustomField) {
+      return runDesktopEffect(saveCustomFieldEffect(field))
     },
 
-    async listCustomFields(projectId: string) {
-      return db.customFields.where('projectId').equals(projectId).sortBy('order')
+    listCustomFields(projectId: string) {
+      return runDesktopEffect(listCustomFieldsEffect(projectId))
     },
 
-    async deleteCustomField(id: string) {
-      await db.customFields.delete(id)
+    deleteCustomField(id: string) {
+      return runDesktopEffect(deleteCustomFieldEffect(id))
     },
   }
 }

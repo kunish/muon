@@ -1,12 +1,15 @@
 import type { MatrixEvent } from 'matrix-js-sdk'
 import type { DigestFilter, DigestSession, DigestSourceEvent } from '../types/digest'
 import type { DigestEntry } from '../types/knowledge'
+import type { DesktopEffect } from '@/shared/lib/effect'
 import { createKnowledgeRepository } from '@features/chat/lib/knowledgeDb'
+import { Effect } from 'effect'
 import { defineStore } from 'pinia'
 import { computed, ref, shallowRef } from 'vue'
 import { materializeOfflineDigest } from '@/matrix/digest'
 import { matrixEvents } from '@/matrix/events'
 import { useNetworkStatus } from '@/shared/composables/useNetworkStatus'
+import { fromPromise, fromSync, runDesktopEffect } from '@/shared/lib/effect'
 import { compareDigestEntries } from '../types/digest'
 
 const repository = createKnowledgeRepository()
@@ -53,11 +56,17 @@ export const useDigestStore = defineStore('digest', () => {
     activeFilter.value = nextFilter
   }
 
-  async function hydrateDigestEntries() {
-    const savedEntries = await repository.listDigestEntries()
-    entries.value = [...savedEntries].sort(compareDigestEntries)
-    session.value = null
-    return entries.value
+  function hydrateDigestEntriesEffect(): DesktopEffect<DigestEntry[]> {
+    return Effect.gen(function* () {
+      const savedEntries = yield* fromPromise(() => repository.listDigestEntries())
+      entries.value = [...savedEntries].sort(compareDigestEntries)
+      session.value = null
+      return entries.value
+    })
+  }
+
+  function hydrateDigestEntries() {
+    return runDesktopEffect(hydrateDigestEntriesEffect())
   }
 
   function startRuntimeSync() {
@@ -90,27 +99,37 @@ export const useDigestStore = defineStore('digest', () => {
     runtimeHandler = null
   }
 
-  async function initializeDigest(options: { now?: number; lastOfflineAt?: number | null } = {}) {
-    await hydrateDigestEntries()
-    startRuntimeSync()
+  function initializeDigestEffect(
+    options: { now?: number; lastOfflineAt?: number | null } = {},
+  ): DesktopEffect<DigestEntry[]> {
+    return Effect.gen(function* () {
+      yield* hydrateDigestEntriesEffect()
+      yield* fromSync(() => startRuntimeSync())
 
-    const windowStart = options.lastOfflineAt ?? lastOfflineAt.value
-    if (windowStart == null) return entries.value
+      const windowStart = options.lastOfflineAt ?? lastOfflineAt.value
+      if (windowStart == null) return entries.value
 
-    return await buildDigestSession(options)
+      return yield* buildDigestSessionEffect(options)
+    })
   }
 
-  async function buildDigestSession(options: { now?: number; lastOfflineAt?: number | null } = {}) {
-    const windowStart = options.lastOfflineAt ?? lastOfflineAt.value
-    const windowEnd = options.now ?? Date.now()
-    if (windowStart == null) {
-      entries.value = []
-      session.value = null
-      return []
-    }
+  function initializeDigest(options: { now?: number; lastOfflineAt?: number | null } = {}) {
+    return runDesktopEffect(initializeDigestEffect(options))
+  }
 
-    loading.value = true
-    try {
+  function buildDigestSessionEffect(
+    options: { now?: number; lastOfflineAt?: number | null } = {},
+  ): DesktopEffect<DigestEntry[]> {
+    return Effect.gen(function* () {
+      const windowStart = options.lastOfflineAt ?? lastOfflineAt.value
+      const windowEnd = options.now ?? Date.now()
+      if (windowStart == null) {
+        entries.value = []
+        session.value = null
+        return []
+      }
+
+      loading.value = true
       const nextSession = materializeOfflineDigest(sourceEvents.value, {
         sessionId: `digest-session:${windowStart}:${windowEnd}`,
         windowStart,
@@ -125,11 +144,13 @@ export const useDigestStore = defineStore('digest', () => {
       }
 
       entries.value = nextSession.entries
-      await Promise.all(nextSession.entries.map((entry) => repository.saveDigestEntry(entry)))
+      yield* fromPromise(() => Promise.all(nextSession.entries.map((entry) => repository.saveDigestEntry(entry))))
       return nextSession.entries
-    } finally {
-      loading.value = false
-    }
+    }).pipe(Effect.ensuring(Effect.sync(() => void (loading.value = false))))
+  }
+
+  function buildDigestSession(options: { now?: number; lastOfflineAt?: number | null } = {}) {
+    return runDesktopEffect(buildDigestSessionEffect(options))
   }
 
   return {
@@ -139,6 +160,9 @@ export const useDigestStore = defineStore('digest', () => {
     session,
     sourceEvents,
     visibleEntries,
+    hydrateDigestEntriesEffect,
+    initializeDigestEffect,
+    buildDigestSessionEffect,
     hydrateDigestEntries,
     initializeDigest,
     ingestEvent,

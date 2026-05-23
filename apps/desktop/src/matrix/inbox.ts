@@ -1,4 +1,7 @@
 import type { MatrixClient, MatrixEvent } from 'matrix-js-sdk'
+import type { DesktopEffect } from '@/shared/lib/effect'
+import { Effect } from 'effect'
+import { fromPromise, fromSync, runDesktopEffect } from '@/shared/lib/effect'
 import { getClient } from './client'
 
 export interface InboxEventContext {
@@ -16,16 +19,22 @@ interface ContextPayload {
   events_after?: MatrixEvent[]
 }
 
-function normalizeContextPayload(roomId: string, eventId: string, payload: ContextPayload): InboxEventContext {
-  if (!payload?.event) throw new Error(`target event ${eventId} missing in context payload`)
+function normalizeContextPayloadEffect(
+  roomId: string,
+  eventId: string,
+  payload: ContextPayload,
+): DesktopEffect<InboxEventContext> {
+  return fromSync(() => {
+    if (!payload?.event) throw new Error(`target event ${eventId} missing in context payload`)
 
-  return {
-    roomId,
-    eventId,
-    eventsBefore: payload.events_before ?? [],
-    event: payload.event,
-    eventsAfter: payload.events_after ?? [],
-  }
+    return {
+      roomId,
+      eventId,
+      eventsBefore: payload.events_before ?? [],
+      event: payload.event,
+      eventsAfter: payload.events_after ?? [],
+    }
+  })
 }
 
 /** getEventContext is private in matrix-js-sdk typing, so we need a narrow cast */
@@ -34,28 +43,40 @@ interface ClientWithContextAPI {
   http?: { authedRequest: (method: string, path: string, params: Record<string, unknown>) => Promise<ContextPayload> }
 }
 
-async function fallbackLoadContext(roomId: string, eventId: string, limit: number): Promise<InboxEventContext> {
-  const client = getClient() as unknown as ClientWithContextAPI
+function fallbackLoadContextEffect(roomId: string, eventId: string, limit: number): DesktopEffect<InboxEventContext> {
+  return Effect.gen(function* () {
+    const client = getClient() as unknown as ClientWithContextAPI
 
-  if (typeof client.getEventContext === 'function') {
-    const payload = await client.getEventContext(roomId, eventId, limit)
-    return normalizeContextPayload(roomId, eventId, payload)
-  }
+    if (typeof client.getEventContext === 'function') {
+      const payload = yield* fromPromise(() => client.getEventContext(roomId, eventId, limit))
+      return yield* normalizeContextPayloadEffect(roomId, eventId, payload)
+    }
 
-  if (client.http?.authedRequest) {
-    const payload = await client.http.authedRequest(
-      'GET',
-      `/rooms/${encodeURIComponent(roomId)}/context/${encodeURIComponent(eventId)}`,
-      { limit },
-    )
-    return normalizeContextPayload(roomId, eventId, payload)
-  }
+    if (client.http?.authedRequest) {
+      const payload = yield* fromPromise(() =>
+        client.http!.authedRequest(
+          'GET',
+          `/rooms/${encodeURIComponent(roomId)}/context/${encodeURIComponent(eventId)}`,
+          {
+            limit,
+          },
+        ),
+      )
+      return yield* normalizeContextPayloadEffect(roomId, eventId, payload)
+    }
 
-  throw new Error('no context API available on matrix client')
+    return yield* fromSync(() => {
+      throw new Error('no context API available on matrix client')
+    })
+  })
 }
 
-export async function loadInboxEventContext(roomId: string, eventId: string, limit = 20): Promise<InboxEventContext> {
-  try {
+export function loadInboxEventContextEffect(
+  roomId: string,
+  eventId: string,
+  limit = 20,
+): DesktopEffect<InboxEventContext> {
+  return Effect.gen(function* () {
     const client: MatrixClient = getClient()
     const room = client.getRoom(roomId)
     if (!room) throw new Error(`room ${roomId} not found`)
@@ -63,15 +84,15 @@ export async function loadInboxEventContext(roomId: string, eventId: string, lim
     const timelineSet = room.getUnfilteredTimelineSet?.()
     if (!timelineSet) throw new Error(`timeline set missing for room ${roomId}`)
 
-    const timeline = await client.getEventTimeline(timelineSet, eventId)
-    if (!timeline) return await fallbackLoadContext(roomId, eventId, limit)
+    const timeline = yield* fromPromise(() => client.getEventTimeline(timelineSet, eventId))
+    if (!timeline) return yield* fallbackLoadContextEffect(roomId, eventId, limit)
 
-    await client.paginateEventTimeline(timeline, { backwards: true, limit })
-    await client.paginateEventTimeline(timeline, { backwards: false, limit })
+    yield* fromPromise(() => client.paginateEventTimeline(timeline, { backwards: true, limit }))
+    yield* fromPromise(() => client.paginateEventTimeline(timeline, { backwards: false, limit }))
 
     const events = timeline.getEvents() as MatrixEvent[]
     const targetIndex = events.findIndex((event) => event.getId() === eventId)
-    if (targetIndex === -1) return await fallbackLoadContext(roomId, eventId, limit)
+    if (targetIndex === -1) return yield* fallbackLoadContextEffect(roomId, eventId, limit)
 
     const eventsBefore = events.slice(Math.max(0, targetIndex - limit), targetIndex)
     const event = events[targetIndex]
@@ -84,8 +105,16 @@ export async function loadInboxEventContext(roomId: string, eventId: string, lim
       event,
       eventsAfter,
     }
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
-    throw new Error(`Failed to load inbox event context (${roomId}/${eventId}): ${message}`)
-  }
+  }).pipe(
+    Effect.catchAll((error) =>
+      fromSync(() => {
+        const message = error instanceof Error ? error.message : String(error)
+        throw new Error(`Failed to load inbox event context (${roomId}/${eventId}): ${message}`)
+      }),
+    ),
+  )
+}
+
+export function loadInboxEventContext(roomId: string, eventId: string, limit = 20): Promise<InboxEventContext> {
+  return runDesktopEffect(loadInboxEventContextEffect(roomId, eventId, limit))
 }

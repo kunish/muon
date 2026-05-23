@@ -1,3 +1,6 @@
+import { Effect } from 'effect'
+import { fromPromise, fromSync, runApiEffect } from './effect'
+
 export interface JsonResponseInit extends ResponseInit {
   status?: number
 }
@@ -12,7 +15,13 @@ export function jsonResponse(body: unknown, init: JsonResponseInit = {}): Respon
   })
 }
 
-export async function readJsonBody(request: Request): Promise<unknown> {
-  const text = await request.text()
-  return text ? JSON.parse(text) : {}
+export function readJsonBody(request: Request): Promise<unknown> {
+  return runApiEffect(readJsonBodyEffect(request))
+}
+
+export function readJsonBodyEffect(request: Request) {
+  return Effect.gen(function* () {
+    const text = yield* fromPromise(() => request.text())
+    return text ? yield* fromSync(() => JSON.parse(text) as unknown) : {}
+  })
 }

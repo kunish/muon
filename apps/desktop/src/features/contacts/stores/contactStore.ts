@@ -1,6 +1,8 @@
+import type { DesktopEffect } from '@/shared/lib/effect'
 import { getClient } from '@matrix/client'
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
+import { fromSync, runDesktopEffect } from '@/shared/lib/effect'
 
 export interface Contact {
   userId: string
@@ -41,40 +43,52 @@ export const useContactStore = defineStore('contacts', () => {
   const searchQuery = ref('')
   const selectedContactId = ref<string | null>(null)
 
-  async function loadContacts() {
-    const client = getClient()
-    const rooms = client.getRooms()
-    const dmMap = new Map<string, Contact>()
+  function loadContactsEffect(): DesktopEffect<void> {
+    return fromSync(() => {
+      const client = getClient()
+      const rooms = client.getRooms()
+      const dmMap = new Map<string, Contact>()
 
-    for (const room of rooms) {
-      const members = room.getJoinedMembers()
-      if (members.length === 2) {
-        const other = members.find((m) => m.userId !== client.getUserId())
-        if (other && !isSystemContact(other.userId) && !dmMap.has(other.userId)) {
-          dmMap.set(other.userId, {
-            userId: other.userId,
-            displayName: other.name || other.userId,
-            avatarUrl: other.getMxcAvatarUrl() || undefined,
-            presence: 'offline',
-          })
+      for (const room of rooms) {
+        const members = room.getJoinedMembers()
+        if (members.length === 2) {
+          const other = members.find((m) => m.userId !== client.getUserId())
+          if (other && !isSystemContact(other.userId) && !dmMap.has(other.userId)) {
+            dmMap.set(other.userId, {
+              userId: other.userId,
+              displayName: other.name || other.userId,
+              avatarUrl: other.getMxcAvatarUrl() || undefined,
+              presence: 'offline',
+            })
+          }
         }
       }
-    }
 
-    contacts.value = Array.from(dmMap.values()).sort((a, b) => a.displayName.localeCompare(b.displayName))
+      contacts.value = Array.from(dmMap.values()).sort((a, b) => a.displayName.localeCompare(b.displayName))
+    })
   }
 
-  async function loadGroups() {
-    const client = getClient()
-    const rooms = client.getRooms()
+  function loadContacts() {
+    return runDesktopEffect(loadContactsEffect())
+  }
 
-    groups.value = rooms
-      .filter((r) => r.getJoinedMemberCount() > 2)
-      .map((r) => ({
-        roomId: r.roomId,
-        name: r.name || r.roomId,
-        memberCount: r.getJoinedMemberCount(),
-      }))
+  function loadGroupsEffect(): DesktopEffect<void> {
+    return fromSync(() => {
+      const client = getClient()
+      const rooms = client.getRooms()
+
+      groups.value = rooms
+        .filter((r) => r.getJoinedMemberCount() > 2)
+        .map((r) => ({
+          roomId: r.roomId,
+          name: r.name || r.roomId,
+          memberCount: r.getJoinedMemberCount(),
+        }))
+    })
+  }
+
+  function loadGroups() {
+    return runDesktopEffect(loadGroupsEffect())
   }
 
   const normalizedSearchQuery = computed(() => searchQuery.value.trim().toLowerCase())
@@ -124,6 +138,8 @@ export const useContactStore = defineStore('contacts', () => {
     contactProfileFor,
     filteredContacts,
     filteredGroups,
+    loadContactsEffect,
+    loadGroupsEffect,
     loadContacts,
     loadGroups,
     toggleContactBlocked,

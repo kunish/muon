@@ -1,3 +1,7 @@
+import type { DesktopEffect } from '@/shared/lib/effect'
+import { Effect } from 'effect'
+import { fromPromise, fromSync, runDesktopEffect, runDesktopSync } from '@/shared/lib/effect'
+
 export const MAX_LINK_PREVIEW_BYTES = 2 * 1024 * 1024
 
 const BLOCKED_HOSTS = new Set(['localhost', 'metadata.google.internal'])
@@ -82,7 +86,11 @@ function isUnsafeHostname(hostname: string): boolean {
 }
 
 export function getPreviewRequestUrl(rawUrl: string): URL | null {
-  try {
+  return runDesktopSync(getPreviewRequestUrlEffect(rawUrl))
+}
+
+export function getPreviewRequestUrlEffect(rawUrl: string): DesktopEffect<URL | null> {
+  return fromSync(() => {
     const url = new URL(rawUrl)
     if (url.protocol !== 'http:' && url.protocol !== 'https:') return null
     if (isUnsafeHostname(url.hostname)) return null
@@ -90,20 +98,20 @@ export function getPreviewRequestUrl(rawUrl: string): URL | null {
     url.username = ''
     url.password = ''
     return url
-  } catch {
-    return null
-  }
+  }).pipe(Effect.catchAll(() => Effect.succeed(null)))
 }
 
 export function getPreviewAssetUrl(rawUrl: string | null | undefined, baseUrl: string): string {
-  if (!rawUrl) return ''
+  return runDesktopSync(getPreviewAssetUrlEffect(rawUrl, baseUrl))
+}
 
-  try {
+export function getPreviewAssetUrlEffect(rawUrl: string | null | undefined, baseUrl: string): DesktopEffect<string> {
+  if (!rawUrl) return Effect.succeed('')
+
+  return fromSync(() => {
     const resolved = new URL(rawUrl, baseUrl)
     return getPreviewRequestUrl(resolved.href)?.href ?? ''
-  } catch {
-    return ''
-  }
+  }).pipe(Effect.catchAll(() => Effect.succeed('')))
 }
 
 export function isHtmlPreviewResponse(resp: Response, maxBytes = MAX_LINK_PREVIEW_BYTES): boolean {
@@ -121,31 +129,36 @@ export function isHtmlPreviewResponse(resp: Response, maxBytes = MAX_LINK_PREVIE
   return true
 }
 
-export async function readLimitedText(resp: Response, maxBytes = MAX_LINK_PREVIEW_BYTES): Promise<string | null> {
-  if (!resp.body) return null
+export function readLimitedText(resp: Response, maxBytes = MAX_LINK_PREVIEW_BYTES): Promise<string | null> {
+  return runDesktopEffect(readLimitedTextEffect(resp, maxBytes))
+}
 
-  const reader = resp.body.getReader()
-  const decoder = new TextDecoder()
-  let bytesRead = 0
-  let text = ''
+export function readLimitedTextEffect(resp: Response, maxBytes = MAX_LINK_PREVIEW_BYTES): DesktopEffect<string | null> {
+  if (!resp.body) return Effect.succeed(null)
 
-  try {
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
+  return fromSync(() => resp.body!.getReader()).pipe(
+    Effect.flatMap((reader) => {
+      const decoder = new TextDecoder()
+      let bytesRead = 0
+      let text = ''
 
-      bytesRead += value.byteLength
-      if (bytesRead > maxBytes) {
-        await reader.cancel()
-        return null
-      }
+      return Effect.gen(function* () {
+        while (true) {
+          const { done, value } = yield* fromPromise(() => reader.read())
+          if (done) break
 
-      text += decoder.decode(value, { stream: true })
-    }
+          bytesRead += value.byteLength
+          if (bytesRead > maxBytes) {
+            yield* fromPromise(() => reader.cancel())
+            return null
+          }
 
-    text += decoder.decode()
-    return text
-  } finally {
-    reader.releaseLock()
-  }
+          text += decoder.decode(value, { stream: true })
+        }
+
+        text += decoder.decode()
+        return text
+      }).pipe(Effect.ensuring(Effect.sync(() => reader.releaseLock())))
+    }),
+  )
 }

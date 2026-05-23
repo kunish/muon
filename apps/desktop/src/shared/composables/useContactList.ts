@@ -1,3 +1,4 @@
+import { Effect } from 'effect'
 /**
  * Shared contact-list data facade.
  *
@@ -10,19 +11,20 @@
  * store so consumers see live updates without importing the store directly.
  */
 import { useContactStore } from '@/features/contacts/stores/contactStore'
+import { fromPromise, runDesktopEffect } from '@/shared/lib/effect'
 
 export function useContactList() {
   const store = useContactStore()
 
   function ensureContactsLoaded() {
     if (store.contacts.length === 0) {
-      void store.loadContacts().catch(() => {})
+      void runDesktopEffect(fromPromise(() => store.loadContacts()).pipe(Effect.catchAll(() => Effect.void)))
     }
   }
 
   function ensureGroupsLoaded() {
     if (store.groups.length === 0) {
-      void store.loadGroups().catch(() => {})
+      void runDesktopEffect(fromPromise(() => store.loadGroups()).pipe(Effect.catchAll(() => Effect.void)))
     }
   }
 

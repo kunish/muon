@@ -1,8 +1,11 @@
 import type { RoomSummary } from '@matrix/types'
 import type { MatrixEvent } from 'matrix-js-sdk'
+import type { DesktopEffect } from '@/shared/lib/effect'
 import { getClient } from '@matrix/client'
+import { Effect } from 'effect'
 import { defineStore } from 'pinia'
 import { reactive, ref } from 'vue'
+import { fromSync, runDesktopSync } from '@/shared/lib/effect'
 
 export type ConversationFilter = 'all' | 'unread' | 'dm' | 'group'
 export type SidePanelType = 'threads' | 'search' | 'pinned' | 'starred' | 'members' | 'settings' | 'tasks' | 'knowledge'
@@ -45,7 +48,11 @@ export const useChatStore = defineStore('chat', () => {
   const DRAFTS_STORAGE_KEY = 'muon_chat_drafts'
 
   function loadDraftsFromStorage() {
-    try {
+    runDesktopSync(loadDraftsFromStorageEffect())
+  }
+
+  function loadDraftsFromStorageEffect(): DesktopEffect<void> {
+    return fromSync(() => {
       const userId = getClient().getUserId()
       if (!userId) return
       const key = `${DRAFTS_STORAGE_KEY}:${userId}`
@@ -60,13 +67,15 @@ export const useChatStore = defineStore('chat', () => {
         if (entry?.html) htmlDrafts.set(roomId, entry.html)
         if (entry?.preview) draftPreviews.set(roomId, entry.preview)
       }
-    } catch {
-      /* ignore parse errors */
-    }
+    }).pipe(Effect.catchAll(() => Effect.void))
   }
 
   function persistDrafts() {
-    try {
+    runDesktopSync(persistDraftsEffect())
+  }
+
+  function persistDraftsEffect(): DesktopEffect<void> {
+    return fromSync(() => {
       const userId = getClient().getUserId()
       if (!userId) return
       const key = `${DRAFTS_STORAGE_KEY}:${userId}`
@@ -88,9 +97,7 @@ export const useChatStore = defineStore('chat', () => {
         }
         localStorage.setItem(key, JSON.stringify(data))
       }
-    } catch {
-      /* ignore storage errors */
-    }
+    }).pipe(Effect.catchAll(() => Effect.void))
   }
 
   loadDraftsFromStorage()

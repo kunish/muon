@@ -1,6 +1,9 @@
 import type { CrossSessionQaAnswer } from '../types/knowledge'
+import type { DesktopEffect } from '@/shared/lib/effect'
+import { Effect } from 'effect'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import { fromPromise, fromSync, runDesktopEffect } from '@/shared/lib/effect'
 import { askCrossSessionQuestion, listSavedQaSessions } from '../services/crossSessionQa'
 
 function sortByNewest(sessions: CrossSessionQaAnswer[]) {
@@ -21,16 +24,28 @@ export const useQaStore = defineStore('qa', () => {
     activeAnswer.value = answer
   }
 
-  async function hydrateHistory() {
-    const sessions = await listSavedQaSessions()
-    setHistory(sessions)
-    return history.value
+  function hydrateHistoryEffect(): DesktopEffect<CrossSessionQaAnswer[]> {
+    return Effect.gen(function* () {
+      const sessions = yield* fromPromise(() => listSavedQaSessions())
+      yield* fromSync(() => setHistory(sessions))
+      return history.value
+    })
   }
 
-  async function askQuestion(question: string) {
-    const answer = await askCrossSessionQuestion(question)
-    upsertAnswer(answer)
-    return answer
+  function hydrateHistory() {
+    return runDesktopEffect(hydrateHistoryEffect())
+  }
+
+  function askQuestionEffect(question: string): DesktopEffect<CrossSessionQaAnswer> {
+    return Effect.gen(function* () {
+      const answer = yield* fromPromise(() => askCrossSessionQuestion(question))
+      yield* fromSync(() => upsertAnswer(answer))
+      return answer
+    })
+  }
+
+  function askQuestion(question: string) {
+    return runDesktopEffect(askQuestionEffect(question))
   }
 
   function selectAnswer(answerId: string) {
@@ -40,6 +55,8 @@ export const useQaStore = defineStore('qa', () => {
   return {
     history,
     activeAnswer,
+    hydrateHistoryEffect,
+    askQuestionEffect,
     hydrateHistory,
     askQuestion,
     selectAnswer,

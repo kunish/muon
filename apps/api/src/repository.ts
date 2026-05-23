@@ -8,6 +8,7 @@ import type {
   UserStatus,
 } from '@muon/enterprise-contracts'
 import { randomUUID } from 'node:crypto'
+import { fromSync, runApiEffect } from './effect'
 
 export interface EnterpriseUserRecord extends EnterpriseUser {
   passwordHash: string
@@ -197,6 +198,7 @@ export function createInMemoryEnterpriseRepository(): EnterpriseRepository {
   const authorizationCodes: AuthorizationCodeRecord[] = []
   const deviceSessions: DeviceSessionRecord[] = []
   const matrixAccounts: MatrixAccountRecord[] = []
+  const runMemory = <A>(evaluate: () => A): Promise<A> => runApiEffect(fromSync(evaluate))
 
   return {
     adminSessions,
@@ -207,265 +209,299 @@ export function createInMemoryEnterpriseRepository(): EnterpriseRepository {
     organizations,
     users,
 
-    async createAdminSession(input) {
-      const nowTimestamp = nowIso()
-      const session: AdminSessionRecord = {
-        id: randomUUID(),
-        organizationId: input.organizationId,
-        userId: input.userId,
-        accessTokenHash: input.accessTokenHash,
-        refreshTokenHash: input.refreshTokenHash,
-        expiresAt: input.expiresAt,
-        revokedAt: null,
-        createdAt: nowTimestamp,
-        lastSeenAt: nowTimestamp,
-      }
-      adminSessions.push(session)
-      return session
+    createAdminSession(input) {
+      return runMemory(() => {
+        const nowTimestamp = nowIso()
+        const session: AdminSessionRecord = {
+          id: randomUUID(),
+          organizationId: input.organizationId,
+          userId: input.userId,
+          accessTokenHash: input.accessTokenHash,
+          refreshTokenHash: input.refreshTokenHash,
+          expiresAt: input.expiresAt,
+          revokedAt: null,
+          createdAt: nowTimestamp,
+          lastSeenAt: nowTimestamp,
+        }
+        adminSessions.push(session)
+        return session
+      })
     },
 
-    async findAdminSessionByTokenHash(accessTokenHash) {
-      return adminSessions.find((session) => session.accessTokenHash === accessTokenHash) ?? null
+    findAdminSessionByTokenHash(accessTokenHash) {
+      return runMemory(() => adminSessions.find((session) => session.accessTokenHash === accessTokenHash) ?? null)
     },
 
-    async touchAdminSession(id) {
-      const session = adminSessions.find((item) => item.id === id)
-      if (session) session.lastSeenAt = nowIso()
+    touchAdminSession(id) {
+      return runMemory(() => {
+        const session = adminSessions.find((item) => item.id === id)
+        if (session) session.lastSeenAt = nowIso()
+      })
     },
 
-    async revokeAdminSession(id) {
-      const session = adminSessions.find((item) => item.id === id)
-      if (session && !session.revokedAt) session.revokedAt = nowIso()
+    revokeAdminSession(id) {
+      return runMemory(() => {
+        const session = adminSessions.find((item) => item.id === id)
+        if (session && !session.revokedAt) session.revokedAt = nowIso()
+      })
     },
 
-    async revokeDeviceSession(id) {
-      const session = deviceSessions.find((item) => item.id === id)
-      if (session && !session.revokedAt) {
-        session.revokedAt = nowIso()
-        return true
-      }
-      return false
+    revokeDeviceSession(id) {
+      return runMemory(() => {
+        const session = deviceSessions.find((item) => item.id === id)
+        if (session && !session.revokedAt) {
+          session.revokedAt = nowIso()
+          return true
+        }
+        return false
+      })
     },
 
-    async revokeAllAdminSessionsForUserExcept(organizationId, userId, exceptSessionId) {
-      const nowTimestamp = nowIso()
-      for (const session of adminSessions) {
-        if (session.organizationId !== organizationId) continue
-        if (session.userId !== userId) continue
-        if (session.id === exceptSessionId) continue
-        if (session.revokedAt) continue
-        session.revokedAt = nowTimestamp
-      }
+    revokeAllAdminSessionsForUserExcept(organizationId, userId, exceptSessionId) {
+      return runMemory(() => {
+        const nowTimestamp = nowIso()
+        for (const session of adminSessions) {
+          if (session.organizationId !== organizationId) continue
+          if (session.userId !== userId) continue
+          if (session.id === exceptSessionId) continue
+          if (session.revokedAt) continue
+          session.revokedAt = nowTimestamp
+        }
+      })
     },
 
-    async appendAuditLog(input) {
-      const event: AuditLog = {
-        id: randomUUID(),
-        organizationId: input.organizationId,
-        actorUserId: input.actorUserId,
-        action: input.action,
-        targetType: input.targetType,
-        targetId: input.targetId ?? null,
-        metadata: input.metadata ?? {},
-        ipAddress: input.ipAddress ?? null,
-        userAgent: input.userAgent ?? null,
-        createdAt: nowIso(),
-      }
-      auditLogs.push(event)
-      return event
+    appendAuditLog(input) {
+      return runMemory(() => {
+        const event: AuditLog = {
+          id: randomUUID(),
+          organizationId: input.organizationId,
+          actorUserId: input.actorUserId,
+          action: input.action,
+          targetType: input.targetType,
+          targetId: input.targetId ?? null,
+          metadata: input.metadata ?? {},
+          ipAddress: input.ipAddress ?? null,
+          userAgent: input.userAgent ?? null,
+          createdAt: nowIso(),
+        }
+        auditLogs.push(event)
+        return event
+      })
     },
 
-    async createAuthorizationCode(input) {
-      const code: AuthorizationCodeRecord = {
-        id: randomUUID(),
-        codeHash: input.codeHash,
-        organizationId: input.organizationId,
-        userId: input.userId,
-        clientId: input.clientId,
-        redirectUri: input.redirectUri,
-        codeChallenge: input.codeChallenge,
-        codeChallengeMethod: input.codeChallengeMethod,
-        matrixSession: input.matrixSession,
-        expiresAt: input.expiresAt,
-        usedAt: null,
-        createdAt: nowIso(),
-      }
-      authorizationCodes.push(code)
-      return code
+    createAuthorizationCode(input) {
+      return runMemory(() => {
+        const code: AuthorizationCodeRecord = {
+          id: randomUUID(),
+          codeHash: input.codeHash,
+          organizationId: input.organizationId,
+          userId: input.userId,
+          clientId: input.clientId,
+          redirectUri: input.redirectUri,
+          codeChallenge: input.codeChallenge,
+          codeChallengeMethod: input.codeChallengeMethod,
+          matrixSession: input.matrixSession,
+          expiresAt: input.expiresAt,
+          usedAt: null,
+          createdAt: nowIso(),
+        }
+        authorizationCodes.push(code)
+        return code
+      })
     },
 
-    async createDeviceSession(input) {
-      const session: DeviceSessionRecord = {
-        id: randomUUID(),
-        organizationId: input.organizationId,
-        userId: input.userId,
-        deviceName: input.deviceName,
-        accessTokenHash: input.accessTokenHash,
-        refreshTokenHash: input.refreshTokenHash,
-        expiresAt: input.expiresAt,
-        revokedAt: null,
-        createdAt: nowIso(),
-      }
-      deviceSessions.push(session)
-      return session
+    createDeviceSession(input) {
+      return runMemory(() => {
+        const session: DeviceSessionRecord = {
+          id: randomUUID(),
+          organizationId: input.organizationId,
+          userId: input.userId,
+          deviceName: input.deviceName,
+          accessTokenHash: input.accessTokenHash,
+          refreshTokenHash: input.refreshTokenHash,
+          expiresAt: input.expiresAt,
+          revokedAt: null,
+          createdAt: nowIso(),
+        }
+        deviceSessions.push(session)
+        return session
+      })
     },
 
-    async createOrganization(input) {
-      if (organizations.some((organization) => organization.slug === input.slug))
-        throw new Error('Organization slug is already in use')
+    createOrganization(input) {
+      return runMemory(() => {
+        if (organizations.some((organization) => organization.slug === input.slug))
+          throw new Error('Organization slug is already in use')
 
-      const createdAt = nowIso()
-      const organization: Organization = {
-        id: randomUUID(),
-        slug: input.slug,
-        name: input.name,
-        status: input.status ?? 'active',
-        createdAt,
-        updatedAt: createdAt,
-      }
-      organizations.push(organization)
-      return organization
+        const createdAt = nowIso()
+        const organization: Organization = {
+          id: randomUUID(),
+          slug: input.slug,
+          name: input.name,
+          status: input.status ?? 'active',
+          createdAt,
+          updatedAt: createdAt,
+        }
+        organizations.push(organization)
+        return organization
+      })
     },
 
-    async createUser(input) {
-      if (users.some((user) => user.organizationId === input.organizationId && user.username === input.username))
-        throw new Error('Username is already in use')
+    createUser(input) {
+      return runMemory(() => {
+        if (users.some((user) => user.organizationId === input.organizationId && user.username === input.username))
+          throw new Error('Username is already in use')
 
-      const createdAt = nowIso()
-      const user: EnterpriseUserRecord = {
-        id: randomUUID(),
-        organizationId: input.organizationId,
-        username: input.username,
-        email: input.email,
-        displayName: input.displayName,
-        passwordHash: input.passwordHash,
-        status: input.status,
-        mustChangePassword: input.mustChangePassword,
-        roles: [...input.roles],
-        createdAt,
-        updatedAt: createdAt,
-      }
-      users.push(user)
-      return user
+        const createdAt = nowIso()
+        const user: EnterpriseUserRecord = {
+          id: randomUUID(),
+          organizationId: input.organizationId,
+          username: input.username,
+          email: input.email,
+          displayName: input.displayName,
+          passwordHash: input.passwordHash,
+          status: input.status,
+          mustChangePassword: input.mustChangePassword,
+          roles: [...input.roles],
+          createdAt,
+          updatedAt: createdAt,
+        }
+        users.push(user)
+        return user
+      })
     },
 
-    async findActiveDeviceSessionsByUser(organizationId, userId) {
-      const now = Date.now()
-      return deviceSessions.filter(
-        (session) =>
-          session.organizationId === organizationId &&
-          session.userId === userId &&
-          session.revokedAt === null &&
-          Date.parse(session.expiresAt) > now,
+    findActiveDeviceSessionsByUser(organizationId, userId) {
+      return runMemory(() => {
+        const now = Date.now()
+        return deviceSessions.filter(
+          (session) =>
+            session.organizationId === organizationId &&
+            session.userId === userId &&
+            session.revokedAt === null &&
+            Date.parse(session.expiresAt) > now,
+        )
+      })
+    },
+
+    findAuthorizationCodeByHash(codeHash) {
+      return runMemory(() => authorizationCodes.find((code) => code.codeHash === codeHash) ?? null)
+    },
+
+    findDeviceSessionById(id) {
+      return runMemory(() => deviceSessions.find((session) => session.id === id) ?? null)
+    },
+
+    findDeviceSessionByRefreshTokenHash(refreshTokenHash) {
+      return runMemory(() => deviceSessions.find((session) => session.refreshTokenHash === refreshTokenHash) ?? null)
+    },
+
+    findMatrixAccount(organizationId, userId) {
+      return runMemory(
+        () =>
+          matrixAccounts.find((account) => account.organizationId === organizationId && account.userId === userId) ??
+          null,
       )
     },
 
-    async findAuthorizationCodeByHash(codeHash) {
-      return authorizationCodes.find((code) => code.codeHash === codeHash) ?? null
+    findOrganizationBySlug(slug) {
+      return runMemory(() => organizations.find((organization) => organization.slug === slug) ?? null)
     },
 
-    async findDeviceSessionById(id) {
-      return deviceSessions.find((session) => session.id === id) ?? null
+    findUserById(organizationId, userId) {
+      return runMemory(() => users.find((user) => user.organizationId === organizationId && user.id === userId) ?? null)
     },
 
-    async findDeviceSessionByRefreshTokenHash(refreshTokenHash) {
-      return deviceSessions.find((session) => session.refreshTokenHash === refreshTokenHash) ?? null
-    },
-
-    async findMatrixAccount(organizationId, userId) {
-      return (
-        matrixAccounts.find((account) => account.organizationId === organizationId && account.userId === userId) ?? null
+    findUserByUsername(organizationId, username) {
+      return runMemory(
+        () => users.find((user) => user.organizationId === organizationId && user.username === username) ?? null,
       )
-    },
-
-    async findOrganizationBySlug(slug) {
-      return organizations.find((organization) => organization.slug === slug) ?? null
-    },
-
-    async findUserById(organizationId, userId) {
-      return users.find((user) => user.organizationId === organizationId && user.id === userId) ?? null
-    },
-
-    async findUserByUsername(organizationId, username) {
-      return users.find((user) => user.organizationId === organizationId && user.username === username) ?? null
     },
 
     getPublicUser: publicUser,
 
-    async isInstalled() {
-      return organizations.length > 0
+    isInstalled() {
+      return runMemory(() => organizations.length > 0)
     },
 
-    async listAuditLogsByOrganization(organizationId) {
-      return auditLogs.filter((event) => event.organizationId === organizationId)
+    listAuditLogsByOrganization(organizationId) {
+      return runMemory(() => auditLogs.filter((event) => event.organizationId === organizationId))
     },
 
-    async listOrganizations() {
-      return [...organizations]
+    listOrganizations() {
+      return runMemory(() => [...organizations])
     },
 
-    async listUsersByOrganization(organizationId) {
-      return users.filter((user) => user.organizationId === organizationId)
+    listUsersByOrganization(organizationId) {
+      return runMemory(() => users.filter((user) => user.organizationId === organizationId))
     },
 
-    async markAuthorizationCodeUsed(id) {
-      const code = authorizationCodes.find((item) => item.id === id)
-      if (!code) throw new Error('Authorization code not found')
-      code.usedAt = nowIso()
-      return code
+    markAuthorizationCodeUsed(id) {
+      return runMemory(() => {
+        const code = authorizationCodes.find((item) => item.id === id)
+        if (!code) throw new Error('Authorization code not found')
+        code.usedAt = nowIso()
+        return code
+      })
     },
 
-    async resetUserPassword(organizationId, userId, input) {
-      const user = users.find((item) => item.organizationId === organizationId && item.id === userId)
-      if (!user) throw new Error('User not found')
+    resetUserPassword(organizationId, userId, input) {
+      return runMemory(() => {
+        const user = users.find((item) => item.organizationId === organizationId && item.id === userId)
+        if (!user) throw new Error('User not found')
 
-      user.passwordHash = input.passwordHash
-      user.mustChangePassword = input.mustChangePassword
-      user.updatedAt = nowIso()
-      return user
+        user.passwordHash = input.passwordHash
+        user.mustChangePassword = input.mustChangePassword
+        user.updatedAt = nowIso()
+        return user
+      })
     },
 
-    async updateUser(organizationId, userId, input) {
-      const user = users.find((item) => item.organizationId === organizationId && item.id === userId)
-      if (!user) throw new Error('User not found')
-      if (
-        input.username &&
-        users.some(
-          (item) => item.organizationId === organizationId && item.id !== userId && item.username === input.username,
+    updateUser(organizationId, userId, input) {
+      return runMemory(() => {
+        const user = users.find((item) => item.organizationId === organizationId && item.id === userId)
+        if (!user) throw new Error('User not found')
+        if (
+          input.username &&
+          users.some(
+            (item) => item.organizationId === organizationId && item.id !== userId && item.username === input.username,
+          )
         )
-      )
-        throw new Error('Username is already in use')
+          throw new Error('Username is already in use')
 
-      user.username = input.username ?? user.username
-      user.email = input.email ?? user.email
-      user.displayName = input.displayName ?? user.displayName
-      user.status = input.status ?? user.status
-      user.roles = input.roles ? [...input.roles] : user.roles
-      user.updatedAt = nowIso()
-      return user
+        user.username = input.username ?? user.username
+        user.email = input.email ?? user.email
+        user.displayName = input.displayName ?? user.displayName
+        user.status = input.status ?? user.status
+        user.roles = input.roles ? [...input.roles] : user.roles
+        user.updatedAt = nowIso()
+        return user
+      })
     },
 
-    async upsertMatrixAccount(input) {
-      const existing = matrixAccounts.find(
-        (account) => account.organizationId === input.organizationId && account.userId === input.userId,
-      )
-      const lastProvisionedAt = nowIso()
-      if (existing) {
-        existing.matrixUserId = input.matrixUserId
-        existing.matrixDeviceId = input.matrixDeviceId
-        existing.accessToken = input.accessToken
-        existing.lastProvisionedAt = lastProvisionedAt
-        existing.provisioningStatus = 'active'
-        return existing
-      }
+    upsertMatrixAccount(input) {
+      return runMemory(() => {
+        const existing = matrixAccounts.find(
+          (account) => account.organizationId === input.organizationId && account.userId === input.userId,
+        )
+        const lastProvisionedAt = nowIso()
+        if (existing) {
+          existing.matrixUserId = input.matrixUserId
+          existing.matrixDeviceId = input.matrixDeviceId
+          existing.accessToken = input.accessToken
+          existing.lastProvisionedAt = lastProvisionedAt
+          existing.provisioningStatus = 'active'
+          return existing
+        }
 
-      const account: MatrixAccountRecord = {
-        ...input,
-        lastProvisionedAt,
-        provisioningStatus: 'active',
-      }
-      matrixAccounts.push(account)
-      return account
+        const account: MatrixAccountRecord = {
+          ...input,
+          lastProvisionedAt,
+          provisioningStatus: 'active',
+        }
+        matrixAccounts.push(account)
+        return account
+      })
     },
   }
 }

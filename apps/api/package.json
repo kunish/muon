@@ -10,11 +10,12 @@
   },
   "dependencies": {
     "@muon/enterprise-contracts": "workspace:*",
-    "pg": "^8.20.0",
-    "zod": "^4.4.1"
+    "effect": "catalog:",
+    "pg": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
-    "@types/pg": "^8.20.0",
-    "tsx": "^4.21.0"
+    "@types/pg": "catalog:",
+    "tsx": "catalog:"
   }
 }

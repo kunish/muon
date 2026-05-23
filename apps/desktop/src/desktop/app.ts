@@ -1,9 +1,19 @@
+import type { DesktopEffect } from '@/shared/lib/effect'
+import { fromPromise, runDesktopEffect } from '@/shared/lib/effect'
 import { getDesktopBridge } from './bridge'
 
-export async function setAutoLaunchEnabled(enabled: boolean): Promise<void> {
-  await getDesktopBridge()?.app.setAutoLaunch(enabled)
+export function setAutoLaunchEnabledEffect(enabled: boolean): DesktopEffect<void> {
+  return fromPromise(() => getDesktopBridge()?.app.setAutoLaunch(enabled))
 }
 
-export async function setCloseToTrayEnabled(enabled: boolean): Promise<void> {
-  await getDesktopBridge()?.app.setCloseToTray(enabled)
+export function setAutoLaunchEnabled(enabled: boolean): Promise<void> {
+  return runDesktopEffect(setAutoLaunchEnabledEffect(enabled))
+}
+
+export function setCloseToTrayEnabledEffect(enabled: boolean): DesktopEffect<void> {
+  return fromPromise(() => getDesktopBridge()?.app.setCloseToTray(enabled))
+}
+
+export function setCloseToTrayEnabled(enabled: boolean): Promise<void> {
+  return runDesktopEffect(setCloseToTrayEnabledEffect(enabled))
 }

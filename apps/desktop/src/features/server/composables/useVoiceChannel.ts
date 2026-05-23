@@ -1,8 +1,11 @@
 import type { Room } from 'livekit-client'
 import type { VoiceConnection } from '../stores/serverStore'
+import type { DesktopEffect } from '@/shared/lib/effect'
+import { Effect } from 'effect'
 import { computed, ref, shallowRef } from 'vue'
 import { toast } from 'vue-sonner'
 import { getClient } from '@/matrix/client'
+import { fromPromise, fromSync, runDesktopEffect } from '@/shared/lib/effect'
 import { localizedText } from '@/shared/lib/localizedText'
 import { getLiveKitToken } from '../lib/livekitToken'
 import { useServerStore } from '../stores/serverStore'
@@ -75,129 +78,170 @@ export function useVoiceChannel() {
   }
 
   /** Connect to a voice channel's LiveKit room */
-  async function joinVoiceChannel(roomId: string, channelName: string, serverId: string) {
-    // Already connected to this channel
-    if (currentChannelId.value === roomId && isConnected.value) return
+  function joinVoiceChannelEffect(roomId: string, channelName: string, serverId: string): DesktopEffect<void> {
+    return Effect.gen(function* () {
+      if (currentChannelId.value === roomId && isConnected.value) return
 
-    // Disconnect from any existing voice channel first
-    if (isConnected.value) {
-      await leaveVoiceChannel()
-    }
+      if (isConnected.value) {
+        yield* leaveVoiceChannelEffect()
+      }
 
-    isConnecting.value = true
-    currentChannelId.value = roomId
-
-    try {
-      const { Room, RoomEvent } = await import('livekit-client')
-      room.value = new Room()
-
-      room.value.on(RoomEvent.Connected, () => {
-        isConnected.value = true
-        isConnecting.value = false
+      yield* fromSync(() => {
+        isConnecting.value = true
+        currentChannelId.value = roomId
       })
 
-      room.value.on(RoomEvent.Disconnected, () => {
-        resetState()
+      const livekit = yield* fromPromise(() => import('livekit-client'))
+      const nextRoom = new livekit.Room()
+      yield* fromSync(() => {
+        room.value = nextRoom
+
+        nextRoom.on(livekit.RoomEvent.Connected, () => {
+          isConnected.value = true
+          isConnecting.value = false
+        })
+
+        nextRoom.on(livekit.RoomEvent.Disconnected, () => {
+          resetState()
+        })
       })
 
-      const client = getClient()
-      const identity = client.getUserId() || 'local'
-      const profile = client.getUser(identity)
-      const token = await getLiveKitToken({
-        roomName: roomId,
-        identity,
-        name: profile?.displayName || identity,
-        metadata: JSON.stringify({ matrixRoomId: roomId, serverId, channelName }),
+      const tokenRequest = yield* fromSync(() => {
+        const client = getClient()
+        const identity = client.getUserId() || 'local'
+        const profile = client.getUser(identity)
+        return {
+          roomName: roomId,
+          identity,
+          name: profile?.displayName || identity,
+          metadata: JSON.stringify({ matrixRoomId: roomId, serverId, channelName }),
+        }
       })
-      await room.value.connect(LIVEKIT_URL, token)
+      const token = yield* fromPromise(() => getLiveKitToken(tokenRequest))
+      yield* fromPromise(() => nextRoom.connect(LIVEKIT_URL, token))
+      yield* fromPromise(() => nextRoom.localParticipant.setMicrophoneEnabled(!isMuted.value))
 
-      // Enable microphone by default (not deafened)
-      await room.value.localParticipant.setMicrophoneEnabled(!isMuted.value)
+      yield* fromSync(() => {
+        const connection: VoiceConnection = { channelId: roomId, channelName, serverId }
+        serverStore.setVoiceConnection(connection)
+        addSelfToUsers()
+      })
+    }).pipe(
+      Effect.catchAll((err) =>
+        fromSync(() => {
+          console.error('[useVoiceChannel] Failed to join:', err)
+          toast.error(localizedText('server.voice_join_failed'))
+          resetState()
+        }),
+      ),
+    )
+  }
 
-      // Update store
-      const connection: VoiceConnection = { channelId: roomId, channelName, serverId }
-      serverStore.setVoiceConnection(connection)
-
-      // Add self to the local participant list until remote participant rendering is wired.
-      addSelfToUsers()
-    } catch (err) {
-      console.error('[useVoiceChannel] Failed to join:', err)
-      toast.error(localizedText('server.voice_join_failed'))
-      resetState()
-    }
+  function joinVoiceChannel(roomId: string, channelName: string, serverId: string) {
+    return runDesktopEffect(joinVoiceChannelEffect(roomId, channelName, serverId))
   }
 
   /** Disconnect from the current voice channel */
-  async function leaveVoiceChannel() {
-    if (room.value) {
-      room.value.removeAllListeners()
-      try {
-        await room.value.disconnect()
-      } catch {
-        // Ignore disconnect errors
+  function leaveVoiceChannelEffect(): DesktopEffect<void> {
+    return Effect.gen(function* () {
+      const activeRoom = room.value
+      if (activeRoom) {
+        yield* fromSync(() => activeRoom.removeAllListeners())
+        yield* fromPromise(() => activeRoom.disconnect()).pipe(Effect.catchAll(() => Effect.succeed(undefined)))
+        yield* fromSync(() => {
+          room.value = null
+        })
       }
-      room.value = null
-    }
 
-    removeSelfFromUsers()
-    resetState()
+      yield* fromSync(() => {
+        removeSelfFromUsers()
+        resetState()
+      })
+    })
+  }
+
+  function leaveVoiceChannel() {
+    return runDesktopEffect(leaveVoiceChannelEffect())
   }
 
   /** Switch from the current voice channel to a new one */
-  async function switchVoiceChannel(newRoomId: string, channelName: string, serverId: string) {
-    await leaveVoiceChannel()
-    await joinVoiceChannel(newRoomId, channelName, serverId)
+  function switchVoiceChannelEffect(newRoomId: string, channelName: string, serverId: string): DesktopEffect<void> {
+    return Effect.gen(function* () {
+      yield* leaveVoiceChannelEffect()
+      yield* joinVoiceChannelEffect(newRoomId, channelName, serverId)
+    })
+  }
+
+  function switchVoiceChannel(newRoomId: string, channelName: string, serverId: string) {
+    return runDesktopEffect(switchVoiceChannelEffect(newRoomId, channelName, serverId))
   }
 
   /** Toggle microphone mute */
-  async function toggleMute() {
-    isMuted.value = !isMuted.value
-
-    if (room.value) {
-      try {
-        await room.value.localParticipant.setMicrophoneEnabled(!isMuted.value)
-      } catch {
+  function toggleMuteEffect(): DesktopEffect<void> {
+    return Effect.gen(function* () {
+      yield* fromSync(() => {
         isMuted.value = !isMuted.value
-        toast.error(localizedText('server.microphone_toggle_failed'))
-      }
-    }
+      })
 
-    updateSelfInUsers()
+      if (room.value) {
+        yield* fromPromise(() => room.value!.localParticipant.setMicrophoneEnabled(!isMuted.value)).pipe(
+          Effect.catchAll(() =>
+            fromSync(() => {
+              isMuted.value = !isMuted.value
+              toast.error(localizedText('server.microphone_toggle_failed'))
+            }),
+          ),
+        )
+      }
+
+      yield* fromSync(() => updateSelfInUsers())
+    })
+  }
+
+  function toggleMute() {
+    return runDesktopEffect(toggleMuteEffect())
   }
 
   /** Toggle deafen (mutes audio output; also mutes mic when deafened) */
-  async function toggleDeafen() {
-    const nextDeafened = !isDeafened.value
-    if (nextDeafened) wasMutedBeforeDeafen.value = isMuted.value
+  function toggleDeafenEffect(): DesktopEffect<void> {
+    return Effect.gen(function* () {
+      yield* fromSync(() => {
+        const nextDeafened = !isDeafened.value
+        if (nextDeafened) wasMutedBeforeDeafen.value = isMuted.value
+        isDeafened.value = nextDeafened
+      })
 
-    isDeafened.value = nextDeafened
-
-    // Deafening also mutes mic
-    if (isDeafened.value && !isMuted.value) {
-      isMuted.value = true
-      if (room.value) {
-        try {
-          await room.value.localParticipant.setMicrophoneEnabled(false)
-        } catch {
-          toast.error(localizedText('server.microphone_toggle_failed'))
+      if (isDeafened.value && !isMuted.value) {
+        yield* fromSync(() => {
+          isMuted.value = true
+        })
+        if (room.value) {
+          yield* fromPromise(() => room.value!.localParticipant.setMicrophoneEnabled(false)).pipe(
+            Effect.catchAll(() => fromSync(() => toast.error(localizedText('server.microphone_toggle_failed')))),
+          )
         }
       }
-    }
 
-    // Un-deafening restores mic only if deafen caused the mute.
-    if (!isDeafened.value && isMuted.value && !wasMutedBeforeDeafen.value) {
-      isMuted.value = false
-      if (room.value) {
-        try {
-          await room.value.localParticipant.setMicrophoneEnabled(true)
-        } catch {
-          toast.error(localizedText('server.microphone_toggle_failed'))
+      if (!isDeafened.value && isMuted.value && !wasMutedBeforeDeafen.value) {
+        yield* fromSync(() => {
+          isMuted.value = false
+        })
+        if (room.value) {
+          yield* fromPromise(() => room.value!.localParticipant.setMicrophoneEnabled(true)).pipe(
+            Effect.catchAll(() => fromSync(() => toast.error(localizedText('server.microphone_toggle_failed')))),
+          )
         }
       }
-    }
-    if (!isDeafened.value) wasMutedBeforeDeafen.value = false
 
-    updateSelfInUsers()
+      yield* fromSync(() => {
+        if (!isDeafened.value) wasMutedBeforeDeafen.value = false
+        updateSelfInUsers()
+      })
+    })
+  }
+
+  function toggleDeafen() {
+    return runDesktopEffect(toggleDeafenEffect())
   }
 
   /** Reset all local state and clear store connection */
@@ -222,6 +266,11 @@ export function useVoiceChannel() {
     connectedUsers: computed(() => connectedUsers.value),
 
     // Actions
+    joinVoiceChannelEffect,
+    leaveVoiceChannelEffect,
+    switchVoiceChannelEffect,
+    toggleMuteEffect,
+    toggleDeafenEffect,
     joinVoiceChannel,
     leaveVoiceChannel,
     switchVoiceChannel,

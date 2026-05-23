@@ -18,6 +18,7 @@
     "star": "收藏",
     "unstar": "取消收藏",
     "connecting": "连接中...",
+    "initializing_data": "正在初始化数据...",
     "sync_error": "同步错误",
     "network_error": "网络异常，请检查连接",
     "unexpected_error": "发生未知错误",

@@ -1,9 +1,12 @@
 import type { MatrixClient } from 'matrix-js-sdk'
 import type { Doc } from 'yjs'
 import type { DocCursorEvent, DocSyncEvent } from '../types/doc'
+import type { DesktopEffect } from '@/shared/lib/effect'
 import { getClient } from '@matrix/client'
+import { Effect } from 'effect'
 import { RoomEvent } from 'matrix-js-sdk'
 import { applyUpdate, encodeStateAsUpdate } from 'yjs'
+import { fromPromise, fromSync, runDesktopEffect, runDesktopSync } from '@/shared/lib/effect'
 import { MATRIX_EVENT_TYPES } from '../types/doc'
 
 const MAX_CHUNK_SIZE = 60 * 1024
@@ -100,16 +103,10 @@ export class MatrixSyncProvider {
         batchId,
       }
 
-      ;(this.client as MatrixEventClient)
-        .sendEvent(this.roomId, MATRIX_EVENT_TYPES.DOC_SYNC, event)
-        .then((res) => {
-          if (i === chunks.length - 1) {
-            this.lastEventId = res.event_id
-          }
-        })
-        .catch((err: unknown) => {
-          console.error('[MatrixSyncProvider] Failed to send sync event:', err)
-        })
+      this.runBackgroundEffect(
+        this.sendDocSyncEventEffect(event, i === chunks.length - 1),
+        '[MatrixSyncProvider] Failed to send sync event:',
+      )
     }
   }
 
@@ -130,8 +127,33 @@ export class MatrixSyncProvider {
     const snapshot = encodeStateAsUpdate(this.doc)
     const payload = this.uint8ToBase64(snapshot)
 
-    ;(this.client as MatrixEventClient)
-      .sendEvent(this.roomId, MATRIX_EVENT_TYPES.DOC_SYNC, {
+    this.runBackgroundEffect(
+      this.sendDocSyncEventEffect(
+        {
+          type: 'full',
+          docId: this.roomId,
+          seq: 0,
+          total: 1,
+          payload,
+          prevEventId: null,
+          batchId: `${this.roomId}--snapshot-${Date.now()}`,
+        },
+        false,
+      ),
+      '[MatrixSyncProvider] Failed to send snapshot:',
+    )
+  }
+
+  sendCursor(cursor: DocCursorEvent): void {
+    this.runBackgroundEffect(this.sendCursorEffect(cursor), '[MatrixSyncProvider] Failed to send cursor:')
+  }
+
+  sendSnapshotEffect(): DesktopEffect<void> {
+    const snapshot = encodeStateAsUpdate(this.doc)
+    const payload = this.uint8ToBase64(snapshot)
+
+    return this.sendDocSyncEventEffect(
+      {
         type: 'full',
         docId: this.roomId,
         seq: 0,
@@ -139,14 +161,18 @@ export class MatrixSyncProvider {
         payload,
         prevEventId: null,
         batchId: `${this.roomId}--snapshot-${Date.now()}`,
-      })
-      .catch((err: unknown) => {
-        console.error('[MatrixSyncProvider] Failed to send snapshot:', err)
-      })
+      },
+      false,
+    )
   }
 
-  sendCursor(cursor: DocCursorEvent): void {
-    ;(this.client as MatrixEventClient).sendEvent(this.roomId, MATRIX_EVENT_TYPES.DOC_CURSOR, cursor).catch(() => {}) // Cursor events are ephemeral; intentional noop
+  sendCursorEffect(cursor: DocCursorEvent): DesktopEffect<void> {
+    return fromPromise(() =>
+      (this.client as MatrixEventClient).sendEvent(this.roomId, MATRIX_EVENT_TYPES.DOC_CURSOR, cursor),
+    ).pipe(
+      Effect.asVoid,
+      Effect.catchAll(() => fromSync(() => undefined)), // Cursor events are ephemeral; intentional noop.
+    )
   }
 
   onCursor(handler: DocCursorHandler): () => void {
@@ -249,10 +275,38 @@ export class MatrixSyncProvider {
     }
   }
 
+  private sendDocSyncEventEffect(event: DocSyncEvent, updateLastEventId: boolean): DesktopEffect<void> {
+    return fromPromise(() =>
+      (this.client as MatrixEventClient).sendEvent(this.roomId, MATRIX_EVENT_TYPES.DOC_SYNC, event),
+    ).pipe(
+      Effect.flatMap((res) =>
+        updateLastEventId
+          ? fromSync(() => {
+              this.lastEventId = res.event_id
+            })
+          : Effect.succeed(undefined),
+      ),
+    )
+  }
+
+  private runBackgroundEffect(effect: DesktopEffect<void>, errorMessage: string): void {
+    void runDesktopEffect(effect.pipe(Effect.catchAll((err) => fromSync(() => console.error(errorMessage, err)))))
+  }
+
   private applyDocSyncEvent(event: ExtractedDocSyncEvent): void {
+    runDesktopSync(
+      this.applyDocSyncEventEffect(event).pipe(
+        Effect.catchAll((err) =>
+          fromSync(() => console.error('[MatrixSyncProvider] Failed to apply remote update:', err)),
+        ),
+      ),
+    )
+  }
+
+  private applyDocSyncEventEffect(event: ExtractedDocSyncEvent): DesktopEffect<void> {
     const { content, eventId } = event
 
-    try {
+    return fromSync(() => {
       if (content.total > 1) {
         const batchKey = content.batchId || `${content.docId}:${content.prevEventId ?? eventId}:${content.total}`
 
@@ -274,8 +328,6 @@ export class MatrixSyncProvider {
       }
 
       this.lastEventId = eventId
-    } catch (err) {
-      console.error('[MatrixSyncProvider] Failed to apply remote update:', err)
-    }
+    })
   }
 }

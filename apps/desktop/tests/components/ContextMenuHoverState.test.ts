@@ -392,6 +392,169 @@ describe('context menu hover state', () => {
     }
   })
 
+  it('does not clamp a scrolled-out chat message action bar into the viewport', async () => {
+    const ChatMessage = (await import('@/features/chat/components/ChatMessage.vue')).default
+
+    const event = {
+      getId: () => '$event1',
+      getType: () => 'm.room.message',
+      getSender: () => '@alice:localhost',
+      getContent: () => ({ msgtype: 'm.text', body: 'Hello' }),
+      getTs: () => 1767225600000,
+      isRedacted: () => false,
+    }
+
+    const scroller = document.createElement('div')
+    scroller.setAttribute('data-testid', 'message-list-scroller')
+    document.body.appendChild(scroller)
+
+    const rectSpy = vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function () {
+      const el = this as HTMLElement
+      if (el.getAttribute('data-testid') === 'message-list-scroller') {
+        return {
+          x: 0,
+          y: 100,
+          left: 0,
+          top: 100,
+          right: 800,
+          bottom: 500,
+          width: 800,
+          height: 400,
+          toJSON: () => ({}),
+        } as DOMRect
+      }
+      if (el.getAttribute('data-testid') === 'chat-message-row') {
+        return {
+          x: 120,
+          y: 620,
+          left: 120,
+          top: 620,
+          right: 520,
+          bottom: 660,
+          width: 400,
+          height: 40,
+          toJSON: () => ({}),
+        } as DOMRect
+      }
+      if (el.matches('[data-testid="chat-message-action-bar"]')) {
+        return {
+          x: 0,
+          y: 0,
+          left: 0,
+          top: 0,
+          right: 96,
+          bottom: 32,
+          width: 96,
+          height: 32,
+          toJSON: () => ({}),
+        } as DOMRect
+      }
+      return {
+        x: 0,
+        y: 0,
+        left: 0,
+        top: 0,
+        right: 0,
+        bottom: 0,
+        width: 0,
+        height: 0,
+        toJSON: () => ({}),
+      } as DOMRect
+    })
+
+    const wrapper = mount(ChatMessage, {
+      props: {
+        event: event as any,
+        isFirst: false,
+        roomId: '!room:localhost',
+      },
+      attachTo: scroller,
+      global: {
+        stubs: {
+          Avatar: true,
+          LinkPreview: true,
+          MessageActionBar: { template: '<div data-testid="message-action-bar-stub" />' },
+          ReactionBar: true,
+          AudioMessage: true,
+          FileMessage: true,
+          ImageMessage: true,
+          VideoMessage: true,
+        },
+      },
+    })
+
+    try {
+      await wrapper.trigger('mouseenter')
+      await nextTick()
+      await nextTick()
+
+      expect(document.body.querySelector('[data-testid="chat-message-action-bar"]')).toBeNull()
+    } finally {
+      rectSpy.mockRestore()
+      wrapper.unmount()
+      scroller.remove()
+      document.body.innerHTML = ''
+    }
+  })
+
+  it('keeps only one chat message action bar mounted when moving between messages', async () => {
+    const ChatMessage = (await import('@/features/chat/components/ChatMessage.vue')).default
+
+    function createEvent(id: string, sender: string, body: string) {
+      return {
+        getId: () => id,
+        getType: () => 'm.room.message',
+        getSender: () => sender,
+        getContent: () => ({ msgtype: 'm.text', body }),
+        getTs: () => 1767225600000,
+        isRedacted: () => false,
+      }
+    }
+
+    const stubs = {
+      Avatar: true,
+      LinkPreview: true,
+      MessageActionBar: { template: '<div data-testid="message-action-bar-stub" />' },
+      ReactionBar: true,
+      AudioMessage: true,
+      FileMessage: true,
+      ImageMessage: true,
+      VideoMessage: true,
+    }
+
+    const firstWrapper = mount(ChatMessage, {
+      props: {
+        event: createEvent('$event1', '@alice:localhost', 'First') as any,
+        isFirst: false,
+        roomId: '!room:localhost',
+      },
+      global: { stubs },
+    })
+    const secondWrapper = mount(ChatMessage, {
+      props: {
+        event: createEvent('$event2', '@bob:localhost', 'Second') as any,
+        isFirst: false,
+        roomId: '!room:localhost',
+      },
+      global: { stubs },
+    })
+
+    try {
+      await firstWrapper.trigger('mouseenter')
+      await nextTick()
+      expect(document.body.querySelectorAll('[data-testid="chat-message-action-bar"]')).toHaveLength(1)
+
+      await secondWrapper.trigger('mouseenter')
+      await nextTick()
+
+      expect(document.body.querySelectorAll('[data-testid="chat-message-action-bar"]')).toHaveLength(1)
+    } finally {
+      firstWrapper.unmount()
+      secondWrapper.unmount()
+      document.body.innerHTML = ''
+    }
+  })
+
   it('keeps the chat message action bar mounted while its menu is open', async () => {
     const ChatMessage = (await import('@/features/chat/components/ChatMessage.vue')).default
 

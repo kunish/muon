@@ -1,26 +1,86 @@
+import { existsSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { readRepoJson, readRepoSource } from '../helpers/paths'
+import { readRepoJson, readRepoSource, repoRoot } from '../helpers/paths'
 
 interface PackageManifest {
+  dependencies?: Record<string, string>
   scripts?: Record<string, string>
   devDependencies?: Record<string, string>
+  optionalDependencies?: Record<string, string>
+  peerDependencies?: Record<string, string>
+}
+
+function normalizeYamlKey(key: string): string {
+  if (key.startsWith('"')) return JSON.parse(key) as string
+  if (key.startsWith("'")) return key.slice(1, -1).replace(/''/g, "'")
+  return key
+}
+
+function readDefaultCatalogPackageNames(workspaceConfig: string): Set<string> {
+  const names = new Set<string>()
+  const lines = workspaceConfig.split('\n')
+  const catalogIndex = lines.findIndex((line) => line === 'catalog:')
+
+  if (catalogIndex === -1) return names
+
+  for (const line of lines.slice(catalogIndex + 1)) {
+    if (line.length > 0 && !line.startsWith('  ')) break
+    const separatorIndex = line.indexOf(':')
+    if (separatorIndex === -1) continue
+
+    names.add(normalizeYamlKey(line.slice(2, separatorIndex)))
+  }
+
+  return names
 }
 
 describe('monorepo scripts', () => {
   it('runs every code project from the root dev command', () => {
     const root = readRepoJson<PackageManifest>('package.json')
-    const devAll = readRepoSource('scripts/dev-all.sh')
 
-    expect(root.scripts?.dev).toBe('bash scripts/dev-all.sh')
-    expect(devAll).toContain('pnpm services:up')
-    expect(devAll).toContain('pnpm --filter @muon/api exec tsx src/server.ts')
-    expect(devAll).toContain('pnpm --filter @muon/admin exec vite --host 0.0.0.0 --port 4174')
-    expect(devAll).toContain('pnpm --filter @muon/desktop dev')
-    expect(devAll).toContain('exited with status')
-    expect(devAll).not.toContain('pnpm exec electron-vite dev')
-    expect(devAll).not.toContain('start "enterprise API" pnpm dev:api')
-    expect(devAll).not.toContain('start "Admin Web" pnpm dev:admin')
-    expect(devAll).not.toContain('start "Electron desktop" pnpm dev:desktop')
+    expect(root.scripts?.dev).toBe(
+      'pnpm services:up && pnpm --parallel --filter @muon/api --filter @muon/admin --filter @muon/desktop dev',
+    )
+    expect(existsSync(resolve(repoRoot, 'scripts/dev-all.sh'))).toBe(false)
+  })
+
+  it('keeps external dependency versions in the default pnpm catalog', () => {
+    const manifestPaths = [
+      'package.json',
+      'apps/api/package.json',
+      'apps/admin/package.json',
+      'apps/desktop/package.json',
+      'packages/enterprise-contracts/package.json',
+      'packages/rich-text/package.json',
+      'packages/ui/package.json',
+    ]
+    const dependencyFields = ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies'] as const
+    const catalogPackageNames = readDefaultCatalogPackageNames(readRepoSource('pnpm-workspace.yaml'))
+    const nonCatalogSpecs: string[] = []
+    const missingCatalogEntries: string[] = []
+
+    for (const manifestPath of manifestPaths) {
+      const manifest = readRepoJson<PackageManifest>(manifestPath)
+
+      for (const field of dependencyFields) {
+        const dependencies = manifest[field] ?? {}
+
+        for (const [name, specifier] of Object.entries(dependencies)) {
+          if (specifier.startsWith('workspace:')) continue
+          if (specifier !== 'catalog:') {
+            nonCatalogSpecs.push(`${manifestPath}:${field}:${name}@${specifier}`)
+            continue
+          }
+          if (!catalogPackageNames.has(name)) {
+            missingCatalogEntries.push(`${manifestPath}:${field}:${name}`)
+          }
+        }
+      }
+    }
+
+    expect(nonCatalogSpecs).toEqual([])
+    expect(missingCatalogEntries).toEqual([])
   })
 
   it('builds every buildable workspace from the root build command', () => {

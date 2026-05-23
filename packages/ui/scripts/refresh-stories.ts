@@ -2,6 +2,8 @@ import { spawn } from 'node:child_process'
 import { writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import process from 'node:process'
+import { Effect } from 'effect'
+import { fromPromise, fromSync, runUiEffect } from '../src/effect'
 
 /**
  * Boots Storybook in dev mode, fetches its index.json, extracts every
@@ -23,28 +25,34 @@ interface IndexFile {
   entries: Record<string, IndexEntry>
 }
 
-async function waitForUrl(url: string, timeoutMs = 120_000) {
-  const deadline = Date.now() + timeoutMs
-  while (Date.now() < deadline) {
-    try {
-      const res = await fetch(url)
-      if (res.ok) return res
-    } catch {}
-    await new Promise((r) => setTimeout(r, 500))
-  }
-  throw new Error(`Timed out waiting for ${url}`)
+function delayEffect(ms: number) {
+  return fromPromise(() => new Promise<void>((resolve) => setTimeout(resolve, ms)))
 }
 
-async function main() {
+function waitForUrlEffect(url: string, timeoutMs = 120_000) {
+  const deadline = Date.now() + timeoutMs
+  return Effect.gen(function* () {
+    while (Date.now() < deadline) {
+      const res = yield* fromPromise(() => fetch(url)).pipe(Effect.catchAll(() => Effect.succeed(null)))
+      if (res?.ok) return res
+      yield* delayEffect(500)
+    }
+    return yield* fromSync(() => {
+      throw new Error(`Timed out waiting for ${url}`)
+    })
+  })
+}
+
+function mainEffect() {
   const sb = spawn('pnpm', ['storybook', '--no-open', '-p', String(PORT)], {
     cwd: resolve(import.meta.dirname, '..'),
     stdio: 'ignore',
     detached: false,
   })
 
-  try {
-    const res = await waitForUrl(URL)
-    const data = (await res.json()) as IndexFile
+  return Effect.gen(function* () {
+    const res = yield* waitForUrlEffect(URL)
+    const data = yield* fromPromise(() => res.json() as Promise<IndexFile>)
     const ids = Object.values(data.entries)
       .filter(
         (e) =>
@@ -57,14 +65,20 @@ async function main() {
       .map((e) => e.id)
       .sort()
 
-    writeFileSync(OUT, `${JSON.stringify(ids, null, 2)}\n`)
-    console.log(`[refresh-stories] wrote ${ids.length} story ids → ${OUT}`)
-  } finally {
-    sb.kill('SIGKILL')
-  }
+    yield* fromSync(() => {
+      writeFileSync(OUT, `${JSON.stringify(ids, null, 2)}\n`)
+      console.log(`[refresh-stories] wrote ${ids.length} story ids → ${OUT}`)
+    })
+  }).pipe(Effect.ensuring(Effect.sync(() => sb.kill('SIGKILL'))))
 }
 
-main().catch((err) => {
-  console.error(err)
-  process.exit(1)
-})
+void runUiEffect(
+  mainEffect().pipe(
+    Effect.catchAll((err) =>
+      fromSync(() => {
+        console.error(err)
+        process.exit(1)
+      }),
+    ),
+  ),
+)

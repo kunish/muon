@@ -1,6 +1,8 @@
 import type { LoginCredentials, RegisterParams } from '@matrix/types'
 import type { MatrixSession } from '@muon/enterprise-contracts'
 import type { SignOutReason } from './lifecycleEvents'
+import type { DesktopEffect } from '@/shared/lib/effect'
+import { Effect } from 'effect'
 import {
   clear as clearEnterprise,
   complete as completeEnterprise,
@@ -12,63 +14,100 @@ import {
 import { loginWithPassword, readMatrixSessionFromStore, register } from '@/matrix/auth'
 import { setMyDisplayName } from '@/matrix/profile'
 import { activate, deactivate } from '@/matrix/sessionLifecycle'
+import { fromPromise, fromSync, runDesktopEffect } from '@/shared/lib/effect'
 import { emitSignIn, emitSignOut } from './lifecycleEvents'
 
 export interface BootstrapResult {
   restored: 'enterprise' | 'matrix-only' | false
 }
 
-async function activateSession(session: MatrixSession): Promise<void> {
-  const activated = await activate(session)
-  if (activated) emitSignIn(session)
+function activateSessionEffect(session: MatrixSession): DesktopEffect<void> {
+  return Effect.gen(function* () {
+    const activated = yield* fromPromise(() => activate(session))
+    if (activated) yield* fromSync(() => emitSignIn(session))
+  })
 }
 
-export async function bootstrap(): Promise<BootstrapResult> {
-  const deps = defaultEnterpriseSessionDeps()
-  const enterprise = await restoreEnterprise(deps).catch(() => null)
-  if (enterprise) {
-    await activateSession(enterprise.matrix)
-    return { restored: 'enterprise' }
-  }
+export function bootstrapEffect(): DesktopEffect<BootstrapResult> {
+  return Effect.gen(function* () {
+    const deps = defaultEnterpriseSessionDeps()
+    const enterprise = yield* fromPromise(() => restoreEnterprise(deps)).pipe(
+      Effect.catchAll(() => Effect.succeed(null)),
+    )
+    if (enterprise) {
+      yield* activateSessionEffect(enterprise.matrix)
+      return { restored: 'enterprise' }
+    }
 
-  const matrixOnly = await readMatrixSessionFromStore()
-  if (matrixOnly) {
-    await activateSession(matrixOnly)
-    return { restored: 'matrix-only' }
-  }
+    const matrixOnly = yield* fromPromise(() => readMatrixSessionFromStore())
+    if (matrixOnly) {
+      yield* activateSessionEffect(matrixOnly)
+      return { restored: 'matrix-only' }
+    }
 
-  return { restored: false }
+    return { restored: false }
+  })
+}
+
+export function bootstrap(): Promise<BootstrapResult> {
+  return runDesktopEffect(bootstrapEffect())
 }
 
 export { isEnterpriseAuthConfigured }
 
-export async function signInWithPassword(serverUrl: string, credentials: LoginCredentials): Promise<void> {
-  const session = await loginWithPassword(serverUrl, credentials)
-  await activateSession(session)
+export function signInWithPasswordEffect(serverUrl: string, credentials: LoginCredentials): DesktopEffect<void> {
+  return Effect.gen(function* () {
+    const session = yield* fromPromise(() => loginWithPassword(serverUrl, credentials))
+    yield* activateSessionEffect(session)
+  })
 }
 
-export async function signUpWithPassword(serverUrl: string, params: RegisterParams): Promise<void> {
-  const session = await register(serverUrl, params)
-  await activateSession(session)
-
-  if (params.displayName) await setMyDisplayName(params.displayName)
+export function signInWithPassword(serverUrl: string, credentials: LoginCredentials): Promise<void> {
+  return runDesktopEffect(signInWithPasswordEffect(serverUrl, credentials))
 }
 
-export async function signInWithEnterprise(callbackUrl: string): Promise<void> {
-  const deps = defaultEnterpriseSessionDeps()
-  const session = await completeEnterprise(callbackUrl, deps)
-  await activateSession(session.matrix)
+export function signUpWithPasswordEffect(serverUrl: string, params: RegisterParams): DesktopEffect<void> {
+  return Effect.gen(function* () {
+    const session = yield* fromPromise(() => register(serverUrl, params))
+    yield* activateSessionEffect(session)
+
+    if (params.displayName) yield* fromPromise(() => setMyDisplayName(params.displayName!))
+  })
 }
 
-export async function startEnterpriseSignIn(): Promise<void> {
-  await startEnterprise(defaultEnterpriseSessionDeps())
+export function signUpWithPassword(serverUrl: string, params: RegisterParams): Promise<void> {
+  return runDesktopEffect(signUpWithPasswordEffect(serverUrl, params))
 }
 
-export async function signOut(reason: SignOutReason = 'user-initiated'): Promise<void> {
-  emitSignOut(reason)
-  try {
-    await deactivate({ revoke: true })
-  } finally {
-    clearEnterprise(defaultEnterpriseSessionDeps())
-  }
+export function signInWithEnterpriseEffect(callbackUrl: string): DesktopEffect<void> {
+  return Effect.gen(function* () {
+    const deps = defaultEnterpriseSessionDeps()
+    const session = yield* fromPromise(() => completeEnterprise(callbackUrl, deps))
+    yield* activateSessionEffect(session.matrix)
+  })
+}
+
+export function signInWithEnterprise(callbackUrl: string): Promise<void> {
+  return runDesktopEffect(signInWithEnterpriseEffect(callbackUrl))
+}
+
+export function startEnterpriseSignInEffect(): DesktopEffect<void> {
+  return fromPromise(() => startEnterprise(defaultEnterpriseSessionDeps()))
+}
+
+export function startEnterpriseSignIn(): Promise<void> {
+  return runDesktopEffect(startEnterpriseSignInEffect())
+}
+
+export function signOutEffect(reason: SignOutReason = 'user-initiated'): DesktopEffect<void> {
+  return Effect.gen(function* () {
+    yield* fromSync(() => emitSignOut(reason))
+    yield* fromPromise(() => deactivate({ revoke: true })).pipe(
+      Effect.ensuring(Effect.sync(() => clearEnterprise(defaultEnterpriseSessionDeps()))),
+    )
+  })
+}
+
+export function signOut(reason: SignOutReason = 'user-initiated'): Promise<void> {
+  return runDesktopEffect(signOutEffect(reason))
 }

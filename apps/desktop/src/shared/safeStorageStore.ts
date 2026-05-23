@@ -1,4 +1,7 @@
 import type { z } from 'zod'
+import type { DesktopEffect } from './lib/effect'
+import { Effect } from 'effect'
+import { fromPromise, fromSync, runDesktopEffect, runDesktopSync } from './lib/effect'
 
 export interface SafeStorageLike {
   isAvailable: () => Promise<boolean>
@@ -18,6 +21,8 @@ interface EncryptedPayload {
   _enc: true
   data: string
 }
+
+const INVALID_JSON = Symbol('invalid-json')
 
 function isEncryptedPayload(value: unknown): value is EncryptedPayload {
   return (
@@ -41,28 +46,61 @@ export function makeEncryptedStore<T>(params: {
       console.warn(`[encryptedStore:${key}] ${message}`, error)
     })
 
-  return {
-    async read() {
-      const raw = localStorage.getItem(key)
+  const safeStorageAvailableEffect = (): DesktopEffect<boolean> =>
+    fromPromise(() => safeStorage.isAvailable()).pipe(Effect.catchAll(() => Effect.succeed(false)))
+
+  const parseJsonEffect = (
+    raw: string,
+    onError: (error: unknown) => void,
+  ): DesktopEffect<unknown | typeof INVALID_JSON> =>
+    fromSync(() => JSON.parse(raw)).pipe(
+      Effect.catchAll((err) =>
+        fromSync(() => {
+          onError(err)
+          return INVALID_JSON
+        }),
+      ),
+    )
+
+  const decryptPayloadEffect = (payload: EncryptedPayload): DesktopEffect<unknown | typeof INVALID_JSON> =>
+    Effect.gen(function* () {
+      const decrypted = yield* fromPromise(() => safeStorage.decrypt(payload.data))
+      return yield* parseJsonEffect(decrypted, (err) => warn('decrypt failed; treating session as invalid', err))
+    }).pipe(
+      Effect.catchAll((err) =>
+        fromSync(() => {
+          warn('decrypt failed; treating session as invalid', err)
+          return INVALID_JSON
+        }),
+      ),
+    )
+
+  const encryptedPayloadEffect = (json: string): DesktopEffect<string> =>
+    Effect.gen(function* () {
+      const encrypted = yield* fromPromise(() => safeStorage.encrypt(json))
+      return yield* fromSync(() => JSON.stringify({ _enc: true, data: encrypted } satisfies EncryptedPayload))
+    }).pipe(
+      Effect.catchAll((err) =>
+        fromSync(() => {
+          warn('encrypt failed; persisting plaintext fallback', err)
+          return json
+        }),
+      ),
+    )
+
+  const readEffect = (): DesktopEffect<T | null> =>
+    Effect.gen(function* () {
+      const raw = yield* fromSync(() => localStorage.getItem(key))
       if (!raw) return null
 
-      let parsed: unknown
-      try {
-        parsed = JSON.parse(raw)
-      } catch (err) {
-        warn('failed to parse stored payload', err)
-        return null
-      }
+      const parsed = yield* parseJsonEffect(raw, (err) => warn('failed to parse stored payload', err))
+      if (parsed === INVALID_JSON) return null
 
       let candidate: unknown = parsed
-      if (isEncryptedPayload(parsed) && (await safeStorage.isAvailable().catch(() => false))) {
-        try {
-          const decrypted = await safeStorage.decrypt(parsed.data)
-          candidate = JSON.parse(decrypted)
-        } catch (err) {
-          warn('decrypt failed; treating session as invalid', err)
-          return null
-        }
+      if (isEncryptedPayload(parsed) && (yield* safeStorageAvailableEffect())) {
+        const decrypted = yield* decryptPayloadEffect(parsed)
+        if (decrypted === INVALID_JSON) return null
+        candidate = decrypted
       }
 
       const result = schema.safeParse(candidate)
@@ -71,27 +109,23 @@ export function makeEncryptedStore<T>(params: {
         return null
       }
       return result.data
-    },
+    })
 
-    async write(value) {
-      const json = JSON.stringify(value)
+  const writeEffect = (value: T): DesktopEffect<void> =>
+    Effect.gen(function* () {
+      const json = yield* fromSync(() => JSON.stringify(value))
       let payload = json
 
-      if (await safeStorage.isAvailable().catch(() => false)) {
-        try {
-          const encrypted = await safeStorage.encrypt(json)
-          payload = JSON.stringify({ _enc: true, data: encrypted } satisfies EncryptedPayload)
-        } catch (err) {
-          warn('encrypt failed; persisting plaintext fallback', err)
-          payload = json
-        }
-      }
+      if (yield* safeStorageAvailableEffect()) payload = yield* encryptedPayloadEffect(json)
 
-      localStorage.setItem(key, payload)
-    },
+      yield* fromSync(() => localStorage.setItem(key, payload))
+    })
 
-    clear() {
-      localStorage.removeItem(key)
-    },
+  const clearEffect = (): DesktopEffect<void> => fromSync(() => localStorage.removeItem(key))
+
+  return {
+    read: () => runDesktopEffect(readEffect()),
+    write: (value) => runDesktopEffect(writeEffect(value)),
+    clear: () => runDesktopSync(clearEffect()),
   }
 }

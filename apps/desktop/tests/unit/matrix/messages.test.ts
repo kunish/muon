@@ -212,6 +212,75 @@ describe('messages', () => {
     expect(events.map((event) => event.getId())).toEqual(['$old', '$new'])
   })
 
+  it('coalesces concurrent backward pagination for the same room timeline', async () => {
+    const liveTimeline = { getEvents: () => [] }
+    mockGetRoom.mockReturnValue({
+      getLiveTimeline: () => liveTimeline,
+    })
+    let resolvePagination!: (value: boolean) => void
+    mockPaginateEventTimeline.mockImplementationOnce(
+      () =>
+        new Promise<boolean>((resolve) => {
+          resolvePagination = resolve
+        }),
+    )
+
+    const { paginateBack } = await import('@/matrix/messages')
+    const first = paginateBack('!room:localhost', 30)
+    const second = paginateBack('!room:localhost', 30)
+
+    expect(mockPaginateEventTimeline).toHaveBeenCalledTimes(1)
+    expect(mockPaginateEventTimeline).toHaveBeenCalledWith(liveTimeline, { backwards: true, limit: 30 })
+
+    resolvePagination(true)
+
+    await expect(Promise.all([first, second])).resolves.toEqual([true, true])
+  })
+
+  it('starts a new backward pagination after the previous room request settles', async () => {
+    const liveTimeline = { getEvents: () => [] }
+    mockGetRoom.mockReturnValue({
+      getLiveTimeline: () => liveTimeline,
+    })
+
+    const { paginateBack } = await import('@/matrix/messages')
+    await expect(paginateBack('!room:localhost', 30)).resolves.toBe(true)
+    await expect(paginateBack('!room:localhost', 30)).resolves.toBe(true)
+
+    expect(mockPaginateEventTimeline).toHaveBeenCalledTimes(2)
+  })
+
+  it('emits a room timeline update after backward pagination loads history', async () => {
+    const liveTimeline = { getEvents: () => [] }
+    mockGetRoom.mockReturnValue({
+      getLiveTimeline: () => liveTimeline,
+    })
+
+    const { matrixEvents } = await import('@/matrix/events')
+    const emitSpy = vi.spyOn(matrixEvents, 'emit')
+    const { paginateBack } = await import('@/matrix/messages')
+
+    await expect(paginateBack('!room:localhost', 30)).resolves.toBe(true)
+
+    expect(emitSpy).toHaveBeenCalledWith('room.timeline', { roomId: '!room:localhost' })
+  })
+
+  it('emits a room timeline update when backward pagination reaches the final page', async () => {
+    const liveTimeline = { getEvents: () => [] }
+    mockGetRoom.mockReturnValue({
+      getLiveTimeline: () => liveTimeline,
+    })
+    mockPaginateEventTimeline.mockResolvedValueOnce(false)
+
+    const { matrixEvents } = await import('@/matrix/events')
+    const emitSpy = vi.spyOn(matrixEvents, 'emit')
+    const { paginateBack } = await import('@/matrix/messages')
+
+    await expect(paginateBack('!room:localhost', 30)).resolves.toBe(false)
+
+    expect(emitSpy).toHaveBeenCalledWith('room.timeline', { roomId: '!room:localhost' })
+  })
+
   it('filters member avatar profile updates from the chat timeline', async () => {
     const avatarUpdate = {
       getId: () => '$avatar-update',

@@ -1,7 +1,10 @@
 import type { MatrixEvent, Room, RoomMember } from 'matrix-js-sdk'
 import type { SyncState } from './types'
+import type { DesktopEffect } from '@/shared/lib/effect'
+import { Effect } from 'effect'
 import { MatrixEventEvent, RoomEvent, RoomMemberEvent, RoomStateEvent } from 'matrix-js-sdk'
 import mitt from 'mitt'
+import { fromSync, runDesktopSync } from '@/shared/lib/effect'
 import { getClient } from './client'
 
 // eslint-disable-next-line ts/consistent-type-definitions
@@ -23,113 +26,127 @@ export const matrixEvents = mitt<MatrixEvents>()
 
 let bound = false
 
-export function bindClientEvents(): void {
-  if (bound) return
-  const client = getClient()
+export function bindClientEventsEffect(): DesktopEffect<void> {
+  return fromSync(() => {
+    if (bound) return
+    const client = getClient()
 
-  client.on(
-    RoomEvent.Timeline,
-    (
-      event: MatrixEvent,
-      room: Room | undefined,
-      _toStartOfTimeline?: boolean,
-      _removed?: boolean,
-      data?: { liveEvent?: boolean },
-    ) => {
+    client.on(
+      RoomEvent.Timeline,
+      (
+        event: MatrixEvent,
+        room: Room | undefined,
+        _toStartOfTimeline?: boolean,
+        _removed?: boolean,
+        data?: { liveEvent?: boolean },
+      ) => {
+        if (!room) return
+        matrixEvents.emit('room.timeline', { roomId: room.roomId })
+        if (data?.liveEvent === true && event.getType() === 'm.room.message') {
+          matrixEvents.emit('room.message', {
+            roomId: room.roomId,
+            event,
+          })
+        }
+      },
+    )
+
+    client.on(MatrixEventEvent.Decrypted, (event: MatrixEvent) => {
+      const roomId = event.getRoomId()
+      if (!roomId) return
+      matrixEvents.emit('room.decrypted', { roomId, event })
+      matrixEvents.emit('room.timeline', { roomId })
+    })
+
+    client.on(RoomEvent.Redaction, (event: MatrixEvent, room: Room) => {
+      matrixEvents.emit('room.redaction', {
+        roomId: room.roomId,
+        eventId: event.getId()!,
+      })
+    })
+
+    // 本地 echo 状态更新（sending → sent / not_sent）
+    client.on(RoomEvent.LocalEchoUpdated, (_event: MatrixEvent, room: Room) => {
+      matrixEvents.emit('room.localEchoUpdated', { roomId: room.roomId })
+    })
+
+    client.on(RoomMemberEvent.Typing, (_event: MatrixEvent, member: RoomMember) => {
+      const room = client.getRoom(member.roomId)
       if (!room) return
-      matrixEvents.emit('room.timeline', { roomId: room.roomId })
-      if (data?.liveEvent === true && event.getType() === 'm.room.message') {
-        matrixEvents.emit('room.message', {
-          roomId: room.roomId,
-          event,
-        })
+      const typingMembers = room
+        .getMembers()
+        .filter((m: RoomMember) => m.typing)
+        .map((m: RoomMember) => m.userId)
+      matrixEvents.emit('room.typing', {
+        roomId: room.roomId,
+        userIds: typingMembers,
+      })
+    })
+
+    client.on(RoomEvent.Receipt, (event: MatrixEvent, room: Room) => {
+      const content = event.getContent()
+      for (const eventId of Object.keys(content)) {
+        const readers = content[eventId]['m.read'] || {}
+        for (const userId of Object.keys(readers)) {
+          matrixEvents.emit('room.receipt', {
+            roomId: room.roomId,
+            eventId,
+            userId,
+          })
+        }
       }
-    },
+    })
+
+    client.on(RoomMemberEvent.Membership, (_event: MatrixEvent, member: RoomMember) => {
+      matrixEvents.emit('room.member', {
+        roomId: member.roomId,
+        userId: member.userId,
+        membership: member.membership ?? 'leave',
+      })
+
+      // Also emit space.member if this room is a Space
+      const room = client.getRoom(member.roomId)
+      if (room) {
+        const createEvent = room.currentState.getStateEvents('m.room.create', '')
+        if (createEvent?.getContent()?.type === 'm.space') {
+          matrixEvents.emit('space.member', {
+            spaceId: member.roomId,
+            userId: member.userId,
+            membership: member.membership ?? 'leave',
+          })
+        }
+      }
+    })
+
+    // Space child changes (channel added/removed from server)
+    client.on(RoomStateEvent.Events, (event: MatrixEvent) => {
+      if (event.getType() === 'm.space.child') {
+        matrixEvents.emit('space.update', { spaceId: event.getRoomId()! })
+      }
+    })
+
+    bound = true
+  })
+}
+
+export function bindClientEvents(): void {
+  runDesktopSync(bindClientEventsEffect())
+}
+
+export function unbindClientEventsEffect(): DesktopEffect<void> {
+  return fromSync(() => {
+    if (!bound) return
+    getClient().removeAllListeners()
+    bound = false
+  }).pipe(
+    Effect.catchAll(() =>
+      fromSync(() => {
+        bound = false
+      }),
+    ),
   )
-
-  client.on(MatrixEventEvent.Decrypted, (event: MatrixEvent) => {
-    const roomId = event.getRoomId()
-    if (!roomId) return
-    matrixEvents.emit('room.decrypted', { roomId, event })
-    matrixEvents.emit('room.timeline', { roomId })
-  })
-
-  client.on(RoomEvent.Redaction, (event: MatrixEvent, room: Room) => {
-    matrixEvents.emit('room.redaction', {
-      roomId: room.roomId,
-      eventId: event.getId()!,
-    })
-  })
-
-  // 本地 echo 状态更新（sending → sent / not_sent）
-  client.on(RoomEvent.LocalEchoUpdated, (_event: MatrixEvent, room: Room) => {
-    matrixEvents.emit('room.localEchoUpdated', { roomId: room.roomId })
-  })
-
-  client.on(RoomMemberEvent.Typing, (_event: MatrixEvent, member: RoomMember) => {
-    const room = client.getRoom(member.roomId)
-    if (!room) return
-    const typingMembers = room
-      .getMembers()
-      .filter((m: RoomMember) => m.typing)
-      .map((m: RoomMember) => m.userId)
-    matrixEvents.emit('room.typing', {
-      roomId: room.roomId,
-      userIds: typingMembers,
-    })
-  })
-
-  client.on(RoomEvent.Receipt, (event: MatrixEvent, room: Room) => {
-    const content = event.getContent()
-    for (const eventId of Object.keys(content)) {
-      const readers = content[eventId]['m.read'] || {}
-      for (const userId of Object.keys(readers)) {
-        matrixEvents.emit('room.receipt', {
-          roomId: room.roomId,
-          eventId,
-          userId,
-        })
-      }
-    }
-  })
-
-  client.on(RoomMemberEvent.Membership, (_event: MatrixEvent, member: RoomMember) => {
-    matrixEvents.emit('room.member', {
-      roomId: member.roomId,
-      userId: member.userId,
-      membership: member.membership ?? 'leave',
-    })
-
-    // Also emit space.member if this room is a Space
-    const room = client.getRoom(member.roomId)
-    if (room) {
-      const createEvent = room.currentState.getStateEvents('m.room.create', '')
-      if (createEvent?.getContent()?.type === 'm.space') {
-        matrixEvents.emit('space.member', {
-          spaceId: member.roomId,
-          userId: member.userId,
-          membership: member.membership ?? 'leave',
-        })
-      }
-    }
-  })
-
-  // Space child changes (channel added/removed from server)
-  client.on(RoomStateEvent.Events, (event: MatrixEvent) => {
-    if (event.getType() === 'm.space.child') {
-      matrixEvents.emit('space.update', { spaceId: event.getRoomId()! })
-    }
-  })
-
-  bound = true
 }
 
 export function unbindClientEvents(): void {
-  if (!bound) return
-  try {
-    getClient().removeAllListeners()
-  } catch {
-    // client may already be destroyed
-  }
-  bound = false
+  runDesktopSync(unbindClientEventsEffect())
 }

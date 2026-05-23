@@ -1,4 +1,7 @@
 import type { MatrixSession } from '@muon/enterprise-contracts'
+import type { DesktopEffect } from '@/shared/lib/effect'
+import { Effect } from 'effect'
+import { fromPromise, fromSync, runDesktopSync } from '@/shared/lib/effect'
 
 export type SignOutReason = 'user-initiated' | 'enterprise-revoked' | 'app-shutdown'
 
@@ -18,54 +21,79 @@ export interface SessionSubscriber {
 const subscribers = new Set<SessionSubscriber>()
 let currentSession: MatrixSession | null = null
 
+function notifySubscriberEffect<Event>(
+  subscriber: SessionSubscriber,
+  handler: ((event: Event) => void | Promise<void>) | undefined,
+  event: Event,
+): DesktopEffect<void> {
+  return Effect.gen(function* () {
+    if (!handler) return
+    const result = yield* fromSync(() => handler.call(subscriber, event))
+    if (result instanceof Promise) yield* fromPromise(() => result)
+  }).pipe(Effect.catchAll((err) => fromSync(() => console.warn('[auth] session lifecycle subscriber failed', err))))
+}
+
 function notifySubscriber<Event>(
   subscriber: SessionSubscriber,
   handler: ((event: Event) => void | Promise<void>) | undefined,
   event: Event,
 ): void {
-  if (!handler) return
+  runDesktopSync(notifySubscriberEffect(subscriber, handler, event))
+}
 
-  try {
-    const result = handler.call(subscriber, event)
-    if (result instanceof Promise) {
-      result.catch((err) => {
-        console.warn('[auth] session lifecycle subscriber failed', err)
+export function registerSessionSubscriberEffect(subscriber: SessionSubscriber): DesktopEffect<() => void> {
+  return fromSync(() => {
+    subscribers.add(subscriber)
+
+    if (currentSession) {
+      notifySubscriber(subscriber, subscriber.onSignIn, {
+        session: currentSession,
       })
     }
-  } catch (err) {
-    console.warn('[auth] session lifecycle subscriber failed', err)
-  }
+
+    return () => {
+      subscribers.delete(subscriber)
+    }
+  })
 }
 
 export function registerSessionSubscriber(subscriber: SessionSubscriber): () => void {
-  subscribers.add(subscriber)
+  return runDesktopSync(registerSessionSubscriberEffect(subscriber))
+}
 
-  if (currentSession) {
-    notifySubscriber(subscriber, subscriber.onSignIn, {
-      session: currentSession,
-    })
-  }
-
-  return () => {
-    subscribers.delete(subscriber)
-  }
+export function emitSignInEffect(session: MatrixSession): DesktopEffect<void> {
+  return fromSync(() => {
+    currentSession = session
+    for (const subscriber of [...subscribers]) {
+      notifySubscriber(subscriber, subscriber.onSignIn, { session })
+    }
+  })
 }
 
 export function emitSignIn(session: MatrixSession): void {
-  currentSession = session
-  for (const subscriber of [...subscribers]) {
-    notifySubscriber(subscriber, subscriber.onSignIn, { session })
-  }
+  runDesktopSync(emitSignInEffect(session))
+}
+
+export function emitSignOutEffect(reason: SignOutReason): DesktopEffect<void> {
+  return fromSync(() => {
+    currentSession = null
+    for (const subscriber of [...subscribers]) {
+      notifySubscriber(subscriber, subscriber.onSignOut, { reason })
+    }
+  })
 }
 
 export function emitSignOut(reason: SignOutReason): void {
-  currentSession = null
-  for (const subscriber of [...subscribers]) {
-    notifySubscriber(subscriber, subscriber.onSignOut, { reason })
-  }
+  runDesktopSync(emitSignOutEffect(reason))
+}
+
+export function __resetLifecycleEventsForTestsEffect(): DesktopEffect<void> {
+  return fromSync(() => {
+    subscribers.clear()
+    currentSession = null
+  })
 }
 
 export function __resetLifecycleEventsForTests(): void {
-  subscribers.clear()
-  currentSession = null
+  runDesktopSync(__resetLifecycleEventsForTestsEffect())
 }

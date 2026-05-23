@@ -1,9 +1,12 @@
 import type { WatchStopHandle } from 'vue'
+import type { DesktopEffect } from '@/shared/lib/effect'
+import { Effect } from 'effect'
 import { watch } from 'vue'
 import { createI18n } from 'vue-i18n'
 import { useSettingsStore } from '@/features/settings/stores/settingsStore'
 import en from '@/locales/en.json'
 import zh from '@/locales/zh.json'
+import { fromSync, runDesktopSync } from '@/shared/lib/effect'
 
 type SupportedLocale = 'en' | 'zh'
 
@@ -18,12 +21,14 @@ function normalizeLocale(value: unknown): SupportedLocale {
 }
 
 function readPersistedLocale(): SupportedLocale {
-  try {
+  return runDesktopSync(readPersistedLocaleEffect())
+}
+
+function readPersistedLocaleEffect(): DesktopEffect<SupportedLocale> {
+  return fromSync(() => {
     const raw = globalThis.localStorage?.getItem('muon_locale')
     return normalizeLocale(raw ? JSON.parse(raw) : undefined)
-  } catch {
-    return 'zh'
-  }
+  }).pipe(Effect.catchAll(() => Effect.succeed('zh' as const)))
 }
 
 export const i18n = createI18n({

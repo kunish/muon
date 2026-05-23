@@ -1,8 +1,11 @@
 import type { PendingUpload } from '../lib/uploadManager'
+import type { DesktopEffect } from '@/shared/lib/effect'
 import { extractVideoMeta, sendAudioMessage, sendFileMessage, sendImageMessage, sendVideoMessage } from '@matrix/index'
+import { Effect } from 'effect'
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
+import { fromPromise, fromSync, runDesktopEffect, runDesktopSync } from '@/shared/lib/effect'
 import { createUploadManager } from '../lib/uploadManager'
 
 const MAX_FILE_SIZE = 100 * 1024 * 1024
@@ -51,8 +54,12 @@ export function useMediaUpload(roomId: () => string | null) {
   }
 
   /** Stage a file for pre-upload. Returns the upload object for progress tracking. */
+  function stageFileEffect(id: string, file: File): DesktopEffect<PendingUpload> {
+    return uploadManager.stageFileEffect(id, file)
+  }
+
   function stageFile(id: string, file: File): Promise<PendingUpload> {
-    return uploadManager.stageFile(id, file)
+    return runDesktopEffect(stageFileEffect(id, file))
   }
 
   function getUpload(id: string): PendingUpload | undefined {
@@ -63,88 +70,146 @@ export function useMediaUpload(roomId: () => string | null) {
     return uploadManager.getAll()
   }
 
+  function allDoneEffect(ids: string[]): DesktopEffect<boolean> {
+    return uploadManager.allDoneEffect(ids)
+  }
+
   function allDone(ids: string[]): boolean {
-    return uploadManager.allDone(ids)
+    return runDesktopSync(allDoneEffect(ids))
+  }
+
+  function waitForAllEffect(ids: string[]): DesktopEffect<PendingUpload[]> {
+    return uploadManager.waitForAllEffect(ids)
   }
 
   function waitForAll(ids: string[]): Promise<PendingUpload[]> {
-    return uploadManager.waitForAll(ids)
+    return runDesktopEffect(waitForAllEffect(ids))
+  }
+
+  function collectCompletedEffect(ids: string[]): DesktopEffect<PendingUpload[]> {
+    return uploadManager.collectCompletedEffect(ids)
   }
 
   function collectCompleted(ids: string[]): PendingUpload[] {
-    return uploadManager.collectCompleted(ids)
+    return runDesktopSync(collectCompletedEffect(ids))
+  }
+
+  function removeUploadEffect(id: string): DesktopEffect<void> {
+    return uploadManager.removeUploadEffect(id)
   }
 
   function removeUpload(id: string) {
-    uploadManager.removeUpload(id)
+    return runDesktopSync(removeUploadEffect(id))
   }
 
-  function clearUploads() {
-    uploadManager.clear()
-    uploading.value = false
-    progress.value = 0
-  }
-
-  async function withUpload(fn: (id: string) => Promise<unknown>) {
-    const id = roomId()
-    if (!id) return
-    uploading.value = true
-    progress.value = 0
-    try {
-      progress.value = 50
-      await fn(id)
-      progress.value = 100
-    } catch {
-      toast.error(t('chat.upload_failed'))
-    } finally {
-      uploading.value = false
-    }
-  }
-
-  async function uploadImage(file: File) {
-    if (file.size > MAX_FILE_SIZE) {
-      toast.error(t('chat.file_too_large'))
-      return
-    }
-    if (!file.type.startsWith('image/')) {
-      toast.error(t('chat.invalid_file_type'))
-      return
-    }
-    await withUpload((id) => sendImageMessage(id, file))
-  }
-
-  async function uploadVideo(file: File) {
-    if (file.size > MAX_FILE_SIZE) {
-      toast.error(t('chat.file_too_large'))
-      return
-    }
-    await withUpload(async (id) => {
-      let meta
-      try {
-        meta = await extractVideoMeta(file)
-      } catch (e) {
-        console.warn('[upload] failed to extract video meta', e)
-      }
-      progress.value = 30
-      await sendVideoMessage(id, file, meta)
+  function clearUploadsEffect(): DesktopEffect<void> {
+    return Effect.gen(function* () {
+      yield* uploadManager.clearEffect()
+      yield* fromSync(() => {
+        uploading.value = false
+        progress.value = 0
+      })
     })
   }
 
-  async function uploadAudio(blob: Blob, duration: number) {
-    await withUpload((id) => sendAudioMessage(id, blob, duration))
+  function clearUploads() {
+    return runDesktopSync(clearUploadsEffect())
   }
 
-  async function uploadFile(file: File) {
-    if (file.size > MAX_FILE_SIZE) {
-      toast.error(t('chat.file_too_large'))
-      return
-    }
-    await withUpload((id) => sendFileMessage(id, file))
+  function withUploadEffect(fn: (id: string) => DesktopEffect<unknown>): DesktopEffect<void> {
+    return Effect.gen(function* () {
+      const id = roomId()
+      if (!id) return
+      yield* fromSync(() => {
+        uploading.value = true
+        progress.value = 0
+      })
+
+      yield* fromSync(() => {
+        progress.value = 50
+      })
+      const succeeded = yield* fn(id).pipe(
+        Effect.as(true),
+        Effect.catchAll(() =>
+          fromSync(() => {
+            toast.error(t('chat.upload_failed'))
+            return false
+          }),
+        ),
+      )
+      if (succeeded) {
+        yield* fromSync(() => {
+          progress.value = 100
+        })
+      }
+    }).pipe(Effect.ensuring(Effect.sync(() => void (uploading.value = false))))
+  }
+
+  function uploadImageEffect(file: File): DesktopEffect<void> {
+    if (file.size > MAX_FILE_SIZE) return fromSync(() => toast.error(t('chat.file_too_large')))
+    if (!file.type.startsWith('image/')) return fromSync(() => toast.error(t('chat.invalid_file_type')))
+    return withUploadEffect((id) => fromPromise(() => sendImageMessage(id, file)))
+  }
+
+  function uploadImage(file: File) {
+    return runDesktopEffect(uploadImageEffect(file))
+  }
+
+  function uploadVideoEffect(file: File): DesktopEffect<void> {
+    if (file.size > MAX_FILE_SIZE) return fromSync(() => toast.error(t('chat.file_too_large')))
+    return withUploadEffect((id) =>
+      Effect.gen(function* () {
+        const meta = yield* fromPromise(() => extractVideoMeta(file)).pipe(
+          Effect.catchAll((e) =>
+            fromSync(() => {
+              console.warn('[upload] failed to extract video meta', e)
+              return undefined
+            }),
+          ),
+        )
+        yield* fromSync(() => {
+          progress.value = 30
+        })
+        yield* fromPromise(() => sendVideoMessage(id, file, meta))
+      }),
+    )
+  }
+
+  function uploadVideo(file: File) {
+    return runDesktopEffect(uploadVideoEffect(file))
+  }
+
+  function uploadAudioEffect(blob: Blob, duration: number): DesktopEffect<void> {
+    return withUploadEffect((id) => fromPromise(() => sendAudioMessage(id, blob, duration)))
+  }
+
+  function uploadAudio(blob: Blob, duration: number) {
+    return runDesktopEffect(uploadAudioEffect(blob, duration))
+  }
+
+  function uploadFileEffect(file: File): DesktopEffect<void> {
+    if (file.size > MAX_FILE_SIZE) return fromSync(() => toast.error(t('chat.file_too_large')))
+    return withUploadEffect((id) => fromPromise(() => sendFileMessage(id, file)))
+  }
+
+  function uploadFile(file: File) {
+    return runDesktopEffect(uploadFileEffect(file))
   }
 
   return {
     uploading,
     progress,
+    uploadImageEffect,
+    uploadVideoEffect,
+    uploadAudioEffect,
+    uploadFileEffect,
+    stageFileEffect,
+    allDoneEffect,
+    waitForAllEffect,
+    collectCompletedEffect,
+    removeUploadEffect,
+    clearUploadsEffect,
+    withUploadEffect,
     uploadImage,
     uploadVideo,
     uploadAudio,

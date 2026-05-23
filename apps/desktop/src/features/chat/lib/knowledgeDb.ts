@@ -1,6 +1,9 @@
 import type { EntityTable } from 'dexie'
 import type { CrossSessionQaAnswer, DecisionCard, DigestEntry, SuggestionDisposition } from '../types/knowledge'
+import type { DesktopEffect } from '@/shared/lib/effect'
 import Dexie from 'dexie'
+import { Effect } from 'effect'
+import { fromPromise, fromSync, runDesktopEffect } from '@/shared/lib/effect'
 import { crossSessionQaAnswerSchema, decisionCardSchema, digestEntrySchema } from '../types/knowledge'
 
 export const KNOWLEDGE_DB_NAME = 'MuonKnowledgeDB'
@@ -53,44 +56,56 @@ export interface KnowledgeRepositoryTables {
 export function createKnowledgeRepository(
   db: KnowledgeRepositoryTables = knowledgeDb as unknown as KnowledgeRepositoryTables,
 ) {
-  return {
-    async saveDigestEntry(entry: DigestEntry) {
+  const saveDigestEntryEffect = (entry: DigestEntry): DesktopEffect<DigestEntry> =>
+    Effect.gen(function* () {
       const parsed = digestEntrySchema.parse(entry)
-      await db.digestEntries.put(parsed)
+      yield* fromPromise(() => db.digestEntries.put(parsed))
       return parsed
-    },
-    async saveDecisionCard(card: DecisionCard) {
+    })
+
+  const saveDecisionCardEffect = (card: DecisionCard): DesktopEffect<DecisionCard> =>
+    Effect.gen(function* () {
       const parsed = decisionCardSchema.parse(card)
-      await db.decisions.put(parsed)
+      yield* fromPromise(() => db.decisions.put(parsed))
       return parsed
-    },
-    async saveQaSession(answer: CrossSessionQaAnswer) {
+    })
+
+  const saveQaSessionEffect = (answer: CrossSessionQaAnswer): DesktopEffect<CrossSessionQaAnswer> =>
+    Effect.gen(function* () {
       const parsed = crossSessionQaAnswerSchema.parse(answer)
-      await db.qaSessions.put(parsed)
+      yield* fromPromise(() => db.qaSessions.put(parsed))
       return parsed
-    },
-    async listDigestEntries(relevance?: DigestEntry['relevance']) {
-      if (relevance) return await db.digestEntries.where('relevance').equals(relevance).toArray()
+    })
 
-      return await db.digestEntries.orderBy('createdAt').reverse().toArray()
-    },
-    async listDecisionCards(status?: DecisionCard['status']) {
-      if (status) return await db.decisions.where('status').equals(status).toArray()
+  const listDigestEntriesEffect = (relevance?: DigestEntry['relevance']): DesktopEffect<DigestEntry[]> => {
+    if (relevance) return fromPromise(() => db.digestEntries.where('relevance').equals(relevance).toArray())
 
-      return await db.decisions.orderBy('updatedAt').reverse().toArray()
-    },
-    async listQaSessions() {
-      return await db.qaSessions.orderBy('createdAt').reverse().toArray()
-    },
-    async updateSuggestionDisposition(
-      decisionId: string,
-      suggestionId: string,
-      disposition: SuggestionDisposition,
-      updatedBy = 'system',
-      updatedAt = Date.now(),
-    ) {
-      const decision = await db.decisions.get(decisionId)
-      if (!decision) throw new Error(`Decision ${decisionId} not found`)
+    return fromPromise(() => db.digestEntries.orderBy('createdAt').reverse().toArray())
+  }
+
+  const listDecisionCardsEffect = (status?: DecisionCard['status']): DesktopEffect<DecisionCard[]> => {
+    if (status) return fromPromise(() => db.decisions.where('status').equals(status).toArray())
+
+    return fromPromise(() => db.decisions.orderBy('updatedAt').reverse().toArray())
+  }
+
+  const listQaSessionsEffect = (): DesktopEffect<CrossSessionQaAnswer[]> =>
+    fromPromise(() => db.qaSessions.orderBy('createdAt').reverse().toArray())
+
+  const updateSuggestionDispositionEffect = (
+    decisionId: string,
+    suggestionId: string,
+    disposition: SuggestionDisposition,
+    updatedBy = 'system',
+    updatedAt = Date.now(),
+  ): DesktopEffect<DecisionCard> =>
+    Effect.gen(function* () {
+      const decision = yield* fromPromise(() => db.decisions.get(decisionId))
+      if (!decision) {
+        return yield* fromSync(() => {
+          throw new Error(`Decision ${decisionId} not found`)
+        })
+      }
 
       const suggestions = decision.suggestions.map((suggestion) => {
         if (suggestion.id !== suggestionId) return suggestion
@@ -109,8 +124,46 @@ export function createKnowledgeRepository(
         updatedAt,
       })
 
-      await db.decisions.update(decisionId, nextDecision)
+      yield* fromPromise(() => db.decisions.update(decisionId, nextDecision))
       return nextDecision
+    })
+
+  return {
+    saveDigestEntryEffect,
+    saveDecisionCardEffect,
+    saveQaSessionEffect,
+    listDigestEntriesEffect,
+    listDecisionCardsEffect,
+    listQaSessionsEffect,
+    updateSuggestionDispositionEffect,
+    saveDigestEntry(entry: DigestEntry) {
+      return runDesktopEffect(saveDigestEntryEffect(entry))
+    },
+    saveDecisionCard(card: DecisionCard) {
+      return runDesktopEffect(saveDecisionCardEffect(card))
+    },
+    saveQaSession(answer: CrossSessionQaAnswer) {
+      return runDesktopEffect(saveQaSessionEffect(answer))
+    },
+    listDigestEntries(relevance?: DigestEntry['relevance']) {
+      return runDesktopEffect(listDigestEntriesEffect(relevance))
+    },
+    listDecisionCards(status?: DecisionCard['status']) {
+      return runDesktopEffect(listDecisionCardsEffect(status))
+    },
+    listQaSessions() {
+      return runDesktopEffect(listQaSessionsEffect())
+    },
+    updateSuggestionDisposition(
+      decisionId: string,
+      suggestionId: string,
+      disposition: SuggestionDisposition,
+      updatedBy = 'system',
+      updatedAt = Date.now(),
+    ) {
+      return runDesktopEffect(
+        updateSuggestionDispositionEffect(decisionId, suggestionId, disposition, updatedBy, updatedAt),
+      )
     },
   }
 }

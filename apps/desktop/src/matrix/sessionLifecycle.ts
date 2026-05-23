@@ -1,4 +1,7 @@
 import type { MatrixSession } from '@muon/enterprise-contracts'
+import type { DesktopEffect } from '@/shared/lib/effect'
+import { Effect } from 'effect'
+import { fromPromise, fromSync, runDesktopEffect } from '@/shared/lib/effect'
 import { activateMatrixSession, clearMatrixSessionStore } from './auth'
 import { destroyClient, getClient } from './client'
 import { bindClientEvents, unbindClientEvents } from './events'
@@ -23,56 +26,82 @@ function warnLocalCleanupFailure(step: string, err: unknown): void {
   console.warn(`[matrix] ${step} failed during local MatrixSession cleanup`, err)
 }
 
-export async function activate(session: MatrixSession): Promise<boolean> {
-  if (activeSession) {
-    if (sameMatrixSession(activeSession, session)) return false
-
-    throw new Error('Cannot activate a different MatrixSession while another MatrixSession is active')
-  }
-
-  await activateMatrixSession(session)
-  bindClientEvents()
-  startSync()
-  activeSession = session
-  return true
+function bestEffortCleanup(step: string, cleanup: DesktopEffect<unknown>): DesktopEffect<void> {
+  return cleanup.pipe(
+    Effect.catchAll((err) =>
+      fromSync(() => {
+        warnLocalCleanupFailure(step, err)
+      }),
+    ),
+    Effect.asVoid,
+  )
 }
 
-export async function revokeMatrixSession(): Promise<void> {
-  try {
-    await getClient().logout(true)
-  } catch (err) {
-    console.warn('[matrix] MatrixSession revoke failed against homeserver; continuing local cleanup', err)
-  }
+export function activateEffect(session: MatrixSession): DesktopEffect<boolean> {
+  return Effect.gen(function* () {
+    if (activeSession) {
+      if (sameMatrixSession(activeSession, session)) return false
+
+      return yield* Effect.fail(
+        new Error('Cannot activate a different MatrixSession while another MatrixSession is active'),
+      )
+    }
+
+    yield* fromPromise(() => activateMatrixSession(session))
+    yield* fromSync(() => bindClientEvents())
+    yield* fromSync(() => startSync())
+    activeSession = session
+    return true
+  })
 }
 
-export async function deactivate(options: DeactivateOptions = {}): Promise<void> {
-  try {
-    stopSync()
-  } catch (err) {
-    warnLocalCleanupFailure('stopSync', err)
-  }
+export function activate(session: MatrixSession): Promise<boolean> {
+  return runDesktopEffect(activateEffect(session))
+}
 
-  if (options.revoke) await revokeMatrixSession()
+export function revokeMatrixSessionEffect(): DesktopEffect<void> {
+  return fromPromise(() => getClient().logout(true)).pipe(
+    Effect.catchAll((err) =>
+      fromSync(() => {
+        console.warn('[matrix] MatrixSession revoke failed against homeserver; continuing local cleanup', err)
+      }),
+    ),
+    Effect.asVoid,
+  )
+}
 
-  try {
-    unbindClientEvents()
-  } catch (err) {
-    warnLocalCleanupFailure('unbindClientEvents', err)
-  }
+export function revokeMatrixSession(): Promise<void> {
+  return runDesktopEffect(revokeMatrixSessionEffect())
+}
 
-  try {
-    clearMatrixSessionStore()
-  } catch (err) {
-    warnLocalCleanupFailure('clearMatrixSessionStore', err)
-  }
+export function deactivateEffect(options: DeactivateOptions = {}): DesktopEffect<void> {
+  return Effect.gen(function* () {
+    yield* bestEffortCleanup(
+      'stopSync',
+      fromSync(() => stopSync()),
+    )
 
-  try {
-    destroyClient()
-  } catch (err) {
-    warnLocalCleanupFailure('destroyClient', err)
-  }
+    if (options.revoke) yield* revokeMatrixSessionEffect()
 
-  activeSession = null
+    yield* bestEffortCleanup(
+      'unbindClientEvents',
+      fromSync(() => unbindClientEvents()),
+    )
+    yield* bestEffortCleanup(
+      'clearMatrixSessionStore',
+      fromSync(() => clearMatrixSessionStore()),
+    )
+    yield* bestEffortCleanup(
+      'destroyClient',
+      fromSync(() => destroyClient()),
+    )
+
+    activeSession = null
+  })
+}
+
+export function deactivate(options: DeactivateOptions = {}): Promise<void> {
+  return runDesktopEffect(deactivateEffect(options))
 }
 
 export function __resetMatrixSessionLifecycleForTests(): void {

@@ -1,6 +1,9 @@
 import type { ClassValue } from 'clsx'
+import type { DesktopEffect } from './effect'
 import { clsx } from 'clsx'
+import { Effect } from 'effect'
 import { twMerge } from 'tailwind-merge'
+import { fromPromise, fromSync, runDesktopEffect, runDesktopSync } from './effect'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -29,12 +32,18 @@ export function escapeHtml(text: string): string {
  * Compute SHA-256 hash of a file/blob for deduplication.
  * Uses Web Crypto API (SubtleCrypto).
  */
-export async function computeSha256(file: File | Blob): Promise<string> {
-  const buffer = await file.arrayBuffer()
-  const hashBuffer = await crypto.subtle.digest('SHA-256', buffer)
-  return Array.from(new Uint8Array(hashBuffer))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('')
+export function computeSha256(file: File | Blob): Promise<string> {
+  return runDesktopEffect(computeSha256Effect(file))
+}
+
+export function computeSha256Effect(file: File | Blob): DesktopEffect<string> {
+  return Effect.gen(function* () {
+    const buffer = yield* fromPromise(() => file.arrayBuffer())
+    const hashBuffer = yield* fromPromise(() => crypto.subtle.digest('SHA-256', buffer))
+    return Array.from(new Uint8Array(hashBuffer))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('')
+  })
 }
 
 /**
@@ -42,6 +51,10 @@ export async function computeSha256(file: File | Blob): Promise<string> {
  * symbols, and BigInts that would cause JSON.stringify to throw.
  */
 export function safeJsonStringify(value: unknown, space?: number): string {
+  return runDesktopSync(safeJsonStringifyEffect(value, space))
+}
+
+export function safeJsonStringifyEffect(value: unknown, space?: number): DesktopEffect<string> {
   const seen = new WeakSet<object>()
 
   function replacer(_key: string, val: unknown): unknown {
@@ -56,9 +69,7 @@ export function safeJsonStringify(value: unknown, space?: number): string {
     return val
   }
 
-  try {
+  return fromSync(() => {
     return JSON.stringify(value, replacer, space)
-  } catch {
-    return `"[SerializationError]"`
-  }
+  }).pipe(Effect.catchAll(() => Effect.succeed(`"[SerializationError]"`)))
 }

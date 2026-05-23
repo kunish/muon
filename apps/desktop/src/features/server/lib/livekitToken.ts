@@ -1,3 +1,7 @@
+import type { DesktopEffect } from '@/shared/lib/effect'
+import { Effect } from 'effect'
+import { fromPromise, fromSync, runDesktopEffect } from '@/shared/lib/effect'
+
 export interface LiveKitTokenRequest {
   roomName: string
   identity: string
@@ -11,33 +15,48 @@ interface LiveKitTokenResponse {
   participantToken?: string
 }
 
-export async function getLiveKitToken(request: LiveKitTokenRequest): Promise<string> {
-  const tokenEndpoint = import.meta.env.VITE_LIVEKIT_TOKEN_ENDPOINT as string | undefined
-  if (!tokenEndpoint) {
-    throw new Error(
-      'LiveKit token endpoint is not configured. Set VITE_LIVEKIT_TOKEN_ENDPOINT to a backend endpoint that returns a participant token.',
+export function getLiveKitToken(request: LiveKitTokenRequest): Promise<string> {
+  return runDesktopEffect(getLiveKitTokenEffect(request))
+}
+
+export function getLiveKitTokenEffect(request: LiveKitTokenRequest): DesktopEffect<string> {
+  return Effect.gen(function* () {
+    const tokenEndpoint = yield* fromSync(() => {
+      const endpoint = import.meta.env.VITE_LIVEKIT_TOKEN_ENDPOINT as string | undefined
+      if (!endpoint) {
+        throw new Error(
+          'LiveKit token endpoint is not configured. Set VITE_LIVEKIT_TOKEN_ENDPOINT to a backend endpoint that returns a participant token.',
+        )
+      }
+      return endpoint
+    })
+
+    const response = yield* fromPromise(() =>
+      fetch(tokenEndpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          roomName: request.roomName,
+          identity: request.identity,
+          ...(request.name ? { name: request.name } : {}),
+          ...(request.metadata ? { metadata: request.metadata } : {}),
+        }),
+      }),
     )
-  }
 
-  const response = await fetch(tokenEndpoint, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      roomName: request.roomName,
-      identity: request.identity,
-      ...(request.name ? { name: request.name } : {}),
-      ...(request.metadata ? { metadata: request.metadata } : {}),
-    }),
+    if (!response.ok) {
+      return yield* fromSync(() => {
+        throw new Error(`LiveKit token endpoint failed with ${response.status}`)
+      })
+    }
+
+    const data = yield* fromPromise(() => response.json() as Promise<LiveKitTokenResponse>)
+    const token = data.token ?? data.accessToken ?? data.participantToken
+    if (!token) {
+      return yield* fromSync(() => {
+        throw new Error('LiveKit token endpoint response did not include a token')
+      })
+    }
+    return token
   })
-
-  if (!response.ok) {
-    throw new Error(`LiveKit token endpoint failed with ${response.status}`)
-  }
-
-  const data = (await response.json()) as LiveKitTokenResponse
-  const token = data.token ?? data.accessToken ?? data.participantToken
-  if (!token) {
-    throw new Error('LiveKit token endpoint response did not include a token')
-  }
-  return token
 }

@@ -1,8 +1,11 @@
 import type { WorkItem } from '../types'
+import type { DesktopEffect } from '@/shared/lib/effect'
+import { Effect } from 'effect'
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { getClient } from '@/matrix/client'
 import { sendProjectSyncEvent } from '@/matrix/projects'
+import { fromPromise, fromSync, runDesktopEffect, runDesktopSync } from '@/shared/lib/effect'
 import { projectRepo } from '../db/projectDb'
 import { workItemSchema } from '../types'
 
@@ -31,17 +34,87 @@ export const useWorkItemStore = defineStore('workItems', () => {
     return grouped
   })
 
-  async function loadItems(projectId: string) {
-    loading.value = true
-    try {
-      const items = await projectRepo.listWorkItems(projectId)
-      itemsByProject.value[projectId] = items
-    } finally {
-      loading.value = false
-    }
+  function loadItemsEffect(projectId: string): DesktopEffect<void> {
+    return Effect.gen(function* () {
+      yield* fromSync(() => {
+        loading.value = true
+      })
+      const items = yield* fromPromise(() => projectRepo.listWorkItems(projectId))
+      yield* fromSync(() => {
+        itemsByProject.value[projectId] = items
+      })
+    }).pipe(Effect.ensuring(Effect.sync(() => void (loading.value = false))))
   }
 
-  async function createItem(
+  function loadItems(projectId: string) {
+    return runDesktopEffect(loadItemsEffect(projectId))
+  }
+
+  function sendWorkItemSyncEffect(
+    projectId: string,
+    payload: Parameters<typeof sendProjectSyncEvent>[1],
+  ): DesktopEffect<void> {
+    return fromPromise(() => sendProjectSyncEvent(projectId, payload)).pipe(Effect.catchAll(() => Effect.void))
+  }
+
+  function createItemEffect(
+    projectId: string,
+    data: {
+      title: string
+      description?: string
+      status: string
+      type?: WorkItem['type']
+      priority?: WorkItem['priority']
+      assignee?: string
+      dueDate?: number
+      parentId?: string
+    },
+  ): DesktopEffect<WorkItem> {
+    return Effect.gen(function* () {
+      const items = itemsByProject.value[projectId] ?? []
+      const maxOrder = items.reduce((max, i) => Math.max(max, i.order), -1)
+
+      const now = Date.now()
+      const item: WorkItem = workItemSchema.parse({
+        id: generateId(),
+        projectId,
+        parentId: data.parentId,
+        type: data.type ?? 'task',
+        title: data.title,
+        description: data.description ?? '',
+        status: data.status,
+        priority: data.priority ?? 'none',
+        assignee: data.assignee,
+        dueDate: data.dueDate,
+        order: maxOrder + 1,
+        createdAt: now,
+        updatedAt: now,
+      })
+
+      yield* fromPromise(() => projectRepo.saveWorkItem(item))
+      yield* fromSync(() => {
+        if (itemsByProject.value[projectId]) {
+          itemsByProject.value[projectId].push(item)
+        } else {
+          itemsByProject.value[projectId] = [item]
+        }
+      })
+
+      // Sync via Matrix
+      const client = getClient()
+      yield* sendWorkItemSyncEffect(projectId, {
+        type: 'muon.project.workitem.create',
+        projectId,
+        ts: now,
+        sender: client.getUserId()!,
+        data: { workItemId: item.id, workItem: item },
+      })
+
+      return item
+    })
+  }
+
+  function createItem(
     projectId: string,
     data: {
       title: string
@@ -54,115 +127,103 @@ export const useWorkItemStore = defineStore('workItems', () => {
       parentId?: string
     },
   ): Promise<WorkItem> {
-    const items = itemsByProject.value[projectId] ?? []
-    const maxOrder = items.reduce((max, i) => Math.max(max, i.order), -1)
-
-    const now = Date.now()
-    const item: WorkItem = workItemSchema.parse({
-      id: generateId(),
-      projectId,
-      parentId: data.parentId,
-      type: data.type ?? 'task',
-      title: data.title,
-      description: data.description ?? '',
-      status: data.status,
-      priority: data.priority ?? 'none',
-      assignee: data.assignee,
-      dueDate: data.dueDate,
-      order: maxOrder + 1,
-      createdAt: now,
-      updatedAt: now,
-    })
-
-    await projectRepo.saveWorkItem(item)
-    if (itemsByProject.value[projectId]) {
-      itemsByProject.value[projectId].push(item)
-    } else {
-      itemsByProject.value[projectId] = [item]
-    }
-
-    // Sync via Matrix
-    const client = getClient()
-    if (client) {
-      sendProjectSyncEvent(projectId, {
-        type: 'muon.project.workitem.create',
-        projectId,
-        ts: now,
-        sender: client.getUserId()!,
-        data: { workItemId: item.id, workItem: item },
-      }).catch(() => {
-        /* sync is best-effort */
-      })
-    }
-
-    return item
+    return runDesktopEffect(createItemEffect(projectId, data))
   }
 
-  async function updateItem(id: string, changes: Partial<WorkItem>): Promise<WorkItem> {
-    const updated = await projectRepo.updateWorkItem(id, changes)
-    const list = itemsByProject.value[updated.projectId]
-    if (list) {
-      const idx = list.findIndex((i) => i.id === id)
-      if (idx !== -1) list.splice(idx, 1, updated)
-    }
+  function updateItemEffect(id: string, changes: Partial<WorkItem>): DesktopEffect<WorkItem> {
+    return Effect.gen(function* () {
+      const updated = yield* fromPromise(() => projectRepo.updateWorkItem(id, changes))
+      yield* fromSync(() => {
+        const list = itemsByProject.value[updated.projectId]
+        if (list) {
+          const idx = list.findIndex((i) => i.id === id)
+          if (idx !== -1) list.splice(idx, 1, updated)
+        }
+      })
 
-    const client = getClient()
-    if (client) {
-      sendProjectSyncEvent(updated.projectId, {
+      const client = getClient()
+      yield* sendWorkItemSyncEffect(updated.projectId, {
         type: 'muon.project.workitem.update',
         projectId: updated.projectId,
         ts: Date.now(),
         sender: client.getUserId()!,
         data: { workItemId: id, changes },
-      }).catch(() => {})
-    }
+      })
 
-    return updated
+      return updated
+    })
   }
 
-  async function deleteItem(id: string, projectId: string) {
-    await projectRepo.deleteWorkItem(id)
-    const list = itemsByProject.value[projectId]
-    if (list) {
-      itemsByProject.value[projectId] = list.filter((i) => i.id !== id)
-    }
+  function updateItem(id: string, changes: Partial<WorkItem>): Promise<WorkItem> {
+    return runDesktopEffect(updateItemEffect(id, changes))
+  }
 
-    const client = getClient()
-    if (client) {
-      sendProjectSyncEvent(projectId, {
+  function deleteItemEffect(id: string, projectId: string): DesktopEffect<void> {
+    return Effect.gen(function* () {
+      yield* fromPromise(() => projectRepo.deleteWorkItem(id))
+      yield* fromSync(() => {
+        const list = itemsByProject.value[projectId]
+        if (list) {
+          itemsByProject.value[projectId] = list.filter((i) => i.id !== id)
+        }
+      })
+
+      const client = getClient()
+      yield* sendWorkItemSyncEffect(projectId, {
         type: 'muon.project.workitem.delete',
         projectId,
         ts: Date.now(),
         sender: client.getUserId()!,
         data: { workItemId: id },
-      }).catch(() => {})
-    }
+      })
+    })
   }
 
-  async function reorderItem(id: string, projectId: string, newOrder: number, statusColumn: string) {
-    const updated = await projectRepo.reorderWorkItem(id, newOrder, statusColumn)
-    const list = itemsByProject.value[projectId]
-    if (list) {
-      const idx = list.findIndex((i) => i.id === id)
-      if (idx !== -1) list.splice(idx, 1, updated)
-    }
+  function deleteItem(id: string, projectId: string) {
+    return runDesktopEffect(deleteItemEffect(id, projectId))
+  }
 
-    const client = getClient()
-    if (client) {
-      sendProjectSyncEvent(projectId, {
+  function reorderItemEffect(
+    id: string,
+    projectId: string,
+    newOrder: number,
+    statusColumn: string,
+  ): DesktopEffect<WorkItem> {
+    return Effect.gen(function* () {
+      const updated = yield* fromPromise(() => projectRepo.reorderWorkItem(id, newOrder, statusColumn))
+      yield* fromSync(() => {
+        const list = itemsByProject.value[projectId]
+        if (list) {
+          const idx = list.findIndex((i) => i.id === id)
+          if (idx !== -1) list.splice(idx, 1, updated)
+        }
+      })
+
+      const client = getClient()
+      yield* sendWorkItemSyncEffect(projectId, {
         type: 'muon.project.workitem.reorder',
         projectId,
         ts: Date.now(),
         sender: client.getUserId()!,
         data: { workItemId: id, newOrder, statusColumn },
-      }).catch(() => {})
-    }
+      })
 
-    return updated
+      return updated
+    })
+  }
+
+  function reorderItem(id: string, projectId: string, newOrder: number, statusColumn: string) {
+    return runDesktopEffect(reorderItemEffect(id, projectId, newOrder, statusColumn))
+  }
+
+  function setCurrentProjectEffect(projectId: string | null): DesktopEffect<void> {
+    return fromSync(() => {
+      currentProjectId.value = projectId
+    })
   }
 
   function setCurrentProject(projectId: string | null) {
-    currentProjectId.value = projectId
+    runDesktopSync(setCurrentProjectEffect(projectId))
   }
 
   return {
@@ -171,6 +232,12 @@ export const useWorkItemStore = defineStore('workItems', () => {
     currentProjectId,
     currentItems,
     itemsByStatus,
+    loadItemsEffect,
+    createItemEffect,
+    updateItemEffect,
+    deleteItemEffect,
+    reorderItemEffect,
+    setCurrentProjectEffect,
     loadItems,
     createItem,
     updateItem,

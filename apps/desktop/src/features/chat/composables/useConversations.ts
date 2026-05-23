@@ -1,7 +1,10 @@
 import type { RoomSummary } from '@matrix/types'
-import { getRoomSummaries, invalidateRoomSummariesCache, matrixEvents, paginateBack } from '@matrix/index'
+import type { DesktopEffect } from '@/shared/lib/effect'
+import { getRoomSummaries, invalidateRoomSummariesCache, matrixEvents, paginateBack, syncState } from '@matrix/index'
+import { Effect } from 'effect'
 import { computed, onMounted, ref, shallowRef } from 'vue'
 import { registerSessionSubscriber } from '@/auth/lifecycleEvents'
+import { fromPromise, fromSync, runDesktopEffect, runDesktopSync } from '@/shared/lib/effect'
 import { useChatStore } from '../stores/chatStore'
 
 const LISTENED_EVENTS = [
@@ -14,7 +17,7 @@ const LISTENED_EVENTS = [
 ] as const
 const PREVIEW_HYDRATION_LIMIT = 30
 const PREVIEW_HYDRATION_MAX_CONCURRENT = 3
-const PREVIEW_HYDRATION_MAX_ATTEMPTS = 5
+const PREVIEW_HYDRATION_SYNC_STATES = new Set(['CATCHUP', 'PREPARED', 'SYNCING'])
 type RefreshMode = 'resort' | 'preserve-order'
 const REFRESH_EVENT_MODES: Record<(typeof LISTENED_EVENTS)[number], RefreshMode> = {
   'room.message': 'resort',
@@ -29,16 +32,24 @@ const REFRESH_EVENT_MODES: Record<(typeof LISTENED_EVENTS)[number], RefreshMode>
 const ARCHIVED_KEY = 'muon_archived_dms'
 
 function loadArchivedDms(): Set<string> {
-  try {
+  return runDesktopSync(loadArchivedDmsEffect())
+}
+
+function loadArchivedDmsEffect(): DesktopEffect<Set<string>> {
+  return fromSync(() => {
     const raw = localStorage.getItem(ARCHIVED_KEY)
-    return new Set(raw ? JSON.parse(raw) : [])
-  } catch {
-    return new Set()
-  }
+    const parsed: unknown = raw ? JSON.parse(raw) : []
+    const roomIds = Array.isArray(parsed) ? parsed.filter((roomId): roomId is string => typeof roomId === 'string') : []
+    return new Set(roomIds)
+  }).pipe(Effect.catchAll(() => Effect.succeed(new Set<string>())))
 }
 
 function saveArchivedDms(ids: Set<string>) {
-  localStorage.setItem(ARCHIVED_KEY, JSON.stringify([...ids]))
+  runDesktopSync(saveArchivedDmsEffect(ids))
+}
+
+function saveArchivedDmsEffect(ids: Set<string>): DesktopEffect<void> {
+  return fromSync(() => localStorage.setItem(ARCHIVED_KEY, JSON.stringify([...ids]))).pipe(Effect.asVoid)
 }
 
 function reloadArchivedDms(ids: Set<string>) {
@@ -60,7 +71,7 @@ let previewHydrationGeneration = 0
 const pendingPreviewHydrationRoomIds = new Set<string>()
 const hydratingPreviewRoomIds = new Set<string>()
 const exhaustedPreviewHydrationRoomIds = new Set<string>()
-const previewHydrationAttemptsByRoomId = new Map<string, number>()
+const preloadedHistoryRoomIds = new Set<string>()
 
 function mergeRefreshMode(current: RefreshMode | null, next: RefreshMode): RefreshMode {
   return current === 'resort' || next === 'resort' ? 'resort' : 'preserve-order'
@@ -188,28 +199,29 @@ function refreshNow(mode: RefreshMode = 'resort') {
   rooms.value = summaries
   isLoading.value = false
   // 将服务端 pin/mute 状态同步到 chatStore
-  try {
+  runDesktopSync(syncServerStateEffect(summaries))
+  hydrateMissingPreviews(summaries)
+}
+
+function syncServerStateEffect(summaries: RoomSummary[]): DesktopEffect<void> {
+  return fromSync(() => {
     const store = useChatStore()
     store.syncServerState(summaries)
-  } catch {
-    /* store 尚未初始化时忽略 */
-  }
-  hydrateMissingPreviews(summaries)
+  }).pipe(Effect.catchAll(() => Effect.succeed(undefined)))
 }
 
 function shouldHydratePreview(room: RoomSummary): boolean {
   return (
-    !room.lastMessage &&
-    !room.lastMessageType &&
-    (room.lastMessageTs !== undefined || room.unreadCount > 0) &&
-    (previewHydrationAttemptsByRoomId.get(room.roomId) ?? 0) < PREVIEW_HYDRATION_MAX_ATTEMPTS &&
     !pendingPreviewHydrationRoomIds.has(room.roomId) &&
     !hydratingPreviewRoomIds.has(room.roomId) &&
-    !exhaustedPreviewHydrationRoomIds.has(room.roomId)
+    !exhaustedPreviewHydrationRoomIds.has(room.roomId) &&
+    !preloadedHistoryRoomIds.has(room.roomId)
   )
 }
 
 function hydrateMissingPreviews(summaries: RoomSummary[]) {
+  if (!PREVIEW_HYDRATION_SYNC_STATES.has(syncState.value)) return
+
   for (const room of summaries) {
     if (shouldHydratePreview(room)) pendingPreviewHydrationRoomIds.add(room.roomId)
   }
@@ -225,30 +237,49 @@ function drainPreviewHydrationQueue() {
   }
 }
 
-async function hydrateRoomPreview(roomId: string) {
+function hydrateRoomPreview(roomId: string): Promise<void> {
   const generation = previewHydrationGeneration
   activePreviewHydrations++
   hydratingPreviewRoomIds.add(roomId)
-  let loaded = false
-  try {
-    previewHydrationAttemptsByRoomId.set(roomId, (previewHydrationAttemptsByRoomId.get(roomId) ?? 0) + 1)
-    const result = await paginateBack(roomId, PREVIEW_HYDRATION_LIMIT)
+
+  return runDesktopEffect(hydrateRoomPreviewEffect(roomId, generation))
+}
+
+function hydrateRoomPreviewEffect(roomId: string, generation: number): DesktopEffect<void> {
+  let paginationCompleted = false
+
+  return Effect.gen(function* () {
+    const loaded = yield* fromPromise(() => paginateBack(roomId, PREVIEW_HYDRATION_LIMIT))
+    paginationCompleted = true
     if (generation !== previewHydrationGeneration) return
-    loaded = result
-    if (!loaded) exhaustedPreviewHydrationRoomIds.add(roomId)
-  } catch (error) {
-    console.warn('[useConversations] Failed to hydrate conversation preview:', error)
-  } finally {
-    if (generation === previewHydrationGeneration) {
-      hydratingPreviewRoomIds.delete(roomId)
-      activePreviewHydrations--
-      drainPreviewHydrationQueue()
-    }
-  }
 
-  if (generation !== previewHydrationGeneration) return
-
-  if (loaded) refreshNow('preserve-order')
+    yield* fromSync(() => {
+      if (!loaded) {
+        exhaustedPreviewHydrationRoomIds.add(roomId)
+        preloadedHistoryRoomIds.add(roomId)
+      } else {
+        pendingPreviewHydrationRoomIds.add(roomId)
+      }
+    })
+  }).pipe(
+    Effect.catchAll((error) =>
+      fromSync(() => {
+        console.warn('[useConversations] Failed to hydrate conversation preview:', error)
+      }),
+    ),
+    Effect.ensuring(
+      Effect.sync(() => {
+        if (generation !== previewHydrationGeneration) return
+        hydratingPreviewRoomIds.delete(roomId)
+        activePreviewHydrations--
+        drainPreviewHydrationQueue()
+      }),
+    ),
+    Effect.flatMap(() => {
+      if (generation !== previewHydrationGeneration || !paginationCompleted) return Effect.succeed(undefined)
+      return fromSync(() => refreshNow('preserve-order'))
+    }),
+  )
 }
 
 /** 立即从列表中移除指定房间（不等待 sync 确认） */
@@ -369,16 +400,16 @@ export function resetConversationsListeners() {
   pendingPreviewHydrationRoomIds.clear()
   hydratingPreviewRoomIds.clear()
   exhaustedPreviewHydrationRoomIds.clear()
-  previewHydrationAttemptsByRoomId.clear()
+  preloadedHistoryRoomIds.clear()
   rooms.value = []
   isLoading.value = true
   excludedRoomIds.clear()
   archivedDmIds.clear()
-  try {
-    useChatStore().clearSidebarPromotions()
-  } catch {
-    /* store 尚未初始化时忽略 */
-  }
+  runDesktopSync(clearSidebarPromotionsEffect())
+}
+
+function clearSidebarPromotionsEffect(): DesktopEffect<void> {
+  return fromSync(() => useChatStore().clearSidebarPromotions()).pipe(Effect.catchAll(() => Effect.succeed(undefined)))
 }
 
 const unregisterConversationsSessionSubscriber = registerSessionSubscriber({

@@ -1,11 +1,23 @@
 import type { TimelineRelationSummaries } from '@matrix/index'
 import type { MatrixEvent } from 'matrix-js-sdk'
-import { getTimeline, getTimelineRelationSummaries, matrixEvents, paginateBack, sendReadReceipt } from '@matrix/index'
+import type { DesktopEffect } from '@/shared/lib/effect'
+import {
+  getTimeline,
+  getTimelineRelationSummaries,
+  matrixEvents,
+  paginateBack,
+  sendReadReceipt,
+  syncState,
+} from '@matrix/index'
 import { useDebounceFn } from '@vueuse/core'
+import { Effect } from 'effect'
 import { onMounted, onUnmounted, ref, shallowRef, watch } from 'vue'
+import { fromPromise, fromSync, runDesktopEffect } from '@/shared/lib/effect'
 import { useChatStore } from '../stores/chatStore'
 
 const TIMELINE_REFRESH_SYNC_STATES = new Set(['CATCHUP', 'PREPARED', 'SYNCING'])
+const HISTORY_PAGE_SIZE = 30
+const INITIAL_HISTORY_BACKFILL_MAX_ATTEMPTS = 5
 
 export function useMessages() {
   const store = useChatStore()
@@ -19,31 +31,117 @@ export function useMessages() {
     threadReplyCountsByEventId: new Map(),
   })
   let roomSessionVersion = 0
+  let activeBackfillKey: string | null = null
 
   function isActiveRoomRequest(roomId: string, version: number) {
     return store.currentRoomId === roomId && roomSessionVersion === version
   }
 
+  function replaceTimeline(roomId: string) {
+    const timeline = getTimeline(roomId, displayLimit.value)
+    messages.value = timeline
+    relationSummaries.value = getTimelineRelationSummaries(roomId)
+    timelineVersion.value++
+    return timeline
+  }
+
   function loadTimeline() {
     const roomId = store.currentRoomId
     if (!roomId) return
-    messages.value = getTimeline(roomId, displayLimit.value)
-    relationSummaries.value = getTimelineRelationSummaries(roomId)
-    timelineVersion.value++
+    replaceTimeline(roomId)
   }
 
-  async function loadMore() {
+  function refreshTimelineAndBackfill() {
     const roomId = store.currentRoomId
-    if (!roomId || isLoading.value || !hasMore.value) return
+    if (!roomId) return
+
     const requestVersion = roomSessionVersion
-    isLoading.value = true
-    try {
+    const previousLength = messages.value.length
+    const timeline = replaceTimeline(roomId)
+    if (!hasMore.value && previousLength === 0 && timeline.length > 0 && displayLimit.value !== Infinity) {
+      hasMore.value = true
+    }
+    void backfillCurrentRoomHistory(roomId, requestVersion, { showLoading: timeline.length === 0 })
+  }
+
+  function isBackfillActiveFor(roomId: string, requestVersion: number) {
+    return activeBackfillKey === `${roomId}:${requestVersion}`
+  }
+
+  function backfillCurrentRoomHistoryEffect(
+    roomId: string,
+    requestVersion: number,
+    options: { showLoading: boolean },
+  ): DesktopEffect<void> {
+    const backfillKey = `${roomId}:${requestVersion}`
+    let ownsBackfill = false
+
+    return Effect.gen(function* () {
+      if (!TIMELINE_REFRESH_SYNC_STATES.has(syncState.value)) return
+      if (activeBackfillKey === backfillKey) return
+
+      yield* fromSync(() => {
+        activeBackfillKey = backfillKey
+        ownsBackfill = true
+        if (options.showLoading) isLoading.value = true
+      })
+
+      let attempts = 0
+      let timeline = getTimeline(roomId, displayLimit.value)
+      while (
+        isActiveRoomRequest(roomId, requestVersion) &&
+        hasMore.value &&
+        timeline.length < displayLimit.value &&
+        attempts < INITIAL_HISTORY_BACKFILL_MAX_ATTEMPTS
+      ) {
+        attempts++
+        const loaded = yield* fromPromise(() => paginateBack(roomId, HISTORY_PAGE_SIZE))
+        if (!isActiveRoomRequest(roomId, requestVersion)) return
+
+        timeline = replaceTimeline(roomId)
+        if (!loaded) {
+          hasMore.value = false
+          break
+        }
+      }
+    }).pipe(
+      Effect.catchAll((err) => fromSync(() => console.error('[useMessages] Failed to backfill room history:', err))),
+      Effect.ensuring(
+        Effect.sync(() => {
+          if (ownsBackfill && activeBackfillKey === backfillKey) activeBackfillKey = null
+          if (ownsBackfill && options.showLoading && isActiveRoomRequest(roomId, requestVersion))
+            isLoading.value = false
+        }),
+      ),
+    )
+  }
+
+  function backfillCurrentRoomHistory(
+    roomId: string,
+    requestVersion: number,
+    options: { showLoading: boolean },
+  ): Promise<void> {
+    return runDesktopEffect(backfillCurrentRoomHistoryEffect(roomId, requestVersion, options))
+  }
+
+  function loadMoreEffect(): DesktopEffect<boolean> {
+    const roomId = store.currentRoomId
+    const requestVersion = roomSessionVersion
+    let ownsLoading = false
+
+    return Effect.gen(function* () {
+      if (!roomId || isLoading.value || isBackfillActiveFor(roomId, requestVersion) || !hasMore.value) return false
+      yield* fromSync(() => {
+        ownsLoading = true
+        isLoading.value = true
+      })
+
       const prevCount = messages.value.length
       // 持续分页直到拿到新的可见消息或历史耗尽
       let attempts = 0
       while (attempts < 5) {
-        const loaded = await paginateBack(roomId, 30)
-        if (!isActiveRoomRequest(roomId, requestVersion)) return
+        const loaded = yield* fromPromise(() => paginateBack(roomId, HISTORY_PAGE_SIZE))
+        if (!isActiveRoomRequest(roomId, requestVersion)) return false
         if (!loaded) {
           hasMore.value = false
           // 服务端无更多历史，但本地 timeline 可能有超过 displayLimit 的事件
@@ -59,33 +157,51 @@ export function useMessages() {
         if (messages.value.length > prevCount) break
         attempts++
       }
-    } catch (err) {
-      console.error('[useMessages] Failed to load more messages:', err)
-    } finally {
-      if (isActiveRoomRequest(roomId, requestVersion)) isLoading.value = false
-    }
+      return true
+    }).pipe(
+      Effect.catchAll((err) =>
+        fromSync(() => {
+          console.error('[useMessages] Failed to load more messages:', err)
+          return false
+        }),
+      ),
+      Effect.ensuring(
+        Effect.sync(() => {
+          if (ownsLoading && roomId && isActiveRoomRequest(roomId, requestVersion)) isLoading.value = false
+        }),
+      ),
+    )
+  }
+
+  function loadMore(): Promise<boolean> {
+    return runDesktopEffect(loadMoreEffect())
   }
 
   /** 对当前房间最新消息发送已读回执 */
-  function markAsRead() {
+  function markAsReadEffect(): DesktopEffect<void> {
     const roomId = store.currentRoomId
-    if (!roomId) return
+    if (!roomId) return Effect.succeed(undefined)
     const list = messages.value
-    if (list.length === 0) return
+    if (list.length === 0) return Effect.succeed(undefined)
     const lastEvent = list.at(-1)
-    if (!lastEvent) return
+    if (!lastEvent) return Effect.succeed(undefined)
     const eventId = lastEvent.getId()
-    if (eventId) {
-      sendReadReceipt(roomId, eventId).catch(() => {
-        /* read receipt failures are non-critical, user experience unaffected */
-      })
-    }
+    if (!eventId) return Effect.succeed(undefined)
+
+    return fromPromise(() => sendReadReceipt(roomId, eventId)).pipe(
+      Effect.catchAll(() => Effect.succeed(undefined)),
+      Effect.asVoid,
+    )
   }
 
-  const debouncedLoadTimeline = useDebounceFn(() => loadTimeline(), 80)
+  function markAsRead() {
+    void runDesktopEffect(markAsReadEffect())
+  }
+
+  const debouncedRefreshTimeline = useDebounceFn(() => refreshTimelineAndBackfill(), 80)
 
   function onTimelineUpdate(payload: { roomId: string }) {
-    if (payload.roomId === store.currentRoomId) debouncedLoadTimeline()
+    if (payload.roomId === store.currentRoomId) debouncedRefreshTimeline()
   }
 
   /** 当前房间收到新消息时自动标记已读 */
@@ -94,12 +210,12 @@ export function useMessages() {
   }
 
   function onSyncState(payload: { state: string }) {
-    if (TIMELINE_REFRESH_SYNC_STATES.has(payload.state)) loadTimeline()
+    if (!TIMELINE_REFRESH_SYNC_STATES.has(payload.state)) return
+    refreshTimelineAndBackfill()
   }
 
-  watch(
-    () => store.currentRoomId,
-    async () => {
+  function handleCurrentRoomChangeEffect(): DesktopEffect<void> {
+    return Effect.gen(function* () {
       roomSessionVersion++
       const requestVersion = roomSessionVersion
       hasMore.value = true
@@ -109,27 +225,16 @@ export function useMessages() {
       // 避免 messages=[] 清空导致的 DOM 闪白
       const roomId = store.currentRoomId
       if (roomId) {
-        const timeline = getTimeline(roomId, displayLimit.value)
-        relationSummaries.value = getTimelineRelationSummaries(roomId)
         // 直接替换，不经过空数组中间态
-        messages.value = timeline
-        timelineVersion.value++
-        // 如果本地无缓存才异步加载（此时 MessageList 会显示 loading）
-        if (timeline.length === 0) {
-          isLoading.value = true
-          try {
-            await paginateBack(roomId, 30)
-            if (!isActiveRoomRequest(roomId, requestVersion)) return
-            messages.value = getTimeline(roomId, displayLimit.value)
-            relationSummaries.value = getTimelineRelationSummaries(roomId)
-          } finally {
-            if (isActiveRoomRequest(roomId, requestVersion)) {
-              isLoading.value = false
-            }
-          }
-        }
+        const timeline = replaceTimeline(roomId)
+        const shouldShowLoading = timeline.length === 0
+        const backfillPromise = runDesktopEffect(
+          backfillCurrentRoomHistoryEffect(roomId, requestVersion, { showLoading: shouldShowLoading }),
+        )
+        if (shouldShowLoading) yield* fromPromise(() => backfillPromise)
+        else void backfillPromise
         if (!isActiveRoomRequest(roomId, requestVersion)) return
-        markAsRead()
+        yield* markAsReadEffect()
       } else {
         messages.value = []
         relationSummaries.value = {
@@ -137,6 +242,13 @@ export function useMessages() {
           threadReplyCountsByEventId: new Map(),
         }
       }
+    })
+  }
+
+  watch(
+    () => store.currentRoomId,
+    () => {
+      void runDesktopEffect(handleCurrentRoomChangeEffect())
     },
     { immediate: true },
   )
@@ -157,5 +269,15 @@ export function useMessages() {
     matrixEvents.off('sync.state', onSyncState)
   })
 
-  return { messages, isLoading, hasMore, loadMore, refresh: loadTimeline, relationSummaries, timelineVersion }
+  return {
+    messages,
+    isLoading,
+    hasMore,
+    loadMoreEffect,
+    markAsReadEffect,
+    loadMore,
+    refresh: loadTimeline,
+    relationSummaries,
+    timelineVersion,
+  }
 }

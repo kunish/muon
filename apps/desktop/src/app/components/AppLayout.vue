@@ -5,7 +5,6 @@ import CreateCategoryDialog from '@features/server/components/CreateCategoryDial
 import InviteDialog from '@features/server/components/InviteDialog.vue';
 import ServerSettings from '@features/server/components/ServerSettings.vue';
 import { useServerStore } from '@features/server/stores/serverStore';
-import { useTheme } from '@features/settings/composables/useTheme';
 import { getClient } from '@matrix/client';
 import { getMyDisplayName } from '@matrix/index';
 import { useSettingsStore } from '@shared/stores/settingsStore';
@@ -28,7 +27,6 @@ const route = useRoute();
 const router = useRouter();
 const { t } = useI18n();
 
-useTheme();
 useGlobalShortcuts();
 
 const showChannelSidebar = computed(() => {

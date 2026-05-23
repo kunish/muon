@@ -1,5 +1,8 @@
+import type { DesktopEffect } from '@/shared/lib/effect'
+import { Effect } from 'effect'
 import { onUnmounted, ref } from 'vue'
 import { fetch } from '@/desktop/http'
+import { fromPromise, fromSync, runDesktopEffect } from '@/shared/lib/effect'
 
 // --- 网络状态类型 ---
 export type ConnectionStatus = 'online' | 'offline' | 'server-unreachable'
@@ -22,41 +25,58 @@ function handleOffline() {
   consecutiveFailures = 0
 }
 
-async function pingHomeserver() {
-  // 浏览器本身就离线，直接标记
-  if (!navigator.onLine) {
-    status.value = 'offline'
-    lastOfflineAt.value = lastOfflineAt.value || Date.now()
-    return
-  }
-
-  try {
-    const serverUrl = localStorage.getItem('muon_homeserver') || 'https://matrix.org'
-    const resp = await fetch(`${serverUrl}/_matrix/client/versions`, {
-      method: 'GET',
-      connectTimeout: 5000,
-    })
-    if (resp.ok) {
-      status.value = 'online'
-      consecutiveFailures = 0
-    } else {
-      // 服务器返回非 2xx（如 502/503），但网络本身是通的
-      consecutiveFailures++
-      if (consecutiveFailures >= 2) {
-        status.value = 'server-unreachable'
-        lastOfflineAt.value = lastOfflineAt.value || Date.now()
-      }
-    }
-  } catch {
-    consecutiveFailures++
-    // 区分：navigator.onLine 为 true 说明网络层通但服务器连不上
+export function pingHomeserverEffect(): DesktopEffect<void> {
+  return Effect.gen(function* () {
+    // 浏览器本身就离线，直接标记
     if (!navigator.onLine) {
-      status.value = 'offline'
-    } else if (consecutiveFailures >= 2) {
-      status.value = 'server-unreachable'
+      yield* fromSync(() => {
+        status.value = 'offline'
+        lastOfflineAt.value = lastOfflineAt.value || Date.now()
+      })
+      return
     }
-    lastOfflineAt.value = lastOfflineAt.value || Date.now()
-  }
+
+    const serverUrl = yield* fromSync(() => localStorage.getItem('muon_homeserver') || 'https://matrix.org')
+    const resp = yield* fromPromise(() =>
+      fetch(`${serverUrl}/_matrix/client/versions`, {
+        method: 'GET',
+        connectTimeout: 5000,
+      }),
+    ).pipe(
+      Effect.catchAll(() =>
+        fromSync(() => {
+          consecutiveFailures++
+          // 区分：navigator.onLine 为 true 说明网络层通但服务器连不上
+          if (!navigator.onLine) {
+            status.value = 'offline'
+          } else if (consecutiveFailures >= 2) {
+            status.value = 'server-unreachable'
+          }
+          lastOfflineAt.value = lastOfflineAt.value || Date.now()
+          return null
+        }),
+      ),
+    )
+    if (!resp) return
+
+    yield* fromSync(() => {
+      if (resp.ok) {
+        status.value = 'online'
+        consecutiveFailures = 0
+      } else {
+        // 服务器返回非 2xx（如 502/503），但网络本身是通的
+        consecutiveFailures++
+        if (consecutiveFailures >= 2) {
+          status.value = 'server-unreachable'
+          lastOfflineAt.value = lastOfflineAt.value || Date.now()
+        }
+      }
+    })
+  })
+}
+
+function pingHomeserver() {
+  void runDesktopEffect(pingHomeserverEffect())
 }
 
 function startPing() {

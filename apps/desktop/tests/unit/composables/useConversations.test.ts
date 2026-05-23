@@ -10,7 +10,9 @@ const matrixEventsOn = vi.hoisted(() => vi.fn())
 const matrixEventsOff = vi.hoisted(() => vi.fn())
 const matrixEventHandlers = vi.hoisted(() => new Map<string, Set<(...args: any[]) => void>>())
 const invalidateRoomSummariesCacheMock = vi.hoisted(() => vi.fn())
+const getTimelineMock = vi.hoisted(() => vi.fn())
 const paginateBackMock = vi.hoisted(() => vi.fn())
+const syncStateMock = vi.hoisted(() => ({ value: 'PREPARED' }))
 const roomSummaryCacheState = vi.hoisted(() => ({
   enabled: false,
   cached: null as RoomSummary[] | null,
@@ -24,11 +26,13 @@ vi.mock('@matrix/index', () => ({
     if (!roomSummaryCacheState.cached) roomSummaryCacheState.cached = roomSummaries.slice()
     return roomSummaryCacheState.cached.slice()
   },
+  getTimeline: getTimelineMock,
   invalidateRoomSummariesCache: () => {
     invalidateRoomSummariesCacheMock()
     roomSummaryCacheState.cached = null
   },
   paginateBack: paginateBackMock,
+  syncState: syncStateMock,
   matrixEvents: {
     on: (event: string, handler: (...args: any[]) => void) => {
       matrixEventsOn(event, handler)
@@ -98,8 +102,11 @@ describe('useConversations', () => {
     matrixEventsOn.mockClear()
     matrixEventsOff.mockClear()
     invalidateRoomSummariesCacheMock.mockClear()
+    getTimelineMock.mockReset()
+    getTimelineMock.mockReturnValue([])
     paginateBackMock.mockReset()
     paginateBackMock.mockResolvedValue(false)
+    syncStateMock.value = 'PREPARED'
     matrixEventHandlers.clear()
     roomSummaryCacheState.enabled = false
     roomSummaryCacheState.cached = null
@@ -535,6 +542,277 @@ describe('useConversations', () => {
     const rows = wrapper.findAll('li')
     expect(rows.map((row) => row.attributes('data-room-id'))).toEqual(['!alice:localhost', '!bob:localhost'])
     expect(rows[0].attributes('data-last-message')).toBe('alice hydrated latest')
+  })
+
+  it('refreshes sidebar previews when pagination reaches the final page after loading history', async () => {
+    paginateBackMock.mockImplementationOnce(async () => {
+      roomSummaries.splice(
+        0,
+        roomSummaries.length,
+        createRoom({
+          roomId: '!final-page:localhost',
+          name: 'Final Page',
+          lastMessage: 'loaded from final page',
+          lastMessageTs: 1200,
+        }),
+      )
+      return false
+    })
+    roomSummaries.push(
+      createRoom({
+        roomId: '!final-page:localhost',
+        name: 'Final Page',
+        lastMessage: undefined,
+        lastMessageTs: undefined,
+      }),
+    )
+
+    const wrapper = mountUseConversationsHarness()
+    await flushPromises()
+    await nextTick()
+
+    expect(paginateBackMock).toHaveBeenCalledWith('!final-page:localhost', 30)
+    expect(wrapper.get('li').attributes('data-last-message')).toBe('loaded from final page')
+  })
+
+  it('waits for Matrix sync readiness before background preloading startup conversations', async () => {
+    vi.useFakeTimers()
+    syncStateMock.value = 'STOPPED'
+    roomSummaries.push(
+      createRoom({
+        roomId: '!not-ready:localhost',
+        name: 'Not Ready',
+        lastMessage: undefined,
+        lastMessageTs: undefined,
+      }),
+    )
+
+    mountUseConversationsHarness()
+    await flushPromises()
+
+    expect(paginateBackMock).not.toHaveBeenCalled()
+
+    syncStateMock.value = 'PREPARED'
+    for (const handler of matrixEventHandlers.get('sync.state') ?? []) handler({ state: 'PREPARED' })
+    await vi.advanceTimersByTimeAsync(90)
+    await flushPromises()
+
+    expect(paginateBackMock).toHaveBeenCalledWith('!not-ready:localhost', 30)
+  })
+
+  it('hydrates blank startup summaries even when the initial sync has no timestamp or unread count', async () => {
+    let resolveHydration!: (loaded: boolean) => void
+    paginateBackMock.mockImplementationOnce(
+      () =>
+        new Promise<boolean>((resolve) => {
+          resolveHydration = resolve
+        }),
+    )
+    roomSummaries.push(
+      createRoom({
+        roomId: '!quiet-history:localhost',
+        name: 'Quiet History',
+        lastMessage: undefined,
+        lastMessageTs: undefined,
+        unreadCount: 0,
+      }),
+    )
+
+    const wrapper = mountUseConversationsHarness()
+    await nextTick()
+
+    expect(paginateBackMock).toHaveBeenCalledWith('!quiet-history:localhost', 30)
+    expect(wrapper.get('li').attributes('data-last-message')).toBeUndefined()
+
+    roomSummaries.splice(
+      0,
+      roomSummaries.length,
+      createRoom({
+        roomId: '!quiet-history:localhost',
+        name: 'Quiet History',
+        lastMessage: 'quiet room history loaded',
+        lastMessageTs: 1200,
+      }),
+    )
+    resolveHydration(true)
+    await flushPromises()
+    await nextTick()
+
+    expect(wrapper.get('li').attributes('data-last-message')).toBe('quiet room history loaded')
+  })
+
+  it('preloads the active room from the conversation startup queue as a fallback', async () => {
+    const store = useChatStore()
+    store.setCurrentRoom('!active-history:localhost')
+    roomSummaries.push(
+      createRoom({
+        roomId: '!active-history:localhost',
+        name: 'Active History',
+        lastMessage: undefined,
+        lastMessageTs: undefined,
+        unreadCount: 0,
+      }),
+    )
+
+    mountUseConversationsHarness()
+    await nextTick()
+
+    expect(paginateBackMock).toHaveBeenCalledWith('!active-history:localhost', 30)
+  })
+
+  it('preloads first history pages for all startup conversations, including the active one', async () => {
+    const pendingHydrations = new Map<string, (loaded: boolean) => void>()
+    paginateBackMock.mockImplementation(
+      (roomId: string) =>
+        new Promise<boolean>((resolve) => {
+          pendingHydrations.set(roomId, resolve)
+        }),
+    )
+    const store = useChatStore()
+    store.setCurrentRoom('!active:localhost')
+    roomSummaries.push(
+      createRoom({ roomId: '!active:localhost', name: 'Active', lastMessage: 'active latest', lastMessageTs: 4000 }),
+      createRoom({ roomId: '!alice:localhost', name: 'Alice', lastMessage: 'alice latest', lastMessageTs: 3000 }),
+      createRoom({ roomId: '!bob:localhost', name: 'Bob', lastMessage: 'bob latest', lastMessageTs: 2000 }),
+    )
+
+    mountUseConversationsHarness()
+    await nextTick()
+
+    expect(paginateBackMock).toHaveBeenCalledTimes(3)
+    expect(paginateBackMock).toHaveBeenCalledWith('!active:localhost', 30)
+    expect(paginateBackMock).toHaveBeenCalledWith('!alice:localhost', 30)
+    expect(paginateBackMock).toHaveBeenCalledWith('!bob:localhost', 30)
+
+    pendingHydrations.get('!active:localhost')?.(true)
+    pendingHydrations.get('!alice:localhost')?.(true)
+    pendingHydrations.get('!bob:localhost')?.(true)
+    await flushPromises()
+  })
+
+  it('preloads beyond an already visible startup preview until server history is exhausted', async () => {
+    getTimelineMock.mockImplementation(() => Array.from({ length: 50 }, (_, index) => ({ id: `$event-${index}` })))
+    paginateBackMock.mockResolvedValueOnce(true).mockResolvedValueOnce(false)
+    roomSummaries.push(
+      createRoom({
+        roomId: '!already-visible:localhost',
+        name: 'Already Visible',
+        lastMessage: 'latest',
+        lastMessageTs: 5000,
+      }),
+    )
+
+    mountUseConversationsHarness()
+    await flushPromises()
+
+    expect(paginateBackMock).toHaveBeenCalledTimes(2)
+    expect(paginateBackMock).toHaveBeenNthCalledWith(1, '!already-visible:localhost', 30)
+    expect(paginateBackMock).toHaveBeenNthCalledWith(2, '!already-visible:localhost', 30)
+  })
+
+  it('continues preloading a startup conversation until server history is exhausted', async () => {
+    let visibleCount = 0
+    getTimelineMock.mockImplementation(() =>
+      Array.from({ length: visibleCount }, (_, index) => ({ id: `$event-${index}` })),
+    )
+    paginateBackMock
+      .mockImplementationOnce(async () => {
+        visibleCount = 10
+        return true
+      })
+      .mockImplementationOnce(async () => {
+        visibleCount = 50
+        return true
+      })
+      .mockResolvedValueOnce(false)
+    roomSummaries.push(
+      createRoom({
+        roomId: '!deep-history:localhost',
+        name: 'Deep History',
+        lastMessage: 'latest',
+        lastMessageTs: 5000,
+      }),
+    )
+
+    mountUseConversationsHarness()
+    await flushPromises()
+
+    expect(paginateBackMock).toHaveBeenCalledTimes(3)
+    expect(paginateBackMock).toHaveBeenNthCalledWith(1, '!deep-history:localhost', 30)
+    expect(paginateBackMock).toHaveBeenNthCalledWith(2, '!deep-history:localhost', 30)
+    expect(paginateBackMock).toHaveBeenNthCalledWith(3, '!deep-history:localhost', 30)
+  })
+
+  it('continues preloading when visible timeline events still do not produce a sidebar preview', async () => {
+    getTimelineMock.mockImplementation(() => Array.from({ length: 50 }, (_, index) => ({ id: `$system-${index}` })))
+    let preloadAttempts = 0
+    paginateBackMock.mockImplementation(async () => {
+      preloadAttempts++
+      if (preloadAttempts === 2) {
+        roomSummaries.splice(
+          0,
+          roomSummaries.length,
+          createRoom({
+            roomId: '!system-heavy:localhost',
+            name: 'System Heavy',
+            lastMessage: 'first real message',
+            lastMessageTs: 5000,
+          }),
+        )
+      }
+      return preloadAttempts < 2
+    })
+    roomSummaries.push(
+      createRoom({
+        roomId: '!system-heavy:localhost',
+        name: 'System Heavy',
+        lastMessage: undefined,
+        lastMessageType: undefined,
+        lastMessageTs: undefined,
+      }),
+    )
+
+    const wrapper = mountUseConversationsHarness()
+    await flushPromises()
+    await nextTick()
+
+    expect(paginateBackMock).toHaveBeenCalledTimes(2)
+    expect(wrapper.get('li').attributes('data-last-message')).toBe('first real message')
+  })
+
+  it('limits background history preloading concurrency and drains queued conversations', async () => {
+    const pendingHydrations = new Map<string, (loaded: boolean) => void>()
+    paginateBackMock.mockImplementation(
+      (roomId: string) =>
+        new Promise<boolean>((resolve) => {
+          pendingHydrations.set(roomId, resolve)
+        }),
+    )
+    roomSummaries.push(
+      createRoom({ roomId: '!room-1:localhost', name: 'Room 1', lastMessage: 'one', lastMessageTs: 5000 }),
+      createRoom({ roomId: '!room-2:localhost', name: 'Room 2', lastMessage: 'two', lastMessageTs: 4000 }),
+      createRoom({ roomId: '!room-3:localhost', name: 'Room 3', lastMessage: 'three', lastMessageTs: 3000 }),
+      createRoom({ roomId: '!room-4:localhost', name: 'Room 4', lastMessage: 'four', lastMessageTs: 2000 }),
+    )
+
+    mountUseConversationsHarness()
+    await nextTick()
+
+    expect(paginateBackMock).toHaveBeenCalledTimes(3)
+    expect(paginateBackMock).toHaveBeenCalledWith('!room-1:localhost', 30)
+    expect(paginateBackMock).toHaveBeenCalledWith('!room-2:localhost', 30)
+    expect(paginateBackMock).toHaveBeenCalledWith('!room-3:localhost', 30)
+
+    pendingHydrations.get('!room-1:localhost')?.(true)
+    await flushPromises()
+
+    expect(paginateBackMock).toHaveBeenCalledTimes(4)
+    expect(paginateBackMock).toHaveBeenCalledWith('!room-4:localhost', 30)
+
+    pendingHydrations.get('!room-2:localhost')?.(true)
+    pendingHydrations.get('!room-3:localhost')?.(true)
+    pendingHydrations.get('!room-4:localhost')?.(true)
+    await flushPromises()
   })
 
   it('restores a temporarily missing known room to its history position instead of appending it', async () => {

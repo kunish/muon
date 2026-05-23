@@ -1,4 +1,7 @@
+import type { DesktopEffect } from '@/shared/lib/effect'
 import { htmlToPlainText, sanitizeMatrixHtml } from '@muon/rich-text'
+import { Effect } from 'effect'
+import { fromPromise, runDesktopEffect } from '@/shared/lib/effect'
 
 export interface MessageClipboardPayload {
   text: string
@@ -23,24 +26,32 @@ export function createMessageClipboardPayload(content: unknown): MessageClipboar
   }
 }
 
-export async function copyMessageContentToClipboard(content: unknown): Promise<void> {
+export function copyMessageContentToClipboard(content: unknown): Promise<void> {
+  return runDesktopEffect(copyMessageContentToClipboardEffect(content))
+}
+
+export function copyMessageContentToClipboardEffect(content: unknown): DesktopEffect<void> {
   const payload = createMessageClipboardPayload(content)
   const clipboard = navigator.clipboard
-  if (payload.html && clipboard?.write && typeof ClipboardItem !== 'undefined') {
-    try {
-      await clipboard.write([
-        new ClipboardItem({
-          'text/plain': new Blob([payload.text], { type: 'text/plain' }),
-          'text/html': new Blob([payload.html], { type: 'text/html' }),
-        }),
-      ])
-      return
-    } catch {
-      // Some Electron/browser contexts expose ClipboardItem but reject rich writes.
+  return Effect.gen(function* () {
+    const html = payload.html
+    if (html && clipboard?.write && typeof ClipboardItem !== 'undefined') {
+      const richWriteSucceeded = yield* fromPromise(() =>
+        clipboard.write([
+          new ClipboardItem({
+            'text/plain': new Blob([payload.text], { type: 'text/plain' }),
+            'text/html': new Blob([html], { type: 'text/html' }),
+          }),
+        ]),
+      ).pipe(
+        Effect.as(true),
+        Effect.catchAll(() => Effect.succeed(false)),
+      )
+      if (richWriteSucceeded) return
     }
-  }
 
-  await clipboard.writeText(payload.text)
+    yield* fromPromise(() => clipboard.writeText(payload.text))
+  })
 }
 
 function getFormattedMessageHtml(content: unknown): string {

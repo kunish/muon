@@ -23,4 +23,10 @@ export default antfu(
     ],
   },
   eslintConfigPrettier,
+  {
+    files: ['pnpm-workspace.yaml'],
+    rules: {
+      'yaml/plain-scalar': 'off',
+    },
+  },
 )

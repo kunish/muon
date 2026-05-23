@@ -1,5 +1,8 @@
+import type { DesktopEffect } from '@/shared/lib/effect'
+import { Effect } from 'effect'
 import { createRouter, createWebHistory } from 'vue-router'
 import { readMatrixSessionFromStore } from '@/matrix/auth'
+import { fromPromise, runDesktopEffect } from '@/shared/lib/effect'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -106,17 +109,20 @@ const router = createRouter({
   ],
 })
 
-async function isAuthenticated(): Promise<boolean> {
-  try {
-    const session = await readMatrixSessionFromStore()
+function isAuthenticatedEffect(): DesktopEffect<boolean> {
+  return Effect.gen(function* () {
+    const session = yield* fromPromise(() => readMatrixSessionFromStore())
     return session !== null
-  } catch {
-    return false
-  }
+  }).pipe(Effect.catchAll(() => Effect.succeed(false)))
 }
 
-router.beforeEach(async (to) => {
-  if (to.meta.requiresAuth && !(await isAuthenticated())) return '/login'
+function isAuthenticated(): Promise<boolean> {
+  return runDesktopEffect(isAuthenticatedEffect())
+}
+
+router.beforeEach((to) => {
+  if (!to.meta.requiresAuth) return undefined
+  return isAuthenticated().then((authenticated) => (authenticated ? undefined : '/login'))
 })
 
 export default router

@@ -1,25 +1,36 @@
 import type { InboxFilterType } from '../types/unifiedInbox'
+import type { DesktopEffect } from '@/shared/lib/effect'
+import { Effect } from 'effect'
 import { defineStore } from 'pinia'
 import { reactive, ref } from 'vue'
+import { fromSync, runDesktopSync } from '@/shared/lib/effect'
 import { INBOX_PROCESSED_STORAGE_KEY } from '../types/unifiedInbox'
 
 function loadProcessedIds(): Set<string> {
-  try {
+  return runDesktopSync(loadProcessedIdsEffect())
+}
+
+function loadProcessedIdsEffect(): DesktopEffect<Set<string>> {
+  return fromSync(() => {
     const raw = localStorage.getItem(INBOX_PROCESSED_STORAGE_KEY)
-    if (!raw) return new Set()
-    const parsed = JSON.parse(raw) as { processedIds?: string[] }
-    return new Set(parsed.processedIds ?? [])
-  } catch {
-    return new Set()
-  }
+    if (!raw) return new Set<string>()
+    const parsed = JSON.parse(raw) as { processedIds?: unknown }
+    return new Set(
+      Array.isArray(parsed.processedIds)
+        ? parsed.processedIds.filter((id): id is string => typeof id === 'string')
+        : [],
+    )
+  }).pipe(Effect.catchAll(() => Effect.succeed(new Set<string>())))
 }
 
 function persistProcessedIds(ids: Set<string>) {
-  try {
-    localStorage.setItem(INBOX_PROCESSED_STORAGE_KEY, JSON.stringify({ processedIds: [...ids] }))
-  } catch {
-    // 忽略持久化异常（如隐私模式）
-  }
+  runDesktopSync(persistProcessedIdsEffect(ids))
+}
+
+function persistProcessedIdsEffect(ids: Set<string>): DesktopEffect<void> {
+  return fromSync(() =>
+    localStorage.setItem(INBOX_PROCESSED_STORAGE_KEY, JSON.stringify({ processedIds: [...ids] })),
+  ).pipe(Effect.catchAll(() => Effect.void))
 }
 
 export const useInboxStore = defineStore('inbox', () => {
@@ -28,13 +39,19 @@ export const useInboxStore = defineStore('inbox', () => {
   const processedItemIds = reactive(new Set<string>())
   const hydrated = ref(false)
 
+  function hydrateProcessedEffect(): DesktopEffect<void> {
+    return fromSync(() => {
+      if (hydrated.value) return
+      hydrated.value = true
+      processedItemIds.clear()
+      for (const id of loadProcessedIds()) {
+        processedItemIds.add(id)
+      }
+    })
+  }
+
   function hydrateProcessed() {
-    if (hydrated.value) return
-    hydrated.value = true
-    processedItemIds.clear()
-    for (const id of loadProcessedIds()) {
-      processedItemIds.add(id)
-    }
+    return runDesktopSync(hydrateProcessedEffect())
   }
 
   function setFilter(next: InboxFilterType) {
@@ -61,31 +78,58 @@ export const useInboxStore = defineStore('inbox', () => {
     return selectedItemIds.has(itemId)
   }
 
+  function markProcessedEffect(itemId: string): DesktopEffect<void> {
+    return fromSync(() => {
+      processedItemIds.add(itemId)
+      persistProcessedIds(processedItemIds)
+    })
+  }
+
   function markProcessed(itemId: string) {
-    processedItemIds.add(itemId)
-    persistProcessedIds(processedItemIds)
+    return runDesktopSync(markProcessedEffect(itemId))
+  }
+
+  function markProcessedBatchEffect(itemIds: string[]): DesktopEffect<void> {
+    return fromSync(() => {
+      for (const id of itemIds) {
+        processedItemIds.add(id)
+      }
+      persistProcessedIds(processedItemIds)
+    })
   }
 
   function markProcessedBatch(itemIds: string[]) {
-    for (const id of itemIds) {
-      processedItemIds.add(id)
-    }
-    persistProcessedIds(processedItemIds)
+    return runDesktopSync(markProcessedBatchEffect(itemIds))
+  }
+
+  function markSelectedProcessedEffect(): DesktopEffect<void> {
+    return fromSync(() => {
+      if (selectedItemIds.size === 0) return
+      for (const id of selectedItemIds) {
+        processedItemIds.add(id)
+      }
+      persistProcessedIds(processedItemIds)
+      selectedItemIds.clear()
+    })
   }
 
   function markSelectedProcessed() {
-    if (selectedItemIds.size === 0) return
-    markProcessedBatch([...selectedItemIds])
-    clearSelection()
+    return runDesktopSync(markSelectedProcessedEffect())
   }
 
   function isProcessed(itemId: string) {
     return processedItemIds.has(itemId)
   }
 
+  function clearProcessedEffect(): DesktopEffect<void> {
+    return fromSync(() => {
+      processedItemIds.clear()
+      persistProcessedIds(processedItemIds)
+    })
+  }
+
   function clearProcessed() {
-    processedItemIds.clear()
-    persistProcessedIds(processedItemIds)
+    return runDesktopSync(clearProcessedEffect())
   }
 
   hydrateProcessed()
@@ -95,6 +139,11 @@ export const useInboxStore = defineStore('inbox', () => {
     selectedItemIds,
     processedItemIds,
     hydrated,
+    hydrateProcessedEffect,
+    markProcessedEffect,
+    markProcessedBatchEffect,
+    markSelectedProcessedEffect,
+    clearProcessedEffect,
     hydrateProcessed,
     setFilter,
     toggleSelection,

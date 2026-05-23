@@ -12,7 +12,10 @@
  *   send click → collect completed uploads → build message → send
  */
 
+import type { DesktopEffect } from '@/shared/lib/effect'
+import { Effect } from 'effect'
 import { uploadMedia } from '@/matrix/media'
+import { fromPromise, fromSync, runDesktopEffect, runDesktopSync } from '@/shared/lib/effect'
 import { computeSha256 } from '@/shared/lib/utils'
 import { canCompress, compressImage } from './imageCompressor'
 
@@ -59,173 +62,257 @@ const hashDedupCache = new Map<string, string>()
 export function createUploadManager(on: UploadManagerEvents) {
   const pendingUploads = new Map<string, PendingUpload>()
 
-  async function stageFile(id: string, file: File): Promise<PendingUpload> {
-    const upload: PendingUpload = {
-      id,
-      file,
-      progress: 0,
-      mxcUrl: null,
-      hash: null,
-      compressed: false,
-      originalSize: file.size,
-      uploadSize: file.size,
-      status: 'pending',
-      uploadFile: file,
-    }
+  function stageFileEffect(id: string, file: File): DesktopEffect<PendingUpload> {
+    return fromSync(() => {
+      const upload: PendingUpload = {
+        id,
+        file,
+        progress: 0,
+        mxcUrl: null,
+        hash: null,
+        compressed: false,
+        originalSize: file.size,
+        uploadSize: file.size,
+        status: 'pending',
+        uploadFile: file,
+      }
 
-    pendingUploads.set(id, upload)
+      pendingUploads.set(id, upload)
 
-    // Start upload immediately — this is the 秒发 key
-    startUpload(upload)
+      // Start upload immediately — this is the 秒发 key
+      void startUpload(upload)
 
-    return upload
+      return upload
+    })
   }
 
-  async function startUpload(upload: PendingUpload) {
-    try {
-      // Step 1: Compute SHA-256 hash for dedup
-      upload.status = 'hashing'
-      on.progress(upload)
+  function stageFile(id: string, file: File): Promise<PendingUpload> {
+    return runDesktopEffect(stageFileEffect(id, file))
+  }
 
-      const hash = await computeSha256(upload.file)
-      upload.hash = hash
+  function startUploadEffect(upload: PendingUpload): DesktopEffect<void> {
+    return Effect.gen(function* () {
+      // Step 1: Compute SHA-256 hash for dedup
+      yield* fromSync(() => {
+        upload.status = 'hashing'
+        on.progress(upload)
+      })
+
+      const hash = yield* fromPromise(() => computeSha256(upload.file))
+      yield* fromSync(() => {
+        upload.hash = hash
+      })
 
       // Check dedup cache
-      const cachedUrl = hashDedupCache.get(hash)
+      const cachedUrl = yield* fromSync(() => hashDedupCache.get(hash))
       if (cachedUrl) {
-        upload.mxcUrl = cachedUrl
-        upload.progress = 100
-        upload.status = 'done'
-        on.complete(upload)
+        yield* fromSync(() => {
+          upload.mxcUrl = cachedUrl
+          upload.progress = 100
+          upload.status = 'done'
+          on.complete(upload)
+        })
         return
       }
 
       // Step 2: Compress images
-      if (canCompress(upload.file)) {
-        upload.status = 'compressing'
-        on.progress(upload)
+      if (yield* fromSync(() => canCompress(upload.file))) {
+        yield* fromSync(() => {
+          upload.status = 'compressing'
+          on.progress(upload)
+        })
 
-        try {
-          const compressed = await compressImage(upload.file, {
+        const compressed = yield* fromPromise(() =>
+          compressImage(upload.file, {
             maxWidth: 1920,
             maxHeight: 1920,
             quality: 0.85,
             targetSizeKB: 300,
+          }),
+        ).pipe(Effect.catchAll(() => Effect.succeed(null)))
+
+        if (compressed) {
+          yield* fromSync(() => {
+            upload.uploadFile = compressed.blob
+            upload.compressed = compressed.compressedSize < compressed.originalSize
+            upload.uploadSize = compressed.compressedSize
+            if (upload.compressed) {
+              upload.width = compressed.width
+              upload.height = compressed.height
+            }
           })
-          upload.uploadFile = compressed.blob
-          upload.compressed = compressed.compressedSize < compressed.originalSize
-          upload.uploadSize = compressed.compressedSize
-          if (upload.compressed) {
-            upload.width = compressed.width
-            upload.height = compressed.height
-          }
-        } catch {
-          upload.uploadFile = upload.file
+        } else {
+          yield* fromSync(() => {
+            upload.uploadFile = upload.file
+          })
         }
       }
 
-      upload.status = 'uploading'
-      upload.progress = 10
-      on.progress(upload)
+      yield* fromSync(() => {
+        upload.status = 'uploading'
+        upload.progress = 10
+        on.progress(upload)
+      })
 
-      const mxcUrl = await uploadMedia(upload.uploadFile)
+      const mxcUrl = yield* fromPromise(() => uploadMedia(upload.uploadFile))
 
-      upload.mxcUrl = mxcUrl
-      upload.progress = 100
-      upload.status = 'done'
+      yield* fromSync(() => {
+        upload.mxcUrl = mxcUrl
+        upload.progress = 100
+        upload.status = 'done'
 
-      hashDedupCache.set(hash, mxcUrl)
+        hashDedupCache.set(hash, mxcUrl)
 
-      on.complete(upload)
-    } catch (err) {
-      upload.status = 'error'
-      upload.error = err instanceof Error ? err.message : 'Upload failed'
-      on.error(upload)
-    }
+        on.complete(upload)
+      })
+    }).pipe(
+      // Keep the manager resilient: failed uploads update state instead of rejecting background work.
+      Effect.catchAll((err) =>
+        fromSync(() => {
+          upload.status = 'error'
+          upload.error = err instanceof Error ? err.message : 'Upload failed'
+          on.error(upload)
+        }),
+      ),
+    )
+  }
+
+  function startUpload(upload: PendingUpload): Promise<void> {
+    return runDesktopEffect(startUploadEffect(upload))
+  }
+
+  function getUploadEffect(id: string): DesktopEffect<PendingUpload | undefined> {
+    return fromSync(() => pendingUploads.get(id))
   }
 
   function getUpload(id: string): PendingUpload | undefined {
-    return pendingUploads.get(id)
+    return runDesktopSync(getUploadEffect(id))
   }
 
   /** Get all completed uploads for media IDs in the HTML */
+  function collectCompletedEffect(ids: string[]): DesktopEffect<PendingUpload[]> {
+    return fromSync(() =>
+      ids
+        .map((id) => pendingUploads.get(id))
+        .filter((u): u is PendingUpload => !!u && u.status === 'done' && !!u.mxcUrl),
+    )
+  }
+
   function collectCompleted(ids: string[]): PendingUpload[] {
-    return ids
-      .map((id) => pendingUploads.get(id))
-      .filter((u): u is PendingUpload => !!u && u.status === 'done' && !!u.mxcUrl)
+    return runDesktopSync(collectCompletedEffect(ids))
   }
 
   /** Check if all specified IDs are done uploading */
+  function allDoneEffect(ids: string[]): DesktopEffect<boolean> {
+    return fromSync(() =>
+      ids.every((id) => {
+        const u = pendingUploads.get(id)
+        return u && u.status === 'done' && !!u.mxcUrl
+      }),
+    )
+  }
+
   function allDone(ids: string[]): boolean {
-    return ids.every((id) => {
-      const u = pendingUploads.get(id)
-      return u && u.status === 'done' && !!u.mxcUrl
-    })
+    return runDesktopSync(allDoneEffect(ids))
   }
 
   /** Wait for all specified IDs to complete */
-  async function waitForAll(ids: string[]): Promise<PendingUpload[]> {
-    const remaining = ids.filter((id) => {
-      const u = pendingUploads.get(id)
-      return u && u.status !== 'done' && u.status !== 'error'
-    })
-
-    if (remaining.length === 0) return collectCompleted(ids)
-
-    return new Promise((resolve) => {
-      const check = () => {
-        if (allDone(ids)) {
-          cleanup()
-          resolve(collectCompleted(ids))
-          return
-        }
-
-        const allFinished = ids.every((id) => {
+  function waitForAllEffect(ids: string[]): DesktopEffect<PendingUpload[]> {
+    return Effect.gen(function* () {
+      const remaining = yield* fromSync(() =>
+        ids.filter((id) => {
           const u = pendingUploads.get(id)
-          return u && (u.status === 'done' || u.status === 'error')
-        })
+          return u && u.status !== 'done' && u.status !== 'error'
+        }),
+      )
 
-        if (allFinished) {
-          cleanup()
-          resolve(collectCompleted(ids))
-        }
-      }
+      if (remaining.length === 0) return yield* collectCompletedEffect(ids)
 
-      const onDone = () => check()
-      const originalComplete = on.complete
-      const originalError = on.error
+      return yield* fromPromise(
+        () =>
+          new Promise<PendingUpload[]>((resolve) => {
+            const check = () => {
+              if (allDone(ids)) {
+                cleanup()
+                resolve(collectCompleted(ids))
+                return
+              }
 
-      on.complete = (upload) => {
-        originalComplete(upload)
-        onDone()
-      }
-      on.error = (upload) => {
-        originalError(upload)
-        onDone()
-      }
+              const allFinished = ids.every((id) => {
+                const u = pendingUploads.get(id)
+                return u && (u.status === 'done' || u.status === 'error')
+              })
 
-      function cleanup() {
-        on.complete = originalComplete
-        on.error = originalError
-      }
+              if (allFinished) {
+                cleanup()
+                resolve(collectCompleted(ids))
+              }
+            }
 
-      check()
+            const onDone = () => check()
+            const originalComplete = on.complete
+            const originalError = on.error
+
+            on.complete = (upload) => {
+              originalComplete(upload)
+              onDone()
+            }
+            on.error = (upload) => {
+              originalError(upload)
+              onDone()
+            }
+
+            function cleanup() {
+              on.complete = originalComplete
+              on.error = originalError
+            }
+
+            check()
+          }),
+      )
+    })
+  }
+
+  function waitForAll(ids: string[]): Promise<PendingUpload[]> {
+    return runDesktopEffect(waitForAllEffect(ids))
+  }
+
+  function removeUploadEffect(id: string): DesktopEffect<void> {
+    return fromSync(() => {
+      pendingUploads.delete(id)
     })
   }
 
   function removeUpload(id: string) {
-    pendingUploads.delete(id)
+    runDesktopSync(removeUploadEffect(id))
+  }
+
+  function getAllEffect(): DesktopEffect<PendingUpload[]> {
+    return fromSync(() => [...pendingUploads.values()])
   }
 
   function getAll(): PendingUpload[] {
-    return [...pendingUploads.values()]
+    return runDesktopSync(getAllEffect())
+  }
+
+  function clearEffect(): DesktopEffect<void> {
+    return fromSync(() => pendingUploads.clear())
   }
 
   function clear() {
-    pendingUploads.clear()
+    runDesktopSync(clearEffect())
   }
 
   return {
+    stageFileEffect,
+    startUploadEffect,
+    getUploadEffect,
+    collectCompletedEffect,
+    allDoneEffect,
+    waitForAllEffect,
+    removeUploadEffect,
+    getAllEffect,
+    clearEffect,
     stageFile,
     getUpload,
     collectCompleted,

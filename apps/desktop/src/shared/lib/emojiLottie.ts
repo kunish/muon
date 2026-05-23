@@ -5,6 +5,10 @@
  * codepoints 为小写十六进制，多码点用下划线连接
  */
 
+import type { DesktopEffect } from './effect'
+import { Effect } from 'effect'
+import { fromPromise, fromSync, runDesktopEffect, runDesktopSync } from './effect'
+
 const CDN_BASE = 'https://fonts.gstatic.com/s/e/notoemoji/latest'
 
 /** 将单个 emoji 字符转为 codepoint 路径段，如 ❤️ → "2764_fe0f" */
@@ -26,41 +30,51 @@ function getEmojiLottieUrl(emoji: string): string {
 }
 
 /** 拆分 emoji 字符串为单个 emoji 数组 */
+export function splitEmojisEffect(text: string): DesktopEffect<string[]> {
+  return fromSync(() => {
+    const IntlAny = Intl as any
+    if (IntlAny.Segmenter) {
+      const segmenter = new IntlAny.Segmenter('en', { granularity: 'grapheme' })
+      return Array.from(segmenter.segment(text.trim()), (s: { segment: string }) => s.segment)
+    }
+    return [text.trim()]
+  })
+}
+
 export function splitEmojis(text: string): string[] {
-  const IntlAny = Intl as any
-  if (IntlAny.Segmenter) {
-    const segmenter = new IntlAny.Segmenter('en', { granularity: 'grapheme' })
-    return Array.from(segmenter.segment(text.trim()), (s: { segment: string }) => s.segment)
-  }
-  return [text.trim()]
+  return runDesktopSync(splitEmojisEffect(text))
 }
 
 /** Lottie JSON 缓存，避免重复请求 */
 const lottieCache = new Map<string, any>()
 const pendingFetches = new Map<string, Promise<any>>()
 
-/** 获取 emoji 的 Lottie JSON 数据，带缓存和去重 */
-export async function fetchEmojiLottie(emoji: string): Promise<any | null> {
+function fetchEmojiLottieRequestEffect(url: string): DesktopEffect<any | null> {
+  return Effect.gen(function* () {
+    const res = yield* fromPromise(() => fetch(url))
+    if (!res.ok) return null
+    const data = yield* fromPromise(() => res.json())
+    if (data) yield* fromSync(() => lottieCache.set(url, data))
+    return data
+  }).pipe(
+    Effect.catchAll(() => Effect.succeed(null)),
+    Effect.ensuring(Effect.sync(() => pendingFetches.delete(url))),
+  )
+}
+
+export function fetchEmojiLottieEffect(emoji: string): DesktopEffect<any | null> {
   const url = getEmojiLottieUrl(emoji)
 
-  if (lottieCache.has(url)) return lottieCache.get(url)
-  if (pendingFetches.has(url)) return pendingFetches.get(url)
+  if (lottieCache.has(url)) return Effect.succeed(lottieCache.get(url))
+  const pending = pendingFetches.get(url)
+  if (pending) return fromPromise(() => pending)
 
-  const promise = fetch(url)
-    .then((res) => {
-      if (!res.ok) return null
-      return res.json()
-    })
-    .then((data) => {
-      if (data) lottieCache.set(url, data)
-      pendingFetches.delete(url)
-      return data
-    })
-    .catch(() => {
-      pendingFetches.delete(url)
-      return null
-    })
+  const promise = runDesktopEffect(fetchEmojiLottieRequestEffect(url))
 
   pendingFetches.set(url, promise)
-  return promise
+  return fromPromise(() => promise)
+}
+
+export function fetchEmojiLottie(emoji: string): Promise<any | null> {
+  return runDesktopEffect(fetchEmojiLottieEffect(emoji))
 }

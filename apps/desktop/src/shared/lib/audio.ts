@@ -1,3 +1,7 @@
+import type { DesktopEffect } from './effect'
+import { Effect } from 'effect'
+import { fromSync, runDesktopSync } from './effect'
+
 let audioCtx: AudioContext | null = null
 
 function getAudioContext(): AudioContext {
@@ -9,7 +13,11 @@ function getAudioContext(): AudioContext {
 
 /** 播放消息通知提示音（合成音，无需音频文件） */
 export function playNotificationSound() {
-  try {
+  runDesktopSync(playNotificationSoundEffect())
+}
+
+export function playNotificationSoundEffect(): DesktopEffect<void> {
+  return fromSync(() => {
     const ctx = getAudioContext()
     const oscillator = ctx.createOscillator()
     const gainNode = ctx.createGain()
@@ -27,7 +35,5 @@ export function playNotificationSound() {
 
     oscillator.start(ctx.currentTime)
     oscillator.stop(ctx.currentTime + 0.2)
-  } catch {
-    // 静默失败，不影响主流程
-  }
+  }).pipe(Effect.catchAll(() => Effect.succeed(undefined)))
 }

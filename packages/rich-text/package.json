@@ -16,18 +16,18 @@
     "build": "vue-tsc --noEmit --project tsconfig.json"
   },
   "dependencies": {
-    "@tiptap/core": "^3.22.5",
-    "@tiptap/extension-link": "^3.22.5",
-    "@tiptap/extension-mention": "^3.22.5",
-    "@tiptap/extension-placeholder": "^3.22.5",
-    "@tiptap/extension-underline": "^3.22.5",
-    "@tiptap/starter-kit": "^3.22.5",
-    "@tiptap/vue-3": "^3.22.5",
-    "dompurify": "^3.4.1",
-    "marked": "^18.0.2",
-    "vue": "^3.5.33"
+    "@tiptap/core": "catalog:",
+    "@tiptap/extension-link": "catalog:",
+    "@tiptap/extension-mention": "catalog:",
+    "@tiptap/extension-placeholder": "catalog:",
+    "@tiptap/extension-underline": "catalog:",
+    "@tiptap/starter-kit": "catalog:",
+    "@tiptap/vue-3": "catalog:",
+    "dompurify": "catalog:",
+    "marked": "catalog:",
+    "vue": "catalog:"
   },
   "devDependencies": {
-    "vue-tsc": "^3.2.7"
+    "vue-tsc": "catalog:"
   }
 }

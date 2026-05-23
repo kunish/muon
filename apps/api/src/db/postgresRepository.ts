@@ -18,7 +18,9 @@ import type {
 import { randomUUID } from 'node:crypto'
 import { readdir, readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
+import { Effect } from 'effect'
 import { Pool } from 'pg'
+import { fromPromise, runApiEffect } from '../effect'
 
 function nowIso(): string {
   return new Date().toISOString()
@@ -132,294 +134,310 @@ export interface MigrationFile {
   sql: string
 }
 
-export async function loadMigrationFiles(dirUrl: URL): Promise<MigrationFile[]> {
-  const dirPath = fileURLToPath(dirUrl)
-  const entries = await readdir(dirPath)
-  const sqlFiles = entries.filter((entry) => entry.endsWith('.sql')).sort()
-  return Promise.all(
-    sqlFiles.map(async (name) => {
-      const sql = await readFile(new URL(name, dirUrl), 'utf8')
-      return { name, sql }
-    }),
-  )
+export function loadMigrationFilesEffect(dirUrl: URL) {
+  return Effect.gen(function* () {
+    const dirPath = fileURLToPath(dirUrl)
+    const entries = yield* fromPromise(() => readdir(dirPath))
+    const sqlFiles = entries.filter((entry) => entry.endsWith('.sql')).sort()
+    return yield* fromPromise(() =>
+      Promise.all(
+        sqlFiles.map((name) =>
+          readFile(new URL(name, dirUrl), 'utf8').then((sql) => ({
+            name,
+            sql,
+          })),
+        ),
+      ),
+    )
+  })
 }
 
-export async function migratePostgres(pool: Pool): Promise<void> {
-  const migrations = await loadMigrationFiles(new URL('./migrations/', import.meta.url))
-  for (const migration of migrations) await pool.query(migration.sql)
+export function loadMigrationFiles(dirUrl: URL): Promise<MigrationFile[]> {
+  return runApiEffect(loadMigrationFilesEffect(dirUrl))
 }
 
-export async function createPostgresEnterpriseRepository(databaseUrl: string): Promise<EnterpriseRepository> {
-  const pool = new Pool({ connectionString: databaseUrl })
-  await migratePostgres(pool)
+export function migratePostgresEffect(pool: Pool) {
+  return Effect.gen(function* () {
+    const migrations = yield* loadMigrationFilesEffect(new URL('./migrations/', import.meta.url))
+    for (const migration of migrations) yield* fromPromise(() => pool.query(migration.sql))
+  })
+}
 
-  return {
-    adminSessions: [],
-    auditLogs: [],
-    authorizationCodes: [],
-    deviceSessions: [],
-    matrixAccounts: [],
-    organizations: [],
-    users: [],
+export function migratePostgres(pool: Pool): Promise<void> {
+  return runApiEffect(migratePostgresEffect(pool))
+}
 
-    async createAdminSession(input: CreateAdminSessionInput) {
-      const createdAt = nowIso()
-      const result = await pool.query(
-        `INSERT INTO admin_sessions
+export function createPostgresEnterpriseRepositoryEffect(databaseUrl: string) {
+  return Effect.gen(function* () {
+    const pool = new Pool({ connectionString: databaseUrl })
+    yield* migratePostgresEffect(pool)
+    const query = (text: string, values?: unknown[]) => runApiEffect(fromPromise(() => pool.query(text, values)))
+
+    return {
+      adminSessions: [],
+      auditLogs: [],
+      authorizationCodes: [],
+      deviceSessions: [],
+      matrixAccounts: [],
+      organizations: [],
+      users: [],
+
+      createAdminSession(input: CreateAdminSessionInput) {
+        const createdAt = nowIso()
+        return query(
+          `INSERT INTO admin_sessions
            (id, organization_id, user_id, access_token_hash, refresh_token_hash, expires_at, revoked_at, created_at, last_seen_at)
          VALUES ($1, $2, $3, $4, $5, $6, NULL, $7, $7)
          RETURNING *`,
-        [
-          randomUUID(),
-          input.organizationId,
-          input.userId,
-          input.accessTokenHash,
-          input.refreshTokenHash,
-          input.expiresAt,
-          createdAt,
-        ],
-      )
-      return adminSessionFromRow(result.rows[0])
-    },
+          [
+            randomUUID(),
+            input.organizationId,
+            input.userId,
+            input.accessTokenHash,
+            input.refreshTokenHash,
+            input.expiresAt,
+            createdAt,
+          ],
+        ).then((result) => adminSessionFromRow(result.rows[0]))
+      },
 
-    async appendAuditLog(input: AppendAuditLogInput) {
-      const result = await pool.query(
-        `INSERT INTO audit_logs (id, organization_id, actor_user_id, action, target_type, target_id, metadata, ip_address, user_agent, created_at)
+      appendAuditLog(input: AppendAuditLogInput) {
+        return query(
+          `INSERT INTO audit_logs (id, organization_id, actor_user_id, action, target_type, target_id, metadata, ip_address, user_agent, created_at)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
          RETURNING *`,
-        [
-          randomUUID(),
-          input.organizationId,
-          input.actorUserId,
-          input.action,
-          input.targetType,
-          input.targetId ?? null,
-          input.metadata ?? {},
-          input.ipAddress ?? null,
-          input.userAgent ?? null,
-          nowIso(),
-        ],
-      )
-      return auditLogFromRow(result.rows[0])
-    },
+          [
+            randomUUID(),
+            input.organizationId,
+            input.actorUserId,
+            input.action,
+            input.targetType,
+            input.targetId ?? null,
+            input.metadata ?? {},
+            input.ipAddress ?? null,
+            input.userAgent ?? null,
+            nowIso(),
+          ],
+        ).then((result) => auditLogFromRow(result.rows[0]))
+      },
 
-    async createAuthorizationCode(input: CreateAuthorizationCodeInput) {
-      const result = await pool.query(
-        `INSERT INTO oauth_authorization_codes (id, code_hash, organization_id, user_id, client_id, redirect_uri, code_challenge, code_challenge_method, matrix_session, expires_at, used_at, created_at)
+      createAuthorizationCode(input: CreateAuthorizationCodeInput) {
+        return query(
+          `INSERT INTO oauth_authorization_codes (id, code_hash, organization_id, user_id, client_id, redirect_uri, code_challenge, code_challenge_method, matrix_session, expires_at, used_at, created_at)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NULL, $11)
          RETURNING *`,
-        [
-          randomUUID(),
-          input.codeHash,
-          input.organizationId,
-          input.userId,
-          input.clientId,
-          input.redirectUri,
-          input.codeChallenge,
-          input.codeChallengeMethod,
-          input.matrixSession,
-          input.expiresAt,
-          nowIso(),
-        ],
-      )
-      return authorizationCodeFromRow(result.rows[0])
-    },
+          [
+            randomUUID(),
+            input.codeHash,
+            input.organizationId,
+            input.userId,
+            input.clientId,
+            input.redirectUri,
+            input.codeChallenge,
+            input.codeChallengeMethod,
+            input.matrixSession,
+            input.expiresAt,
+            nowIso(),
+          ],
+        ).then((result) => authorizationCodeFromRow(result.rows[0]))
+      },
 
-    async createDeviceSession(input: CreateDeviceSessionInput) {
-      const result = await pool.query(
-        `INSERT INTO device_sessions (id, organization_id, user_id, device_name, access_token_hash, refresh_token_hash, expires_at, revoked_at, created_at)
+      createDeviceSession(input: CreateDeviceSessionInput) {
+        return query(
+          `INSERT INTO device_sessions (id, organization_id, user_id, device_name, access_token_hash, refresh_token_hash, expires_at, revoked_at, created_at)
          VALUES ($1, $2, $3, $4, $5, $6, $7, NULL, $8)
          RETURNING *`,
-        [
-          randomUUID(),
-          input.organizationId,
-          input.userId,
-          input.deviceName,
-          input.accessTokenHash,
-          input.refreshTokenHash,
-          input.expiresAt,
-          nowIso(),
-        ],
-      )
-      return deviceSessionFromRow(result.rows[0])
-    },
+          [
+            randomUUID(),
+            input.organizationId,
+            input.userId,
+            input.deviceName,
+            input.accessTokenHash,
+            input.refreshTokenHash,
+            input.expiresAt,
+            nowIso(),
+          ],
+        ).then((result) => deviceSessionFromRow(result.rows[0]))
+      },
 
-    async createOrganization(input: CreateOrganizationInput) {
-      const createdAt = nowIso()
-      const result = await pool.query(
-        `INSERT INTO organizations (id, slug, name, status, created_at, updated_at)
+      createOrganization(input: CreateOrganizationInput) {
+        const createdAt = nowIso()
+        return query(
+          `INSERT INTO organizations (id, slug, name, status, created_at, updated_at)
          VALUES ($1, $2, $3, $4, $5, $5)
          RETURNING *`,
-        [randomUUID(), input.slug, input.name, input.status ?? 'active', createdAt],
-      )
-      return organizationFromRow(result.rows[0])
-    },
+          [randomUUID(), input.slug, input.name, input.status ?? 'active', createdAt],
+        ).then((result) => organizationFromRow(result.rows[0]))
+      },
 
-    async createUser(input: CreateUserInput) {
-      const createdAt = nowIso()
-      const result = await pool.query(
-        `INSERT INTO users (id, organization_id, username, email, display_name, password_hash, status, must_change_password, roles, created_at, updated_at)
+      createUser(input: CreateUserInput) {
+        const createdAt = nowIso()
+        return query(
+          `INSERT INTO users (id, organization_id, username, email, display_name, password_hash, status, must_change_password, roles, created_at, updated_at)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $10)
          RETURNING *`,
-        [
-          randomUUID(),
-          input.organizationId,
-          input.username,
-          input.email,
-          input.displayName,
-          input.passwordHash,
-          input.status,
-          input.mustChangePassword,
-          input.roles,
-          createdAt,
-        ],
-      )
-      return userFromRow(result.rows[0])
-    },
+          [
+            randomUUID(),
+            input.organizationId,
+            input.username,
+            input.email,
+            input.displayName,
+            input.passwordHash,
+            input.status,
+            input.mustChangePassword,
+            input.roles,
+            createdAt,
+          ],
+        ).then((result) => userFromRow(result.rows[0]))
+      },
 
-    async findActiveDeviceSessionsByUser(organizationId: string, userId: string) {
-      const result = await pool.query(
-        `SELECT * FROM device_sessions
+      findActiveDeviceSessionsByUser(organizationId: string, userId: string) {
+        return query(
+          `SELECT * FROM device_sessions
           WHERE organization_id = $1
             AND user_id = $2
             AND revoked_at IS NULL
             AND expires_at > NOW()
           ORDER BY created_at DESC`,
-        [organizationId, userId],
-      )
-      return result.rows.map(deviceSessionFromRow)
-    },
+          [organizationId, userId],
+        ).then((result) => result.rows.map(deviceSessionFromRow))
+      },
 
-    async findAdminSessionByTokenHash(accessTokenHash: string) {
-      const result = await pool.query('SELECT * FROM admin_sessions WHERE access_token_hash = $1', [accessTokenHash])
-      return result.rows[0] ? adminSessionFromRow(result.rows[0]) : null
-    },
+      findAdminSessionByTokenHash(accessTokenHash: string) {
+        return query('SELECT * FROM admin_sessions WHERE access_token_hash = $1', [accessTokenHash]).then((result) =>
+          result.rows[0] ? adminSessionFromRow(result.rows[0]) : null,
+        )
+      },
 
-    async findAuthorizationCodeByHash(codeHash: string) {
-      const result = await pool.query('SELECT * FROM oauth_authorization_codes WHERE code_hash = $1', [codeHash])
-      return result.rows[0] ? authorizationCodeFromRow(result.rows[0]) : null
-    },
+      findAuthorizationCodeByHash(codeHash: string) {
+        return query('SELECT * FROM oauth_authorization_codes WHERE code_hash = $1', [codeHash]).then((result) =>
+          result.rows[0] ? authorizationCodeFromRow(result.rows[0]) : null,
+        )
+      },
 
-    async findDeviceSessionById(id: string) {
-      const result = await pool.query('SELECT * FROM device_sessions WHERE id = $1', [id])
-      return result.rows[0] ? deviceSessionFromRow(result.rows[0]) : null
-    },
+      findDeviceSessionById(id: string) {
+        return query('SELECT * FROM device_sessions WHERE id = $1', [id]).then((result) =>
+          result.rows[0] ? deviceSessionFromRow(result.rows[0]) : null,
+        )
+      },
 
-    async findDeviceSessionByRefreshTokenHash(refreshTokenHash: string) {
-      const result = await pool.query('SELECT * FROM device_sessions WHERE refresh_token_hash = $1', [refreshTokenHash])
-      return result.rows[0] ? deviceSessionFromRow(result.rows[0]) : null
-    },
+      findDeviceSessionByRefreshTokenHash(refreshTokenHash: string) {
+        return query('SELECT * FROM device_sessions WHERE refresh_token_hash = $1', [refreshTokenHash]).then(
+          (result) => (result.rows[0] ? deviceSessionFromRow(result.rows[0]) : null),
+        )
+      },
 
-    async findMatrixAccount(organizationId: string, userId: string) {
-      const result = await pool.query('SELECT * FROM matrix_accounts WHERE organization_id = $1 AND user_id = $2', [
-        organizationId,
-        userId,
-      ])
-      return result.rows[0] ? matrixAccountFromRow(result.rows[0]) : null
-    },
+      findMatrixAccount(organizationId: string, userId: string) {
+        return query('SELECT * FROM matrix_accounts WHERE organization_id = $1 AND user_id = $2', [
+          organizationId,
+          userId,
+        ]).then((result) => (result.rows[0] ? matrixAccountFromRow(result.rows[0]) : null))
+      },
 
-    async findOrganizationBySlug(slug: string) {
-      const result = await pool.query('SELECT * FROM organizations WHERE slug = $1', [slug])
-      return result.rows[0] ? organizationFromRow(result.rows[0]) : null
-    },
+      findOrganizationBySlug(slug: string) {
+        return query('SELECT * FROM organizations WHERE slug = $1', [slug]).then((result) =>
+          result.rows[0] ? organizationFromRow(result.rows[0]) : null,
+        )
+      },
 
-    async findUserById(organizationId: string, userId: string) {
-      const result = await pool.query('SELECT * FROM users WHERE organization_id = $1 AND id = $2', [
-        organizationId,
-        userId,
-      ])
-      return result.rows[0] ? userFromRow(result.rows[0]) : null
-    },
+      findUserById(organizationId: string, userId: string) {
+        return query('SELECT * FROM users WHERE organization_id = $1 AND id = $2', [organizationId, userId]).then(
+          (result) => (result.rows[0] ? userFromRow(result.rows[0]) : null),
+        )
+      },
 
-    async findUserByUsername(organizationId: string, username: string) {
-      const result = await pool.query('SELECT * FROM users WHERE organization_id = $1 AND username = $2', [
-        organizationId,
-        username,
-      ])
-      return result.rows[0] ? userFromRow(result.rows[0]) : null
-    },
+      findUserByUsername(organizationId: string, username: string) {
+        return query('SELECT * FROM users WHERE organization_id = $1 AND username = $2', [
+          organizationId,
+          username,
+        ]).then((result) => (result.rows[0] ? userFromRow(result.rows[0]) : null))
+      },
 
-    getPublicUser(user) {
-      const { passwordHash: _passwordHash, ...safeUser } = user
-      return safeUser
-    },
+      getPublicUser(user) {
+        const { passwordHash: _passwordHash, ...safeUser } = user
+        return safeUser
+      },
 
-    async isInstalled() {
-      const result = await pool.query('SELECT EXISTS (SELECT 1 FROM organizations) AS installed')
-      return Boolean(result.rows[0]?.installed)
-    },
+      isInstalled() {
+        return query('SELECT EXISTS (SELECT 1 FROM organizations) AS installed').then((result) =>
+          Boolean(result.rows[0]?.installed),
+        )
+      },
 
-    async listAuditLogsByOrganization(organizationId: string) {
-      const result = await pool.query('SELECT * FROM audit_logs WHERE organization_id = $1 ORDER BY created_at DESC', [
-        organizationId,
-      ])
-      return result.rows.map(auditLogFromRow)
-    },
+      listAuditLogsByOrganization(organizationId: string) {
+        return query('SELECT * FROM audit_logs WHERE organization_id = $1 ORDER BY created_at DESC', [
+          organizationId,
+        ]).then((result) => result.rows.map(auditLogFromRow))
+      },
 
-    async listOrganizations() {
-      const result = await pool.query('SELECT * FROM organizations ORDER BY created_at ASC')
-      return result.rows.map(organizationFromRow)
-    },
+      listOrganizations() {
+        return query('SELECT * FROM organizations ORDER BY created_at ASC').then((result) =>
+          result.rows.map(organizationFromRow),
+        )
+      },
 
-    async listUsersByOrganization(organizationId: string) {
-      const result = await pool.query('SELECT * FROM users WHERE organization_id = $1 ORDER BY created_at ASC', [
-        organizationId,
-      ])
-      return result.rows.map(userFromRow)
-    },
+      listUsersByOrganization(organizationId: string) {
+        return query('SELECT * FROM users WHERE organization_id = $1 ORDER BY created_at ASC', [organizationId]).then(
+          (result) => result.rows.map(userFromRow),
+        )
+      },
 
-    async markAuthorizationCodeUsed(id: string) {
-      const result = await pool.query('UPDATE oauth_authorization_codes SET used_at = $2 WHERE id = $1 RETURNING *', [
-        id,
-        nowIso(),
-      ])
-      if (!result.rows[0]) throw new Error('Authorization code not found')
-      return authorizationCodeFromRow(result.rows[0])
-    },
+      markAuthorizationCodeUsed(id: string) {
+        return query('UPDATE oauth_authorization_codes SET used_at = $2 WHERE id = $1 RETURNING *', [
+          id,
+          nowIso(),
+        ]).then((result) => {
+          if (!result.rows[0]) throw new Error('Authorization code not found')
+          return authorizationCodeFromRow(result.rows[0])
+        })
+      },
 
-    async revokeAdminSession(id: string) {
-      await pool.query('UPDATE admin_sessions SET revoked_at = COALESCE(revoked_at, $2) WHERE id = $1', [id, nowIso()])
-    },
+      revokeAdminSession(id: string) {
+        return query('UPDATE admin_sessions SET revoked_at = COALESCE(revoked_at, $2) WHERE id = $1', [
+          id,
+          nowIso(),
+        ]).then(() => undefined)
+      },
 
-    async revokeDeviceSession(id: string) {
-      const result = await pool.query(
-        'UPDATE device_sessions SET revoked_at = COALESCE(revoked_at, $2) WHERE id = $1 AND revoked_at IS NULL RETURNING id',
-        [id, nowIso()],
-      )
-      return (result.rowCount ?? 0) > 0
-    },
+      revokeDeviceSession(id: string) {
+        return query(
+          'UPDATE device_sessions SET revoked_at = COALESCE(revoked_at, $2) WHERE id = $1 AND revoked_at IS NULL RETURNING id',
+          [id, nowIso()],
+        ).then((result) => (result.rowCount ?? 0) > 0)
+      },
 
-    async revokeAllAdminSessionsForUserExcept(organizationId: string, userId: string, exceptSessionId: string) {
-      await pool.query(
-        `UPDATE admin_sessions
+      revokeAllAdminSessionsForUserExcept(organizationId: string, userId: string, exceptSessionId: string) {
+        return query(
+          `UPDATE admin_sessions
             SET revoked_at = $4
           WHERE organization_id = $1
             AND user_id = $2
             AND id <> $3
             AND revoked_at IS NULL`,
-        [organizationId, userId, exceptSessionId, nowIso()],
-      )
-    },
+          [organizationId, userId, exceptSessionId, nowIso()],
+        ).then(() => undefined)
+      },
 
-    async resetUserPassword(organizationId: string, userId: string, input: ResetUserPasswordInput) {
-      const result = await pool.query(
-        `UPDATE users
+      resetUserPassword(organizationId: string, userId: string, input: ResetUserPasswordInput) {
+        return query(
+          `UPDATE users
          SET password_hash = $3, must_change_password = $4, updated_at = $5
          WHERE organization_id = $1 AND id = $2
          RETURNING *`,
-        [organizationId, userId, input.passwordHash, input.mustChangePassword, nowIso()],
-      )
-      if (!result.rows[0]) throw new Error('User not found')
-      return userFromRow(result.rows[0])
-    },
+          [organizationId, userId, input.passwordHash, input.mustChangePassword, nowIso()],
+        ).then((result) => {
+          if (!result.rows[0]) throw new Error('User not found')
+          return userFromRow(result.rows[0])
+        })
+      },
 
-    async touchAdminSession(id: string) {
-      await pool.query('UPDATE admin_sessions SET last_seen_at = $2 WHERE id = $1', [id, nowIso()])
-    },
+      touchAdminSession(id: string) {
+        return query('UPDATE admin_sessions SET last_seen_at = $2 WHERE id = $1', [id, nowIso()]).then(() => undefined)
+      },
 
-    async updateUser(organizationId: string, userId: string, input: UpdateUserInput) {
-      const result = await pool.query(
-        `UPDATE users
+      updateUser(organizationId: string, userId: string, input: UpdateUserInput) {
+        return query(
+          `UPDATE users
          SET username = COALESCE($3, username),
            email = COALESCE($4, email),
            display_name = COALESCE($5, display_name),
@@ -428,24 +446,25 @@ export async function createPostgresEnterpriseRepository(databaseUrl: string): P
            updated_at = $8
          WHERE organization_id = $1 AND id = $2
          RETURNING *`,
-        [
-          organizationId,
-          userId,
-          input.username ?? null,
-          input.email ?? null,
-          input.displayName ?? null,
-          input.status ?? null,
-          input.roles ?? null,
-          nowIso(),
-        ],
-      )
-      if (!result.rows[0]) throw new Error('User not found')
-      return userFromRow(result.rows[0])
-    },
+          [
+            organizationId,
+            userId,
+            input.username ?? null,
+            input.email ?? null,
+            input.displayName ?? null,
+            input.status ?? null,
+            input.roles ?? null,
+            nowIso(),
+          ],
+        ).then((result) => {
+          if (!result.rows[0]) throw new Error('User not found')
+          return userFromRow(result.rows[0])
+        })
+      },
 
-    async upsertMatrixAccount(input) {
-      const result = await pool.query(
-        `INSERT INTO matrix_accounts (organization_id, user_id, matrix_user_id, matrix_device_id, access_token, provisioning_status, last_provisioned_at)
+      upsertMatrixAccount(input) {
+        return query(
+          `INSERT INTO matrix_accounts (organization_id, user_id, matrix_user_id, matrix_device_id, access_token, provisioning_status, last_provisioned_at)
          VALUES ($1, $2, $3, $4, $5, 'active', $6)
          ON CONFLICT (organization_id, user_id)
          DO UPDATE SET matrix_user_id = EXCLUDED.matrix_user_id,
@@ -454,9 +473,13 @@ export async function createPostgresEnterpriseRepository(databaseUrl: string): P
            provisioning_status = 'active',
            last_provisioned_at = EXCLUDED.last_provisioned_at
          RETURNING *`,
-        [input.organizationId, input.userId, input.matrixUserId, input.matrixDeviceId, input.accessToken, nowIso()],
-      )
-      return matrixAccountFromRow(result.rows[0])
-    },
-  }
+          [input.organizationId, input.userId, input.matrixUserId, input.matrixDeviceId, input.accessToken, nowIso()],
+        ).then((result) => matrixAccountFromRow(result.rows[0]))
+      },
+    } satisfies EnterpriseRepository
+  })
+}
+
+export function createPostgresEnterpriseRepository(databaseUrl: string): Promise<EnterpriseRepository> {
+  return runApiEffect(createPostgresEnterpriseRepositoryEffect(databaseUrl))
 }

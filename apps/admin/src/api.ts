@@ -12,22 +12,38 @@ import type {
   ResetPasswordRequest,
   UpdateUserRequest,
 } from '@muon/enterprise-contracts'
+import { Effect } from 'effect'
+import { fromPromise, runAdminEffect } from './effect'
 
 const API_BASE_URL = import.meta.env.VITE_MUON_API_BASE_URL ?? 'http://127.0.0.1:8787'
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...init,
-    headers: {
-      'content-type': 'application/json',
-      ...init?.headers,
-    },
+function parseErrorPayload(response: Response) {
+  return fromPromise(() => response.json() as Promise<{ error?: string }>).pipe(
+    Effect.catchAll(() => Effect.succeed({})),
+  )
+}
+
+function requestEffect<T>(path: string, init?: RequestInit) {
+  return Effect.gen(function* () {
+    const response = yield* fromPromise(() =>
+      fetch(`${API_BASE_URL}${path}`, {
+        ...init,
+        headers: {
+          'content-type': 'application/json',
+          ...init?.headers,
+        },
+      }),
+    )
+    if (!response.ok) {
+      const payload = yield* parseErrorPayload(response)
+      return yield* Effect.fail(new Error(payload.error ?? '请求失败'))
+    }
+    return (yield* fromPromise(() => response.json())) as T
   })
-  if (!response.ok) {
-    const payload = (await response.json().catch(() => ({}))) as { error?: string }
-    throw new Error(payload.error ?? '请求失败')
-  }
-  return (await response.json()) as T
+}
+
+function request<T>(path: string, init?: RequestInit): Promise<T> {
+  return runAdminEffect(requestEffect<T>(path, init))
 }
 
 export function getInstallStatus(): Promise<{ installed: boolean }> {

@@ -1,5 +1,7 @@
 import type { MatrixProvisioningAdapter, MatrixProvisioningInput, MatrixProvisioningResult } from './provisioning'
 import { randomBytes } from 'node:crypto'
+import { Effect } from 'effect'
+import { fromPromise, runApiEffect } from '../../effect'
 
 export interface ConduitProvisioningAdapterOptions {
   fetch?: typeof fetch
@@ -20,10 +22,22 @@ export function createConduitProvisioningAdapter(
   const fetchImpl = options.fetch ?? fetch
 
   return {
-    async ensureUser(input): Promise<MatrixProvisioningResult> {
-      const username = localpartFor(input)
-      const password = randomPassword()
-      const response = await fetchImpl(`${options.serverUrl}/_matrix/client/v3/register`, {
+    ensureUser(input): Promise<MatrixProvisioningResult> {
+      return runApiEffect(ensureUserEffect(options.serverUrl, fetchImpl, input))
+    },
+  }
+}
+
+function ensureUserEffect(
+  serverUrl: string,
+  fetchImpl: typeof fetch,
+  input: MatrixProvisioningInput,
+): Effect.Effect<MatrixProvisioningResult, unknown, never> {
+  return Effect.gen(function* () {
+    const username = localpartFor(input)
+    const password = randomPassword()
+    const response = yield* fromPromise(() =>
+      fetchImpl(`${serverUrl}/_matrix/client/v3/register`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
@@ -32,29 +46,29 @@ export function createConduitProvisioningAdapter(
           initial_device_display_name: 'Muon Desktop',
           auth: { type: 'm.login.dummy' },
         }),
-      })
-      const payload = (await response.json()) as {
-        access_token?: string
-        device_id?: string
-        errcode?: string
-        user_id?: string
-      }
+      }),
+    )
+    const payload = (yield* fromPromise(() => response.json())) as {
+      access_token?: string
+      device_id?: string
+      errcode?: string
+      user_id?: string
+    }
 
-      if (!response.ok) {
-        if (payload.errcode === 'M_USER_IN_USE') {
-          throw new Error('Matrix account already exists outside Muon provisioning')
-        }
-        throw new Error('Matrix provisioning failed')
+    if (!response.ok) {
+      if (payload.errcode === 'M_USER_IN_USE') {
+        return yield* Effect.fail(new Error('Matrix account already exists outside Muon provisioning'))
       }
+      return yield* Effect.fail(new Error('Matrix provisioning failed'))
+    }
 
-      if (!payload.user_id || !payload.access_token || !payload.device_id)
-        throw new Error('Matrix provisioning returned an incomplete session')
+    if (!payload.user_id || !payload.access_token || !payload.device_id)
+      return yield* Effect.fail(new Error('Matrix provisioning returned an incomplete session'))
 
-      return {
-        matrixUserId: payload.user_id,
-        accessToken: payload.access_token,
-        deviceId: payload.device_id,
-      }
-    },
-  }
+    return {
+      matrixUserId: payload.user_id,
+      accessToken: payload.access_token,
+      deviceId: payload.device_id,
+    }
+  })
 }

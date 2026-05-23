@@ -60,7 +60,6 @@ describe('desktop monorepo package migration', () => {
   it('moves the complete desktop app into apps/desktop while keeping root commands stable', () => {
     const rootPackage = readRepoJson<PackageJson>('package.json')
     const desktopPackage = readDesktopJson<PackageJson>('package.json')
-    const devAll = readRepoSource('scripts/dev-all.sh')
     const componentsConfig = readDesktopJson<{ tailwind?: { css?: string } }>('components.json')
 
     expect(desktopPackage.name).toBe('@muon/desktop')
@@ -85,8 +84,10 @@ describe('desktop monorepo package migration', () => {
     expect(rootPackage.scripts?.['test:e2e']).toBe('pnpm --filter @muon/desktop test:e2e')
     expect(rootPackage.scripts?.['test:enterprise']).toBe('pnpm --filter @muon/desktop test:enterprise')
 
-    expect(devAll).toContain('start "Electron desktop" pnpm --filter @muon/desktop dev')
-    expect(devAll).not.toContain('pnpm exec electron-vite dev')
+    expect(rootPackage.scripts?.dev).toBe(
+      'pnpm services:up && pnpm --parallel --filter @muon/api --filter @muon/admin --filter @muon/desktop dev',
+    )
+    expect(existsSync(resolve(repoRoot, 'scripts/dev-all.sh'))).toBe(false)
     expect(componentsConfig.tailwind?.css).toBe('src/app/main.css')
 
     expect(existsSync(resolve(desktopRoot, 'src/app/main.ts'))).toBe(true)

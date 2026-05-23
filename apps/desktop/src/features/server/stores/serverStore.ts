@@ -1,4 +1,6 @@
 import type { ChannelInfo, SpaceInfo } from '@/matrix/spaces'
+import type { DesktopEffect } from '@/shared/lib/effect'
+import { Effect } from 'effect'
 import { defineStore } from 'pinia'
 import { reactive, ref, shallowRef } from 'vue'
 import { registerSessionSubscriber } from '@/auth/lifecycleEvents'
@@ -12,6 +14,7 @@ import {
   getTopLevelSpaces,
   isVoiceChannel,
 } from '@/matrix/spaces'
+import { fromSync, runDesktopSync } from '@/shared/lib/effect'
 
 // ── Types ──
 
@@ -29,21 +32,25 @@ export interface VoiceConnection {
 }
 
 function loadServerOrder(): string[] {
-  try {
+  return runDesktopSync(loadServerOrderEffect())
+}
+
+function loadServerOrderEffect(): DesktopEffect<string[]> {
+  return fromSync(() => {
     if (typeof localStorage?.getItem !== 'function') return []
     const raw = localStorage.getItem('muon_server_order')
     return raw ? JSON.parse(raw) : []
-  } catch {
-    return []
-  }
+  }).pipe(Effect.catchAll(() => Effect.succeed([])))
 }
 
 function saveServerOrder(order: string[]): void {
-  try {
+  runDesktopSync(saveServerOrderEffect(order))
+}
+
+function saveServerOrderEffect(order: string[]): DesktopEffect<void> {
+  return fromSync(() => {
     if (typeof localStorage?.setItem === 'function') localStorage.setItem('muon_server_order', JSON.stringify(order))
-  } catch {
-    // Ignore persistence failures; the in-memory order still applies.
-  }
+  }).pipe(Effect.catchAll(() => Effect.void))
 }
 
 // ── Store ──

@@ -24,6 +24,7 @@ import { getFloatingPosition } from '../composables/useFloatingPosition';
 import { useMediaViewer } from '../composables/useMediaViewer';
 import { useMessageClipboardFeedback } from '../composables/useMessageClipboardFeedback';
 import { useMessageContextMenuState } from '../composables/useMessageContextMenuState';
+import { useMessagePopoverSingleton } from '../composables/useMessagePopoverSingleton';
 import { getMediaFrameStyle } from '../lib/mediaFrame';
 import { useChatStore } from '../stores/chatStore';
 import LinkPreview from './LinkPreview.vue';
@@ -92,11 +93,17 @@ const { style: contextMenuStyle } = useViewportClampedFloating({
   fallbackSize: { width: 180, height: 152 },
 });
 const { isAnyMessageContextMenuOpen } = useMessageContextMenuState(showContextMenu);
+const { isActiveMessagePopover, activateMessagePopover, deactivateMessagePopover } = useMessagePopoverSingleton();
 const isVisuallyHovered = computed(
-  () => hovered.value || showContextMenu.value || actionMenuOpen.value || actionBarHovered.value,
+  () =>
+    showContextMenu.value ||
+    (isActiveMessagePopover.value && (hovered.value || actionMenuOpen.value || actionBarHovered.value)),
 );
 const shouldShowActionBar = computed(
-  () => !isAnyMessageContextMenuOpen.value && (hovered.value || actionMenuOpen.value || actionBarHovered.value),
+  () =>
+    isActiveMessagePopover.value &&
+    !isAnyMessageContextMenuOpen.value &&
+    (hovered.value || actionMenuOpen.value || actionBarHovered.value),
 );
 let hoverCloseTimer: ReturnType<typeof setTimeout> | null = null;
 let contextMenuListenerTimer: ReturnType<typeof setTimeout> | null = null;
@@ -135,16 +142,54 @@ function targetIsInside(element: HTMLElement | null, target: EventTarget | null)
   return !!(target instanceof Node && element?.contains(target));
 }
 
+function getViewportBoundaryRect(): Pick<DOMRect, 'left' | 'top' | 'right' | 'bottom'> {
+  return {
+    left: 0,
+    top: 0,
+    right: window.innerWidth,
+    bottom: window.innerHeight,
+  };
+}
+
+function getActionBarBoundaryRect(): Pick<DOMRect, 'left' | 'top' | 'right' | 'bottom'> {
+  const scroller = messageRef.value?.closest<HTMLElement>('[data-testid="message-list-scroller"]');
+  return scroller?.getBoundingClientRect() ?? getViewportBoundaryRect();
+}
+
+function isRectVisibleWithinBoundary(rect: DOMRect, boundaryRect: Pick<DOMRect, 'left' | 'top' | 'right' | 'bottom'>) {
+  if (rect.width <= 0 && rect.height <= 0) return true;
+  return (
+    rect.bottom > boundaryRect.top &&
+    rect.top < boundaryRect.bottom &&
+    rect.right > boundaryRect.left &&
+    rect.left < boundaryRect.right
+  );
+}
+
+function hideActionBarOverlay() {
+  clearHoverCloseTimer();
+  hovered.value = false;
+  actionBarHovered.value = false;
+  showEmojiPicker.value = false;
+  actionMenuOpen.value = false;
+  actionBarPositioned.value = false;
+  deactivateMessagePopover();
+}
+
 function hideActionBarFromOutsideInteraction() {
   clearHoverCloseTimer();
   hovered.value = false;
   actionBarHovered.value = false;
   showEmojiPicker.value = false;
-  if (!actionMenuOpen.value) actionBarPositioned.value = false;
+  if (!actionMenuOpen.value) {
+    actionBarPositioned.value = false;
+    deactivateMessagePopover();
+  }
 }
 
 function onMessageMouseEnter() {
   clearHoverCloseTimer();
+  activateMessagePopover();
   hovered.value = true;
 }
 
@@ -153,23 +198,31 @@ function onMessageMouseLeave() {
   showEmojiPicker.value = false;
   hoverCloseTimer = setTimeout(() => {
     hovered.value = false;
+    if (!actionMenuOpen.value && !actionBarHovered.value) deactivateMessagePopover();
   }, 120);
 }
 
 function onActionBarMouseEnter() {
   clearHoverCloseTimer();
+  activateMessagePopover();
   actionBarHovered.value = true;
 }
 
 function onActionBarMouseLeave() {
   actionBarHovered.value = false;
+  if (!hovered.value && !actionMenuOpen.value) deactivateMessagePopover();
 }
 
 function updateActionBarPosition() {
   const message = messageRef.value;
   const actionBar = actionBarRef.value;
   if (!message || !actionBar) return;
-  actionBarStyle.value = getFloatingPosition(message, actionBar, { margin: 8, offset: 6, align: 'end' });
+  const boundaryRect = getActionBarBoundaryRect();
+  if (!isRectVisibleWithinBoundary(message.getBoundingClientRect(), boundaryRect)) {
+    hideActionBarOverlay();
+    return;
+  }
+  actionBarStyle.value = getFloatingPosition(message, actionBar, { margin: 8, offset: 6, align: 'end', boundaryRect });
   actionBarPositioned.value = true;
 }
 
@@ -486,6 +539,7 @@ function closeContextMenu() {
 function onMessageContextMenu(event: MouseEvent) {
   event.preventDefault();
   event.stopPropagation();
+  activateMessagePopover();
   contextMenuPos.value = { x: event.clientX, y: event.clientY };
   showContextMenu.value = true;
 }
@@ -578,6 +632,15 @@ watch(shouldShowActionBar, (visible) => {
   }
   void positionActionBarAfterRender();
 });
+
+function onActionMenuOpenChange(open: boolean) {
+  actionMenuOpen.value = open;
+  if (open) {
+    activateMessagePopover();
+    return;
+  }
+  if (!hovered.value && !actionBarHovered.value) deactivateMessagePopover();
+}
 
 watch(sanitizedHtml, () => {
   void hydrateRichMediaImages();
@@ -773,7 +836,7 @@ onUnmounted(() => {
           :event="event"
           :room-id="roomId"
           @react="onActionReact"
-          @menu-open-change="actionMenuOpen = $event"
+          @menu-open-change="onActionMenuOpenChange"
         />
       </div>
     </Teleport>

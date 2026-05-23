@@ -1,20 +1,28 @@
 import type { DeviceSessionPublic } from '@muon/enterprise-contracts'
+import type { ApiEffect } from './effect'
 import type { MatrixProvisioningAdapter } from './modules/matrix/provisioning'
 import type { DeviceSessionRecord, EnterpriseRepository, EnterpriseUserRecord } from './repository'
-import { jsonResponse, readJsonBody } from './http'
+import { Effect } from 'effect'
+import { fromPromise, runApiEffect } from './effect'
+import { jsonResponse, readJsonBodyEffect } from './http'
 import {
   AdminAuthenticationError,
-  createAdminSessionService,
+  createAdminSessionEffectService,
   MustChangePasswordError,
 } from './modules/auth/adminSessionService'
-import { createInstallService } from './modules/install/installService'
-import { createOAuthService } from './modules/oauth/oauthService'
-import { createOrganizationService } from './modules/organizations/organizationService'
-import { createUserService } from './modules/users/userService'
+import { createInstallEffectService } from './modules/install/installService'
+import { createOAuthEffectService } from './modules/oauth/oauthService'
+import { createOrganizationEffectService } from './modules/organizations/organizationService'
+import { createUserEffectService } from './modules/users/userService'
 import { createInMemoryEnterpriseRepository } from './repository'
 
 export interface EnterpriseHttpHandler {
   fetch: (request: Request) => Promise<Response>
+  repository: EnterpriseRepository
+}
+
+export interface EnterpriseHttpEffectHandler {
+  fetch: (request: Request) => ApiEffect<Response>
   repository: EnterpriseRepository
 }
 
@@ -26,12 +34,12 @@ export interface EnterpriseHttpHandlerOptions {
 
 function defaultMatrixAdapter(): MatrixProvisioningAdapter {
   return {
-    async ensureUser(input) {
-      return {
+    ensureUser(input) {
+      return Promise.resolve({
         matrixUserId: `@${input.organizationSlug}.${input.username}:localhost`,
         accessToken: 'development-matrix-token',
         deviceId: 'MUONDEVICE',
-      }
+      })
     },
   }
 }
@@ -119,13 +127,16 @@ function toDeviceSessionPublic(record: DeviceSessionRecord): DeviceSessionPublic
   }
 }
 
-async function readRequestBody(request: Request): Promise<unknown> {
+function readRequestBodyEffect(request: Request): ApiEffect<unknown> {
   const contentType = request.headers.get('content-type') ?? ''
   if (contentType.includes('application/x-www-form-urlencoded')) {
-    const params = new URLSearchParams(await request.text())
-    return Object.fromEntries(params.entries())
+    return Effect.gen(function* () {
+      const text = yield* fromPromise(() => request.text())
+      const params = new URLSearchParams(text)
+      return Object.fromEntries(params.entries())
+    })
   }
-  return await readJsonBody(request)
+  return readJsonBodyEffect(request)
 }
 
 function oauthAuthorizePage(url: URL): Response {
@@ -173,53 +184,66 @@ function oauthAuthorizePage(url: URL): Response {
 }
 
 export function createEnterpriseHttpHandler(options: EnterpriseHttpHandlerOptions = {}): EnterpriseHttpHandler {
+  const handler = createEnterpriseHttpEffectHandler(options)
+  return {
+    repository: handler.repository,
+    fetch: (request) => runApiEffect(handler.fetch(request)),
+  }
+}
+
+export function createEnterpriseHttpEffectHandler(
+  options: EnterpriseHttpHandlerOptions = {},
+): EnterpriseHttpEffectHandler {
   const repository = options.repository ?? createInMemoryEnterpriseRepository()
-  const installService = createInstallService({ repository })
-  const adminSessionService = createAdminSessionService({ repository })
-  const organizationService = createOrganizationService({ repository })
-  const userService = createUserService({ repository })
-  const oauthService = createOAuthService({
+  const installService = createInstallEffectService({ repository })
+  const adminSessionService = createAdminSessionEffectService({ repository })
+  const organizationService = createOrganizationEffectService({ repository })
+  const userService = createUserEffectService({ repository })
+  const oauthService = createOAuthEffectService({
     repository,
     matrix: options.matrix ?? defaultMatrixAdapter(),
     matrixServerUrl: options.matrixServerUrl ?? 'http://127.0.0.1:6167',
   })
-  async function requireAdmin(request: Request): Promise<EnterpriseUserRecord> {
-    const token = bearerToken(request)
-    if (!token) throw new AdminAuthenticationError()
-    return adminSessionService.validate(token)
+
+  function requireAdmin(request: Request): ApiEffect<EnterpriseUserRecord> {
+    return Effect.gen(function* () {
+      const token = bearerToken(request)
+      if (!token) return yield* Effect.fail(new AdminAuthenticationError())
+      return yield* adminSessionService.validate(token)
+    })
   }
 
-  async function requireFullyAuthorizedAdmin(request: Request): Promise<EnterpriseUserRecord> {
-    const user = await requireAdmin(request)
-    if (user.mustChangePassword) throw new MustChangePasswordError()
-    return user
+  function requireFullyAuthorizedAdmin(request: Request): ApiEffect<EnterpriseUserRecord> {
+    return Effect.gen(function* () {
+      const user = yield* requireAdmin(request)
+      if (user.mustChangePassword) return yield* Effect.fail(new MustChangePasswordError())
+      return user
+    })
   }
 
   return {
     repository,
 
-    async fetch(request) {
+    fetch(request) {
       const url = new URL(request.url)
 
-      try {
+      return Effect.gen(function* () {
         if (request.method === 'OPTIONS') return withCors(new Response(null, { status: 204 }), request)
 
-        let response: Response
         if (url.pathname === '/api/install/status') {
           if (request.method !== 'GET') return methodNotAllowed()
-          response = jsonResponse(await installService.status())
-          return withCors(response, request)
+          return withCors(jsonResponse(yield* installService.status()), request)
         }
 
         if (url.pathname === '/api/install') {
           if (request.method !== 'POST') return methodNotAllowed()
-          const result = await installService.install((await readRequestBody(request)) as never)
+          const result = yield* installService.install((yield* readRequestBodyEffect(request)) as never)
           return withCors(jsonResponse(result, { status: 201 }), request)
         }
 
         if (url.pathname === '/api/admin/login') {
           if (request.method !== 'POST') return methodNotAllowed()
-          const result = await adminSessionService.login((await readRequestBody(request)) as never)
+          const result = yield* adminSessionService.login((yield* readRequestBodyEffect(request)) as never)
           return withCors(
             jsonResponse({
               session: result.session,
@@ -231,48 +255,50 @@ export function createEnterpriseHttpHandler(options: EnterpriseHttpHandlerOption
 
         if (url.pathname === '/api/admin/me') {
           if (request.method !== 'GET') return methodNotAllowed()
-          const user = await requireAdmin(request)
+          const user = yield* requireAdmin(request)
           return withCors(jsonResponse({ user: repository.getPublicUser(user) }), request)
         }
 
         if (url.pathname === '/api/admin/logout') {
           if (request.method !== 'POST') return methodNotAllowed()
-          const user = await requireAdmin(request)
+          const user = yield* requireAdmin(request)
           const token = bearerToken(request) ?? ''
-          await adminSessionService.revoke(token)
-          await repository.appendAuditLog({
-            organizationId: user.organizationId,
-            actorUserId: user.id,
-            action: 'admin.logout',
-            targetType: 'user',
-            targetId: user.id,
-          })
+          yield* adminSessionService.revoke(token)
+          yield* fromPromise(() =>
+            repository.appendAuditLog({
+              organizationId: user.organizationId,
+              actorUserId: user.id,
+              action: 'admin.logout',
+              targetType: 'user',
+              targetId: user.id,
+            }),
+          )
           return withCors(jsonResponse({ ok: true }), request)
         }
 
         if (url.pathname === '/api/admin/me/password') {
           if (request.method !== 'POST') return methodNotAllowed()
-          const user = await requireAdmin(request)
-          const updated = await userService.changeOwnPassword(user, (await readRequestBody(request)) as never)
+          const user = yield* requireAdmin(request)
+          const updated = yield* userService.changeOwnPassword(user, (yield* readRequestBodyEffect(request)) as never)
           const token = bearerToken(request) ?? ''
-          await adminSessionService.revokeOthersForUser(token)
+          yield* adminSessionService.revokeOthersForUser(token)
           return withCors(jsonResponse({ user: updated }), request)
         }
 
         if (url.pathname === '/api/admin/organizations') {
-          const actor = await requireFullyAuthorizedAdmin(request)
+          const actor = yield* requireFullyAuthorizedAdmin(request)
           if (request.method === 'GET') {
             return withCors(
               jsonResponse({
-                organizations: await repository.listOrganizations(),
+                organizations: yield* fromPromise(() => repository.listOrganizations()),
               }),
               request,
             )
           }
           if (request.method === 'POST') {
-            const result = await organizationService.createOrganization(
+            const result = yield* organizationService.createOrganization(
               actor,
-              (await readRequestBody(request)) as never,
+              (yield* readRequestBodyEffect(request)) as never,
             )
             return withCors(jsonResponse(result, { status: 201 }), request)
           }
@@ -280,19 +306,18 @@ export function createEnterpriseHttpHandler(options: EnterpriseHttpHandlerOption
         }
 
         if (url.pathname === '/api/admin/users') {
-          const actor = await requireFullyAuthorizedAdmin(request)
+          const actor = yield* requireFullyAuthorizedAdmin(request)
           if (request.method === 'GET') {
+            const users = yield* fromPromise(() => repository.listUsersByOrganization(actor.organizationId))
             return withCors(
               jsonResponse({
-                users: (await repository.listUsersByOrganization(actor.organizationId)).map((user) =>
-                  repository.getPublicUser(user),
-                ),
+                users: users.map((user) => repository.getPublicUser(user)),
               }),
               request,
             )
           }
           if (request.method === 'POST') {
-            const user = await userService.createUser(actor, (await readRequestBody(request)) as never)
+            const user = yield* userService.createUser(actor, (yield* readRequestBodyEffect(request)) as never)
             return withCors(jsonResponse({ user }, { status: 201 }), request)
           }
           return methodNotAllowed()
@@ -300,26 +325,32 @@ export function createEnterpriseHttpHandler(options: EnterpriseHttpHandlerOption
 
         const userRoute = adminUserRoute(url.pathname)
         if (userRoute) {
-          const actor = await requireFullyAuthorizedAdmin(request)
+          const actor = yield* requireFullyAuthorizedAdmin(request)
           if (userRoute.password) {
             if (request.method !== 'POST') return methodNotAllowed()
-            const user = await userService.resetUserPassword(
+            const user = yield* userService.resetUserPassword(
               actor,
               userRoute.userId,
-              (await readRequestBody(request)) as never,
+              (yield* readRequestBodyEffect(request)) as never,
             )
             return withCors(jsonResponse({ user }), request)
           }
           if (request.method !== 'PATCH') return methodNotAllowed()
-          const user = await userService.updateUser(actor, userRoute.userId, (await readRequestBody(request)) as never)
+          const user = yield* userService.updateUser(
+            actor,
+            userRoute.userId,
+            (yield* readRequestBodyEffect(request)) as never,
+          )
           return withCors(jsonResponse({ user }), request)
         }
 
         const sessionsRoute = adminUserSessionsRoute(url.pathname)
         if (sessionsRoute && !sessionsRoute.sessionId) {
-          const actor = await requireFullyAuthorizedAdmin(request)
+          const actor = yield* requireFullyAuthorizedAdmin(request)
           if (request.method !== 'GET') return methodNotAllowed()
-          const sessions = await repository.findActiveDeviceSessionsByUser(actor.organizationId, sessionsRoute.userId)
+          const sessions = yield* fromPromise(() =>
+            repository.findActiveDeviceSessionsByUser(actor.organizationId, sessionsRoute.userId),
+          )
           return withCors(
             jsonResponse({
               sessions: sessions.map(toDeviceSessionPublic),
@@ -329,27 +360,30 @@ export function createEnterpriseHttpHandler(options: EnterpriseHttpHandlerOption
         }
 
         if (sessionsRoute && sessionsRoute.sessionId) {
-          const actor = await requireFullyAuthorizedAdmin(request)
+          const actor = yield* requireFullyAuthorizedAdmin(request)
           if (request.method !== 'DELETE') return methodNotAllowed()
-          const session = await repository.findDeviceSessionById(sessionsRoute.sessionId)
+          const sessionId = sessionsRoute.sessionId
+          const session = yield* fromPromise(() => repository.findDeviceSessionById(sessionId))
           if (!session || session.organizationId !== actor.organizationId) return withCors(notFound(), request)
-          await repository.revokeDeviceSession(sessionsRoute.sessionId)
-          await repository.appendAuditLog({
-            organizationId: actor.organizationId,
-            actorUserId: actor.id,
-            action: 'device_session.revoked',
-            targetType: 'device_session',
-            targetId: sessionsRoute.sessionId,
-          })
+          yield* fromPromise(() => repository.revokeDeviceSession(sessionId))
+          yield* fromPromise(() =>
+            repository.appendAuditLog({
+              organizationId: actor.organizationId,
+              actorUserId: actor.id,
+              action: 'device_session.revoked',
+              targetType: 'device_session',
+              targetId: sessionId,
+            }),
+          )
           return withCors(jsonResponse({ ok: true }), request)
         }
 
         if (url.pathname === '/api/admin/audit-logs') {
           if (request.method !== 'GET') return methodNotAllowed()
-          const actor = await requireFullyAuthorizedAdmin(request)
+          const actor = yield* requireFullyAuthorizedAdmin(request)
           return withCors(
             jsonResponse({
-              auditLogs: await repository.listAuditLogsByOrganization(actor.organizationId),
+              auditLogs: yield* fromPromise(() => repository.listAuditLogsByOrganization(actor.organizationId)),
             }),
             request,
           )
@@ -362,7 +396,7 @@ export function createEnterpriseHttpHandler(options: EnterpriseHttpHandlerOption
 
         if (url.pathname === '/api/oauth/login') {
           if (request.method !== 'POST') return methodNotAllowed()
-          const result = await oauthService.loginAndCreateCode((await readRequestBody(request)) as never)
+          const result = yield* oauthService.loginAndCreateCode((yield* readRequestBodyEffect(request)) as never)
           if ((request.headers.get('content-type') ?? '').includes('application/x-www-form-urlencoded')) {
             return withCors(
               new Response(null, {
@@ -378,21 +412,19 @@ export function createEnterpriseHttpHandler(options: EnterpriseHttpHandlerOption
         if (url.pathname === '/api/oauth/token') {
           if (request.method !== 'POST') return methodNotAllowed()
           return withCors(
-            jsonResponse(await oauthService.exchangeCode((await readRequestBody(request)) as never)),
+            jsonResponse(yield* oauthService.exchangeCode((yield* readRequestBodyEffect(request)) as never)),
             request,
           )
         }
 
         if (url.pathname === '/api/oauth/refresh') {
           if (request.method !== 'POST') return methodNotAllowed()
-          const result = await oauthService.refresh((await readRequestBody(request)) as never)
+          const result = yield* oauthService.refresh((yield* readRequestBodyEffect(request)) as never)
           return withCors(jsonResponse(result), request)
         }
 
         return withCors(notFound(), request)
-      } catch (error) {
-        return withCors(errorResponse(error), request)
-      }
+      }).pipe(Effect.catchAll((error) => Effect.succeed(withCors(errorResponse(error), request))))
     },
   }
 }
