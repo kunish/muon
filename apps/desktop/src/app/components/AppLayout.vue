@@ -104,7 +104,7 @@ onMounted(() => {
   <WorkspaceLayout :message-unread-count="visibleMessageUnreadCount">
     <template #message-sidebar>
       <ChannelSidebar
-        v-if="showChannelSidebar"
+        v-show="showChannelSidebar"
         @server-settings="showServerSettings = true"
         @invite-people="showInviteDialog = true"
         @leave-server="requestLeaveServer"

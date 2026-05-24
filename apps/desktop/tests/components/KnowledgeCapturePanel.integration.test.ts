@@ -302,6 +302,44 @@ describe('knowledgeCapturePanel integration', () => {
     expect(wrapper.text()).toContain('Launch Group')
   })
 
+  it('keeps the DM conversation history mounted while switching sidebar modes', async () => {
+    mockConversationState.items = [
+      {
+        roomId: '!dm:example.org',
+        name: 'Alice',
+        unreadCount: 0,
+        isDirect: true,
+        dmUserId: '@alice:example.org',
+      },
+    ]
+
+    const wrapper = mount(ChannelSidebar, { global: { plugins: [pinia] } })
+
+    expect(wrapper.get('[data-testid="conversation-list"]').text()).toContain('Alice')
+
+    serverStore.isDmMode = false
+    serverStore.currentServerId = '!server:example.org'
+    serverStore.servers = [
+      {
+        spaceId: '!server:example.org',
+        name: 'Launch Team',
+      },
+    ]
+    await nextTick()
+
+    expect(wrapper.find('[data-testid="conversation-list"]').exists()).toBe(true)
+    expect(wrapper.get('[data-testid="dm-conversation-sidebar"]').attributes('style')).toContain('display: none')
+
+    serverStore.isDmMode = true
+    serverStore.currentServerId = null
+    await nextTick()
+
+    expect(wrapper.get('[data-testid="dm-conversation-sidebar"]').attributes('style') ?? '').not.toContain(
+      'display: none',
+    )
+    expect(wrapper.get('[data-testid="conversation-list"]').text()).toContain('Alice')
+  })
+
   it('supports Feishu-style message sidebar resizing with the mouse', async () => {
     const wrapper = mount(ChannelSidebar, { global: { plugins: [pinia] } })
     const sidebar = wrapper.get('[data-testid="channel-sidebar"]')

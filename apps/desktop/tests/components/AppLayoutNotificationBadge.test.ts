@@ -85,11 +85,15 @@ const WatermarkOverlayStub = {
   template: '<div data-testid="watermark-overlay" :data-text="text" />',
 }
 
+const ChannelSidebarStub = {
+  template: '<aside data-testid="channel-sidebar-stub" />',
+}
+
 function mountAppLayout() {
   return mount(AppLayout, {
     global: {
       stubs: {
-        ChannelSidebar: true,
+        ChannelSidebar: ChannelSidebarStub,
         CreateCategoryDialog: true,
         Dialog: true,
         DialogContent: true,
@@ -148,5 +152,15 @@ describe('app layout notification badges', () => {
     const watermarkText = wrapper.get('[data-testid="watermark-overlay"]').attributes('data-text') ?? ''
     expect(watermarkText).toContain('Ada Chen')
     expect(watermarkText).not.toContain('User')
+  })
+
+  it('keeps the message sidebar mounted while non-message routes are active', () => {
+    route.fullPath = '/contacts'
+    route.path = '/contacts'
+
+    const wrapper = mountAppLayout()
+    const sidebar = wrapper.get('[data-testid="channel-sidebar-stub"]')
+
+    expect(sidebar.attributes('style')).toContain('display: none')
   })
 })

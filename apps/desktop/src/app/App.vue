@@ -35,6 +35,14 @@ function blockNativeContextMenu(event: MouseEvent) {
   event.preventDefault();
 }
 
+async function waitForInitialRoute() {
+  try {
+    await router.isReady();
+  } catch (err) {
+    console.error('[App] Initial route did not become ready:', err);
+  }
+}
+
 onMounted(async () => {
   // Double-check in onMounted: the contextBridge may have been unavailable
   // during <script setup> if a build tool or HMR caused a re-evaluation race.
@@ -49,7 +57,7 @@ onMounted(async () => {
     restoredSession.value = !!restored;
     if (!restored) {
       hasCompletedInitialSync.value = false;
-      router.replace('/login');
+      await router.replace('/login');
     }
   } catch (err) {
     restoredSession.value = false;
@@ -64,9 +72,10 @@ onMounted(async () => {
       console.error('[App] Network error during session restore:', err);
       toast.error(t('common.network_error'));
     } else {
-      router.replace('/login');
+      await router.replace('/login');
     }
   } finally {
+    await waitForInitialRoute();
     initializing.value = false;
   }
 });

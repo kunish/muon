@@ -171,11 +171,11 @@ async function confirmDeleteChannel(): Promise<void> {
     :max-width="MAX_SIDEBAR_WIDTH"
     :resize-label="resizeHandleLabel"
   >
-    <template v-if="isDmMode">
+    <div v-show="isDmMode" data-testid="dm-conversation-sidebar" class="contents">
       <ConversationList />
-    </template>
+    </div>
 
-    <template v-else-if="currentServer">
+    <div v-if="currentServer" v-show="!isDmMode" class="contents">
       <ServerDropdown
         @create-channel="openCreateChannel()"
         @create-category="$emit('createCategory')"
@@ -237,7 +237,7 @@ async function confirmDeleteChannel(): Promise<void> {
           </ChannelCategory>
         </div>
       </ScrollArea>
-    </template>
+    </div>
 
     <VoiceStatusBar />
 

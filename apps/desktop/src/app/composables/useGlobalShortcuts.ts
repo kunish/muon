@@ -1,7 +1,7 @@
 import { useChatStore } from '@features/chat/stores/chatStore'
-import { onBeforeUnmount, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { workspaceApps } from '../components/workspace/navigation'
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { getWorkspaceAppForPath, workspaceApps } from '../components/workspace/navigation'
 import { useGlobalUiStore } from '../stores/globalUiStore'
 
 function isEditableTarget(target: EventTarget | null): boolean {
@@ -18,9 +18,21 @@ function isPlainModifier(event: KeyboardEvent): boolean {
 }
 
 export function useGlobalShortcuts(): void {
+  const route = useRoute()
   const router = useRouter()
   const globalUi = useGlobalUiStore()
   const chatStore = useChatStore()
+  const lastMessagesPath = ref('/dm')
+
+  watch(
+    () => route.fullPath,
+    () => {
+      if (getWorkspaceAppForPath(route.path).id === 'messages') {
+        lastMessagesPath.value = route.fullPath || route.path || '/dm'
+      }
+    },
+    { immediate: true },
+  )
 
   function closeTopmostTransient(): boolean {
     if (globalUi.globalSearchOpen) {
@@ -86,7 +98,8 @@ export function useGlobalShortcuts(): void {
       const primaryApps = workspaceApps.filter((a) => a.id !== 'settings')
       const index = Number.parseInt(key, 10) - 1
       if (index < primaryApps.length) {
-        router.push(primaryApps[index].path)
+        const app = primaryApps[index]
+        router.push(app.id === 'messages' ? lastMessagesPath.value : app.path)
       }
       return
     }

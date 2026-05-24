@@ -4,6 +4,7 @@ import { nextTick } from 'vue'
 import App from '@/app/App.vue'
 
 const routerReplace = vi.fn()
+const routerIsReady = vi.fn()
 const lifecycleMocks = vi.hoisted(() => ({
   bootstrap: vi.fn(async () => ({ restored: false })),
 }))
@@ -48,6 +49,7 @@ vi.mock('vue-router', async (importOriginal) => ({
   ...(await importOriginal<typeof import('vue-router')>()),
   useRouter: () => ({
     replace: routerReplace,
+    isReady: routerIsReady,
   }),
 }))
 
@@ -75,6 +77,8 @@ function mountApp() {
 describe('app native window frame runtime', () => {
   beforeEach(() => {
     routerReplace.mockClear()
+    routerIsReady.mockReset()
+    routerIsReady.mockResolvedValue(undefined)
     lifecycleMocks.bootstrap.mockReset()
     lifecycleMocks.bootstrap.mockResolvedValue({ restored: false })
     matrixMocks.syncState!.value = 'STOPPED'
@@ -183,6 +187,53 @@ describe('app native window frame runtime', () => {
     await flushPromises()
 
     expect(routerReplace).toHaveBeenCalledWith('/login')
+    expect(wrapper.find('[data-testid="router-view"]').exists()).toBe(true)
+  })
+
+  it('keeps the startup skeleton visible until login navigation finishes', async () => {
+    let resolveNavigation!: () => void
+    lifecycleMocks.bootstrap.mockResolvedValueOnce({ restored: false })
+    routerReplace.mockReturnValueOnce(
+      new Promise<void>((resolve) => {
+        resolveNavigation = resolve
+      }),
+    )
+
+    const wrapper = mountApp()
+    await flushPromises()
+
+    expect(routerReplace).toHaveBeenCalledWith('/login')
+    expect(wrapper.find('[data-testid="startup-skeleton"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="router-view"]').exists()).toBe(false)
+
+    resolveNavigation()
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="startup-skeleton"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="router-view"]').exists()).toBe(true)
+  })
+
+  it('keeps the startup skeleton visible until the initial route is ready', async () => {
+    let resolveRouteReady!: () => void
+    lifecycleMocks.bootstrap.mockResolvedValueOnce({ restored: false })
+    routerReplace.mockResolvedValueOnce(undefined)
+    routerIsReady.mockReturnValueOnce(
+      new Promise<void>((resolve) => {
+        resolveRouteReady = resolve
+      }),
+    )
+
+    const wrapper = mountApp()
+    await flushPromises()
+
+    expect(routerReplace).toHaveBeenCalledWith('/login')
+    expect(wrapper.find('[data-testid="startup-skeleton"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="router-view"]').exists()).toBe(false)
+
+    resolveRouteReady()
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="startup-skeleton"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="router-view"]').exists()).toBe(true)
   })
 })

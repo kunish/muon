@@ -14,6 +14,14 @@ describe('electron security config', () => {
     expect(csp).not.toContain('unsafe-eval')
   })
 
+  it('renders a non-empty startup shell before the Vue bundle mounts', () => {
+    const indexHtml = readDesktopSource('index.html')
+
+    expect(indexHtml).toContain('data-testid="preload-startup-skeleton"')
+    expect(indexHtml).toContain('muon-boot-shimmer')
+    expect(indexHtml).not.toContain('<div id="app"></div>')
+  })
+
   it('keeps renderer access behind the Electron preload bridge', () => {
     const mainProcess = readDesktopSource('electron/main.ts')
 

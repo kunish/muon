@@ -4,15 +4,21 @@ import WorkspaceAppRail from '@/app/components/workspace/WorkspaceAppRail.vue'
 import { useGlobalUiStore } from '@/app/stores/globalUiStore'
 
 const push = vi.hoisted(() => vi.fn())
+const route = vi.hoisted(() => ({
+  fullPath: '/contacts',
+  path: '/contacts',
+}))
 
 vi.mock('vue-router', () => ({
-  useRoute: () => ({ path: '/contacts' }),
+  useRoute: () => route,
   useRouter: () => ({ push }),
 }))
 
 describe('workspaceAppRail', () => {
   beforeEach(() => {
     localStorage.clear()
+    route.fullPath = '/contacts'
+    route.path = '/contacts'
     push.mockReset()
   })
 
@@ -53,6 +59,19 @@ describe('workspaceAppRail', () => {
     await wrapper.find('[data-testid="workspace-app-docs"]').trigger('click')
 
     expect(push).toHaveBeenCalledWith('/docs')
+  })
+
+  it('returns to the last concrete message route instead of dropping the active conversation', async () => {
+    route.fullPath = '/dm/!alice%3Alocalhost'
+    route.path = '/dm/!alice:localhost'
+
+    const wrapper = mount(WorkspaceAppRail)
+    route.fullPath = '/settings'
+    route.path = '/settings'
+
+    await wrapper.find('[data-testid="workspace-app-messages"]').trigger('click')
+
+    expect(push).toHaveBeenCalledWith('/dm/!alice%3Alocalhost')
   })
 
   it('navigates to the organization hub entry', async () => {

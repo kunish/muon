@@ -1,13 +1,18 @@
 import { mount } from '@vue/test-utils'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent } from 'vue'
 import { useGlobalShortcuts } from '@/app/composables/useGlobalShortcuts'
 import { useGlobalUiStore } from '@/app/stores/globalUiStore'
 import { useChatStore } from '@/features/chat/stores/chatStore'
 
 const routerPush = vi.hoisted(() => vi.fn())
+const route = vi.hoisted(() => ({
+  fullPath: '/contacts',
+  path: '/contacts',
+}))
 
 vi.mock('vue-router', () => ({
+  useRoute: () => route,
   useRouter: () => ({
     push: routerPush,
   }),
@@ -36,6 +41,12 @@ function dispatchKey(target: EventTarget, key: string, init: KeyboardEventInit =
 }
 
 describe('useGlobalShortcuts', () => {
+  beforeEach(() => {
+    route.fullPath = '/contacts'
+    route.path = '/contacts'
+    routerPush.mockReset()
+  })
+
   it('opens global search with Cmd/Ctrl + K', () => {
     const wrapper = mountShortcutHost()
     const globalUi = useGlobalUiStore()
@@ -60,6 +71,22 @@ describe('useGlobalShortcuts', () => {
     expect(routerPush).toHaveBeenCalledWith('/settings')
     expect(globalUi.globalSearchOpen).toBe(false)
     expect(globalUi.newChatOpen).toBe(false)
+
+    wrapper.unmount()
+  })
+
+  it('returns to the last concrete message route from Cmd/Ctrl + 1', () => {
+    route.fullPath = '/dm/!alice%3Alocalhost'
+    route.path = '/dm/!alice:localhost'
+
+    const wrapper = mountShortcutHost()
+    route.fullPath = '/calendar'
+    route.path = '/calendar'
+
+    const event = dispatchKey(document, '1', { metaKey: true })
+
+    expect(event.defaultPrevented).toBe(true)
+    expect(routerPush).toHaveBeenCalledWith('/dm/!alice%3Alocalhost')
 
     wrapper.unmount()
   })

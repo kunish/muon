@@ -1,6 +1,7 @@
 <script setup lang="ts">
+import type { WorkspaceApp } from './navigation';
 import { Search } from 'lucide-vue-next';
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { useGlobalUiStore } from '../../stores/globalUiStore';
@@ -19,11 +20,22 @@ const route = useRoute();
 const router = useRouter();
 const { t } = useI18n();
 const globalUi = useGlobalUiStore();
+const lastMessagesPath = ref('/dm');
 
 const activeApp = computed(() => getWorkspaceAppForPath(route.path));
 
-function openApp(path: string): void {
-  router.push(path);
+watch(
+  () => route.fullPath,
+  () => {
+    if (activeApp.value.id === 'messages') {
+      lastMessagesPath.value = route.fullPath || route.path || '/dm';
+    }
+  },
+  { immediate: true },
+);
+
+function openApp(app: WorkspaceApp): void {
+  router.push(app.id === 'messages' ? lastMessagesPath.value : app.path);
 }
 </script>
 
@@ -60,7 +72,7 @@ function openApp(path: string): void {
           :aria-current="activeApp.id === app.id ? 'page' : undefined"
           :aria-label="t(app.labelKey)"
           :title="t(app.labelKey)"
-          @click="openApp(app.path)"
+          @click="openApp(app)"
         >
           <component :is="app.icon" :size="16" class="shrink-0" />
           <span
@@ -96,7 +108,7 @@ function openApp(path: string): void {
           :aria-current="activeApp.id === app.id ? 'page' : undefined"
           :aria-label="t(app.labelKey)"
           :title="t(app.labelKey)"
-          @click="openApp(app.path)"
+          @click="openApp(app)"
         >
           <component :is="app.icon" :size="16" class="shrink-0" />
         </button>
