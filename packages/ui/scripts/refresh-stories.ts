@@ -2,8 +2,6 @@ import { spawn } from 'node:child_process'
 import { writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import process from 'node:process'
-import { Effect } from 'effect'
-import { fromPromise, fromSync, runUiEffect } from '../src/effect'
 
 /**
  * Boots Storybook in dev mode, fetches its index.json, extracts every
@@ -25,60 +23,50 @@ interface IndexFile {
   entries: Record<string, IndexEntry>
 }
 
-function delayEffect(ms: number) {
-  return fromPromise(() => new Promise<void>((resolve) => setTimeout(resolve, ms)))
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
-function waitForUrlEffect(url: string, timeoutMs = 120_000) {
-  const deadline = Date.now() + timeoutMs
-  return Effect.gen(function* () {
-    while (Date.now() < deadline) {
-      const res = yield* fromPromise(() => fetch(url)).pipe(Effect.catchAll(() => Effect.succeed(null)))
-      if (res?.ok) return res
-      yield* delayEffect(500)
-    }
-    return yield* fromSync(() => {
-      throw new Error(`Timed out waiting for ${url}`)
-    })
-  })
+function waitForUrl(url: string, deadline = Date.now() + 120_000): Promise<Response> {
+  if (Date.now() >= deadline) return Promise.reject(new Error(`Timed out waiting for ${url}`))
+
+  return fetch(url).then(
+    (res) => (res.ok ? res : delay(500).then(() => waitForUrl(url, deadline))),
+    () => delay(500).then(() => waitForUrl(url, deadline)),
+  )
 }
 
-function mainEffect() {
+function main(): Promise<void> {
   const sb = spawn('pnpm', ['storybook', '--no-open', '-p', String(PORT)], {
     cwd: resolve(import.meta.dirname, '..'),
     stdio: 'ignore',
     detached: false,
   })
 
-  return Effect.gen(function* () {
-    const res = yield* waitForUrlEffect(URL)
-    const data = yield* fromPromise(() => res.json() as Promise<IndexFile>)
-    const ids = Object.values(data.entries)
-      .filter(
-        (e) =>
-          e.type === 'story' &&
-          (e.id.startsWith('atoms-') ||
-            e.id.startsWith('foundation-') ||
-            e.id.startsWith('components-') ||
-            e.id.startsWith('molecules-')),
-      )
-      .map((e) => e.id)
-      .sort()
+  return waitForUrl(URL)
+    .then((res) => res.json() as Promise<IndexFile>)
+    .then((data) => {
+      const ids = Object.values(data.entries)
+        .filter(
+          (e) =>
+            e.type === 'story' &&
+            (e.id.startsWith('atoms-') ||
+              e.id.startsWith('foundation-') ||
+              e.id.startsWith('components-') ||
+              e.id.startsWith('molecules-')),
+        )
+        .map((e) => e.id)
+        .sort()
 
-    yield* fromSync(() => {
       writeFileSync(OUT, `${JSON.stringify(ids, null, 2)}\n`)
       console.log(`[refresh-stories] wrote ${ids.length} story ids → ${OUT}`)
     })
-  }).pipe(Effect.ensuring(Effect.sync(() => sb.kill('SIGKILL'))))
+    .finally(() => {
+      sb.kill('SIGKILL')
+    })
 }
 
-void runUiEffect(
-  mainEffect().pipe(
-    Effect.catchAll((err) =>
-      fromSync(() => {
-        console.error(err)
-        process.exit(1)
-      }),
-    ),
-  ),
-)
+void main().catch((err) => {
+  console.error(err)
+  process.exit(1)
+})
