@@ -61,6 +61,7 @@ describe('desktop monorepo package migration', () => {
     const rootPackage = readRepoJson<PackageJson>('package.json')
     const desktopPackage = readDesktopJson<PackageJson>('package.json')
     const componentsConfig = readDesktopJson<{ tailwind?: { css?: string } }>('components.json')
+    const ciWorkflow = readRepoSource('.github/workflows/ci.yml')
 
     expect(desktopPackage.name).toBe('@muon/desktop')
     expect(desktopPackage.main).toBe('out/main/main.cjs')
@@ -83,6 +84,7 @@ describe('desktop monorepo package migration', () => {
     expect(rootPackage.scripts?.['test:unit']).toBe('pnpm --filter @muon/desktop test:unit')
     expect(rootPackage.scripts?.['test:e2e']).toBe('pnpm --filter @muon/desktop test:e2e')
     expect(rootPackage.scripts?.['test:enterprise']).toBe('pnpm --filter @muon/desktop test:enterprise')
+    expect(ciWorkflow).toContain('pnpm --filter @muon/desktop exec playwright install --with-deps chromium')
 
     expect(rootPackage.scripts?.dev).toBe(
       'pnpm services:up && pnpm --parallel --filter @muon/api --filter @muon/admin --filter @muon/desktop dev',
