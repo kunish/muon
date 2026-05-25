@@ -78,6 +78,7 @@
     "@tiptap/suggestion": "catalog:",
     "@tiptap/vue-3": "catalog:",
     "@vueuse/core": "catalog:",
+    "blurhash": "catalog:",
     "class-variance-authority": "catalog:",
     "clsx": "catalog:",
     "date-fns": "catalog:",

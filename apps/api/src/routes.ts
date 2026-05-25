@@ -1,6 +1,7 @@
 import type { DeviceSessionPublic } from '@muon/enterprise-contracts'
 import type { ApiEffect } from './effect'
 import type { MatrixProvisioningAdapter } from './modules/matrix/provisioning'
+import type { MediaStorageService } from './modules/media/mediaStorage'
 import type { DeviceSessionRecord, EnterpriseRepository, EnterpriseUserRecord } from './repository'
 import { Effect } from 'effect'
 import { fromPromise, runApiEffect } from './effect'
@@ -29,6 +30,7 @@ export interface EnterpriseHttpEffectHandler {
 export interface EnterpriseHttpHandlerOptions {
   matrix?: MatrixProvisioningAdapter
   matrixServerUrl?: string
+  mediaStorage?: MediaStorageService
   repository?: EnterpriseRepository
 }
 
@@ -52,6 +54,10 @@ function notFound(): Response {
   return jsonResponse({ error: 'Not found' }, { status: 404 })
 }
 
+function serviceUnavailable(message: string): Response {
+  return jsonResponse({ error: message }, { status: 503 })
+}
+
 function errorResponse(error: unknown): Response {
   if (error instanceof AdminAuthenticationError) return jsonResponse({ error: error.message }, { status: 401 })
 
@@ -67,7 +73,7 @@ function corsHeaders(request: Request): Record<string, string> {
   if (!origin) return {}
 
   return {
-    'access-control-allow-headers': 'authorization, content-type',
+    'access-control-allow-headers': 'authorization, content-type, x-muon-file-name',
     'access-control-allow-methods': 'GET, POST, PATCH, OPTIONS',
     'access-control-allow-origin': origin,
     'access-control-max-age': '600',
@@ -139,6 +145,30 @@ function readRequestBodyEffect(request: Request): ApiEffect<unknown> {
   return readJsonBodyEffect(request)
 }
 
+function decodeHeaderValue(value: string | null, fallback: string): string {
+  if (!value) return fallback
+  try {
+    return decodeURIComponent(value)
+  } catch {
+    return value
+  }
+}
+
+function readMediaUploadEffect(request: Request) {
+  return Effect.gen(function* () {
+    const bytes = yield* fromPromise(() => request.arrayBuffer())
+    if (bytes.byteLength === 0) {
+      return yield* Effect.fail(new Error('Media file is empty'))
+    }
+
+    return {
+      bytes,
+      contentType: request.headers.get('content-type')?.split(';', 1)[0] || 'application/octet-stream',
+      fileName: decodeHeaderValue(request.headers.get('x-muon-file-name'), 'upload'),
+    }
+  })
+}
+
 function oauthAuthorizePage(url: URL): Response {
   const clientId = url.searchParams.get('client_id') ?? ''
   const redirectUri = url.searchParams.get('redirect_uri') ?? ''
@@ -195,6 +225,7 @@ export function createEnterpriseHttpEffectHandler(
   options: EnterpriseHttpHandlerOptions = {},
 ): EnterpriseHttpEffectHandler {
   const repository = options.repository ?? createInMemoryEnterpriseRepository()
+  const mediaStorage = options.mediaStorage
   const installService = createInstallEffectService({ repository })
   const adminSessionService = createAdminSessionEffectService({ repository })
   const organizationService = createOrganizationEffectService({ repository })
@@ -229,6 +260,14 @@ export function createEnterpriseHttpEffectHandler(
 
       return Effect.gen(function* () {
         if (request.method === 'OPTIONS') return withCors(new Response(null, { status: 204 }), request)
+
+        if (url.pathname === '/api/media/upload') {
+          if (request.method !== 'POST') return methodNotAllowed()
+          if (!mediaStorage) return withCors(serviceUnavailable('Media storage is not configured'), request)
+
+          const upload = yield* readMediaUploadEffect(request)
+          return withCors(jsonResponse(yield* fromPromise(() => mediaStorage.upload(upload)), { status: 201 }), request)
+        }
 
         if (url.pathname === '/api/install/status') {
           if (request.method !== 'GET') return methodNotAllowed()

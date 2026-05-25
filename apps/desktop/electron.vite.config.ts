@@ -70,6 +70,7 @@ export default defineConfig({
     define: {
       __APP_VERSION__: JSON.stringify(pkg.version),
     },
+    envDir: resolve(__dirname, '../..'),
     plugins: [
       vue(),
       tailwindcss(),

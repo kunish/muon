@@ -103,10 +103,12 @@ describe('monorepo scripts', () => {
 
   it('keeps local services focused on infrastructure', () => {
     const root = readRepoJson<PackageManifest>('package.json')
+    const api = readRepoJson<PackageManifest>('apps/api/package.json')
     const startScript = readRepoSource('docker/start.sh')
 
     expect(root.scripts?.['services:seed']).toBe('tsx scripts/seed-conduit.ts')
     expect(root.devDependencies?.tsx).toBeDefined()
+    expect(api.scripts?.dev).toBe('node --env-file=../../docker/.env --import tsx src/server.ts')
     expect(startScript).toContain('compose up -d postgres conduit livekit minio')
     expect(startScript).toContain('pnpm services:seed')
     expect(startScript).not.toContain('npx')

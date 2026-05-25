@@ -7,6 +7,7 @@ import { readEnterpriseApiConfig } from './config'
 import { createPostgresEnterpriseRepository } from './db/postgresRepository'
 import { fromPromise, fromSync, runApiEffect } from './effect'
 import { createConduitProvisioningAdapter } from './modules/matrix/conduitAdapter'
+import { createS3MediaStorage } from './modules/media/mediaStorage'
 import { createEnterpriseHttpEffectHandler } from './routes'
 
 const config = readEnterpriseApiConfig()
@@ -42,7 +43,9 @@ function readIncomingChunksEffect(incoming: IncomingMessage) {
 function mainEffect() {
   return Effect.gen(function* () {
     const repository = yield* fromPromise(() => createPostgresEnterpriseRepository(config.databaseUrl))
+    const mediaStorage = config.mediaStorage ? createS3MediaStorage(config.mediaStorage) : undefined
     const handler = createEnterpriseHttpEffectHandler({
+      mediaStorage,
       repository,
       matrix: createConduitProvisioningAdapter({ serverUrl: config.matrixServerUrl }),
       matrixServerUrl: config.matrixServerUrl,

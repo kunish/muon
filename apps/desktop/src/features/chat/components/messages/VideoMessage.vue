@@ -5,6 +5,7 @@ import { Play } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { getMediaFrameStyle } from '@/features/chat/lib/mediaFrame';
+import { blurhashToDataUrl, readBlurhash } from '@/shared/lib/blurhash';
 import { useMediaViewer } from '../../composables/useMediaViewer';
 
 const props = defineProps<{
@@ -26,6 +27,19 @@ const frameStyle = computed(() => {
     fallbackWidth: 250,
     fallbackHeight: 180,
   });
+});
+const placeholderStyle = computed(() => {
+  const blurhash = readBlurhash(content.value?.info);
+  if (!blurhash) return undefined;
+
+  const dataUrl = blurhashToDataUrl(blurhash);
+  if (!dataUrl) return undefined;
+
+  return {
+    backgroundImage: `url("${dataUrl}")`,
+    backgroundPosition: 'center',
+    backgroundSize: 'cover',
+  };
 });
 
 watch(
@@ -76,7 +90,7 @@ const duration = computed(() => {
       muted
       class="h-full w-full object-cover pointer-events-none"
     />
-    <div v-else class="h-full w-full bg-muted animate-pulse rounded-lg" />
+    <div v-else class="h-full w-full bg-muted animate-pulse rounded-lg" :style="placeholderStyle" />
     <div class="absolute inset-0 flex items-center justify-center">
       <div class="w-10 h-10 rounded-full bg-black/50 flex items-center justify-center">
         <Play :size="20" class="text-white ml-0.5" />

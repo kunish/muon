@@ -5,10 +5,11 @@
   "private": true,
   "scripts": {
     "build": "tsc --noEmit --project tsconfig.json",
-    "dev": "tsx src/server.ts",
+    "dev": "node --env-file=../../docker/.env --import tsx src/server.ts",
     "test": "vitest run"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "catalog:",
     "@muon/enterprise-contracts": "workspace:*",
     "effect": "catalog:",
     "pg": "catalog:",

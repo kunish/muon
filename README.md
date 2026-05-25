@@ -142,6 +142,25 @@ login page. After successful login, the API redirects to
 renderer, and the renderer exchanges the one-time code for a Muon session plus a
 Matrix session.
 
+Media uploads can be routed through the Muon API to an S3-compatible service.
+The desktop app reads `VITE_MUON_MEDIA_UPLOAD_URL`; local development points it
+at `http://127.0.0.1:8787/api/media/upload`. The API stores objects with
+server-only `MUON_S3_*` env vars and defaults to the local development endpoint
+`https://s3.kunish.eu.org`; `docker/.env` points at bucket `bkt1`:
+
+```bash
+MUON_S3_ACCESS_KEY_ID=... \
+MUON_S3_SECRET_ACCESS_KEY=... \
+pnpm dev
+```
+
+`pnpm dev` starts the API locally, and the API dev script loads `docker/.env`.
+Restart `pnpm dev` after changing `MUON_S3_*` values so the running API process
+sees the new credentials.
+
+Set `MUON_S3_PUBLIC_BASE_URL` when the public object URL is not
+`<endpoint>/<bucket>/<key>`.
+
 Run enterprise-focused tests:
 
 ```bash

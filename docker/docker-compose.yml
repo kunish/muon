@@ -49,6 +49,8 @@ services:
   api:
     image: node:22-alpine
     working_dir: /workspace
+    env_file:
+      - .env
     command: sh -lc "corepack enable && pnpm install --frozen-lockfile=false && pnpm dev:api"
     ports:
       - '8787:8787'

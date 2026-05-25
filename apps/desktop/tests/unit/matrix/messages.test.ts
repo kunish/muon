@@ -145,6 +145,69 @@ describe('messages', () => {
     })
   })
 
+  it('should include image blurhash when sending image messages', async () => {
+    mockExtractImageMeta.mockResolvedValueOnce({
+      width: 640,
+      height: 360,
+      blurhash: 'LEHV6nWB2yk8pyo0adR*.7kCMdnj',
+    })
+    const { sendImageMessage } = await import('@/matrix/messages')
+    const file = new File(['image'], 'poster.png', { type: 'image/png' })
+
+    await sendImageMessage('!room:localhost', file)
+
+    expect(mockSendMessage).toHaveBeenCalledWith('!room:localhost', {
+      msgtype: 'm.image',
+      body: 'poster.png',
+      url: 'mxc://server/media',
+      info: {
+        mimetype: 'image/png',
+        size: file.size,
+        w: 640,
+        h: 360,
+        'com.muon.blurhash': 'LEHV6nWB2yk8pyo0adR*.7kCMdnj',
+      },
+      'xyz.muon.file_hash': expect.any(String),
+    })
+  })
+
+  it('should include video thumbnail blurhash when sending video messages', async () => {
+    const { sendVideoMessage } = await import('@/matrix/messages')
+    const file = new File(['video'], 'demo.mp4', { type: 'video/mp4' })
+    const thumbnail = new Blob(['thumb'], { type: 'image/jpeg' })
+
+    await sendVideoMessage('!room:localhost', file, {
+      duration: 3000,
+      height: 1080,
+      thumbnail,
+      thumbnailBlurhash: 'LEHV6nWB2yk8pyo0adR*.7kCMdnj',
+      width: 1920,
+    })
+
+    expect(mockUploadMedia).toHaveBeenNthCalledWith(1, file)
+    expect(mockUploadMedia).toHaveBeenNthCalledWith(2, thumbnail)
+    expect(mockSendMessage).toHaveBeenCalledWith('!room:localhost', {
+      msgtype: 'm.video',
+      body: 'demo.mp4',
+      url: 'mxc://server/media',
+      info: {
+        duration: 3000,
+        h: 1080,
+        mimetype: 'video/mp4',
+        size: file.size,
+        thumbnail_info: {
+          h: 1080,
+          mimetype: 'image/jpeg',
+          w: 1920,
+        },
+        thumbnail_url: 'mxc://server/media',
+        w: 1920,
+        'com.muon.blurhash': 'LEHV6nWB2yk8pyo0adR*.7kCMdnj',
+      },
+      'xyz.muon.file_hash': expect.any(String),
+    })
+  })
+
   it('should redact a message', async () => {
     const { redactMessage } = await import('@/matrix/messages')
     await redactMessage('!room:localhost', '$event1', 'spam')

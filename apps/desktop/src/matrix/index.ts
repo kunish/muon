@@ -24,7 +24,14 @@ export type {
 export { matrixEvents } from './events'
 export { loadInboxEventContext } from './inbox'
 export type { InboxEventContext } from './inbox'
-export { downloadMedia, extractImageMeta, extractVideoMeta, fetchMediaBlobUrl, uploadMedia } from './media'
+export {
+  downloadMedia,
+  extractImageMeta,
+  extractVideoMeta,
+  fetchMediaBlobUrl,
+  getInstantMediaBlobUrl,
+  uploadMedia,
+} from './media'
 export {
   canMergeSystemEvents,
   editMessage,

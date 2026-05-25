@@ -10,6 +10,14 @@ describe('vite config', () => {
     expect(optimizeDepsInclude).toContain('date-fns/locale')
   })
 
+  it('loads renderer VITE env files from the repository root', () => {
+    const viteConfig = readDesktopSource('vite.config.ts')
+    const electronViteConfig = readDesktopSource('electron.vite.config.ts')
+
+    expect(viteConfig).toContain("envDir: resolve(__dirname, '../..')")
+    expect(electronViteConfig).toContain("envDir: resolve(__dirname, '../..')")
+  })
+
   it('keeps shared UI aliases on package entry points instead of direct Vue files', () => {
     const tsconfig = readDesktopJson('tsconfig.json') as {
       compilerOptions?: { paths?: Record<string, string[]> }

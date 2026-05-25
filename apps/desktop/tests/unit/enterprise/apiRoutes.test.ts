@@ -33,6 +33,65 @@ async function installAndLogin(handler: ReturnType<typeof createEnterpriseHttpHa
 }
 
 describe('enterprise api routes', () => {
+  it('uploads media bytes through the configured storage service', async () => {
+    const uploads: Array<{
+      bytes: ArrayBuffer
+      contentType: string
+      fileName: string
+    }> = []
+    const handler = createEnterpriseHttpHandler({
+      mediaStorage: {
+        upload: async (input) => {
+          uploads.push(input)
+          return {
+            key: 'media/2026/05/avatar.png',
+            url: 'https://s3.kunish.eu.org/muon-media/media/2026/05/avatar.png',
+          }
+        },
+      },
+    })
+
+    const response = await handler.fetch(
+      new Request('http://muon.test/api/media/upload', {
+        method: 'POST',
+        headers: {
+          'content-type': 'image/png',
+          origin: 'http://127.0.0.1:1420',
+          'x-muon-file-name': 'avatar.png',
+        },
+        body: new Uint8Array([1, 2, 3]),
+      }),
+    )
+
+    expect(response.status).toBe(201)
+    expect(response.headers.get('access-control-allow-origin')).toBe('http://127.0.0.1:1420')
+    expect(await response.json()).toEqual({
+      key: 'media/2026/05/avatar.png',
+      url: 'https://s3.kunish.eu.org/muon-media/media/2026/05/avatar.png',
+    })
+    expect(uploads).toHaveLength(1)
+    expect(Array.from(new Uint8Array(uploads[0].bytes))).toEqual([1, 2, 3])
+    expect(uploads[0]).toMatchObject({
+      contentType: 'image/png',
+      fileName: 'avatar.png',
+    })
+  })
+
+  it('reports media upload as unavailable when storage is not configured', async () => {
+    const handler = createEnterpriseHttpHandler()
+
+    const response = await handler.fetch(
+      new Request('http://muon.test/api/media/upload', {
+        method: 'POST',
+        headers: { 'content-type': 'image/png' },
+        body: new Uint8Array([1]),
+      }),
+    )
+
+    expect(response.status).toBe(503)
+    expect(await response.json()).toEqual({ error: 'Media storage is not configured' })
+  })
+
   it('allows the standalone admin web origin to call the api', async () => {
     const handler = createEnterpriseHttpHandler()
 

@@ -1,6 +1,6 @@
 import type { MatrixEvent } from 'matrix-js-sdk'
 import { mount } from '@vue/test-utils'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { fetchMediaBlobUrlMock } = vi.hoisted(() => ({
   fetchMediaBlobUrlMock: vi.fn(),
@@ -16,7 +16,54 @@ function createVideoEvent(content: Record<string, unknown>): MatrixEvent {
   } as unknown as MatrixEvent
 }
 
+function mockCanvasDataUrl(dataUrl = 'data:image/png;base64,blurhash'): void {
+  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(
+    () =>
+      ({
+        createImageData: (width: number, height: number) => ({
+          data: new Uint8ClampedArray(width * height * 4),
+        }),
+        putImageData: vi.fn(),
+      }) as unknown as CanvasRenderingContext2D,
+  )
+  vi.spyOn(HTMLCanvasElement.prototype, 'toDataURL').mockReturnValue(dataUrl)
+}
+
 describe('video message layout', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    fetchMediaBlobUrlMock.mockReset()
+  })
+
+  it('renders a blurhash placeholder while video media is loading', async () => {
+    mockCanvasDataUrl()
+    fetchMediaBlobUrlMock.mockReturnValue(new Promise(() => {}))
+
+    const VideoMessage = (await import('@/features/chat/components/messages/VideoMessage.vue')).default
+    const wrapper = mount(VideoMessage, {
+      props: {
+        event: createVideoEvent({
+          msgtype: 'm.video',
+          body: 'demo.mp4',
+          url: 'mxc://server/video-id',
+          info: {
+            mimetype: 'video/mp4',
+            w: 1920,
+            h: 1080,
+            duration: 3000,
+            'com.muon.blurhash': 'LEHV6nWB2yk8pyo0adR*.7kCMdnj',
+          },
+        }),
+      },
+    })
+
+    const placeholderStyle = wrapper.get('.animate-pulse').attributes('style') ?? ''
+    expect(placeholderStyle).toContain('background-image: url(')
+    expect(placeholderStyle).toContain('data:image/')
+
+    wrapper.unmount()
+  })
+
   it('reserves the video frame size from Matrix metadata before media loads', async () => {
     fetchMediaBlobUrlMock.mockResolvedValue('blob:video')
 

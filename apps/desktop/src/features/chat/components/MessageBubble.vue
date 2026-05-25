@@ -146,7 +146,7 @@ const isImageSticker = computed(() => {
   const content = props.event.getContent();
   const url = content?.url || '';
   const mimetype = content?.info?.mimetype || '';
-  return url.startsWith('mxc://') && mimetype.startsWith('image/');
+  return /^(?:mxc|https?):\/\//.test(url) && mimetype.startsWith('image/');
 });
 const imageStickerMxcUrl = computed(() => {
   if (!isImageSticker.value) return undefined;

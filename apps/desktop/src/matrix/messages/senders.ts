@@ -5,6 +5,7 @@ import { htmlToPlainText, sanitizeMatrixHtml } from '@muon/rich-text'
 import { Effect } from 'effect'
 import { EventType, MsgType, RelationType } from 'matrix-js-sdk'
 import { fetch as desktopFetch } from '@/desktop/http'
+import { BLURHASH_INFO_KEY } from '@/shared/lib/blurhash'
 import { fromPromise, fromSync, runDesktopEffect } from '@/shared/lib/effect'
 import { computeSha256, escapeHtml } from '@/shared/lib/utils'
 import { getClient } from '../client'
@@ -107,13 +108,14 @@ export function sendImageMessageEffect(roomId: string, file: File): DesktopEffec
       ),
     )
     const mxcUrl = yield* fromPromise(() => uploadMedia(file))
-    const info: { mimetype: string; size: number; w?: number; h?: number } = {
+    const info: { mimetype: string; size: number; w?: number; h?: number; [BLURHASH_INFO_KEY]?: string } = {
       mimetype: file.type,
       size: file.size,
     }
     if (meta) {
       info.w = meta.width
       info.h = meta.height
+      if (meta.blurhash) info[BLURHASH_INFO_KEY] = meta.blurhash
     }
     // Hash for server-side deduplication (秒传)
     const fileHash = yield* computeFileHashEffect(file)
@@ -158,15 +160,16 @@ export function sendFileMessage(roomId: string, file: File): Promise<string> {
 export function sendVideoMessageEffect(
   roomId: string,
   file: File,
-  meta?: { thumbnail: Blob; width: number; height: number; duration: number },
+  meta?: { thumbnail: Blob; width: number; height: number; duration: number; thumbnailBlurhash?: string },
 ): DesktopEffect<string> {
   return Effect.gen(function* () {
     const mxcUrl = yield* fromPromise(() => uploadMedia(file))
-    const info: VideoInfo = { mimetype: file.type, size: file.size }
+    const info: VideoInfo & { [BLURHASH_INFO_KEY]?: string } = { mimetype: file.type, size: file.size }
     if (meta) {
       info.w = meta.width
       info.h = meta.height
       info.duration = meta.duration
+      if (meta.thumbnailBlurhash) info[BLURHASH_INFO_KEY] = meta.thumbnailBlurhash
       info.thumbnail_url = yield* fromPromise(() => uploadMedia(meta.thumbnail))
       info.thumbnail_info = {
         mimetype: 'image/jpeg',
@@ -191,7 +194,7 @@ export function sendVideoMessageEffect(
 export function sendVideoMessage(
   roomId: string,
   file: File,
-  meta?: { thumbnail: Blob; width: number; height: number; duration: number },
+  meta?: { thumbnail: Blob; width: number; height: number; duration: number; thumbnailBlurhash?: string },
 ): Promise<string> {
   return runDesktopEffect(sendVideoMessageEffect(roomId, file, meta))
 }
