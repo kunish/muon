@@ -347,6 +347,44 @@ describe('workspace secondary pages', () => {
     expect(wrapper.text()).toContain('@new-member:localhost')
   })
 
+  it('routes organization search to group results when the query only matches groups', async () => {
+    const wrapper = mount(OrganizationPage)
+
+    await wrapper.get('[data-testid="organization-search-input"]').setValue('技术')
+
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain('技术交流群')
+    })
+
+    expect(wrapper.text()).toContain('团队群组')
+    expect(wrapper.text()).not.toContain('未找到匹配成员')
+  })
+
+  it('labels organization icon-only actions for assistive technology', async () => {
+    const wrapper = mount(OrganizationPage)
+
+    await wrapper.get('[data-testid="organization-section-members"]').trigger('click')
+    await wrapper.get('[data-testid="organization-new-member"]').trigger('click')
+
+    expect(wrapper.get('button[aria-label="关闭成员编辑"]').exists()).toBe(true)
+
+    await wrapper.get('[data-testid="organization-member-name-input"]').setValue('可访问成员')
+    await wrapper.get('[data-testid="organization-member-id-input"]').setValue('@accessible-member:localhost')
+    await wrapper.get('[data-testid="organization-member-save"]').trigger('click')
+
+    expect(
+      wrapper.get('[data-testid="organization-edit-member--accessible-member-localhost"]').attributes('aria-label'),
+    ).toBe('编辑成员 可访问成员')
+    expect(
+      wrapper.get('[data-testid="organization-delete-member--accessible-member-localhost"]').attributes('aria-label'),
+    ).toBe('删除成员 可访问成员')
+
+    await wrapper.get('[data-testid="organization-section-groups"]').trigger('click')
+    await wrapper.get('[data-testid="organization-new-group"]').trigger('click')
+
+    expect(wrapper.get('button[aria-label="关闭团队编辑"]').exists()).toBe(true)
+  })
+
   it('lets organization security shortcut focus the member governance panel', async () => {
     const wrapper = mount(OrganizationPage)
 

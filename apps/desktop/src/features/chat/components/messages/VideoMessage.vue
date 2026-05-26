@@ -19,6 +19,7 @@ const content = computed(() => props.event.getContent());
 const thumbBlobUrl = ref('');
 const videoBlobUrl = ref('');
 const loading = ref(false);
+let mediaLoadRun = 0;
 const frameStyle = computed(() => {
   const info = content.value?.info as { w?: unknown; h?: unknown } | undefined;
   return getMediaFrameStyle(info, {
@@ -45,15 +46,33 @@ const placeholderStyle = computed(() => {
 watch(
   content,
   async (c) => {
-    const thumbMxc = c?.info?.thumbnail_url;
-    if (thumbMxc) thumbBlobUrl.value = await fetchMediaBlobUrl(thumbMxc, 300, 200);
+    const run = ++mediaLoadRun;
+    thumbBlobUrl.value = '';
+    videoBlobUrl.value = '';
+    loading.value = false;
 
+    const thumbMxc = c?.info?.thumbnail_url;
     const videoMxc = c?.url;
-    if (videoMxc) {
+    if (!thumbMxc && !videoMxc) return;
+
+    const loadThumb = async () => {
+      if (!thumbMxc) return;
+      const src = await fetchMediaBlobUrl(thumbMxc, 300, 200);
+      if (run === mediaLoadRun) thumbBlobUrl.value = src;
+    };
+
+    const loadVideo = async () => {
+      if (!videoMxc) return;
       loading.value = true;
-      videoBlobUrl.value = await fetchMediaBlobUrl(videoMxc);
-      loading.value = false;
-    }
+      try {
+        const src = await fetchMediaBlobUrl(videoMxc);
+        if (run === mediaLoadRun) videoBlobUrl.value = src;
+      } finally {
+        if (run === mediaLoadRun) loading.value = false;
+      }
+    };
+
+    await Promise.allSettled([loadThumb(), loadVideo()]);
   },
   { immediate: true },
 );

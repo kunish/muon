@@ -49,7 +49,7 @@ export default defineConfig({
   },
   envPrefix: ['VITE_', 'ELECTRON_'],
   build: {
-    target: ['es2021', 'chrome100', 'safari13'],
+    target: 'chrome100',
     minify: !process.env.ELECTRON_DEBUG ? 'esbuild' : false,
     sourcemap: !!process.env.ELECTRON_DEBUG,
     cssMinify: !process.env.ELECTRON_DEBUG,

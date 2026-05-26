@@ -28,11 +28,23 @@ export interface EnterpriseHttpEffectHandler {
 }
 
 export interface EnterpriseHttpHandlerOptions {
+  corsAllowedOrigins?: string[]
   matrix?: MatrixProvisioningAdapter
   matrixServerUrl?: string
+  maxMediaUploadBytes?: number
   mediaStorage?: MediaStorageService
   repository?: EnterpriseRepository
 }
+
+const DEFAULT_CORS_ALLOWED_ORIGINS = [
+  'http://127.0.0.1:1420',
+  'http://localhost:1420',
+  'http://127.0.0.1:4174',
+  'http://localhost:4174',
+]
+const DEFAULT_MAX_MEDIA_UPLOAD_BYTES = 25 * 1024 * 1024
+
+class MediaUploadTooLargeError extends Error {}
 
 function defaultMatrixAdapter(): MatrixProvisioningAdapter {
   return {
@@ -63,26 +75,52 @@ function errorResponse(error: unknown): Response {
 
   if (error instanceof MustChangePasswordError) return jsonResponse({ error: error.code }, { status: 403 })
 
+  if (error instanceof MediaUploadTooLargeError) return jsonResponse({ error: error.message }, { status: 413 })
+
   const message = error instanceof Error ? error.message : 'Unexpected error'
   const status = /credentials|not found|invalid/i.test(message) ? 400 : 409
   return jsonResponse({ error: message }, { status })
 }
 
-function corsHeaders(request: Request): Record<string, string> {
+function normalizeOrigin(value: string): string | null {
+  try {
+    return new URL(value).origin
+  } catch {
+    return null
+  }
+}
+
+function corsHeaders(request: Request, allowedOrigins: ReadonlySet<string>): Record<string, string> {
   const origin = request.headers.get('origin')
   if (!origin) return {}
+
+  const normalizedOrigin = normalizeOrigin(origin)
+  if (!normalizedOrigin || !allowedOrigins.has(normalizedOrigin)) return {}
 
   return {
     'access-control-allow-headers': 'authorization, content-type, x-muon-file-name',
     'access-control-allow-methods': 'GET, POST, PATCH, OPTIONS',
-    'access-control-allow-origin': origin,
+    'access-control-allow-origin': normalizedOrigin,
     'access-control-max-age': '600',
   }
 }
 
-function withCors(response: Response, request: Request): Response {
+function appendVary(headers: Headers, value: string): void {
+  const existing = headers.get('vary')
+  if (!existing) {
+    headers.set('vary', value)
+    return
+  }
+  const values = existing.split(',').map((item) => item.trim().toLowerCase())
+  if (!values.includes(value.toLowerCase())) {
+    headers.set('vary', `${existing}, ${value}`)
+  }
+}
+
+function withCors(response: Response, request: Request, allowedOrigins: ReadonlySet<string>): Response {
   const headers = new Headers(response.headers)
-  for (const [key, value] of Object.entries(corsHeaders(request))) headers.set(key, value)
+  appendVary(headers, 'Origin')
+  for (const [key, value] of Object.entries(corsHeaders(request, allowedOrigins))) headers.set(key, value)
   return new Response(response.body, {
     headers,
     status: response.status,
@@ -154,11 +192,19 @@ function decodeHeaderValue(value: string | null, fallback: string): string {
   }
 }
 
-function readMediaUploadEffect(request: Request) {
+function readMediaUploadEffect(request: Request, maxBytes: number) {
   return Effect.gen(function* () {
+    const contentLength = Number(request.headers.get('content-length') ?? '')
+    if (Number.isFinite(contentLength) && contentLength > maxBytes) {
+      return yield* Effect.fail(new MediaUploadTooLargeError(`Media file exceeds ${maxBytes} bytes`))
+    }
+
     const bytes = yield* fromPromise(() => request.arrayBuffer())
     if (bytes.byteLength === 0) {
       return yield* Effect.fail(new Error('Media file is empty'))
+    }
+    if (bytes.byteLength > maxBytes) {
+      return yield* Effect.fail(new MediaUploadTooLargeError(`Media file exceeds ${maxBytes} bytes`))
     }
 
     return {
@@ -167,6 +213,10 @@ function readMediaUploadEffect(request: Request) {
       fileName: decodeHeaderValue(request.headers.get('x-muon-file-name'), 'upload'),
     }
   })
+}
+
+function htmlAttribute(value: string): string {
+  return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
 function oauthAuthorizePage(url: URL): Response {
@@ -198,11 +248,11 @@ function oauthAuthorizePage(url: URL): Response {
     <h1>Muon 企业登录</h1>
     <p>登录后将自动返回桌面客户端。</p>
     <form method="post" action="/api/oauth/login">
-      <input type="hidden" name="clientId" value="${clientId}">
-      <input type="hidden" name="redirectUri" value="${redirectUri}">
-      <input type="hidden" name="codeChallenge" value="${codeChallenge}">
-      <input type="hidden" name="codeChallengeMethod" value="${codeChallengeMethod}">
-      <input type="hidden" name="state" value="${state}">
+      <input type="hidden" name="clientId" value="${htmlAttribute(clientId)}">
+      <input type="hidden" name="redirectUri" value="${htmlAttribute(redirectUri)}">
+      <input type="hidden" name="codeChallenge" value="${htmlAttribute(codeChallenge)}">
+      <input type="hidden" name="codeChallengeMethod" value="${htmlAttribute(codeChallengeMethod)}">
+      <input type="hidden" name="state" value="${htmlAttribute(state)}">
       <label>组织标识<input name="organizationSlug" autocomplete="organization" required></label>
       <label>用户名<input name="username" autocomplete="username" required></label>
       <label>密码<input name="password" type="password" autocomplete="current-password" required></label>
@@ -226,6 +276,8 @@ export function createEnterpriseHttpEffectHandler(
 ): EnterpriseHttpEffectHandler {
   const repository = options.repository ?? createInMemoryEnterpriseRepository()
   const mediaStorage = options.mediaStorage
+  const allowedOrigins = new Set(options.corsAllowedOrigins ?? DEFAULT_CORS_ALLOWED_ORIGINS)
+  const maxMediaUploadBytes = options.maxMediaUploadBytes ?? DEFAULT_MAX_MEDIA_UPLOAD_BYTES
   const installService = createInstallEffectService({ repository })
   const adminSessionService = createAdminSessionEffectService({ repository })
   const organizationService = createOrganizationEffectService({ repository })
@@ -252,6 +304,10 @@ export function createEnterpriseHttpEffectHandler(
     })
   }
 
+  function methodNotAllowedWithCors(request: Request): Response {
+    return withCors(methodNotAllowed(), request, allowedOrigins)
+  }
+
   return {
     repository,
 
@@ -259,29 +315,34 @@ export function createEnterpriseHttpEffectHandler(
       const url = new URL(request.url)
 
       return Effect.gen(function* () {
-        if (request.method === 'OPTIONS') return withCors(new Response(null, { status: 204 }), request)
+        if (request.method === 'OPTIONS') return withCors(new Response(null, { status: 204 }), request, allowedOrigins)
 
         if (url.pathname === '/api/media/upload') {
-          if (request.method !== 'POST') return methodNotAllowed()
-          if (!mediaStorage) return withCors(serviceUnavailable('Media storage is not configured'), request)
+          if (request.method !== 'POST') return methodNotAllowedWithCors(request)
+          if (!mediaStorage)
+            return withCors(serviceUnavailable('Media storage is not configured'), request, allowedOrigins)
 
-          const upload = yield* readMediaUploadEffect(request)
-          return withCors(jsonResponse(yield* fromPromise(() => mediaStorage.upload(upload)), { status: 201 }), request)
+          const upload = yield* readMediaUploadEffect(request, maxMediaUploadBytes)
+          return withCors(
+            jsonResponse(yield* fromPromise(() => mediaStorage.upload(upload)), { status: 201 }),
+            request,
+            allowedOrigins,
+          )
         }
 
         if (url.pathname === '/api/install/status') {
-          if (request.method !== 'GET') return methodNotAllowed()
-          return withCors(jsonResponse(yield* installService.status()), request)
+          if (request.method !== 'GET') return methodNotAllowedWithCors(request)
+          return withCors(jsonResponse(yield* installService.status()), request, allowedOrigins)
         }
 
         if (url.pathname === '/api/install') {
-          if (request.method !== 'POST') return methodNotAllowed()
+          if (request.method !== 'POST') return methodNotAllowedWithCors(request)
           const result = yield* installService.install((yield* readRequestBodyEffect(request)) as never)
-          return withCors(jsonResponse(result, { status: 201 }), request)
+          return withCors(jsonResponse(result, { status: 201 }), request, allowedOrigins)
         }
 
         if (url.pathname === '/api/admin/login') {
-          if (request.method !== 'POST') return methodNotAllowed()
+          if (request.method !== 'POST') return methodNotAllowedWithCors(request)
           const result = yield* adminSessionService.login((yield* readRequestBodyEffect(request)) as never)
           return withCors(
             jsonResponse({
@@ -289,17 +350,18 @@ export function createEnterpriseHttpEffectHandler(
               user: repository.getPublicUser(result.user),
             }),
             request,
+            allowedOrigins,
           )
         }
 
         if (url.pathname === '/api/admin/me') {
-          if (request.method !== 'GET') return methodNotAllowed()
+          if (request.method !== 'GET') return methodNotAllowedWithCors(request)
           const user = yield* requireAdmin(request)
-          return withCors(jsonResponse({ user: repository.getPublicUser(user) }), request)
+          return withCors(jsonResponse({ user: repository.getPublicUser(user) }), request, allowedOrigins)
         }
 
         if (url.pathname === '/api/admin/logout') {
-          if (request.method !== 'POST') return methodNotAllowed()
+          if (request.method !== 'POST') return methodNotAllowedWithCors(request)
           const user = yield* requireAdmin(request)
           const token = bearerToken(request) ?? ''
           yield* adminSessionService.revoke(token)
@@ -312,16 +374,16 @@ export function createEnterpriseHttpEffectHandler(
               targetId: user.id,
             }),
           )
-          return withCors(jsonResponse({ ok: true }), request)
+          return withCors(jsonResponse({ ok: true }), request, allowedOrigins)
         }
 
         if (url.pathname === '/api/admin/me/password') {
-          if (request.method !== 'POST') return methodNotAllowed()
+          if (request.method !== 'POST') return methodNotAllowedWithCors(request)
           const user = yield* requireAdmin(request)
           const updated = yield* userService.changeOwnPassword(user, (yield* readRequestBodyEffect(request)) as never)
           const token = bearerToken(request) ?? ''
           yield* adminSessionService.revokeOthersForUser(token)
-          return withCors(jsonResponse({ user: updated }), request)
+          return withCors(jsonResponse({ user: updated }), request, allowedOrigins)
         }
 
         if (url.pathname === '/api/admin/organizations') {
@@ -332,6 +394,7 @@ export function createEnterpriseHttpEffectHandler(
                 organizations: yield* fromPromise(() => repository.listOrganizations()),
               }),
               request,
+              allowedOrigins,
             )
           }
           if (request.method === 'POST') {
@@ -339,9 +402,9 @@ export function createEnterpriseHttpEffectHandler(
               actor,
               (yield* readRequestBodyEffect(request)) as never,
             )
-            return withCors(jsonResponse(result, { status: 201 }), request)
+            return withCors(jsonResponse(result, { status: 201 }), request, allowedOrigins)
           }
-          return methodNotAllowed()
+          return methodNotAllowedWithCors(request)
         }
 
         if (url.pathname === '/api/admin/users') {
@@ -353,40 +416,41 @@ export function createEnterpriseHttpEffectHandler(
                 users: users.map((user) => repository.getPublicUser(user)),
               }),
               request,
+              allowedOrigins,
             )
           }
           if (request.method === 'POST') {
             const user = yield* userService.createUser(actor, (yield* readRequestBodyEffect(request)) as never)
-            return withCors(jsonResponse({ user }, { status: 201 }), request)
+            return withCors(jsonResponse({ user }, { status: 201 }), request, allowedOrigins)
           }
-          return methodNotAllowed()
+          return methodNotAllowedWithCors(request)
         }
 
         const userRoute = adminUserRoute(url.pathname)
         if (userRoute) {
           const actor = yield* requireFullyAuthorizedAdmin(request)
           if (userRoute.password) {
-            if (request.method !== 'POST') return methodNotAllowed()
+            if (request.method !== 'POST') return methodNotAllowedWithCors(request)
             const user = yield* userService.resetUserPassword(
               actor,
               userRoute.userId,
               (yield* readRequestBodyEffect(request)) as never,
             )
-            return withCors(jsonResponse({ user }), request)
+            return withCors(jsonResponse({ user }), request, allowedOrigins)
           }
-          if (request.method !== 'PATCH') return methodNotAllowed()
+          if (request.method !== 'PATCH') return methodNotAllowedWithCors(request)
           const user = yield* userService.updateUser(
             actor,
             userRoute.userId,
             (yield* readRequestBodyEffect(request)) as never,
           )
-          return withCors(jsonResponse({ user }), request)
+          return withCors(jsonResponse({ user }), request, allowedOrigins)
         }
 
         const sessionsRoute = adminUserSessionsRoute(url.pathname)
         if (sessionsRoute && !sessionsRoute.sessionId) {
           const actor = yield* requireFullyAuthorizedAdmin(request)
-          if (request.method !== 'GET') return methodNotAllowed()
+          if (request.method !== 'GET') return methodNotAllowedWithCors(request)
           const sessions = yield* fromPromise(() =>
             repository.findActiveDeviceSessionsByUser(actor.organizationId, sessionsRoute.userId),
           )
@@ -395,15 +459,18 @@ export function createEnterpriseHttpEffectHandler(
               sessions: sessions.map(toDeviceSessionPublic),
             }),
             request,
+            allowedOrigins,
           )
         }
 
         if (sessionsRoute && sessionsRoute.sessionId) {
           const actor = yield* requireFullyAuthorizedAdmin(request)
-          if (request.method !== 'DELETE') return methodNotAllowed()
+          if (request.method !== 'DELETE') return methodNotAllowedWithCors(request)
           const sessionId = sessionsRoute.sessionId
           const session = yield* fromPromise(() => repository.findDeviceSessionById(sessionId))
-          if (!session || session.organizationId !== actor.organizationId) return withCors(notFound(), request)
+          if (!session || session.organizationId !== actor.organizationId) {
+            return withCors(notFound(), request, allowedOrigins)
+          }
           yield* fromPromise(() => repository.revokeDeviceSession(sessionId))
           yield* fromPromise(() =>
             repository.appendAuditLog({
@@ -414,27 +481,28 @@ export function createEnterpriseHttpEffectHandler(
               targetId: sessionId,
             }),
           )
-          return withCors(jsonResponse({ ok: true }), request)
+          return withCors(jsonResponse({ ok: true }), request, allowedOrigins)
         }
 
         if (url.pathname === '/api/admin/audit-logs') {
-          if (request.method !== 'GET') return methodNotAllowed()
+          if (request.method !== 'GET') return methodNotAllowedWithCors(request)
           const actor = yield* requireFullyAuthorizedAdmin(request)
           return withCors(
             jsonResponse({
               auditLogs: yield* fromPromise(() => repository.listAuditLogsByOrganization(actor.organizationId)),
             }),
             request,
+            allowedOrigins,
           )
         }
 
         if (url.pathname === '/api/oauth/authorize') {
-          if (request.method !== 'GET') return methodNotAllowed()
-          return withCors(oauthAuthorizePage(url), request)
+          if (request.method !== 'GET') return methodNotAllowedWithCors(request)
+          return withCors(oauthAuthorizePage(url), request, allowedOrigins)
         }
 
         if (url.pathname === '/api/oauth/login') {
-          if (request.method !== 'POST') return methodNotAllowed()
+          if (request.method !== 'POST') return methodNotAllowedWithCors(request)
           const result = yield* oauthService.loginAndCreateCode((yield* readRequestBodyEffect(request)) as never)
           if ((request.headers.get('content-type') ?? '').includes('application/x-www-form-urlencoded')) {
             return withCors(
@@ -443,27 +511,29 @@ export function createEnterpriseHttpEffectHandler(
                 headers: { location: result.redirectUri },
               }),
               request,
+              allowedOrigins,
             )
           }
-          return withCors(jsonResponse(result), request)
+          return withCors(jsonResponse(result), request, allowedOrigins)
         }
 
         if (url.pathname === '/api/oauth/token') {
-          if (request.method !== 'POST') return methodNotAllowed()
+          if (request.method !== 'POST') return methodNotAllowedWithCors(request)
           return withCors(
             jsonResponse(yield* oauthService.exchangeCode((yield* readRequestBodyEffect(request)) as never)),
             request,
+            allowedOrigins,
           )
         }
 
         if (url.pathname === '/api/oauth/refresh') {
-          if (request.method !== 'POST') return methodNotAllowed()
+          if (request.method !== 'POST') return methodNotAllowedWithCors(request)
           const result = yield* oauthService.refresh((yield* readRequestBodyEffect(request)) as never)
-          return withCors(jsonResponse(result), request)
+          return withCors(jsonResponse(result), request, allowedOrigins)
         }
 
-        return withCors(notFound(), request)
-      }).pipe(Effect.catchAll((error) => Effect.succeed(withCors(errorResponse(error), request))))
+        return withCors(notFound(), request, allowedOrigins)
+      }).pipe(Effect.catchAll((error) => Effect.succeed(withCors(errorResponse(error), request, allowedOrigins))))
     },
   }
 }

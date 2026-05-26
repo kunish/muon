@@ -1,5 +1,5 @@
 import { mount } from '@vue/test-utils'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import ChatMessage from '@/features/chat/components/ChatMessage.vue'
 
 const mocks = vi.hoisted(() => ({
@@ -31,6 +31,14 @@ vi.mock('@/desktop/dialog', () => ({
 }))
 
 describe('chatMessage rich media', () => {
+  beforeEach(() => {
+    mocks.fetchMediaBlobUrl.mockReset()
+    mocks.fetchMediaBlobUrl.mockImplementation((url: string, width?: number, height?: number) =>
+      Promise.resolve(width && height ? `blob:thumb:${url}` : `blob:full:${url}`),
+    )
+    mocks.openImage.mockReset()
+  })
+
   it('renders mxc image embeds inside rich text and opens the full image', async () => {
     const event = {
       getId: () => '$rich-media-1',
@@ -87,6 +95,60 @@ describe('chatMessage rich media', () => {
 
     expect(mocks.fetchMediaBlobUrl).toHaveBeenCalledWith('mxc://server/media', 300, 300)
     expect(mocks.fetchMediaBlobUrl).toHaveBeenCalledWith('mxc://server/media')
+
+    await wrapper.get('img[alt="pasted.png"]').trigger('click')
+
+    expect(mocks.openImage).toHaveBeenCalledWith('blob:full:mxc://server/media')
+  })
+
+  it('still opens rich-text image embeds when thumbnail loading fails', async () => {
+    mocks.fetchMediaBlobUrl
+      .mockRejectedValueOnce(new Error('thumbnail failed'))
+      .mockResolvedValueOnce('blob:full:mxc://server/media')
+    const event = {
+      getId: () => '$rich-media-thumb-failure',
+      getType: () => 'm.room.message',
+      getSender: () => '@alice:localhost',
+      getContent: () => ({
+        msgtype: 'm.text',
+        body: 'Caption\n[pasted.png]',
+        format: 'org.matrix.custom.html',
+        formatted_body:
+          '<p>Caption</p><p><img src="mxc://server/media" alt="pasted.png" data-width="640" data-height="360"></p>',
+      }),
+      getTs: () => 1767225600000,
+      isRedacted: () => false,
+    }
+
+    const wrapper = mount(ChatMessage, {
+      props: {
+        event: event as any,
+        isFirst: false,
+        roomId: '!room:localhost',
+      },
+      global: {
+        stubs: {
+          Avatar: true,
+          LinkPreview: true,
+          MessageActionBar: true,
+          ReactionBar: true,
+          AudioMessage: true,
+          ContactCardMessage: true,
+          FileMessage: true,
+          ImageMessage: true,
+          VideoMessage: true,
+        },
+      },
+    })
+
+    await vi.waitFor(
+      () => {
+        expect(wrapper.get('img[alt="pasted.png"]').attributes('data-rich-media-full-src')).toBe(
+          'blob:full:mxc://server/media',
+        )
+      },
+      { timeout: 500 },
+    )
 
     await wrapper.get('img[alt="pasted.png"]').trigger('click')
 

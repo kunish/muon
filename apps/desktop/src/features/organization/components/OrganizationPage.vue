@@ -539,7 +539,24 @@ function openActivity(message: string): void {
 }
 
 watch(searchQuery, (value) => {
-  if (value.trim()) activeSection.value = 'members';
+  const query = value.trim().toLowerCase();
+  if (!query) return;
+
+  const memberMatches = organizationMembers.value.some((member) =>
+    [
+      member.displayName,
+      member.userId,
+      member.role,
+      member.department,
+      member.permissionRole,
+      member.accountStatus,
+    ].some((item) => item.toLowerCase().includes(query)),
+  );
+  const groupMatches = organizationGroups.value.some((group) =>
+    [group.name, group.roomId, group.description].some((item) => item.toLowerCase().includes(query)),
+  );
+
+  activeSection.value = groupMatches && !memberMatches ? 'groups' : 'members';
 });
 
 onMounted(async () => {
@@ -629,6 +646,7 @@ onMounted(async () => {
         <div class="ml-4 flex shrink-0 items-center gap-2">
           <span class="hidden text-[12px] text-muted-foreground sm:inline">{{ actionMessage }}</span>
           <button
+            aria-label="打开成员目录"
             class="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             title="成员目录"
             @click="showMembers"
@@ -637,6 +655,7 @@ onMounted(async () => {
           </button>
           <button
             data-testid="organization-security-shortcut"
+            aria-label="打开安全与权限"
             class="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             title="安全与权限"
             @click="showSecurityGovernance"
@@ -818,6 +837,7 @@ onMounted(async () => {
                   </button>
                   <button
                     type="button"
+                    aria-label="关闭成员编辑"
                     class="flex h-9 w-9 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                     title="取消"
                     @click="memberEditorOpen = false"
@@ -853,6 +873,7 @@ onMounted(async () => {
                   <button
                     :data-testid="`organization-edit-member-${testIdFor(member.userId)}`"
                     type="button"
+                    :aria-label="`编辑成员 ${member.displayName}`"
                     class="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                     title="编辑成员"
                     @click="editMember(member)"
@@ -863,6 +884,7 @@ onMounted(async () => {
                     v-if="member.source !== 'account'"
                     :data-testid="`organization-delete-member-${testIdFor(member.userId)}`"
                     type="button"
+                    :aria-label="`删除成员 ${member.displayName}`"
                     class="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
                     title="删除成员"
                     @click="deleteMember(member)"
@@ -925,6 +947,7 @@ onMounted(async () => {
                   </button>
                   <button
                     type="button"
+                    aria-label="关闭团队编辑"
                     class="flex h-9 w-9 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                     title="取消"
                     @click="groupEditorOpen = false"
@@ -950,6 +973,7 @@ onMounted(async () => {
                   <button
                     :data-testid="`organization-edit-group-${testIdFor(group.roomId)}`"
                     type="button"
+                    :aria-label="`编辑团队 ${group.name}`"
                     class="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                     title="编辑团队"
                     @click="editGroup(group)"
@@ -959,6 +983,7 @@ onMounted(async () => {
                   <button
                     :data-testid="`organization-delete-group-${testIdFor(group.roomId)}`"
                     type="button"
+                    :aria-label="`删除团队 ${group.name}`"
                     class="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
                     title="删除团队"
                     @click="deleteGroup(group)"

@@ -511,8 +511,9 @@ async function hydrateRichMediaImages() {
       if (!mxcUrl) return;
 
       image.loading = 'lazy';
-      const thumbSrc = await fetchMediaBlobUrl(mxcUrl, 300, 300);
-      const fullSrc = await fetchMediaBlobUrl(mxcUrl);
+      const thumbSrcPromise = fetchMediaBlobUrl(mxcUrl, 300, 300).catch(() => '');
+      const fullSrcPromise = fetchMediaBlobUrl(mxcUrl).catch(() => '');
+      const [thumbSrc, fullSrc] = await Promise.all([thumbSrcPromise, fullSrcPromise]);
       if (run !== richMediaHydrationRun) return;
       if (thumbSrc) image.src = thumbSrc;
       if (fullSrc) {

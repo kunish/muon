@@ -13,9 +13,12 @@ import { createEnterpriseHttpEffectHandler } from './routes'
 const config = readEnterpriseApiConfig()
 const port = Number(new URL(config.apiBaseUrl).port || 8787)
 
+class RequestBodyTooLargeError extends Error {}
+
 function handleIncomingRequest(incoming: IncomingMessage) {
   return Effect.gen(function* () {
-    const chunks = yield* readIncomingChunksEffect(incoming)
+    const uploadBodyLimit = mediaUploadBodyLimit(incoming)
+    const chunks = yield* readIncomingChunksEffect(incoming, uploadBodyLimit)
 
     const request = new Request(new URL(incoming.url ?? '/', config.apiBaseUrl), {
       body: incoming.method === 'GET' || incoming.method === 'HEAD' ? undefined : Buffer.concat(chunks),
@@ -26,16 +29,71 @@ function handleIncomingRequest(incoming: IncomingMessage) {
   })
 }
 
-function readIncomingChunksEffect(incoming: IncomingMessage) {
+function mediaUploadBodyLimit(incoming: IncomingMessage): number | undefined {
+  const pathname = new URL(incoming.url ?? '/', config.apiBaseUrl).pathname
+  return incoming.method === 'POST' && pathname === '/api/media/upload' ? config.maxMediaUploadBytes : undefined
+}
+
+function requestBodyTooLarge(maxBytes: number): RequestBodyTooLargeError {
+  return new RequestBodyTooLargeError(`Media file exceeds ${maxBytes} bytes`)
+}
+
+function readIncomingChunksEffect(incoming: IncomingMessage, maxBytes?: number) {
   return fromPromise(
     () =>
       new Promise<Buffer[]>((resolve, reject) => {
         const chunks: Buffer[] = []
-        incoming.on('data', (chunk) => {
-          chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))
-        })
-        incoming.on('end', () => resolve(chunks))
-        incoming.on('error', reject)
+        let totalBytes = 0
+        let settled = false
+
+        function cleanup(): void {
+          incoming.off('data', onData)
+          incoming.off('end', onEnd)
+          incoming.off('error', onError)
+        }
+
+        function rejectTooLarge(): void {
+          if (settled || !maxBytes) return
+          settled = true
+          cleanup()
+          incoming.pause()
+          reject(requestBodyTooLarge(maxBytes))
+        }
+
+        function onData(chunk: Buffer | string): void {
+          if (settled) return
+          const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)
+          totalBytes += buffer.byteLength
+          if (maxBytes && totalBytes > maxBytes) {
+            rejectTooLarge()
+            return
+          }
+          chunks.push(buffer)
+        }
+
+        function onEnd(): void {
+          if (settled) return
+          settled = true
+          cleanup()
+          resolve(chunks)
+        }
+
+        function onError(error: Error): void {
+          if (settled) return
+          settled = true
+          cleanup()
+          reject(error)
+        }
+
+        const contentLength = Number(incoming.headers['content-length'] ?? '')
+        if (maxBytes && Number.isFinite(contentLength) && contentLength > maxBytes) {
+          rejectTooLarge()
+          return
+        }
+
+        incoming.on('data', onData)
+        incoming.on('end', onEnd)
+        incoming.on('error', onError)
       }),
   )
 }
@@ -45,7 +103,9 @@ function mainEffect() {
     const repository = yield* fromPromise(() => createPostgresEnterpriseRepository(config.databaseUrl))
     const mediaStorage = config.mediaStorage ? createS3MediaStorage(config.mediaStorage) : undefined
     const handler = createEnterpriseHttpEffectHandler({
+      corsAllowedOrigins: config.corsAllowedOrigins,
       mediaStorage,
+      maxMediaUploadBytes: config.maxMediaUploadBytes,
       repository,
       matrix: createConduitProvisioningAdapter({ serverUrl: config.matrixServerUrl }),
       matrixServerUrl: config.matrixServerUrl,
@@ -62,6 +122,13 @@ function mainEffect() {
           Effect.catchAll((error) =>
             fromSync(() => {
               console.error('[Muon API] request failed', error)
+              if (error instanceof RequestBodyTooLargeError) {
+                incoming.resume()
+                if (!outgoing.headersSent)
+                  outgoing.writeHead(413, { 'content-type': 'application/json; charset=utf-8' })
+                outgoing.end(JSON.stringify({ error: error.message }))
+                return
+              }
               if (!outgoing.headersSent) outgoing.writeHead(500, { 'content-type': 'application/json; charset=utf-8' })
               outgoing.end(JSON.stringify({ error: 'Internal server error' }))
             }),

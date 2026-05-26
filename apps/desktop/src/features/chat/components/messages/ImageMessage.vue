@@ -18,6 +18,7 @@ const content = computed(() => props.event.getContent());
 const thumbSrc = ref('');
 const fullSrc = ref('');
 const error = ref('');
+let mediaLoadRun = 0;
 
 function shouldFetchAsBlobUrl(url: string): boolean {
   return url.startsWith('mxc://') || url.startsWith('http://') || url.startsWith('https://');
@@ -50,6 +51,7 @@ const placeholderStyle = computed(() => {
 watch(
   () => content.value?.url,
   async (mxc) => {
+    const run = ++mediaLoadRun;
     thumbSrc.value = '';
     fullSrc.value = '';
     error.value = '';
@@ -64,27 +66,43 @@ watch(
           fullSrc.value = instantSrc;
         }
 
-        thumbSrc.value = await fetchMediaBlobUrl(mxc, 300, 300);
-        fullSrc.value = await fetchMediaBlobUrl(mxc);
-        if (!thumbSrc.value || !fullSrc.value) {
+        const thumbSrcPromise = fetchMediaBlobUrl(mxc, 300, 300).catch(() => '');
+        const fullSrcPromise = fetchMediaBlobUrl(mxc);
+        const [loadedThumbSrc, loadedFullSrc] = await Promise.all([thumbSrcPromise, fullSrcPromise]);
+        if (run !== mediaLoadRun) return;
+        thumbSrc.value = loadedThumbSrc || loadedFullSrc;
+        fullSrc.value = loadedFullSrc;
+        if (!loadedFullSrc) {
           throw new Error('Media download failed');
         }
       } else {
         // 兼容历史外链图片/GIF
+        if (run !== mediaLoadRun) return;
         thumbSrc.value = mxc;
         fullSrc.value = mxc;
       }
     } catch (e: unknown) {
+      if (run !== mediaLoadRun) return;
       error.value = e instanceof Error ? e.message : String(e);
       console.error('[ImageMessage] load failed', mxc, e instanceof Error ? e.message : e);
     }
   },
   { immediate: true },
 );
+
+function handleClick() {
+  if (fullSrc.value) openImage(fullSrc.value);
+}
 </script>
 
 <template>
-  <div class="cursor-pointer rounded-lg overflow-hidden max-w-[300px]" :style="frameStyle" @click="openImage(fullSrc)">
+  <div
+    data-testid="image-message-frame"
+    class="rounded-lg overflow-hidden max-w-[300px]"
+    :class="fullSrc ? 'cursor-pointer' : 'cursor-default'"
+    :style="frameStyle"
+    @click="handleClick"
+  >
     <img
       v-if="thumbSrc"
       :src="thumbSrc"

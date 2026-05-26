@@ -92,15 +92,46 @@ describe('enterprise api routes', () => {
     expect(await response.json()).toEqual({ error: 'Media storage is not configured' })
   })
 
+  it('rejects media uploads above the configured size limit before storage writes', async () => {
+    const uploads: unknown[] = []
+    const handler = createEnterpriseHttpHandler({
+      maxMediaUploadBytes: 2,
+      mediaStorage: {
+        upload: async (input) => {
+          uploads.push(input)
+          return {
+            key: 'media/too-large.png',
+            url: 'https://s3.kunish.eu.org/muon-media/media/too-large.png',
+          }
+        },
+      },
+    })
+
+    const response = await handler.fetch(
+      new Request('http://muon.test/api/media/upload', {
+        method: 'POST',
+        headers: { 'content-type': 'image/png' },
+        body: new Uint8Array([1, 2, 3]),
+      }),
+    )
+
+    expect(response.status).toBe(413)
+    expect(await response.json()).toEqual({ error: 'Media file exceeds 2 bytes' })
+    expect(uploads).toHaveLength(0)
+  })
+
   it('allows the standalone admin web origin to call the api', async () => {
     const handler = createEnterpriseHttpHandler()
 
-    const response = await handler.fetch(
-      new Request('http://muon.test/api/install/status', {
-        headers: { origin: 'http://127.0.0.1:4174' },
-      }),
-    )
-    expect(response.headers.get('access-control-allow-origin')).toBe('http://127.0.0.1:4174')
+    for (const origin of ['http://127.0.0.1:4174', 'http://localhost:4174']) {
+      const response = await handler.fetch(
+        new Request('http://muon.test/api/install/status', {
+          headers: { origin },
+        }),
+      )
+      expect(response.headers.get('access-control-allow-origin')).toBe(origin)
+      expect(response.headers.get('vary')).toContain('Origin')
+    }
 
     const preflight = await handler.fetch(
       new Request('http://muon.test/api/install', {
@@ -113,6 +144,60 @@ describe('enterprise api routes', () => {
     )
     expect(preflight.status).toBe(204)
     expect(preflight.headers.get('access-control-allow-methods')).toContain('POST')
+  })
+
+  it('keeps CORS headers on method errors for allowed origins', async () => {
+    const handler = createEnterpriseHttpHandler()
+
+    const response = await handler.fetch(
+      new Request('http://muon.test/api/install/status', {
+        method: 'POST',
+        headers: { origin: 'http://localhost:4174' },
+      }),
+    )
+
+    expect(response.status).toBe(405)
+    expect(response.headers.get('access-control-allow-origin')).toBe('http://localhost:4174')
+    expect(response.headers.get('vary')).toContain('Origin')
+  })
+
+  it('does not reflect arbitrary CORS origins', async () => {
+    const handler = createEnterpriseHttpHandler()
+
+    const response = await handler.fetch(
+      new Request('http://muon.test/api/install/status', {
+        headers: { origin: 'https://evil.example' },
+      }),
+    )
+    expect(response.headers.get('access-control-allow-origin')).toBeNull()
+    expect(response.headers.get('vary')).toContain('Origin')
+
+    const preflight = await handler.fetch(
+      new Request('http://muon.test/api/install/status', {
+        method: 'OPTIONS',
+        headers: {
+          origin: 'https://evil.example',
+          'access-control-request-method': 'GET',
+        },
+      }),
+    )
+    expect(preflight.status).toBe(204)
+    expect(preflight.headers.get('access-control-allow-origin')).toBeNull()
+  })
+
+  it('escapes OAuth authorize query values before embedding them in the login form', async () => {
+    const handler = createEnterpriseHttpHandler()
+    const response = await handler.fetch(
+      new Request(
+        'http://muon.test/api/oauth/authorize?client_id=muon%22%3E%3Cscript%3E&redirect_uri=muon%3A%2F%2Fauth%2Fcallback&code_challenge=abc&state=%22%3E%3Cimg%20src%3Dx%3E',
+      ),
+    )
+
+    expect(response.status).toBe(200)
+    const html = await response.text()
+    expect(html).toContain('name="clientId" value="muon&quot;&gt;&lt;script&gt;"')
+    expect(html).toContain('name="state" value="&quot;&gt;&lt;img src=x&gt;"')
+    expect(html).not.toContain('value="muon"><script>')
   })
 
   it('reports install status before and after install', async () => {

@@ -18,6 +18,16 @@ describe('vite config', () => {
     expect(electronViteConfig).toContain("envDir: resolve(__dirname, '../..')")
   })
 
+  it('targets the Electron Chromium renderer without legacy Safari transforms', () => {
+    const viteConfig = readDesktopSource('vite.config.ts')
+    const electronViteConfig = readDesktopSource('electron.vite.config.ts')
+
+    expect(viteConfig).toContain("target: 'chrome100'")
+    expect(electronViteConfig).toContain("target: 'chrome100'")
+    expect(viteConfig).not.toContain('safari13')
+    expect(electronViteConfig).not.toContain('safari13')
+  })
+
   it('keeps shared UI aliases on package entry points instead of direct Vue files', () => {
     const tsconfig = readDesktopJson('tsconfig.json') as {
       compilerOptions?: { paths?: Record<string, string[]> }

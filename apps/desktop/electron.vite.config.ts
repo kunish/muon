@@ -105,6 +105,7 @@ export default defineConfig({
       strictPort: true,
     },
     build: {
+      target: 'chrome100',
       chunkSizeWarningLimit: 1400,
       minify: !process.env.ELECTRON_DEBUG ? 'esbuild' : false,
       cssMinify: !process.env.ELECTRON_DEBUG,

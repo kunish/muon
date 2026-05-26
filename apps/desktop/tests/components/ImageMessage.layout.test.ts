@@ -2,9 +2,10 @@ import type { MatrixEvent } from 'matrix-js-sdk'
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { fetchMediaBlobUrlMock, getInstantMediaBlobUrlMock } = vi.hoisted(() => ({
+const { fetchMediaBlobUrlMock, getInstantMediaBlobUrlMock, openImageMock } = vi.hoisted(() => ({
   fetchMediaBlobUrlMock: vi.fn(),
   getInstantMediaBlobUrlMock: vi.fn(() => null),
+  openImageMock: vi.fn(),
 }))
 
 vi.mock('@matrix/index', () => ({
@@ -12,10 +13,26 @@ vi.mock('@matrix/index', () => ({
   getInstantMediaBlobUrl: getInstantMediaBlobUrlMock,
 }))
 
+vi.mock('@/features/chat/composables/useMediaViewer', () => ({
+  useMediaViewer: () => ({
+    openImage: openImageMock,
+  }),
+}))
+
 function createImageEvent(content: Record<string, unknown>): MatrixEvent {
   return {
     getContent: () => content,
   } as unknown as MatrixEvent
+}
+
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  let reject!: (reason?: unknown) => void
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve
+    reject = promiseReject
+  })
+  return { promise, reject, resolve }
 }
 
 function mockCanvasDataUrl(dataUrl = 'data:image/png;base64,blurhash'): void {
@@ -36,6 +53,7 @@ describe('image message layout', () => {
     vi.restoreAllMocks()
     fetchMediaBlobUrlMock.mockReset()
     getInstantMediaBlobUrlMock.mockReset()
+    openImageMock.mockReset()
     getInstantMediaBlobUrlMock.mockReturnValue(null)
   })
 
@@ -141,7 +159,7 @@ describe('image message layout', () => {
       },
     })
 
-    const frame = wrapper.get('.cursor-pointer')
+    const frame = wrapper.get('[data-testid="image-message-frame"]')
     expect(frame.attributes('style')).toContain('width: 300px')
     expect(frame.attributes('style')).toContain('max-width: 100%')
     expect(frame.attributes('style')).toContain('aspect-ratio: 480 / 270')
@@ -155,6 +173,114 @@ describe('image message layout', () => {
     const image = wrapper.get('img')
     expect(image.classes()).toContain('w-full')
     expect(image.classes()).toContain('h-full')
+
+    wrapper.unmount()
+  })
+
+  it('does not open the image viewer before a full-size source is ready', async () => {
+    fetchMediaBlobUrlMock.mockReturnValue(new Promise(() => {}))
+
+    const ImageMessage = (await import('@/features/chat/components/messages/ImageMessage.vue')).default
+    const wrapper = mount(ImageMessage, {
+      props: {
+        event: createImageEvent({
+          msgtype: 'm.image',
+          body: 'photo.png',
+          url: 'mxc://server/photo-id',
+          info: {
+            mimetype: 'image/png',
+            w: 640,
+            h: 360,
+          },
+        }),
+      },
+    })
+
+    await wrapper.get('[data-testid="image-message-frame"]').trigger('click')
+
+    expect(openImageMock).not.toHaveBeenCalled()
+
+    wrapper.unmount()
+  })
+
+  it('uses the full-size image when thumbnail loading fails', async () => {
+    fetchMediaBlobUrlMock.mockRejectedValueOnce(new Error('thumbnail failed')).mockResolvedValueOnce('blob:full-image')
+
+    const ImageMessage = (await import('@/features/chat/components/messages/ImageMessage.vue')).default
+    const wrapper = mount(ImageMessage, {
+      props: {
+        event: createImageEvent({
+          msgtype: 'm.image',
+          body: 'photo.png',
+          url: 'mxc://server/photo-id',
+          info: {
+            mimetype: 'image/png',
+            w: 640,
+            h: 360,
+          },
+        }),
+      },
+    })
+
+    await flushPromises()
+
+    expect(wrapper.get('img').attributes('src')).toBe('blob:full-image')
+    await wrapper.get('[data-testid="image-message-frame"]').trigger('click')
+    expect(openImageMock).toHaveBeenCalledWith('blob:full-image')
+
+    wrapper.unmount()
+  })
+
+  it('keeps the latest image when an earlier media request resolves later', async () => {
+    const firstThumb = deferred<string>()
+    const firstFull = deferred<string>()
+    const secondThumb = deferred<string>()
+    const secondFull = deferred<string>()
+    fetchMediaBlobUrlMock
+      .mockReturnValueOnce(firstThumb.promise)
+      .mockReturnValueOnce(firstFull.promise)
+      .mockReturnValueOnce(secondThumb.promise)
+      .mockReturnValueOnce(secondFull.promise)
+
+    const ImageMessage = (await import('@/features/chat/components/messages/ImageMessage.vue')).default
+    const wrapper = mount(ImageMessage, {
+      props: {
+        event: createImageEvent({
+          msgtype: 'm.image',
+          body: 'first.png',
+          url: 'mxc://server/first',
+          info: {
+            mimetype: 'image/png',
+            w: 640,
+            h: 360,
+          },
+        }),
+      },
+    })
+
+    await wrapper.setProps({
+      event: createImageEvent({
+        msgtype: 'm.image',
+        body: 'second.png',
+        url: 'mxc://server/second',
+        info: {
+          mimetype: 'image/png',
+          w: 640,
+          h: 360,
+        },
+      }),
+    })
+
+    secondThumb.resolve('blob:second-thumb')
+    secondFull.resolve('blob:second-full')
+    await flushPromises()
+    firstThumb.resolve('blob:first-thumb')
+    firstFull.resolve('blob:first-full')
+    await flushPromises()
+
+    expect(wrapper.get('img').attributes('src')).toBe('blob:second-thumb')
+    await wrapper.get('[data-testid="image-message-frame"]').trigger('click')
+    expect(openImageMock).toHaveBeenCalledWith('blob:second-full')
 
     wrapper.unmount()
   })
