@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type {
+  AdminSession,
   AuditLog,
   DeviceSessionPublic,
   EnterpriseUser,
@@ -197,6 +198,7 @@ function persistAdminToken(token: string) {
 
 function clearAdminToken() {
   adminToken.value = '';
+  mustChangePassword.value = false;
   void router.replace({ name: 'admin-organizations' });
   organizationSearch.value = '';
   userSearch.value = '';
@@ -207,6 +209,16 @@ function clearAdminToken() {
 
 function isAuthenticationError(error: unknown) {
   return error instanceof Error && /authentication|credentials|required/i.test(error.message);
+}
+
+function isMustChangePasswordError(error: unknown) {
+  return error instanceof Error && /must[_-]?change[_-]?password|password must be changed/i.test(error.message);
+}
+
+async function completeAdminLogin(result: { session: AdminSession; user: EnterpriseUser }) {
+  persistAdminToken(result.session.accessToken);
+  mustChangePassword.value = result.user.mustChangePassword;
+  if (!result.user.mustChangePassword) await refreshDashboard();
 }
 
 function syncUserDrafts(nextUsers: EnterpriseUser[]) {
@@ -266,6 +278,7 @@ async function refreshDashboard() {
     auditLogs.value = auditResult.auditLogs;
   } catch (err) {
     if (isAuthenticationError(err)) clearAdminToken();
+    else if (isMustChangePasswordError(err)) mustChangePassword.value = true;
     else userError.value = err instanceof Error ? err.message : '加载后台数据失败';
   } finally {
     dashboardLoading.value = false;
@@ -315,8 +328,7 @@ async function submitLogin() {
   loginError.value = '';
   try {
     const result = await loginAdmin(loginForm);
-    persistAdminToken(result.session.accessToken);
-    await refreshDashboard();
+    await completeAdminLogin(result);
   } catch (err) {
     loginError.value = err instanceof Error ? err.message : '登录失败';
   } finally {
@@ -337,8 +349,7 @@ async function submitInstall() {
       username: form.ownerUsername,
       password: form.ownerPassword,
     });
-    persistAdminToken(result.session.accessToken);
-    await refreshDashboard();
+    await completeAdminLogin(result);
   } catch (err) {
     error.value = err instanceof Error ? err.message : '安装失败';
   } finally {

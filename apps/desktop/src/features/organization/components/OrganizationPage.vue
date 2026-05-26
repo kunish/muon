@@ -18,6 +18,7 @@ import {
   X,
 } from 'lucide-vue-next';
 import { computed, onMounted, ref, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import WorkspaceResizablePane from '@/app/components/workspace/WorkspaceResizablePane.vue';
 import GroupMemberPicker from '@/features/contacts/components/GroupMemberPicker.vue';
 
@@ -54,7 +55,14 @@ const MIN_ORGANIZATION_WIDTH = 220;
 const MAX_ORGANIZATION_WIDTH = 360;
 
 const contactList = useContactList();
-const activeSection = ref<OrganizationSection>('overview');
+const route = useRoute();
+
+function routeSectionParamToSection(section: unknown): OrganizationSection {
+  const value = Array.isArray(section) ? section[0] : section;
+  return value === 'members' || value === 'groups' ? value : 'overview';
+}
+
+const activeSection = ref<OrganizationSection>(routeSectionParamToSection(route.params.section));
 const searchQuery = ref('');
 const actionMessage = ref('组织入口已就绪');
 const currentUserId = ref('@muon:localhost');
@@ -558,6 +566,15 @@ watch(searchQuery, (value) => {
 
   activeSection.value = groupMatches && !memberMatches ? 'groups' : 'members';
 });
+
+watch(
+  () => route.params.section,
+  (section) => {
+    const nextSection = routeSectionParamToSection(section);
+    activeSection.value = nextSection;
+    if (nextSection !== 'members') searchQuery.value = '';
+  },
+);
 
 onMounted(async () => {
   readPersistedDirectory();

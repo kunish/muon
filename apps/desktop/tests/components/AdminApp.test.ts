@@ -300,6 +300,42 @@ describe('adminApp', () => {
     expect(localStorage.getItem('muon_admin_token')).toBe('login-token')
   })
 
+  it('shows the forced-change-password overlay when login returns a must-change user', async () => {
+    ;(loginAdmin as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      session: {
+        accessToken: 'must-change-token',
+        refreshToken: 'refresh-token',
+        expiresAt: new Date(Date.now() + 3600_000).toISOString(),
+      },
+      user: {
+        id: 'user-must-change',
+        organizationId: 'org-1',
+        username: 'novice',
+        email: 'novice@muon.local',
+        displayName: 'Novice',
+        status: 'active',
+        mustChangePassword: true,
+        roles: ['member'],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+    })
+    const { wrapper } = await mountAdminApp({
+      props: {
+        initialInstalled: true,
+      },
+    })
+
+    await wrapper.find('input[type="password"]').setValue('correct horse battery staple')
+    await wrapper.find('form.install-form').trigger('submit')
+    await flushPromises()
+
+    expect(localStorage.getItem('muon_admin_token')).toBe('must-change-token')
+    expect(wrapper.find('[data-testid="force-change-password"]').exists()).toBe(true)
+    expect(listOrganizations).not.toHaveBeenCalled()
+    expect(listUsers).not.toHaveBeenCalled()
+  })
+
   it('restores the admin session after a page refresh', async () => {
     localStorage.setItem('muon_admin_token', 'stored-token')
 

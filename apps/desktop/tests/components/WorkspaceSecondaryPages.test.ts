@@ -110,6 +110,8 @@ const pages = [
 describe('workspace secondary pages', () => {
   beforeEach(() => {
     localStorage.removeItem('muon_organization_directory_v1')
+    mockRouteParams.mockReset()
+    mockRouteParams.mockReturnValue({})
     routerPush.mockReset()
   })
 
@@ -345,6 +347,24 @@ describe('workspace secondary pages', () => {
 
     expect(wrapper.text()).toContain('已邀请：new-member')
     expect(wrapper.text()).toContain('@new-member:localhost')
+  })
+
+  it('opens organization members and groups from section route params', async () => {
+    mockRouteParams.mockReturnValue({ section: 'members' })
+    const membersWrapper = mount(OrganizationPage)
+
+    expect(membersWrapper.text()).toContain('成员目录')
+    expect(membersWrapper.get('[data-testid="organization-section-members"]').classes()).toContain(
+      'workspace-row-active',
+    )
+
+    mockRouteParams.mockReturnValue({ section: 'groups' })
+    const groupsWrapper = mount(OrganizationPage)
+
+    await vi.waitFor(() => {
+      expect(groupsWrapper.text()).toContain('团队群组')
+    })
+    expect(groupsWrapper.get('[data-testid="organization-section-groups"]').classes()).toContain('workspace-row-active')
   })
 
   it('routes organization search to group results when the query only matches groups', async () => {

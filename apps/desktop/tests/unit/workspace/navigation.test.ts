@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { getWorkspaceAppForPath, workspaceApps } from '@/app/components/workspace/navigation'
+import router from '@/app/router'
 
 describe('workspace navigation', () => {
   it('lists app-first workspace entries in display order', () => {
@@ -39,5 +40,16 @@ describe('workspace navigation', () => {
     ['/settings', 'settings'],
   ])('maps %s to %s', (path, appId) => {
     expect(getWorkspaceAppForPath(path)?.id).toBe(appId)
+  })
+
+  it.each([
+    ['/organization', 'organization'],
+    ['/organization/members', 'organization-section'],
+    ['/organization/groups', 'organization-section'],
+  ])('keeps %s routable inside the workspace shell', (path, routeName) => {
+    const route = router.resolve(path)
+
+    expect(route.name).toBe(routeName)
+    expect(route.matched.map((match) => match.path)).toContain('/')
   })
 })

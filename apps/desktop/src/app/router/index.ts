@@ -50,6 +50,11 @@ const router = createRouter({
           component: () => import('@features/organization/components/OrganizationPage.vue'),
         },
         {
+          path: 'organization/:section(members|groups)',
+          name: 'organization-section',
+          component: () => import('@features/organization/components/OrganizationPage.vue'),
+        },
+        {
           path: 'calendar',
           name: 'calendar',
           component: () => import('@features/calendar/components/CalendarPage.vue'),
