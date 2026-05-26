@@ -227,7 +227,7 @@ function cancelBottomSettle() {
   bottomSettleFrame = 0;
 }
 
-function scheduleBottomSettle(sessionVersion: number, frames = 2) {
+function scheduleBottomSettle(sessionVersion: number, frames = 2, onComplete?: () => void) {
   cancelBottomSettle();
 
   function step(remaining: number) {
@@ -235,7 +235,11 @@ function scheduleBottomSettle(sessionVersion: number, frames = 2) {
       bottomSettleFrame = 0;
       if (sessionVersion !== restoreSessionVersion || !isAtBottom.value) return;
       alignToBottom();
-      if (remaining > 1) step(remaining - 1);
+      if (remaining > 1) {
+        step(remaining - 1);
+        return;
+      }
+      onComplete?.();
     });
   }
 
@@ -381,11 +385,16 @@ async function restorePendingScrollIfReady() {
     restoredStickyBottom = true;
   }
 
-  // 解锁滚动处理 & 显示内容（滚动位置已就绪）
+  // 解锁滚动处理；sticky-bottom 的后续布局帧完成前仍保持隐藏，避免看到 timeline 自己跳动。
   pendingRestore = false;
   pendingRestoreRoomId = null;
-  isRestoring.value = false;
-  if (restoredStickyBottom) scheduleBottomSettle(sessionVersion);
+  if (restoredStickyBottom && visibleMessages.value.length > 0) {
+    scheduleBottomSettle(sessionVersion, 2, () => {
+      if (sessionVersion === restoreSessionVersion) isRestoring.value = false;
+    });
+  } else {
+    isRestoring.value = false;
+  }
   return true;
 }
 

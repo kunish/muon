@@ -2,13 +2,15 @@ import type { MatrixEvent } from 'matrix-js-sdk'
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { fetchMediaBlobUrlMock, openVideoMock } = vi.hoisted(() => ({
+const { fetchMediaBlobUrlMock, getInstantMediaBlobUrlMock, openVideoMock } = vi.hoisted(() => ({
   fetchMediaBlobUrlMock: vi.fn(),
+  getInstantMediaBlobUrlMock: vi.fn(() => null),
   openVideoMock: vi.fn(),
 }))
 
 vi.mock('@matrix/index', () => ({
   fetchMediaBlobUrl: fetchMediaBlobUrlMock,
+  getInstantMediaBlobUrl: getInstantMediaBlobUrlMock,
 }))
 
 vi.mock('@/features/chat/composables/useMediaViewer', () => ({
@@ -40,6 +42,8 @@ describe('video message layout', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
     fetchMediaBlobUrlMock.mockReset()
+    getInstantMediaBlobUrlMock.mockReset()
+    getInstantMediaBlobUrlMock.mockReturnValue(null)
     openVideoMock.mockReset()
   })
 

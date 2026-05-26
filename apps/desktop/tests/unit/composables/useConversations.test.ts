@@ -864,4 +864,39 @@ describe('useConversations', () => {
       '!carol:localhost',
     ])
   })
+
+  it('keeps a clicked sidebar conversation in its startup position when a later composable instance mounts', async () => {
+    roomSummaries.push(
+      createRoom({ roomId: '!alice:localhost', name: 'Alice', lastMessageTs: 3000 }),
+      createRoom({ roomId: '!bob:localhost', name: 'Bob', lastMessageTs: 2000 }),
+      createRoom({ roomId: '!carol:localhost', name: 'Carol', lastMessageTs: 1000 }),
+    )
+
+    const wrapper = mountUseConversationsHarness()
+    await nextTick()
+
+    expect(wrapper.findAll('li').map((row) => row.attributes('data-room-id'))).toEqual([
+      '!alice:localhost',
+      '!bob:localhost',
+      '!carol:localhost',
+    ])
+
+    useChatStore().selectRoomFromHistory('!bob:localhost')
+    roomSummaries.splice(
+      0,
+      roomSummaries.length,
+      createRoom({ roomId: '!alice:localhost', name: 'Alice', lastMessageTs: 3000 }),
+      createRoom({ roomId: '!carol:localhost', name: 'Carol', lastMessageTs: 1000 }),
+      createRoom({ roomId: '!bob:localhost', name: 'Bob', lastMessageTs: 2000, unreadCount: 0 }),
+    )
+
+    mountUseConversationsHarness()
+    await nextTick()
+
+    expect(wrapper.findAll('li').map((row) => row.attributes('data-room-id'))).toEqual([
+      '!alice:localhost',
+      '!bob:localhost',
+      '!carol:localhost',
+    ])
+  })
 })

@@ -323,13 +323,16 @@ function isValidExternalUrl(value: string): boolean {
   }
 }
 
+async function openExternalUrl(url: string): Promise<void> {
+  if (!isValidExternalUrl(url)) throw new Error(`Blocked opening URL with disallowed protocol: ${url.slice(0, 50)}`)
+
+  await shell.openExternal(url)
+}
+
 function registerShellIpc(): void {
   ipcMain.handle('muon:shell:open-path', (_event, targetPath: string) => shell.openPath(targetPath))
   ipcMain.handle('muon:shell:reveal-item-in-dir', (_event, targetPath: string) => shell.showItemInFolder(targetPath))
-  ipcMain.handle('muon:shell:open-url', (_event, url: string) => {
-    if (!isValidExternalUrl(url)) throw new Error(`Blocked opening URL with disallowed protocol: ${url.slice(0, 50)}`)
-    return shell.openExternal(url)
-  })
+  ipcMain.handle('muon:shell:open-url', (_event, url: string) => openExternalUrl(url))
 }
 
 function registerFetchIpc(): void {
@@ -456,7 +459,9 @@ function createMainWindow(): void {
   })
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url)
+    void openExternalUrl(url).catch((error: unknown) => {
+      console.error('Failed to open external URL from renderer window.open', error)
+    })
     return { action: 'deny' }
   })
 

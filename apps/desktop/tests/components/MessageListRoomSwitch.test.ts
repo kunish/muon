@@ -412,6 +412,12 @@ describe('message list room switching', () => {
     vi.stubGlobal('IntersectionObserver', MockIntersectionObserver)
     vi.stubGlobal('ResizeObserver', MockResizeObserver)
     vi.stubGlobal('CSS', { escape: (value: string) => value })
+    const rafCallbacks: FrameRequestCallback[] = []
+    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+      rafCallbacks.push(callback)
+      return rafCallbacks.length
+    })
+    vi.stubGlobal('cancelAnimationFrame', vi.fn())
     timelines.clear()
     getTimelineMock.mockClear()
     paginateBackMock.mockClear()
@@ -445,6 +451,10 @@ describe('message list room switching', () => {
     expect(wrapper.text()).toContain('$b-new')
 
     await flushPromises()
+    await nextTick()
+
+    for (const callback of rafCallbacks.splice(0)) callback(performance.now())
+    for (const callback of rafCallbacks.splice(0)) callback(performance.now())
     await nextTick()
 
     expect((scrollerWrapper.element as HTMLElement).style.visibility).toBe('visible')
@@ -567,6 +577,74 @@ describe('message list room switching', () => {
     await nextTick()
 
     expect(scroller.scrollTop).toBe(metrics.maxScrollTop)
+
+    wrapper.unmount()
+    vi.unstubAllGlobals()
+  })
+
+  it('keeps the timeline hidden until sticky-bottom settling has finished', async () => {
+    vi.stubGlobal('IntersectionObserver', MockIntersectionObserver)
+    vi.stubGlobal('ResizeObserver', MockResizeObserver)
+    vi.stubGlobal('CSS', { escape: (value: string) => value })
+    const rafCallbacks: FrameRequestCallback[] = []
+    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+      rafCallbacks.push(callback)
+      return rafCallbacks.length
+    })
+    vi.stubGlobal('cancelAnimationFrame', vi.fn())
+    timelines.clear()
+    getTimelineMock.mockClear()
+    paginateBackMock.mockClear()
+
+    timelines.set('!room-a:localhost', [createEvent('$a-new')])
+    timelines.set('!room-b:localhost', [createEvent('$b-new')])
+
+    const store = useChatStore()
+    store.setCurrentRoom('!room-a:localhost')
+
+    const MessageList = (await import('@/features/chat/components/MessageList.vue')).default
+    const wrapper = mount(MessageList, {
+      global: {
+        stubs: {
+          ChannelWelcome: true,
+          MessageGroup: MessageGroupStub,
+          UserInfoPanel: true,
+        },
+      },
+    })
+
+    await nextTick()
+    await flushPromises()
+
+    const scrollerWrapper = wrapper.get('[data-testid="message-list-scroller"]')
+    const scroller = scrollerWrapper.element as HTMLElement
+    const metrics = setClampedScrollerMetrics(scroller, 1000, 300)
+    scroller.scrollTop = scroller.scrollHeight
+    await scrollerWrapper.trigger('scroll')
+    expect(scroller.scrollTop).toBe(metrics.maxScrollTop)
+
+    store.setCurrentRoom('!room-b:localhost')
+    await nextTick()
+    await flushPromises()
+    await nextTick()
+
+    expect((scrollerWrapper.element as HTMLElement).style.visibility).toBe('hidden')
+
+    metrics.setScrollHeight(1300)
+    for (const callback of rafCallbacks.splice(0)) {
+      callback(performance.now())
+    }
+    await nextTick()
+
+    expect(scroller.scrollTop).toBe(metrics.maxScrollTop)
+    expect((scrollerWrapper.element as HTMLElement).style.visibility).toBe('hidden')
+
+    for (const callback of rafCallbacks.splice(0)) {
+      callback(performance.now())
+    }
+    await nextTick()
+
+    expect((scrollerWrapper.element as HTMLElement).style.visibility).toBe('visible')
 
     wrapper.unmount()
     vi.unstubAllGlobals()

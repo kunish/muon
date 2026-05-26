@@ -15,6 +15,7 @@ echo "Conduit ready."
 echo "Creating MinIO bucket..."
 compose exec -T minio mc alias set local http://localhost:9000 muon muon12345 2>/dev/null || true
 compose exec -T minio mc mb local/muon-media 2>/dev/null || true
+compose exec -T minio mc anonymous set download local/muon-media 2>/dev/null || true
 if [ "${MUON_SKIP_SEED:-0}" != "1" ]; then
   echo "Seeding Conduit mock data..."
   pnpm services:seed

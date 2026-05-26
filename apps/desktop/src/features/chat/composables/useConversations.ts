@@ -203,6 +203,10 @@ function refreshNow(mode: RefreshMode = 'resort') {
   hydrateMissingPreviews(summaries)
 }
 
+function refreshMountedInstance() {
+  refreshNow(historicalRoomOrder.length > 0 ? 'preserve-order' : 'resort')
+}
+
 function syncServerStateEffect(summaries: RoomSummary[]): DesktopEffect<void> {
   return fromSync(() => {
     const store = useChatStore()
@@ -323,7 +327,7 @@ export function useConversations() {
 
   onMounted(() => {
     bindConversationsListeners()
-    refreshNow()
+    refreshMountedInstance()
   })
 
   // --- 筛选 + 搜索 + 置顶排序 ---

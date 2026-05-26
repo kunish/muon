@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { MatrixEvent } from 'matrix-js-sdk';
-import { fetchMediaBlobUrl } from '@matrix/index';
+import { fetchMediaBlobUrl, getInstantMediaBlobUrl } from '@matrix/index';
 import { Play } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -20,6 +20,7 @@ const thumbBlobUrl = ref('');
 const videoBlobUrl = ref('');
 const loading = ref(false);
 let mediaLoadRun = 0;
+
 const frameStyle = computed(() => {
   const info = content.value?.info as { w?: unknown; h?: unknown } | undefined;
   return getMediaFrameStyle(info, {
@@ -54,6 +55,11 @@ watch(
     const thumbMxc = c?.info?.thumbnail_url;
     const videoMxc = c?.url;
     if (!thumbMxc && !videoMxc) return;
+
+    if (typeof videoMxc === 'string') {
+      const instantVideoSrc = getInstantMediaBlobUrl(videoMxc);
+      if (instantVideoSrc) videoBlobUrl.value = instantVideoSrc;
+    }
 
     const loadThumb = async () => {
       if (!thumbMxc) return;
