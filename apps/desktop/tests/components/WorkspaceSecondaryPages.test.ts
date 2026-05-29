@@ -359,6 +359,18 @@ describe('workspace secondary pages', () => {
     expect(wrapper.text()).toContain('@new-member:localhost')
   })
 
+  it('jumps to the related section from an organization activity entry', async () => {
+    const groupsWrapper = mount(OrganizationPage)
+    await groupsWrapper.get('[data-testid="organization-activity-groups-entry"]').trigger('click')
+    expect(groupsWrapper.get('[data-testid="organization-section-groups"]').classes()).toContain('workspace-row-active')
+
+    const membersWrapper = mount(OrganizationPage)
+    await membersWrapper.get('[data-testid="organization-activity-directory-sync"]').trigger('click')
+    expect(membersWrapper.get('[data-testid="organization-section-members"]').classes()).toContain(
+      'workspace-row-active',
+    )
+  })
+
   it('opens organization members and groups from section route params', async () => {
     mockRouteParams.mockReturnValue({ section: 'members' })
     const membersWrapper = mount(OrganizationPage)

@@ -542,8 +542,9 @@ function openGroup(group: OrganizationGroup): void {
   actionMessage.value = `已选择 ${group.name}`;
 }
 
-function openActivity(message: string): void {
+function openActivity(message: string, section?: OrganizationSection): void {
   actionMessage.value = message;
+  if (section) selectSection(section);
 }
 
 watch(searchQuery, (value) => {
@@ -1057,7 +1058,7 @@ onMounted(async () => {
               <button
                 data-testid="organization-activity-directory-sync"
                 class="flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-accent"
-                @click="openActivity('已查看成员目录同步动态')"
+                @click="openActivity('已查看成员目录同步动态', 'members')"
               >
                 <span class="mt-1 h-2 w-2 shrink-0 rounded-full bg-primary" />
                 <span class="min-w-0">
@@ -1070,7 +1071,7 @@ onMounted(async () => {
               <button
                 data-testid="organization-activity-groups-entry"
                 class="flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-accent"
-                @click="openActivity('已查看团队群组入口动态')"
+                @click="openActivity('已查看团队群组入口动态', 'groups')"
               >
                 <span class="mt-1 h-2 w-2 shrink-0 rounded-full bg-secondary" />
                 <span class="min-w-0">
