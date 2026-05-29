@@ -661,4 +661,21 @@ describe('matrix rooms', () => {
       expect(roomId).toBe('!implicit_dm:localhost')
     })
   })
+
+  describe('setRoomAvatar', () => {
+    it('uploads the file then writes the m.room.avatar state event', async () => {
+      const { setRoomAvatar } = await import('@/matrix/rooms')
+      const file = new File(['avatar-bytes'], 'avatar.png', { type: 'image/png' })
+
+      await setRoomAvatar('!test:localhost', file)
+
+      expect(mockClient.uploadContent).toHaveBeenCalledWith(file, { type: 'image/png' })
+      expect(mockClient.sendStateEvent).toHaveBeenCalledWith(
+        '!test:localhost',
+        'm.room.avatar',
+        { url: 'mxc://localhost/mock' },
+        '',
+      )
+    })
+  })
 })

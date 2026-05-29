@@ -5,12 +5,14 @@ import {
   getRoomTopic,
   leaveRoom,
   setRoomAnnouncement,
+  setRoomAvatar,
   setRoomName,
   setRoomTopic,
 } from '@matrix/index';
+import { Avatar } from '@muon/ui/avatar';
 import { Textarea } from '@muon/ui/textarea';
 import { useRoomNavigation } from '@shared/composables/useRoomNavigation';
-import { Check, LogOut, Megaphone, Pencil, Shield, UserMinus, UserPlus, X } from 'lucide-vue-next';
+import { Check, ImagePlus, LogOut, Megaphone, Pencil, Shield, UserMinus, UserPlus, X } from 'lucide-vue-next';
 import { computed, ref, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
@@ -52,6 +54,29 @@ function toggleInvitePicker(): void {
     return;
   }
   showInvite.value = true;
+}
+
+// --- 群头像 ---
+const avatarInput = ref<HTMLInputElement | null>(null);
+const uploadingAvatar = ref(false);
+const roomAvatarMxc = computed(() => room.value?.getMxcAvatarUrl() || undefined);
+
+function pickAvatar() {
+  avatarInput.value?.click();
+}
+
+async function onAvatarSelected(event: Event) {
+  const file = (event.target as HTMLInputElement).files?.[0];
+  if (avatarInput.value) avatarInput.value.value = '';
+  if (!file) return;
+  uploadingAvatar.value = true;
+  try {
+    await setRoomAvatar(props.roomId, file);
+  } catch {
+    toast.error(t('contacts.update_failed'));
+  } finally {
+    uploadingAvatar.value = false;
+  }
 }
 
 // --- 群名称编辑 ---
@@ -170,6 +195,31 @@ const memberUserIds = computed(() => members.value.map((member) => member.userId
 
 <template>
   <div class="min-h-0 w-full min-w-0 flex-1 space-y-4 overflow-y-auto p-6">
+    <!-- 群头像 -->
+    <div v-if="room" class="flex flex-col items-center gap-2">
+      <div class="group relative">
+        <Avatar :src="roomAvatarMxc" :alt="room.name" :color-id="roomId" size="2xl" shape="rounded" />
+        <button
+          v-if="isAdmin"
+          data-testid="group-settings-change-avatar"
+          class="absolute inset-0 flex items-center justify-center rounded-md bg-black/45 text-white opacity-0 transition-opacity group-hover:opacity-100 disabled:opacity-100"
+          :title="t('contacts.change_avatar')"
+          :disabled="uploadingAvatar"
+          @click="pickAvatar"
+        >
+          <ImagePlus :size="18" />
+        </button>
+      </div>
+      <input
+        ref="avatarInput"
+        type="file"
+        accept="image/*"
+        class="hidden"
+        data-testid="group-settings-avatar-input"
+        @change="onAvatarSelected"
+      />
+    </div>
+
     <!-- 群名称 -->
     <div v-if="room">
       <div v-if="!editingName" class="flex items-center gap-2 group">

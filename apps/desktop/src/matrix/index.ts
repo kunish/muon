@@ -95,6 +95,7 @@ export {
   markRoomAsRead,
   pinMessage,
   setRoomAnnouncement,
+  setRoomAvatar,
   setRoomName,
   setRoomTopic,
   starMessage,

@@ -343,6 +343,19 @@ export function setRoomTopic(roomId: string, topic: string): Promise<void> {
   return runDesktopEffect(setRoomTopicEffect(roomId, topic))
 }
 
+/** 修改群头像：上传文件后写入 m.room.avatar 状态事件 */
+export function setRoomAvatarEffect(roomId: string, file: File): DesktopEffect<void> {
+  return fromPromise(async () => {
+    const client = getClient()
+    const { content_uri } = await client.uploadContent(file, { type: file.type })
+    await client.sendStateEvent(roomId, 'm.room.avatar', { url: content_uri }, '')
+  }).pipe(Effect.asVoid)
+}
+
+export function setRoomAvatar(roomId: string, file: File): Promise<void> {
+  return runDesktopEffect(setRoomAvatarEffect(roomId, file))
+}
+
 /** 获取房间话题 */
 export function getRoomTopicEffect(roomId: string): DesktopEffect<string> {
   return fromSync(() => {

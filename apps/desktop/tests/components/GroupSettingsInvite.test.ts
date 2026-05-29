@@ -66,4 +66,24 @@ describe('group settings invite', () => {
     expect(mockClient.invite).toHaveBeenCalledWith('!group_project:localhost', '@george:localhost')
     expect(wrapper.find('[data-testid="group-member-row-@fiona:localhost"]').exists()).toBe(false)
   })
+
+  it('uploads a new group avatar from the admin control', async () => {
+    const wrapper = mountGroupSettings()
+
+    expect(wrapper.find('[data-testid="group-settings-change-avatar"]').exists()).toBe(true)
+
+    const input = wrapper.get('[data-testid="group-settings-avatar-input"]')
+    const file = new File(['avatar-bytes'], 'group.png', { type: 'image/png' })
+    Object.defineProperty(input.element, 'files', { value: [file], configurable: true })
+    await input.trigger('change')
+    await flushPromises()
+
+    expect(mockClient.uploadContent).toHaveBeenCalledWith(file, { type: 'image/png' })
+    expect(mockClient.sendStateEvent).toHaveBeenCalledWith(
+      '!group_project:localhost',
+      'm.room.avatar',
+      { url: 'mxc://localhost/mock' },
+      '',
+    )
+  })
 })
