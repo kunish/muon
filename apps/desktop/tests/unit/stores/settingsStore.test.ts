@@ -18,6 +18,18 @@ describe('settingsStore', () => {
     expect(store.badgeCount).toBe(true)
     expect(store.closeToTray).toBe(true)
     expect(store.autoLaunch).toBe(false)
+    expect(store.messageFontScale).toBe('standard')
+    expect(store.messageFontScaleValue).toBe(1)
+  })
+
+  it('maps each message font-size preset to its scale multiplier', () => {
+    const store = useSettingsStore()
+
+    store.messageFontScale = 'large'
+    expect(store.messageFontScaleValue).toBeCloseTo(1.15)
+
+    store.messageFontScale = 'small'
+    expect(store.messageFontScaleValue).toBeCloseTo(0.875)
   })
 
   it('should update theme', () => {

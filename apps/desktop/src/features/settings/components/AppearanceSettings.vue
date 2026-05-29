@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import type { MessageAlignment, SendMessageShortcut, ThemeMode } from '../stores/settingsStore';
+import type { MessageAlignment, MessageFontScale, SendMessageShortcut, ThemeMode } from '../stores/settingsStore';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@muon/ui/select';
 import { Check } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
+import { MESSAGE_FONT_SCALE_VALUES } from '@/shared/stores/settingsStore';
 import { useSettingsStore } from '../stores/settingsStore';
 
 const { t } = useI18n();
@@ -27,6 +28,13 @@ const alignmentOptions: { value: MessageAlignment; label: () => string; desc: ()
 const sendShortcutOptions: { value: SendMessageShortcut; label: () => string; desc: () => string }[] = [
   { value: 'enter', label: () => t('settings.send_enter'), desc: () => t('settings.send_enter_desc') },
   { value: 'mod-enter', label: () => t('settings.send_mod_enter'), desc: () => t('settings.send_mod_enter_desc') },
+];
+
+const fontScaleOptions: { value: MessageFontScale; label: () => string }[] = [
+  { value: 'small', label: () => t('settings.font_small') },
+  { value: 'standard', label: () => t('settings.font_standard') },
+  { value: 'large', label: () => t('settings.font_large') },
+  { value: 'xlarge', label: () => t('settings.font_xlarge') },
 ];
 </script>
 
@@ -127,6 +135,31 @@ const sendShortcutOptions: { value: SendMessageShortcut; label: () => string; de
       <p class="text-xs text-muted-foreground">
         {{ alignmentOptions.find((o) => o.value === store.messageAlignment)?.desc() }}
       </p>
+    </div>
+
+    <!-- Message font size — Feishu-style scale presets with live "Aa" preview -->
+    <div class="space-y-2">
+      <div class="text-sm">
+        {{ t('settings.msg_font_size') }}
+      </div>
+      <div class="grid grid-cols-4 gap-3 max-w-[26rem]">
+        <button
+          v-for="opt in fontScaleOptions"
+          :key="opt.value"
+          type="button"
+          data-testid="font-scale-option"
+          :data-value="opt.value"
+          class="group relative flex flex-col items-center gap-1.5 rounded-lg border bg-card p-3 transition-colors hover:bg-accent focus-visible:outline-none focus-visible:border-primary"
+          :class="store.messageFontScale === opt.value ? 'border-primary ring-1 ring-primary' : 'border-border'"
+          @click="store.messageFontScale = opt.value"
+        >
+          <span class="font-semibold leading-none" :style="{ fontSize: `${MESSAGE_FONT_SCALE_VALUES[opt.value]}rem` }">
+            Aa
+          </span>
+          <span class="text-[11px] text-muted-foreground">{{ opt.label() }}</span>
+          <Check v-if="store.messageFontScale === opt.value" :size="14" class="absolute right-2 top-2 text-primary" />
+        </button>
+      </div>
     </div>
 
     <!-- Send message shortcut — Enter vs Ctrl/⌘+Enter -->

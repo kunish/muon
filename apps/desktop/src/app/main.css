@@ -217,6 +217,13 @@
   }
 }
 
+/* Chat message body text — scales with the user's font-size preference.
+   --msg-font-scale is set on the message list root (MessageList.vue). */
+.message-body-text {
+  font-size: calc(0.875rem * var(--msg-font-scale, 1));
+  line-height: 1.45;
+}
+
 /* Jump-to-message highlight (class toggled from MessageList.vue) */
 .focused-event-flash {
   border-radius: 10px;

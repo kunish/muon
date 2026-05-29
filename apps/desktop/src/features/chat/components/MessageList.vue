@@ -6,6 +6,7 @@ import { ChevronDown, Undo2 } from 'lucide-vue-next';
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
+import { useSettingsStore } from '@/shared/stores/settingsStore';
 import { useMessages } from '../composables/useMessages';
 import { useChatStore } from '../stores/chatStore';
 import ChannelWelcome from './ChannelWelcome.vue';
@@ -25,6 +26,7 @@ import UserInfoPanel from './UserInfoPanel.vue';
 
 const { messages, isLoading, hasMore, loadMore, relationSummaries, timelineVersion } = useMessages();
 const store = useChatStore();
+const settings = useSettingsStore();
 const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
@@ -684,6 +686,7 @@ onUnmounted(() => {
       :style="{
         overflowAnchor: 'none',
         visibility: isRestoring ? 'hidden' : 'visible',
+        '--msg-font-scale': settings.messageFontScaleValue,
       }"
       @scroll="onScroll"
     >

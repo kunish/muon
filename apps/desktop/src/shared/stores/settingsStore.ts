@@ -5,8 +5,17 @@ import { computed } from 'vue'
 export type ThemeMode = 'light' | 'dark' | 'system'
 export type MessageAlignment = 'left' | 'leftright'
 export type SendMessageShortcut = 'enter' | 'mod-enter'
+export type MessageFontScale = 'small' | 'standard' | 'large' | 'xlarge'
 export type NotificationChannelId = 'approvals' | 'calendar' | 'mentions' | 'messages'
 export type NotificationChannels = Record<NotificationChannelId, boolean>
+
+/** Multiplier applied to chat message text for each font-size preset. */
+export const MESSAGE_FONT_SCALE_VALUES: Record<MessageFontScale, number> = {
+  small: 0.875,
+  standard: 1,
+  large: 1.15,
+  xlarge: 1.3,
+}
 
 const DEFAULT_NOTIFICATION_CHANNELS: NotificationChannels = {
   approvals: true,
@@ -36,6 +45,7 @@ export const useSettingsStore = defineStore('settings', () => {
   const dndStart = useStorage('muon_dnd_start', '')
   const dndEnd = useStorage('muon_dnd_end', '')
   const messageAlignment = useStorage<MessageAlignment>('muon_message_alignment', 'leftright')
+  const messageFontScale = useStorage<MessageFontScale>('muon_message_font_scale', 'standard')
   const sendMessageShortcut = useStorage<SendMessageShortcut>('muon_send_message_shortcut', 'enter')
   const closeToTray = useStorage('muon_close_to_tray', true)
   const autoLaunch = useStorage('muon_auto_launch', false)
@@ -51,6 +61,8 @@ export const useSettingsStore = defineStore('settings', () => {
   const activeNotificationChannelCount = computed(
     () => Object.values(normalizedNotificationChannels.value).filter(Boolean).length,
   )
+
+  const messageFontScaleValue = computed(() => MESSAGE_FONT_SCALE_VALUES[messageFontScale.value] ?? 1)
 
   function setNotificationChannel(channel: NotificationChannelId, enabled: boolean): void {
     notificationChannels.value = {
@@ -71,6 +83,8 @@ export const useSettingsStore = defineStore('settings', () => {
     dndStart,
     dndEnd,
     messageAlignment,
+    messageFontScale,
+    messageFontScaleValue,
     sendMessageShortcut,
     closeToTray,
     autoLaunch,

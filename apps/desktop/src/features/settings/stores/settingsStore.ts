@@ -3,6 +3,7 @@
 // @shared/stores/settingsStore directly.
 export {
   type MessageAlignment,
+  type MessageFontScale,
   type NotificationChannelId,
   type NotificationChannels,
   type SendMessageShortcut,
