@@ -1,14 +1,44 @@
 <script setup lang="ts">
 import { useStorage } from '@vueuse/core';
-import { Archive, Inbox, Mail, PencilLine, Reply, Search, Send, Star } from 'lucide-vue-next';
+import { Archive, Inbox, Mail, PencilLine, RefreshCw, Reply, Search, Send, Settings, Star } from 'lucide-vue-next';
 import { computed, onMounted, ref, shallowRef } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { toast } from 'vue-sonner';
 import WorkspaceResizablePane from '@/app/components/workspace/WorkspaceResizablePane.vue';
-import GroupMemberPicker from '@/features/contacts/components/GroupMemberPicker.vue';
+import { fetchInbox, isMailBridgeAvailable, sendMail } from '@/desktop/mail';
+import { useMailAccountStore } from '@/features/email/stores/mailAccountStore';
 import { useContactList } from '@/shared/composables/useContactList';
 
 const { t } = useI18n();
 const contactList = useContactList();
+const mailAccount = useMailAccountStore();
+
+// ── 邮箱账号配置（真实 SMTP/IMAP） ──
+const accountPanelOpen = shallowRef(false);
+const refreshing = shallowRef(false);
+const sending = shallowRef(false);
+const composeTo = shallowRef('');
+const accountForm = ref({
+  user: '',
+  password: '',
+  smtpHost: '',
+  smtpPort: 465,
+  smtpSecure: true,
+  imapHost: '',
+  imapPort: 993,
+  imapSecure: true,
+});
+
+function openAccountPanel(): void {
+  if (mailAccount.account) accountForm.value = { ...mailAccount.account };
+  accountPanelOpen.value = true;
+}
+
+async function saveAccount(): Promise<void> {
+  await mailAccount.save({ ...accountForm.value });
+  accountPanelOpen.value = false;
+  toast.success(t('email.account_saved'));
+}
 
 const EMAIL_WIDTH_STORAGE_KEY = 'muon_email_sidebar_width';
 const DEFAULT_EMAIL_WIDTH = 240;
@@ -24,7 +54,6 @@ const messageActionNotices = shallowRef<Record<string, string>>({});
 const replyDraftSubjects = shallowRef<Record<string, string>>({});
 const composeOpen = shallowRef(false);
 const composeDraftId = shallowRef('');
-const composeRecipientIds = ref<string[]>([]);
 const composeSubject = shallowRef('');
 const composeBody = shallowRef('');
 
@@ -137,6 +166,34 @@ const messages = shallowRef<EmailMessage[]>(
   ]),
 );
 
+async function refreshInbox(): Promise<void> {
+  if (!mailAccount.isConfigured || !isMailBridgeAvailable()) {
+    openAccountPanel();
+    toast.error(t('email.configure_required'));
+    return;
+  }
+  refreshing.value = true;
+  try {
+    const fetched = await fetchInbox(mailAccount.account!, 30);
+    const inbox: EmailMessage[] = fetched.map((mail) => ({
+      id: `imap:${mail.uid}`,
+      folder: 'inbox',
+      from: mail.fromName || mail.from,
+      subject: mail.subject || t('email.no_subject'),
+      preview: mail.snippet,
+      time: mail.date ? new Date(mail.date).toLocaleString() : '',
+      unread: !mail.seen,
+    }));
+    messages.value = [...inbox, ...messages.value.filter((message) => message.folder !== 'inbox')];
+    activeFolder.value = 'inbox';
+    toast.success(t('email.refreshed', { count: inbox.length }));
+  } catch {
+    toast.error(t('email.refresh_failed'));
+  } finally {
+    refreshing.value = false;
+  }
+}
+
 const defaultComposeSubject = computed(() => t('email.default_subject'));
 
 const folders = computed(() =>
@@ -177,6 +234,7 @@ const selectedReplyDraftSubject = computed(() => {
 onMounted(() => {
   composeSubject.value = defaultComposeSubject.value;
   contactList.ensureContactsLoaded();
+  void mailAccount.load();
 });
 
 function selectFolder(folderId: string): void {
@@ -189,7 +247,7 @@ function composeMessage(): void {
   const messageId = `mail-${Date.now()}`;
   composeOpen.value = true;
   composeDraftId.value = messageId;
-  composeRecipientIds.value = [];
+  composeTo.value = '';
   composeSubject.value = defaultComposeSubject.value;
   composeBody.value = '';
   contactList.ensureContactsLoaded();
@@ -209,16 +267,6 @@ function composeMessage(): void {
   ];
   selectedMessageId.value = messageId;
   messageActionNotices.value = { ...messageActionNotices.value, [messageId]: t('email.notice_editing') };
-}
-
-function fallbackNameFromUserId(userId: string): string {
-  return userId.split(':')[0]?.replace(/^@/, '') || userId;
-}
-
-function displayNameForRecipient(userId: string): string {
-  return (
-    contactList.contacts.find((contact) => contact.userId === userId)?.displayName ?? fallbackNameFromUserId(userId)
-  );
 }
 
 function messageBelongsToFolder(message: EmailMessage, folderId: string): boolean {
@@ -279,21 +327,41 @@ function archiveSelectedMessage(): void {
   };
 }
 
-function sendComposeDraft(): void {
-  if (!composeOpen.value) return;
+async function sendComposeDraft(): Promise<void> {
+  if (!composeOpen.value || sending.value) return;
 
   const subject = composeSubject.value.trim() || t('email.default_subject');
   const body = composeBody.value.trim() || t('email.default_body');
-  const recipient =
-    composeRecipientIds.value.length > 0
-      ? composeRecipientIds.value.map(displayNameForRecipient).join('、')
-      : t('email.no_recipients');
+  const toAddress = composeTo.value.trim();
+
+  // 真实发送：必须配置邮箱账号且桥可用，否则诚实拒绝（不伪造已发送）
+  if (!mailAccount.isConfigured || !isMailBridgeAvailable()) {
+    openAccountPanel();
+    toast.error(t('email.configure_required'));
+    return;
+  }
+  if (!toAddress) {
+    toast.error(t('email.recipient_required'));
+    return;
+  }
+
+  sending.value = true;
+  try {
+    await sendMail(mailAccount.account!, { to: toAddress, subject, text: body });
+  } catch {
+    toast.error(t('email.send_failed'));
+    sending.value = false;
+    return;
+  }
+  sending.value = false;
+  toast.success(t('email.send_success'));
+
   const messageId = composeDraftId.value || `mail-${Date.now()}`;
   const sentMessage: EmailMessage = {
     id: messageId,
     folder: 'sent',
     from: '我',
-    to: recipient,
+    to: toAddress,
     subject,
     preview: body,
     time: '刚刚',
@@ -339,12 +407,42 @@ function sendComposeDraft(): void {
       <button
         type="button"
         data-testid="email-compose"
-        class="mx-2 mb-4 flex h-9 items-center justify-center gap-2 rounded-md bg-primary px-3 text-[13px] font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+        class="mx-2 mb-2 flex h-9 items-center justify-center gap-2 rounded-md bg-primary px-3 text-[13px] font-semibold text-primary-foreground transition-opacity hover:opacity-90"
         @click="composeMessage"
       >
         <PencilLine :size="16" />
         <span>{{ t('email.compose') }}</span>
       </button>
+
+      <div class="mx-2 mb-3 flex gap-2">
+        <button
+          type="button"
+          data-testid="email-refresh"
+          class="flex h-8 flex-1 items-center justify-center gap-1.5 rounded-md border border-border text-[12px] font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-50"
+          :disabled="refreshing"
+          @click="refreshInbox"
+        >
+          <RefreshCw :size="14" :class="refreshing ? 'animate-spin' : ''" />
+          <span>{{ t('email.refresh') }}</span>
+        </button>
+        <button
+          type="button"
+          data-testid="email-account-settings"
+          class="flex h-8 items-center justify-center rounded-md border border-border px-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          :title="t('email.account_settings')"
+          @click="openAccountPanel"
+        >
+          <Settings :size="14" />
+        </button>
+      </div>
+
+      <div
+        v-if="!mailAccount.isConfigured"
+        class="mx-2 mb-3 rounded-md border border-dashed border-border px-3 py-2 text-[11px] leading-4 text-muted-foreground"
+        data-testid="email-not-configured"
+      >
+        {{ t('email.account_required_hint') }}
+      </div>
 
       <div class="flex flex-col gap-1">
         <button
@@ -453,7 +551,13 @@ function sendComposeDraft(): void {
                 {{ selectedMessage.preview }}
               </p>
               <div v-if="composeOpen" class="mt-4 grid gap-2 rounded-lg border border-border p-3">
-                <GroupMemberPicker v-model="composeRecipientIds" label="收件人" />
+                <input
+                  v-model="composeTo"
+                  data-testid="email-compose-to"
+                  type="email"
+                  :placeholder="t('email.to_placeholder')"
+                  class="h-8 rounded-md border border-border bg-background px-3 text-[12px] text-foreground outline-none focus:border-primary"
+                />
                 <input
                   v-model="composeSubject"
                   data-testid="email-compose-subject"
@@ -518,5 +622,78 @@ function sendComposeDraft(): void {
         </div>
       </main>
     </section>
+
+    <!-- 邮箱账号配置（真实 SMTP/IMAP） -->
+    <div
+      v-if="accountPanelOpen"
+      class="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 p-4"
+      data-testid="email-account-panel"
+      @click.self="accountPanelOpen = false"
+    >
+      <div class="w-[360px] rounded-lg border border-border bg-popover p-4 shadow-2xl">
+        <h2 class="mb-3 text-[15px] font-semibold text-foreground">{{ t('email.account_settings') }}</h2>
+        <div class="grid gap-2">
+          <input
+            v-model="accountForm.user"
+            data-testid="email-account-user"
+            type="email"
+            :placeholder="t('email.field_user')"
+            class="h-8 rounded-md border border-border bg-background px-3 text-[12px] outline-none focus:border-primary"
+          />
+          <input
+            v-model="accountForm.password"
+            data-testid="email-account-password"
+            type="password"
+            :placeholder="t('email.field_password')"
+            class="h-8 rounded-md border border-border bg-background px-3 text-[12px] outline-none focus:border-primary"
+          />
+          <div class="grid grid-cols-[1fr_72px] gap-2">
+            <input
+              v-model="accountForm.smtpHost"
+              data-testid="email-account-smtp-host"
+              type="text"
+              :placeholder="t('email.field_smtp_host')"
+              class="h-8 rounded-md border border-border bg-background px-3 text-[12px] outline-none focus:border-primary"
+            />
+            <input
+              v-model.number="accountForm.smtpPort"
+              type="number"
+              :placeholder="t('email.field_port')"
+              class="h-8 rounded-md border border-border bg-background px-2 text-[12px] outline-none focus:border-primary"
+            />
+          </div>
+          <div class="grid grid-cols-[1fr_72px] gap-2">
+            <input
+              v-model="accountForm.imapHost"
+              data-testid="email-account-imap-host"
+              type="text"
+              :placeholder="t('email.field_imap_host')"
+              class="h-8 rounded-md border border-border bg-background px-3 text-[12px] outline-none focus:border-primary"
+            />
+            <input
+              v-model.number="accountForm.imapPort"
+              type="number"
+              :placeholder="t('email.field_port')"
+              class="h-8 rounded-md border border-border bg-background px-2 text-[12px] outline-none focus:border-primary"
+            />
+          </div>
+        </div>
+        <div class="mt-4 flex justify-end gap-2">
+          <button
+            class="h-8 rounded-md px-3 text-[12px] font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            @click="accountPanelOpen = false"
+          >
+            {{ t('common.cancel') }}
+          </button>
+          <button
+            data-testid="email-account-save"
+            class="h-8 rounded-md bg-primary px-3 text-[12px] font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+            @click="saveAccount"
+          >
+            {{ t('email.save_account') }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>

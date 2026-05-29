@@ -113,6 +113,7 @@ describe('workspace secondary pages', () => {
     localStorage.removeItem('muon_email_overrides')
     localStorage.removeItem('muon_approval_overrides')
     localStorage.removeItem('muon_call_history')
+    localStorage.removeItem('muon_mail_account')
     mockRouteParams.mockReset()
     mockRouteParams.mockReturnValue({})
     routerPush.mockReset()
@@ -718,20 +719,18 @@ describe('workspace secondary pages', () => {
     expect(wrapper.find('[data-testid="workplace-apps-empty"]').exists()).toBe(true)
   })
 
-  it('lets mail compose drafts be edited and sent locally', async () => {
+  it('refuses to send mail until an account is configured', async () => {
     const wrapper = mount(EmailPage)
 
+    // 未配置邮箱账号 → 诚实拒绝发送（不伪造已发送），弹出账号配置面板
     await wrapper.get('[data-testid="email-compose"]').trigger('click')
-    await wrapper.get('[data-testid="group-member-row-@alice:localhost"]').trigger('click')
+    await wrapper.get('[data-testid="email-compose-to"]').setValue('ops@example.com')
     await wrapper.get('[data-testid="email-compose-subject"]').setValue('发布确认')
     await wrapper.get('[data-testid="email-compose-body"]').setValue('请确认今晚发布窗口。')
     await wrapper.get('[data-testid="email-compose-send"]').trigger('click')
 
-    expect(wrapper.text()).toContain('已发送：发布确认')
-    expect(wrapper.text()).toContain('发布确认')
-    expect(wrapper.text()).toContain('→ 小红')
-    expect(wrapper.text()).toContain('请确认今晚发布窗口。')
-    expect(wrapper.text()).toContain('当前邮件：发布确认')
+    expect(wrapper.find('[data-testid="email-account-panel"]').exists()).toBe(true)
+    expect(wrapper.text()).not.toContain('已发送：发布确认')
   })
 
   it('lets mail rows open a readable selected message state', async () => {
