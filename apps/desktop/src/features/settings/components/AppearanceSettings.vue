@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { MessageAlignment, ThemeMode } from '../stores/settingsStore';
+import type { MessageAlignment, SendMessageShortcut, ThemeMode } from '../stores/settingsStore';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@muon/ui/select';
 import { Check } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
@@ -22,6 +22,11 @@ const localeOptions = [
 const alignmentOptions: { value: MessageAlignment; label: () => string; desc: () => string }[] = [
   { value: 'left', label: () => t('settings.align_left'), desc: () => t('settings.align_left_desc') },
   { value: 'leftright', label: () => t('settings.align_bubble'), desc: () => t('settings.align_bubble_desc') },
+];
+
+const sendShortcutOptions: { value: SendMessageShortcut; label: () => string; desc: () => string }[] = [
+  { value: 'enter', label: () => t('settings.send_enter'), desc: () => t('settings.send_enter_desc') },
+  { value: 'mod-enter', label: () => t('settings.send_mod_enter'), desc: () => t('settings.send_mod_enter_desc') },
 ];
 </script>
 
@@ -122,6 +127,34 @@ const alignmentOptions: { value: MessageAlignment; label: () => string; desc: ()
       <p class="text-xs text-muted-foreground">
         {{ alignmentOptions.find((o) => o.value === store.messageAlignment)?.desc() }}
       </p>
+    </div>
+
+    <!-- Send message shortcut — Enter vs Ctrl/⌘+Enter -->
+    <div class="space-y-2">
+      <div class="text-sm">
+        {{ t('settings.send_shortcut') }}
+      </div>
+      <div class="grid grid-cols-2 gap-3 max-w-[26rem]">
+        <button
+          v-for="opt in sendShortcutOptions"
+          :key="opt.value"
+          type="button"
+          :title="opt.desc()"
+          data-testid="send-shortcut-option"
+          :data-value="opt.value"
+          class="group relative flex flex-col gap-1.5 rounded-lg border bg-card p-3 text-left transition-colors hover:bg-accent focus-visible:outline-none focus-visible:border-primary"
+          :class="store.sendMessageShortcut === opt.value ? 'border-primary ring-1 ring-primary' : 'border-border'"
+          @click="store.sendMessageShortcut = opt.value"
+        >
+          <span class="text-xs font-medium">{{ opt.label() }}</span>
+          <span class="text-[11px] text-muted-foreground">{{ opt.desc() }}</span>
+          <Check
+            v-if="store.sendMessageShortcut === opt.value"
+            :size="14"
+            class="absolute right-2 top-2 text-primary"
+          />
+        </button>
+      </div>
     </div>
   </div>
 </template>

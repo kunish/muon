@@ -4,6 +4,7 @@ import { computed } from 'vue'
 
 export type ThemeMode = 'light' | 'dark' | 'system'
 export type MessageAlignment = 'left' | 'leftright'
+export type SendMessageShortcut = 'enter' | 'mod-enter'
 export type NotificationChannelId = 'approvals' | 'calendar' | 'mentions' | 'messages'
 export type NotificationChannels = Record<NotificationChannelId, boolean>
 
@@ -35,6 +36,7 @@ export const useSettingsStore = defineStore('settings', () => {
   const dndStart = useStorage('muon_dnd_start', '')
   const dndEnd = useStorage('muon_dnd_end', '')
   const messageAlignment = useStorage<MessageAlignment>('muon_message_alignment', 'leftright')
+  const sendMessageShortcut = useStorage<SendMessageShortcut>('muon_send_message_shortcut', 'enter')
   const closeToTray = useStorage('muon_close_to_tray', true)
   const autoLaunch = useStorage('muon_auto_launch', false)
   const analyticsEnabled = useStorage('muon_analytics_enabled', true)
@@ -69,6 +71,7 @@ export const useSettingsStore = defineStore('settings', () => {
     dndStart,
     dndEnd,
     messageAlignment,
+    sendMessageShortcut,
     closeToTray,
     autoLaunch,
     analyticsEnabled,

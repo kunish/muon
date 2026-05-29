@@ -128,6 +128,34 @@ describe('globalSearch', () => {
     expect(submit.classes()).toContain('h-8')
   })
 
+  it('shows recent searches on empty query and re-runs one on click', async () => {
+    localStorage.clear()
+    localStorage.setItem('muon_search_history', JSON.stringify(['alpha', 'beta']))
+    const wrapper = mountGlobalSearch()
+    await flushUi()
+
+    expect(wrapper.find('[data-testid="search-recent"]').exists()).toBe(true)
+    const terms = wrapper.findAll('[data-testid="search-recent-term"]')
+    expect(terms.map((node) => node.text())).toEqual(['alpha', 'beta'])
+
+    await terms[0].trigger('click')
+    expect(searchMock).toHaveBeenCalledWith('alpha')
+
+    localStorage.clear()
+  })
+
+  it('records the submitted term into recent searches', async () => {
+    localStorage.clear()
+    const wrapper = mountGlobalSearch()
+
+    await wrapper.find('[data-testid="global-search-input"]').setValue('reportq')
+    await wrapper.find('[data-testid="global-search-form"]').trigger('submit.prevent')
+    await flushUi()
+
+    expect(JSON.parse(localStorage.getItem('muon_search_history') ?? '[]')).toContain('reportq')
+    localStorage.clear()
+  })
+
   it('renders cross-conversation message results after search submit', async () => {
     retrievalState.results = [
       {

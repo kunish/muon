@@ -5,6 +5,7 @@ export {
   type MessageAlignment,
   type NotificationChannelId,
   type NotificationChannels,
+  type SendMessageShortcut,
   type ThemeMode,
   useSettingsStore,
 } from '@/shared/stores/settingsStore'

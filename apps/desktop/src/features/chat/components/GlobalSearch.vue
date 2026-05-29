@@ -9,6 +9,7 @@ import { computed, nextTick, onMounted, onUnmounted, ref, useTemplateRef, watch 
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { workspaceApps } from '@/app/components/workspace/navigation';
+import { useSearchHistory } from '@/features/chat/composables/useSearchHistory';
 import { useChatStore } from '@/features/chat/stores/chatStore';
 import { useRetrievalStore } from '@/features/chat/stores/retrievalStore';
 
@@ -34,6 +35,7 @@ const client = getClient();
 const chatStore = useChatStore();
 const contactList = useContactList();
 const retrievalStore = useRetrievalStore();
+const searchHistory = useSearchHistory();
 const resultsScrollRef = ref<HTMLElement | null>(null);
 const searchInputRef = useTemplateRef<HTMLInputElement>('searchInput');
 const activeResultIndex = ref(-1);
@@ -151,9 +153,15 @@ async function selectRoom(room: SearchRoomResult, sidebarPreview: SidebarPreview
 }
 
 async function submitSearch() {
+  searchHistory.record(query.value);
   await retrievalStore.search(query.value);
   await nextTick();
   activeResultIndex.value = hasAnySearchResult.value ? 0 : -1;
+}
+
+function runRecentSearch(term: string) {
+  query.value = term;
+  void submitSearch();
 }
 
 async function loadMore() {
@@ -334,6 +342,37 @@ onUnmounted(() => {
     </div>
 
     <div ref="resultsScrollRef" class="flex-1 overflow-y-auto py-1">
+      <!-- 最近搜索（飞书：空查询时展示历史词） -->
+      <div
+        v-if="!normalizedQuery && searchHistory.history.value.length > 0"
+        data-testid="search-recent"
+        class="px-3 py-2"
+      >
+        <div class="mb-1.5 flex items-center justify-between">
+          <span class="text-xs font-medium text-muted-foreground">{{ t('chat.recent_searches') }}</span>
+          <button
+            type="button"
+            class="text-[11px] text-muted-foreground transition-colors hover:text-foreground"
+            data-testid="search-recent-clear"
+            @click="searchHistory.clear()"
+          >
+            {{ t('chat.search_history_clear') }}
+          </button>
+        </div>
+        <div class="flex flex-wrap gap-1.5">
+          <button
+            v-for="term in searchHistory.history.value"
+            :key="term"
+            type="button"
+            class="rounded-full bg-accent px-2.5 py-1 text-xs text-foreground transition-colors hover:bg-accent/70"
+            data-testid="search-recent-term"
+            @click="runRecentSearch(term)"
+          >
+            {{ term }}
+          </button>
+        </div>
+      </div>
+
       <template v-if="appResults.length > 0">
         <div class="px-3 py-2 text-xs font-medium text-muted-foreground">
           {{ t('chat.search_apps') }}

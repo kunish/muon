@@ -27,6 +27,7 @@ import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
 import { escapeHtml } from '@/shared/lib/utils';
+import { useSettingsStore } from '@/shared/stores/settingsStore';
 import { useCurrentRoom } from '../composables/useCurrentRoom';
 import { getFloatingPosition } from '../composables/useFloatingPosition';
 import { useMediaUpload } from '../composables/useMediaUpload';
@@ -47,6 +48,7 @@ import UploadProgress from './UploadProgress.vue';
 import VoiceRecorder from './VoiceRecorder.vue';
 
 const store = useChatStore();
+const settingsStore = useSettingsStore();
 const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
@@ -288,6 +290,7 @@ const { editor, clear, insertEmoji, insertPendingMediaAttachment } = useRichText
     onRemove: removePendingPasteAttachment,
   },
   submitOnEnter: computed(() => !editorExpanded.value),
+  submitShortcut: computed(() => settingsStore.sendMessageShortcut),
   mentionSearch: (query: string) => filterMembers(query),
   onMentionState: (state: MentionPopupState) => {
     mentionState.value = state;

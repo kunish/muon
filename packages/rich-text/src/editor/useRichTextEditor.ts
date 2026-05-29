@@ -160,6 +160,21 @@ const PendingMedia = TiptapNode.create<PendingMediaOptions>({
   },
 })
 
+/**
+ * 纯函数：根据按键修饰符与发送快捷键模式判断 Enter 是否应触发发送。
+ * - 'enter' 模式：Enter 发送（无 Shift/修饰键，且 submitOnEnter 未禁用），Shift+Enter 换行。
+ * - 'mod-enter' 模式：Ctrl/⌘+Enter 发送，普通 Enter 换行（与 submitOnEnter 无关）。
+ */
+export function shouldSubmitOnEnterKey(params: {
+  shiftKey: boolean
+  withModifier: boolean
+  shortcut: 'enter' | 'mod-enter'
+  submitOnEnter: boolean
+}): boolean {
+  if (params.shortcut === 'mod-enter') return params.withModifier
+  return !params.shiftKey && !params.withModifier && params.submitOnEnter
+}
+
 export function useRichTextEditor(options: {
   placeholder?: MaybeRefOrGetter<string>
   onSubmit: (html: string, text: string) => void
@@ -168,6 +183,8 @@ export function useRichTextEditor(options: {
   canSubmit?: MaybeRefOrGetter<boolean>
   pendingMedia?: PendingMediaOptions
   submitOnEnter?: MaybeRefOrGetter<boolean>
+  /** 发送快捷键：'enter'=回车发送/Shift+Enter 换行；'mod-enter'=Ctrl/⌘+Enter 发送/回车换行 */
+  submitShortcut?: MaybeRefOrGetter<'enter' | 'mod-enter'>
   mentionSearch?: (query: string) => MentionItem[]
   onMentionState?: (state: MentionPopupState) => void
 }) {
@@ -324,18 +341,25 @@ export function useRichTextEditor(options: {
         return true
       },
       handleKeyDown(_view, event) {
-        if (event.key === 'Enter' && !event.shiftKey && toValue(options.submitOnEnter) !== false) {
-          // mention popup 打开时不拦截 Enter，让 suggestion 处理选择
-          if (mentionActive) return false
+        if (event.key !== 'Enter') return false
+        // mention popup 打开时不拦截 Enter，让 suggestion 处理选择
+        if (mentionActive) return false
 
-          event.preventDefault()
-          // 使用 TipTap 的 getHTML() 确保 mention 节点被正确序列化
-          const html = editor.value?.getHTML() || ''
-          const text = editor.value?.getText() || ''
-          if (text.trim() || toValue(options.canSubmit)) options.onSubmit(html, text)
-          return true
-        }
-        return false
+        const shouldSubmit = shouldSubmitOnEnterKey({
+          shiftKey: event.shiftKey,
+          withModifier: event.metaKey || event.ctrlKey,
+          shortcut: toValue(options.submitShortcut) ?? 'enter',
+          submitOnEnter: toValue(options.submitOnEnter) !== false,
+        })
+
+        if (!shouldSubmit) return false
+
+        event.preventDefault()
+        // 使用 TipTap 的 getHTML() 确保 mention 节点被正确序列化
+        const html = editor.value?.getHTML() || ''
+        const text = editor.value?.getText() || ''
+        if (text.trim() || toValue(options.canSubmit)) options.onSubmit(html, text)
+        return true
       },
     },
   })
