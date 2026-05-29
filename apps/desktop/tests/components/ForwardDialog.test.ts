@@ -9,7 +9,10 @@ vi.mock('@matrix/messages', () => ({ forwardMessages: forwardMessagesSpy }))
 
 vi.mock('@matrix/client', () => ({
   getClient: () => ({
-    getRooms: () => [{ roomId: '!target:localhost', name: 'Target Room', getMyMembership: () => 'join' }],
+    getRooms: () => [
+      { roomId: '!target:localhost', name: 'Target Room', getMyMembership: () => 'join' },
+      { roomId: '!other:localhost', name: 'Other Room', getMyMembership: () => 'join' },
+    ],
     getUser: () => null,
     getUserId: () => '@me:localhost',
     sendMessage: sendMessageSpy,
@@ -35,23 +38,51 @@ describe('forwardDialog', () => {
     document.body.innerHTML = ''
   })
 
-  it('forwards a single selected message via forwardMessages (not a no-op)', async () => {
+  it('keeps the send button disabled until a target is selected', async () => {
+    mount(ForwardDialog, { props: { roomId: '!src:localhost', eventIds: ['$e1'] }, attachTo: document.body })
+    await flushPromises()
+
+    const sendButton = document.body.querySelector<HTMLButtonElement>('[data-testid="forward-send"]')
+    expect(sendButton?.disabled).toBe(true)
+  })
+
+  it('forwards a single message to a selected target on send', async () => {
     mount(ForwardDialog, { props: { roomId: '!src:localhost', eventIds: ['$e1'] }, attachTo: document.body })
     await flushPromises()
 
     clickBody('forward-room-!target:localhost')
     await flushPromises()
+    clickBody('forward-send')
+    await flushPromises()
 
+    expect(forwardMessagesSpy).toHaveBeenCalledTimes(1)
     expect(forwardMessagesSpy).toHaveBeenCalledWith('!src:localhost', '!target:localhost', ['$e1'])
   })
 
-  it('merged-forwards multiple selected messages', async () => {
+  it('forwards to multiple selected targets in one send', async () => {
     mount(ForwardDialog, { props: { roomId: '!src:localhost', eventIds: ['$e1', '$e2'] }, attachTo: document.body })
     await flushPromises()
 
     clickBody('forward-room-!target:localhost')
+    clickBody('forward-room-!other:localhost')
+    await flushPromises()
+    clickBody('forward-send')
     await flushPromises()
 
+    expect(forwardMessagesSpy).toHaveBeenCalledTimes(2)
     expect(forwardMessagesSpy).toHaveBeenCalledWith('!src:localhost', '!target:localhost', ['$e1', '$e2'])
+    expect(forwardMessagesSpy).toHaveBeenCalledWith('!src:localhost', '!other:localhost', ['$e1', '$e2'])
+  })
+
+  it('deselecting a target removes it from the send set', async () => {
+    mount(ForwardDialog, { props: { roomId: '!src:localhost', eventIds: ['$e1'] }, attachTo: document.body })
+    await flushPromises()
+
+    clickBody('forward-room-!target:localhost')
+    clickBody('forward-room-!target:localhost') // toggle off
+    await flushPromises()
+
+    const sendButton = document.body.querySelector<HTMLButtonElement>('[data-testid="forward-send"]')
+    expect(sendButton?.disabled).toBe(true)
   })
 })
