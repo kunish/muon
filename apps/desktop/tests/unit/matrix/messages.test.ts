@@ -90,6 +90,42 @@ describe('messages', () => {
     })
   })
 
+  it('sends @所有人 as an m.mentions.room mention with a highlighted span', async () => {
+    const { sendTextMessage } = await import('@/matrix/messages')
+
+    await sendTextMessage(
+      '!room:localhost',
+      '@所有人 hi',
+      '<p><span data-type="mention" data-id="@room" class="mention">@所有人</span> hi</p>',
+    )
+
+    expect(mockSendMessage).toHaveBeenCalledWith('!room:localhost', {
+      msgtype: 'm.text',
+      body: '@所有人 hi',
+      format: 'org.matrix.custom.html',
+      formatted_body: '<p><span class="mention-room">@所有人</span> hi</p>',
+      'm.mentions': { room: true },
+    })
+  })
+
+  it('sends a user mention as m.mentions.user_ids with a matrix.to link', async () => {
+    const { sendTextMessage } = await import('@/matrix/messages')
+
+    await sendTextMessage(
+      '!room:localhost',
+      '@Alice hi',
+      '<p><span data-type="mention" data-id="@alice:localhost" class="mention">@Alice</span> hi</p>',
+    )
+
+    expect(mockSendMessage).toHaveBeenCalledWith('!room:localhost', {
+      msgtype: 'm.text',
+      body: '@Alice hi',
+      format: 'org.matrix.custom.html',
+      formatted_body: '<p><a href="https://matrix.to/#/@alice:localhost">Alice</a> hi</p>',
+      'm.mentions': { user_ids: ['@alice:localhost'] },
+    })
+  })
+
   it('should send rich-text replies as formatted Matrix messages', async () => {
     const { replyToMessage } = await import('@/matrix/messages')
 

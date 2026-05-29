@@ -21,7 +21,7 @@ interface MatrixTextContent {
   body: string
   format?: typeof MATRIX_HTML_FORMAT
   formatted_body?: string
-  'm.mentions'?: { user_ids: string[] }
+  'm.mentions'?: { user_ids?: string[]; room?: boolean }
   // MSC4019 (unstable). Recognizing clients should suppress notifications and
   // sound; others fall back to normal notifying behavior. Track stabilization at
   // https://github.com/matrix-org/matrix-spec-proposals/pull/4019.
@@ -32,16 +32,22 @@ interface MatrixTextContent {
  * 将 TipTap mention HTML 转换为 Matrix 格式
  * TipTap: <span data-type="mention" data-id="@user:server" class="mention">@DisplayName</span>
  * Matrix: <a href="https://matrix.to/#/@user:server">DisplayName</a>
+ * 特例 "@room"（@所有人）：渲染为高亮 span 并标记 room 提及，而非用户链接。
  */
-function convertMentionsToMatrix(html: string): { html: string; userIds: string[] } {
+function convertMentionsToMatrix(html: string): { html: string; userIds: string[]; room: boolean } {
   const userIds: string[] = []
+  let room = false
   const converted = html.replace(MENTION_SPAN_RE, (_match, userId: string, label: string) => {
+    if (userId === '@room') {
+      room = true
+      return `<span class="mention-room">@${label}</span>`
+    }
     if (userId && !userIds.includes(userId)) {
       userIds.push(userId)
     }
     return `<a href="https://matrix.to/#/${userId}">${label}</a>`
   })
-  return { html: converted, userIds }
+  return { html: converted, userIds, room }
 }
 
 export interface SendTextOptions {
@@ -73,15 +79,18 @@ export function sendTextMessage(
 function createTextMessageContent(body: string, html?: string, options?: SendTextOptions): MatrixTextContent {
   const silentTag = options?.silent ? ({ 'org.matrix.msc4019.silent': true } as const) : null
   if (html && !isPlainEditorHtml(html, body)) {
-    const { html: matrixHtml, userIds } = convertMentionsToMatrix(html)
+    const { html: matrixHtml, userIds, room } = convertMentionsToMatrix(html)
     const formattedBody = sanitizeMatrixHtml(matrixHtml)
+    const mentions: { user_ids?: string[]; room?: boolean } = {}
+    if (userIds.length > 0) mentions.user_ids = userIds
+    if (room) mentions.room = true
     return {
       msgtype: MsgType.Text,
       body,
       format: MATRIX_HTML_FORMAT,
       formatted_body: formattedBody,
-      // 添加 m.mentions 用于通知被提及的用户
-      ...(userIds.length > 0 ? { 'm.mentions': { user_ids: userIds } } : {}),
+      // 添加 m.mentions 用于通知被提及的用户 / @所有人 (room)
+      ...(userIds.length > 0 || room ? { 'm.mentions': mentions } : {}),
       ...(silentTag ?? {}),
     }
   }

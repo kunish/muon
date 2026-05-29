@@ -3,7 +3,11 @@ import { useContactList } from '@shared/composables/useContactList'
 import { Effect } from 'effect'
 import { computed } from 'vue'
 import { fromPromise, runDesktopEffect } from '@/shared/lib/effect'
+import { localizedText } from '@/shared/lib/localizedText'
 import { useChatStore } from '../stores/chatStore'
+
+/** @所有人 的哨兵 mention id（发送时转为 m.mentions.room） */
+export const ROOM_MENTION_ID = '@room'
 
 interface MentionMember {
   id: string
@@ -24,10 +28,14 @@ export function useMention() {
   const mentionCandidates = computed<MentionMember[]>(() => {
     const candidates = new Map<string, MentionMember>()
     const roomId = store.currentRoomId
+    let isGroupRoom = false
     if (roomId) {
       const room = getRoom(roomId)
       if (room) {
-        for (const m of room.getJoinedMembers()) {
+        const members = room.getJoinedMembers()
+        // 群聊（成员多于 2 人）才提供 @所有人
+        isGroupRoom = members.length > 2
+        for (const m of members) {
           candidates.set(m.userId, {
             id: m.userId,
             label: m.name || m.userId,
@@ -48,7 +56,12 @@ export function useMention() {
       })
     }
 
-    return Array.from(candidates.values())
+    const list = Array.from(candidates.values())
+    if (isGroupRoom) {
+      // @所有人 置顶
+      list.unshift({ id: ROOM_MENTION_ID, label: localizedText('chat.mention_all'), isInCurrentRoom: true })
+    }
+    return list
   })
 
   function filterMembers(query: string): MentionMember[] {

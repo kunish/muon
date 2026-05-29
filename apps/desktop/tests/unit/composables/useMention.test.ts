@@ -46,4 +46,23 @@ describe('useMention', () => {
       },
     ])
   })
+
+  it('offers @所有人 at the top of a group room', () => {
+    useChatStore().setCurrentRoom('!group_family:localhost')
+
+    const { filterMembers } = useMention()
+    const candidates = filterMembers('')
+
+    expect(candidates[0]?.id).toBe('@room')
+    expect(candidates[0]?.isInCurrentRoom).toBe(true)
+    expect(candidates[0]?.label).toBeTruthy()
+  })
+
+  it('does not offer @所有人 in a direct message', () => {
+    useChatStore().setCurrentRoom('!dm_alice:localhost')
+
+    const { filterMembers } = useMention()
+
+    expect(filterMembers('').some((candidate) => candidate.id === '@room')).toBe(false)
+  })
 })
