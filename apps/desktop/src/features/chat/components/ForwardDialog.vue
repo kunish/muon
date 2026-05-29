@@ -36,7 +36,7 @@ const rooms = computed(() => {
 async function forwardTo(targetRoomId: string) {
   sending.value = targetRoomId;
   try {
-    if (isMergedForward.value && props.roomId && props.eventIds) {
+    if (props.eventIds?.length && props.roomId) {
       await forwardMessages(props.roomId, targetRoomId, props.eventIds);
     } else if (props.event) {
       const content = props.event.getContent();
@@ -92,6 +92,7 @@ async function forwardTo(targetRoomId: string) {
             v-for="r in rooms"
             :key="r.roomId"
             class="flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer hover:bg-accent/50"
+            :data-testid="`forward-room-${r.roomId}`"
             @click="forwardTo(r.roomId)"
           >
             <div

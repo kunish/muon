@@ -8,6 +8,7 @@ import ChatFileList from './ChatFileList.vue';
 import ChatHeader from './ChatHeader.vue';
 import ChatSettingsPanel from './ChatSettingsPanel.vue';
 import EmojiEffectLayer from './EmojiEffectLayer.vue';
+import ForwardDialog from './ForwardDialog.vue';
 import GlobalSearch from './GlobalSearch.vue';
 import KnowledgeCapturePanel from './KnowledgeCapturePanel.vue';
 import MediaViewer from './MediaViewer.vue';
@@ -27,6 +28,17 @@ const { t } = useI18n();
 const messageListRef = ref<InstanceType<typeof MessageList> | null>(null);
 const richTextInputRef = ref<InstanceType<typeof RichTextInput> | null>(null);
 const isDraggingFiles = ref(false);
+const showMergedForward = ref(false);
+
+/** 多选「合并转发」：用所选事件打开转发对话框 */
+function onMergedForward() {
+  if (store.selectedMessages.size > 0) showMergedForward.value = true;
+}
+
+function onMergedForwardClose() {
+  showMergedForward.value = false;
+  store.exitMultiSelect();
+}
 
 const { typingUsers } = useTyping();
 
@@ -103,7 +115,7 @@ watch(
       <template v-if="activeTab === 'chat'">
         <MessageList ref="messageListRef" />
         <TypingIndicator :users="typingUsers" />
-        <MultiSelectBar v-if="store.multiSelectMode" />
+        <MultiSelectBar v-if="store.multiSelectMode" @forward="onMergedForward" />
         <RichTextInput v-else ref="richTextInputRef" />
       </template>
 
@@ -122,6 +134,14 @@ watch(
 
       <MediaViewer />
       <EmojiEffectLayer ref="effectLayerRef" />
+
+      <!-- 多选合并转发对话框 -->
+      <ForwardDialog
+        v-if="showMergedForward"
+        :room-id="store.currentRoomId || undefined"
+        :event-ids="[...store.selectedMessages]"
+        @close="onMergedForwardClose"
+      />
     </div>
 
     <!-- Side panels -->

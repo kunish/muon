@@ -174,6 +174,7 @@ vi.mock('@/features/chat/components/MediaViewer.vue', () => ({ default: createSt
 vi.mock('@/features/chat/components/MemberListPanel.vue', () => ({ default: createStub('MemberListPanelStub') }))
 vi.mock('@/features/chat/components/MessageList.vue', () => ({ default: createStub('MessageListStub') }))
 vi.mock('@/features/chat/components/MultiSelectBar.vue', () => ({ default: createStub('MultiSelectBarStub') }))
+vi.mock('@/features/chat/components/ForwardDialog.vue', () => ({ default: createStub('ForwardDialogStub') }))
 vi.mock('@/features/chat/components/PinnedMessages.vue', () => ({ default: createStub('PinnedMessagesStub') }))
 vi.mock('@/features/chat/components/RichTextInput.vue', () => ({ default: createStub('RichTextInputStub') }))
 vi.mock('@/features/chat/components/GlobalSearch.vue', () => ({ default: createStub('GlobalSearchStub') }))
