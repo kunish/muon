@@ -1,17 +1,44 @@
 <script setup lang="ts">
 import type { CalendarEvent } from '../types/event';
-import { CalendarDays, ChevronLeft, ChevronRight, Clock, MapPin, Plus, Users } from 'lucide-vue-next';
+import { CalendarDays, ChevronLeft, ChevronRight, Clock, Download, MapPin, Plus, Upload, Users } from 'lucide-vue-next';
 import { computed, onMounted, ref, shallowRef } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { toast } from 'vue-sonner';
 import WorkspacePageFrame from '@/app/components/workspace/WorkspacePageFrame.vue';
 import GroupMemberPicker from '@/features/contacts/components/GroupMemberPicker.vue';
 import { projectRepo } from '@/features/projects/db/projectDb';
 import { useContactList } from '@/shared/composables/useContactList';
+import { triggerBlobDownload } from '@/shared/lib/download';
+import { eventsToIcs, parseIcs } from '../lib/ics';
 import { useCalendarStore } from '../stores/calendarStore';
 
 const { t } = useI18n();
 const contactList = useContactList();
 const calendarStore = useCalendarStore();
+
+const icsInput = ref<HTMLInputElement | null>(null);
+
+function exportIcs(): void {
+  const ics = eventsToIcs(calendarStore.events, Date.now());
+  triggerBlobDownload(new Blob([ics], { type: 'text/calendar' }), 'muon-calendar.ics');
+}
+
+function pickIcs(): void {
+  icsInput.value?.click();
+}
+
+async function onIcsSelected(event: Event): Promise<void> {
+  const file = (event.target as HTMLInputElement).files?.[0];
+  if (icsInput.value) icsInput.value.value = '';
+  if (!file) return;
+  try {
+    const parsed = parseIcs(await file.text());
+    for (const item of parsed) calendarStore.addEvent(item);
+    toast.success(t('calendar.import_done', { count: parsed.length }));
+  } catch {
+    toast.error(t('calendar.import_failed'));
+  }
+}
 
 // ── View mode ──
 type CalendarView = 'month' | 'week' | 'day';
@@ -441,6 +468,32 @@ function colorBg(color: string): string {
           }}
         </button>
       </div>
+
+      <!-- 导入 / 导出 iCalendar -->
+      <button
+        class="flex size-8 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+        :title="t('calendar.import_ics')"
+        data-testid="calendar-import-ics"
+        @click="pickIcs"
+      >
+        <Upload :size="16" />
+      </button>
+      <button
+        class="flex size-8 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+        :title="t('calendar.export_ics')"
+        data-testid="calendar-export-ics"
+        @click="exportIcs"
+      >
+        <Download :size="16" />
+      </button>
+      <input
+        ref="icsInput"
+        type="file"
+        accept=".ics,text/calendar"
+        class="hidden"
+        data-testid="calendar-ics-input"
+        @change="onIcsSelected"
+      />
 
       <!-- 新建日程 -->
       <button

@@ -1033,6 +1033,10 @@
   "calendar": {
     "subtitle": "团队日程与专注时间",
     "new_event": "新建日程",
+    "import_ics": "导入 iCalendar",
+    "export_ics": "导出 iCalendar",
+    "import_done": "已导入 {count} 个日程",
+    "import_failed": "导入日历失败",
     "save_event": "保存日程",
     "accept_attend": "接受参会",
     "reschedule": "改期到建议时段",
