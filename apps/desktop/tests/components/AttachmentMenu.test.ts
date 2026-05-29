@@ -74,4 +74,14 @@ describe('attachmentMenu', () => {
     expect(toastMocks.error).toHaveBeenCalledWith('上传失败')
     expect(wrapper.emitted('file')).toBeUndefined()
   })
+
+  it('emits screenshot when the screenshot item is selected', async () => {
+    const wrapper = mount(AttachmentMenu)
+
+    await openAttachmentMenu(wrapper)
+    getMenuButton('截图').click()
+    await flushPromises()
+
+    expect(wrapper.emitted('screenshot')).toHaveLength(1)
+  })
 })

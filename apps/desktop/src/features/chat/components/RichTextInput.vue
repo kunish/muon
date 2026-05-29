@@ -26,6 +26,7 @@ import { computed, nextTick, onMounted, onUnmounted, ref, shallowRef, watch } fr
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
+import { captureScreen } from '@/desktop/screenshot';
 import { escapeHtml } from '@/shared/lib/utils';
 import { useSettingsStore } from '@/shared/stores/settingsStore';
 import { useCurrentRoom } from '../composables/useCurrentRoom';
@@ -68,6 +69,20 @@ const {
   clearUploads,
 } = useMediaUpload(() => store.currentRoomId);
 const { filterMembers } = useMention();
+
+/** 附件菜单「截图」：抓屏后作为图片上传（与展开态 ScreenshotButton 行为一致） */
+async function handleScreenshot() {
+  try {
+    const blob = await captureScreen();
+    if (!blob) {
+      toast.error(t('chat.screenshot_failed'));
+      return;
+    }
+    uploadImage(new File([blob], `screenshot-${Date.now()}.png`, { type: 'image/png' }));
+  } catch {
+    toast.error(t('chat.screenshot_failed'));
+  }
+}
 
 // mention 弹窗状态
 const mentionState = ref<MentionPopupState>({
@@ -1348,6 +1363,7 @@ onUnmounted(() => {
             @location="toggleLocationPicker"
             @gif="toggleGifPicker"
             @contact-card="toggleContactCardPicker"
+            @screenshot="handleScreenshot"
           />
         </div>
         <div ref="expressionTriggerRef" class="flex items-center shrink-0 gap-0">
@@ -1459,6 +1475,7 @@ onUnmounted(() => {
           @location="toggleLocationPicker"
           @gif="toggleGifPicker"
           @contact-card="toggleContactCardPicker"
+          @screenshot="handleScreenshot"
         />
         <button
           data-testid="expanded-send"
