@@ -48,6 +48,34 @@ export interface SerializedFetchResponse {
 
 export type DesktopRuntime = 'electron' | 'electrobun'
 
+export interface MailAccountConfig {
+  user: string
+  password: string
+  smtpHost: string
+  smtpPort: number
+  smtpSecure: boolean
+  imapHost: string
+  imapPort: number
+  imapSecure: boolean
+}
+
+export interface OutgoingMailMessage {
+  to: string
+  subject: string
+  text: string
+  from?: string
+}
+
+export interface FetchedMail {
+  uid: string
+  from: string
+  fromName: string
+  subject: string
+  date: string
+  snippet: string
+  seen: boolean
+}
+
 export interface MuonDesktopBridge {
   isElectron: true
   runtime: DesktopRuntime
@@ -68,6 +96,10 @@ export interface MuonDesktopBridge {
   fs: {
     readFile: (path: string) => Promise<ArrayBuffer>
     writeFile: (path: string, bytes: Uint8Array | ArrayBuffer) => Promise<void>
+  }
+  mail?: {
+    send: (account: MailAccountConfig, message: OutgoingMailMessage) => Promise<{ messageId: string }>
+    fetchInbox: (account: MailAccountConfig, limit?: number) => Promise<FetchedMail[]>
   }
   safeStorage: {
     isAvailable: () => Promise<boolean>

@@ -397,6 +397,102 @@ function registerSafeStorageIpc(): void {
   })
 }
 
+interface MailAccountConfig {
+  user: string
+  password: string
+  smtpHost: string
+  smtpPort: number
+  smtpSecure: boolean
+  imapHost: string
+  imapPort: number
+  imapSecure: boolean
+}
+
+interface OutgoingMailMessage {
+  to: string
+  subject: string
+  text: string
+  from?: string
+}
+
+function registerMailIpc(): void {
+  // 真实 SMTP 发件：通过用户配置的账号连接其邮件服务器
+  ipcMain.handle('muon:mail:send', async (_event, account: MailAccountConfig, message: OutgoingMailMessage) => {
+    const nodemailer = runtimeRequire('nodemailer') as typeof import('nodemailer')
+    const transport = nodemailer.createTransport({
+      host: account.smtpHost,
+      port: account.smtpPort,
+      secure: account.smtpSecure,
+      auth: { user: account.user, pass: account.password },
+    })
+    const info = await transport.sendMail({
+      from: message.from || account.user,
+      to: message.to,
+      subject: message.subject,
+      text: message.text,
+    })
+    return { messageId: info.messageId }
+  })
+
+  // 真实 IMAP 收件：拉取收件箱最近若干封邮件
+  ipcMain.handle('muon:mail:fetch-inbox', async (_event, account: MailAccountConfig, limit = 20) => {
+    const { ImapFlow } = runtimeRequire('imapflow') as typeof import('imapflow')
+    const simpleParser = (runtimeRequire('mailparser') as typeof import('mailparser')).simpleParser as (
+      source: Buffer,
+    ) => Promise<import('mailparser').ParsedMail>
+    const client = new ImapFlow({
+      host: account.imapHost,
+      port: account.imapPort,
+      secure: account.imapSecure,
+      auth: { user: account.user, pass: account.password },
+      logger: false,
+    })
+
+    const results: Array<{
+      uid: string
+      from: string
+      fromName: string
+      subject: string
+      date: string
+      snippet: string
+      seen: boolean
+    }> = []
+
+    await client.connect()
+    try {
+      const lock = await client.getMailboxLock('INBOX')
+      try {
+        const mailbox = client.mailbox
+        const total = mailbox && typeof mailbox === 'object' ? mailbox.exists : 0
+        if (total > 0) {
+          const start = Math.max(1, total - limit + 1)
+          for await (const msg of client.fetch(`${start}:*`, { envelope: true, source: true, flags: true })) {
+            if (!msg.source) continue
+            const parsed = await simpleParser(msg.source)
+            const sender = msg.envelope?.from?.[0]
+            const when = msg.envelope?.date ?? parsed.date ?? undefined
+            results.push({
+              uid: String(msg.uid),
+              from: sender?.address || '',
+              fromName: sender?.name || sender?.address || '',
+              subject: msg.envelope?.subject || parsed.subject || '',
+              date: when instanceof Date ? when.toISOString() : '',
+              snippet: (parsed.text || '').replace(/\s+/g, ' ').trim().slice(0, 200),
+              seen: msg.flags?.has('\\Seen') ?? false,
+            })
+          }
+        }
+      } finally {
+        lock.release()
+      }
+    } finally {
+      await client.logout()
+    }
+
+    return results.reverse()
+  })
+}
+
 function registerIpc(): void {
   registerWindowIpc()
   registerDialogIpc()
@@ -406,6 +502,7 @@ function registerIpc(): void {
   registerAppSettingsIpc()
   registerUpdaterIpc()
   registerSafeStorageIpc()
+  registerMailIpc()
 }
 
 function createMainWindow(): void {

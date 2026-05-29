@@ -27,6 +27,10 @@ contextBridge.exposeInMainWorld('muonDesktop', {
       ipcRenderer.invoke('muon:fs:write-file', filePath, bytes),
   },
   isElectron: true,
+  mail: {
+    send: (account: unknown, message: unknown) => ipcRenderer.invoke('muon:mail:send', account, message),
+    fetchInbox: (account: unknown, limit?: number) => ipcRenderer.invoke('muon:mail:fetch-inbox', account, limit),
+  },
   runtime: 'electron',
   // eslint-disable-next-line node/prefer-global/process -- Electron sandbox preloads may not expose process at all.
   platform: globalThis.process?.platform,
