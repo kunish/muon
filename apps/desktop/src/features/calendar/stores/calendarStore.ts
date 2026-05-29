@@ -131,6 +131,35 @@ export const useCalendarStore = defineStore('calendar', () => {
     persist()
   }
 
+  /**
+   * 用一次订阅同步的结果替换该订阅的所有事件（按 `sub:<subId>:` 前缀去重，
+   * 使重复同步幂等，不产生重复事件）。
+   */
+  function replaceSubscriptionEvents(subId: string, inputs: AddEventInput[]) {
+    const prefix = `sub:${subId}:`
+    const kept = events.value.filter((event) => !event.id.startsWith(prefix))
+    const now = Date.now()
+    const fresh: CalendarEvent[] = []
+    for (const input of inputs) {
+      const title = input.title.trim()
+      if (!title) continue
+      const event: CalendarEvent = {
+        id: `${prefix}${input.id ?? generateEventId(now)}`,
+        title,
+        date: input.date,
+        time: input.time,
+        endTime: input.endTime || undefined,
+        participants: input.participants?.trim() || '订阅日历',
+        color: input.color || 'sky',
+        description: input.description?.trim() || undefined,
+        rsvpStatus: input.rsvpStatus || '已订阅',
+      }
+      if (isValidCalendarEvent(event)) fresh.push(event)
+    }
+    events.value = [...fresh, ...kept]
+    persist()
+  }
+
   hydrate()
 
   return {
@@ -142,5 +171,6 @@ export const useCalendarStore = defineStore('calendar', () => {
     setRsvp,
     reschedule,
     removeEvent,
+    replaceSubscriptionEvents,
   }
 })

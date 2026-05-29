@@ -1,6 +1,18 @@
 <script setup lang="ts">
 import type { CalendarEvent } from '../types/event';
-import { CalendarDays, ChevronLeft, ChevronRight, Clock, Download, MapPin, Plus, Upload, Users } from 'lucide-vue-next';
+import {
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Download,
+  MapPin,
+  Plus,
+  Rss,
+  Trash2,
+  Upload,
+  Users,
+} from 'lucide-vue-next';
 import { computed, onMounted, ref, shallowRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
@@ -9,14 +21,30 @@ import GroupMemberPicker from '@/features/contacts/components/GroupMemberPicker.
 import { projectRepo } from '@/features/projects/db/projectDb';
 import { useContactList } from '@/shared/composables/useContactList';
 import { triggerBlobDownload } from '@/shared/lib/download';
+import { useCalendarSubscriptions } from '../composables/useCalendarSubscriptions';
 import { eventsToIcs, parseIcs } from '../lib/ics';
 import { useCalendarStore } from '../stores/calendarStore';
 
 const { t } = useI18n();
 const contactList = useContactList();
 const calendarStore = useCalendarStore();
+const subscriptions = useCalendarSubscriptions();
 
 const icsInput = ref<HTMLInputElement | null>(null);
+const subscriptionPanelOpen = ref(false);
+const subscriptionUrlDraft = ref('');
+
+function addCalendarSubscription(): void {
+  if (subscriptions.addSubscription(subscriptionUrlDraft.value)) {
+    subscriptionUrlDraft.value = '';
+    void syncCalendarSubscriptions();
+  }
+}
+
+async function syncCalendarSubscriptions(): Promise<void> {
+  const synced = await subscriptions.syncAll();
+  if (synced > 0) toast.success(t('calendar.subscriptions_synced', { count: synced }));
+}
 
 function exportIcs(): void {
   const ics = eventsToIcs(calendarStore.events, Date.now());
@@ -212,6 +240,7 @@ const projectTaskEvents = shallowRef<CalendarEvent[]>([]);
 
 onMounted(async () => {
   contactList.ensureContactsLoaded();
+  void syncCalendarSubscriptions();
 
   // Load project tasks asynchronously
   try {
@@ -485,6 +514,14 @@ function colorBg(color: string): string {
         @click="exportIcs"
       >
         <Download :size="16" />
+      </button>
+      <button
+        class="flex size-8 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+        :title="t('calendar.subscriptions_title')"
+        data-testid="calendar-subscribe"
+        @click="subscriptionPanelOpen = true"
+      >
+        <Rss :size="16" />
       </button>
       <input
         ref="icsInput"
@@ -871,5 +908,73 @@ function colorBg(color: string): string {
         </div>
       </div>
     </Teleport>
+
+    <!-- 订阅外部日历(iCal URL,实时同步) -->
+    <div
+      v-if="subscriptionPanelOpen"
+      class="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 p-4"
+      data-testid="calendar-subscription-panel"
+      @click.self="subscriptionPanelOpen = false"
+    >
+      <div class="w-[420px] rounded-lg border border-border bg-popover p-4 shadow-2xl">
+        <h2 class="mb-1 text-[15px] font-semibold text-foreground">{{ t('calendar.subscriptions_title') }}</h2>
+        <p class="mb-3 text-[12px] text-muted-foreground">{{ t('calendar.subscriptions_hint') }}</p>
+        <div class="flex gap-2">
+          <input
+            v-model="subscriptionUrlDraft"
+            data-testid="calendar-subscription-url"
+            type="url"
+            :placeholder="t('calendar.subscription_url_placeholder')"
+            class="h-8 flex-1 rounded-md border border-border bg-background px-3 text-[12px] outline-none focus:border-primary"
+            @keydown.enter="addCalendarSubscription"
+          />
+          <button
+            data-testid="calendar-subscription-add"
+            class="h-8 rounded-md bg-primary px-3 text-[12px] font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+            @click="addCalendarSubscription"
+          >
+            {{ t('calendar.subscribe') }}
+          </button>
+        </div>
+
+        <div v-if="subscriptions.subscriptions.value.length > 0" class="mt-3 grid gap-1">
+          <div
+            v-for="sub in subscriptions.subscriptions.value"
+            :key="sub.id"
+            class="flex items-center gap-2 rounded-md border border-border px-2 py-1.5"
+          >
+            <span class="min-w-0 flex-1 truncate text-[12px] text-foreground">{{ sub.url }}</span>
+            <button
+              :data-testid="`calendar-subscription-remove-${sub.id}`"
+              class="flex size-6 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-destructive"
+              :title="t('calendar.remove_subscription')"
+              @click="subscriptions.removeSubscription(sub.id)"
+            >
+              <Trash2 :size="13" />
+            </button>
+          </div>
+        </div>
+        <p v-else class="mt-3 text-[12px] text-muted-foreground" data-testid="calendar-subscription-empty">
+          {{ t('calendar.no_subscriptions') }}
+        </p>
+
+        <div class="mt-4 flex justify-between">
+          <button
+            data-testid="calendar-subscription-sync"
+            class="h-8 rounded-md border border-border px-3 text-[12px] font-semibold text-foreground transition-colors hover:bg-accent disabled:opacity-50"
+            :disabled="subscriptions.syncing.value"
+            @click="syncCalendarSubscriptions"
+          >
+            {{ t('calendar.sync_now') }}
+          </button>
+          <button
+            class="h-8 rounded-md px-3 text-[12px] font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            @click="subscriptionPanelOpen = false"
+          >
+            {{ t('common.close') }}
+          </button>
+        </div>
+      </div>
+    </div>
   </WorkspacePageFrame>
 </template>
