@@ -288,10 +288,12 @@ function scrollToCenteredEvent(eventId: string, options: { rememberPrevious?: bo
 }
 
 function onJumpToEvent(eventId: string) {
-  if (scrollToCenteredEvent(eventId, { rememberPrevious: true })) {
-    flashFocusedEvent(eventId);
-  }
+  // 复用聚焦机制：未命中时自动回填分页直到定位到目标消息（适用于较旧的引用/置顶/收藏消息）
+  pendingFocusEventId.value = eventId;
+  void tryFocusEventFromQuery();
 }
+
+defineExpose({ focusEvent: onJumpToEvent });
 
 function flashFocusedEvent(eventId: string) {
   const el = containerRef.value;

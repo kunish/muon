@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { provide, shallowRef, watch } from 'vue';
+import { provide, ref, shallowRef, watch } from 'vue';
 import { useTyping } from '../composables/useTyping';
 import { useChatStore } from '../stores/chatStore';
 import ChatDocsList from './ChatDocsList.vue';
@@ -22,8 +22,14 @@ import ThreadPanel from './ThreadPanel.vue';
 import TypingIndicator from './TypingIndicator.vue';
 
 const store = useChatStore();
+const messageListRef = ref<InstanceType<typeof MessageList> | null>(null);
 
 const { typingUsers } = useTyping();
+
+/** 侧栏（置顶/收藏）点击某条消息时，滚动并高亮主时间线中的该消息 */
+function onPanelJumpTo(eventId: string) {
+  messageListRef.value?.focusEvent(eventId);
+}
 type ChatContentTab = 'chat' | 'docs' | 'files';
 
 const activeTab = shallowRef<ChatContentTab>('chat');
@@ -52,7 +58,7 @@ watch(
 
       <!-- Chat content -->
       <template v-if="activeTab === 'chat'">
-        <MessageList />
+        <MessageList ref="messageListRef" />
         <TypingIndicator :users="typingUsers" />
         <MultiSelectBar v-if="store.multiSelectMode" />
         <RichTextInput v-else />
@@ -93,11 +99,13 @@ watch(
             v-else-if="store.activeSidePanel === 'pinned' && store.currentRoomId"
             :room-id="store.currentRoomId"
             @close="store.closeSidePanel()"
+            @jump-to="onPanelJumpTo"
           />
           <StarredMessages
             v-else-if="store.activeSidePanel === 'starred' && store.currentRoomId"
             :room-id="store.currentRoomId"
             @close="store.closeSidePanel()"
+            @jump-to="onPanelJumpTo"
           />
           <MemberListPanel v-else-if="store.activeSidePanel === 'members'" />
           <ChatSettingsPanel v-else-if="store.activeSidePanel === 'settings'" />
