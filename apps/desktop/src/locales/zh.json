@@ -1008,6 +1008,7 @@
     "reject": "驳回",
     "approve": "同意",
     "approve_stage": "通过本环节",
+    "update_failed": "审批操作失败",
     "stage_advanced_notice": "已通过当前环节，进入：{stage}",
     "transfer_to": "转交给",
     "confirm_transfer": "确认转交",

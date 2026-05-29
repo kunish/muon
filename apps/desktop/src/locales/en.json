@@ -1008,6 +1008,7 @@
     "reject": "Reject",
     "approve": "Approve",
     "approve_stage": "Approve stage",
+    "update_failed": "Approval action failed",
     "stage_advanced_notice": "Stage approved, advancing to: {stage}",
     "transfer_to": "Transfer to",
     "confirm_transfer": "Confirm Transfer",

@@ -1,14 +1,25 @@
 <script setup lang="ts">
+import type { BackendApproval } from '@/features/approvals/lib/approvalsApi';
 import { useStorage } from '@vueuse/core';
 import { CheckSquare, Clock3, FileCheck2, Plus, ShieldCheck, XCircle } from 'lucide-vue-next';
 import { computed, onMounted, ref, shallowRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import WorkspacePageFrame from '@/app/components/workspace/WorkspacePageFrame.vue';
+import {
+  commentApproval,
+  decideApproval,
+  fetchApprovals,
+  isApprovalsBackendConfigured,
+  transferApproval,
+} from '@/features/approvals/lib/approvalsApi';
 import GroupMemberPicker from '@/features/contacts/components/GroupMemberPicker.vue';
 import { useContactList } from '@/shared/composables/useContactList';
 
 const { t } = useI18n();
 const contactList = useContactList();
+
+// 配置了应用自带审批后端(apps/api)时,数据与决策走真实后端;否则用本地工作流
+const backendMode = isApprovalsBackendConfigured();
 
 const activeQueue = shallowRef('pending');
 const selectedRequestId = shallowRef('request-2');
@@ -188,8 +199,41 @@ const selectedRequestIsFinalStage = computed(() => {
   return selectedRequestStageIndex.value >= request.stages.length - 1;
 });
 
+function mapBackendApproval(approval: BackendApproval): ApprovalRequest {
+  return {
+    id: approval.id,
+    queue: approval.status,
+    title: approval.title,
+    requester: approval.requester,
+    stage: approval.handler,
+    due: approval.handler,
+    currentHandler: approval.handler,
+    comments: approval.comments,
+    stages: approval.stages,
+  };
+}
+
+/** 把后端返回的单条审批写回视图与阶段链 */
+function applyBackendApproval(approval: BackendApproval): void {
+  const mapped = mapBackendApproval(approval);
+  requests.value = requests.value.map((item) => (item.id === approval.id ? mapped : item));
+  setApprovalOverride(approval.id, { stageIndex: approval.currentStageIndex });
+}
+
+async function loadBackendApprovals(): Promise<void> {
+  try {
+    const list = await fetchApprovals();
+    requests.value = list.map(mapBackendApproval);
+    for (const approval of list) setApprovalOverride(approval.id, { stageIndex: approval.currentStageIndex });
+    selectedRequestId.value = list[0]?.id ?? '';
+  } catch {
+    /* 后端不可用时退回本地种子 */
+  }
+}
+
 onMounted(() => {
   contactList.ensureContactsLoaded();
+  if (backendMode) void loadBackendApprovals();
 });
 
 watch(requestDraftRequesterIds, (ids) => {
@@ -240,11 +284,31 @@ function setDecisionNotice(id: string, message: string): void {
   decisionNotices.value = { ...decisionNotices.value, [id]: message };
 }
 
-function decideSelectedRequest(queue: 'approved' | 'rejected'): void {
+async function decideSelectedRequest(queue: 'approved' | 'rejected'): Promise<void> {
   const request = selectedRequest.value;
   if (!request) return;
 
   selectedRequestId.value = request.id;
+
+  // 后端模式:决策走应用自带审批后端,以后端返回为准
+  if (backendMode) {
+    try {
+      const updated = await decideApproval(request.id, queue);
+      applyBackendApproval(updated);
+      activeQueue.value = updated.status;
+      setDecisionNotice(
+        request.id,
+        updated.status === 'approved'
+          ? t('approvals.approved_notice', { title: request.title })
+          : updated.status === 'rejected'
+            ? t('approvals.rejected_notice', { title: request.title })
+            : t('approvals.stage_advanced_notice', { stage: updated.handler }),
+      );
+    } catch {
+      setDecisionNotice(request.id, t('approvals.update_failed'));
+    }
+    return;
+  }
 
   if (queue === 'rejected') {
     requests.value = requests.value.map((item) =>
@@ -278,10 +342,21 @@ function decideSelectedRequest(queue: 'approved' | 'rejected'): void {
   setDecisionNotice(request.id, t('approvals.approved_notice', { title: request.title }));
 }
 
-function addApprovalComment(): void {
+async function addApprovalComment(): Promise<void> {
   const request = selectedRequest.value;
   const comment = approvalCommentDraft.value.trim();
   if (!request || !comment) return;
+
+  if (backendMode) {
+    approvalCommentDraft.value = '';
+    try {
+      applyBackendApproval(await commentApproval(request.id, comment));
+      setDecisionNotice(request.id, t('approvals.comment_recorded_notice', { title: request.title }));
+    } catch {
+      setDecisionNotice(request.id, t('approvals.update_failed'));
+    }
+    return;
+  }
 
   const nextComments = [...request.comments, comment];
   requests.value = requests.value.map((item) => (item.id === request.id ? { ...item, comments: nextComments } : item));
@@ -316,11 +391,22 @@ function closeTransferPicker(): void {
   transferPickerOpen.value = false;
 }
 
-function transferSelectedRequest(): void {
+async function transferSelectedRequest(): Promise<void> {
   const request = selectedRequest.value;
   if (!request || transferMemberIds.value.length === 0) return;
 
   const nextHandler = transferMemberIds.value.map(displayNameForUserId).join('、');
+
+  if (backendMode) {
+    closeTransferPicker();
+    try {
+      applyBackendApproval(await transferApproval(request.id, nextHandler));
+      setDecisionNotice(request.id, t('approvals.transferred_notice', { title: request.title }));
+    } catch {
+      setDecisionNotice(request.id, t('approvals.update_failed'));
+    }
+    return;
+  }
 
   requests.value = requests.value.map((item) =>
     item.id === request.id ? { ...item, stage: nextHandler, currentHandler: nextHandler } : item,
