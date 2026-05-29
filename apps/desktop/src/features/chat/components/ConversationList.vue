@@ -3,7 +3,7 @@ import type { RoomSummary } from '@matrix/types';
 import { getClient } from '@matrix/client';
 import { normalizeRoomId } from '@matrix/roomUtils';
 import { Avatar } from '@muon/ui/avatar';
-import { MessageSquarePlus, Search } from 'lucide-vue-next';
+import { CheckCheck, MessageSquarePlus, Search } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
@@ -20,7 +20,7 @@ const route = useRoute();
 const store = useChatStore();
 const globalUi = useGlobalUiStore();
 const { t } = useI18n();
-const { conversations, pinnedCount, isLoading } = useConversations();
+const { conversations, pinnedCount, isLoading, totalUnreadCount, markAllRead } = useConversations();
 const { getTypingUsers } = useGlobalTyping();
 
 const currentUser = computed(() => {
@@ -180,6 +180,16 @@ function isConversationContextMenuOpen(roomId: string): boolean {
           @click="store.setFilter(tab.key)"
         >
           {{ tab.label }}
+        </button>
+        <button
+          v-if="totalUnreadCount > 0"
+          class="ml-auto flex shrink-0 cursor-pointer items-center gap-1 rounded-md px-2 py-[3px] text-[11px] font-medium text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-foreground active:scale-95"
+          :title="t('chat.mark_all_read')"
+          data-testid="conversation-mark-all-read"
+          @click="markAllRead"
+        >
+          <CheckCheck :size="13" />
+          <span>{{ t('chat.mark_all_read') }}</span>
         </button>
       </div>
 

@@ -1,6 +1,14 @@
 import type { RoomSummary } from '@matrix/types'
 import type { DesktopEffect } from '@/shared/lib/effect'
-import { getRoomSummaries, invalidateRoomSummariesCache, matrixEvents, paginateBack, syncState } from '@matrix/index'
+import {
+  getRoomSummaries,
+  invalidateRoomSummariesCache,
+  markRoomAsRead,
+  matrixEvents,
+  paginateBack,
+  syncState,
+  toggleRoomMute,
+} from '@matrix/index'
 import { Effect } from 'effect'
 import { computed, onMounted, ref, shallowRef } from 'vue'
 import { registerSessionSubscriber } from '@/auth/lifecycleEvents'
@@ -200,7 +208,23 @@ function refreshNow(mode: RefreshMode = 'resort') {
   isLoading.value = false
   // 将服务端 pin/mute 状态同步到 chatStore
   runDesktopSync(syncServerStateEffect(summaries))
+  // 定时免打扰到期后，移除服务端 push rule（Matrix 无原生到期）
+  pruneExpiredMutes()
   hydrateMissingPreviews(summaries)
+}
+
+// 正在移除 push rule 的会话，避免每次刷新重复调用 toggleRoomMute
+const unmutingRoomIds = new Set<string>()
+
+function pruneExpiredMutes() {
+  const store = useChatStore()
+  for (const roomId of store.collectExpiredMutes()) {
+    if (unmutingRoomIds.has(roomId)) continue
+    unmutingRoomIds.add(roomId)
+    void toggleRoomMute(roomId)
+      .catch(() => {})
+      .finally(() => unmutingRoomIds.delete(roomId))
+  }
 }
 
 function refreshMountedInstance() {
@@ -292,6 +316,16 @@ function removeRoom(roomId: string) {
   rooms.value = rooms.value.filter((r) => r.roomId !== roomId)
 }
 
+/** 标记全部会话为已读：清除未读计数与"标记未读"圆点（飞书"全部已读"） */
+function markAllRead() {
+  const store = useChatStore()
+  for (const room of rooms.value) {
+    if (room.unreadCount > 0) void markRoomAsRead(room.roomId).catch(() => {})
+    if (store.isMarkedUnread(room.roomId)) store.toggleMarkedUnread(room.roomId)
+  }
+  refreshNow('preserve-order')
+}
+
 /** 归档 DM 房间：从列表中隐藏但不离开房间（持久化，保留历史消息） */
 function archiveDm(roomId: string) {
   archivedDmIds.add(roomId)
@@ -381,6 +415,7 @@ export function useConversations() {
     isLoading,
     totalUnreadCount,
     refresh: refreshNow,
+    markAllRead,
     removeRoom,
     archiveDm,
     restoreRoom,

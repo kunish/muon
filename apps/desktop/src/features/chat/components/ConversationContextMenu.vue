@@ -2,8 +2,8 @@
 import { leaveRoom, toggleRoomMute, toggleRoomPin } from '@matrix/index';
 import { isDirectRoom } from '@matrix/roomUtils';
 import { onClickOutside } from '@vueuse/core';
-import { Bell, BellOff, Eye, EyeOff, LogOut, Pin, PinOff } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
+import { Bell, BellOff, Clock, Eye, EyeOff, LogOut, Pin, PinOff } from 'lucide-vue-next';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
 import { ask } from '@/desktop/dialog';
@@ -17,8 +17,14 @@ const { t } = useI18n();
 const { refresh, removeRoom, archiveDm } = useConversations();
 
 const menuRef = ref<HTMLElement | null>(null);
+const showMuteOptions = ref(false);
 
 const isOpen = computed(() => !!store.contextMenu);
+
+// 菜单关闭时重置免打扰子菜单展开态
+watch(isOpen, (open) => {
+  if (!open) showMuteOptions.value = false;
+});
 const roomId = computed(() => store.contextMenu?.roomId || '');
 const pinned = computed(() => store.isPinned(roomId.value));
 const muted = computed(() => store.isMuted(roomId.value));
@@ -55,7 +61,7 @@ async function handlePin() {
   store.closeContextMenu();
 }
 
-async function handleMute() {
+async function handleUnmute() {
   store.toggleMute(roomId.value);
   try {
     await toggleRoomMute(roomId.value);
@@ -64,6 +70,37 @@ async function handleMute() {
   }
   refresh();
   store.closeContextMenu();
+}
+
+async function handleMuteFor(expiry: number | null) {
+  const needsServerMute = store.muteWithExpiry(roomId.value, expiry);
+  if (needsServerMute) {
+    try {
+      await toggleRoomMute(roomId.value);
+    } catch {
+      /* Conduit 可能不支持 */
+    }
+  }
+  showMuteOptions.value = false;
+  refresh();
+  store.closeContextMenu();
+}
+
+const HOUR_MS = 3_600_000;
+function muteFor1h() {
+  void handleMuteFor(Date.now() + HOUR_MS);
+}
+function muteFor8h() {
+  void handleMuteFor(Date.now() + 8 * HOUR_MS);
+}
+function muteTomorrow() {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setHours(9, 0, 0, 0);
+  void handleMuteFor(tomorrow.getTime());
+}
+function muteForever() {
+  void handleMuteFor(null);
 }
 
 function handleMarkUnread() {
@@ -118,11 +155,61 @@ async function handleLeave() {
           <span>{{ pinned ? t('chat.ctx_unpin') : t('chat.ctx_pin') }}</span>
         </button>
 
-        <!-- 免打扰 -->
-        <button class="workspace-menu-item mx-0 w-full text-foreground active:scale-[0.98]" @click="handleMute">
-          <component :is="muted ? Bell : BellOff" :size="14" />
-          <span>{{ muted ? t('chat.ctx_unmute') : t('chat.ctx_mute') }}</span>
+        <!-- 免打扰：已静音可取消；未静音展开定时选项 -->
+        <button
+          v-if="muted"
+          class="workspace-menu-item mx-0 w-full text-foreground active:scale-[0.98]"
+          data-testid="ctx-mute-toggle"
+          @click="handleUnmute"
+        >
+          <Bell :size="14" />
+          <span>{{ t('chat.ctx_unmute') }}</span>
         </button>
+        <template v-else>
+          <button
+            class="workspace-menu-item mx-0 w-full text-foreground active:scale-[0.98]"
+            data-testid="ctx-mute-toggle"
+            :aria-expanded="showMuteOptions"
+            @click="showMuteOptions = !showMuteOptions"
+          >
+            <BellOff :size="14" />
+            <span>{{ t('chat.ctx_mute') }}</span>
+          </button>
+          <div v-if="showMuteOptions" class="ml-3 border-l border-border/50 pl-1" data-testid="ctx-mute-options">
+            <button
+              class="workspace-menu-item mx-0 w-full text-foreground active:scale-[0.98]"
+              data-testid="ctx-mute-1h"
+              @click="muteFor1h"
+            >
+              <Clock :size="14" />
+              <span>{{ t('chat.ctx_mute_1h') }}</span>
+            </button>
+            <button
+              class="workspace-menu-item mx-0 w-full text-foreground active:scale-[0.98]"
+              data-testid="ctx-mute-8h"
+              @click="muteFor8h"
+            >
+              <Clock :size="14" />
+              <span>{{ t('chat.ctx_mute_8h') }}</span>
+            </button>
+            <button
+              class="workspace-menu-item mx-0 w-full text-foreground active:scale-[0.98]"
+              data-testid="ctx-mute-tomorrow"
+              @click="muteTomorrow"
+            >
+              <Clock :size="14" />
+              <span>{{ t('chat.ctx_mute_tomorrow') }}</span>
+            </button>
+            <button
+              class="workspace-menu-item mx-0 w-full text-foreground active:scale-[0.98]"
+              data-testid="ctx-mute-forever"
+              @click="muteForever"
+            >
+              <BellOff :size="14" />
+              <span>{{ t('chat.ctx_mute_forever') }}</span>
+            </button>
+          </div>
+        </template>
 
         <!-- 标记未读/已读 -->
         <button class="workspace-menu-item mx-0 w-full text-foreground active:scale-[0.98]" @click="handleMarkUnread">

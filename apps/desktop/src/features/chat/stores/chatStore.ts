@@ -39,6 +39,8 @@ export const useChatStore = defineStore('chat', () => {
   const pinnedRooms = reactive(new Set<string>())
   const pendingPinStates = reactive(new Map<string, boolean>())
   const mutedRooms = reactive(new Set<string>())
+  // 定时免打扰：roomId -> 到期时间戳(ms)。永久免打扰不写条目；条目到期即视为不再免打扰。
+  const muteExpiry = reactive(new Map<string, number>())
   const markedUnreadRooms = reactive(new Set<string>())
   const drafts = reactive(new Map<string, string>())
   const htmlDrafts = reactive(new Map<string, string>())
@@ -46,6 +48,8 @@ export const useChatStore = defineStore('chat', () => {
 
   // --- 草稿持久化到 localStorage ---
   const DRAFTS_STORAGE_KEY = 'muon_chat_drafts'
+  // 定时免打扰到期时间持久化（Matrix push rule 无到期概念，需客户端本地维护）
+  const MUTE_EXPIRY_STORAGE_KEY = 'muon_chat_mute_expiry'
 
   function loadDraftsFromStorage() {
     runDesktopSync(loadDraftsFromStorageEffect())
@@ -100,7 +104,38 @@ export const useChatStore = defineStore('chat', () => {
     }).pipe(Effect.catchAll(() => Effect.void))
   }
 
+  function loadMuteExpiry() {
+    runDesktopSync(
+      fromSync(() => {
+        const userId = getClient().getUserId()
+        if (!userId) return
+        const stored = localStorage.getItem(`${MUTE_EXPIRY_STORAGE_KEY}:${userId}`)
+        if (!stored) return
+        const parsed = JSON.parse(stored) as Record<string, number>
+        for (const [roomId, expiry] of Object.entries(parsed)) {
+          if (typeof expiry === 'number' && Number.isFinite(expiry)) muteExpiry.set(roomId, expiry)
+        }
+      }).pipe(Effect.catchAll(() => Effect.void)),
+    )
+  }
+
+  function persistMuteExpiry() {
+    runDesktopSync(
+      fromSync(() => {
+        const userId = getClient().getUserId()
+        if (!userId) return
+        const key = `${MUTE_EXPIRY_STORAGE_KEY}:${userId}`
+        if (muteExpiry.size === 0) {
+          localStorage.removeItem(key)
+          return
+        }
+        localStorage.setItem(key, JSON.stringify(Object.fromEntries(muteExpiry)))
+      }).pipe(Effect.catchAll(() => Effect.void)),
+    )
+  }
+
   loadDraftsFromStorage()
+  loadMuteExpiry()
   const pendingMentionRequests = reactive<ComposerMentionRequest[]>([])
   const sidebarPromotionTimes = reactive(new Map<string, number>())
   const sidebarPromotionPreviews = reactive(new Map<string, RoomSummary>())
@@ -238,12 +273,41 @@ export const useChatStore = defineStore('chat', () => {
     return pinnedRooms.has(roomId)
   }
 
-  // --- 免打扰 ---
+  // --- 免打扰（支持定时） ---
   function toggleMute(roomId: string) {
     toggleSet(mutedRooms, roomId)
+    if (!mutedRooms.has(roomId) && muteExpiry.delete(roomId)) persistMuteExpiry()
+  }
+  /** 到期时间戳已过（即定时免打扰已失效） */
+  function isMuteExpired(roomId: string) {
+    const expiry = muteExpiry.get(roomId)
+    return expiry !== undefined && Date.now() >= expiry
   }
   function isMuted(roomId: string) {
-    return mutedRooms.has(roomId)
+    return mutedRooms.has(roomId) && !isMuteExpired(roomId)
+  }
+  /** 设置/清除某会话的免打扰到期时间；expiry 为 null 表示永久免打扰 */
+  function setMuteExpiry(roomId: string, expiry: number | null) {
+    if (expiry === null) muteExpiry.delete(roomId)
+    else muteExpiry.set(roomId, expiry)
+    persistMuteExpiry()
+  }
+  /**
+   * 开启免打扰并设置到期（expiry 为 null 表示永久）。
+   * 返回 true 表示该会话此前未免打扰、需要上层新增服务端 push rule。
+   */
+  function muteWithExpiry(roomId: string, expiry: number | null): boolean {
+    const wasMuted = mutedRooms.has(roomId)
+    if (!wasMuted) mutedRooms.add(roomId)
+    setMuteExpiry(roomId, expiry)
+    return !wasMuted
+  }
+  function getMuteExpiry(roomId: string): number | undefined {
+    return muteExpiry.get(roomId)
+  }
+  /** 仍被本地标记为免打扰、但定时已到期的会话（供上层移除服务端 push rule） */
+  function collectExpiredMutes(): string[] {
+    return [...mutedRooms].filter((roomId) => isMuteExpired(roomId))
   }
 
   // --- 标记未读 ---
@@ -358,14 +422,27 @@ export const useChatStore = defineStore('chat', () => {
   function syncServerState(rooms: RoomSummary[]) {
     pinnedRooms.clear()
     mutedRooms.clear()
+    const serverMutedRoomIds = new Set<string>()
     for (const r of rooms) {
       const pendingPin = pendingPinStates.get(r.roomId)
       const isPinned = pendingPin ?? r.isPinned
       if (pendingPin !== undefined && pendingPin === r.isPinned) pendingPinStates.delete(r.roomId)
 
       if (isPinned) pinnedRooms.add(r.roomId)
-      if (r.isMuted) mutedRooms.add(r.roomId)
+      if (r.isMuted) {
+        mutedRooms.add(r.roomId)
+        serverMutedRoomIds.add(r.roomId)
+      }
     }
+    // 服务端已取消免打扰的会话，清除残留的到期记录
+    let expiryChanged = false
+    for (const roomId of [...muteExpiry.keys()]) {
+      if (!serverMutedRoomIds.has(roomId)) {
+        muteExpiry.delete(roomId)
+        expiryChanged = true
+      }
+    }
+    if (expiryChanged) persistMuteExpiry()
   }
 
   return {
@@ -394,6 +471,10 @@ export const useChatStore = defineStore('chat', () => {
     isPinned,
     toggleMute,
     isMuted,
+    setMuteExpiry,
+    muteWithExpiry,
+    getMuteExpiry,
+    collectExpiredMutes,
     toggleMarkedUnread,
     isMarkedUnread,
     setDraft,
