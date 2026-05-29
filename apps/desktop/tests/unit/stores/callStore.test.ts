@@ -6,6 +6,7 @@ const media = vi.hoisted(() => ({
   disconnectCallRoom: vi.fn().mockResolvedValue(undefined),
   setCallMicEnabled: vi.fn().mockResolvedValue(undefined),
   setCallCameraEnabled: vi.fn().mockResolvedValue(undefined),
+  setCallScreenShareEnabled: vi.fn().mockResolvedValue(undefined),
 }))
 
 const signaling = vi.hoisted(() => ({
@@ -176,6 +177,24 @@ describe('callStore', () => {
 
     expect(store.isCameraOff).toBe(true)
     expect(media.setCallCameraEnabled).toHaveBeenCalledWith(false)
+  })
+
+  it('toggleScreenShare publishes the screen and tracks the state', async () => {
+    const store = await importStore()
+    await store.startCall('!dm:localhost', '@alice:localhost', 'Alice', 'video')
+    await store.toggleScreenShare()
+
+    expect(media.setCallScreenShareEnabled).toHaveBeenCalledWith(true)
+    expect(store.isScreenSharing).toBe(true)
+  })
+
+  it('keeps screen sharing off when the picker is cancelled', async () => {
+    const store = await importStore()
+    media.setCallScreenShareEnabled.mockRejectedValueOnce(new Error('cancelled'))
+    await store.startCall('!dm:localhost', '@alice:localhost', 'Alice', 'video')
+    await store.toggleScreenShare()
+
+    expect(store.isScreenSharing).toBe(false)
   })
 
   it('ignores its own signals', async () => {

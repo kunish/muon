@@ -11,6 +11,7 @@ vi.mock('@/features/calls/lib/callMedia', () => ({
   disconnectCallRoom: vi.fn().mockResolvedValue(undefined),
   setCallMicEnabled: vi.fn().mockResolvedValue(undefined),
   setCallCameraEnabled: vi.fn().mockResolvedValue(undefined),
+  setCallScreenShareEnabled: vi.fn().mockResolvedValue(undefined),
 }))
 
 function mountWindow() {
@@ -50,15 +51,18 @@ describe('call window', () => {
     store.mode = 'video'
     const mute = vi.spyOn(store, 'toggleMute').mockResolvedValue()
     const camera = vi.spyOn(store, 'toggleCamera').mockResolvedValue()
+    const screen = vi.spyOn(store, 'toggleScreenShare').mockResolvedValue()
     const hangup = vi.spyOn(store, 'hangup').mockResolvedValue()
 
     const wrapper = mountWindow()
     await wrapper.find('[data-testid="call-window-mute"]').trigger('click')
     await wrapper.find('[data-testid="call-window-camera"]').trigger('click')
+    await wrapper.find('[data-testid="call-window-screen"]').trigger('click')
     await wrapper.find('[data-testid="call-window-hangup"]').trigger('click')
 
     expect(mute).toHaveBeenCalledOnce()
     expect(camera).toHaveBeenCalledOnce()
+    expect(screen).toHaveBeenCalledOnce()
     expect(hangup).toHaveBeenCalledOnce()
   })
 })

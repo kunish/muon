@@ -93,6 +93,10 @@ export async function setCallCameraEnabled(enabled: boolean): Promise<void> {
   localVideoTrack.value = enabled ? (publication?.videoTrack ?? null) : null
 }
 
+export async function setCallScreenShareEnabled(enabled: boolean): Promise<void> {
+  await room?.localParticipant.setScreenShareEnabled(enabled)
+}
+
 export async function disconnectCallRoom(): Promise<void> {
   const active = room
   room = null

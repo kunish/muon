@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Mic, MicOff, PhoneOff, Video, VideoOff } from 'lucide-vue-next';
+import { Mic, MicOff, MonitorOff, MonitorUp, PhoneOff, Video, VideoOff } from 'lucide-vue-next';
 import { computed, nextTick, onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { localVideoTrack, remoteVideos } from '../lib/callMedia';
@@ -149,6 +149,15 @@ watch([isVideoActive, () => localVideoTrack.value, remoteFeed], syncVideos, { im
           @click="call.toggleCamera()"
         >
           <component :is="call.isCameraOff ? VideoOff : Video" :size="20" />
+        </button>
+        <button
+          class="flex size-12 items-center justify-center rounded-full transition-colors"
+          :class="call.isScreenSharing ? 'bg-primary hover:bg-primary/90' : 'bg-white/10 hover:bg-white/20'"
+          :title="call.isScreenSharing ? t('calls.stop_share') : t('calls.share_screen')"
+          data-testid="call-window-screen"
+          @click="call.toggleScreenShare()"
+        >
+          <component :is="call.isScreenSharing ? MonitorOff : MonitorUp" :size="20" />
         </button>
         <button
           class="flex size-12 items-center justify-center rounded-full bg-destructive transition-opacity hover:opacity-90"

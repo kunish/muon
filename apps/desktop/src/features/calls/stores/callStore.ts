@@ -11,7 +11,13 @@ import {
 } from '@matrix/index'
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import { connectCallRoom, disconnectCallRoom, setCallCameraEnabled, setCallMicEnabled } from '../lib/callMedia'
+import {
+  connectCallRoom,
+  disconnectCallRoom,
+  setCallCameraEnabled,
+  setCallMicEnabled,
+  setCallScreenShareEnabled,
+} from '../lib/callMedia'
 
 export type CallStatus = 'idle' | 'outgoing' | 'incoming' | 'connecting' | 'connected' | 'ended'
 
@@ -36,6 +42,7 @@ export const useCallStore = defineStore('call', () => {
   const mode = ref<CallMode>('audio')
   const isMuted = ref(false)
   const isCameraOff = ref(false)
+  const isScreenSharing = ref(false)
   const startedAt = ref<number | null>(null)
 
   const isActive = computed(() => status.value !== 'idle' && status.value !== 'ended')
@@ -49,6 +56,7 @@ export const useCallStore = defineStore('call', () => {
     peerName.value = null
     isMuted.value = false
     isCameraOff.value = false
+    isScreenSharing.value = false
     startedAt.value = null
   }
 
@@ -138,6 +146,16 @@ export const useCallStore = defineStore('call', () => {
     }
   }
 
+  async function toggleScreenShare() {
+    const next = !isScreenSharing.value
+    try {
+      await setCallScreenShareEnabled(next)
+      isScreenSharing.value = next
+    } catch {
+      /* user cancelled the picker or sharing is unavailable */
+    }
+  }
+
   function handleSignal(signal: CallSignal) {
     if (signal.senderId === getClient().getUserId()) return
     const content = signal.content
@@ -187,6 +205,7 @@ export const useCallStore = defineStore('call', () => {
     mode,
     isMuted,
     isCameraOff,
+    isScreenSharing,
     startedAt,
     isActive,
     startCall,
@@ -195,6 +214,7 @@ export const useCallStore = defineStore('call', () => {
     hangup,
     toggleMute,
     toggleCamera,
+    toggleScreenShare,
     handleSignal,
   }
 })
