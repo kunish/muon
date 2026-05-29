@@ -44,6 +44,8 @@ interface ApprovalRequest {
   due: string;
   currentHandler: string;
   comments: string[];
+  /** 顺序审批链：逐级通过，最后一级通过后整体通过 */
+  stages: string[];
 }
 
 type ApprovalDecision = 'approved' | 'rejected';
@@ -53,6 +55,8 @@ interface ApprovalOverride {
   decision?: ApprovalDecision;
   handler?: string;
   comments?: string[];
+  /** 当前所处的审批环节下标 */
+  stageIndex?: number;
 }
 
 const APPROVAL_OVERRIDES_STORAGE_KEY = 'muon_approval_overrides';
@@ -78,6 +82,14 @@ function applyApprovalOverrides(list: ApprovalRequest[]): ApprovalRequest[] {
 
     let next = { ...request };
     if (override.comments) next.comments = override.comments;
+    if (
+      typeof override.stageIndex === 'number' &&
+      override.stageIndex >= 0 &&
+      override.stageIndex < request.stages.length
+    ) {
+      const stageName = request.stages[override.stageIndex]!;
+      next = { ...next, stage: stageName, currentHandler: stageName };
+    }
     if (override.handler) next = { ...next, stage: override.handler, currentHandler: override.handler };
     if (override.decision) next = { ...next, ...approvalDecisionFields(override.decision) };
     return next;
@@ -102,6 +114,7 @@ const requests = shallowRef<ApprovalRequest[]>(
       due: '今日',
       currentHandler: '法务复核',
       comments: [],
+      stages: ['法务复核', '安全复核'],
     },
     {
       id: 'request-2',
@@ -112,6 +125,7 @@ const requests = shallowRef<ApprovalRequest[]>(
       due: '明日',
       currentHandler: '主管审批',
       comments: [],
+      stages: ['主管审批', '安全复核'],
     },
     {
       id: 'request-3',
@@ -122,6 +136,7 @@ const requests = shallowRef<ApprovalRequest[]>(
       due: '周五',
       currentHandler: '财务确认',
       comments: [],
+      stages: ['财务确认', '管理层审批'],
     },
     {
       id: 'request-4',
@@ -132,6 +147,7 @@ const requests = shallowRef<ApprovalRequest[]>(
       due: '已通过',
       currentHandler: '已归档',
       comments: ['采购合同已归档'],
+      stages: ['采购审批'],
     },
   ]),
 );
@@ -156,6 +172,20 @@ const selectedRequestDecisionNotice = computed(() => {
   if (!request) return t('approvals.waiting_notice');
 
   return decisionNotices.value[request.id] ?? t('approvals.waiting_notice');
+});
+
+/** 选中申请当前所处的审批环节下标（持久化） */
+const selectedRequestStageIndex = computed(() => {
+  const request = selectedRequest.value;
+  if (!request) return 0;
+  return approvalOverrides.value[request.id]?.stageIndex ?? 0;
+});
+
+/** 是否已是最后一个审批环节（再通过即整体通过） */
+const selectedRequestIsFinalStage = computed(() => {
+  const request = selectedRequest.value;
+  if (!request) return true;
+  return selectedRequestStageIndex.value >= request.stages.length - 1;
 });
 
 onMounted(() => {
@@ -194,6 +224,7 @@ function createRequest(): void {
       due,
       currentHandler: submittedStatus,
       comments: [],
+      stages: [submittedStatus],
     },
     ...requests.value,
   ];
@@ -205,23 +236,46 @@ function selectRequest(requestId: string): void {
   closeTransferPicker();
 }
 
+function setDecisionNotice(id: string, message: string): void {
+  decisionNotices.value = { ...decisionNotices.value, [id]: message };
+}
+
 function decideSelectedRequest(queue: 'approved' | 'rejected'): void {
   const request = selectedRequest.value;
   if (!request) return;
 
-  const approved = queue === 'approved';
-  requests.value = requests.value.map((item) =>
-    item.id === request.id ? { ...item, ...approvalDecisionFields(queue) } : item,
-  );
-  setApprovalOverride(request.id, { decision: queue });
-  activeQueue.value = queue;
   selectedRequestId.value = request.id;
-  decisionNotices.value = {
-    ...decisionNotices.value,
-    [request.id]: approved
-      ? t('approvals.approved_notice', { title: request.title })
-      : t('approvals.rejected_notice', { title: request.title }),
-  };
+
+  if (queue === 'rejected') {
+    requests.value = requests.value.map((item) =>
+      item.id === request.id ? { ...item, ...approvalDecisionFields('rejected') } : item,
+    );
+    setApprovalOverride(request.id, { decision: 'rejected' });
+    activeQueue.value = 'rejected';
+    setDecisionNotice(request.id, t('approvals.rejected_notice', { title: request.title }));
+    return;
+  }
+
+  const currentIndex = approvalOverrides.value[request.id]?.stageIndex ?? 0;
+  // 还有后续环节：推进到下一环节，整体仍在审批中
+  if (currentIndex < request.stages.length - 1) {
+    const nextIndex = currentIndex + 1;
+    const nextStage = request.stages[nextIndex]!;
+    setApprovalOverride(request.id, { stageIndex: nextIndex });
+    requests.value = requests.value.map((item) =>
+      item.id === request.id ? { ...item, stage: nextStage, currentHandler: nextStage } : item,
+    );
+    setDecisionNotice(request.id, t('approvals.stage_advanced_notice', { stage: nextStage }));
+    return;
+  }
+
+  // 最后一个环节通过：整体通过
+  requests.value = requests.value.map((item) =>
+    item.id === request.id ? { ...item, ...approvalDecisionFields('approved') } : item,
+  );
+  setApprovalOverride(request.id, { decision: 'approved', stageIndex: request.stages.length });
+  activeQueue.value = 'approved';
+  setDecisionNotice(request.id, t('approvals.approved_notice', { title: request.title }));
 }
 
 function addApprovalComment(): void {
@@ -410,6 +464,24 @@ function saveDraftRequest(): void {
         </div>
       </div>
       <div v-if="selectedRequest" class="border-t border-border px-4 py-3">
+        <!-- 审批链：逐级流转 -->
+        <div class="mb-3 flex flex-wrap items-center gap-1.5" data-testid="approvals-stage-chain">
+          <template v-for="(stageName, index) in selectedRequest.stages" :key="stageName">
+            <span
+              class="rounded-md px-2 py-1 text-[11px] font-semibold"
+              :class="
+                index < selectedRequestStageIndex
+                  ? 'bg-success/12 text-success'
+                  : index === selectedRequestStageIndex
+                    ? 'bg-primary/12 text-primary'
+                    : 'bg-muted text-muted-foreground'
+              "
+            >
+              {{ stageName }}
+            </span>
+            <span v-if="index < selectedRequest.stages.length - 1" class="text-[11px] text-muted-foreground">→</span>
+          </template>
+        </div>
         <div class="flex flex-wrap items-center justify-between gap-3">
           <span class="grid gap-1 text-[12px] font-semibold text-muted-foreground">
             <span>{{ selectedRequestDecisionNotice }}</span>
@@ -435,7 +507,7 @@ function saveDraftRequest(): void {
               class="h-8 rounded-md bg-primary px-3 text-[12px] font-semibold text-primary-foreground transition-opacity hover:opacity-90"
               @click="decideSelectedRequest('approved')"
             >
-              {{ t('approvals.approve') }}
+              {{ selectedRequestIsFinalStage ? t('approvals.approve') : t('approvals.approve_stage') }}
             </button>
           </span>
         </div>

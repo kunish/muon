@@ -634,6 +634,10 @@ describe('workspace secondary pages', () => {
     const wrapper = mount(ApprovalsPage)
 
     await wrapper.get('[data-testid="approvals-request-request-2"]').trigger('click')
+    // 第一级通过：推进到下一环节，仍在审批中
+    await wrapper.get('[data-testid="approvals-approve-selected"]').trigger('click')
+    expect(wrapper.text()).toContain('已通过当前环节')
+    // 最后一级通过：整体通过
     await wrapper.get('[data-testid="approvals-approve-selected"]').trigger('click')
     expect(wrapper.text()).toContain('已同意：生产访问申请')
     expect(wrapper.text()).toContain('当前队列：已通过')

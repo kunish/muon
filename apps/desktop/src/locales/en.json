@@ -1007,6 +1007,8 @@
     "transfer": "Transfer",
     "reject": "Reject",
     "approve": "Approve",
+    "approve_stage": "Approve stage",
+    "stage_advanced_notice": "Stage approved, advancing to: {stage}",
     "transfer_to": "Transfer to",
     "confirm_transfer": "Confirm Transfer",
     "comment_placeholder": "Add approval comment...",

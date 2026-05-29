@@ -9,7 +9,9 @@ describe('approvals persistence', () => {
 
   it('keeps an approval decision across remounts', async () => {
     const first = mount(ApprovalsPage)
-    // request-2 is the default selection in the pending queue
+    // request-2 is the default selection in the pending queue; its chain has two stages,
+    // so it must be approved through every stage to become fully approved
+    await first.get('[data-testid="approvals-approve-selected"]').trigger('click')
     await first.get('[data-testid="approvals-approve-selected"]').trigger('click')
 
     const stored = JSON.parse(localStorage.getItem('muon_approval_overrides') || '{}')
@@ -21,6 +23,18 @@ describe('approvals persistence', () => {
 
     await second.get('[data-testid="approvals-queue-approved"]').trigger('click')
     expect(second.find('[data-testid="approvals-request-request-2"]').exists()).toBe(true)
+  })
+
+  it('advances through the approval chain one stage at a time', async () => {
+    const wrapper = mount(ApprovalsPage)
+    // request-2 chain: 主管审批 → 安全复核
+    await wrapper.get('[data-testid="approvals-approve-selected"]').trigger('click')
+
+    const stored = JSON.parse(localStorage.getItem('muon_approval_overrides') || '{}')
+    expect(stored['request-2']).toMatchObject({ stageIndex: 1 })
+    expect(stored['request-2'].decision).toBeUndefined()
+    // still in the pending queue, not yet fully approved
+    expect(wrapper.find('[data-testid="approvals-request-request-2"]').exists()).toBe(true)
   })
 
   it('persists an added comment for a request', async () => {
