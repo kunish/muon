@@ -10,7 +10,7 @@ import { Avatar } from '@muon/ui/avatar';
 import { Dialog } from '@muon/ui/dialog';
 import { useSettingsStore } from '@shared/stores/settingsStore';
 import { useClipboard } from '@vueuse/core';
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, inject, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
 import { useAuthMedia } from '@/shared/composables/useAuthMedia';
@@ -26,6 +26,7 @@ import { useMessageActions } from '../composables/useMessageActions';
 import { useMessageContextMenuState } from '../composables/useMessageContextMenuState';
 import { useMessagePopoverSingleton } from '../composables/useMessagePopoverSingleton';
 import { getMediaFrameStyle } from '../lib/mediaFrame';
+import AnimatedEmoji from './AnimatedEmoji.vue';
 import ForwardDialog from './ForwardDialog.vue';
 import LinkPreview from './LinkPreview.vue';
 import MessageActionBar from './MessageActionBar.vue';
@@ -74,6 +75,7 @@ const { t } = useI18n();
 const { copy: copyToClipboard } = useClipboard();
 const settingsStore = useSettingsStore();
 const { openImage } = useMediaViewer();
+const triggerEmojiEffect = inject<(emoji: string, rect: DOMRect) => void>('triggerEmojiEffect');
 const actions = useMessageActions(
   () => props.event,
   () => props.roomId,
@@ -835,13 +837,12 @@ onUnmounted(() => {
             @click="onRichContentClick"
           />
         </div>
-        <p
+        <AnimatedEmoji
           v-else-if="isFullEmoji"
-          class="whitespace-pre-wrap break-words text-[44px] leading-none"
+          :emoji="body"
           :class="isRightAligned ? 'self-end' : ''"
-        >
-          {{ body }}
-        </p>
+          @effect="(emoji, rect) => triggerEmojiEffect?.(emoji, rect)"
+        />
         <p
           v-else
           class="message-selectable-text text-sm leading-[20px] text-foreground/90 whitespace-pre-wrap break-words"
