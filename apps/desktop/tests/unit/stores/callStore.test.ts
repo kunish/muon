@@ -7,6 +7,8 @@ const media = vi.hoisted(() => ({
   setCallMicEnabled: vi.fn().mockResolvedValue(undefined),
   setCallCameraEnabled: vi.fn().mockResolvedValue(undefined),
   setCallScreenShareEnabled: vi.fn().mockResolvedValue(undefined),
+  startCallRecording: vi.fn().mockResolvedValue(undefined),
+  stopCallRecording: vi.fn().mockResolvedValue(undefined),
 }))
 
 const signaling = vi.hoisted(() => ({
@@ -186,6 +188,19 @@ describe('callStore', () => {
 
     expect(media.setCallScreenShareEnabled).toHaveBeenCalledWith(true)
     expect(store.isScreenSharing).toBe(true)
+  })
+
+  it('toggleRecording starts and stops the local recorder', async () => {
+    const store = await importStore()
+    await store.startCall('!dm:localhost', '@alice:localhost', 'Alice', 'video')
+
+    await store.toggleRecording()
+    expect(store.isRecording).toBe(true)
+    expect(media.startCallRecording).toHaveBeenCalled()
+
+    await store.toggleRecording()
+    expect(store.isRecording).toBe(false)
+    expect(media.stopCallRecording).toHaveBeenCalled()
   })
 
   it('keeps screen sharing off when the picker is cancelled', async () => {

@@ -18,6 +18,8 @@ vi.mock('@/features/calls/lib/callMedia', () => ({
   setCallMicEnabled: vi.fn().mockResolvedValue(undefined),
   setCallCameraEnabled: vi.fn().mockResolvedValue(undefined),
   setCallScreenShareEnabled: vi.fn().mockResolvedValue(undefined),
+  startCallRecording: vi.fn().mockResolvedValue(undefined),
+  stopCallRecording: vi.fn().mockResolvedValue(undefined),
 }))
 
 function fakeFeed(id: string) {
@@ -79,17 +81,20 @@ describe('call window', () => {
     const mute = vi.spyOn(store, 'toggleMute').mockResolvedValue()
     const camera = vi.spyOn(store, 'toggleCamera').mockResolvedValue()
     const screen = vi.spyOn(store, 'toggleScreenShare').mockResolvedValue()
+    const record = vi.spyOn(store, 'toggleRecording').mockResolvedValue()
     const hangup = vi.spyOn(store, 'hangup').mockResolvedValue()
 
     const wrapper = mountWindow()
     await wrapper.find('[data-testid="call-window-mute"]').trigger('click')
     await wrapper.find('[data-testid="call-window-camera"]').trigger('click')
     await wrapper.find('[data-testid="call-window-screen"]').trigger('click')
+    await wrapper.find('[data-testid="call-window-record"]').trigger('click')
     await wrapper.find('[data-testid="call-window-hangup"]').trigger('click')
 
     expect(mute).toHaveBeenCalledOnce()
     expect(camera).toHaveBeenCalledOnce()
     expect(screen).toHaveBeenCalledOnce()
+    expect(record).toHaveBeenCalledOnce()
     expect(hangup).toHaveBeenCalledOnce()
   })
 })

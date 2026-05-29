@@ -18,6 +18,8 @@ import {
   setCallCameraEnabled,
   setCallMicEnabled,
   setCallScreenShareEnabled,
+  startCallRecording,
+  stopCallRecording,
 } from '../lib/callMedia'
 
 export type CallStatus = 'idle' | 'outgoing' | 'incoming' | 'connecting' | 'connected' | 'ended'
@@ -60,6 +62,7 @@ export const useCallStore = defineStore('call', () => {
   const isMuted = ref(false)
   const isCameraOff = ref(false)
   const isScreenSharing = ref(false)
+  const isRecording = ref(false)
   const direction = ref<CallDirection>('outgoing')
   const startedAt = ref<number | null>(null)
 
@@ -93,6 +96,7 @@ export const useCallStore = defineStore('call', () => {
     isMuted.value = false
     isCameraOff.value = false
     isScreenSharing.value = false
+    isRecording.value = false
     startedAt.value = null
   }
 
@@ -197,6 +201,16 @@ export const useCallStore = defineStore('call', () => {
     }
   }
 
+  async function toggleRecording() {
+    if (isRecording.value) {
+      isRecording.value = false
+      await stopCallRecording()
+      return
+    }
+    await startCallRecording()
+    isRecording.value = true
+  }
+
   function handleSignal(signal: CallSignal) {
     if (signal.senderId === getClient().getUserId()) return
     const content = signal.content
@@ -248,6 +262,7 @@ export const useCallStore = defineStore('call', () => {
     isMuted,
     isCameraOff,
     isScreenSharing,
+    isRecording,
     direction,
     startedAt,
     callHistory,
@@ -259,6 +274,7 @@ export const useCallStore = defineStore('call', () => {
     toggleMute,
     toggleCamera,
     toggleScreenShare,
+    toggleRecording,
     handleSignal,
   }
 })

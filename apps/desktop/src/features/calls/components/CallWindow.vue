@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { LocalVideoTrack, RemoteVideoTrack } from 'livekit-client';
-import { Mic, MicOff, MonitorOff, MonitorUp, PhoneOff, Video, VideoOff } from 'lucide-vue-next';
+import { Circle, Disc, Mic, MicOff, MonitorOff, MonitorUp, PhoneOff, Video, VideoOff } from 'lucide-vue-next';
 import { computed, onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { localVideoTrack, remoteVideos } from '../lib/callMedia';
@@ -165,6 +165,15 @@ const statusLabel = computed(() => {
           @click="call.toggleScreenShare()"
         >
           <component :is="call.isScreenSharing ? MonitorOff : MonitorUp" :size="20" />
+        </button>
+        <button
+          class="flex size-12 items-center justify-center rounded-full transition-colors"
+          :class="call.isRecording ? 'bg-destructive hover:opacity-90' : 'bg-white/10 hover:bg-white/20'"
+          :title="call.isRecording ? t('calls.stop_recording') : t('calls.start_recording')"
+          data-testid="call-window-record"
+          @click="call.toggleRecording()"
+        >
+          <component :is="call.isRecording ? Disc : Circle" :size="20" />
         </button>
         <button
           class="flex size-12 items-center justify-center rounded-full bg-destructive transition-opacity hover:opacity-90"
