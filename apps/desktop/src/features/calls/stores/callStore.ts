@@ -9,6 +9,7 @@ import {
   sendCallHangup,
   sendCallInvite,
 } from '@matrix/index'
+import { useStorage } from '@vueuse/core'
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import {
@@ -20,6 +21,22 @@ import {
 } from '../lib/callMedia'
 
 export type CallStatus = 'idle' | 'outgoing' | 'incoming' | 'connecting' | 'connected' | 'ended'
+export type CallDirection = 'outgoing' | 'incoming'
+export type CallOutcome = 'completed' | 'missed'
+
+export interface CallHistoryEntry {
+  id: string
+  peerId: string
+  peerName: string
+  mode: CallMode
+  direction: CallDirection
+  outcome: CallOutcome
+  durationSec: number
+  endedAt: number
+}
+
+const CALL_HISTORY_STORAGE_KEY = 'muon_call_history'
+const CALL_HISTORY_LIMIT = 50
 
 interface CallSignal {
   roomId: string
@@ -43,9 +60,28 @@ export const useCallStore = defineStore('call', () => {
   const isMuted = ref(false)
   const isCameraOff = ref(false)
   const isScreenSharing = ref(false)
+  const direction = ref<CallDirection>('outgoing')
   const startedAt = ref<number | null>(null)
 
+  const callHistory = useStorage<CallHistoryEntry[]>(CALL_HISTORY_STORAGE_KEY, [])
+
   const isActive = computed(() => status.value !== 'idle' && status.value !== 'ended')
+
+  /** Append the call that is being torn down to the local history log. */
+  function recordCall(outcome: CallOutcome, durationSec: number) {
+    if (!callId.value || !peerId.value) return
+    const entry: CallHistoryEntry = {
+      id: callId.value,
+      peerId: peerId.value,
+      peerName: peerName.value || peerId.value,
+      mode: mode.value,
+      direction: direction.value,
+      outcome,
+      durationSec,
+      endedAt: Date.now(),
+    }
+    callHistory.value = [entry, ...callHistory.value].slice(0, CALL_HISTORY_LIMIT)
+  }
 
   function reset() {
     status.value = 'idle'
@@ -66,6 +102,9 @@ export const useCallStore = defineStore('call', () => {
   }
 
   async function endCall() {
+    const wasConnected = status.value === 'connected' && startedAt.value != null
+    const durationSec = wasConnected ? Math.floor((Date.now() - startedAt.value!) / 1000) : 0
+    recordCall(wasConnected ? 'completed' : 'missed', durationSec)
     try {
       await disconnectCallRoom()
     } catch {
@@ -89,6 +128,7 @@ export const useCallStore = defineStore('call', () => {
     peerId.value = peerUserId
     peerName.value = peerDisplayName
     mode.value = callMode
+    direction.value = 'outgoing'
     isMuted.value = false
     isCameraOff.value = false
     status.value = 'outgoing'
@@ -119,6 +159,7 @@ export const useCallStore = defineStore('call', () => {
   function declineCall() {
     if (status.value !== 'incoming') return
     if (roomId.value && callId.value) void sendCallHangup(roomId.value, callId.value, 'declined')
+    recordCall('missed', 0)
     reset()
   }
 
@@ -174,6 +215,7 @@ export const useCallStore = defineStore('call', () => {
       peerId.value = signal.senderId
       peerName.value = resolvePeerName(signal.roomId, signal.senderId)
       mode.value = content.mode === 'video' ? 'video' : 'audio'
+      direction.value = 'incoming'
       isMuted.value = false
       status.value = 'incoming'
       return
@@ -206,7 +248,9 @@ export const useCallStore = defineStore('call', () => {
     isMuted,
     isCameraOff,
     isScreenSharing,
+    direction,
     startedAt,
+    callHistory,
     isActive,
     startCall,
     acceptCall,

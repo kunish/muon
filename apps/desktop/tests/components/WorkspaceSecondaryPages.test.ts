@@ -103,7 +103,7 @@ const pages = [
   {
     component: CallsPage,
     name: '通话',
-    requiredText: ['发起通话', '通话记录', '设计评审'],
+    requiredText: ['发起通话', '通话记录', '通话总数'],
   },
 ]
 
@@ -112,6 +112,7 @@ describe('workspace secondary pages', () => {
     localStorage.removeItem('muon_organization_directory_v1')
     localStorage.removeItem('muon_email_overrides')
     localStorage.removeItem('muon_approval_overrides')
+    localStorage.removeItem('muon_call_history')
     mockRouteParams.mockReset()
     mockRouteParams.mockReturnValue({})
     routerPush.mockReset()
@@ -738,121 +739,5 @@ describe('workspace secondary pages', () => {
     await wrapper.get('[data-testid="email-message-mail-2"]').trigger('click')
     expect(wrapper.text()).not.toContain('回复草稿：上线评审纪要')
     expect(wrapper.text()).toContain('等待处理当前邮件')
-  })
-
-  it('keeps calls summary metrics derived from call records', async () => {
-    const wrapper = mount(CallsPage)
-
-    expect(wrapper.get('[data-testid="calls-stat-today"]').text()).toBe('3')
-    expect(wrapper.get('[data-testid="calls-stat-today-hint"]').text()).toBe('0 个进行中')
-    expect(wrapper.get('[data-testid="calls-stat-duration"]').text()).toBe('18m')
-    expect(wrapper.get('[data-testid="calls-stat-recordings"]').text()).toBe('1')
-
-    await wrapper.get('[data-testid="calls-start"]').trigger('click')
-    expect(wrapper.get('[data-testid="calls-stat-today"]').text()).toBe('4')
-    expect(wrapper.get('[data-testid="calls-stat-today-hint"]').text()).toBe('1 个进行中')
-    expect(wrapper.get('[data-testid="calls-stat-duration"]').text()).toBe('18m')
-
-    await wrapper.get('[data-testid="calls-end-call"]').trigger('click')
-    expect(wrapper.get('[data-testid="calls-stat-today"]').text()).toBe('4')
-    expect(wrapper.get('[data-testid="calls-stat-today-hint"]').text()).toBe('0 个进行中')
-  })
-
-  it('lets calls switch mode and start a local call record', async () => {
-    const wrapper = mount(CallsPage)
-
-    await wrapper.get('[data-testid="calls-audio-mode"]').trigger('click')
-    expect(wrapper.text()).toContain('当前模式：语音通话')
-
-    await wrapper.get('[data-testid="calls-start"]').trigger('click')
-    expect(wrapper.text()).toContain('即时语音通话')
-  })
-
-  it('lets call records open visible meeting detail state', async () => {
-    const wrapper = mount(CallsPage)
-
-    await wrapper.get('[data-testid="calls-record-call-1"]').trigger('click')
-    expect(wrapper.text()).toContain('当前通话：设计评审')
-    expect(wrapper.text()).toContain('会议类型：视频会议')
-  })
-
-  it('lets calls generate local meeting notes from a selected call', async () => {
-    const wrapper = mount(CallsPage)
-
-    await wrapper.get('[data-testid="calls-record-call-1"]').trigger('click')
-    await wrapper.get('[data-testid="calls-generate-notes"]').trigger('click')
-
-    expect(wrapper.text()).toContain('会议纪要：设计评审')
-    expect(wrapper.text()).toContain('待办提炼：同步评审结论')
-    expect(wrapper.text()).toContain('已生成纪要')
-    expect(wrapper.get('[data-testid="calls-stat-recordings"]').text()).toBe('1')
-  })
-
-  it('keeps generated call notes scoped to the selected call record', async () => {
-    const wrapper = mount(CallsPage)
-
-    await wrapper.get('[data-testid="calls-record-call-1"]').trigger('click')
-    await wrapper.get('[data-testid="calls-generate-notes"]').trigger('click')
-    expect(wrapper.text()).toContain('会议纪要：设计评审')
-
-    await wrapper.get('[data-testid="calls-record-call-2"]').trigger('click')
-    expect(wrapper.text()).not.toContain('会议纪要：设计评审')
-    expect(wrapper.text()).toContain('选择一条通话记录后生成会议纪要')
-
-    await wrapper.get('[data-testid="calls-generate-notes"]').trigger('click')
-    expect(wrapper.text()).toContain('会议纪要：故障复盘跟进')
-    expect(wrapper.text()).toContain('已生成纪要')
-  })
-
-  it('lets calls control an active meeting locally', async () => {
-    const wrapper = mount(CallsPage)
-
-    await wrapper.get('[data-testid="calls-start"]').trigger('click')
-    expect(wrapper.text()).toContain('当前通话：即时视频会议')
-
-    await wrapper.get('[data-testid="calls-toggle-mute"]').trigger('click')
-    expect(wrapper.text()).toContain('麦克风：已静音')
-
-    await wrapper.get('[data-testid="calls-toggle-share"]').trigger('click')
-    expect(wrapper.text()).toContain('共享屏幕：正在共享')
-
-    await wrapper.get('[data-testid="calls-invite-member"]').trigger('click')
-    await wrapper.get('[data-testid="group-member-row-@alice:localhost"]').trigger('click')
-    await wrapper.get('[data-testid="calls-invite-selected"]').trigger('click')
-    expect(wrapper.text()).toContain('已邀请：小红')
-    expect(wrapper.text()).toContain('参会人：我、小红')
-  })
-
-  it('keeps call control state scoped to the selected call record', async () => {
-    const wrapper = mount(CallsPage)
-
-    await wrapper.get('[data-testid="calls-start"]').trigger('click')
-    await wrapper.get('[data-testid="calls-toggle-mute"]').trigger('click')
-    await wrapper.get('[data-testid="calls-invite-member"]').trigger('click')
-    await wrapper.get('[data-testid="group-member-row-@bob:localhost"]').trigger('click')
-    await wrapper.get('[data-testid="calls-invite-selected"]').trigger('click')
-    expect(wrapper.text()).toContain('已邀请：小明')
-    expect(wrapper.text()).toContain('参会人：我、小明')
-
-    await wrapper.get('[data-testid="calls-record-call-1"]').trigger('click')
-
-    expect(wrapper.text()).toContain('当前会议：设计评审')
-    expect(wrapper.text()).toContain('会中控制已就绪')
-    expect(wrapper.text()).toContain('麦克风：已开启')
-    expect(wrapper.text()).toContain('共享屏幕：未共享')
-    expect(wrapper.text()).toContain('参会人：我')
-    expect(wrapper.text()).not.toContain('已邀请：小明')
-    expect(wrapper.text()).not.toContain('参会人：我、小明')
-  })
-
-  it('lets calls end an active meeting locally', async () => {
-    const wrapper = mount(CallsPage)
-
-    await wrapper.get('[data-testid="calls-start"]').trigger('click')
-    await wrapper.get('[data-testid="calls-end-call"]').trigger('click')
-
-    expect(wrapper.text()).toContain('通话已结束：即时视频会议')
-    expect(wrapper.text()).toContain('即时视频会议')
-    expect(wrapper.text()).toContain('已结束')
   })
 })

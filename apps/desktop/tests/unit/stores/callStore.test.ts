@@ -197,6 +197,35 @@ describe('callStore', () => {
     expect(store.isScreenSharing).toBe(false)
   })
 
+  it('records a completed call in local history when it ends', async () => {
+    localStorage.clear()
+    const store = await importStore()
+    await store.startCall('!dm:localhost', '@alice:localhost', 'Alice', 'video')
+    store.handleSignal({
+      roomId: '!dm:localhost',
+      senderId: '@alice:localhost',
+      type: 'im.muon.call.answer',
+      content: { callId: store.callId },
+    })
+    await store.hangup()
+
+    expect(store.callHistory[0]).toMatchObject({
+      peerId: '@alice:localhost',
+      mode: 'video',
+      direction: 'outgoing',
+      outcome: 'completed',
+    })
+  })
+
+  it('records a declined incoming call as missed', async () => {
+    localStorage.clear()
+    const store = await importStore()
+    store.handleSignal(invite({ callId: 'c1', livekitRoom: 'c1', mode: 'audio' }))
+    store.declineCall()
+
+    expect(store.callHistory[0]).toMatchObject({ id: 'c1', direction: 'incoming', outcome: 'missed' })
+  })
+
   it('ignores its own signals', async () => {
     const store = await importStore()
     store.handleSignal(invite({ callId: 'c1', livekitRoom: 'c1', mode: 'audio' }, '@me:localhost'))
