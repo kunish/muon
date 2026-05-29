@@ -10,6 +10,10 @@ const props = defineProps<{
   isRightAligned: boolean;
 }>();
 
+const emit = defineEmits<{
+  jump: [];
+}>();
+
 const NAME_COLORS = ['#b85c4a', '#c08b2e', '#7a8f52', '#4a9882', '#6b88a0', '#5a7a9a', '#8b6fb0', '#b06878'];
 
 const replySenderColor = computed(() => {
@@ -26,6 +30,9 @@ const replySenderColor = computed(() => {
   <div
     class="flex items-center gap-1.5 mb-1 text-[13px] leading-snug cursor-pointer hover:opacity-80"
     :class="isRightAligned ? 'self-end' : ''"
+    data-testid="reply-reference"
+    role="button"
+    @click="emit('jump')"
   >
     <div class="w-[2px] h-3 rounded-full bg-muted-foreground/30 shrink-0 ml-0.5" />
     <Avatar :src="replySenderMxcAvatar" :alt="replySenderName" :color-id="replySender" size="xs" class="shrink-0" />

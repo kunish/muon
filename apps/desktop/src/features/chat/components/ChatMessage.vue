@@ -61,6 +61,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   avatarClick: [userId: string, event: MouseEvent];
+  jumpToEvent: [eventId: string];
 }>();
 
 const RICH_MEDIA_PLACEHOLDER_SRC = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
@@ -543,6 +544,11 @@ async function onTranslate() {
   }
 }
 
+function onReplyJump() {
+  const targetId = replyEvent.value?.getId();
+  if (targetId) emit('jumpToEvent', targetId);
+}
+
 function closeContextMenu() {
   showContextMenu.value = false;
 }
@@ -779,6 +785,7 @@ onUnmounted(() => {
         :reply-sender="replySender"
         :reply-sender-mxc-avatar="replySenderMxcAvatar"
         :is-right-aligned="isRightAligned"
+        @jump="onReplyJump"
       />
 
       <!-- 消息内容 -->

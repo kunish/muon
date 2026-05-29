@@ -287,6 +287,12 @@ function scrollToCenteredEvent(eventId: string, options: { rememberPrevious?: bo
   return true;
 }
 
+function onJumpToEvent(eventId: string) {
+  if (scrollToCenteredEvent(eventId, { rememberPrevious: true })) {
+    flashFocusedEvent(eventId);
+  }
+}
+
 function flashFocusedEvent(eventId: string) {
   const el = containerRef.value;
   if (!el) return;
@@ -695,6 +701,7 @@ onUnmounted(() => {
         :unread-event-id="unreadEventId"
         @avatar-click="onAvatarClick"
         @user-click="onAvatarClick"
+        @jump-to-event="onJumpToEvent"
       />
 
       <ChannelWelcome v-else-if="currentRoomIdForWelcome" :room-id="currentRoomIdForWelcome" />

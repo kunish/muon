@@ -33,6 +33,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   avatarClick: [userId: string, event: MouseEvent];
   userClick: [userId: string, event: MouseEvent];
+  jumpToEvent: [eventId: string];
 }>();
 
 const settingsStore = useSettingsStore();
@@ -234,6 +235,7 @@ const messageGroups = computed((): MessageGroup[] => {
                   :hide-avatar-column="true"
                   :timeline-version="timelineVersion"
                   @avatar-click="(userId, e) => emit('avatarClick', userId, e)"
+                  @jump-to-event="(id) => emit('jumpToEvent', id)"
                 />
               </div>
             </template>
