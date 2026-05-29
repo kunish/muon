@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { provide, ref, shallowRef, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useTyping } from '../composables/useTyping';
 import { useChatStore } from '../stores/chatStore';
 import ChatDocsList from './ChatDocsList.vue';
@@ -22,7 +23,10 @@ import ThreadPanel from './ThreadPanel.vue';
 import TypingIndicator from './TypingIndicator.vue';
 
 const store = useChatStore();
+const { t } = useI18n();
 const messageListRef = ref<InstanceType<typeof MessageList> | null>(null);
+const richTextInputRef = ref<InstanceType<typeof RichTextInput> | null>(null);
+const isDraggingFiles = ref(false);
 
 const { typingUsers } = useTyping();
 
@@ -30,9 +34,41 @@ const { typingUsers } = useTyping();
 function onPanelJumpTo(eventId: string) {
   messageListRef.value?.focusEvent(eventId);
 }
+
 type ChatContentTab = 'chat' | 'docs' | 'files';
 
 const activeTab = shallowRef<ChatContentTab>('chat');
+
+// --- 拖拽文件发送（飞书风格：拖到聊天区出现遮罩，松手暂存到输入框） ---
+function canAcceptFileDrop(): boolean {
+  return activeTab.value === 'chat' && !store.multiSelectMode && !!store.currentRoomId;
+}
+
+function dragHasFiles(event: DragEvent): boolean {
+  return Array.from(event.dataTransfer?.types ?? []).includes('Files');
+}
+
+function onChatDragOver(event: DragEvent) {
+  if (!canAcceptFileDrop() || !dragHasFiles(event)) return;
+  event.preventDefault();
+  isDraggingFiles.value = true;
+}
+
+function onChatDragLeave(event: DragEvent) {
+  const related = event.relatedTarget as Node | null;
+  const area = event.currentTarget as HTMLElement;
+  if (related && area.contains(related)) return;
+  isDraggingFiles.value = false;
+}
+
+function onChatDrop(event: DragEvent) {
+  isDraggingFiles.value = false;
+  if (!canAcceptFileDrop()) return;
+  const files = Array.from(event.dataTransfer?.files ?? []);
+  if (!files.length) return;
+  event.preventDefault();
+  richTextInputRef.value?.acceptDroppedFiles(files);
+}
 
 // --- 全屏 emoji 特效 ---
 const effectLayerRef = shallowRef<InstanceType<typeof EmojiEffectLayer> | null>(null);
@@ -53,7 +89,14 @@ watch(
 
 <template>
   <div class="flex-1 flex h-full min-w-0 relative">
-    <div class="flex-1 flex flex-col h-full min-w-0" data-chat-area>
+    <div
+      class="relative flex-1 flex flex-col h-full min-w-0"
+      data-chat-area
+      @dragover="onChatDragOver"
+      @dragenter="onChatDragOver"
+      @dragleave="onChatDragLeave"
+      @drop="onChatDrop"
+    >
       <ChatHeader v-model:active-tab="activeTab" />
 
       <!-- Chat content -->
@@ -61,8 +104,19 @@ watch(
         <MessageList ref="messageListRef" />
         <TypingIndicator :users="typingUsers" />
         <MultiSelectBar v-if="store.multiSelectMode" />
-        <RichTextInput v-else />
+        <RichTextInput v-else ref="richTextInputRef" />
       </template>
+
+      <!-- 拖拽文件遮罩 -->
+      <div
+        v-if="isDraggingFiles"
+        class="pointer-events-none absolute inset-0 z-30 flex items-center justify-center border-2 border-dashed border-primary/50 bg-primary/10 backdrop-blur-sm"
+        data-testid="chat-drop-overlay"
+      >
+        <div class="rounded-lg bg-popover px-4 py-3 text-sm font-medium text-foreground shadow-lg">
+          {{ t('chat.drop_to_send') }}
+        </div>
+      </div>
       <ChatDocsList v-else-if="activeTab === 'docs'" />
       <ChatFileList v-else-if="activeTab === 'files'" />
 

@@ -692,6 +692,9 @@ function handlePasteFiles(files: File[]) {
   stagePasteFiles(files, { insert: true });
 }
 
+// 供 ChatWindow 的拖拽落点复用同一套文件暂存/发送逻辑
+defineExpose({ acceptDroppedFiles: handlePasteFiles });
+
 function stagePasteFiles(files: File[], options: { insert: boolean }): string[] {
   if (!files.length) return [];
 

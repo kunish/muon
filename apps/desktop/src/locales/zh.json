@@ -203,6 +203,7 @@
     "tab_add": "添加标签",
     "filter_all": "全部",
     "mark_all_read": "全部已读",
+    "drop_to_send": "拖拽文件到此处发送",
     "recent_searches": "最近搜索",
     "search_history_clear": "清除",
     "filter_unread": "未读",
