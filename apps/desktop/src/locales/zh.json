@@ -1103,6 +1103,11 @@
   },
   "calls": {
     "subtitle": "视频会议、语音通话和录制回放",
+    "incoming_call": "来电",
+    "outgoing_call": "正在呼叫…",
+    "connecting_label": "连接中…",
+    "accept": "接听",
+    "decline": "拒绝",
     "audio_mode": "语音",
     "start_call": "发起通话",
     "today_calls": "今日通话",

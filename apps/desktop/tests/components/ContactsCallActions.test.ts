@@ -2,22 +2,28 @@ import type { Component } from 'vue'
 import { mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h } from 'vue'
-import { consumePendingContactCall } from '@/features/calls/stores/callLaunchStore'
 import ContactsPage from '@/features/contacts/components/ContactsPage.vue'
 import { useContactStore } from '@/features/contacts/stores/contactStore'
 
-const contactsRouterPush = vi.hoisted(() => vi.fn())
+const startCall = vi.hoisted(() => vi.fn().mockResolvedValue(undefined))
+const findOrCreateDm = vi.hoisted(() => vi.fn().mockResolvedValue('!dm_alice:localhost'))
+const restoreRoom = vi.hoisted(() => vi.fn())
 
-vi.mock('vue-router', () => ({
-  useRouter: () => ({
-    push: contactsRouterPush,
-  }),
+vi.mock('@/features/calls/stores/callStore', () => ({
+  useCallStore: () => ({ startCall }),
+}))
+
+vi.mock('@matrix/index', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@matrix/index')>()),
+  findOrCreateDm,
 }))
 
 vi.mock('@/features/chat/composables/useConversations', () => ({
-  useConversations: () => ({
-    restoreRoom: vi.fn(),
-  }),
+  useConversations: () => ({ restoreRoom }),
+}))
+
+vi.mock('vue-router', () => ({
+  useRouter: () => ({ push: vi.fn() }),
 }))
 
 function renderSlots(name: string): Component {
@@ -91,33 +97,28 @@ function mountContactsPage() {
 
 describe('contacts call actions', () => {
   beforeEach(() => {
-    contactsRouterPush.mockClear()
-    consumePendingContactCall()
+    startCall.mockClear()
+    findOrCreateDm.mockClear()
+    restoreRoom.mockClear()
   })
 
-  it('queues an audio call for the selected contact and opens calls', async () => {
+  it('starts an audio call with the selected contact through the call store', async () => {
     const wrapper = mountContactsPage()
 
     await wrapper.get('[data-testid="contacts-audio-call"]').trigger('click')
+    await Promise.resolve()
 
-    expect(consumePendingContactCall()).toEqual({
-      userId: '@alice:localhost',
-      displayName: '小红',
-      mode: 'audio',
-    })
-    expect(contactsRouterPush).toHaveBeenCalledWith('/calls')
+    expect(findOrCreateDm).toHaveBeenCalledWith('@alice:localhost')
+    expect(startCall).toHaveBeenCalledWith('!dm_alice:localhost', '@alice:localhost', '小红', 'audio')
   })
 
-  it('queues a video call for the selected contact and opens calls', async () => {
+  it('starts a video call with the selected contact through the call store', async () => {
     const wrapper = mountContactsPage()
 
     await wrapper.get('[data-testid="contacts-video-call"]').trigger('click')
+    await Promise.resolve()
 
-    expect(consumePendingContactCall()).toEqual({
-      userId: '@alice:localhost',
-      displayName: '小红',
-      mode: 'video',
-    })
-    expect(contactsRouterPush).toHaveBeenCalledWith('/calls')
+    expect(findOrCreateDm).toHaveBeenCalledWith('@alice:localhost')
+    expect(startCall).toHaveBeenCalledWith('!dm_alice:localhost', '@alice:localhost', '小红', 'video')
   })
 })

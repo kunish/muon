@@ -93,6 +93,7 @@ function mountAppLayout() {
   return mount(AppLayout, {
     global: {
       stubs: {
+        CallOverlay: true,
         ChannelSidebar: ChannelSidebarStub,
         CreateCategoryDialog: true,
         Dialog: true,

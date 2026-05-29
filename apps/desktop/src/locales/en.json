@@ -1103,6 +1103,11 @@
   },
   "calls": {
     "subtitle": "Video meetings, voice calls, and recording playback",
+    "incoming_call": "Incoming call",
+    "outgoing_call": "Calling…",
+    "connecting_label": "Connecting…",
+    "accept": "Accept",
+    "decline": "Decline",
     "audio_mode": "Audio",
     "start_call": "Start Call",
     "today_calls": "Today's Calls",

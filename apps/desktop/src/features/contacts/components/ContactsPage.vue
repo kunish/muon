@@ -8,7 +8,7 @@ import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
 import WorkspaceResizablePane from '@/app/components/workspace/WorkspaceResizablePane.vue';
-import { launchContactCall } from '@/features/calls/stores/callLaunchStore';
+import { useCallStore } from '@/features/calls/stores/callStore';
 import { useConversations } from '../../chat/composables/useConversations';
 import { useContactStore } from '../stores/contactStore';
 import ContactList from './ContactList.vue';
@@ -20,6 +20,7 @@ const { t } = useI18n();
 const router = useRouter();
 const store = useContactStore();
 const chatStore = useRoomNavigation();
+const callStore = useCallStore();
 const { restoreRoom } = useConversations();
 
 const showCreateGroup = ref(false);
@@ -72,14 +73,15 @@ async function handleOpenMessage(userId: string): Promise<void> {
   }
 }
 
-function handleStartContactCall(userId: string, mode: ContactCallMode): void {
+async function handleStartContactCall(userId: string, mode: ContactCallMode): Promise<void> {
   const contact = store.contacts.find((item) => item.userId === userId);
-  launchContactCall({
-    userId,
-    displayName: contact?.displayName,
-    mode,
-  });
-  router.push('/calls');
+  try {
+    const roomId = await findOrCreateDm(userId);
+    restoreRoom(roomId);
+    await callStore.startCall(roomId, userId, contact?.displayName || userId, mode);
+  } catch {
+    toast.error(t('auth.error'));
+  }
 }
 </script>
 
