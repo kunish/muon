@@ -599,6 +599,7 @@
     "check_update": "Check for Updates",
     "devices": "Logged-in Devices",
     "current_device": "Current",
+    "no_devices": "No signed-in devices",
     "update_available": "Update available",
     "install_update": "Install Update",
     "up_to_date": "Up to date",

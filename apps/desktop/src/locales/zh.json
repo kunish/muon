@@ -602,6 +602,7 @@
     "up_to_date": "已是最新版本",
     "devices": "已登录设备",
     "current_device": "当前设备",
+    "no_devices": "暂无已登录设备",
     "analytics_enabled": "使用分析",
     "analytics_description": "帮助我们改善产品体验（不收集个人数据）",
     "watermark_description": "在聊天中显示用户名水印以防截屏泄露",

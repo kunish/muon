@@ -13,16 +13,23 @@ interface DeviceInfo {
 }
 
 const devices = ref<DeviceInfo[]>([]);
+const loading = ref(true);
 
 onMounted(async () => {
-  const stored = await getDevices();
-  const currentId = getCurrentDeviceId();
+  try {
+    const stored = await getDevices();
+    const currentId = getCurrentDeviceId();
 
-  devices.value = stored.map((d: any) => ({
-    deviceId: d.device_id,
-    displayName: d.display_name || d.device_id,
-    current: d.device_id === currentId,
-  }));
+    devices.value = stored.map((d: any) => ({
+      deviceId: d.device_id,
+      displayName: d.display_name || d.device_id,
+      current: d.device_id === currentId,
+    }));
+  } catch {
+    devices.value = [];
+  } finally {
+    loading.value = false;
+  }
 });
 </script>
 
@@ -31,8 +38,15 @@ onMounted(async () => {
     <h3 class="text-sm font-medium mb-3">
       {{ t('settings.devices') }}
     </h3>
+    <p v-if="loading" class="px-1 py-4 text-xs text-muted-foreground" data-testid="device-list-loading">
+      {{ t('common.loading') }}
+    </p>
+    <p v-else-if="devices.length === 0" class="px-1 py-4 text-xs text-muted-foreground" data-testid="device-list-empty">
+      {{ t('settings.no_devices') }}
+    </p>
     <div
       v-for="device in devices"
+      v-else
       :key="device.deviceId"
       class="flex items-center justify-between p-3 rounded-lg bg-muted/50"
     >
