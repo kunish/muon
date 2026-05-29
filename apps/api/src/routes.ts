@@ -1,11 +1,13 @@
 import type { DeviceSessionPublic } from '@muon/enterprise-contracts'
 import type { ApiEffect } from './effect'
+import type { ApprovalStore } from './modules/approvals/approvalService'
 import type { MatrixProvisioningAdapter } from './modules/matrix/provisioning'
 import type { MediaStorageService } from './modules/media/mediaStorage'
 import type { DeviceSessionRecord, EnterpriseRepository, EnterpriseUserRecord } from './repository'
 import { Effect } from 'effect'
 import { fromPromise, runApiEffect } from './effect'
 import { jsonResponse, readJsonBodyEffect } from './http'
+import { createApprovalEffectService, createInMemoryApprovalStore } from './modules/approvals/approvalService'
 import {
   AdminAuthenticationError,
   createAdminSessionEffectService,
@@ -28,6 +30,7 @@ export interface EnterpriseHttpEffectHandler {
 }
 
 export interface EnterpriseHttpHandlerOptions {
+  approvalStore?: ApprovalStore
   corsAllowedOrigins?: string[]
   matrix?: MatrixProvisioningAdapter
   matrixServerUrl?: string
@@ -278,6 +281,8 @@ export function createEnterpriseHttpEffectHandler(
   const mediaStorage = options.mediaStorage
   const allowedOrigins = new Set(options.corsAllowedOrigins ?? DEFAULT_CORS_ALLOWED_ORIGINS)
   const maxMediaUploadBytes = options.maxMediaUploadBytes ?? DEFAULT_MAX_MEDIA_UPLOAD_BYTES
+  const approvalStore = options.approvalStore ?? createInMemoryApprovalStore()
+  const approvalService = createApprovalEffectService({ store: approvalStore })
   const installService = createInstallEffectService({ repository })
   const adminSessionService = createAdminSessionEffectService({ repository })
   const organizationService = createOrganizationEffectService({ repository })
@@ -530,6 +535,36 @@ export function createEnterpriseHttpEffectHandler(
           if (request.method !== 'POST') return methodNotAllowedWithCors(request)
           const result = yield* oauthService.refresh((yield* readRequestBodyEffect(request)) as never)
           return withCors(jsonResponse(result), request, allowedOrigins)
+        }
+
+        // ── 审批工作流后端(企业级:服务端状态 + 多级流转) ──
+        if (url.pathname === '/api/approvals' || url.pathname.startsWith('/api/approvals/')) {
+          if (!bearerToken(request)) return yield* Effect.fail(new AdminAuthenticationError())
+
+          if (url.pathname === '/api/approvals') {
+            if (request.method !== 'GET') return methodNotAllowedWithCors(request)
+            return withCors(jsonResponse({ approvals: yield* approvalService.list() }), request, allowedOrigins)
+          }
+
+          const action = url.pathname.match(/^\/api\/approvals\/([^/]+)\/(decision|transfer|comment)$/)
+          if (action) {
+            if (request.method !== 'POST') return methodNotAllowedWithCors(request)
+            const id = action[1]!
+            const body = (yield* readRequestBodyEffect(request)) as Record<string, unknown>
+            if (action[2] === 'decision') {
+              const decision = body.decision === 'rejected' ? 'rejected' : 'approved'
+              const approval = yield* approvalService.decide(id, decision)
+              return withCors(jsonResponse({ approval }), request, allowedOrigins)
+            }
+            if (action[2] === 'transfer') {
+              const approval = yield* approvalService.transfer(id, String(body.handler ?? ''))
+              return withCors(jsonResponse({ approval }), request, allowedOrigins)
+            }
+            const approval = yield* approvalService.comment(id, String(body.comment ?? ''))
+            return withCors(jsonResponse({ approval }), request, allowedOrigins)
+          }
+
+          return methodNotAllowedWithCors(request)
         }
 
         return withCors(notFound(), request, allowedOrigins)
