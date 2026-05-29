@@ -6,6 +6,7 @@
  * 末尾 "+" 按钮打开 emoji 选择器
  */
 import type { ReactionSummary } from '@matrix/index';
+import { getClient } from '@matrix/client';
 import { getReactions, sendReaction } from '@matrix/index';
 import { Smile } from 'lucide-vue-next';
 import { computed, nextTick, ref, watch } from 'vue';
@@ -19,6 +20,15 @@ const props = defineProps<{
 const QUICK_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🎉', '🔥', '👏'];
 
 const reactions = computed(() => props.reactions ?? getReactions(props.roomId, props.eventId));
+
+/** 悬停提示：谁回应了（飞书风格） */
+function reactorTitle(reaction: ReactionSummary): string {
+  if (!reaction.senders?.length) return '';
+  const room = getClient().getRoom(props.roomId);
+  return reaction.senders
+    .map((userId) => room?.getMember(userId)?.name || userId.split(':')[0]?.slice(1) || userId)
+    .join('、');
+}
 
 const showPicker = ref(false);
 const triggerRef = ref<HTMLElement | null>(null);
@@ -61,6 +71,7 @@ async function toggleReaction(emoji: string) {
           ? 'bg-[var(--B100)] border border-[var(--B300)] text-foreground'
           : 'bg-[var(--N100)] border border-transparent text-muted-foreground hover:border-muted-foreground/30'
       "
+      :title="reactorTitle(r)"
       @click.stop="toggleReaction(r.key)"
     >
       <span class="leading-none">{{ r.key }}</span>

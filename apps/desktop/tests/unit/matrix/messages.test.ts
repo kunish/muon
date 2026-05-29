@@ -500,7 +500,9 @@ describe('messages', () => {
     const summaries = getTimelineRelationSummaries('!room:localhost')
 
     expect(summaries.threadReplyCountsByEventId.get('$root')).toBe(1)
-    expect(summaries.reactionsByEventId.get('$root')).toEqual([{ key: '👍', count: 2, myReaction: true }])
+    expect(summaries.reactionsByEventId.get('$root')).toEqual([
+      { key: '👍', count: 2, myReaction: true, senders: ['@me:localhost', '@bob:localhost'] },
+    ])
   })
 
   it('should return empty array for unknown room', async () => {

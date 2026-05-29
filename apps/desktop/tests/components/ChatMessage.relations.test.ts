@@ -35,7 +35,7 @@ describe('chatMessage relation summaries', () => {
         event: event as any,
         isFirst: false,
         roomId: '!room:localhost',
-        reactions: [{ key: '👍', count: 2, myReaction: true }],
+        reactions: [{ key: '👍', count: 2, myReaction: true, senders: ['@alice:localhost', '@bob:localhost'] }],
         threadReplyCount: 3,
       },
       global: {

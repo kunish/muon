@@ -11,6 +11,8 @@ export interface ReactionSummary {
   key: string
   count: number
   myReaction: boolean
+  /** 去重后的回应者 userId 列表（用于"谁回应了"悬停提示） */
+  senders: string[]
 }
 
 export interface TimelineRelationSummaries {
@@ -85,9 +87,13 @@ export function getTimelineRelationSummariesEffect(roomId: string): DesktopEffec
           reactionBuckets.set(relatedEventId, eventReactions)
         }
 
-        const existing = eventReactions.get(key) ?? { key, count: 0, myReaction: false }
+        const existing = eventReactions.get(key) ?? { key, count: 0, myReaction: false, senders: [] }
         existing.count++
-        if (ev.getSender() === userId) existing.myReaction = true
+        const sender = ev.getSender()
+        if (sender) {
+          if (!existing.senders.includes(sender)) existing.senders.push(sender)
+          if (sender === userId) existing.myReaction = true
+        }
         eventReactions.set(key, existing)
         continue
       }
