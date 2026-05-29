@@ -1,4 +1,13 @@
 export { blockUser, getBlockedUsers, isUserBlocked, unblockUser } from './blocking'
+export type { CallInvitePayload, CallMode } from './calls'
+export {
+  CALL_ANSWER_EVENT,
+  CALL_HANGUP_EVENT,
+  CALL_INVITE_EVENT,
+  sendCallAnswer,
+  sendCallHangup,
+  sendCallInvite,
+} from './calls'
 export { createEncryptedRoom, initCrypto } from './crypto'
 export { materializeOfflineDigest } from './digest'
 export {

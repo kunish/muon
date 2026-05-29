@@ -17,6 +17,7 @@ type MatrixEvents = {
   'room.typing': { roomId: string; userIds: string[] }
   'room.receipt': { roomId: string; eventId: string; userId: string }
   'room.member': { roomId: string; userId: string; membership: string }
+  'call.signal': { roomId: string; senderId: string; type: string; content: Record<string, unknown> }
   'sync.state': { state: SyncState }
   'space.update': { spaceId: string }
   'space.member': { spaceId: string; userId: string; membership: string }
@@ -46,6 +47,15 @@ export function bindClientEventsEffect(): DesktopEffect<void> {
           matrixEvents.emit('room.message', {
             roomId: room.roomId,
             event,
+          })
+        }
+        // 通话信令（自定义 im.muon.call.* 事件）实时下发
+        if (data?.liveEvent === true && event.getType().startsWith('im.muon.call.')) {
+          matrixEvents.emit('call.signal', {
+            roomId: room.roomId,
+            senderId: event.getSender() || '',
+            type: event.getType(),
+            content: event.getContent() as Record<string, unknown>,
           })
         }
       },

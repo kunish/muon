@@ -1,0 +1,154 @@
+import { createPinia, setActivePinia } from 'pinia'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+const media = vi.hoisted(() => ({
+  connectCallRoom: vi.fn().mockResolvedValue(undefined),
+  disconnectCallRoom: vi.fn().mockResolvedValue(undefined),
+  setCallMicEnabled: vi.fn().mockResolvedValue(undefined),
+}))
+
+const signaling = vi.hoisted(() => ({
+  sendCallInvite: vi.fn().mockResolvedValue(undefined),
+  sendCallAnswer: vi.fn().mockResolvedValue(undefined),
+  sendCallHangup: vi.fn().mockResolvedValue(undefined),
+}))
+
+vi.mock('@/features/calls/lib/callMedia', () => media)
+
+vi.mock('@matrix/client', () => ({
+  getClient: () => ({
+    getUserId: () => '@me:localhost',
+    getRoom: () => ({ getMember: () => ({ name: 'Alice' }) }),
+  }),
+}))
+
+vi.mock('@matrix/index', () => ({
+  matrixEvents: { on: vi.fn(), off: vi.fn() },
+  sendCallInvite: signaling.sendCallInvite,
+  sendCallAnswer: signaling.sendCallAnswer,
+  sendCallHangup: signaling.sendCallHangup,
+  CALL_INVITE_EVENT: 'im.muon.call.invite',
+  CALL_ANSWER_EVENT: 'im.muon.call.answer',
+  CALL_HANGUP_EVENT: 'im.muon.call.hangup',
+}))
+
+async function importStore() {
+  return (await import('@/features/calls/stores/callStore')).useCallStore()
+}
+
+function invite(content: Record<string, unknown>, senderId = '@alice:localhost') {
+  return { roomId: '!dm:localhost', senderId, type: 'im.muon.call.invite', content }
+}
+
+describe('callStore', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    vi.clearAllMocks()
+  })
+
+  it('startCall goes outgoing, joins the room and sends an invite', async () => {
+    const store = await importStore()
+    await store.startCall('!dm:localhost', '@alice:localhost', 'Alice')
+
+    expect(store.status).toBe('outgoing')
+    expect(store.callId).toBeTruthy()
+    expect(media.connectCallRoom).toHaveBeenCalledWith(store.callId)
+    expect(signaling.sendCallInvite).toHaveBeenCalledWith('!dm:localhost', {
+      callId: store.callId,
+      livekitRoom: store.callId,
+      mode: 'audio',
+    })
+  })
+
+  it('connects when the callee answers the outgoing call', async () => {
+    const store = await importStore()
+    await store.startCall('!dm:localhost', '@alice:localhost', 'Alice')
+    store.handleSignal({
+      roomId: '!dm:localhost',
+      senderId: '@alice:localhost',
+      type: 'im.muon.call.answer',
+      content: { callId: store.callId },
+    })
+
+    expect(store.status).toBe('connected')
+    expect(store.startedAt).toBeTruthy()
+  })
+
+  it('an incoming invite moves to incoming with the resolved peer name', async () => {
+    const store = await importStore()
+    store.handleSignal(invite({ callId: 'c1', livekitRoom: 'c1', mode: 'audio' }))
+
+    expect(store.status).toBe('incoming')
+    expect(store.callId).toBe('c1')
+    expect(store.peerName).toBe('Alice')
+  })
+
+  it('acceptCall joins the room and answers', async () => {
+    const store = await importStore()
+    store.handleSignal(invite({ callId: 'c1', livekitRoom: 'c1', mode: 'audio' }))
+    await store.acceptCall()
+
+    expect(media.connectCallRoom).toHaveBeenCalledWith('c1')
+    expect(signaling.sendCallAnswer).toHaveBeenCalledWith('!dm:localhost', 'c1')
+    expect(store.status).toBe('connected')
+  })
+
+  it('declineCall hangs up and returns to idle', async () => {
+    const store = await importStore()
+    store.handleSignal(invite({ callId: 'c1', livekitRoom: 'c1', mode: 'audio' }))
+    store.declineCall()
+
+    expect(signaling.sendCallHangup).toHaveBeenCalledWith('!dm:localhost', 'c1', 'declined')
+    expect(store.status).toBe('idle')
+  })
+
+  it('auto-declines a second invite while busy', async () => {
+    const store = await importStore()
+    store.handleSignal(invite({ callId: 'c1', livekitRoom: 'c1', mode: 'audio' }))
+    store.handleSignal(invite({ callId: 'c2', livekitRoom: 'c2', mode: 'audio' }, '@bob:localhost'))
+
+    expect(signaling.sendCallHangup).toHaveBeenCalledWith('!dm:localhost', 'c2', 'busy')
+    expect(store.callId).toBe('c1') // still on the first call
+  })
+
+  it('hangup tears down media and resets', async () => {
+    const store = await importStore()
+    await store.startCall('!dm:localhost', '@alice:localhost', 'Alice')
+    await store.hangup()
+
+    expect(signaling.sendCallHangup).toHaveBeenCalled()
+    expect(media.disconnectCallRoom).toHaveBeenCalled()
+    expect(store.status).toBe('idle')
+  })
+
+  it('remote hangup ends the active call', async () => {
+    const store = await importStore()
+    await store.startCall('!dm:localhost', '@alice:localhost', 'Alice')
+    store.handleSignal({
+      roomId: '!dm:localhost',
+      senderId: '@alice:localhost',
+      type: 'im.muon.call.hangup',
+      content: { callId: store.callId },
+    })
+    await Promise.resolve()
+
+    expect(media.disconnectCallRoom).toHaveBeenCalled()
+    expect(store.status).toBe('idle')
+  })
+
+  it('toggleMute flips state and updates the mic', async () => {
+    const store = await importStore()
+    await store.startCall('!dm:localhost', '@alice:localhost', 'Alice')
+    await store.toggleMute()
+
+    expect(store.isMuted).toBe(true)
+    expect(media.setCallMicEnabled).toHaveBeenCalledWith(false)
+  })
+
+  it('ignores its own signals', async () => {
+    const store = await importStore()
+    store.handleSignal(invite({ callId: 'c1', livekitRoom: 'c1', mode: 'audio' }, '@me:localhost'))
+
+    expect(store.status).toBe('idle')
+  })
+})
