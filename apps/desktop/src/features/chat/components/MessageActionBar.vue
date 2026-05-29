@@ -3,55 +3,69 @@ import type { MatrixEvent } from 'matrix-js-sdk';
 import type { TaskStatus } from '../types/task';
 /**
  * 消息悬浮操作栏
- * 显示在消息右上角，包含：Add Reaction、Reply、More 下拉菜单
+ * 显示在消息右上角，包含飞书风格的高频动作：
+ * 快捷表情回复、回复、转发，以及"更多"下拉菜单（编辑/Pin/收藏/翻译/转任务/多选/隐藏/撤回等）。
+ * 所有与 matrix/store 交互的动作复用 useMessageActions（单一来源）。
  */
 import { getClient } from '@matrix/client';
-import { redactMessage } from '@matrix/index';
-import { isMessagePinned, pinMessage, unpinMessage } from '@matrix/rooms';
 import {
+  CheckSquare,
   Copy,
   Edit,
+  EyeOff,
+  Forward,
+  Languages,
   Link,
   MessageSquareText,
   MoreHorizontal,
   Pin,
   PinOff,
   Reply,
-  Smile,
+  Star,
+  StarOff,
   Trash2,
 } from 'lucide-vue-next';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { toast } from 'vue-sonner';
-import { ask } from '@/desktop/dialog';
 import { getFloatingPosition } from '../composables/useFloatingPosition';
-import { useMessageClipboardFeedback } from '../composables/useMessageClipboardFeedback';
-import { useChatStore } from '../stores/chatStore';
+import { useMessageActions } from '../composables/useMessageActions';
 import { useDeferStore } from '../stores/deferStore';
 import { useTaskStore } from '../stores/taskStore';
+import ForwardDialog from './ForwardDialog.vue';
+import ReactionPickerPopover from './ReactionPickerPopover.vue';
 import TaskComposerDialog from './TaskComposerDialog.vue';
 
 const props = defineProps<{
   event: MatrixEvent;
   roomId: string;
+  /** 是否可翻译（仅文本消息），由父组件判断 */
+  canTranslate?: boolean;
+  /** 当前是否已显示翻译结果，用于切换菜单文案 */
+  isTranslated?: boolean;
 }>();
 
 const emit = defineEmits<{
-  react: [];
   reply: [];
+  translate: [];
   menuOpenChange: [open: boolean];
 }>();
 
-const store = useChatStore();
 const deferStore = useDeferStore();
 const taskStore = useTaskStore();
 const { t } = useI18n();
-const { copyMessageContentWithFeedback } = useMessageClipboardFeedback();
+const actions = useMessageActions(
+  () => props.event,
+  () => props.roomId,
+);
+const { isPinned, isStarred } = actions;
 const showMore = ref(false);
 const showDeferMenu = ref(false);
+const showReactPicker = ref(false);
+const showForward = ref(false);
 const customDeferValue = ref('');
 const showTaskComposer = ref(false);
 const creatingTask = ref(false);
+const barRootRef = ref<HTMLElement>();
 const moreTriggerRef = ref<HTMLElement>();
 const moreMenuRef = ref<HTMLElement>();
 const moreMenuStyle = ref({ left: '0px', top: '0px' });
@@ -60,13 +74,7 @@ const moreMenuPositioned = ref(false);
 const myUserId = computed(() => getClient().getUserId());
 const isMine = computed(() => props.event.getSender() === myUserId.value);
 const eventId = computed(() => props.event.getId() || '');
-const content = computed(() => props.event.getContent() ?? {});
 const body = computed(() => props.event.getContent()?.body || '');
-
-const isPinned = computed(() => {
-  if (!props.roomId || !eventId.value) return false;
-  return isMessagePinned(props.roomId, eventId.value);
-});
 
 function updateMoreMenuPosition() {
   const trigger = moreTriggerRef.value;
@@ -89,76 +97,78 @@ function toggleMore() {
     closeMoreMenu();
     return;
   }
+  showReactPicker.value = false;
   moreMenuPositioned.value = false;
   showMore.value = true;
 }
 
+function toggleReactPicker() {
+  if (!showReactPicker.value) closeMoreMenu();
+  showReactPicker.value = !showReactPicker.value;
+}
+
+function onReact(emoji: string) {
+  showReactPicker.value = false;
+  void actions.react(emoji);
+}
+
 function onReply() {
-  store.setReplyingTo(props.event);
+  actions.reply();
   emit('reply');
 }
 
+function onForward() {
+  closeMoreMenu();
+  showForward.value = true;
+}
+
 function onEdit() {
-  store.setEditingEvent(props.event);
+  actions.edit();
   showMore.value = false;
 }
 
-async function onDelete() {
+function onRecall() {
   showMore.value = false;
-  const confirmed = await ask(t('chat.delete_confirm'), {
-    title: t('chat.delete_message'),
-    kind: 'warning',
-  });
-  if (!confirmed) return;
-  try {
-    await redactMessage(props.roomId, eventId.value);
-  } catch {
-    toast.error(t('auth.error'));
-  }
+  void actions.recall();
 }
 
-async function onTogglePin() {
+function onTogglePin() {
   showMore.value = false;
-  if (!props.roomId || !eventId.value) return;
-  try {
-    if (isPinned.value) {
-      await unpinMessage(props.roomId, eventId.value);
-    } else {
-      await pinMessage(props.roomId, eventId.value);
-    }
-  } catch {
-    toast.error(t('auth.error'));
-  }
+  void actions.togglePin();
+}
+
+function onToggleStar() {
+  showMore.value = false;
+  void actions.toggleStar();
+}
+
+function onMultiSelect() {
+  closeMoreMenu();
+  actions.multiSelect();
+}
+
+function onHideForMe() {
+  closeMoreMenu();
+  actions.hideForMe();
+}
+
+function onTranslate() {
+  closeMoreMenu();
+  emit('translate');
 }
 
 function onCopyText() {
   showMore.value = false;
-  void copyMessageContentWithFeedback(content.value);
+  actions.copyText();
 }
 
-async function onCopyLink() {
+function onCopyLink() {
   showMore.value = false;
-  if (!props.roomId || !eventId.value || !navigator.clipboard?.writeText) {
-    toast.error(t('chat.copy_message_link_failed'));
-    return;
-  }
-
-  const link = `https://matrix.to/#/${props.roomId}/${eventId.value}`;
-  try {
-    await navigator.clipboard.writeText(link);
-    toast.success(t('chat.message_link_copied'));
-  } catch {
-    toast.error(t('chat.copy_message_link_failed'));
-  }
-}
-
-function onReact() {
-  emit('react');
+  void actions.copyLink();
 }
 
 function onOpenThread() {
-  if (!eventId.value) return;
-  store.openThread(eventId.value);
+  actions.openThread();
   showMore.value = false;
 }
 
@@ -233,11 +243,14 @@ async function onSubmitTask(payload: { title: string; assignee: string; dueAt: s
 }
 
 function onDocumentPointerDown(event: PointerEvent) {
-  if (!showMore.value) return;
   const target = event.target as Node | null;
   if (!target) return;
-  if (moreTriggerRef.value?.contains(target) || moreMenuRef.value?.contains(target)) return;
-  closeMoreMenu();
+  if (showMore.value && !(moreTriggerRef.value?.contains(target) || moreMenuRef.value?.contains(target))) {
+    closeMoreMenu();
+  }
+  if (showReactPicker.value && !barRootRef.value?.contains(target)) {
+    showReactPicker.value = false;
+  }
 }
 
 function onViewportChange() {
@@ -245,12 +258,14 @@ function onViewportChange() {
 }
 
 watch(showMore, async (open) => {
-  emit('menuOpenChange', open);
   if (!open) return;
-
   await nextTick();
   updateMoreMenuPosition();
   moreMenuPositioned.value = true;
+});
+
+watch([showMore, showReactPicker, showForward], () => {
+  emit('menuOpenChange', showMore.value || showReactPicker.value || showForward.value);
 });
 
 watch(showDeferMenu, async () => {
@@ -275,16 +290,11 @@ onBeforeUnmount(() => {
 
 <template>
   <div
-    class="action-bar flex items-center overflow-visible bg-popover border border-[rgba(31,35,41,0.08)] rounded-[10px] shadow-[var(--shadow-s1-down)]"
+    ref="barRootRef"
+    class="action-bar flex items-center overflow-visible rounded-[10px] border border-[rgba(31,35,41,0.08)] bg-popover shadow-[var(--shadow-s1-down)]"
   >
-    <!-- Add Reaction -->
-    <button
-      class="flex size-7 cursor-pointer items-center justify-center text-muted-foreground transition-all duration-100 hover:bg-muted hover:text-foreground"
-      :title="t('chat.add_reaction')"
-      @click.stop="onReact"
-    >
-      <Smile :size="16" />
-    </button>
+    <!-- Add Reaction (快捷表情回复) -->
+    <ReactionPickerPopover :show-emoji-picker="showReactPicker" @toggle="toggleReactPicker" @react="onReact" />
 
     <!-- Reply -->
     <button
@@ -293,6 +303,16 @@ onBeforeUnmount(() => {
       @click.stop="onReply"
     >
       <Reply :size="16" />
+    </button>
+
+    <!-- Forward (转发) -->
+    <button
+      class="flex size-7 cursor-pointer items-center justify-center text-muted-foreground transition-all duration-100 hover:bg-muted hover:text-foreground"
+      :title="t('chat.action_forward')"
+      data-testid="message-forward-trigger"
+      @click.stop="onForward"
+    >
+      <Forward :size="16" />
     </button>
 
     <!-- More -->
@@ -342,6 +362,27 @@ onBeforeUnmount(() => {
           >
             <component :is="isPinned ? PinOff : Pin" :size="14" />
             <span>{{ isPinned ? t('chat.unpin_message') : t('chat.pin_message') }}</span>
+          </button>
+
+          <!-- Star / Unstar (收藏) -->
+          <button
+            class="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-[13px] text-muted-foreground transition-colors duration-100 hover:bg-primary hover:text-white"
+            data-testid="message-star-trigger"
+            @click.stop="onToggleStar"
+          >
+            <component :is="isStarred ? StarOff : Star" :size="14" />
+            <span>{{ isStarred ? t('chat.unstar_message') : t('chat.star_message') }}</span>
+          </button>
+
+          <!-- Translate (翻译) — 仅文本消息 -->
+          <button
+            v-if="canTranslate"
+            class="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-[13px] text-muted-foreground transition-colors duration-100 hover:bg-primary hover:text-white"
+            data-testid="message-translate-trigger"
+            @click.stop="onTranslate"
+          >
+            <Languages :size="14" />
+            <span>{{ isTranslated ? t('chat.hide_translation') : t('chat.translate') }}</span>
           </button>
 
           <!-- Open Thread -->
@@ -456,17 +497,38 @@ onBeforeUnmount(() => {
             <span>{{ t('chat.copy_message_link') }}</span>
           </button>
 
-          <!-- Separator -->
-          <div v-if="isMine" class="h-px bg-[var(--color-muted)]/20 my-1" />
+          <!-- Multi-select (多选 / 合并转发) -->
+          <button
+            class="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-[13px] text-muted-foreground transition-colors duration-100 hover:bg-primary hover:text-white"
+            data-testid="message-multiselect-trigger"
+            @click.stop="onMultiSelect"
+          >
+            <CheckSquare :size="14" />
+            <span>{{ t('chat.multi_select') }}</span>
+          </button>
 
-          <!-- Delete (own/admin) -->
+          <!-- Hide for me (仅对自己隐藏) -->
+          <button
+            class="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-[13px] text-muted-foreground transition-colors duration-100 hover:bg-primary hover:text-white"
+            data-testid="message-hide-trigger"
+            @click.stop="onHideForMe"
+          >
+            <EyeOff :size="14" />
+            <span>{{ t('chat.hide_for_me') }}</span>
+          </button>
+
+          <!-- Separator -->
+          <div v-if="isMine" class="my-1 h-px bg-[var(--color-muted)]/20" />
+
+          <!-- Recall (own message) -->
           <button
             v-if="isMine"
             class="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-[13px] text-destructive transition-colors duration-100 hover:bg-destructive hover:text-white"
-            @click.stop="onDelete"
+            data-testid="message-recall-trigger"
+            @click.stop="onRecall"
           >
             <Trash2 :size="14" />
-            <span>{{ t('chat.delete_message') }}</span>
+            <span>{{ t('chat.recall') }}</span>
           </button>
         </div>
       </Transition>
@@ -479,5 +541,8 @@ onBeforeUnmount(() => {
       @close="onCloseTaskComposer"
       @submit="onSubmitTask"
     />
+
+    <!-- 转发对话框 -->
+    <ForwardDialog v-if="showForward" :event="event" @close="showForward = false" />
   </div>
 </template>

@@ -2,8 +2,10 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { nextTick } from 'vue'
+import ForwardDialog from '@/features/chat/components/ForwardDialog.vue'
 import MessageActionBar from '@/features/chat/components/MessageActionBar.vue'
 import TaskComposerDialog from '@/features/chat/components/TaskComposerDialog.vue'
+import { useChatStore } from '@/features/chat/stores/chatStore'
 import { resolveReminderDueAt, useDeferStore } from '@/features/chat/stores/deferStore'
 import { useTaskStore } from '@/features/chat/stores/taskStore'
 
@@ -16,20 +18,43 @@ const toastMocks = vi.hoisted(() => ({
   success: vi.fn(),
 }))
 
+const matrixMocks = vi.hoisted(() => ({
+  sendReaction: vi.fn(async () => {}),
+  starMessage: vi.fn(async () => {}),
+  unstarMessage: vi.fn(async () => {}),
+  isMessageStarred: vi.fn(() => false),
+  redactMessage: vi.fn(async () => {}),
+}))
+
+const askMock = vi.hoisted(() => vi.fn(async () => true))
+
+vi.mock('@/desktop/dialog', () => ({
+  ask: askMock,
+}))
+
 vi.mock('@matrix/client', () => ({
   getClient: vi.fn(() => ({
     getUserId: vi.fn(() => '@me:localhost'),
+    getRooms: vi.fn(() => []),
   })),
 }))
 
 vi.mock('@matrix/index', () => ({
-  redactMessage: vi.fn(async () => {}),
+  redactMessage: matrixMocks.redactMessage,
+  sendReaction: matrixMocks.sendReaction,
 }))
 
 vi.mock('@matrix/rooms', () => ({
   isMessagePinned: vi.fn(() => false),
   pinMessage: vi.fn(async () => {}),
   unpinMessage: vi.fn(async () => {}),
+  isMessageStarred: matrixMocks.isMessageStarred,
+  starMessage: matrixMocks.starMessage,
+  unstarMessage: matrixMocks.unstarMessage,
+}))
+
+vi.mock('@matrix/messages', () => ({
+  forwardMessages: vi.fn(async () => {}),
 }))
 
 vi.mock('vue-sonner', () => ({
@@ -86,6 +111,14 @@ describe('messageActionBar', () => {
     clipboardMocks.writeText.mockResolvedValue(undefined)
     toastMocks.error.mockReset()
     toastMocks.success.mockReset()
+    matrixMocks.sendReaction.mockClear()
+    matrixMocks.starMessage.mockClear()
+    matrixMocks.unstarMessage.mockClear()
+    matrixMocks.redactMessage.mockClear()
+    matrixMocks.isMessageStarred.mockReset()
+    matrixMocks.isMessageStarred.mockReturnValue(false)
+    askMock.mockClear()
+    askMock.mockResolvedValue(true)
     Object.defineProperty(navigator, 'clipboard', {
       configurable: true,
       value: {
@@ -441,5 +474,138 @@ describe('messageActionBar', () => {
     expect(createTaskSpy).toHaveBeenCalledTimes(1)
 
     createTaskSpy.mockRestore()
+  })
+
+  it('sends a reaction when picking a quick emoji from the popover', async () => {
+    const wrapper = mount(MessageActionBar, {
+      props: {
+        event: createEventMock(),
+        roomId: '!room:test',
+      },
+      attachTo: document.body,
+    })
+
+    // The first toolbar button is the quick-react popover toggle.
+    await wrapper.find('.action-bar button').trigger('click')
+    await flushPromises()
+
+    const thumbsUp = wrapper.findAll('button').find((button) => button.text() === '👍')
+    expect(thumbsUp).toBeTruthy()
+    await thumbsUp!.trigger('click')
+    await flushPromises()
+
+    expect(matrixMocks.sendReaction).toHaveBeenCalledWith('!room:test', '$event-1', '👍')
+  })
+
+  it('opens the forward dialog from the toolbar', async () => {
+    const wrapper = mount(MessageActionBar, {
+      props: {
+        event: createEventMock(),
+        roomId: '!room:test',
+      },
+      attachTo: document.body,
+    })
+
+    await wrapper.find('[data-testid="message-forward-trigger"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.findComponent(ForwardDialog).exists()).toBe(true)
+  })
+
+  it('stars a message from the more menu', async () => {
+    const wrapper = mount(MessageActionBar, {
+      props: {
+        event: createEventMock(),
+        roomId: '!room:test',
+      },
+    })
+
+    await wrapper.find('[data-testid="message-more-trigger"]').trigger('click')
+    await flushPromises()
+    await clickBodyElement('[data-testid="message-star-trigger"]')
+
+    expect(matrixMocks.starMessage).toHaveBeenCalledWith('!room:test', '$event-1')
+  })
+
+  it('enters multi-select and selects the message from the more menu', async () => {
+    const wrapper = mount(MessageActionBar, {
+      props: {
+        event: createEventMock(),
+        roomId: '!room:test',
+      },
+    })
+    const chatStore = useChatStore()
+
+    await wrapper.find('[data-testid="message-more-trigger"]').trigger('click')
+    await flushPromises()
+    await clickBodyElement('[data-testid="message-multiselect-trigger"]')
+
+    expect(chatStore.multiSelectMode).toBe(true)
+    expect(chatStore.isMessageSelected('$event-1')).toBe(true)
+  })
+
+  it('hides a message for me from the more menu', async () => {
+    const wrapper = mount(MessageActionBar, {
+      props: {
+        event: createEventMock(),
+        roomId: '!room:test',
+      },
+    })
+    const chatStore = useChatStore()
+
+    await wrapper.find('[data-testid="message-more-trigger"]').trigger('click')
+    await flushPromises()
+    await clickBodyElement('[data-testid="message-hide-trigger"]')
+
+    expect(chatStore.isHidden('$event-1')).toBe(true)
+  })
+
+  it('recalls own message after confirmation from the more menu', async () => {
+    const wrapper = mount(MessageActionBar, {
+      props: {
+        event: { ...createEventMock(), getSender: () => '@me:localhost' },
+        roomId: '!room:test',
+      },
+      attachTo: document.body,
+    })
+
+    await wrapper.find('[data-testid="message-more-trigger"]').trigger('click')
+    await flushPromises()
+    await clickBodyElement('[data-testid="message-recall-trigger"]')
+
+    expect(askMock).toHaveBeenCalled()
+    expect(matrixMocks.redactMessage).toHaveBeenCalledWith('!room:test', '$event-1')
+  })
+
+  it('emits translate from the more menu for text messages', async () => {
+    const wrapper = mount(MessageActionBar, {
+      props: {
+        event: createEventMock(),
+        roomId: '!room:test',
+        canTranslate: true,
+      },
+      attachTo: document.body,
+    })
+
+    await wrapper.find('[data-testid="message-more-trigger"]').trigger('click')
+    await flushPromises()
+    await clickBodyElement('[data-testid="message-translate-trigger"]')
+
+    expect(wrapper.emitted('translate')).toBeTruthy()
+  })
+
+  it('hides the translate action for non-text messages', async () => {
+    const wrapper = mount(MessageActionBar, {
+      props: {
+        event: createEventMock(),
+        roomId: '!room:test',
+      },
+      attachTo: document.body,
+    })
+
+    await wrapper.find('[data-testid="message-more-trigger"]').trigger('click')
+    await flushPromises()
+
+    expect(document.body.querySelector('[data-testid="message-translate-trigger"]')).toBeNull()
   })
 })

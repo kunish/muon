@@ -2,7 +2,7 @@
 import type { ReactionSummary } from '@matrix/index';
 import type { MatrixEvent } from 'matrix-js-sdk';
 import { getClient } from '@matrix/client';
-import { getReactions, getThreadReplies, redactMessage } from '@matrix/index';
+import { getReactions, getThreadReplies } from '@matrix/index';
 import { fetchMediaBlobUrl } from '@matrix/media';
 import { hasPlainUrl, linkifyPlainText, sanitizeMatrixHtml } from '@muon/rich-text';
 import RichMessageContent from '@muon/rich-text/message-content';
@@ -13,20 +13,20 @@ import { useClipboard } from '@vueuse/core';
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
-import { ask } from '@/desktop/dialog';
 import { useAuthMedia } from '@/shared/composables/useAuthMedia';
 import { useContextMenuScrollLock } from '@/shared/composables/useContextMenuScrollLock';
 import { useViewportClampedFloating } from '@/shared/composables/useViewportClampedFloating';
 import { isFullEmojiText } from '@/shared/lib/emoji';
 import { handleMatrixLinkClick } from '@/shared/lib/matrixLinks';
+import { getSystemLanguage, translateText } from '@/shared/lib/translate';
 import { safeJsonStringify } from '@/shared/lib/utils';
 import { getFloatingPosition } from '../composables/useFloatingPosition';
 import { useMediaViewer } from '../composables/useMediaViewer';
-import { useMessageClipboardFeedback } from '../composables/useMessageClipboardFeedback';
+import { useMessageActions } from '../composables/useMessageActions';
 import { useMessageContextMenuState } from '../composables/useMessageContextMenuState';
 import { useMessagePopoverSingleton } from '../composables/useMessagePopoverSingleton';
 import { getMediaFrameStyle } from '../lib/mediaFrame';
-import { useChatStore } from '../stores/chatStore';
+import ForwardDialog from './ForwardDialog.vue';
 import LinkPreview from './LinkPreview.vue';
 import MessageActionBar from './MessageActionBar.vue';
 import MessageContextMenu from './MessageContextMenu.vue';
@@ -34,6 +34,7 @@ import AudioMessage from './messages/AudioMessage.vue';
 import ContactCardMessage from './messages/ContactCardMessage.vue';
 import FileMessage from './messages/FileMessage.vue';
 import ImageMessage from './messages/ImageMessage.vue';
+import LocationMessage from './messages/LocationMessage.vue';
 import VideoMessage from './messages/VideoMessage.vue';
 import RawMessageDialog from './RawMessageDialog.vue';
 import ReactionBar from './ReactionBar.vue';
@@ -70,12 +71,15 @@ const RICH_MEDIA_FALLBACK_HEIGHT = 180;
 
 const { t } = useI18n();
 const { copy: copyToClipboard } = useClipboard();
-const store = useChatStore();
 const settingsStore = useSettingsStore();
 const { openImage } = useMediaViewer();
-const { copyMessageContentWithFeedback } = useMessageClipboardFeedback();
+const actions = useMessageActions(
+  () => props.event,
+  () => props.roomId,
+);
+const { isPinned: messageIsPinned, isStarred: messageIsStarred } = actions;
+const showForward = ref(false);
 const hovered = ref(false);
-const showEmojiPicker = ref(false);
 const showContextMenu = ref(false);
 const actionMenuOpen = ref(false);
 const actionBarHovered = ref(false);
@@ -84,6 +88,8 @@ const richContentRef = ref<HTMLElement | null>(null);
 const actionBarRef = ref<HTMLElement | null>(null);
 const actionBarStyle = ref({ left: '0px', top: '0px' });
 const actionBarPositioned = ref(false);
+const translatedText = ref<string | null>(null);
+const translating = ref(false);
 const contextMenuRef = ref<HTMLElement | null>(null);
 const contextMenuPos = ref({ x: 0, y: 0 });
 const { style: contextMenuStyle } = useViewportClampedFloating({
@@ -121,6 +127,7 @@ const isRedacted = computed(() => {
 });
 const msgtype = computed(() => props.event.getContent()?.msgtype);
 const body = computed(() => props.event.getContent()?.body || '');
+const isTextMessage = computed(() => msgtype.value === 'm.text' || msgtype.value === 'm.notice');
 
 const myUserId = computed(() => getClient().getUserId() || '');
 const isMine = computed(() => !!sender.value && sender.value === myUserId.value);
@@ -170,7 +177,6 @@ function hideActionBarOverlay() {
   clearHoverCloseTimer();
   hovered.value = false;
   actionBarHovered.value = false;
-  showEmojiPicker.value = false;
   actionMenuOpen.value = false;
   actionBarPositioned.value = false;
   deactivateMessagePopover();
@@ -180,7 +186,6 @@ function hideActionBarFromOutsideInteraction() {
   clearHoverCloseTimer();
   hovered.value = false;
   actionBarHovered.value = false;
-  showEmojiPicker.value = false;
   if (!actionMenuOpen.value) {
     actionBarPositioned.value = false;
     deactivateMessagePopover();
@@ -195,7 +200,6 @@ function onMessageMouseEnter() {
 
 function onMessageMouseLeave() {
   clearHoverCloseTimer();
-  showEmojiPicker.value = false;
   hoverCloseTimer = setTimeout(() => {
     hovered.value = false;
     if (!actionMenuOpen.value && !actionBarHovered.value) deactivateMessagePopover();
@@ -524,13 +528,19 @@ async function hydrateRichMediaImages() {
   );
 }
 
-function onActionReact() {
-  showEmojiPicker.value = !showEmojiPicker.value;
-}
-
-function openThread() {
-  if (!eventId.value) return;
-  store.openThread(eventId.value);
+async function onTranslate() {
+  if (translatedText.value) {
+    translatedText.value = null;
+    return;
+  }
+  translating.value = true;
+  try {
+    translatedText.value = await translateText(body.value, getSystemLanguage());
+  } catch {
+    toast.error(t('auth.error'));
+  } finally {
+    translating.value = false;
+  }
 }
 
 function closeContextMenu() {
@@ -546,29 +556,53 @@ function onMessageContextMenu(event: MouseEvent) {
 }
 
 function onReplyFromContextMenu() {
-  store.setReplyingTo(props.event);
+  actions.reply();
+  closeContextMenu();
+}
+
+function onForwardFromContextMenu() {
+  showForward.value = true;
   closeContextMenu();
 }
 
 function onCopyFromContextMenu() {
-  void copyMessageContentWithFeedback(props.event.getContent() ?? {});
+  actions.copyText();
   closeContextMenu();
+}
+
+function onTogglePinFromContextMenu() {
+  void actions.togglePin();
+  closeContextMenu();
+}
+
+function onToggleStarFromContextMenu() {
+  void actions.toggleStar();
+  closeContextMenu();
+}
+
+function onTranslateFromContextMenu() {
+  closeContextMenu();
+  void onTranslate();
 }
 
 function onOpenThreadFromContextMenu() {
-  openThread();
+  actions.openThread();
   closeContextMenu();
 }
 
-async function onDeleteFromContextMenu() {
-  if (!eventId.value) return;
-  const confirmed = await ask(t('chat.delete_confirm'), {
-    title: t('chat.delete_message'),
-    kind: 'warning',
-  });
-  if (!confirmed) return;
-  await redactMessage(props.roomId, eventId.value);
+function onMultiSelectFromContextMenu() {
+  actions.multiSelect();
   closeContextMenu();
+}
+
+function onHideForMeFromContextMenu() {
+  actions.hideForMe();
+  closeContextMenu();
+}
+
+function onRecallFromContextMenu() {
+  closeContextMenu();
+  void actions.recall();
 }
 
 const showRawMessageDialog = ref(false);
@@ -774,6 +808,11 @@ onUnmounted(() => {
         <VideoMessage v-else-if="msgtype === 'm.video'" :event="event" />
         <AudioMessage v-else-if="msgtype === 'm.audio'" :event="event" />
         <FileMessage v-else-if="msgtype === 'm.file'" :event="event" />
+        <LocationMessage
+          v-else-if="msgtype === 'm.location'"
+          :geo-uri="event.getContent()?.geo_uri || ''"
+          :body="body"
+        />
         <ContactCardMessage
           v-else-if="isContactCard && contactCardData"
           :user-id="contactCardData.user_id"
@@ -806,6 +845,25 @@ onUnmounted(() => {
         </p>
       </template>
 
+      <!-- 翻译加载态 / 结果 -->
+      <div v-if="translating" class="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground/70">
+        <span class="inline-block h-2.5 w-2.5 animate-spin rounded-full border border-current border-t-transparent" />
+        {{ t('chat.translating') }}
+      </div>
+      <div
+        v-else-if="translatedText"
+        class="mt-1 max-w-[min(65vw,560px)] rounded-md border border-border/30 bg-[var(--N100)] px-3 py-1.5"
+        :class="isRightAligned ? 'self-end' : ''"
+        data-testid="message-translation-result"
+      >
+        <div class="mb-0.5 text-[10px] text-muted-foreground/60">
+          {{ t('chat.translation_result') }}
+        </div>
+        <div class="text-[13px] italic leading-relaxed text-muted-foreground">
+          {{ translatedText }}
+        </div>
+      </div>
+
       <LinkPreview v-for="url in extractedUrls" :key="url" :url="url" :class="isRightAligned ? 'self-end' : ''" />
 
       <!-- Reactions -->
@@ -816,7 +874,11 @@ onUnmounted(() => {
         :room-id="roomId"
       />
 
-      <button v-if="threadReplyCount > 0" class="mt-1 text-xs text-primary hover:underline" @click.stop="openThread">
+      <button
+        v-if="threadReplyCount > 0"
+        class="mt-1 text-xs text-primary hover:underline"
+        @click.stop="actions.openThread()"
+      >
         {{ t('chat.thread_replies_count', { count: threadReplyCount }) }}
       </button>
     </div>
@@ -836,7 +898,9 @@ onUnmounted(() => {
         <MessageActionBar
           :event="event"
           :room-id="roomId"
-          @react="onActionReact"
+          :can-translate="isTextMessage"
+          :is-translated="!!translatedText"
+          @translate="onTranslate"
           @menu-open-change="onActionMenuOpenChange"
         />
       </div>
@@ -853,10 +917,20 @@ onUnmounted(() => {
           <MessageContextMenu
             :is-mine="isMine"
             :show-debug="settingsStore.debugMode"
+            :is-pinned="messageIsPinned"
+            :is-starred="messageIsStarred"
+            :can-translate="isTextMessage"
+            :is-translated="!!translatedText"
             @reply="onReplyFromContextMenu"
+            @forward="onForwardFromContextMenu"
             @copy="onCopyFromContextMenu"
+            @toggle-pin="onTogglePinFromContextMenu"
+            @toggle-star="onToggleStarFromContextMenu"
+            @translate="onTranslateFromContextMenu"
             @open-thread="onOpenThreadFromContextMenu"
-            @delete="onDeleteFromContextMenu"
+            @multi-select="onMultiSelectFromContextMenu"
+            @hide-for-me="onHideForMeFromContextMenu"
+            @recall="onRecallFromContextMenu"
             @view-raw-json="onViewRawJsonFromContextMenu"
             @copy-raw-json="onCopyRawJsonFromContextMenu"
           />
@@ -867,5 +941,8 @@ onUnmounted(() => {
     <Dialog :open="showRawMessageDialog" @update:open="showRawMessageDialog = $event">
       <RawMessageDialog v-if="showRawMessageDialog" :event="event" @close="showRawMessageDialog = false" />
     </Dialog>
+
+    <!-- 右键转发对话框 -->
+    <ForwardDialog v-if="showForward" :event="event" @close="showForward = false" />
   </div>
 </template>

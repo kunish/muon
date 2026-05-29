@@ -180,7 +180,7 @@
   }
 }
 
-/* ── Rich message content (shared between ChatMessage & MessageBubble) ── */
+/* ── Rich message content (ChatMessage timeline rendering) ── */
 .rich-message-content {
   & p {
     @apply m-0;
