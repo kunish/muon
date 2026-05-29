@@ -1118,6 +1118,7 @@
     "accept": "接听",
     "decline": "拒绝",
     "waiting_peer": "等待对方加入…",
+    "you_label": "我",
     "camera_disabled": "摄像头已关闭",
     "turn_on_camera": "开启摄像头",
     "turn_off_camera": "关闭摄像头",

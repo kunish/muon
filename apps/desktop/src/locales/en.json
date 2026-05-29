@@ -1118,6 +1118,7 @@
     "accept": "Accept",
     "decline": "Decline",
     "waiting_peer": "Waiting for the other participant…",
+    "you_label": "You",
     "camera_disabled": "Camera off",
     "turn_on_camera": "Turn on camera",
     "turn_off_camera": "Turn off camera",
