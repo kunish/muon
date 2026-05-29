@@ -133,11 +133,16 @@ function openExtendedTab(panel: SidePanelType) {
   store.toggleSidePanel(panel);
 }
 
-function startDirectCall(mode: CallMode) {
+function startRoomCall(mode: CallMode) {
   if (!currentRoomId.value || callStore.isActive) return;
-  const peer = getDirectRoomPeer(currentRoomId.value);
-  if (!peer) return;
-  void callStore.startCall(currentRoomId.value, peer.userId, peer.displayName, mode);
+  if (isDirect.value) {
+    const peer = getDirectRoomPeer(currentRoomId.value);
+    if (!peer) return;
+    void callStore.startCall(currentRoomId.value, peer.userId, peer.displayName, mode);
+    return;
+  }
+  // 群聊：面向整个房间发起，对端以房间名展示（信令广播给全员）
+  void callStore.startCall(currentRoomId.value, currentRoomId.value, roomName.value, mode);
 }
 </script>
 
@@ -158,28 +163,26 @@ function startDirectCall(mode: CallMode) {
       </div>
 
       <div class="flex shrink-0 items-center gap-1 sm:gap-1.5">
-        <template v-if="isDirect">
-          <button
-            type="button"
-            class="flex cursor-pointer items-center justify-center rounded-md p-1.5 text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
-            :title="t('calls.audio_call_label')"
-            data-testid="chat-header-call-audio"
-            :disabled="callStore.isActive"
-            @click="startDirectCall('audio')"
-          >
-            <Phone :size="18" />
-          </button>
-          <button
-            type="button"
-            class="flex cursor-pointer items-center justify-center rounded-md p-1.5 text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
-            :title="t('calls.video_call_label')"
-            data-testid="chat-header-call-video"
-            :disabled="callStore.isActive"
-            @click="startDirectCall('video')"
-          >
-            <Video :size="18" />
-          </button>
-        </template>
+        <button
+          type="button"
+          class="flex cursor-pointer items-center justify-center rounded-md p-1.5 text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+          :title="t('calls.audio_call_label')"
+          data-testid="chat-header-call-audio"
+          :disabled="callStore.isActive"
+          @click="startRoomCall('audio')"
+        >
+          <Phone :size="18" />
+        </button>
+        <button
+          type="button"
+          class="flex cursor-pointer items-center justify-center rounded-md p-1.5 text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+          :title="t('calls.video_call_label')"
+          data-testid="chat-header-call-video"
+          :disabled="callStore.isActive"
+          @click="startRoomCall('video')"
+        >
+          <Video :size="18" />
+        </button>
         <button
           v-for="action in sidePanelActions"
           :key="action.id"

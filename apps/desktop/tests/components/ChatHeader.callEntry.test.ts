@@ -55,11 +55,15 @@ describe('chat header call entry', () => {
     expect(startCall).toHaveBeenCalledWith('!dm:localhost', '@bob:localhost', 'Bob', 'video')
   })
 
-  it('hides the call buttons outside direct rooms', () => {
+  it('starts a room-wide call from a group chat', async () => {
     direct.value = false
+    const startCall = vi.spyOn(useCallStore(), 'startCall').mockResolvedValue()
     const wrapper = mount(ChatHeader)
 
-    expect(wrapper.find('[data-testid="chat-header-call-audio"]').exists()).toBe(false)
-    expect(wrapper.find('[data-testid="chat-header-call-video"]').exists()).toBe(false)
+    // call entry is available in group chats too
+    expect(wrapper.find('[data-testid="chat-header-call-video"]').exists()).toBe(true)
+    await wrapper.get('[data-testid="chat-header-call-video"]').trigger('click')
+
+    expect(startCall).toHaveBeenCalledWith('!dm:localhost', '!dm:localhost', 'Direct Chat', 'video')
   })
 })
