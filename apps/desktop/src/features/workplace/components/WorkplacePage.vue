@@ -247,11 +247,14 @@ function saveDraftApp(): void {
 function openApp(app: WorkplaceAppEntry): void {
   selectedAppId.value = app.id;
   quickAction.value = `已打开：${app.name}`;
+  if (app.path) router.push(app.path);
 }
 
 function openWorkItem(item: { title: string; appId: string }): void {
   selectedAppId.value = item.appId;
   quickAction.value = `已打开重点：${item.title}`;
+  const app = apps.value.find((entry) => entry.id === item.appId);
+  if (app?.path) router.push(app.path);
 }
 
 function showBaseRisks(): void {

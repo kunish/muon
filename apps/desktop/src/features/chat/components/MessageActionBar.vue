@@ -45,7 +45,6 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  reply: [];
   translate: [];
   menuOpenChange: [open: boolean];
 }>();
@@ -114,7 +113,6 @@ function onReact(emoji: string) {
 
 function onReply() {
   actions.reply();
-  emit('reply');
 }
 
 function onForward() {

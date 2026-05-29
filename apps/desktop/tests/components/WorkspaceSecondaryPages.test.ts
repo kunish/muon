@@ -172,6 +172,13 @@ describe('workspace secondary pages', () => {
     expect(wrapper.text()).toContain('自定义流程')
   })
 
+  it('navigates to an app route when a workplace app is opened', async () => {
+    const wrapper = mount(WorkplacePage)
+
+    await wrapper.get('[data-testid="workplace-app-meet"]').trigger('click')
+    expect(routerPush).toHaveBeenCalledWith('/calls')
+  })
+
   it('keeps workplace summary metrics derived from current state', async () => {
     const wrapper = mount(WorkplacePage)
 
