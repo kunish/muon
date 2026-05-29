@@ -21,6 +21,7 @@ import {
   startCallRecording,
   stopCallRecording,
 } from '../lib/callMedia'
+import { isRecordingBackendConfigured, startCloudRecording, stopCloudRecording } from '../lib/recordingApi'
 
 export type CallStatus = 'idle' | 'outgoing' | 'incoming' | 'connecting' | 'connected' | 'ended'
 export type CallDirection = 'outgoing' | 'incoming'
@@ -63,6 +64,7 @@ export const useCallStore = defineStore('call', () => {
   const isCameraOff = ref(false)
   const isScreenSharing = ref(false)
   const isRecording = ref(false)
+  const recordingEgressId = ref<string | null>(null)
   const direction = ref<CallDirection>('outgoing')
   const startedAt = ref<number | null>(null)
 
@@ -97,6 +99,7 @@ export const useCallStore = defineStore('call', () => {
     isCameraOff.value = false
     isScreenSharing.value = false
     isRecording.value = false
+    recordingEgressId.value = null
     startedAt.value = null
   }
 
@@ -204,9 +207,33 @@ export const useCallStore = defineStore('call', () => {
   async function toggleRecording() {
     if (isRecording.value) {
       isRecording.value = false
+      // 云录制:停止服务端 egress;否则停止本地录制
+      if (recordingEgressId.value) {
+        const egressId = recordingEgressId.value
+        recordingEgressId.value = null
+        try {
+          await stopCloudRecording(egressId)
+        } catch {
+          /* ignore stop errors */
+        }
+        return
+      }
       await stopCallRecording()
       return
     }
+
+    // 配置了应用自带录制后端时,优先用云录制(LiveKit Egress → 对象存储)
+    if (isRecordingBackendConfigured() && callId.value) {
+      try {
+        const { egressId } = await startCloudRecording(callId.value)
+        recordingEgressId.value = egressId
+        isRecording.value = true
+        return
+      } catch {
+        /* 云录制失败则退回本地录制 */
+      }
+    }
+
     await startCallRecording()
     isRecording.value = true
   }

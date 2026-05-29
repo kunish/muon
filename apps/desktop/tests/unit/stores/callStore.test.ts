@@ -17,7 +17,14 @@ const signaling = vi.hoisted(() => ({
   sendCallHangup: vi.fn().mockResolvedValue(undefined),
 }))
 
+const recordingApi = vi.hoisted(() => ({
+  isRecordingBackendConfigured: vi.fn(() => false),
+  startCloudRecording: vi.fn().mockResolvedValue({ egressId: 'eg-1' }),
+  stopCloudRecording: vi.fn().mockResolvedValue(undefined),
+}))
+
 vi.mock('@/features/calls/lib/callMedia', () => media)
+vi.mock('@/features/calls/lib/recordingApi', () => recordingApi)
 
 vi.mock('@matrix/client', () => ({
   getClient: () => ({
@@ -201,6 +208,32 @@ describe('callStore', () => {
     await store.toggleRecording()
     expect(store.isRecording).toBe(false)
     expect(media.stopCallRecording).toHaveBeenCalled()
+  })
+
+  it('toggleRecording uses the local recorder when no backend is configured', async () => {
+    recordingApi.isRecordingBackendConfigured.mockReturnValue(false)
+    const store = await importStore()
+    await store.startCall('!dm:localhost', '@alice:localhost', 'Alice', 'video')
+
+    await store.toggleRecording()
+    expect(store.isRecording).toBe(true)
+    expect(media.startCallRecording).toHaveBeenCalled()
+    expect(recordingApi.startCloudRecording).not.toHaveBeenCalled()
+  })
+
+  it('toggleRecording uses cloud egress when the backend is configured', async () => {
+    recordingApi.isRecordingBackendConfigured.mockReturnValue(true)
+    const store = await importStore()
+    await store.startCall('!dm:localhost', '@alice:localhost', 'Alice', 'video')
+
+    await store.toggleRecording()
+    expect(store.isRecording).toBe(true)
+    expect(recordingApi.startCloudRecording).toHaveBeenCalledWith(store.callId)
+    expect(media.startCallRecording).not.toHaveBeenCalled()
+
+    await store.toggleRecording()
+    expect(store.isRecording).toBe(false)
+    expect(recordingApi.stopCloudRecording).toHaveBeenCalledWith('eg-1')
   })
 
   it('keeps screen sharing off when the picker is cancelled', async () => {

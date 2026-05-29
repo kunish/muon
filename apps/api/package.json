@@ -12,6 +12,7 @@
     "@aws-sdk/client-s3": "catalog:",
     "@muon/enterprise-contracts": "workspace:*",
     "effect": "catalog:",
+    "livekit-server-sdk": "catalog:",
     "pg": "catalog:",
     "zod": "catalog:"
   },

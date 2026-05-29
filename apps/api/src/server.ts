@@ -8,6 +8,7 @@ import { createPostgresEnterpriseRepository } from './db/postgresRepository'
 import { fromPromise, fromSync, runApiEffect } from './effect'
 import { createConduitProvisioningAdapter } from './modules/matrix/conduitAdapter'
 import { createS3MediaStorage } from './modules/media/mediaStorage'
+import { egressServiceFromConfig } from './modules/recordings/egressService'
 import { createEnterpriseHttpEffectHandler } from './routes'
 
 const config = readEnterpriseApiConfig()
@@ -109,6 +110,12 @@ function mainEffect() {
       repository,
       matrix: createConduitProvisioningAdapter({ serverUrl: config.matrixServerUrl }),
       matrixServerUrl: config.matrixServerUrl,
+      egressService: egressServiceFromConfig({
+        livekitUrl: config.livekitUrl,
+        apiKey: config.livekitApiKey,
+        apiSecret: config.livekitApiSecret,
+        storage: config.mediaStorage,
+      }),
     })
 
     createServer((incoming, outgoing) => {

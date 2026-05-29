@@ -3,6 +3,7 @@ import type { ApiEffect } from './effect'
 import type { ApprovalStore } from './modules/approvals/approvalService'
 import type { MatrixProvisioningAdapter } from './modules/matrix/provisioning'
 import type { MediaStorageService } from './modules/media/mediaStorage'
+import type { EgressService } from './modules/recordings/egressService'
 import type { DeviceSessionRecord, EnterpriseRepository, EnterpriseUserRecord } from './repository'
 import { Effect } from 'effect'
 import { fromPromise, runApiEffect } from './effect'
@@ -16,6 +17,7 @@ import {
 import { createInstallEffectService } from './modules/install/installService'
 import { createOAuthEffectService } from './modules/oauth/oauthService'
 import { createOrganizationEffectService } from './modules/organizations/organizationService'
+import { createDisabledEgressService } from './modules/recordings/egressService'
 import { createUserEffectService } from './modules/users/userService'
 import { createInMemoryEnterpriseRepository } from './repository'
 
@@ -31,6 +33,7 @@ export interface EnterpriseHttpEffectHandler {
 
 export interface EnterpriseHttpHandlerOptions {
   approvalStore?: ApprovalStore
+  egressService?: EgressService
   corsAllowedOrigins?: string[]
   matrix?: MatrixProvisioningAdapter
   matrixServerUrl?: string
@@ -283,6 +286,7 @@ export function createEnterpriseHttpEffectHandler(
   const maxMediaUploadBytes = options.maxMediaUploadBytes ?? DEFAULT_MAX_MEDIA_UPLOAD_BYTES
   const approvalStore = options.approvalStore ?? createInMemoryApprovalStore()
   const approvalService = createApprovalEffectService({ store: approvalStore })
+  const egressService = options.egressService ?? createDisabledEgressService()
   const installService = createInstallEffectService({ repository })
   const adminSessionService = createAdminSessionEffectService({ repository })
   const organizationService = createOrganizationEffectService({ repository })
@@ -565,6 +569,22 @@ export function createEnterpriseHttpEffectHandler(
           }
 
           return methodNotAllowedWithCors(request)
+        }
+
+        // ── 云录制(LiveKit Egress → 对象存储) ──
+        if (url.pathname === '/api/recordings/start' || url.pathname === '/api/recordings/stop') {
+          if (!bearerToken(request)) return yield* Effect.fail(new AdminAuthenticationError())
+          if (request.method !== 'POST') return methodNotAllowedWithCors(request)
+          if (!egressService.available())
+            return withCors(serviceUnavailable('Cloud recording is not configured'), request, allowedOrigins)
+
+          const body = (yield* readRequestBodyEffect(request)) as Record<string, unknown>
+          if (url.pathname === '/api/recordings/start') {
+            const result = yield* fromPromise(() => egressService.startRoomRecording(String(body.roomName ?? '')))
+            return withCors(jsonResponse(result, { status: 201 }), request, allowedOrigins)
+          }
+          yield* fromPromise(() => egressService.stopRoomRecording(String(body.egressId ?? '')))
+          return withCors(jsonResponse({ ok: true }), request, allowedOrigins)
         }
 
         return withCors(notFound(), request, allowedOrigins)

@@ -21,6 +21,9 @@ export interface EnterpriseApiConfig {
   matrixServerUrl: string
   maxMediaUploadBytes: number
   mediaStorage: S3MediaStorageConfig | null
+  livekitUrl: string | null
+  livekitApiKey: string | null
+  livekitApiSecret: string | null
   sessionSecret: string
 }
 
@@ -97,6 +100,9 @@ export function readEnterpriseApiConfig(env: Record<string, string | undefined> 
     matrixServerUrl: envValue(env.MUON_MATRIX_SERVER_URL) ?? 'http://127.0.0.1:6167',
     maxMediaUploadBytes: envPositiveInteger(env.MUON_MAX_MEDIA_UPLOAD_BYTES, DEFAULT_MAX_MEDIA_UPLOAD_BYTES),
     mediaStorage: readS3MediaStorageConfig(env),
+    livekitUrl: envValue(env.MUON_LIVEKIT_URL),
+    livekitApiKey: envValue(env.MUON_LIVEKIT_API_KEY),
+    livekitApiSecret: envValue(env.MUON_LIVEKIT_API_SECRET),
     sessionSecret: envValue(env.MUON_SESSION_SECRET) ?? 'development-session-secret',
   }
 }
