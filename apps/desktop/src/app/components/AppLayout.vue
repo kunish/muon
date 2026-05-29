@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import CallOverlay from '@features/calls/components/CallOverlay.vue';
+import CallWindow from '@features/calls/components/CallWindow.vue';
 import { useConversations } from '@features/chat/composables/useConversations';
 import ChannelSidebar from '@features/server/components/ChannelSidebar.vue';
 import CreateCategoryDialog from '@features/server/components/CreateCategoryDialog.vue';
@@ -141,6 +142,7 @@ onMounted(() => {
       />
       <GlobalOverlayHost />
       <CallOverlay />
+      <CallWindow />
     </template>
   </WorkspaceLayout>
 </template>

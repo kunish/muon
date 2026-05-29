@@ -60,6 +60,10 @@ const statusLabel = computed(() => {
       return '';
   }
 });
+
+const incomingLabel = computed(() =>
+  call.mode === 'video' ? t('calls.incoming_video_call') : t('calls.incoming_call'),
+);
 </script>
 
 <template>
@@ -73,7 +77,7 @@ const statusLabel = computed(() => {
       <Avatar :alt="call.peerName || ''" :color-id="call.peerId || ''" size="md" shape="circle" />
       <div class="min-w-0 flex-1">
         <div class="truncate text-sm font-medium text-foreground">{{ call.peerName }}</div>
-        <div class="text-xs text-muted-foreground">{{ t('calls.incoming_call') }}</div>
+        <div class="text-xs text-muted-foreground">{{ incomingLabel }}</div>
       </div>
       <button
         class="flex size-9 items-center justify-center rounded-full bg-destructive text-white transition-opacity hover:opacity-90"
@@ -93,9 +97,9 @@ const statusLabel = computed(() => {
       </button>
     </div>
 
-    <!-- 在途通话条 -->
+    <!-- 在途通话条（仅音频；视频走 CallWindow） -->
     <div
-      v-else-if="call.isActive"
+      v-else-if="call.isActive && call.mode === 'audio'"
       class="fixed right-4 top-4 z-[300] flex w-[300px] items-center gap-3 rounded-xl border border-border bg-popover/95 p-3 shadow-2xl backdrop-blur-xl"
       data-testid="call-active"
     >

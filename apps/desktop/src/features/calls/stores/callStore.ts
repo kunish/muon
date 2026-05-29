@@ -11,7 +11,7 @@ import {
 } from '@matrix/index'
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import { connectCallRoom, disconnectCallRoom, setCallMicEnabled } from '../lib/callMedia'
+import { connectCallRoom, disconnectCallRoom, setCallCameraEnabled, setCallMicEnabled } from '../lib/callMedia'
 
 export type CallStatus = 'idle' | 'outgoing' | 'incoming' | 'connecting' | 'connected' | 'ended'
 
@@ -35,6 +35,7 @@ export const useCallStore = defineStore('call', () => {
   const peerName = ref<string | null>(null)
   const mode = ref<CallMode>('audio')
   const isMuted = ref(false)
+  const isCameraOff = ref(false)
   const startedAt = ref<number | null>(null)
 
   const isActive = computed(() => status.value !== 'idle' && status.value !== 'ended')
@@ -47,6 +48,7 @@ export const useCallStore = defineStore('call', () => {
     peerId.value = null
     peerName.value = null
     isMuted.value = false
+    isCameraOff.value = false
     startedAt.value = null
   }
 
@@ -80,10 +82,11 @@ export const useCallStore = defineStore('call', () => {
     peerName.value = peerDisplayName
     mode.value = callMode
     isMuted.value = false
+    isCameraOff.value = false
     status.value = 'outgoing'
 
     try {
-      await connectCallRoom(id)
+      await connectCallRoom(id, callMode)
       await sendCallInvite(targetRoomId, { callId: id, livekitRoom: id, mode: callMode })
     } catch {
       await endCall()
@@ -95,7 +98,7 @@ export const useCallStore = defineStore('call', () => {
     if (status.value !== 'incoming' || !callId.value || !roomId.value || !livekitRoom.value) return
     status.value = 'connecting'
     try {
-      await connectCallRoom(livekitRoom.value)
+      await connectCallRoom(livekitRoom.value, mode.value)
       await sendCallAnswer(roomId.value, callId.value)
       status.value = 'connected'
       startedAt.value = Date.now()
@@ -123,6 +126,15 @@ export const useCallStore = defineStore('call', () => {
       await setCallMicEnabled(!isMuted.value)
     } catch {
       /* ignore mic toggle errors */
+    }
+  }
+
+  async function toggleCamera() {
+    isCameraOff.value = !isCameraOff.value
+    try {
+      await setCallCameraEnabled(!isCameraOff.value)
+    } catch {
+      /* ignore camera toggle errors */
     }
   }
 
@@ -174,6 +186,7 @@ export const useCallStore = defineStore('call', () => {
     peerName,
     mode,
     isMuted,
+    isCameraOff,
     startedAt,
     isActive,
     startCall,
@@ -181,6 +194,7 @@ export const useCallStore = defineStore('call', () => {
     declineCall,
     hangup,
     toggleMute,
+    toggleCamera,
     handleSignal,
   }
 })

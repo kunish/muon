@@ -5,6 +5,7 @@ const media = vi.hoisted(() => ({
   connectCallRoom: vi.fn().mockResolvedValue(undefined),
   disconnectCallRoom: vi.fn().mockResolvedValue(undefined),
   setCallMicEnabled: vi.fn().mockResolvedValue(undefined),
+  setCallCameraEnabled: vi.fn().mockResolvedValue(undefined),
 }))
 
 const signaling = vi.hoisted(() => ({
@@ -52,11 +53,25 @@ describe('callStore', () => {
 
     expect(store.status).toBe('outgoing')
     expect(store.callId).toBeTruthy()
-    expect(media.connectCallRoom).toHaveBeenCalledWith(store.callId)
+    expect(store.mode).toBe('audio')
+    expect(media.connectCallRoom).toHaveBeenCalledWith(store.callId, 'audio')
     expect(signaling.sendCallInvite).toHaveBeenCalledWith('!dm:localhost', {
       callId: store.callId,
       livekitRoom: store.callId,
       mode: 'audio',
+    })
+  })
+
+  it('startCall in video mode publishes the camera and advertises the mode', async () => {
+    const store = await importStore()
+    await store.startCall('!dm:localhost', '@alice:localhost', 'Alice', 'video')
+
+    expect(store.mode).toBe('video')
+    expect(media.connectCallRoom).toHaveBeenCalledWith(store.callId, 'video')
+    expect(signaling.sendCallInvite).toHaveBeenCalledWith('!dm:localhost', {
+      callId: store.callId,
+      livekitRoom: store.callId,
+      mode: 'video',
     })
   })
 
@@ -88,9 +103,18 @@ describe('callStore', () => {
     store.handleSignal(invite({ callId: 'c1', livekitRoom: 'c1', mode: 'audio' }))
     await store.acceptCall()
 
-    expect(media.connectCallRoom).toHaveBeenCalledWith('c1')
+    expect(media.connectCallRoom).toHaveBeenCalledWith('c1', 'audio')
     expect(signaling.sendCallAnswer).toHaveBeenCalledWith('!dm:localhost', 'c1')
     expect(store.status).toBe('connected')
+  })
+
+  it('acceptCall joins a video invite with the camera enabled', async () => {
+    const store = await importStore()
+    store.handleSignal(invite({ callId: 'c1', livekitRoom: 'c1', mode: 'video' }))
+    await store.acceptCall()
+
+    expect(store.mode).toBe('video')
+    expect(media.connectCallRoom).toHaveBeenCalledWith('c1', 'video')
   })
 
   it('declineCall hangs up and returns to idle', async () => {
@@ -143,6 +167,15 @@ describe('callStore', () => {
 
     expect(store.isMuted).toBe(true)
     expect(media.setCallMicEnabled).toHaveBeenCalledWith(false)
+  })
+
+  it('toggleCamera flips state and updates the camera', async () => {
+    const store = await importStore()
+    await store.startCall('!dm:localhost', '@alice:localhost', 'Alice', 'video')
+    await store.toggleCamera()
+
+    expect(store.isCameraOff).toBe(true)
+    expect(media.setCallCameraEnabled).toHaveBeenCalledWith(false)
   })
 
   it('ignores its own signals', async () => {
