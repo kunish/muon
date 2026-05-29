@@ -1,11 +1,9 @@
 <script setup lang="ts">
-import type { ContactCallLaunch } from '@/features/calls/stores/callLaunchStore';
 import { useContactList } from '@shared/composables/useContactList';
 import { Mic, MicOff, Phone, PhoneCall, PhoneOff, Plus, ScreenShare, UserPlus, Video } from 'lucide-vue-next';
 import { computed, onMounted, ref, shallowRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 import WorkspacePageFrame from '@/app/components/workspace/WorkspacePageFrame.vue';
-import { consumePendingContactCall } from '@/features/calls/stores/callLaunchStore';
 import GroupMemberPicker from '@/features/contacts/components/GroupMemberPicker.vue';
 
 const { t } = useI18n();
@@ -176,23 +174,8 @@ function createActiveCall(
   };
 }
 
-function startContactCall(call: ContactCallLaunch): void {
-  const contactName = call.displayName || call.userId;
-  callMode.value = call.mode;
-  const type = call.mode === 'audio' ? t('calls.audio_call_type') : t('calls.video_call_type');
-  createActiveCall(
-    t('calls.call_with', { name: contactName, type }),
-    type,
-    call.mode === 'audio' ? PhoneCall : Video,
-    ['我', contactName],
-    t('calls.connected', { name: contactName }),
-  );
-}
-
 onMounted(() => {
   contactList.ensureContactsLoaded();
-  const pendingCall = consumePendingContactCall();
-  if (pendingCall) startContactCall(pendingCall);
 });
 
 function toggleAudioMode(): void {

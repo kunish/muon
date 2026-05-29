@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ContactCallMode } from '@/features/calls/stores/callLaunchStore';
+import type { CallMode } from '@matrix/index';
 import { findOrCreateDm } from '@matrix/index';
 import { useRoomNavigation } from '@shared/composables/useRoomNavigation';
 import { Plus } from 'lucide-vue-next';
@@ -73,7 +73,7 @@ async function handleOpenMessage(userId: string): Promise<void> {
   }
 }
 
-async function handleStartContactCall(userId: string, mode: ContactCallMode): Promise<void> {
+async function handleStartContactCall(userId: string, mode: CallMode): Promise<void> {
   const contact = store.contacts.find((item) => item.userId === userId);
   try {
     const roomId = await findOrCreateDm(userId);

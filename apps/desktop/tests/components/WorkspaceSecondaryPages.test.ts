@@ -4,7 +4,6 @@ import ApprovalsPage from '@/features/approvals/components/ApprovalsPage.vue'
 import CalendarPage from '@/features/calendar/components/CalendarPage.vue'
 import { useCalendarStore } from '@/features/calendar/stores/calendarStore'
 import CallsPage from '@/features/calls/components/CallsPage.vue'
-import { launchContactCall } from '@/features/calls/stores/callLaunchStore'
 import DocsPage from '@/features/docs/components/DocsPage.vue'
 import EmailPage from '@/features/email/components/EmailPage.vue'
 import OrganizationPage from '@/features/organization/components/OrganizationPage.vue'
@@ -765,21 +764,6 @@ describe('workspace secondary pages', () => {
 
     await wrapper.get('[data-testid="calls-start"]').trigger('click')
     expect(wrapper.text()).toContain('即时语音通话')
-  })
-
-  it('lets calls start from a contact launch request', async () => {
-    launchContactCall({
-      userId: '@alice:localhost',
-      displayName: 'Alice',
-      mode: 'audio',
-    })
-
-    const wrapper = mount(CallsPage)
-    await flushPromises()
-
-    expect(wrapper.text()).toContain('当前通话：与 Alice 的语音通话')
-    expect(wrapper.text()).toContain('参会人：我、Alice')
-    expect(wrapper.text()).toContain('已接通：Alice')
   })
 
   it('lets call records open visible meeting detail state', async () => {
