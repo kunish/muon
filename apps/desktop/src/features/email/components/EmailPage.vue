@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useStorage } from '@vueuse/core';
 import { Archive, Inbox, Mail, PencilLine, Reply, Search, Send, Star } from 'lucide-vue-next';
 import { computed, onMounted, ref, shallowRef } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -39,6 +40,36 @@ interface EmailMessage {
   to?: string;
 }
 
+/** Persisted per-message state so read/star/archive survive reloads. */
+interface EmailOverride {
+  read?: boolean;
+  starred?: boolean;
+  archived?: boolean;
+}
+
+const EMAIL_OVERRIDES_STORAGE_KEY = 'muon_email_overrides';
+const emailOverrides = useStorage<Record<string, EmailOverride>>(EMAIL_OVERRIDES_STORAGE_KEY, {});
+
+function applyEmailOverrides(list: EmailMessage[]): EmailMessage[] {
+  return list.map((message) => {
+    const override = emailOverrides.value[message.id];
+    if (!override) return message;
+    return {
+      ...message,
+      unread: override.read ? false : message.unread,
+      starred: override.starred ?? message.starred,
+      folder: override.archived ? 'archive' : message.folder,
+    };
+  });
+}
+
+function setEmailOverride(id: string, patch: EmailOverride): void {
+  emailOverrides.value = {
+    ...emailOverrides.value,
+    [id]: { ...emailOverrides.value[id], ...patch },
+  };
+}
+
 const folderConfig = computed(() => [
   { id: 'inbox', label: t('email.folder_inbox'), icon: Inbox },
   { id: 'starred', label: t('email.folder_starred'), icon: Star },
@@ -46,63 +77,65 @@ const folderConfig = computed(() => [
   { id: 'archive', label: t('email.folder_archive'), icon: Archive },
 ]);
 
-const messages = shallowRef<EmailMessage[]>([
-  {
-    id: 'mail-1',
-    folder: 'inbox',
-    from: '上线团队',
-    subject: '上线评审纪要',
-    preview: '最终检查清单已准备好，请完成签核。',
-    time: '09:48',
-    unread: true,
-  },
-  {
-    id: 'mail-2',
-    folder: 'inbox',
-    from: '设计运营',
-    subject: '桌面工作区稿件已更新',
-    preview: '最新一轮体验走查稿已共享给你评审。',
-    time: '昨天',
-    unread: false,
-  },
-  {
-    id: 'mail-3',
-    folder: 'inbox',
-    from: '安全团队',
-    subject: '访问申请已通过',
-    preview: '你的生产访问申请已完成审批。',
-    time: '周一',
-    unread: false,
-  },
-  {
-    id: 'mail-4',
-    folder: 'sent',
-    from: '我',
-    subject: '项目周报',
-    preview: '本周项目状态已同步给核心团队。',
-    time: '周五',
-    unread: false,
-  },
-  {
-    id: 'mail-5',
-    folder: 'inbox',
-    from: '产品团队',
-    subject: '重点需求确认',
-    preview: '请优先确认下周规划中的关键需求。',
-    time: '周四',
-    unread: false,
-    starred: true,
-  },
-  {
-    id: 'mail-6',
-    folder: 'archive',
-    from: '运营团队',
-    subject: '历史活动归档',
-    preview: '活动复盘资料已归档。',
-    time: '4月20日',
-    unread: false,
-  },
-]);
+const messages = shallowRef<EmailMessage[]>(
+  applyEmailOverrides([
+    {
+      id: 'mail-1',
+      folder: 'inbox',
+      from: '上线团队',
+      subject: '上线评审纪要',
+      preview: '最终检查清单已准备好，请完成签核。',
+      time: '09:48',
+      unread: true,
+    },
+    {
+      id: 'mail-2',
+      folder: 'inbox',
+      from: '设计运营',
+      subject: '桌面工作区稿件已更新',
+      preview: '最新一轮体验走查稿已共享给你评审。',
+      time: '昨天',
+      unread: false,
+    },
+    {
+      id: 'mail-3',
+      folder: 'inbox',
+      from: '安全团队',
+      subject: '访问申请已通过',
+      preview: '你的生产访问申请已完成审批。',
+      time: '周一',
+      unread: false,
+    },
+    {
+      id: 'mail-4',
+      folder: 'sent',
+      from: '我',
+      subject: '项目周报',
+      preview: '本周项目状态已同步给核心团队。',
+      time: '周五',
+      unread: false,
+    },
+    {
+      id: 'mail-5',
+      folder: 'inbox',
+      from: '产品团队',
+      subject: '重点需求确认',
+      preview: '请优先确认下周规划中的关键需求。',
+      time: '周四',
+      unread: false,
+      starred: true,
+    },
+    {
+      id: 'mail-6',
+      folder: 'archive',
+      from: '运营团队',
+      subject: '历史活动归档',
+      preview: '活动复盘资料已归档。',
+      time: '4月20日',
+      unread: false,
+    },
+  ]),
+);
 
 const defaultComposeSubject = computed(() => t('email.default_subject'));
 
@@ -197,6 +230,7 @@ function selectMessage(messageId: string): void {
   messages.value = messages.value.map((message) =>
     message.id === messageId ? { ...message, unread: false } : message,
   );
+  setEmailOverride(messageId, { read: true });
 }
 
 function createReplyDraft(): void {
@@ -221,6 +255,7 @@ function starSelectedMessage(): void {
     item.id === message.id ? { ...item, starred: true, unread: false } : item,
   );
   selectedMessageId.value = message.id;
+  setEmailOverride(message.id, { starred: true, read: true });
   messageActionNotices.value = {
     ...messageActionNotices.value,
     [message.id]: t('email.notice_starred', { subject: message.subject }),
@@ -237,6 +272,7 @@ function archiveSelectedMessage(): void {
   activeFolder.value = 'archive';
   searchQuery.value = '';
   selectedMessageId.value = message.id;
+  setEmailOverride(message.id, { archived: true, read: true });
   messageActionNotices.value = {
     ...messageActionNotices.value,
     [message.id]: t('email.notice_archived', { subject: message.subject }),
