@@ -1009,6 +1009,7 @@
     "add_comment": "添加意见",
     "comment_prefix": "审批意见",
     "no_comments": "暂无审批意见",
+    "no_requests": "该队列暂无审批",
     "waiting_notice": "等待处理当前申请",
     "approved_notice": "已同意：{title}",
     "rejected_notice": "已驳回：{title}",
@@ -1094,6 +1095,7 @@
     "subject_placeholder": "主题",
     "body_placeholder": "正文",
     "recipients_label": "收件人",
+    "no_messages": "该文件夹暂无邮件",
     "empty_state": "重要邮件、审批提醒和会议跟进会和工作区其他任务一起保持可见。",
     "notice_pending": "等待处理当前邮件",
     "notice_editing": "正在编辑新邮件",
@@ -1188,7 +1190,8 @@
     "transfer_to_label": "转交给"
   },
   "workplace": {
-    "subtitle": "应用与流程中心"
+    "subtitle": "应用与流程中心",
+    "no_apps": "未找到应用"
   },
   "docs": {
     "import_doc": "导入文档",

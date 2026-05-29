@@ -693,6 +693,27 @@ describe('workspace secondary pages', () => {
     expect(wrapper.text()).toContain('草稿：新邮件')
   })
 
+  it('shows an empty state when an email search matches nothing', async () => {
+    const wrapper = mount(EmailPage)
+
+    await wrapper.get('[data-testid="email-search-input"]').setValue('zzz-no-match-xyz')
+    expect(wrapper.find('[data-testid="email-empty"]').exists()).toBe(true)
+  })
+
+  it('shows an empty state for an empty approval queue', async () => {
+    const wrapper = mount(ApprovalsPage)
+
+    await wrapper.get('[data-testid="approvals-queue-rejected"]').trigger('click')
+    expect(wrapper.find('[data-testid="approvals-empty"]').exists()).toBe(true)
+  })
+
+  it('shows an empty state when a workplace app search matches nothing', async () => {
+    const wrapper = mount(WorkplacePage)
+
+    await wrapper.get('[data-testid="workplace-search-input"]').setValue('zzz-no-match-xyz')
+    expect(wrapper.find('[data-testid="workplace-apps-empty"]').exists()).toBe(true)
+  })
+
   it('lets mail compose drafts be edited and sent locally', async () => {
     const wrapper = mount(EmailPage)
 

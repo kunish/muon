@@ -1009,6 +1009,7 @@
     "add_comment": "Add Comment",
     "comment_prefix": "Approval comment",
     "no_comments": "No comments yet",
+    "no_requests": "No approvals in this queue",
     "waiting_notice": "Awaiting review",
     "approved_notice": "Approved: {title}",
     "rejected_notice": "Rejected: {title}",
@@ -1094,6 +1095,7 @@
     "subject_placeholder": "Subject",
     "body_placeholder": "Body",
     "recipients_label": "Recipients",
+    "no_messages": "No messages in this folder",
     "empty_state": "Important emails, approval reminders, and meeting follow-ups stay visible alongside other workspace tasks.",
     "notice_pending": "Awaiting review",
     "notice_editing": "Editing new email",
@@ -1188,7 +1190,8 @@
     "transfer_to_label": "Transfer to"
   },
   "workplace": {
-    "subtitle": "Apps & workflow center"
+    "subtitle": "Apps & workflow center",
+    "no_apps": "No apps found"
   },
   "docs": {
     "import_doc": "Import document",

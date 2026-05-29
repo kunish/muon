@@ -129,6 +129,13 @@ async function sendToSelected() {
               <Check v-if="selectedRoomIds.has(r.roomId)" :size="12" />
             </span>
           </div>
+          <div
+            v-if="rooms.length === 0"
+            class="px-2 py-8 text-center text-sm text-muted-foreground"
+            data-testid="forward-empty"
+          >
+            {{ t('chat.search_no_match') }}
+          </div>
         </div>
 
         <div class="flex items-center justify-end gap-2 border-t border-border p-3">

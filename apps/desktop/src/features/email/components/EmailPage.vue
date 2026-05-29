@@ -423,6 +423,13 @@ function sendComposeDraft(): void {
                 </span>
                 <span class="text-right text-[12px] text-muted-foreground">{{ message.time }}</span>
               </button>
+              <div
+                v-if="filteredMessages.length === 0"
+                class="px-4 py-12 text-center text-[13px] text-muted-foreground"
+                data-testid="email-empty"
+              >
+                {{ t('email.no_messages') }}
+              </div>
             </div>
           </section>
 

@@ -375,6 +375,13 @@ function saveDraftRequest(): void {
             {{ request.due }}
           </span>
         </button>
+        <div
+          v-if="filteredRequests.length === 0"
+          class="px-4 py-12 text-center text-[13px] text-muted-foreground"
+          data-testid="approvals-empty"
+        >
+          {{ t('approvals.no_requests') }}
+        </div>
       </div>
       <div v-if="requestEditorOpen" class="border-t border-border p-4">
         <div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(240px,1fr)_120px_auto]">

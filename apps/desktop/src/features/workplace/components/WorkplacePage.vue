@@ -532,6 +532,13 @@ function hideAppEntry(appId: string): void {
                   </span>
                 </button>
               </div>
+              <div
+                v-if="filteredApps.length === 0"
+                class="px-4 py-12 text-center text-[13px] text-muted-foreground"
+                data-testid="workplace-apps-empty"
+              >
+                {{ t('workplace.no_apps') }}
+              </div>
             </div>
           </section>
 

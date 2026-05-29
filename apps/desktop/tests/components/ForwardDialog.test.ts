@@ -74,6 +74,19 @@ describe('forwardDialog', () => {
     expect(forwardMessagesSpy).toHaveBeenCalledWith('!src:localhost', '!other:localhost', ['$e1', '$e2'])
   })
 
+  it('shows an empty state when the search matches no conversation', async () => {
+    mount(ForwardDialog, { props: { roomId: '!src:localhost', eventIds: ['$e1'] }, attachTo: document.body })
+    await flushPromises()
+
+    const input = document.body.querySelector<HTMLInputElement>('input')
+    input!.value = 'zzz-no-match'
+    input!.dispatchEvent(new Event('input', { bubbles: true }))
+    await flushPromises()
+
+    expect(document.body.querySelector('[data-testid="forward-empty"]')).not.toBeNull()
+    expect(document.body.querySelector('[data-testid="forward-room-!target:localhost"]')).toBeNull()
+  })
+
   it('deselecting a target removes it from the send set', async () => {
     mount(ForwardDialog, { props: { roomId: '!src:localhost', eventIds: ['$e1'] }, attachTo: document.body })
     await flushPromises()
