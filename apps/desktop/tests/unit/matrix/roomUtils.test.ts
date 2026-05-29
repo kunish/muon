@@ -38,6 +38,21 @@ describe('matrix roomUtils', () => {
     })
   })
 
+  describe('getDirectRoomPeer', () => {
+    it('returns the other member of a 1:1 room', async () => {
+      const { getDirectRoomPeer } = await import('@/matrix/roomUtils')
+      expect(getDirectRoomPeer('!dm_alice:localhost')).toEqual({
+        userId: '@alice:localhost',
+        displayName: '小红',
+      })
+    })
+
+    it('returns null when the room cannot be resolved', async () => {
+      const { getDirectRoomPeer } = await import('@/matrix/roomUtils')
+      expect(getDirectRoomPeer('!missing:localhost')).toBeNull()
+    })
+  })
+
   describe('normalizeRoomId', () => {
     it('should decode URI-encoded room IDs', async () => {
       const { normalizeRoomId } = await import('@/matrix/roomUtils')

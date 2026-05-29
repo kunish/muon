@@ -1109,6 +1109,8 @@
     "accept": "Accept",
     "decline": "Decline",
     "audio_mode": "Audio",
+    "audio_call_label": "Voice call",
+    "video_call_label": "Video call",
     "start_call": "Start Call",
     "today_calls": "Today's Calls",
     "today_calls_hint": "{count} active",

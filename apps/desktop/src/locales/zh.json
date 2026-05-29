@@ -1109,6 +1109,8 @@
     "accept": "接听",
     "decline": "拒绝",
     "audio_mode": "语音",
+    "audio_call_label": "语音通话",
+    "video_call_label": "视频通话",
     "start_call": "发起通话",
     "today_calls": "今日通话",
     "today_calls_hint": "{count} 个进行中",

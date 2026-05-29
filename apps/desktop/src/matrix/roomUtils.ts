@@ -30,3 +30,26 @@ export function normalizeRoomIdEffect(id: string | null | undefined): DesktopEff
 export function normalizeRoomId(id: string | null | undefined): string | null {
   return runDesktopSync(normalizeRoomIdEffect(id))
 }
+
+export interface DirectRoomPeer {
+  userId: string
+  displayName: string
+}
+
+/** Resolve the other participant of a 1:1 room (the member that is not the current user). */
+export function getDirectRoomPeer(roomId: string): DirectRoomPeer | null {
+  const client = getClient()
+  const room = client.getRoom(roomId)
+  if (!room) return null
+
+  const selfId = client.getUserId()
+  const peer =
+    room.getJoinedMembers().find((member) => member.userId !== selfId) ??
+    room.getMembers().find((member) => member.userId !== selfId)
+  if (!peer) return null
+
+  return {
+    userId: peer.userId,
+    displayName: peer.name || peer.userId.split(':')[0]?.replace(/^@/, '') || peer.userId,
+  }
+}

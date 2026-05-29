@@ -1,7 +1,8 @@
 <script setup lang="ts">
+import type { CallMode } from '@matrix/index';
 import type { SidePanelType } from '../stores/chatStore';
 import { getRoomTopic } from '@matrix/rooms';
-import { isDirectRoom } from '@matrix/roomUtils';
+import { getDirectRoomPeer, isDirectRoom } from '@matrix/roomUtils';
 import {
   AtSign,
   Bell,
@@ -13,15 +14,18 @@ import {
   Lock,
   MessageSquareText,
   MoreHorizontal,
+  Phone,
   Pin,
   Plus,
   Search,
   Star,
   Timer,
   Users,
+  Video,
 } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useCallStore } from '@/features/calls/stores/callStore';
 import { useCurrentRoom } from '../composables/useCurrentRoom';
 import { useChatStore } from '../stores/chatStore';
 import DisappearingMessageSettings from './DisappearingMessageSettings.vue';
@@ -43,6 +47,7 @@ const emit = defineEmits<{
 
 const { room, currentRoomId } = useCurrentRoom();
 const store = useChatStore();
+const callStore = useCallStore();
 const { t } = useI18n();
 const showDisappearing = ref(false);
 const showMore = ref(false);
@@ -127,6 +132,13 @@ function openExtendedTab(panel: SidePanelType) {
   showAddTabMenu.value = false;
   store.toggleSidePanel(panel);
 }
+
+function startDirectCall(mode: CallMode) {
+  if (!currentRoomId.value || callStore.isActive) return;
+  const peer = getDirectRoomPeer(currentRoomId.value);
+  if (!peer) return;
+  void callStore.startCall(currentRoomId.value, peer.userId, peer.displayName, mode);
+}
 </script>
 
 <template>
@@ -146,6 +158,28 @@ function openExtendedTab(panel: SidePanelType) {
       </div>
 
       <div class="flex shrink-0 items-center gap-1 sm:gap-1.5">
+        <template v-if="isDirect">
+          <button
+            type="button"
+            class="flex cursor-pointer items-center justify-center rounded-md p-1.5 text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+            :title="t('calls.audio_call_label')"
+            data-testid="chat-header-call-audio"
+            :disabled="callStore.isActive"
+            @click="startDirectCall('audio')"
+          >
+            <Phone :size="18" />
+          </button>
+          <button
+            type="button"
+            class="flex cursor-pointer items-center justify-center rounded-md p-1.5 text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+            :title="t('calls.video_call_label')"
+            data-testid="chat-header-call-video"
+            :disabled="callStore.isActive"
+            @click="startDirectCall('video')"
+          >
+            <Video :size="18" />
+          </button>
+        </template>
         <button
           v-for="action in sidePanelActions"
           :key="action.id"

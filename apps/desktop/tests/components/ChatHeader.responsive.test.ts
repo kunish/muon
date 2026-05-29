@@ -12,6 +12,13 @@ const mockedRoom = vi.hoisted(() => ({
 
 vi.mock('@matrix/index', () => ({
   getRoom: (roomId: string) => (roomId === mockedRoom.roomId ? mockedRoom : null),
+  matrixEvents: { on: vi.fn(), off: vi.fn() },
+  sendCallInvite: vi.fn(),
+  sendCallAnswer: vi.fn(),
+  sendCallHangup: vi.fn(),
+  CALL_INVITE_EVENT: 'im.muon.call.invite',
+  CALL_ANSWER_EVENT: 'im.muon.call.answer',
+  CALL_HANGUP_EVENT: 'im.muon.call.hangup',
 }))
 
 vi.mock('@matrix/rooms', () => ({
@@ -20,6 +27,7 @@ vi.mock('@matrix/rooms', () => ({
 
 vi.mock('@matrix/roomUtils', () => ({
   isDirectRoom: () => true,
+  getDirectRoomPeer: () => ({ userId: '@peer:localhost', displayName: 'Peer' }),
 }))
 
 describe('chatHeader responsive layout', () => {
