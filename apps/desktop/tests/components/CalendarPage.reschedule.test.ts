@@ -3,10 +3,29 @@ import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { nextTick } from 'vue'
 import CalendarPage from '@/features/calendar/components/CalendarPage.vue'
+import { useCalendarStore } from '@/features/calendar/stores/calendarStore'
+
+function todayStr(): string {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+}
+
+function seedTodayEvent() {
+  useCalendarStore().addEvent({
+    id: 'seed-1',
+    title: '产品周会',
+    date: todayStr(),
+    time: '09:30',
+    endTime: '10:30',
+    participants: '产品团队',
+  })
+}
 
 describe('calendar reschedule popover', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    localStorage.clear()
+    seedTodayEvent()
   })
 
   it('opens the popover, updates date/time/endTime, and reflects them in the detail panel', async () => {
@@ -43,6 +62,25 @@ describe('calendar reschedule popover', () => {
     expect(detailText).toContain('2026-06-01')
     expect(detailText).toContain('10:00')
     expect(detailText).toContain('11:00')
+  })
+
+  it('persists the rescheduled slot across a reload', async () => {
+    const wrapper = mount(CalendarPage)
+    await nextTick()
+
+    await wrapper.find('[data-testid^="calendar-event-"]').trigger('click')
+    await wrapper.find('[data-testid="event-reschedule-trigger"]').trigger('click')
+    await nextTick()
+
+    await wrapper.find('[data-testid="reschedule-date"]').setValue('2026-06-01')
+    await wrapper.find('[data-testid="reschedule-start"]').setValue('10:00')
+    await wrapper.find('[data-testid="reschedule-end"]').setValue('11:00')
+    await wrapper.find('[data-testid="reschedule-confirm"]').trigger('click')
+    await nextTick()
+
+    setActivePinia(createPinia())
+    const reloaded = useCalendarStore()
+    expect(reloaded.events[0]).toMatchObject({ date: '2026-06-01', time: '10:00', endTime: '11:00' })
   })
 
   it('disables confirm when end time is not after start time', async () => {

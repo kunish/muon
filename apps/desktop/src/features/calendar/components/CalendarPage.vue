@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { CalendarEvent } from '../types/event';
 import { CalendarDays, ChevronLeft, ChevronRight, Clock, MapPin, Plus, Users } from 'lucide-vue-next';
 import { computed, onMounted, ref, shallowRef } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -6,9 +7,11 @@ import WorkspacePageFrame from '@/app/components/workspace/WorkspacePageFrame.vu
 import GroupMemberPicker from '@/features/contacts/components/GroupMemberPicker.vue';
 import { projectRepo } from '@/features/projects/db/projectDb';
 import { useContactList } from '@/shared/composables/useContactList';
+import { useCalendarStore } from '../stores/calendarStore';
 
 const { t } = useI18n();
 const contactList = useContactList();
+const calendarStore = useCalendarStore();
 
 // ── View mode ──
 type CalendarView = 'month' | 'week' | 'day';
@@ -177,76 +180,7 @@ const dayViewHours = computed(() => {
 });
 
 // ── Events ──
-interface CalendarEvent {
-  id: string;
-  title: string;
-  date: string; // YYYY-MM-DD
-  time: string; // HH:mm
-  endTime?: string;
-  participants: string;
-  color: string;
-  description?: string;
-  rsvpStatus: string;
-}
-
-// Seed events initialized directly for immediate rendering
-const seedToday = fmtDate(today);
-const seedT2 = fmtDate(addDays(today, 2));
-const seedT5 = fmtDate(addDays(today, 5));
-
-const events = shallowRef<CalendarEvent[]>([
-  {
-    id: 'e1',
-    title: '产品周会',
-    date: seedToday,
-    time: '09:30',
-    endTime: '10:30',
-    participants: '产品团队',
-    color: 'blue',
-    rsvpStatus: '待回复',
-  },
-  {
-    id: 'e2',
-    title: '设计评审',
-    date: seedToday,
-    time: '14:00',
-    endTime: '15:30',
-    participants: '设计团队',
-    color: 'orange',
-    rsvpStatus: '已接受',
-  },
-  {
-    id: 'e3',
-    title: '1:1 沟通',
-    date: seedT2,
-    time: '11:00',
-    endTime: '11:30',
-    participants: '张三',
-    color: 'green',
-    rsvpStatus: '待回复',
-  },
-  {
-    id: 'e4',
-    title: '发布准备会',
-    date: seedT2,
-    time: '15:00',
-    endTime: '16:00',
-    participants: '工程团队',
-    color: 'purple',
-    rsvpStatus: '待回复',
-  },
-  {
-    id: 'e5',
-    title: '专注时间',
-    date: seedT5,
-    time: '10:00',
-    endTime: '12:00',
-    participants: '个人',
-    color: 'slate',
-    rsvpStatus: '无需回复',
-  },
-]);
-
+// 用户事件由持久化的 calendarStore 提供（跨会话保留）；项目任务事件只读派生自 projectRepo。
 const projectTaskEvents = shallowRef<CalendarEvent[]>([]);
 
 onMounted(async () => {
@@ -283,13 +217,7 @@ function fmtDate(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-function addDays(d: Date, n: number): Date {
-  const r = new Date(d);
-  r.setDate(r.getDate() + n);
-  return r;
-}
-
-const allEvents = computed(() => [...events.value, ...projectTaskEvents.value]);
+const allEvents = computed(() => [...calendarStore.events, ...projectTaskEvents.value]);
 
 // ── Events for a specific day ──
 function eventsForDay(date: Date): CalendarEvent[] {
@@ -350,26 +278,20 @@ function saveNewEvent() {
           .join('、')
       : '我';
 
-  events.value = [
-    {
-      id: `event-${Date.now()}`,
-      title: eventDraft.value.title.trim(),
-      date: eventDraft.value.date,
-      time: eventDraft.value.time,
-      endTime: eventDraft.value.endTime || undefined,
-      participants,
-      color: 'blue',
-      rsvpStatus: '已创建',
-    },
-    ...events.value,
-  ];
+  calendarStore.addEvent({
+    title: eventDraft.value.title,
+    date: eventDraft.value.date,
+    time: eventDraft.value.time,
+    endTime: eventDraft.value.endTime || undefined,
+    participants,
+  });
 
   showEventEditor.value = false;
 }
 
 // ── RSVP actions ──
 function acceptEvent(event: CalendarEvent) {
-  events.value = events.value.map((e) => (e.id === event.id ? { ...e, rsvpStatus: '已接受' } : e));
+  calendarStore.setRsvp(event.id, '已接受');
 }
 
 interface RescheduleDraft {
@@ -398,7 +320,7 @@ function rescheduleConfirmDisabled(): boolean {
 function rescheduleEvent(event: CalendarEvent) {
   if (rescheduleConfirmDisabled()) return;
   const { date, time, endTime } = rescheduleDraft.value;
-  events.value = events.value.map((e) => (e.id === event.id ? { ...e, date, time, endTime } : e));
+  calendarStore.reschedule(event.id, { date, time, endTime });
   const parts = date.split('-').map(Number);
   if (parts.length === 3 && parts.every((n) => Number.isFinite(n))) {
     selectedDate.value = new Date(parts[0], parts[1] - 1, parts[2]);

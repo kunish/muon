@@ -2,6 +2,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import ApprovalsPage from '@/features/approvals/components/ApprovalsPage.vue'
 import CalendarPage from '@/features/calendar/components/CalendarPage.vue'
+import { useCalendarStore } from '@/features/calendar/stores/calendarStore'
 import CallsPage from '@/features/calls/components/CallsPage.vue'
 import { launchContactCall } from '@/features/calls/stores/callLaunchStore'
 import DocsPage from '@/features/docs/components/DocsPage.vue'
@@ -88,7 +89,7 @@ const pages = [
   {
     component: CalendarPage,
     name: '日历',
-    requiredText: ['新建日程', '月', '产品周会', '今日'],
+    requiredText: ['新建日程', '月', '今日'],
   },
   {
     component: ApprovalsPage,
@@ -544,8 +545,19 @@ describe('workspace secondary pages', () => {
   })
 
   it('shows today events and RSVP actions when today is clicked', async () => {
-    const wrapper = mount(CalendarPage)
     const today = new Date()
+    const todayDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+    localStorage.removeItem('muon.calendar.events.v1')
+    useCalendarStore().addEvent({
+      id: 'sec-seed',
+      title: '产品周会',
+      date: todayDate,
+      time: '09:30',
+      endTime: '10:30',
+      participants: '产品团队',
+      rsvpStatus: '待回复',
+    })
+    const wrapper = mount(CalendarPage)
     const todayDay = today.getDate()
 
     // Find today's date number in the month grid
