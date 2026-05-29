@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useStorage } from '@vueuse/core';
 import { CheckSquare, Clock3, FileCheck2, Plus, ShieldCheck, XCircle } from 'lucide-vue-next';
 import { computed, onMounted, ref, shallowRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -45,48 +46,95 @@ interface ApprovalRequest {
   comments: string[];
 }
 
-const requests = shallowRef<ApprovalRequest[]>([
-  {
-    id: 'request-1',
-    queue: 'compliance',
-    title: '供应商安全例外申请',
-    requester: '运营团队',
-    stage: '法务复核',
-    due: '今日',
-    currentHandler: '法务复核',
-    comments: [],
-  },
-  {
-    id: 'request-2',
-    queue: 'pending',
-    title: '生产访问申请',
-    requester: '工程团队',
-    stage: '主管审批',
-    due: '明日',
-    currentHandler: '主管审批',
-    comments: [],
-  },
-  {
-    id: 'request-3',
-    queue: 'pending',
-    title: '上线预算调整',
-    requester: '增长团队',
-    stage: '财务确认',
-    due: '周五',
-    currentHandler: '财务确认',
-    comments: [],
-  },
-  {
-    id: 'request-4',
-    queue: 'approved',
-    title: '设计资源采购',
-    requester: '设计团队',
-    stage: '已归档',
-    due: '已通过',
-    currentHandler: '已归档',
-    comments: ['采购合同已归档'],
-  },
-]);
+type ApprovalDecision = 'approved' | 'rejected';
+
+/** Persisted per-request outcome so decisions/transfers/comments survive reloads. */
+interface ApprovalOverride {
+  decision?: ApprovalDecision;
+  handler?: string;
+  comments?: string[];
+}
+
+const APPROVAL_OVERRIDES_STORAGE_KEY = 'muon_approval_overrides';
+const approvalOverrides = useStorage<Record<string, ApprovalOverride>>(APPROVAL_OVERRIDES_STORAGE_KEY, {});
+
+/** Re-derive the localized stage/due/handler labels for a decision (single source of truth). */
+function approvalDecisionFields(
+  decision: ApprovalDecision,
+): Pick<ApprovalRequest, 'queue' | 'stage' | 'due' | 'currentHandler'> {
+  const approved = decision === 'approved';
+  return {
+    queue: decision,
+    stage: approved ? t('approvals.status_approved') : t('approvals.status_rejected'),
+    due: approved ? t('approvals.status_approved') : t('approvals.status_rejected'),
+    currentHandler: approved ? t('approvals.status_archived') : t('approvals.status_follow_up'),
+  };
+}
+
+function applyApprovalOverrides(list: ApprovalRequest[]): ApprovalRequest[] {
+  return list.map((request) => {
+    const override = approvalOverrides.value[request.id];
+    if (!override) return request;
+
+    let next = { ...request };
+    if (override.comments) next.comments = override.comments;
+    if (override.handler) next = { ...next, stage: override.handler, currentHandler: override.handler };
+    if (override.decision) next = { ...next, ...approvalDecisionFields(override.decision) };
+    return next;
+  });
+}
+
+function setApprovalOverride(id: string, patch: ApprovalOverride): void {
+  approvalOverrides.value = {
+    ...approvalOverrides.value,
+    [id]: { ...approvalOverrides.value[id], ...patch },
+  };
+}
+
+const requests = shallowRef<ApprovalRequest[]>(
+  applyApprovalOverrides([
+    {
+      id: 'request-1',
+      queue: 'compliance',
+      title: '供应商安全例外申请',
+      requester: '运营团队',
+      stage: '法务复核',
+      due: '今日',
+      currentHandler: '法务复核',
+      comments: [],
+    },
+    {
+      id: 'request-2',
+      queue: 'pending',
+      title: '生产访问申请',
+      requester: '工程团队',
+      stage: '主管审批',
+      due: '明日',
+      currentHandler: '主管审批',
+      comments: [],
+    },
+    {
+      id: 'request-3',
+      queue: 'pending',
+      title: '上线预算调整',
+      requester: '增长团队',
+      stage: '财务确认',
+      due: '周五',
+      currentHandler: '财务确认',
+      comments: [],
+    },
+    {
+      id: 'request-4',
+      queue: 'approved',
+      title: '设计资源采购',
+      requester: '设计团队',
+      stage: '已归档',
+      due: '已通过',
+      currentHandler: '已归档',
+      comments: ['采购合同已归档'],
+    },
+  ]),
+);
 
 const activeQueueLabel = computed(
   () => approvalQueues.find((queue) => queue.id === activeQueue.value)?.label ?? t('approvals.queue_pending'),
@@ -163,16 +211,9 @@ function decideSelectedRequest(queue: 'approved' | 'rejected'): void {
 
   const approved = queue === 'approved';
   requests.value = requests.value.map((item) =>
-    item.id === request.id
-      ? {
-          ...item,
-          queue,
-          stage: approved ? t('approvals.status_approved') : t('approvals.status_rejected'),
-          due: approved ? t('approvals.status_approved') : t('approvals.status_rejected'),
-          currentHandler: approved ? t('approvals.status_archived') : t('approvals.status_follow_up'),
-        }
-      : item,
+    item.id === request.id ? { ...item, ...approvalDecisionFields(queue) } : item,
   );
+  setApprovalOverride(request.id, { decision: queue });
   activeQueue.value = queue;
   selectedRequestId.value = request.id;
   decisionNotices.value = {
@@ -188,9 +229,9 @@ function addApprovalComment(): void {
   const comment = approvalCommentDraft.value.trim();
   if (!request || !comment) return;
 
-  requests.value = requests.value.map((item) =>
-    item.id === request.id ? { ...item, comments: [...item.comments, comment] } : item,
-  );
+  const nextComments = [...request.comments, comment];
+  requests.value = requests.value.map((item) => (item.id === request.id ? { ...item, comments: nextComments } : item));
+  setApprovalOverride(request.id, { comments: nextComments });
   approvalCommentDraft.value = '';
   decisionNotices.value = {
     ...decisionNotices.value,
@@ -230,6 +271,7 @@ function transferSelectedRequest(): void {
   requests.value = requests.value.map((item) =>
     item.id === request.id ? { ...item, stage: nextHandler, currentHandler: nextHandler } : item,
   );
+  setApprovalOverride(request.id, { handler: nextHandler });
   decisionNotices.value = {
     ...decisionNotices.value,
     [request.id]: t('approvals.transferred_notice', { title: request.title }),

@@ -111,6 +111,7 @@ describe('workspace secondary pages', () => {
   beforeEach(() => {
     localStorage.removeItem('muon_organization_directory_v1')
     localStorage.removeItem('muon_email_overrides')
+    localStorage.removeItem('muon_approval_overrides')
     mockRouteParams.mockReset()
     mockRouteParams.mockReturnValue({})
     routerPush.mockReset()
