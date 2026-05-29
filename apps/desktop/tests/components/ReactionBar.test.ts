@@ -1,4 +1,4 @@
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { describe, expect, it, vi } from 'vitest'
 import ReactionBar from '@/features/chat/components/ReactionBar.vue'
 
@@ -7,10 +7,15 @@ const NAMES: Record<string, string> = {
   '@bob:localhost': 'Bob',
 }
 
+const sendReaction = vi.hoisted(() => vi.fn())
+const toastError = vi.hoisted(() => vi.fn())
+
 vi.mock('@matrix/index', () => ({
   getReactions: () => [],
-  sendReaction: vi.fn(),
+  sendReaction,
 }))
+
+vi.mock('vue-sonner', () => ({ toast: { error: toastError } }))
 
 vi.mock('@matrix/client', () => ({
   getClient: () => ({
@@ -43,5 +48,16 @@ describe('reactionBar reactor tooltip', () => {
   it('renders an empty title when there are no senders', () => {
     const wrapper = mountBar([{ key: '🔥', count: 0, myReaction: false, senders: [] }])
     expect(wrapper.get('.reaction-pill').attributes('title')).toBe('')
+  })
+
+  it('surfaces an error toast when sending a reaction fails', async () => {
+    sendReaction.mockRejectedValueOnce(new Error('network'))
+    const wrapper = mountBar([{ key: '👍', count: 1, myReaction: false, senders: [] }])
+
+    await wrapper.get('.reaction-pill').trigger('click')
+    await flushPromises()
+
+    expect(sendReaction).toHaveBeenCalledWith('!room:localhost', '$e1', '👍')
+    expect(toastError).toHaveBeenCalled()
   })
 })

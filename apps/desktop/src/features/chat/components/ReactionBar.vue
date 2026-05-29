@@ -10,12 +10,16 @@ import { getClient } from '@matrix/client';
 import { getReactions, sendReaction } from '@matrix/index';
 import { Smile } from 'lucide-vue-next';
 import { computed, nextTick, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { toast } from 'vue-sonner';
 
 const props = defineProps<{
   eventId: string;
   reactions?: ReactionSummary[];
   roomId: string;
 }>();
+
+const { t } = useI18n();
 
 const QUICK_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🎉', '🔥', '👏'];
 
@@ -55,7 +59,11 @@ watch(showPicker, async (visible) => {
 
 async function toggleReaction(emoji: string) {
   showPicker.value = false;
-  await sendReaction(props.roomId, props.eventId, emoji);
+  try {
+    await sendReaction(props.roomId, props.eventId, emoji);
+  } catch {
+    toast.error(t('chat.reaction_failed'));
+  }
 }
 </script>
 

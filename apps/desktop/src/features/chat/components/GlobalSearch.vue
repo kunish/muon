@@ -8,6 +8,7 @@ import { Search } from 'lucide-vue-next';
 import { computed, nextTick, onMounted, onUnmounted, ref, useTemplateRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
+import { toast } from 'vue-sonner';
 import { workspaceApps } from '@/app/components/workspace/navigation';
 import { useSearchHistory } from '@/features/chat/composables/useSearchHistory';
 import { useChatStore } from '@/features/chat/stores/chatStore';
@@ -211,6 +212,7 @@ async function selectContact(contact: { userId: string; displayName?: string; av
       userId: contact.userId,
       error,
     });
+    toast.error(t('chat.open_dm_failed'));
   }
 }
 

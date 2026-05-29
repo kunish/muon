@@ -27,6 +27,7 @@ import {
 } from 'lucide-vue-next';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { toast } from 'vue-sonner';
 import { getFloatingPosition } from '../composables/useFloatingPosition';
 import { useMessageActions } from '../composables/useMessageActions';
 import { useDeferStore } from '../stores/deferStore';
@@ -235,6 +236,8 @@ async function onSubmitTask(payload: { title: string; assignee: string; dueAt: s
       }),
     );
     showTaskComposer.value = false;
+  } catch {
+    toast.error(t('chat.task_create_failed'));
   } finally {
     creatingTask.value = false;
   }
