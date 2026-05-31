@@ -125,7 +125,7 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', onClickOutside
       <div
         v-if="open"
         ref="menuRef"
-        class="fixed z-50 bg-background border border-border rounded-lg shadow-lg py-1 min-w-[140px]"
+        class="fixed z-50 bg-popover text-popover-foreground border border-border rounded-lg shadow-lg py-1 min-w-[140px]"
         :style="{ left: menuStyle.left, top: menuStyle.top }"
       >
         <button
