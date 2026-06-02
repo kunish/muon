@@ -1,6 +1,7 @@
 import type { DeviceSessionPublic } from '@muon/enterprise-contracts'
 import type { ApiEffect } from './effect'
 import type { ApprovalStore } from './modules/approvals/approvalService'
+import type { DepartmentStore } from './modules/departments/departmentService'
 import type { MatrixProvisioningAdapter } from './modules/matrix/provisioning'
 import type { MediaStorageService } from './modules/media/mediaStorage'
 import type { EgressService } from './modules/recordings/egressService'
@@ -14,6 +15,7 @@ import {
   createAdminSessionEffectService,
   MustChangePasswordError,
 } from './modules/auth/adminSessionService'
+import { createDepartmentEffectService, createInMemoryDepartmentStore } from './modules/departments/departmentService'
 import { createInstallEffectService } from './modules/install/installService'
 import { createOAuthEffectService } from './modules/oauth/oauthService'
 import { createOrganizationEffectService } from './modules/organizations/organizationService'
@@ -33,6 +35,7 @@ export interface EnterpriseHttpEffectHandler {
 
 export interface EnterpriseHttpHandlerOptions {
   approvalStore?: ApprovalStore
+  departmentStore?: DepartmentStore
   egressService?: EgressService
   corsAllowedOrigins?: string[]
   matrix?: MatrixProvisioningAdapter
@@ -286,6 +289,8 @@ export function createEnterpriseHttpEffectHandler(
   const maxMediaUploadBytes = options.maxMediaUploadBytes ?? DEFAULT_MAX_MEDIA_UPLOAD_BYTES
   const approvalStore = options.approvalStore ?? createInMemoryApprovalStore()
   const approvalService = createApprovalEffectService({ store: approvalStore })
+  const departmentStore = options.departmentStore ?? createInMemoryDepartmentStore()
+  const departmentService = createDepartmentEffectService({ store: departmentStore })
   const egressService = options.egressService ?? createDisabledEgressService()
   const installService = createInstallEffectService({ repository })
   const adminSessionService = createAdminSessionEffectService({ repository })
@@ -412,6 +417,44 @@ export function createEnterpriseHttpEffectHandler(
               (yield* readRequestBodyEffect(request)) as never,
             )
             return withCors(jsonResponse(result, { status: 201 }), request, allowedOrigins)
+          }
+          return methodNotAllowedWithCors(request)
+        }
+
+        if (url.pathname === '/api/admin/departments') {
+          const actor = yield* requireFullyAuthorizedAdmin(request)
+          if (request.method === 'GET') {
+            return withCors(
+              jsonResponse({ departments: yield* departmentService.list(actor.organizationId) }),
+              request,
+              allowedOrigins,
+            )
+          }
+          if (request.method === 'POST') {
+            const department = yield* departmentService.create(
+              actor.organizationId,
+              (yield* readRequestBodyEffect(request)) as never,
+            )
+            return withCors(jsonResponse({ department }, { status: 201 }), request, allowedOrigins)
+          }
+          return methodNotAllowedWithCors(request)
+        }
+
+        const departmentRoute = /^\/api\/admin\/departments\/([^/]+)$/.exec(url.pathname)
+        if (departmentRoute) {
+          const actor = yield* requireFullyAuthorizedAdmin(request)
+          const departmentId = decodeURIComponent(departmentRoute[1]!)
+          if (request.method === 'PATCH') {
+            const department = yield* departmentService.update(
+              actor.organizationId,
+              departmentId,
+              (yield* readRequestBodyEffect(request)) as never,
+            )
+            return withCors(jsonResponse({ department }), request, allowedOrigins)
+          }
+          if (request.method === 'DELETE') {
+            yield* departmentService.remove(actor.organizationId, departmentId)
+            return withCors(jsonResponse({ ok: true }), request, allowedOrigins)
           }
           return methodNotAllowedWithCors(request)
         }
@@ -545,9 +588,34 @@ export function createEnterpriseHttpEffectHandler(
         if (url.pathname === '/api/approvals' || url.pathname.startsWith('/api/approvals/')) {
           if (!bearerToken(request)) return yield* Effect.fail(new AdminAuthenticationError())
 
-          if (url.pathname === '/api/approvals') {
+          if (url.pathname === '/api/approvals/templates') {
             if (request.method !== 'GET') return methodNotAllowedWithCors(request)
-            return withCors(jsonResponse({ approvals: yield* approvalService.list() }), request, allowedOrigins)
+            return withCors(
+              jsonResponse({ templates: yield* approvalService.listTemplates() }),
+              request,
+              allowedOrigins,
+            )
+          }
+
+          if (url.pathname === '/api/approvals') {
+            if (request.method === 'GET') {
+              return withCors(jsonResponse({ approvals: yield* approvalService.list() }), request, allowedOrigins)
+            }
+            if (request.method === 'POST') {
+              const body = (yield* readRequestBodyEffect(request)) as Record<string, unknown>
+              const approval = yield* approvalService.create({
+                title: String(body.title ?? ''),
+                requester: String(body.requester ?? ''),
+                stages: Array.isArray(body.stages) ? body.stages.map((stage) => String(stage)) : undefined,
+                templateId: typeof body.templateId === 'string' ? body.templateId : undefined,
+                formData:
+                  body.formData && typeof body.formData === 'object'
+                    ? (body.formData as Record<string, unknown>)
+                    : undefined,
+              })
+              return withCors(jsonResponse({ approval }), request, allowedOrigins)
+            }
+            return methodNotAllowedWithCors(request)
           }
 
           const action = url.pathname.match(/^\/api\/approvals\/([^/]+)\/(decision|transfer|comment)$/)

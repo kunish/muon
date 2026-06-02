@@ -3,6 +3,8 @@ import { EgressClient, EncodedFileOutput, EncodedFileType, S3Upload } from 'live
 
 export interface RecordingResult {
   egressId: string
+  /** 录制文件在对象存储上的可访问回放 URL（由 publicBaseUrl + 确定性 key 构造） */
+  fileUrl: string
 }
 
 export interface EgressService {
@@ -31,15 +33,28 @@ export function createDisabledEgressService(): EgressService {
   }
 }
 
+function sanitizeRoomNameForKey(roomName: string): string {
+  return roomName.replace(/[^\w.-]+/g, '_').slice(0, 80) || 'room'
+}
+
 /** 真实云录制:LiveKit Egress 录制房间合成画面并上传至 S3 兼容对象存储 */
 export function createLiveKitEgressService(config: LiveKitEgressConfig): EgressService {
   const client = new EgressClient(config.livekitUrl, config.apiKey, config.apiSecret)
 
-  function fileOutput(roomName: string): EncodedFileOutput {
+  // 确定性 key（服务端时间戳，不用 LiveKit 的 {time} 占位），便于在 start 时即返回可访问回放 URL
+  function recordingKey(roomName: string, startedAt: number): string {
     const prefix = config.storage.prefix ? `${config.storage.prefix.replace(/\/+$/g, '')}/` : ''
+    return `${prefix}recordings/${sanitizeRoomNameForKey(roomName)}-${startedAt}.mp4`
+  }
+
+  function fileUrlFor(key: string): string {
+    return `${config.storage.publicBaseUrl.replace(/\/+$/g, '')}/${key}`
+  }
+
+  function fileOutput(key: string): EncodedFileOutput {
     return new EncodedFileOutput({
       fileType: EncodedFileType.MP4,
-      filepath: `${prefix}recordings/${roomName}-{time}.mp4`,
+      filepath: key,
       output: {
         case: 's3',
         value: new S3Upload({
@@ -57,8 +72,9 @@ export function createLiveKitEgressService(config: LiveKitEgressConfig): EgressS
   return {
     available: () => true,
     async startRoomRecording(roomName) {
-      const info = await client.startRoomCompositeEgress(roomName, fileOutput(roomName))
-      return { egressId: info.egressId }
+      const key = recordingKey(roomName, Date.now())
+      const info = await client.startRoomCompositeEgress(roomName, fileOutput(key))
+      return { egressId: info.egressId, fileUrl: fileUrlFor(key) }
     },
     async stopRoomRecording(egressId) {
       await client.stopEgress(egressId)

@@ -44,6 +44,50 @@ describe('approvals backend', () => {
     expect(status).toBe(401)
   })
 
+  it('creates an approval and persists it for subsequent reads', async () => {
+    const send = await withHandler()
+    const created = await send('POST', '/api/approvals', {
+      title: '设备采购',
+      requester: '行政组',
+      stages: ['主管审批', '财务确认'],
+    })
+    expect(created.status).toBe(200)
+    expect(created.body.approval.id).toBeTruthy()
+    expect(created.body.approval.status).toBe('pending')
+    expect(created.body.approval.currentStageIndex).toBe(0)
+    expect(created.body.approval.handler).toBe('主管审批')
+
+    const list = await send('GET', '/api/approvals')
+    const ids = (list.body.approvals as { id: string }[]).map((approval) => approval.id)
+    expect(ids).toContain(created.body.approval.id)
+  })
+
+  it('rejects creating an approval with an empty title', async () => {
+    const { status } = await call('POST', '/api/approvals', { title: '', requester: '行政组' })
+    expect(status).toBeGreaterThanOrEqual(400)
+  })
+
+  it('lists built-in approval templates', async () => {
+    const { status, body } = await call('GET', '/api/approvals/templates')
+    expect(status).toBe(200)
+    const ids = (body.templates as { id: string }[]).map((template) => template.id)
+    expect(ids).toEqual(expect.arrayContaining(['leave', 'reimbursement', 'purchase', 'overtime']))
+  })
+
+  it('creates an approval from a template, inheriting its stages and storing form data', async () => {
+    const send = await withHandler()
+    const created = await send('POST', '/api/approvals', {
+      title: '请假申请',
+      requester: '张三',
+      templateId: 'leave',
+      formData: { leaveType: '年假', startDate: '2026-07-01', endDate: '2026-07-03', reason: '休息' },
+    })
+    expect(created.status).toBe(200)
+    expect(created.body.approval.templateId).toBe('leave')
+    expect(created.body.approval.stages).toEqual(['主管审批', '人事备案'])
+    expect(created.body.approval.formData).toMatchObject({ leaveType: '年假' })
+  })
+
   it('advances one stage at a time then finalizes on the last approval', async () => {
     const send = await withHandler()
     // request-1 has two stages

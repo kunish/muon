@@ -198,3 +198,85 @@ export const deviceSessionSchema = z.object({
   expiresAt: z.string().datetime(),
 })
 export type DeviceSessionPublic = z.infer<typeof deviceSessionSchema>
+
+// ── Departments ──
+// 组织部门树。单一契约来源，admin 与（未来）桌面目录共用。
+
+export const departmentSchema = z.object({
+  id: z.string().min(1),
+  organizationId: z.string().min(1),
+  name: z.string().min(1),
+  parentId: z.string().nullable(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+})
+export type Department = z.infer<typeof departmentSchema>
+
+export const createDepartmentRequestSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  parentId: z.string().min(1).nullable().optional(),
+})
+export type CreateDepartmentRequest = z.infer<typeof createDepartmentRequestSchema>
+
+export const updateDepartmentRequestSchema = z.object({
+  name: z.string().trim().min(1).max(120).optional(),
+  parentId: z.string().min(1).nullable().optional(),
+})
+export type UpdateDepartmentRequest = z.infer<typeof updateDepartmentRequestSchema>
+
+// ── Approvals ──
+// 审批记录的单一契约来源，api 与 desktop 共用，避免双份手写类型漂移。
+
+export const approvalStatusSchema = z.enum(['pending', 'approved', 'rejected'])
+export type ApprovalStatusContract = z.infer<typeof approvalStatusSchema>
+
+export const approvalDecisionSchema = z.enum(['approved', 'rejected'])
+export type ApprovalDecisionContract = z.infer<typeof approvalDecisionSchema>
+
+// 结构化表单字段（请假/报销/采购/加班等模板的字段定义）
+export const approvalFieldTypeSchema = z.enum(['text', 'textarea', 'number', 'date', 'select'])
+export type ApprovalFieldType = z.infer<typeof approvalFieldTypeSchema>
+
+export const approvalFormFieldSchema = z.object({
+  key: z.string().min(1),
+  label: z.string().min(1),
+  type: approvalFieldTypeSchema,
+  required: z.boolean().optional(),
+  options: z.array(z.string()).optional(),
+})
+export type ApprovalFormField = z.infer<typeof approvalFormFieldSchema>
+
+export const approvalTemplateSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  description: z.string().optional(),
+  fields: z.array(approvalFormFieldSchema),
+  /** 该模板的默认审批链 */
+  stages: z.array(z.string().min(1)).min(1),
+})
+export type ApprovalTemplate = z.infer<typeof approvalTemplateSchema>
+
+export const approvalRecordSchema = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1),
+  requester: z.string().min(1),
+  stages: z.array(z.string().min(1)).min(1),
+  currentStageIndex: z.number().int().min(0),
+  status: approvalStatusSchema,
+  handler: z.string(),
+  comments: z.array(z.string()),
+  /** 来源模板 id（自由申请则无） */
+  templateId: z.string().optional(),
+  /** 结构化表单数据（字段 key → 值） */
+  formData: z.record(z.string(), z.unknown()).optional(),
+})
+export type ApprovalRecordContract = z.infer<typeof approvalRecordSchema>
+
+export const createApprovalRequestSchema = z.object({
+  title: z.string().trim().min(1),
+  requester: z.string().trim().min(1),
+  stages: z.array(z.string().trim().min(1)).min(1).optional(),
+  templateId: z.string().optional(),
+  formData: z.record(z.string(), z.unknown()).optional(),
+})
+export type CreateApprovalRequest = z.infer<typeof createApprovalRequestSchema>

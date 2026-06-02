@@ -6,6 +6,8 @@ import { Effect } from 'effect'
 import { readEnterpriseApiConfig } from './config'
 import { createPostgresEnterpriseRepository } from './db/postgresRepository'
 import { fromPromise, fromSync, runApiEffect } from './effect'
+import { createPostgresApprovalStore } from './modules/approvals/postgresApprovalStore'
+import { createPostgresDepartmentStore } from './modules/departments/postgresDepartmentStore'
 import { createConduitProvisioningAdapter } from './modules/matrix/conduitAdapter'
 import { createS3MediaStorage } from './modules/media/mediaStorage'
 import { egressServiceFromConfig } from './modules/recordings/egressService'
@@ -102,12 +104,16 @@ function readIncomingChunksEffect(incoming: IncomingMessage, maxBytes?: number) 
 function mainEffect() {
   return Effect.gen(function* () {
     const repository = yield* fromPromise(() => createPostgresEnterpriseRepository(config.databaseUrl))
+    const approvalStore = yield* fromPromise(() => createPostgresApprovalStore(config.databaseUrl))
+    const departmentStore = yield* fromPromise(() => createPostgresDepartmentStore(config.databaseUrl))
     const mediaStorage = config.mediaStorage ? createS3MediaStorage(config.mediaStorage) : undefined
     const handler = createEnterpriseHttpEffectHandler({
       corsAllowedOrigins: config.corsAllowedOrigins,
       mediaStorage,
       maxMediaUploadBytes: config.maxMediaUploadBytes,
       repository,
+      approvalStore,
+      departmentStore,
       matrix: createConduitProvisioningAdapter({ serverUrl: config.matrixServerUrl }),
       matrixServerUrl: config.matrixServerUrl,
       egressService: egressServiceFromConfig({
