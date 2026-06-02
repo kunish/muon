@@ -20,6 +20,7 @@ import {
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import WorkspaceResizablePane from '@/app/components/workspace/WorkspaceResizablePane.vue';
+import { openUrl } from '@/desktop/opener';
 import GroupMemberPicker from '@/features/contacts/components/GroupMemberPicker.vue';
 
 type OrganizationSection = 'overview' | 'members' | 'groups';
@@ -65,6 +66,16 @@ function routeSectionParamToSection(section: unknown): OrganizationSection {
 const activeSection = ref<OrganizationSection>(routeSectionParamToSection(route.params.section));
 const searchQuery = ref('');
 const actionMessage = ref('组织入口已就绪');
+
+// 真实的组织/成员/部门管理后台是独立的 Admin 控制台（apps/admin，Postgres 支撑）。
+// 桌面端通过外链直达，权限校验由 Admin 控制台自身负责；未配置地址时不显示该入口。
+const adminConsoleUrl = (import.meta.env.VITE_MUON_ADMIN_URL ?? '').trim();
+
+async function openAdminConsole(): Promise<void> {
+  if (!adminConsoleUrl) return;
+  actionMessage.value = '正在打开管理后台';
+  await openUrl(adminConsoleUrl);
+}
 const currentUserId = ref('@muon:localhost');
 const currentDisplayName = ref('我');
 const currentAvatarUrl = ref<string | undefined>();
@@ -766,6 +777,20 @@ onMounted(async () => {
                     <span>
                       <span class="block text-[13px] font-semibold">团队群组</span>
                       <span class="mt-0.5 block text-[12px] text-muted-foreground">查看已加入的组织协作群</span>
+                    </span>
+                  </button>
+                  <button
+                    v-if="adminConsoleUrl"
+                    class="workspace-row gap-3 px-3 py-3 text-left"
+                    data-testid="organization-open-admin-console"
+                    @click="openAdminConsole"
+                  >
+                    <ShieldCheck :size="18" class="text-primary" />
+                    <span>
+                      <span class="block text-[13px] font-semibold">管理后台</span>
+                      <span class="mt-0.5 block text-[12px] text-muted-foreground"
+                        >打开企业管理控制台（成员、部门、角色与安全策略）</span
+                      >
                     </span>
                   </button>
                 </div>
