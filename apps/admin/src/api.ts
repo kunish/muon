@@ -3,13 +3,16 @@ import type {
   AdminSession,
   AuditLog,
   ChangeOwnPasswordRequest,
+  CreateDepartmentRequest,
   CreateOrganizationRequest,
   CreateUserRequest,
+  Department,
   DeviceSessionPublic,
   EnterpriseUser,
   InstallRequest,
   Organization,
   ResetPasswordRequest,
+  UpdateDepartmentRequest,
   UpdateUserRequest,
 } from '@muon/enterprise-contracts'
 import { Effect } from 'effect'
@@ -90,6 +93,39 @@ export function listUsers(token: string): Promise<{ users: EnterpriseUser[] }> {
     headers: {
       authorization: `Bearer ${token}`,
     },
+  })
+}
+
+export function listDepartments(token: string): Promise<{ departments: Department[] }> {
+  return request('/api/admin/departments', {
+    headers: { authorization: `Bearer ${token}` },
+  })
+}
+
+export function createDepartment(token: string, input: CreateDepartmentRequest): Promise<{ department: Department }> {
+  return request('/api/admin/departments', {
+    method: 'POST',
+    headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+}
+
+export function updateDepartment(
+  token: string,
+  departmentId: string,
+  input: UpdateDepartmentRequest,
+): Promise<{ department: Department }> {
+  return request(`/api/admin/departments/${encodeURIComponent(departmentId)}`, {
+    method: 'PATCH',
+    headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+}
+
+export function deleteDepartment(token: string, departmentId: string): Promise<{ ok: true }> {
+  return request(`/api/admin/departments/${encodeURIComponent(departmentId)}`, {
+    method: 'DELETE',
+    headers: { authorization: `Bearer ${token}` },
   })
 }
 

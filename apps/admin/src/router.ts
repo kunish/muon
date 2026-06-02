@@ -1,8 +1,8 @@
 import type { RouteRecordRaw, RouterHistory } from 'vue-router'
 import { createRouter, createWebHashHistory } from 'vue-router'
 
-export type AdminSection = 'audit' | 'organizations' | 'users'
-export type AdminRouteName = 'admin-audit' | 'admin-organizations' | 'admin-users'
+export type AdminSection = 'audit' | 'departments' | 'organizations' | 'users'
+export type AdminRouteName = 'admin-audit' | 'admin-departments' | 'admin-organizations' | 'admin-users'
 
 export const defaultAdminSection: AdminSection = 'organizations'
 
@@ -13,6 +13,7 @@ export const adminSections: Array<{
 }> = [
   { id: 'organizations', label: '组织管理', routeName: 'admin-organizations' },
   { id: 'users', label: '用户管理', routeName: 'admin-users' },
+  { id: 'departments', label: '部门管理', routeName: 'admin-departments' },
   { id: 'audit', label: '审计日志', routeName: 'admin-audit' },
 ]
 

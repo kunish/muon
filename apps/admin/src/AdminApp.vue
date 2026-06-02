@@ -2,6 +2,7 @@
 import type {
   AdminSession,
   AuditLog,
+  Department,
   DeviceSessionPublic,
   EnterpriseUser,
   Organization,
@@ -13,15 +14,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@muon
 import { Input } from '@muon/ui/input';
 import { Label } from '@muon/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@muon/ui/select';
-import { computed, reactive, ref } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import {
   changeOwnPassword,
   createAdminUser,
+  createDepartment,
   createOrganization,
+  deleteDepartment,
   getAdminMe,
   installMuon,
   listAuditLogs,
+  listDepartments,
   listOrganizations,
   listUserDeviceSessions,
   listUsers,
@@ -30,6 +34,7 @@ import {
   resetAdminUserPassword,
   revokeUserDeviceSession,
   updateAdminUser,
+  updateDepartment,
 } from './api';
 import { adminSections, defaultAdminSection, isAdminSection } from './router';
 
@@ -71,6 +76,11 @@ const userError = ref('');
 const organizations = ref<Organization[]>([]);
 const users = ref<EnterpriseUser[]>([]);
 const auditLogs = ref<AuditLog[]>([]);
+const departments = ref<Department[]>([]);
+const departmentsLoading = ref(false);
+const departmentForm = reactive({ name: '', parentId: '' });
+const departmentSubmitting = ref(false);
+const departmentError = ref('');
 const organizationSearch = ref('');
 const userSearch = ref('');
 const userStatusFilter = ref<'all' | UserStatus>('all');
@@ -260,6 +270,69 @@ function metadataSummary(entry: AuditLog) {
   if (entries.length === 0) return '无附加信息';
   return entries.map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : String(value)}`).join('；');
 }
+
+function departmentName(id: string | null): string {
+  if (!id) return '—';
+  return departments.value.find((department) => department.id === id)?.name ?? '—';
+}
+
+async function loadDepartments() {
+  if (!adminToken.value) return;
+  departmentsLoading.value = true;
+  departmentError.value = '';
+  try {
+    departments.value = (await listDepartments(adminToken.value)).departments;
+  } catch (error) {
+    departmentError.value = error instanceof Error ? error.message : '加载部门失败';
+  } finally {
+    departmentsLoading.value = false;
+  }
+}
+
+async function submitDepartment() {
+  const name = departmentForm.name.trim();
+  if (!name || departmentSubmitting.value || !adminToken.value) return;
+  departmentSubmitting.value = true;
+  departmentError.value = '';
+  try {
+    await createDepartment(adminToken.value, { name, parentId: departmentForm.parentId || null });
+    departmentForm.name = '';
+    departmentForm.parentId = '';
+    await loadDepartments();
+  } catch (error) {
+    departmentError.value = error instanceof Error ? error.message : '创建部门失败';
+  } finally {
+    departmentSubmitting.value = false;
+  }
+}
+
+async function reparentDepartment(department: Department, parentId: string) {
+  if (!adminToken.value) return;
+  try {
+    await updateDepartment(adminToken.value, department.id, { parentId: parentId || null });
+    await loadDepartments();
+  } catch (error) {
+    departmentError.value = error instanceof Error ? error.message : '更新部门失败';
+  }
+}
+
+async function removeDepartment(department: Department) {
+  if (!adminToken.value) return;
+  try {
+    await deleteDepartment(adminToken.value, department.id);
+    await loadDepartments();
+  } catch (error) {
+    departmentError.value = error instanceof Error ? error.message : '删除部门失败';
+  }
+}
+
+// 进入部门管理时按需加载（不影响主仪表盘加载与既有测试）
+watch(
+  () => activeAdminSection.value,
+  (section) => {
+    if (section === 'departments' && loggedIn.value) void loadDepartments();
+  },
+);
 
 async function refreshDashboard() {
   if (!adminToken.value) return;
@@ -891,6 +964,76 @@ void bootstrap();
                 </details>
               </div>
               <div v-if="filteredUsers.length === 0" class="empty-state">没有匹配的用户</div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card
+          v-if="activeAdminSection === 'departments'"
+          id="departments"
+          class="wide-panel"
+          data-testid="departments-panel"
+        >
+          <CardHeader>
+            <CardTitle>部门管理</CardTitle>
+            <CardDescription>维护组织的部门树（创建、调整上级、删除）。</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form class="department-form" data-testid="department-form" @submit.prevent="submitDepartment">
+              <Input v-model="departmentForm.name" data-testid="department-name" placeholder="部门名称" />
+              <select v-model="departmentForm.parentId" data-testid="department-parent" aria-label="上级部门">
+                <option value="">顶级部门</option>
+                <option v-for="department in departments" :key="department.id" :value="department.id">
+                  {{ department.name }}
+                </option>
+              </select>
+              <Button
+                type="submit"
+                data-testid="department-create"
+                :disabled="departmentSubmitting || !departmentForm.name.trim()"
+              >
+                新建部门
+              </Button>
+            </form>
+            <p v-if="departmentError" class="error" data-testid="department-error">{{ departmentError }}</p>
+            <p v-if="departmentsLoading" class="empty-state">加载中…</p>
+            <div v-else class="table-list" aria-label="部门列表">
+              <div
+                v-for="department in departments"
+                :key="department.id"
+                class="table-row department-row"
+                :data-testid="`department-row-${department.id}`"
+              >
+                <span class="department-name">{{ department.name }}</span>
+                <label class="department-parent-control">
+                  上级
+                  <select
+                    :value="department.parentId ?? ''"
+                    :data-testid="`department-parent-${department.id}`"
+                    aria-label="调整上级部门"
+                    @change="reparentDepartment(department, ($event.target as HTMLSelectElement).value)"
+                  >
+                    <option value="">顶级部门</option>
+                    <option
+                      v-for="candidate in departments.filter((d) => d.id !== department.id)"
+                      :key="candidate.id"
+                      :value="candidate.id"
+                    >
+                      {{ candidate.name }}
+                    </option>
+                  </select>
+                </label>
+                <span class="department-parent-name">当前上级：{{ departmentName(department.parentId) }}</span>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  :data-testid="`department-delete-${department.id}`"
+                  @click="removeDepartment(department)"
+                >
+                  删除
+                </Button>
+              </div>
+              <div v-if="departments.length === 0" class="empty-state">暂无部门，先创建一个吧</div>
             </div>
           </CardContent>
         </Card>

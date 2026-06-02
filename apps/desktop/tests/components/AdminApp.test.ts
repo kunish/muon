@@ -85,6 +85,10 @@ vi.mock('../../../admin/src/api', () => ({
     },
   })),
   installMuon: vi.fn(),
+  createDepartment: vi.fn(async () => ({ department: {} })),
+  updateDepartment: vi.fn(async () => ({ department: {} })),
+  deleteDepartment: vi.fn(async () => ({ ok: true })),
+  listDepartments: vi.fn(async () => ({ departments: [] })),
   listAuditLogs: vi.fn(async () => ({ auditLogs: [] })),
   listOrganizations: vi.fn(async () => ({
     organizations: [
