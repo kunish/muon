@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ArrowLeft } from 'lucide-vue-next';
-import { computed, onUnmounted, ref, shallowRef, watch } from 'vue';
+import { getClient } from '@matrix/client';
+import { ArrowLeft, Download } from 'lucide-vue-next';
+import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import MediaViewer from '@/features/chat/components/MediaViewer.vue';
 import { useMediaViewer } from '@/features/chat/composables/useMediaViewer';
@@ -9,9 +10,12 @@ import { useDocCursor } from '../../composables/useDocCursor';
 import { useDocEditor } from '../../composables/useDocEditor';
 import { useDocSync } from '../../composables/useDocSync';
 import { resolveCurrentDocUser } from '../../lib/currentDocUser';
+import { exportDocAsHtml, exportDocAsMarkdown } from '../../lib/exportDoc';
 import { useDocsStore } from '../../stores/docsStore';
+import { MATRIX_EVENT_TYPES } from '../../types/doc';
 import CollaboratorAvatars from '../collaboration/CollaboratorAvatars.vue';
 import CommentsPanel from '../collaboration/CommentsPanel.vue';
+import DocVersionHistoryPanel from '../collaboration/DocVersionHistoryPanel.vue';
 import ShareDialog from '../collaboration/ShareDialog.vue';
 import DocEditorToolbar from './DocEditorToolbar.vue';
 import DocTitleInput from './DocTitleInput.vue';
@@ -29,17 +33,51 @@ const docsStore = useDocsStore();
 const router = useRouter();
 const currentDoc = computed(() => docsStore.documents.find((doc) => doc.id === props.docId));
 const initialTitle = computed(() => currentDoc.value?.title ?? '');
+const exportTitle = computed(() => currentDoc.value?.title ?? initialTitle.value);
 
 const { ydoc, provider, connected, error, connect, disconnect } = useDocSync(props.docId);
 
+// 只读权限：依据文档房间的 power levels —— 无权发送文档同步事件即为只读，
+// 避免用户输入却静默无法同步。power levels 不可用时（如测试 mock）默认可编辑。
+const canEdit = ref(true);
+function refreshCanEdit(): void {
+  const state = getClient().getRoom(props.docId)?.currentState;
+  if (!state || typeof state.maySendEvent !== 'function') {
+    canEdit.value = true;
+    return;
+  }
+  canEdit.value = state.maySendEvent(MATRIX_EVENT_TYPES.DOC_SYNC, currentUserId);
+}
+
 const elementRef = ref<HTMLElement>();
-const { editor } = useDocEditor(() => ydoc.value, elementRef, { id: currentUserId, name: userName.value, color });
+const { editor } = useDocEditor(
+  () => ydoc.value,
+  elementRef,
+  { id: currentUserId, name: userName.value, color },
+  canEdit,
+);
+
+const showExportMenu = ref(false);
+
+function exportHtml(): void {
+  if (editor.value) exportDocAsHtml(editor.value, exportTitle.value);
+  showExportMenu.value = false;
+}
+
+function exportMarkdown(): void {
+  if (editor.value) exportDocAsMarkdown(editor.value, exportTitle.value);
+  showExportMenu.value = false;
+}
+
+onMounted(refreshCanEdit);
+watch(connected, refreshCanEdit);
 
 const { others, updateLocalCursor } = useDocCursor(() => provider.value, currentUserId, userName.value);
 
 const { comments, draftText, addComment, resolveComment } = useDocComments(() => ydoc.value, currentUserId);
 
 const showComments = ref(false);
+const showVersions = ref(false);
 const showShareDialog = ref(false);
 const imageInputRef = ref<HTMLInputElement>();
 const imageInsertError = shallowRef('');
@@ -188,9 +226,53 @@ onUnmounted(() => {
           />
           {{ connected ? '已连接' : '连接中' }}
         </span>
+        <span
+          v-if="!canEdit"
+          data-testid="doc-read-only-badge"
+          class="inline-flex h-6 items-center rounded-full bg-muted px-2 text-xs font-medium text-muted-foreground"
+        >
+          只读
+        </span>
       </div>
       <div class="flex items-center gap-2">
         <CollaboratorAvatars :cursors="others" />
+        <div class="relative">
+          <button
+            data-testid="doc-editor-export"
+            class="inline-flex h-8 items-center gap-1 rounded-md px-3 text-xs font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            @click="showExportMenu = !showExportMenu"
+          >
+            <Download :size="14" />
+            导出
+          </button>
+          <div
+            v-if="showExportMenu"
+            class="absolute right-0 top-full z-20 mt-1 w-36 overflow-hidden rounded-md border border-border bg-popover shadow-lg"
+          >
+            <button
+              data-testid="doc-export-markdown"
+              class="block w-full px-3 py-2 text-left text-xs hover:bg-accent"
+              @click="exportMarkdown"
+            >
+              导出 Markdown
+            </button>
+            <button
+              data-testid="doc-export-html"
+              class="block w-full px-3 py-2 text-left text-xs hover:bg-accent"
+              @click="exportHtml"
+            >
+              导出 HTML
+            </button>
+          </div>
+        </div>
+        <button
+          data-testid="doc-editor-versions"
+          class="inline-flex h-8 items-center rounded-md px-3 text-xs font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          :class="{ 'bg-accent text-foreground': showVersions }"
+          @click="showVersions = !showVersions"
+        >
+          版本
+        </button>
         <button
           data-testid="doc-editor-comments"
           class="inline-flex h-8 items-center rounded-md px-3 text-xs font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
@@ -238,6 +320,15 @@ onUnmounted(() => {
           </p>
         </main>
       </div>
+
+      <!-- Version history panel -->
+      <DocVersionHistoryPanel
+        v-if="showVersions"
+        :doc-id="props.docId"
+        :editor="editor"
+        :author-name="userName"
+        @close="showVersions = false"
+      />
 
       <!-- Comments panel -->
       <CommentsPanel

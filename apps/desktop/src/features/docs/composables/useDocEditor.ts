@@ -12,7 +12,7 @@ import { Table, TableCell, TableHeader, TableRow } from '@tiptap/extension-table
 import { Underline } from '@tiptap/extension-underline'
 import { StarterKit } from '@tiptap/starter-kit'
 import { common, createLowlight } from 'lowlight'
-import { onMounted, onUnmounted, shallowRef } from 'vue'
+import { onMounted, onUnmounted, shallowRef, watch } from 'vue'
 import { DEFAULT_DOC_CODE_LANGUAGE } from '../lib/codeBlockLanguages'
 import { createDocCodeBlockNodeView } from '../lib/codeBlockNodeView'
 
@@ -54,12 +54,14 @@ export function useDocEditor(
   ydoc: () => Doc,
   elementRef: Ref<HTMLElement | undefined>,
   _user: { id: string; name: string; color: string },
+  editable?: Ref<boolean>,
 ) {
   const editor = shallowRef<EditorType | null>(null)
 
   onMounted(() => {
     editor.value = new Editor({
       element: elementRef.value,
+      editable: editable?.value ?? true,
       extensions: [
         StarterKit.configure({
           codeBlock: false,
@@ -129,6 +131,12 @@ export function useDocEditor(
       },
     })
   })
+
+  if (editable) {
+    watch(editable, (value) => {
+      editor.value?.setEditable(value)
+    })
+  }
 
   onUnmounted(() => {
     editor.value?.destroy()

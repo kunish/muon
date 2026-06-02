@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import type { DocComment } from '../../types/doc';
+import { getClient } from '@matrix/client';
+import { Avatar } from '@muon/ui/avatar';
 import { CheckCircle2, MessageSquare, X } from 'lucide-vue-next';
 import { shallowRef } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useContactList } from '@/shared/composables/useContactList';
 
 defineProps<{
   comments: DocComment[];
@@ -13,6 +17,25 @@ const emit = defineEmits<{
   resolve: [commentId: string];
   close: [];
 }>();
+
+const { locale } = useI18n();
+const contactList = useContactList();
+
+function displayName(userId: string): string {
+  const contact = contactList.contacts.find((item) => item.userId === userId);
+  if (contact) return contact.displayName;
+  const profileName = getClient().getUser(userId)?.displayName;
+  return profileName || userId.split(':')[0]?.replace(/^@/, '') || userId;
+}
+
+function formatTime(ts: number): string {
+  return new Date(ts).toLocaleString(locale.value, {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
 
 const localDraft = shallowRef('');
 
@@ -41,11 +64,15 @@ function handleAdd(): void {
         class="mb-2 rounded-md border border-border bg-background p-2"
         :class="{ 'opacity-50': comment.resolved }"
       >
-        <div class="flex items-center justify-between">
-          <span class="text-[11px] font-semibold text-muted-foreground">{{ comment.userId }}</span>
+        <div class="flex items-center justify-between gap-2">
+          <span class="flex min-w-0 items-center gap-1.5">
+            <Avatar :alt="displayName(comment.userId)" :color-id="comment.userId" size="xs" />
+            <span class="truncate text-[11px] font-semibold">{{ displayName(comment.userId) }}</span>
+            <span class="shrink-0 text-[10px] text-muted-foreground">{{ formatTime(comment.createdAt) }}</span>
+          </span>
           <button
             v-if="!comment.resolved"
-            class="flex size-5 items-center justify-center rounded text-muted-foreground hover:text-green-600 dark:hover:text-green-400"
+            class="flex size-5 shrink-0 items-center justify-center rounded text-muted-foreground hover:text-green-600 dark:hover:text-green-400"
             @click="emit('resolve', comment.id)"
           >
             <CheckCircle2 :size="12" />
