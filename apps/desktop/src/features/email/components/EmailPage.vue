@@ -1,6 +1,18 @@
 <script setup lang="ts">
 import { useStorage } from '@vueuse/core';
-import { Archive, Inbox, Mail, PencilLine, RefreshCw, Reply, Search, Send, Settings, Star } from 'lucide-vue-next';
+import {
+  Archive,
+  Inbox,
+  Mail,
+  PencilLine,
+  RefreshCw,
+  Reply,
+  Search,
+  Send,
+  Settings,
+  Star,
+  Trash2,
+} from 'lucide-vue-next';
 import { computed, onMounted, ref, shallowRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
@@ -69,15 +81,22 @@ interface EmailMessage {
   to?: string;
 }
 
-/** Persisted per-message state so read/star/archive survive reloads. */
+/** Persisted per-message state so read/star/archive/trash survive reloads. */
 interface EmailOverride {
   read?: boolean;
   starred?: boolean;
   archived?: boolean;
+  trashed?: boolean;
 }
 
 const EMAIL_OVERRIDES_STORAGE_KEY = 'muon_email_overrides';
 const emailOverrides = useStorage<Record<string, EmailOverride>>(EMAIL_OVERRIDES_STORAGE_KEY, {});
+
+function overriddenFolder(message: EmailMessage, override: EmailOverride): string {
+  if (override.trashed) return 'trash';
+  if (override.archived) return 'archive';
+  return message.folder;
+}
 
 function applyEmailOverrides(list: EmailMessage[]): EmailMessage[] {
   return list.map((message) => {
@@ -87,7 +106,7 @@ function applyEmailOverrides(list: EmailMessage[]): EmailMessage[] {
       ...message,
       unread: override.read ? false : message.unread,
       starred: override.starred ?? message.starred,
-      folder: override.archived ? 'archive' : message.folder,
+      folder: overriddenFolder(message, override),
     };
   });
 }
@@ -104,6 +123,7 @@ const folderConfig = computed(() => [
   { id: 'starred', label: t('email.folder_starred'), icon: Star },
   { id: 'sent', label: t('email.folder_sent'), icon: Send },
   { id: 'archive', label: t('email.folder_archive'), icon: Archive },
+  { id: 'trash', label: t('email.folder_trash'), icon: Trash2 },
 ]);
 
 const messages = shallowRef<EmailMessage[]>(
@@ -324,6 +344,23 @@ function archiveSelectedMessage(): void {
   messageActionNotices.value = {
     ...messageActionNotices.value,
     [message.id]: t('email.notice_archived', { subject: message.subject }),
+  };
+}
+
+function deleteSelectedMessage(): void {
+  const message = selectedMessage.value;
+  if (!message) return;
+
+  messages.value = messages.value.map((item) =>
+    item.id === message.id ? { ...item, folder: 'trash', unread: false } : item,
+  );
+  activeFolder.value = 'trash';
+  searchQuery.value = '';
+  selectedMessageId.value = message.id;
+  setEmailOverride(message.id, { trashed: true, read: true });
+  messageActionNotices.value = {
+    ...messageActionNotices.value,
+    [message.id]: t('email.notice_trashed', { subject: message.subject }),
   };
 }
 
@@ -586,7 +623,7 @@ async function sendComposeDraft(): Promise<void> {
                   selectedReplyDraftSubject
                 }}</span>
               </div>
-              <div class="mt-3 grid gap-2 sm:grid-cols-3">
+              <div class="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
                 <button
                   data-testid="email-reply-selected"
                   class="flex h-8 items-center justify-center gap-1.5 rounded-md bg-primary px-2 text-[12px] font-semibold text-primary-foreground transition-opacity hover:opacity-90"
@@ -610,6 +647,14 @@ async function sendComposeDraft(): Promise<void> {
                 >
                   <Archive :size="14" />
                   <span>归档</span>
+                </button>
+                <button
+                  data-testid="email-delete-selected"
+                  class="flex h-8 items-center justify-center gap-1.5 rounded-md border border-destructive/40 px-2 text-[12px] font-semibold text-destructive transition-colors hover:bg-destructive/10"
+                  @click="deleteSelectedMessage"
+                >
+                  <Trash2 :size="14" />
+                  <span>删除</span>
                 </button>
               </div>
             </template>

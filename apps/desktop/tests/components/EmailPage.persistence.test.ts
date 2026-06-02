@@ -33,4 +33,20 @@ describe('email persistence', () => {
     const second = mount(EmailPage)
     expect(second.get('[data-testid="email-message-mail-1"]').find('.size-2.bg-primary').exists()).toBe(false)
   })
+
+  it('moves a message to trash and keeps it there across remounts', async () => {
+    const first = mount(EmailPage)
+    await first.get('[data-testid="email-message-mail-1"]').trigger('click')
+    await first.get('[data-testid="email-delete-selected"]').trigger('click')
+
+    const stored = JSON.parse(localStorage.getItem('muon_email_overrides') || '{}')
+    expect(stored['mail-1']).toMatchObject({ trashed: true })
+
+    const second = mount(EmailPage)
+    await second.get('[data-testid="email-folder-trash"]').trigger('click')
+    expect(second.find('[data-testid="email-message-mail-1"]').exists()).toBe(true)
+    // 已移入废件箱后不再出现在收件箱
+    await second.get('[data-testid="email-folder-inbox"]').trigger('click')
+    expect(second.find('[data-testid="email-message-mail-1"]').exists()).toBe(false)
+  })
 })
