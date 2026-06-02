@@ -33,6 +33,16 @@ export function getMyAvatarUrl(): string | undefined {
   return runDesktopSync(getMyAvatarUrlEffect())
 }
 
+/** 当前账号的 Matrix 用户 ID（@user:server），未登录时为空串 */
+export function getMyUserId(): string {
+  return getClient().getUserId() ?? ''
+}
+
+/** 当前账号所在的 homeserver 基础 URL */
+export function getMyHomeserver(): string {
+  return getClient().getHomeserverUrl() ?? ''
+}
+
 /** 修改 displayName */
 export function setMyDisplayNameEffect(name: string): DesktopEffect<void> {
   return fromPromise(() => getClient().setDisplayName(name))
@@ -55,13 +65,31 @@ export function setMyAvatar(file: File): Promise<void> {
   return runDesktopEffect(setMyAvatarEffect(file))
 }
 
-/** 设置当前用户的自定义状态（emoji + 文本） */
-export function setMyStatusEffect(statusMsg: string): DesktopEffect<void> {
-  return fromPromise(() => getClient().setPresence({ presence: 'online', status_msg: statusMsg }))
+/** 可设置的在线态（Matrix 原生仅支持这三种） */
+export type PresenceState = 'online' | 'unavailable' | 'offline'
+
+/** 设置当前用户的自定义状态（emoji + 文本）与在线态 */
+export function setMyStatusEffect(statusMsg: string, presence: PresenceState = 'online'): DesktopEffect<void> {
+  return fromPromise(() => getClient().setPresence({ presence, status_msg: statusMsg }))
 }
 
-export function setMyStatus(statusMsg: string): Promise<void> {
-  return runDesktopEffect(setMyStatusEffect(statusMsg))
+export function setMyStatus(statusMsg: string, presence: PresenceState = 'online'): Promise<void> {
+  return runDesktopEffect(setMyStatusEffect(statusMsg, presence))
+}
+
+/** 获取当前用户的在线态 */
+export function getMyPresenceEffect(): DesktopEffect<PresenceState> {
+  return fromSync(() => {
+    const client = getClient()
+    const userId = client.getUserId()
+    if (!userId) return 'offline'
+    const presence = client.getUser(userId)?.presence
+    return presence === 'online' || presence === 'unavailable' || presence === 'offline' ? presence : 'online'
+  })
+}
+
+export function getMyPresence(): PresenceState {
+  return runDesktopSync(getMyPresenceEffect())
 }
 
 /** 获取当前用户的自定义状态 */

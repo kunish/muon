@@ -1,18 +1,29 @@
 <script setup lang="ts">
-import { getMyAvatarUrl, getMyDisplayName, getMyStatus, setMyAvatar, setMyDisplayName } from '@matrix/index';
+import {
+  getMyAvatarUrl,
+  getMyDisplayName,
+  getMyHomeserver,
+  getMyStatus,
+  getMyUserId,
+  setMyAvatar,
+  setMyDisplayName,
+} from '@matrix/index';
 import { Avatar } from '@muon/ui/avatar';
 import { Input } from '@muon/ui/input';
 import { Label } from '@muon/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@muon/ui/popover';
-import { Camera, Check, Pencil, SmilePlus, X } from 'lucide-vue-next';
+import { Camera, Check, LogOut, Pencil, SmilePlus, X } from 'lucide-vue-next';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useRouter } from 'vue-router';
+import { signOut } from '@/auth/lifecycle';
 import { open } from '@/desktop/dialog';
 import { readFile } from '@/desktop/fs';
 import { useAuthMedia } from '@/shared/composables/useAuthMedia';
 import StatusPicker from './StatusPicker.vue';
 
 const { t } = useI18n();
+const router = useRouter();
 const displayName = ref(getMyDisplayName());
 const mxcAvatar = ref(getMyAvatarUrl());
 const avatarUrl = useAuthMedia(mxcAvatar, 96, 96);
@@ -21,6 +32,26 @@ const nameInput = ref('');
 const saving = ref(false);
 const currentStatus = ref(getMyStatus());
 const showStatusPicker = ref(false);
+const userId = getMyUserId();
+const homeserver = getMyHomeserver();
+const confirmingLogout = ref(false);
+const loggingOut = ref(false);
+
+async function handleLogout() {
+  // 二次确认，避免误触退出登录
+  if (!confirmingLogout.value) {
+    confirmingLogout.value = true;
+    return;
+  }
+  loggingOut.value = true;
+  try {
+    await signOut();
+    await router.replace('/login');
+  } finally {
+    loggingOut.value = false;
+    confirmingLogout.value = false;
+  }
+}
 
 function onStatusUpdated(status: string) {
   currentStatus.value = status;
@@ -148,6 +179,31 @@ async function changeAvatar() {
           <StatusPicker @close="showStatusPicker = false" @updated="onStatusUpdated" />
         </PopoverContent>
       </Popover>
+    </div>
+
+    <!-- 账号 -->
+    <div class="border-t border-border pt-6">
+      <Label class="text-sm font-medium text-muted-foreground mb-2 block">{{ t('settings.account') }}</Label>
+      <dl class="space-y-1.5 text-sm" data-testid="settings-account-info">
+        <div class="flex items-center gap-3">
+          <dt class="w-28 shrink-0 text-muted-foreground">{{ t('settings.user_id') }}</dt>
+          <dd class="truncate font-mono text-xs">{{ userId }}</dd>
+        </div>
+        <div class="flex items-center gap-3">
+          <dt class="w-28 shrink-0 text-muted-foreground">{{ t('auth.homeserver') }}</dt>
+          <dd class="truncate font-mono text-xs">{{ homeserver }}</dd>
+        </div>
+      </dl>
+      <button
+        type="button"
+        data-testid="settings-logout"
+        class="mt-4 inline-flex h-9 items-center gap-2 rounded-md border border-destructive/40 px-3 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10 disabled:opacity-50"
+        :disabled="loggingOut"
+        @click="handleLogout"
+      >
+        <LogOut :size="14" />
+        <span>{{ confirmingLogout ? t('settings.logout_confirm') : t('auth.logout') }}</span>
+      </button>
     </div>
   </div>
 </template>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { clearMyStatus, getMyStatus, setMyStatus } from '@matrix/index';
+import type { PresenceState } from '@matrix/index';
+import { clearMyStatus, getMyPresence, getMyStatus, setMyStatus } from '@matrix/index';
 import { X } from 'lucide-vue-next';
 import { onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -12,13 +13,20 @@ const emit = defineEmits<{
 const { t } = useI18n();
 
 const statusText = ref('');
+const presence = ref<PresenceState>('online');
 const saving = ref(false);
 const MAX_LENGTH = 100;
 
 const QUICK_EMOJIS = ['😊', '🎮', '📚', '🏖️', '💼', '🎵', '🏃', '☕', '🌙', '✈️'];
+// Matrix 原生在线态仅 online/unavailable/offline；勿扰属通知概念（见通知设置），不混入在线态
+const PRESENCE_OPTIONS: { value: PresenceState; labelKey: string; dot: string }[] = [
+  { value: 'online', labelKey: 'settings.presence_online', dot: 'bg-success' },
+  { value: 'unavailable', labelKey: 'settings.presence_away', dot: 'bg-warning' },
+];
 
 onMounted(() => {
   statusText.value = getMyStatus();
+  presence.value = getMyPresence();
 });
 
 function insertEmoji(emoji: string) {
@@ -31,7 +39,7 @@ async function saveStatus() {
   const text = statusText.value.trim();
   saving.value = true;
   try {
-    await setMyStatus(text);
+    await setMyStatus(text, presence.value);
     emit('updated', text);
     emit('close');
   } finally {
@@ -59,6 +67,26 @@ async function onClearStatus() {
       <span class="text-sm font-medium">{{ t('settings.status') }}</span>
       <button class="p-1 rounded-md hover:bg-accent text-muted-foreground" @click="emit('close')">
         <X :size="14" />
+      </button>
+    </div>
+
+    <!-- Presence -->
+    <div class="flex gap-1.5">
+      <button
+        v-for="option in PRESENCE_OPTIONS"
+        :key="option.value"
+        type="button"
+        :data-testid="`presence-${option.value}`"
+        class="flex flex-1 items-center justify-center gap-1.5 rounded-lg border px-2 py-1.5 text-xs font-medium transition-colors"
+        :class="
+          presence === option.value
+            ? 'border-primary bg-primary/10 text-foreground'
+            : 'border-border text-muted-foreground hover:bg-accent'
+        "
+        @click="presence = option.value"
+      >
+        <span class="size-2 rounded-full" :class="option.dot" />
+        {{ t(option.labelKey) }}
       </button>
     </div>
 

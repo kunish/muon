@@ -68,11 +68,15 @@ export {
   sendVideoMessage,
 } from './messages'
 export type { ReactionSummary, SystemEventInfo, TimelineRelationSummaries } from './messages'
+export type { PresenceState } from './profile'
 export {
   clearMyStatus,
   getMyAvatarUrl,
   getMyDisplayName,
+  getMyHomeserver,
+  getMyPresence,
   getMyStatus,
+  getMyUserId,
   getUserPresenceInfo,
   setMyAvatar,
   setMyDisplayName,
