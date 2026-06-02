@@ -1,10 +1,12 @@
-import type { WorkItem } from '../types'
+import type { MatrixEvent } from 'matrix-js-sdk'
+import type { ProjectSyncPayload, WorkItem } from '../types'
 import type { DesktopEffect } from '@/shared/lib/effect'
 import { Effect } from 'effect'
+import { RoomEvent } from 'matrix-js-sdk'
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { getClient } from '@/matrix/client'
-import { sendProjectSyncEvent } from '@/matrix/projects'
+import { isProjectSyncEvent, parseProjectSyncPayload, sendProjectSyncEvent } from '@/matrix/projects'
 import { fromPromise, fromSync, runDesktopEffect, runDesktopSync } from '@/shared/lib/effect'
 import { projectRepo } from '../db/projectDb'
 import { workItemSchema } from '../types'
@@ -226,6 +228,87 @@ export const useWorkItemStore = defineStore('workItems', () => {
     runDesktopSync(setCurrentProjectEffect(projectId))
   }
 
+  // --- 入站协同同步 (消费其他端发出的 muon.project.sync 事件) ---
+
+  function upsertLocal(projectId: string, item: WorkItem): void {
+    const list = itemsByProject.value[projectId]
+    if (!list) {
+      itemsByProject.value[projectId] = [item]
+      return
+    }
+    const idx = list.findIndex((i) => i.id === item.id)
+    if (idx === -1) list.push(item)
+    else list.splice(idx, 1, item)
+  }
+
+  function removeLocal(projectId: string, id: string): void {
+    const list = itemsByProject.value[projectId]
+    if (list) itemsByProject.value[projectId] = list.filter((i) => i.id !== id)
+  }
+
+  function applyRemoteSyncEffect(payload: ProjectSyncPayload): DesktopEffect<void> {
+    return Effect.gen(function* () {
+      const { projectId, data } = payload
+      switch (payload.type) {
+        case 'muon.project.workitem.create': {
+          if (!data.workItem) return
+          const item = workItemSchema.parse(data.workItem)
+          yield* fromPromise(() => projectRepo.saveWorkItem(item))
+          yield* fromSync(() => upsertLocal(item.projectId, item))
+          return
+        }
+        case 'muon.project.workitem.update': {
+          if (!data.workItemId || !data.changes) return
+          const updated = yield* fromPromise(() => projectRepo.updateWorkItem(data.workItemId!, data.changes!))
+          yield* fromSync(() => upsertLocal(updated.projectId, updated))
+          return
+        }
+        case 'muon.project.workitem.delete': {
+          if (!data.workItemId) return
+          yield* fromPromise(() => projectRepo.deleteWorkItem(data.workItemId!))
+          yield* fromSync(() => removeLocal(projectId, data.workItemId!))
+          return
+        }
+        case 'muon.project.workitem.reorder': {
+          if (!data.workItemId || data.newOrder == null || !data.statusColumn) return
+          const updated = yield* fromPromise(() =>
+            projectRepo.reorderWorkItem(data.workItemId!, data.newOrder!, data.statusColumn!),
+          )
+          yield* fromSync(() => upsertLocal(updated.projectId, updated))
+        }
+      }
+    })
+  }
+
+  function applyRemoteSync(payload: ProjectSyncPayload): void {
+    // 忽略自己发出的事件（本端已就地应用），避免回环重复写入
+    if (payload.sender && payload.sender === getClient().getUserId()) return
+    void runDesktopEffect(
+      applyRemoteSyncEffect(payload).pipe(
+        Effect.catchAll((err) => fromSync(() => console.error('[workItemStore] remote sync apply failed:', err))),
+      ),
+    )
+  }
+
+  let unsubscribeTimeline: (() => void) | null = null
+
+  function subscribeToRemoteSync(): void {
+    if (unsubscribeTimeline) return
+    const client = getClient()
+    const handler = (event: MatrixEvent): void => {
+      if (!isProjectSyncEvent(event)) return
+      const payload = parseProjectSyncPayload(event)
+      if (payload) applyRemoteSync(payload)
+    }
+    client.on(RoomEvent.Timeline, handler)
+    unsubscribeTimeline = () => client.off(RoomEvent.Timeline, handler)
+  }
+
+  function unsubscribeFromRemoteSync(): void {
+    unsubscribeTimeline?.()
+    unsubscribeTimeline = null
+  }
+
   return {
     itemsByProject,
     loading,
@@ -244,5 +327,8 @@ export const useWorkItemStore = defineStore('workItems', () => {
     deleteItem,
     reorderItem,
     setCurrentProject,
+    applyRemoteSync,
+    subscribeToRemoteSync,
+    unsubscribeFromRemoteSync,
   }
 })

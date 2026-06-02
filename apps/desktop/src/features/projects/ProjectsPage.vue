@@ -1,14 +1,20 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, onMounted, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
 import ProjectDetail from './components/ProjectDetail.vue';
 import ProjectList from './components/ProjectList.vue';
 import ProjectSettings from './components/ProjectSettings.vue';
+import { useWorkItemStore } from './composables/useWorkItemStore';
 
 const route = useRoute();
+const workItemStore = useWorkItemStore();
 
 const projectId = computed(() => route.params.projectId as string | undefined);
 const showSettings = computed(() => route.path.endsWith('/settings'));
+
+// 消费其他端通过 Matrix 广播的工作项变更，使协同真正生效
+onMounted(() => workItemStore.subscribeToRemoteSync());
+onUnmounted(() => workItemStore.unsubscribeFromRemoteSync());
 </script>
 
 <template>

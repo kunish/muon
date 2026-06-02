@@ -1,13 +1,20 @@
 <script setup lang="ts">
+import type { MatrixEvent } from 'matrix-js-sdk';
 import type { CustomField, Priority, Workflow, WorkItemType } from '../types';
+import type { WorkItemComment } from '@/matrix/projects';
+import { getClient } from '@matrix/client';
+import { Avatar } from '@muon/ui/avatar';
 import { Button } from '@muon/ui/button';
 import { Input } from '@muon/ui/input';
 import { Label } from '@muon/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@muon/ui/select';
 import { Textarea } from '@muon/ui/textarea';
 import { Trash2, X } from 'lucide-vue-next';
-import { computed, ref, watch } from 'vue';
+import { RoomEvent } from 'matrix-js-sdk';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { getWorkItemComments, isWorkItemCommentEvent, sendWorkItemComment } from '@/matrix/projects';
+import { useContactList } from '@/shared/composables/useContactList';
 import { useWorkflow } from '../composables/useWorkflow';
 import { useWorkItemStore } from '../composables/useWorkItemStore';
 import { projectRepo } from '../db/projectDb';
@@ -17,9 +24,61 @@ import WorkItemAssigneePicker from './WorkItemAssigneePicker.vue';
 const props = defineProps<{ itemId: string }>();
 const emit = defineEmits<{ close: [] }>();
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const store = useWorkItemStore();
+const contactList = useContactList();
 const item = computed(() => store.currentItems.find((i) => i.id === props.itemId));
+
+// ── 工作项评论（挂项目 Matrix 房间） ──
+const comments = ref<WorkItemComment[]>([]);
+const commentDraft = ref('');
+const sendingComment = ref(false);
+
+function loadComments(): void {
+  const current = item.value;
+  comments.value = current ? getWorkItemComments(current.projectId, current.id) : [];
+}
+
+async function postComment(): Promise<void> {
+  const current = item.value;
+  const body = commentDraft.value.trim();
+  if (!current || !body || sendingComment.value) return;
+  sendingComment.value = true;
+  try {
+    await sendWorkItemComment(current.projectId, current.id, body);
+    commentDraft.value = '';
+    loadComments();
+  } finally {
+    sendingComment.value = false;
+  }
+}
+
+function commentAuthor(userId: string): string {
+  const contact = contactList.contacts.find((c) => c.userId === userId);
+  if (contact) return contact.displayName;
+  return getClient().getUser(userId)?.displayName || userId.split(':')[0]?.replace(/^@/, '') || userId;
+}
+
+function formatCommentTime(ts: number): string {
+  return new Date(ts).toLocaleString(locale.value, {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+let unsubscribeComments: (() => void) | null = null;
+onMounted(() => {
+  contactList.ensureContactsLoaded();
+  const client = getClient();
+  const handler = (event: MatrixEvent): void => {
+    if (isWorkItemCommentEvent(event) && event.getRoomId() === item.value?.projectId) loadComments();
+  };
+  client.on(RoomEvent.Timeline, handler);
+  unsubscribeComments = () => client.off(RoomEvent.Timeline, handler);
+});
+onUnmounted(() => unsubscribeComments?.());
 
 interface AvailableTransition {
   toStatus: string;
@@ -40,8 +99,10 @@ watch(
     const current = item.value;
     if (!current) {
       customFields.value = [];
+      comments.value = [];
       return;
     }
+    loadComments();
     const wf = await loadWorkflow();
     availableTransitions.value = buildAvailableTransitions(wf, current.status);
     customFields.value = await projectRepo.listCustomFields(current.projectId);
@@ -343,6 +404,43 @@ function toggleMultiSelectCustomField(field: CustomField, option: string, checke
               @click="handleTransition(transition.toStatus)"
             >
               {{ transition.label }}
+            </Button>
+          </div>
+        </div>
+
+        <!-- Comments -->
+        <div class="grid gap-2 border-t pt-3">
+          <Label class="text-xs text-muted-foreground">{{ t('projects.comments') }}</Label>
+          <div v-if="comments.length === 0" class="text-xs text-muted-foreground">
+            {{ t('projects.no_comments') }}
+          </div>
+          <div
+            v-for="comment in comments"
+            :key="comment.id"
+            class="rounded-md border border-border bg-muted/30 p-2"
+            data-testid="project-task-comment"
+          >
+            <div class="flex items-center gap-1.5">
+              <Avatar :alt="commentAuthor(comment.sender)" :color-id="comment.sender" size="xs" />
+              <span class="truncate text-[11px] font-semibold">{{ commentAuthor(comment.sender) }}</span>
+              <span class="text-[10px] text-muted-foreground">{{ formatCommentTime(comment.ts) }}</span>
+            </div>
+            <p class="mt-1 whitespace-pre-wrap break-words text-[12px]">{{ comment.body }}</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <Input
+              v-model="commentDraft"
+              data-testid="project-task-comment-input"
+              :placeholder="t('projects.comment_placeholder')"
+              @keydown.enter="postComment()"
+            />
+            <Button
+              size="sm"
+              data-testid="project-task-comment-send"
+              :disabled="!commentDraft.trim() || sendingComment"
+              @click="postComment()"
+            >
+              {{ t('projects.post_comment') }}
             </Button>
           </div>
         </div>
