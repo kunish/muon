@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { CalendarEvent } from '../types/event';
+import type { CalendarEvent, EventRecurrence, RecurrenceFreq } from '../types/event';
 import {
   CalendarDays,
   ChevronLeft,
@@ -12,11 +12,13 @@ import {
   Trash2,
   Upload,
   Users,
+  Video,
 } from 'lucide-vue-next';
-import { computed, onMounted, ref, shallowRef } from 'vue';
+import { computed, onMounted, onUnmounted, ref, shallowRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
 import WorkspacePageFrame from '@/app/components/workspace/WorkspacePageFrame.vue';
+import { openUrl } from '@/desktop/opener';
 import GroupMemberPicker from '@/features/contacts/components/GroupMemberPicker.vue';
 import { projectRepo } from '@/features/projects/db/projectDb';
 import { useContactList } from '@/shared/composables/useContactList';
@@ -24,6 +26,7 @@ import { triggerBlobDownload } from '@/shared/lib/download';
 import { useCalendarSubscriptions } from '../composables/useCalendarSubscriptions';
 import { eventsToIcs, parseIcs } from '../lib/ics';
 import { useCalendarStore } from '../stores/calendarStore';
+import { expandRecurringEvents } from '../types/event';
 
 const { t } = useI18n();
 const contactList = useContactList();
@@ -238,6 +241,10 @@ const dayViewHours = computed(() => {
 // 用户事件由持久化的 calendarStore 提供（跨会话保留）；项目任务事件只读派生自 projectRepo。
 const projectTaskEvents = shallowRef<CalendarEvent[]>([]);
 
+// 提醒去重集合与定时器（声明在 onMounted 之前以满足 no-use-before-define）
+const firedReminders = new Set<string>();
+let reminderTimer: ReturnType<typeof setInterval> | null = null;
+
 onMounted(async () => {
   contactList.ensureContactsLoaded();
   void syncCalendarSubscriptions();
@@ -267,6 +274,13 @@ onMounted(async () => {
   } catch {
     /* Dexie unavailable */
   }
+
+  checkReminders();
+  reminderTimer = setInterval(checkReminders, 30_000);
+});
+
+onUnmounted(() => {
+  if (reminderTimer) clearInterval(reminderTimer);
 });
 
 function fmtDate(d: Date): string {
@@ -275,10 +289,19 @@ function fmtDate(d: Date): string {
 
 const allEvents = computed(() => [...calendarStore.events, ...projectTaskEvents.value]);
 
+// 把重复日程展开为可见范围（月视图 42 格覆盖周/日视图常见导航）内的具体实例
+const expandedEvents = computed(() => {
+  const cells = monthGrid.value;
+  if (cells.length === 0) return allEvents.value;
+  const rangeStart = fmtDate(cells[0].fullDate);
+  const rangeEnd = fmtDate(cells[cells.length - 1].fullDate);
+  return expandRecurringEvents(allEvents.value, rangeStart, rangeEnd);
+});
+
 // ── Events for a specific day ──
 function eventsForDay(date: Date): CalendarEvent[] {
   const key = fmtDate(date);
-  return allEvents.value.filter((e) => e.date === key);
+  return expandedEvents.value.filter((e) => e.date === key);
 }
 
 const selectedDayEvents = computed(() => eventsForDay(selectedDate.value));
@@ -298,6 +321,40 @@ const statMeetings = computed(() => allEvents.value.filter((e) => e.rsvpStatus !
 const statPending = computed(() => allEvents.value.filter((e) => e.rsvpStatus === '待回复').length);
 const statFocus = computed(() => allEvents.value.filter((e) => e.title.includes('专注')).length);
 
+// ── 冲突检测：同一天内时间区间相互重叠的日程数 ──
+function timeToMinutes(time: string): number {
+  const [hours, minutes] = time.split(':').map(Number);
+  return (hours || 0) * 60 + (minutes || 0);
+}
+
+const statConflicts = computed(() => {
+  const byDate = new Map<string, CalendarEvent[]>();
+  for (const event of allEvents.value) {
+    const list = byDate.get(event.date) ?? [];
+    list.push(event);
+    byDate.set(event.date, list);
+  }
+
+  const conflicting = new Set<string>();
+  for (const list of byDate.values()) {
+    if (list.length < 2) continue;
+    const spans = list.map((event) => {
+      const start = timeToMinutes(event.time);
+      const end = event.endTime ? timeToMinutes(event.endTime) : start + 60;
+      return { id: event.id, start, end: Math.max(end, start) };
+    });
+    for (let i = 0; i < spans.length; i += 1) {
+      for (let j = i + 1; j < spans.length; j += 1) {
+        if (spans[i].start < spans[j].end && spans[j].start < spans[i].end) {
+          conflicting.add(spans[i].id);
+          conflicting.add(spans[j].id);
+        }
+      }
+    }
+  }
+  return conflicting.size;
+});
+
 // ── Select day ──
 function selectDay(date: Date) {
   selectedDate.value = date;
@@ -306,13 +363,34 @@ function selectDay(date: Date) {
 
 // ── Event editor ──
 const showEventEditor = ref(false);
+type RecurrenceChoice = 'none' | RecurrenceFreq;
+
 const eventDraft = ref({
   title: '',
   date: '',
   time: '',
   endTime: '',
   participantIds: [] as string[],
+  location: '',
+  meetingUrl: '',
+  recurrence: 'none' as RecurrenceChoice,
+  reminderMinutes: 0,
 });
+
+const recurrenceOptions: { value: RecurrenceChoice; labelKey: string }[] = [
+  { value: 'none', labelKey: 'calendar.repeat_none' },
+  { value: 'daily', labelKey: 'calendar.repeat_daily' },
+  { value: 'weekly', labelKey: 'calendar.repeat_weekly' },
+  { value: 'monthly', labelKey: 'calendar.repeat_monthly' },
+];
+
+const reminderOptions: { value: number; labelKey: string }[] = [
+  { value: 0, labelKey: 'calendar.reminder_none' },
+  { value: 5, labelKey: 'calendar.reminder_5' },
+  { value: 15, labelKey: 'calendar.reminder_15' },
+  { value: 30, labelKey: 'calendar.reminder_30' },
+  { value: 60, labelKey: 'calendar.reminder_60' },
+];
 
 function openNewEvent() {
   eventDraft.value = {
@@ -321,6 +399,10 @@ function openNewEvent() {
     time: '09:00',
     endTime: '10:00',
     participantIds: [],
+    location: '',
+    meetingUrl: '',
+    recurrence: 'none',
+    reminderMinutes: 0,
   };
   showEventEditor.value = true;
 }
@@ -334,15 +416,50 @@ function saveNewEvent() {
           .join('、')
       : '我';
 
+  const recurrence: EventRecurrence | undefined =
+    eventDraft.value.recurrence === 'none' ? undefined : { freq: eventDraft.value.recurrence };
+
   calendarStore.addEvent({
     title: eventDraft.value.title,
     date: eventDraft.value.date,
     time: eventDraft.value.time,
     endTime: eventDraft.value.endTime || undefined,
     participants,
+    location: eventDraft.value.location,
+    meetingUrl: eventDraft.value.meetingUrl,
+    recurrence,
+    reminderMinutes: eventDraft.value.reminderMinutes > 0 ? eventDraft.value.reminderMinutes : undefined,
   });
 
   showEventEditor.value = false;
+}
+
+// ── 一键入会 ──
+async function joinMeeting(event: CalendarEvent) {
+  if (!event.meetingUrl) return;
+  await openUrl(event.meetingUrl);
+}
+
+// ── 日程提醒（应用打开时，开会前 N 分钟桌面提醒；按发生实例去重） ──
+function checkReminders(): void {
+  const NotificationCtor = globalThis.Notification;
+  if (typeof NotificationCtor !== 'function' || NotificationCtor.permission !== 'granted') return;
+
+  const now = Date.now();
+  const todayKey = fmtDate(new Date(now));
+  const tomorrowKey = fmtDate(new Date(now + 24 * 60 * 60 * 1000));
+  for (const occurrence of expandRecurringEvents(allEvents.value, todayKey, tomorrowKey)) {
+    if (!occurrence.reminderMinutes) continue;
+    const start = new Date(`${occurrence.date}T${occurrence.time}:00`).getTime();
+    if (Number.isNaN(start)) continue;
+    const remindAt = start - occurrence.reminderMinutes * 60_000;
+    const key = `${occurrence.id}::${occurrence.date}::${occurrence.time}`;
+    if (now >= remindAt && now < start && !firedReminders.has(key)) {
+      firedReminders.add(key);
+      const detail = occurrence.location ? `${occurrence.time} · ${occurrence.location}` : occurrence.time;
+      void new NotificationCtor(occurrence.title, { body: t('calendar.reminder_body', { detail }), tag: key });
+    }
+  }
 }
 
 // ── RSVP actions ──
@@ -569,10 +686,10 @@ function colorBg(color: string): string {
           {{ t('calendar.stat_conflicts') }}
         </div>
         <div class="mt-3 text-2xl font-semibold leading-8">
-          {{ statPending }}
+          {{ statConflicts }}
         </div>
         <p class="mt-1 text-[13px] text-muted-foreground">
-          {{ t('calendar.stat_conflicts_hint', { count: statPending }) }}
+          {{ t('calendar.stat_conflicts_hint', { count: statConflicts }) }}
         </p>
       </div>
     </div>
@@ -707,9 +824,19 @@ function colorBg(color: string): string {
             </div>
             <div class="flex items-center gap-1.5">
               <MapPin :size="12" />
-              <span>{{ selectedEvent.rsvpStatus }}</span>
+              <span data-testid="event-detail-location">{{ selectedEvent.location || t('calendar.no_location') }}</span>
             </div>
           </div>
+
+          <button
+            v-if="selectedEvent.meetingUrl"
+            data-testid="event-join-meeting"
+            class="mt-3 flex h-9 w-full items-center justify-center gap-2 rounded-md bg-primary px-3 text-[12px] font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+            @click="joinMeeting(selectedEvent)"
+          >
+            <Video :size="14" />
+            <span>{{ t('calendar.join_meeting') }}</span>
+          </button>
 
           <div class="mt-3 flex gap-2">
             <button
@@ -890,6 +1017,46 @@ function colorBg(color: string): string {
               />
             </div>
             <GroupMemberPicker v-model="eventDraft.participantIds" label="参与人" />
+            <input
+              v-model="eventDraft.location"
+              data-testid="event-location-input"
+              type="text"
+              :placeholder="t('calendar.location_placeholder')"
+              class="h-9 rounded-md border border-border bg-background px-3 text-[13px] text-foreground outline-none focus:border-primary"
+            />
+            <input
+              v-model="eventDraft.meetingUrl"
+              data-testid="event-meeting-url-input"
+              type="url"
+              :placeholder="t('calendar.meeting_url_placeholder')"
+              class="h-9 rounded-md border border-border bg-background px-3 text-[13px] text-foreground outline-none focus:border-primary"
+            />
+            <div class="grid grid-cols-2 gap-2">
+              <label class="grid gap-1 text-[11px] text-muted-foreground">
+                {{ t('calendar.repeat_label') }}
+                <select
+                  v-model="eventDraft.recurrence"
+                  data-testid="event-recurrence-select"
+                  class="h-9 rounded-md border border-border bg-background px-2 text-[13px] text-foreground outline-none focus:border-primary"
+                >
+                  <option v-for="option in recurrenceOptions" :key="option.value" :value="option.value">
+                    {{ t(option.labelKey) }}
+                  </option>
+                </select>
+              </label>
+              <label class="grid gap-1 text-[11px] text-muted-foreground">
+                {{ t('calendar.reminder_label') }}
+                <select
+                  v-model.number="eventDraft.reminderMinutes"
+                  data-testid="event-reminder-select"
+                  class="h-9 rounded-md border border-border bg-background px-2 text-[13px] text-foreground outline-none focus:border-primary"
+                >
+                  <option v-for="option in reminderOptions" :key="option.value" :value="option.value">
+                    {{ t(option.labelKey) }}
+                  </option>
+                </select>
+              </label>
+            </div>
             <div class="flex justify-end gap-2 pt-1">
               <button
                 class="h-8 rounded-md border border-border px-4 text-[13px] font-medium text-foreground transition-colors hover:bg-accent"

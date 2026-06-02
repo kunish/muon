@@ -1,4 +1,4 @@
-import type { CalendarEvent } from '../types/event'
+import type { CalendarEvent, EventRecurrence } from '../types/event'
 import type { DesktopEffect } from '@/shared/lib/effect'
 import { Effect } from 'effect'
 import { defineStore } from 'pinia'
@@ -26,6 +26,10 @@ interface AddEventInput {
   color?: string
   description?: string
   rsvpStatus?: string
+  meetingUrl?: string
+  location?: string
+  recurrence?: EventRecurrence
+  reminderMinutes?: number
   now?: number
 }
 
@@ -100,6 +104,10 @@ export const useCalendarStore = defineStore('calendar', () => {
       color: input.color || 'blue',
       description: input.description?.trim() || undefined,
       rsvpStatus: input.rsvpStatus || '已创建',
+      meetingUrl: input.meetingUrl?.trim() || undefined,
+      location: input.location?.trim() || undefined,
+      recurrence: input.recurrence,
+      reminderMinutes: input.reminderMinutes,
     }
 
     if (!isValidCalendarEvent(event)) throw new Error('Invalid calendar event')
