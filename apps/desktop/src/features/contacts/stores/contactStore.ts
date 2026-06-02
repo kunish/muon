@@ -1,8 +1,11 @@
 import type { DesktopEffect } from '@/shared/lib/effect'
 import { getClient } from '@matrix/client'
+import { Effect } from 'effect'
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import { fromSync, runDesktopEffect } from '@/shared/lib/effect'
+import { fromSync, runDesktopEffect, runDesktopSync } from '@/shared/lib/effect'
+
+const CONTACT_PROFILES_STORAGE_KEY = 'muon.contacts.profiles.v1'
 
 export interface Contact {
   userId: string
@@ -36,10 +39,51 @@ function isSystemContact(userId: string): boolean {
   return userId.startsWith('@conduit:')
 }
 
+interface PersistedContactProfiles {
+  version: 1
+  profiles: Record<string, ContactProfileState>
+}
+
+function isValidContactProfile(value: unknown): value is ContactProfileState {
+  if (!value || typeof value !== 'object') return false
+  const candidate = value as Partial<ContactProfileState>
+  return (
+    typeof candidate.isBlocked === 'boolean' &&
+    typeof candidate.isFavorite === 'boolean' &&
+    typeof candidate.note === 'string' &&
+    typeof candidate.tag === 'string'
+  )
+}
+
+function loadProfilesEffect(): DesktopEffect<Record<string, ContactProfileState>> {
+  return fromSync(() => {
+    const raw = localStorage.getItem(CONTACT_PROFILES_STORAGE_KEY)
+    if (!raw) return {}
+    const parsed = JSON.parse(raw) as Partial<PersistedContactProfiles>
+    if (parsed.version !== 1 || !parsed.profiles || typeof parsed.profiles !== 'object') return {}
+    const result: Record<string, ContactProfileState> = {}
+    for (const [userId, profile] of Object.entries(parsed.profiles)) {
+      if (isValidContactProfile(profile)) result[userId] = profile
+    }
+    return result
+  }).pipe(Effect.catchAll(() => Effect.succeed({})))
+}
+
+function persistProfilesEffect(profiles: Record<string, ContactProfileState>): DesktopEffect<void> {
+  const payload: PersistedContactProfiles = { version: 1, profiles }
+  return fromSync(() => localStorage.setItem(CONTACT_PROFILES_STORAGE_KEY, JSON.stringify(payload))).pipe(
+    Effect.catchAll((err) => fromSync(() => console.warn('[contactStore] Failed to persist profiles:', err))),
+  )
+}
+
 export const useContactStore = defineStore('contacts', () => {
   const contacts = ref<Contact[]>([])
-  const contactProfiles = ref<Record<string, ContactProfileState>>({})
+  const contactProfiles = ref<Record<string, ContactProfileState>>(runDesktopSync(loadProfilesEffect()))
   const groups = ref<GroupInfo[]>([])
+
+  function persistProfiles(): void {
+    runDesktopSync(persistProfilesEffect(contactProfiles.value))
+  }
   const searchQuery = ref('')
   const selectedContactId = ref<string | null>(null)
 
@@ -109,6 +153,7 @@ export const useContactStore = defineStore('contacts', () => {
       ...contactProfiles.value[userId],
       ...patch,
     }
+    persistProfiles()
   }
 
   function toggleContactFavorite(userId: string): void {

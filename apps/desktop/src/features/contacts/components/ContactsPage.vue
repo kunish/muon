@@ -2,7 +2,7 @@
 import type { CallMode } from '@matrix/index';
 import { findOrCreateDm } from '@matrix/index';
 import { useRoomNavigation } from '@shared/composables/useRoomNavigation';
-import { Plus } from 'lucide-vue-next';
+import { Plus, UserPlus } from 'lucide-vue-next';
 import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
@@ -11,6 +11,7 @@ import WorkspaceResizablePane from '@/app/components/workspace/WorkspaceResizabl
 import { useCallStore } from '@/features/calls/stores/callStore';
 import { useConversations } from '../../chat/composables/useConversations';
 import { useContactStore } from '../stores/contactStore';
+import AddContactDialog from './AddContactDialog.vue';
 import ContactList from './ContactList.vue';
 import CreateGroupDialog from './CreateGroupDialog.vue';
 import GroupSettings from './GroupSettings.vue';
@@ -24,6 +25,7 @@ const callStore = useCallStore();
 const { restoreRoom } = useConversations();
 
 const showCreateGroup = ref(false);
+const showAddContact = ref(false);
 const selectedGroupId = ref<string | null>(null);
 
 const CONTACTS_WIDTH_STORAGE_KEY = 'muon_contacts_sidebar_width';
@@ -45,6 +47,12 @@ function handleSelectContact(userId: string): void {
 function handleGroupCreated(roomId: string): void {
   showCreateGroup.value = false;
   selectedGroupId.value = roomId;
+}
+
+async function handleContactAdded(userId: string): Promise<void> {
+  showAddContact.value = false;
+  await store.loadContacts();
+  handleSelectContact(userId);
 }
 
 function handleSelectGroup(roomId: string): void {
@@ -106,13 +114,23 @@ async function handleStartContactCall(userId: string, mode: CallMode): Promise<v
             </h1>
             <p class="mt-1 text-[13px] text-muted-foreground">Directory &amp; Organization</p>
           </div>
-          <button
-            class="rounded-md p-1.5 text-primary transition-colors hover:bg-sidebar-accent"
-            :title="t('contacts.create_group')"
-            @click="showCreateGroup = true"
-          >
-            <Plus :size="16" />
-          </button>
+          <div class="flex items-center gap-1">
+            <button
+              class="rounded-md p-1.5 text-primary transition-colors hover:bg-sidebar-accent"
+              :title="t('contacts.add_contact')"
+              data-testid="contacts-add-contact"
+              @click="showAddContact = true"
+            >
+              <UserPlus :size="16" />
+            </button>
+            <button
+              class="rounded-md p-1.5 text-primary transition-colors hover:bg-sidebar-accent"
+              :title="t('contacts.create_group')"
+              @click="showCreateGroup = true"
+            >
+              <Plus :size="16" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -148,5 +166,6 @@ async function handleStartContactCall(userId: string, mode: CallMode): Promise<v
     </section>
 
     <CreateGroupDialog v-if="showCreateGroup" @close="showCreateGroup = false" @created="handleGroupCreated" />
+    <AddContactDialog v-if="showAddContact" @close="showAddContact = false" @added="handleContactAdded" />
   </div>
 </template>

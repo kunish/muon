@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import type { Contact } from '../stores/contactStore';
 import { Avatar } from '@muon/ui/avatar';
 import { SearchBox } from '@muon/ui/search-box';
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useContactStore } from '../stores/contactStore';
 import ContactItem from './ContactItem.vue';
@@ -18,6 +20,22 @@ const emit = defineEmits<{
 const { t } = useI18n();
 const store = useContactStore();
 
+const UNTAGGED = '__untagged__';
+
+// 按标签分组联系人；无标签的归在默认「联系人」分组下，标签组按名称排序、默认组置底
+const contactGroups = computed<{ tag: string; label: string; contacts: Contact[] }[]>(() => {
+  const buckets = new Map<string, Contact[]>();
+  for (const contact of store.filteredContacts) {
+    const tag = store.contactProfileFor(contact.userId).tag.trim() || UNTAGGED;
+    const list = buckets.get(tag) ?? [];
+    list.push(contact);
+    buckets.set(tag, list);
+  }
+  return [...buckets.entries()]
+    .sort(([a], [b]) => (a === UNTAGGED ? 1 : b === UNTAGGED ? -1 : a.localeCompare(b)))
+    .map(([tag, contacts]) => ({ tag, label: tag === UNTAGGED ? t('contacts.contacts') : tag, contacts }));
+});
+
 function handleSelectContact(userId: string): void {
   store.selectedContactId = userId;
   emit('select', userId);
@@ -34,12 +52,17 @@ function handleSelectContact(userId: string): void {
       />
     </div>
     <div data-testid="contacts-list-scroll-container" class="min-h-0 flex-1 overflow-y-auto px-2 pb-3">
-      <section v-if="store.filteredContacts.length > 0" class="space-y-0.5">
+      <section
+        v-for="group in contactGroups"
+        :key="group.tag"
+        class="space-y-0.5"
+        :data-testid="`contacts-tag-group-${group.tag}`"
+      >
         <div class="px-2 pb-1 pt-1 text-[11px] font-bold uppercase leading-4 tracking-[0.05em] text-muted-foreground">
-          {{ t('contacts.contacts') }}
+          {{ group.label }}
         </div>
         <ContactItem
-          v-for="contact in store.filteredContacts"
+          v-for="contact in group.contacts"
           :key="contact.userId"
           :contact="contact"
           :selected="store.selectedContactId === contact.userId"
