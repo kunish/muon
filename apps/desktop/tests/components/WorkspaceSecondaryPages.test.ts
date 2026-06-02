@@ -115,6 +115,8 @@ describe('workspace secondary pages', () => {
     localStorage.removeItem('muon_call_history')
     localStorage.removeItem('muon_mail_account')
     localStorage.removeItem('muon_calendar_subscriptions')
+    localStorage.removeItem('muon.workplace.customization.v1')
+    localStorage.removeItem('muon.contacts.profiles.v1')
     mockRouteParams.mockReset()
     mockRouteParams.mockReturnValue({})
     routerPush.mockReset()
