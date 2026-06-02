@@ -1,21 +1,20 @@
+import type {
+  ApprovalDecisionContract,
+  ApprovalRecordContract,
+  ApprovalStatusContract,
+  ApprovalTemplate,
+  CreateApprovalRequest,
+} from '@muon/enterprise-contracts'
 import { fetch as desktopFetch } from '@/desktop/http'
 import { getClient } from '@/matrix/client'
 
 const API_BASE = import.meta.env.VITE_MUON_API_BASE_URL as string | undefined
 
-export type BackendApprovalStatus = 'pending' | 'approved' | 'rejected'
-export type BackendApprovalDecision = 'approved' | 'rejected'
-
-export interface BackendApproval {
-  id: string
-  title: string
-  requester: string
-  stages: string[]
-  currentStageIndex: number
-  status: BackendApprovalStatus
-  handler: string
-  comments: string[]
-}
+// 单一契约来源：与 apps/api 共用 @muon/enterprise-contracts 的审批类型
+export type BackendApprovalStatus = ApprovalStatusContract
+export type BackendApprovalDecision = ApprovalDecisionContract
+export type BackendApproval = ApprovalRecordContract
+export type { ApprovalTemplate, CreateApprovalRequest }
 
 function accessToken(): string {
   return getClient().getAccessToken() ?? ''
@@ -38,6 +37,19 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
 
 export async function fetchApprovals(): Promise<BackendApproval[]> {
   return (await requestJson<{ approvals: BackendApproval[] }>('/api/approvals')).approvals
+}
+
+export async function fetchApprovalTemplates(): Promise<ApprovalTemplate[]> {
+  return (await requestJson<{ templates: ApprovalTemplate[] }>('/api/approvals/templates')).templates
+}
+
+export async function createApproval(input: CreateApprovalRequest): Promise<BackendApproval> {
+  return (
+    await requestJson<{ approval: BackendApproval }>('/api/approvals', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    })
+  ).approval
 }
 
 export async function decideApproval(id: string, decision: BackendApprovalDecision): Promise<BackendApproval> {

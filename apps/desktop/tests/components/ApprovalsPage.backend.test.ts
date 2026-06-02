@@ -6,6 +6,8 @@ import ApprovalsPage from '@/features/approvals/components/ApprovalsPage.vue'
 const api = vi.hoisted(() => ({
   isApprovalsBackendConfigured: vi.fn(() => true),
   fetchApprovals: vi.fn(),
+  fetchApprovalTemplates: vi.fn(),
+  createApproval: vi.fn(),
   decideApproval: vi.fn(),
   transferApproval: vi.fn(),
   commentApproval: vi.fn(),

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { BackendApproval } from '@/features/approvals/lib/approvalsApi';
+import type { ApprovalTemplate, BackendApproval } from '@/features/approvals/lib/approvalsApi';
 import { useStorage } from '@vueuse/core';
 import { CheckSquare, Clock3, FileCheck2, Plus, ShieldCheck, XCircle } from 'lucide-vue-next';
 import { computed, onMounted, ref, shallowRef, watch } from 'vue';
@@ -7,8 +7,10 @@ import { useI18n } from 'vue-i18n';
 import WorkspacePageFrame from '@/app/components/workspace/WorkspacePageFrame.vue';
 import {
   commentApproval,
+  createApproval,
   decideApproval,
   fetchApprovals,
+  fetchApprovalTemplates,
   isApprovalsBackendConfigured,
   transferApproval,
 } from '@/features/approvals/lib/approvalsApi';
@@ -34,6 +36,33 @@ const requestDraftDue = shallowRef('刚刚');
 const transferPickerOpen = shallowRef(false);
 const transferMemberIds = ref<string[]>([]);
 
+// ── 审批模板 + 结构化表单（后端模式） ──
+const templates = ref<ApprovalTemplate[]>([]);
+const selectedTemplateId = shallowRef('');
+const formData = ref<Record<string, string>>({});
+
+const selectedTemplate = computed(() => templates.value.find((tpl) => tpl.id === selectedTemplateId.value));
+
+function onSelectTemplate(): void {
+  const template = selectedTemplate.value;
+  formData.value = {};
+  if (template) {
+    for (const field of template.fields) formData.value[field.key] = '';
+    if (!requestDraftTitle.value.trim() || requestDraftTitle.value === t('approvals.default_request_title')) {
+      requestDraftTitle.value = template.name;
+    }
+  }
+}
+
+async function loadApprovalTemplates(): Promise<void> {
+  try {
+    const loaded = await fetchApprovalTemplates();
+    templates.value = Array.isArray(loaded) ? loaded : [];
+  } catch {
+    templates.value = [];
+  }
+}
+
 const approvalQueues = [
   { id: 'pending', label: t('approvals.queue_pending'), hint: t('approvals.queue_pending_hint'), icon: Clock3 },
   { id: 'approved', label: t('approvals.queue_approved'), hint: t('approvals.queue_approved_hint'), icon: CheckSquare },
@@ -57,6 +86,8 @@ interface ApprovalRequest {
   comments: string[];
   /** 顺序审批链：逐级通过，最后一级通过后整体通过 */
   stages: string[];
+  /** 结构化表单数据（来自模板） */
+  formData?: Record<string, unknown>;
 }
 
 type ApprovalDecision = 'approved' | 'rejected';
@@ -178,6 +209,13 @@ const filteredRequests = computed(() => requests.value.filter((request) => reque
 const selectedRequest = computed(
   () => filteredRequests.value.find((request) => request.id === selectedRequestId.value) ?? filteredRequests.value[0],
 );
+const selectedFormEntries = computed<[string, string][]>(() => {
+  const data = selectedRequest.value?.formData;
+  if (!data) return [];
+  return Object.entries(data)
+    .filter(([, value]) => value != null && String(value).trim() !== '')
+    .map(([key, value]) => [key, String(value)]);
+});
 const selectedRequestDecisionNotice = computed(() => {
   const request = selectedRequest.value;
   if (!request) return t('approvals.waiting_notice');
@@ -210,6 +248,7 @@ function mapBackendApproval(approval: BackendApproval): ApprovalRequest {
     currentHandler: approval.handler,
     comments: approval.comments,
     stages: approval.stages,
+    formData: approval.formData,
   };
 }
 
@@ -233,7 +272,10 @@ async function loadBackendApprovals(): Promise<void> {
 
 onMounted(() => {
   contactList.ensureContactsLoaded();
-  if (backendMode) void loadBackendApprovals();
+  if (backendMode) {
+    void loadBackendApprovals();
+    void loadApprovalTemplates();
+  }
 });
 
 watch(requestDraftRequesterIds, (ids) => {
@@ -258,6 +300,10 @@ function createRequest(): void {
   requestDraftRequester.value = requester;
   requestDraftRequesterIds.value = [];
   requestDraftDue.value = due;
+  selectedTemplateId.value = '';
+  formData.value = {};
+  // 后端模式下不做本地乐观行，新建行以后端返回（含真实 id）为准
+  if (backendMode) return;
   requests.value = [
     {
       id: requestId,
@@ -419,13 +465,41 @@ async function transferSelectedRequest(): Promise<void> {
   closeTransferPicker();
 }
 
-function saveDraftRequest(): void {
+async function saveDraftRequest(): Promise<void> {
   if (!requestEditorOpen.value) return;
 
   const requestId = requestDraftId.value;
   const title = requestDraftTitle.value.trim() || t('approvals.default_request_title');
   const requester = requestDraftRequester.value.trim() || t('approvals.default_requester');
   const due = requestDraftDue.value.trim() || t('calls.call_just_now');
+
+  // 后端模式：真实创建并落库，以后端返回为准
+  if (backendMode) {
+    requestEditorOpen.value = true;
+    const template = selectedTemplate.value;
+    const trimmedForm = Object.fromEntries(
+      Object.entries(formData.value).filter(([, value]) => String(value).trim() !== ''),
+    );
+    try {
+      const created = await createApproval({
+        title,
+        requester,
+        ...(template ? { templateId: template.id } : { stages: [t('approvals.status_manager')] }),
+        ...(Object.keys(trimmedForm).length > 0 ? { formData: trimmedForm } : {}),
+      });
+      const mapped = mapBackendApproval(created);
+      requests.value = [mapped, ...requests.value.filter((item) => item.id !== created.id)];
+      setApprovalOverride(created.id, { stageIndex: created.currentStageIndex });
+      selectedRequestId.value = created.id;
+      activeQueue.value = created.status;
+      setDecisionNotice(created.id, t('approvals.created_notice', { title }));
+    } catch {
+      setDecisionNotice(requestId, t('approvals.update_failed'));
+    } finally {
+      requestEditorOpen.value = false;
+    }
+    return;
+  }
 
   requests.value = requests.value.map((item) =>
     item.id === requestId
@@ -548,6 +622,54 @@ function saveDraftRequest(): void {
             {{ t('approvals.save_request') }}
           </button>
         </div>
+
+        <!-- 审批模板 + 结构化表单（后端模式） -->
+        <div v-if="backendMode && templates.length > 0" class="mt-3 grid gap-2">
+          <label class="grid gap-1 text-[12px] font-semibold text-muted-foreground">
+            {{ t('approvals.template_label') }}
+            <select
+              v-model="selectedTemplateId"
+              data-testid="approvals-template-select"
+              class="h-8 rounded-md border border-border bg-background px-2 text-[12px] text-foreground outline-none focus:border-primary"
+              @change="onSelectTemplate"
+            >
+              <option value="">{{ t('approvals.template_none') }}</option>
+              <option v-for="template in templates" :key="template.id" :value="template.id">{{ template.name }}</option>
+            </select>
+          </label>
+          <div v-if="selectedTemplate" class="grid gap-2 rounded-lg border border-border p-3 md:grid-cols-2">
+            <label
+              v-for="field in selectedTemplate.fields"
+              :key="field.key"
+              class="grid gap-1 text-[11px] font-semibold text-muted-foreground"
+            >
+              {{ field.label }}<span v-if="field.required" class="text-destructive">*</span>
+              <textarea
+                v-if="field.type === 'textarea'"
+                v-model="formData[field.key]"
+                :data-testid="`approvals-form-${field.key}`"
+                :rows="2"
+                class="rounded-md border border-border bg-background px-2 py-1 text-[12px] text-foreground outline-none focus:border-primary"
+              />
+              <select
+                v-else-if="field.type === 'select'"
+                v-model="formData[field.key]"
+                :data-testid="`approvals-form-${field.key}`"
+                class="h-8 rounded-md border border-border bg-background px-2 text-[12px] text-foreground outline-none focus:border-primary"
+              >
+                <option value="">{{ t('approvals.field_empty') }}</option>
+                <option v-for="option in field.options" :key="option" :value="option">{{ option }}</option>
+              </select>
+              <input
+                v-else
+                v-model="formData[field.key]"
+                :data-testid="`approvals-form-${field.key}`"
+                :type="field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : 'text'"
+                class="h-8 rounded-md border border-border bg-background px-2 text-[12px] text-foreground outline-none focus:border-primary"
+              />
+            </label>
+          </div>
+        </div>
       </div>
       <div v-if="selectedRequest" class="border-t border-border px-4 py-3">
         <!-- 审批链：逐级流转 -->
@@ -568,6 +690,16 @@ function saveDraftRequest(): void {
             <span v-if="index < selectedRequest.stages.length - 1" class="text-[11px] text-muted-foreground">→</span>
           </template>
         </div>
+        <dl
+          v-if="selectedFormEntries.length > 0"
+          class="mb-3 grid gap-1 rounded-lg border border-border p-3 text-[12px]"
+          data-testid="approvals-form-detail"
+        >
+          <div v-for="[key, value] in selectedFormEntries" :key="key" class="flex gap-2">
+            <dt class="shrink-0 font-semibold text-muted-foreground">{{ key }}</dt>
+            <dd class="min-w-0 break-words">{{ value }}</dd>
+          </div>
+        </dl>
         <div class="flex flex-wrap items-center justify-between gap-3">
           <span class="grid gap-1 text-[12px] font-semibold text-muted-foreground">
             <span>{{ selectedRequestDecisionNotice }}</span>
