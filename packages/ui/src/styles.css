@@ -1,6 +1,16 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
+/*
+ * Scan this UI library's own components so consumers (desktop/admin/storybook)
+ * generate utility classes that only appear here — e.g. the reka CSS-variable
+ * widths/heights used by Select/Dialog. Without this, Tailwind v4 auto-detection
+ * (rooted at the consumer app) skips packages/ui/src (resolved via node_modules).
+ * @source paths are relative to this stylesheet.
+ */
+@source './components';
+@source './composables';
+
 @import './tokens/colors.css';
 @import './tokens/typography.css';
 @import './tokens/spacing.css';
