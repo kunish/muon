@@ -542,6 +542,11 @@ export function isMessageStarred(roomId: string, eventId: string): boolean {
   return runDesktopSync(isMessageStarredEffect(roomId, eventId))
 }
 
+/** 获取当前用户的所有收藏消息 (跨房间)，供收藏面板按房间过滤渲染 */
+export function getStarredMessages(): { roomId: string; eventId: string }[] {
+  return runDesktopSync(getStarredMessagesEffect())
+}
+
 // --- 语音频道状态 (im.muon.voice_channel) ---
 
 /** 设置房间的语音频道状态 */

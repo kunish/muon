@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { MatrixEvent } from 'matrix-js-sdk';
 import { getClient } from '@matrix/client';
+import { getStarredMessages } from '@matrix/rooms';
 import { Star, X } from 'lucide-vue-next';
 import { onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -24,11 +25,20 @@ onMounted(async () => {
     const client = getClient();
     const room = client.getRoom(props.roomId);
     if (!room) return;
+    // 收藏的真实来源是 im.muon.starred account data（跨房间），按当前房间过滤后
+    // 与已加载的时间线求交集；不主动拉取未加载事件，避免在 E2EE 房间渲染未解密原文。
+    const starredIds = new Set(
+      getStarredMessages()
+        .filter((s) => s.roomId === props.roomId)
+        .map((s) => s.eventId),
+    );
     const events = room.getLiveTimeline().getEvents();
-    starred.value = events.filter((e) => {
-      const tags = e.getContent()?.['m.tags'] as Record<string, unknown> | undefined;
-      return tags?.['m.favourite'] !== undefined;
-    });
+    starred.value = events
+      .filter((e) => {
+        const id = e.getId();
+        return id !== undefined && starredIds.has(id);
+      })
+      .reverse();
   } finally {
     loading.value = false;
   }

@@ -36,6 +36,7 @@ import { useMediaViewer } from '../composables/useMediaViewer';
 import { useMention } from '../composables/useMention';
 import { useTyping } from '../composables/useTyping';
 import { useChatStore } from '../stores/chatStore';
+import { useScheduledMessageStore } from '../stores/scheduledMessageStore';
 import AttachmentMenu from './AttachmentMenu.vue';
 import ContactCardPicker from './ContactCardPicker.vue';
 import ExpressionPicker from './ExpressionPicker.vue';
@@ -455,7 +456,11 @@ function markComposeChanged() {
   composeVersion.value += 1;
 }
 
-async function submitComposer(html: string, text: string, options?: { silent?: boolean }): Promise<boolean> {
+async function submitComposer(
+  html: string,
+  text: string,
+  options?: { silent?: boolean; urgent?: boolean },
+): Promise<boolean> {
   const hasText = text.trim().length > 0;
   if (!hasText && !hasPendingPasteAttachments.value) return false;
 
@@ -518,7 +523,11 @@ async function submitComposer(html: string, text: string, options?: { silent?: b
   return true;
 }
 
-async function handleSend(html: string, text: string, options?: { silent?: boolean }): Promise<boolean> {
+async function handleSend(
+  html: string,
+  text: string,
+  options?: { silent?: boolean; urgent?: boolean },
+): Promise<boolean> {
   const roomId = store.currentRoomId;
   if (!roomId || !text.trim()) return false;
   if (sendInFlight.value) return false;
@@ -564,7 +573,7 @@ async function sendTextContent(
   text: string,
   editingEvent: typeof store.editingEvent,
   replyingTo: typeof store.replyingTo,
-  options?: { silent?: boolean },
+  options?: { silent?: boolean; urgent?: boolean },
 ): Promise<{ ok: boolean; sentPlainText: boolean }> {
   try {
     if (editingEvent) {
@@ -609,7 +618,7 @@ function createSubmitPayload(html: string, text: string) {
   };
 }
 
-async function submitEditor(options?: { silent?: boolean }) {
+async function submitEditor(options?: { silent?: boolean; urgent?: boolean }) {
   const html = editor.value?.getHTML() || '';
   const text = editor.value?.getText() || '';
   const payload = createSubmitPayload(html, text);
@@ -620,6 +629,43 @@ async function submitEditor(options?: { silent?: boolean }) {
 
 function submitEditorSilent() {
   void submitEditor({ silent: true });
+}
+
+function submitEditorUrgent() {
+  void submitEditor({ urgent: true });
+}
+
+// ── 定时发送（客户端待发队列，到点由 useScheduledMessageFlush 发送） ──
+const scheduledStore = useScheduledMessageStore();
+const showSchedulePicker = ref(false);
+const scheduleAt = ref('');
+
+function toLocalDateTimeValue(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function openSchedulePicker() {
+  scheduleAt.value = toLocalDateTimeValue(new Date(Date.now() + 60 * 60 * 1000));
+  showSchedulePicker.value = true;
+}
+
+function confirmSchedule() {
+  const html = editor.value?.getHTML() || '';
+  const text = editor.value?.getText() || '';
+  const payload = createSubmitPayload(html, text);
+  const sendAt = new Date(scheduleAt.value).getTime();
+  if (!store.currentRoomId || !payload.text.trim() || !Number.isFinite(sendAt)) return;
+  if (sendAt <= Date.now()) {
+    toast.error(t('chat.schedule_past'));
+    return;
+  }
+  scheduledStore.schedule({ roomId: store.currentRoomId, body: payload.text, html: payload.html, sendAt });
+  clear();
+  stopTyping();
+  store.clearCompose();
+  showSchedulePicker.value = false;
+  toast.success(t('chat.scheduled_toast'));
 }
 
 function toggleStickerPicker() {
@@ -1500,8 +1546,44 @@ onUnmounted(() => {
             <DropdownMenuItem data-testid="expanded-send-silent" @click="submitEditorSilent">
               {{ t('chat.send_silent') }}
             </DropdownMenuItem>
+            <DropdownMenuItem data-testid="expanded-send-urgent" @click="submitEditorUrgent">
+              {{ t('chat.send_urgent') }}
+            </DropdownMenuItem>
+            <DropdownMenuItem data-testid="expanded-send-scheduled" @click="openSchedulePicker">
+              {{ t('chat.send_scheduled') }}
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        <div
+          v-if="showSchedulePicker"
+          class="absolute bottom-12 right-2 z-50 w-64 rounded-md border border-border bg-popover p-3 shadow-lg"
+          data-testid="schedule-picker"
+        >
+          <label class="mb-1 block text-[11px] font-medium text-muted-foreground">{{
+            t('chat.schedule_at_label')
+          }}</label>
+          <input
+            v-model="scheduleAt"
+            data-testid="schedule-at-input"
+            type="datetime-local"
+            class="h-8 w-full rounded-md border border-border bg-background px-2 text-xs outline-none focus:border-primary"
+          />
+          <div class="mt-2 flex justify-end gap-2">
+            <button
+              class="h-7 rounded-md px-2 text-xs text-muted-foreground hover:bg-accent"
+              @click="showSchedulePicker = false"
+            >
+              {{ t('common.cancel') }}
+            </button>
+            <button
+              data-testid="schedule-confirm"
+              class="h-7 rounded-md bg-primary px-2 text-xs font-semibold text-primary-foreground hover:opacity-90"
+              @click="confirmSchedule"
+            >
+              {{ t('chat.schedule_confirm') }}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 

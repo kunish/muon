@@ -2,6 +2,7 @@
 import { watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useNotificationSound } from '../composables/useNotificationSound';
+import { useScheduledMessageFlush } from '../composables/useScheduledMessageFlush';
 import { useChatStore } from '../stores/chatStore';
 import ChatWindow from './ChatWindow.vue';
 import EmptyState from './EmptyState.vue';
@@ -11,6 +12,8 @@ const store = useChatStore();
 
 // 启用消息通知提示音
 useNotificationSound();
+// 到点发送已排程的定时消息
+useScheduledMessageFlush();
 
 watch(
   () => (route.params.roomId || route.params.channelId) as string | undefined,

@@ -41,6 +41,16 @@ function emitMessage(roomId = '!other:localhost', sender = '@alice:localhost', b
   })
 }
 
+function emitUrgentMessage(roomId = '!other:localhost', sender = '@alice:localhost', body = 'deploy now') {
+  matrixEvents.emit('room.message', {
+    roomId,
+    event: {
+      getContent: () => ({ body, 'xyz.muon.urgent': true }),
+      getSender: () => sender,
+    } as MatrixEvent,
+  })
+}
+
 describe('useNotificationSound', () => {
   beforeEach(() => {
     localStorage.clear()
@@ -90,6 +100,22 @@ describe('useNotificationSound', () => {
     emitMessage()
 
     expect(playNotificationSound).not.toHaveBeenCalled()
+    wrapper.unmount()
+  })
+
+  it('forces urgent (DING) message sounds through do-not-disturb windows', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date(2026, 4, 4, 22, 30))
+    const settings = useSettingsStore()
+    settings.dndStart = '22:00'
+    settings.dndEnd = '08:00'
+    const wrapper = mount(createHost())
+
+    emitMessage()
+    expect(playNotificationSound).not.toHaveBeenCalled()
+
+    emitUrgentMessage()
+    expect(playNotificationSound).toHaveBeenCalledTimes(1)
     wrapper.unmount()
   })
 

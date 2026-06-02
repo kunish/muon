@@ -131,6 +131,7 @@ const isRedacted = computed(() => {
 const msgtype = computed(() => props.event.getContent()?.msgtype);
 const body = computed(() => props.event.getContent()?.body || '');
 const isTextMessage = computed(() => msgtype.value === 'm.text' || msgtype.value === 'm.notice');
+const isUrgent = computed(() => props.event.getContent()?.['xyz.muon.urgent'] === true);
 
 const myUserId = computed(() => getClient().getUserId() || '');
 const isMine = computed(() => !!sender.value && sender.value === myUserId.value);
@@ -795,6 +796,14 @@ onUnmounted(() => {
         {{ t('chat.message_deleted') }}
       </div>
       <template v-else>
+        <span
+          v-if="isUrgent"
+          data-testid="message-urgent-badge"
+          class="mb-1 inline-flex w-fit items-center gap-1 rounded-full bg-destructive/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-destructive"
+          :class="isRightAligned ? 'self-end' : ''"
+        >
+          {{ t('chat.urgent_badge') }}
+        </span>
         <div v-if="isSticker" class="py-1">
           <div
             v-if="isImageSticker"

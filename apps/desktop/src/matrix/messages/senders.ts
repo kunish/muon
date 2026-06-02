@@ -26,6 +26,8 @@ interface MatrixTextContent {
   // sound; others fall back to normal notifying behavior. Track stabilization at
   // https://github.com/matrix-org/matrix-spec-proposals/pull/4019.
   'org.matrix.msc4019.silent'?: true
+  // 加急/DING（飞书风格）：识别该标记的客户端强制提醒（绕过免打扰/静音）并显示加急横幅。
+  'xyz.muon.urgent'?: true
 }
 
 /**
@@ -52,6 +54,7 @@ function convertMentionsToMatrix(html: string): { html: string; userIds: string[
 
 export interface SendTextOptions {
   silent?: boolean
+  urgent?: boolean
 }
 
 export function sendTextMessageEffect(
@@ -78,6 +81,7 @@ export function sendTextMessage(
 
 function createTextMessageContent(body: string, html?: string, options?: SendTextOptions): MatrixTextContent {
   const silentTag = options?.silent ? ({ 'org.matrix.msc4019.silent': true } as const) : null
+  const urgentTag = options?.urgent ? ({ 'xyz.muon.urgent': true } as const) : null
   if (html && !isPlainEditorHtml(html, body)) {
     const { html: matrixHtml, userIds, room } = convertMentionsToMatrix(html)
     const formattedBody = sanitizeMatrixHtml(matrixHtml)
@@ -92,10 +96,11 @@ function createTextMessageContent(body: string, html?: string, options?: SendTex
       // 添加 m.mentions 用于通知被提及的用户 / @所有人 (room)
       ...(userIds.length > 0 || room ? { 'm.mentions': mentions } : {}),
       ...(silentTag ?? {}),
+      ...(urgentTag ?? {}),
     }
   }
 
-  return { msgtype: MsgType.Text, body, ...(silentTag ?? {}) }
+  return { msgtype: MsgType.Text, body, ...(silentTag ?? {}), ...(urgentTag ?? {}) }
 }
 
 function isPlainEditorHtml(html: string, body: string): boolean {

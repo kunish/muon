@@ -62,12 +62,19 @@ export function useNotificationSound() {
     void notification
   }
 
+  function isUrgentEvent(event: MatrixEvent): boolean {
+    return event.getContent()?.['xyz.muon.urgent'] === true
+  }
+
   function shouldHandleMessageNotification(payload: { roomId: string; event: MatrixEvent }): boolean {
     if (!settingsStore.notificationsEnabled) return false
 
     if (settingsStore.notificationChannels.messages === false) return false
 
-    if (isWithinDoNotDisturb(settingsStore.dndStart, settingsStore.dndEnd)) return false
+    // 加急/DING 消息强制提醒：绕过免打扰时段与房间免打扰
+    const urgent = isUrgentEvent(payload.event)
+
+    if (!urgent && isWithinDoNotDisturb(settingsStore.dndStart, settingsStore.dndEnd)) return false
 
     const client = getClient()
     const myUserId = client.getUserId()
@@ -78,8 +85,8 @@ export function useNotificationSound() {
     // 当前正在查看的房间不播放提示音
     if (payload.roomId === store.currentRoomId) return false
 
-    // 免打扰的房间不播放
-    if (store.isMuted(payload.roomId)) return false
+    // 免打扰的房间不播放（加急消息除外）
+    if (!urgent && store.isMuted(payload.roomId)) return false
 
     return true
   }
