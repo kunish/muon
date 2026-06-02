@@ -36,6 +36,8 @@ export interface CallHistoryEntry {
   outcome: CallOutcome
   durationSec: number
   endedAt: number
+  /** 云录制回放 URL（仅当本次通话进行了云录制时存在） */
+  recordingUrl?: string
 }
 
 const CALL_HISTORY_STORAGE_KEY = 'muon_call_history'
@@ -65,6 +67,7 @@ export const useCallStore = defineStore('call', () => {
   const isScreenSharing = ref(false)
   const isRecording = ref(false)
   const recordingEgressId = ref<string | null>(null)
+  const recordingUrl = ref<string | null>(null)
   const direction = ref<CallDirection>('outgoing')
   const startedAt = ref<number | null>(null)
 
@@ -84,6 +87,7 @@ export const useCallStore = defineStore('call', () => {
       outcome,
       durationSec,
       endedAt: Date.now(),
+      ...(recordingUrl.value ? { recordingUrl: recordingUrl.value } : {}),
     }
     callHistory.value = [entry, ...callHistory.value].slice(0, CALL_HISTORY_LIMIT)
   }
@@ -100,6 +104,7 @@ export const useCallStore = defineStore('call', () => {
     isScreenSharing.value = false
     isRecording.value = false
     recordingEgressId.value = null
+    recordingUrl.value = null
     startedAt.value = null
   }
 
@@ -225,8 +230,9 @@ export const useCallStore = defineStore('call', () => {
     // 配置了应用自带录制后端时,优先用云录制(LiveKit Egress → 对象存储)
     if (isRecordingBackendConfigured() && callId.value) {
       try {
-        const { egressId } = await startCloudRecording(callId.value)
+        const { egressId, fileUrl } = await startCloudRecording(callId.value)
         recordingEgressId.value = egressId
+        recordingUrl.value = fileUrl ?? null
         isRecording.value = true
         return
       } catch {

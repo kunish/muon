@@ -4,7 +4,7 @@ import { readFile, writeFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { join } from 'node:path'
 import process from 'node:process'
-import { app, BrowserWindow, dialog, ipcMain, net, safeStorage, shell } from 'electron'
+import { app, BrowserWindow, desktopCapturer, dialog, ipcMain, net, safeStorage, shell } from 'electron'
 import {
   ENTERPRISE_AUTH_CALLBACK_CHANNEL,
   extractEnterpriseAuthCallbackUrl,
@@ -561,6 +561,22 @@ function createMainWindow(): void {
     })
     return { action: 'deny' }
   })
+
+  // 屏幕共享：getDisplayMedia 在 Electron 中需主进程提供源；优先用系统原生选择器
+  // （macOS 等支持），否则回退到首个屏幕源，避免打包后屏共静默失效。
+  mainWindow.webContents.session.setDisplayMediaRequestHandler(
+    (_request, callback) => {
+      desktopCapturer
+        .getSources({ types: ['screen', 'window'] })
+        .then((sources) => {
+          const primary = sources[0]
+          if (primary) callback({ video: primary })
+          else callback({})
+        })
+        .catch(() => callback({}))
+    },
+    { useSystemPicker: true },
+  )
 
   // Defense-in-depth CSP: ensure script-src and object-src cannot be relaxed
   // even if the HTML meta tag is somehow removed or bypassed.

@@ -8,11 +8,13 @@ import { useCallStore } from '@/features/calls/stores/callStore'
 const media = vi.hoisted(() => ({
   localVideoTrack: { value: null as unknown },
   remoteVideos: { value: [] as Array<{ id: string; identity: string; track: unknown }> },
+  callParticipants: { value: [] as Array<Record<string, unknown>> },
 }))
 
 vi.mock('@/features/calls/lib/callMedia', () => ({
   localVideoTrack: media.localVideoTrack,
   remoteVideos: media.remoteVideos,
+  callParticipants: media.callParticipants,
   connectCallRoom: vi.fn().mockResolvedValue(undefined),
   disconnectCallRoom: vi.fn().mockResolvedValue(undefined),
   setCallMicEnabled: vi.fn().mockResolvedValue(undefined),
@@ -35,6 +37,7 @@ describe('call window', () => {
     setActivePinia(createPinia())
     media.localVideoTrack.value = null
     media.remoteVideos.value = []
+    media.callParticipants.value = []
   })
 
   it('stays hidden for an audio call', () => {

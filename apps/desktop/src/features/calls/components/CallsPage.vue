@@ -5,6 +5,7 @@ import { Mic, Phone, PhoneIncoming, PhoneMissed, PhoneOutgoing, Plus, Video } fr
 import { computed, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import WorkspacePageFrame from '@/app/components/workspace/WorkspacePageFrame.vue';
+import { openUrl } from '@/desktop/opener';
 import GroupMemberPicker from '@/features/contacts/components/GroupMemberPicker.vue';
 import { useCallStore } from '../stores/callStore';
 
@@ -97,6 +98,10 @@ function entryDirectionLabel(entry: (typeof history.value)[number]): string {
 
 function entryModeLabel(entry: (typeof history.value)[number]): string {
   return entry.mode === 'video' ? t('calls.video_call_type') : t('calls.audio_call_type');
+}
+
+function openRecording(url: string): void {
+  void openUrl(url);
 }
 
 function formatDuration(seconds: number): string {
@@ -218,6 +223,15 @@ onMounted(() => {
               <span class="block truncate text-[13px] font-semibold">{{ entry.peerName }}</span>
               <span class="mt-1 block truncate text-[12px] text-muted-foreground">
                 {{ entryDirectionLabel(entry) }} · {{ entryModeLabel(entry) }}
+                <button
+                  v-if="entry.recordingUrl"
+                  type="button"
+                  :data-testid="`calls-record-playback-${entry.id}`"
+                  class="ml-1 font-semibold text-primary hover:underline"
+                  @click="openRecording(entry.recordingUrl)"
+                >
+                  · {{ t('calls.play_recording') }}
+                </button>
               </span>
             </span>
           </span>

@@ -13,6 +13,15 @@ export interface RemoteVideoFeed {
   track: RemoteVideoTrack
 }
 
+export interface CallParticipant {
+  identity: string
+  name: string
+  isLocal: boolean
+  isMuted: boolean
+  isSpeaking: boolean
+  isCameraEnabled: boolean
+}
+
 // 模块级单例：同一时间只维持一个通话媒体连接
 let room: Room | null = null
 const attachedAudio = new Map<string, HTMLMediaElement>()
@@ -26,6 +35,24 @@ let recordingContext: AudioContext | null = null
 export const localVideoTrack = shallowRef<LocalVideoTrack | null>(null)
 /** 远端视频轨道列表，供通话窗口渲染对端画面 */
 export const remoteVideos = shallowRef<RemoteVideoFeed[]>([])
+/** 通话参与者名单（本地 + 远端），供通话窗口渲染成员列表与静音状态 */
+export const callParticipants = shallowRef<CallParticipant[]>([])
+
+function refreshParticipants(): void {
+  if (!room) {
+    callParticipants.value = []
+    return
+  }
+  const all: Participant[] = [room.localParticipant, ...room.remoteParticipants.values()]
+  callParticipants.value = all.map((participant) => ({
+    identity: participant.identity,
+    name: participant.name || participant.identity,
+    isLocal: participant === room!.localParticipant,
+    isMuted: !participant.isMicrophoneEnabled,
+    isSpeaking: participant.isSpeaking,
+    isCameraEnabled: participant.isCameraEnabled,
+  }))
+}
 
 function attachRemoteAudio(track: RemoteTrack) {
   const el = track.attach()
@@ -57,6 +84,7 @@ function clearMedia() {
   attachedAudio.clear()
   localVideoTrack.value = null
   remoteVideos.value = []
+  callParticipants.value = []
 }
 
 /** 连接到通话的 LiveKit 房间并发布本地媒体（音频始终发布，视频按模式发布） */
@@ -74,6 +102,15 @@ export async function connectCallRoom(livekitRoom: string, mode: CallMode = 'aud
   })
   next.on(livekit.RoomEvent.TrackUnsubscribed, (track) => removeRemoteTrack(track))
 
+  // 成员名单与静音/在讲状态随房间事件刷新
+  next.on(livekit.RoomEvent.ParticipantConnected, refreshParticipants)
+  next.on(livekit.RoomEvent.ParticipantDisconnected, refreshParticipants)
+  next.on(livekit.RoomEvent.TrackMuted, refreshParticipants)
+  next.on(livekit.RoomEvent.TrackUnmuted, refreshParticipants)
+  next.on(livekit.RoomEvent.ActiveSpeakersChanged, refreshParticipants)
+  next.on(livekit.RoomEvent.LocalTrackPublished, refreshParticipants)
+  next.on(livekit.RoomEvent.LocalTrackUnpublished, refreshParticipants)
+
   const client = getClient()
   const identity = client.getUserId() || 'local'
   const profile = client.getUser(identity)
@@ -88,15 +125,18 @@ export async function connectCallRoom(livekitRoom: string, mode: CallMode = 'aud
   if (mode === 'video') {
     await setCallCameraEnabled(true)
   }
+  refreshParticipants()
 }
 
 export async function setCallMicEnabled(enabled: boolean): Promise<void> {
   await room?.localParticipant.setMicrophoneEnabled(enabled)
+  refreshParticipants()
 }
 
 export async function setCallCameraEnabled(enabled: boolean): Promise<void> {
   const publication = await room?.localParticipant.setCameraEnabled(enabled)
   localVideoTrack.value = enabled ? (publication?.videoTrack ?? null) : null
+  refreshParticipants()
 }
 
 export async function setCallScreenShareEnabled(enabled: boolean): Promise<void> {

@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import type { LocalVideoTrack, RemoteVideoTrack } from 'livekit-client';
-import { Circle, Disc, Mic, MicOff, MonitorOff, MonitorUp, PhoneOff, Video, VideoOff } from 'lucide-vue-next';
+import { Circle, Disc, Mic, MicOff, MonitorOff, MonitorUp, PhoneOff, Users, Video, VideoOff } from 'lucide-vue-next';
 import { computed, onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { localVideoTrack, remoteVideos } from '../lib/callMedia';
+import { callParticipants, localVideoTrack, remoteVideos } from '../lib/callMedia';
 import { useCallStore } from '../stores/callStore';
 import CallVideoTile from './CallVideoTile.vue';
 
@@ -12,6 +12,8 @@ const { t } = useI18n();
 
 const isVideoActive = computed(() => call.isActive && call.mode === 'video');
 const hasRemote = computed(() => remoteVideos.value.length > 0);
+const showRoster = ref(false);
+const participants = computed(() => callParticipants.value);
 
 interface CallTile {
   key: string;
@@ -137,6 +139,31 @@ const statusLabel = computed(() => {
         >
           {{ t('calls.waiting_peer') }}
         </div>
+
+        <!-- 参与者名单 -->
+        <div
+          v-if="showRoster"
+          class="absolute right-3 top-14 z-20 w-60 overflow-hidden rounded-lg border border-white/10 bg-neutral-900/95 shadow-xl"
+          data-testid="call-roster"
+        >
+          <div class="flex items-center justify-between border-b border-white/10 px-3 py-2 text-xs font-semibold">
+            <span>{{ t('calls.participants_label', { count: participants.length }) }}</span>
+          </div>
+          <ul class="max-h-72 overflow-y-auto py-1">
+            <li
+              v-for="participant in participants"
+              :key="participant.identity"
+              class="flex items-center gap-2 px-3 py-1.5 text-xs"
+            >
+              <span class="size-1.5 rounded-full" :class="participant.isSpeaking ? 'bg-green-400' : 'bg-white/30'" />
+              <span class="min-w-0 flex-1 truncate">
+                {{ participant.name }}
+                <span v-if="participant.isLocal" class="text-neutral-400">（{{ t('calls.you_label') }}）</span>
+              </span>
+              <component :is="participant.isMuted ? MicOff : Mic" :size="13" class="shrink-0 text-neutral-400" />
+            </li>
+          </ul>
+        </div>
       </div>
 
       <!-- 控制条 -->
@@ -174,6 +201,15 @@ const statusLabel = computed(() => {
           @click="call.toggleRecording()"
         >
           <component :is="call.isRecording ? Disc : Circle" :size="20" />
+        </button>
+        <button
+          class="flex size-12 items-center justify-center rounded-full transition-colors"
+          :class="showRoster ? 'bg-primary hover:bg-primary/90' : 'bg-white/10 hover:bg-white/20'"
+          :title="t('calls.participants_label', { count: participants.length })"
+          data-testid="call-window-roster"
+          @click="showRoster = !showRoster"
+        >
+          <Users :size="20" />
         </button>
         <button
           class="flex size-12 items-center justify-center rounded-full bg-destructive transition-opacity hover:opacity-90"

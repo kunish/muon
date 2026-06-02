@@ -16,14 +16,14 @@ function authHeaders(): Record<string, string> {
   return { authorization: `Bearer ${accessToken()}`, 'content-type': 'application/json' }
 }
 
-export async function startCloudRecording(roomName: string): Promise<{ egressId: string }> {
+export async function startCloudRecording(roomName: string): Promise<{ egressId: string; fileUrl?: string }> {
   const response = await desktopFetch(`${API_BASE}/api/recordings/start`, {
     method: 'POST',
     headers: authHeaders(),
     body: JSON.stringify({ roomName }),
   })
   if (!response.ok) throw new Error(`start recording failed: ${response.status}`)
-  return (await response.json()) as { egressId: string }
+  return (await response.json()) as { egressId: string; fileUrl?: string }
 }
 
 export async function stopCloudRecording(egressId: string): Promise<void> {
