@@ -20,13 +20,26 @@ function render() {
   }
 }
 
-watch([enabled, () => props.text], () => {
-  if (overlayRef.value) {
-    if (enabled.value) {
-      applyWatermark(overlayRef.value, props.text);
-    } else {
-      removeWatermark(overlayRef.value);
+// flush: 'post' 确保在 v-if 挂载/卸载完成后再读取 overlayRef，
+// 否则启用瞬间 overlayRef 仍为 null，水印不会绘制
+watch(
+  [enabled, () => props.text],
+  () => {
+    if (overlayRef.value) {
+      if (enabled.value) {
+        applyWatermark(overlayRef.value, props.text);
+      } else {
+        removeWatermark(overlayRef.value);
+      }
     }
+  },
+  { flush: 'post' },
+);
+
+// 元素刚挂载（启用）时重新绘制一次
+watch(overlayRef, (el) => {
+  if (el && enabled.value) {
+    applyWatermark(el, props.text);
   }
 });
 

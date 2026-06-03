@@ -6,7 +6,7 @@ import WorkItemDetail from '../WorkItemDetail.vue';
 
 defineProps<{ projectId: string }>();
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const store = useWorkItemStore();
 const monthsBack = ref(1);
 const monthsForward = ref(3);
@@ -51,7 +51,7 @@ const dayLabels = computed(() => {
   for (const d of range.value.days) {
     const key = `${d.getFullYear()}-${d.getMonth()}`;
     if (key !== lastKey) {
-      result.push({ label: `${d.getMonth() + 1}月`, span: months.get(key)! });
+      result.push({ label: d.toLocaleDateString(locale.value, { month: 'short' }), span: months.get(key)! });
       lastKey = key;
     }
   }

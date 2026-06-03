@@ -6,6 +6,10 @@ import DocsPage from '@/features/docs/components/DocsPage.vue'
 const routeParams = vi.hoisted(() => vi.fn(() => ({})))
 const routerPush = vi.hoisted(() => vi.fn())
 
+vi.mock('@/desktop/dialog', () => ({
+  ask: vi.fn().mockResolvedValue(true),
+}))
+
 vi.mock('vue-router', () => ({
   useRoute: () => ({
     params: routeParams(),
@@ -92,6 +96,8 @@ function mountDocsPage() {
 
 describe('docsPage navigation', () => {
   beforeEach(() => {
+    // 重置持久化的文档元数据覆盖，避免重命名等用例污染后续用例
+    localStorage.clear()
     routeParams.mockReturnValue({})
     routerPush.mockReset()
   })

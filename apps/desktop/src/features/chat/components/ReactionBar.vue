@@ -12,6 +12,7 @@ import { Smile } from 'lucide-vue-next';
 import { computed, nextTick, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
+import { QUICK_REACTION_EMOJIS } from '../lib/reactions';
 
 const props = defineProps<{
   eventId: string;
@@ -21,7 +22,7 @@ const props = defineProps<{
 
 const { t } = useI18n();
 
-const QUICK_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🎉', '🔥', '👏'];
+const QUICK_EMOJIS = QUICK_REACTION_EMOJIS;
 
 const reactions = computed(() => props.reactions ?? getReactions(props.roomId, props.eventId));
 

@@ -323,6 +323,7 @@ function startRoomCall(mode: CallMode) {
     </div>
     <div v-if="showAddTabMenu" class="fixed inset-0 z-20" @click="showAddTabMenu = false" />
 
+    <div v-if="showDisappearing && currentRoomId" class="fixed inset-0 z-20" @click="showDisappearing = false" />
     <DisappearingMessageSettings
       v-if="showDisappearing && currentRoomId"
       :room-id="currentRoomId"

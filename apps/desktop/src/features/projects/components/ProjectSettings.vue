@@ -85,7 +85,9 @@ async function saveGeneralSettings() {
         :class="activeTab === tab ? 'border-primary text-primary' : 'border-transparent text-muted-foreground'"
         @click="activeTab = tab"
       >
-        {{ tab === 'general' ? t('common.edit') : t(`projects.${tab === 'workflow' ? 'workflow' : 'custom_fields'}`) }}
+        {{
+          tab === 'general' ? t('settings.general') : t(`projects.${tab === 'workflow' ? 'workflow' : 'custom_fields'}`)
+        }}
       </button>
     </div>
 

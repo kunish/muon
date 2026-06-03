@@ -5,7 +5,7 @@ import { useClipboard } from '@vueuse/core';
 import { Copy } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
-import { safeJsonStringify } from '@/shared/lib/utils';
+import { buildRawEventJson } from '../lib/rawEventJson';
 
 const props = defineProps<{
   event: MatrixEvent;
@@ -19,28 +19,7 @@ const { t } = useI18n();
 const { copy } = useClipboard();
 
 function getEventContent(): string {
-  const parts: string[] = [];
-
-  const addField = (key: string, getter: () => unknown) => {
-    try {
-      const val = getter();
-      parts.push(`  "${key}": ${safeJsonStringify(val)}`);
-    } catch (e) {
-      parts.push(`  "${key}": "[Error: ${e instanceof Error ? e.message : 'unknown'}]"`);
-    }
-  };
-
-  addField('event_id', () => props.event.getId());
-  addField('type', () => props.event.getType());
-  addField('sender', () => props.event.getSender());
-  addField('room_id', () => props.event.getRoomId());
-  addField('state_key', () => props.event.getStateKey());
-  addField('origin_server_ts', () => props.event.getTs());
-  addField('content', () => props.event.getContent());
-  addField('unsigned', () => props.event.getUnsigned());
-  addField('redacted_because', () => props.event.getUnsigned()?.redacted_because ?? null);
-
-  return `{\n${parts.join(',\n')}\n}`;
+  return buildRawEventJson(props.event);
 }
 
 async function copyRawJson() {
@@ -49,7 +28,7 @@ async function copyRawJson() {
     await copy(json);
     toast.success(t('chat.copy_raw_json'));
   } catch {
-    toast.success(t('chat.copy_raw_json'));
+    toast.error(t('chat.copy_message_text_failed'));
   }
 }
 </script>

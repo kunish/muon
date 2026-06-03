@@ -5,12 +5,10 @@ import { Input } from '@muon/ui/input';
 import { Label } from '@muon/ui/label';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
 import { useServerStore } from '@/features/server/stores/serverStore';
 import { createSpace } from '@/matrix/spaces';
 
-const router = useRouter();
 const serverStore = useServerStore();
 const { t } = useI18n();
 
@@ -27,8 +25,7 @@ async function handleCreate() {
     serverStore.selectServer(spaceId);
     open.value = false;
     serverName.value = '';
-    // Navigate to the new server (no channels yet)
-    router.push(`/server/${encodeURIComponent(spaceId)}/channel/`);
+    // 新建的服务器还没有频道，选中即可（无可跳转的频道路由）
   } catch (error) {
     console.error('Failed to create server:', error);
     toast.error(t('server.create_failed'));

@@ -148,6 +148,28 @@ async function saveAnnouncement() {
   editingAnnouncement.value = false;
 }
 
+// --- 成员管理（提升管理员 / 移除成员）---
+async function handleSetAdmin(userId: string) {
+  try {
+    await setUserPowerLevel(props.roomId, userId, 50);
+  } catch {
+    toast.error(t('contacts.update_failed'));
+  }
+}
+
+async function handleRemoveMember(userId: string) {
+  const confirmed = await ask(t('contacts.remove_member_confirm'), {
+    title: t('contacts.remove_member'),
+    kind: 'warning',
+  });
+  if (!confirmed) return;
+  try {
+    await kickUser(props.roomId, userId);
+  } catch {
+    toast.error(t('contacts.update_failed'));
+  }
+}
+
 // --- 退出/解散群组 ---
 async function handleLeave() {
   const confirmed = await ask(t('contacts.leave_confirm'), {
@@ -378,14 +400,14 @@ const memberUserIds = computed(() => members.value.map((member) => member.userId
             <button
               class="p-1 rounded hover:bg-accent"
               :title="t('contacts.set_admin')"
-              @click="setUserPowerLevel(roomId, member.userId, 50)"
+              @click="handleSetAdmin(member.userId)"
             >
               <Shield :size="12" />
             </button>
             <button
               class="p-1 rounded hover:bg-accent text-destructive"
               :title="t('contacts.remove_member')"
-              @click="kickUser(roomId, member.userId)"
+              @click="handleRemoveMember(member.userId)"
             >
               <UserMinus :size="12" />
             </button>

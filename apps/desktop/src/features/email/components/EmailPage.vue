@@ -204,7 +204,7 @@ async function refreshInbox(): Promise<void> {
       time: mail.date ? new Date(mail.date).toLocaleString() : '',
       unread: !mail.seen,
     }));
-    messages.value = [...inbox, ...messages.value.filter((message) => message.folder !== 'inbox')];
+    messages.value = [...applyEmailOverrides(inbox), ...messages.value.filter((message) => message.folder !== 'inbox')];
     activeFolder.value = 'inbox';
     toast.success(t('email.refreshed', { count: inbox.length }));
   } catch {
@@ -319,14 +319,17 @@ function starSelectedMessage(): void {
   const message = selectedMessage.value;
   if (!message) return;
 
+  const nextStarred = !message.starred;
   messages.value = messages.value.map((item) =>
-    item.id === message.id ? { ...item, starred: true, unread: false } : item,
+    item.id === message.id ? { ...item, starred: nextStarred, unread: nextStarred ? false : item.unread } : item,
   );
   selectedMessageId.value = message.id;
-  setEmailOverride(message.id, { starred: true, read: true });
+  setEmailOverride(message.id, nextStarred ? { starred: true, read: true } : { starred: false });
   messageActionNotices.value = {
     ...messageActionNotices.value,
-    [message.id]: t('email.notice_starred', { subject: message.subject }),
+    [message.id]: t(nextStarred ? 'email.notice_starred' : 'email.notice_unstarred', {
+      subject: message.subject,
+    }),
   };
 }
 
@@ -550,7 +553,7 @@ async function sendComposeDraft(): Promise<void> {
                       v-if="message.starred"
                       :size="12"
                       class="shrink-0 fill-current text-warning"
-                      aria-label="已星标"
+                      :aria-label="t('email.folder_starred')"
                     />
                   </span>
                   <span class="mt-1 block truncate text-[13px] text-foreground">{{ message.subject }}</span>
@@ -578,7 +581,9 @@ async function sendComposeDraft(): Promise<void> {
               {{ t('email.smart_sort') }}
             </h2>
             <template v-if="selectedMessage">
-              <h3 class="mt-4 text-[14px] font-semibold">当前邮件：{{ selectedMessage.subject }}</h3>
+              <h3 class="mt-4 text-[14px] font-semibold">
+                {{ t('email.current_message') }}：{{ selectedMessage.subject }}
+              </h3>
               <p class="mt-2 text-[13px] leading-5 text-muted-foreground">
                 {{ selectedMessage.from }}
                 <template v-if="selectedMessage.to"> → {{ selectedMessage.to }} </template>
@@ -599,14 +604,14 @@ async function sendComposeDraft(): Promise<void> {
                   v-model="composeSubject"
                   data-testid="email-compose-subject"
                   type="text"
-                  placeholder="主题"
+                  :placeholder="t('email.subject_placeholder')"
                   class="h-8 rounded-md border border-border bg-background px-3 text-[12px] text-foreground outline-none focus:border-primary"
                 />
                 <textarea
                   v-model="composeBody"
                   data-testid="email-compose-body"
                   :rows="4"
-                  placeholder="正文"
+                  :placeholder="t('email.body_placeholder')"
                   class="min-h-[88px] resize-none rounded-md border border-border bg-background px-3 py-2 text-[12px] text-foreground outline-none focus:border-primary"
                 />
                 <button
@@ -614,7 +619,7 @@ async function sendComposeDraft(): Promise<void> {
                   class="h-8 rounded-md bg-primary px-3 text-[12px] font-semibold text-primary-foreground transition-opacity hover:opacity-90"
                   @click="sendComposeDraft"
                 >
-                  发送邮件
+                  {{ t('email.send') }}
                 </button>
               </div>
               <div class="mt-4 grid gap-2 rounded-lg border border-border p-3 text-[12px]">
@@ -630,15 +635,15 @@ async function sendComposeDraft(): Promise<void> {
                   @click="createReplyDraft"
                 >
                   <Reply :size="14" />
-                  <span>回复</span>
+                  <span>{{ t('common.reply') }}</span>
                 </button>
                 <button
                   data-testid="email-star-selected"
                   class="flex h-8 items-center justify-center gap-1.5 rounded-md border border-border px-2 text-[12px] font-semibold text-foreground transition-colors hover:bg-accent"
                   @click="starSelectedMessage"
                 >
-                  <Star :size="14" />
-                  <span>星标</span>
+                  <Star :size="14" :class="selectedMessage?.starred ? 'fill-current text-warning' : ''" />
+                  <span>{{ selectedMessage?.starred ? t('email.unstar') : t('email.star') }}</span>
                 </button>
                 <button
                   data-testid="email-archive-selected"
@@ -646,7 +651,7 @@ async function sendComposeDraft(): Promise<void> {
                   @click="archiveSelectedMessage"
                 >
                   <Archive :size="14" />
-                  <span>归档</span>
+                  <span>{{ t('email.folder_archive') }}</span>
                 </button>
                 <button
                   data-testid="email-delete-selected"
@@ -654,13 +659,13 @@ async function sendComposeDraft(): Promise<void> {
                   @click="deleteSelectedMessage"
                 >
                   <Trash2 :size="14" />
-                  <span>删除</span>
+                  <span>{{ t('common.delete') }}</span>
                 </button>
               </div>
             </template>
             <template v-else>
               <p class="mt-2 text-[13px] leading-5 text-muted-foreground">
-                重要邮件、审批提醒和会议跟进会和工作区其他任务一起保持可见。
+                {{ t('email.empty_state') }}
               </p>
             </template>
           </aside>

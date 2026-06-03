@@ -1,7 +1,7 @@
 import { getClient } from '@matrix/client'
 import { matrixEvents } from '@matrix/index'
 import { Effect } from 'effect'
-import { onMounted, onUnmounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref, watch } from 'vue'
 import { sendTypingEffect } from '@/matrix/typing'
 import { runDesktopEffect } from '@/shared/lib/effect'
 import { useChatStore } from '../stores/chatStore'
@@ -18,6 +18,14 @@ export function useTyping() {
       typingUsers.value = payload.userIds.filter((id) => id !== myUserId)
     }
   }
+
+  // 切换房间时清空上一会话残留的「正在输入」状态
+  watch(
+    () => store.currentRoomId,
+    () => {
+      typingUsers.value = []
+    },
+  )
 
   function startTyping() {
     const roomId = store.currentRoomId

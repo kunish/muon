@@ -67,7 +67,7 @@ async function handleCreate() {
     open.value = false;
   } catch (error) {
     console.error('Failed to create channel:', error);
-    toast.error(t('auth.error'));
+    toast.error(t('server.channel_failed'));
   } finally {
     isCreating.value = false;
   }

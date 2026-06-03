@@ -1,3 +1,4 @@
+import { getClient } from '@matrix/client'
 import { matrixEvents } from '@matrix/index'
 import { onMounted, onUnmounted, reactive } from 'vue'
 
@@ -10,8 +11,11 @@ const typingMap = reactive(new Map<string, string[]>())
 let listenerCount = 0
 
 function onTyping(payload: { roomId: string; userIds: string[] }) {
-  if (payload.userIds.length > 0) {
-    typingMap.set(payload.roomId, payload.userIds)
+  // 过滤掉当前用户自身，避免在会话列表里显示「自己正在输入」
+  const myUserId = getClient().getUserId()
+  const others = payload.userIds.filter((id) => id !== myUserId)
+  if (others.length > 0) {
+    typingMap.set(payload.roomId, others)
   } else {
     typingMap.delete(payload.roomId)
   }

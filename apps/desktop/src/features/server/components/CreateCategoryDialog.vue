@@ -39,7 +39,7 @@ async function handleCreate() {
     open.value = false;
   } catch (error) {
     console.error('Failed to create category:', error);
-    toast.error(t('auth.error'));
+    toast.error(t('server.category_failed'));
   } finally {
     isCreating.value = false;
   }

@@ -30,7 +30,8 @@ const tabs = computed(() => {
     list.push({ id: p.id, icon: p.icon, label: p.label, type: 'builtin' });
   }
   for (const p of stickerStore.customPacks) {
-    list.push({ id: p.id, icon: p.icon ? '📦' : '📦', label: p.name, type: 'custom' });
+    // p.icon 存的是 mxc:// URL，无法作为文本图标渲染，统一用占位 emoji
+    list.push({ id: p.id, icon: '📦', label: p.name, type: 'custom' });
   }
   return list;
 });

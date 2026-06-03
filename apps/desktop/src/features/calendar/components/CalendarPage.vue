@@ -316,6 +316,9 @@ const selectedEvent = computed(() => {
   return selectedDayEvents.value.find((e) => e.id === selectedEventId.value) ?? selectedDayEvents.value[0];
 });
 
+// 项目任务事件（proj-*）只存在于 projectTaskEvents，不在 calendarStore，无法接受/改期
+const isProjectEvent = computed(() => selectedEvent.value?.id.startsWith('proj-') ?? false);
+
 // ── Statistics cards ──
 const statMeetings = computed(() => allEvents.value.filter((e) => e.rsvpStatus !== '无需回复').length);
 const statPending = computed(() => allEvents.value.filter((e) => e.rsvpStatus === '待回复').length);
@@ -419,8 +422,9 @@ function saveNewEvent() {
   const recurrence: EventRecurrence | undefined =
     eventDraft.value.recurrence === 'none' ? undefined : { freq: eventDraft.value.recurrence };
 
+  const title = eventDraft.value.title;
   calendarStore.addEvent({
-    title: eventDraft.value.title,
+    title,
     date: eventDraft.value.date,
     time: eventDraft.value.time,
     endTime: eventDraft.value.endTime || undefined,
@@ -432,6 +436,7 @@ function saveNewEvent() {
   });
 
   showEventEditor.value = false;
+  toast.success(t('calendar.notice_created', { title }));
 }
 
 // ── 一键入会 ──
@@ -465,6 +470,7 @@ function checkReminders(): void {
 // ── RSVP actions ──
 function acceptEvent(event: CalendarEvent) {
   calendarStore.setRsvp(event.id, '已接受');
+  toast.success(t('calendar.notice_accepted', { title: event.title }));
 }
 
 interface RescheduleDraft {
@@ -500,6 +506,7 @@ function rescheduleEvent(event: CalendarEvent) {
   }
   selectedEventId.value = event.id;
   showReschedule.value = false;
+  toast.success(t('calendar.notice_rescheduled', { title: event.title }));
 }
 
 function colorBar(color: string): string {
@@ -838,7 +845,7 @@ function colorBg(color: string): string {
             <span>{{ t('calendar.join_meeting') }}</span>
           </button>
 
-          <div class="mt-3 flex gap-2">
+          <div v-if="!isProjectEvent" class="mt-3 flex gap-2">
             <button
               class="h-8 flex-1 rounded-md bg-primary px-3 text-[12px] font-semibold text-primary-foreground transition-opacity hover:opacity-90"
               @click="acceptEvent(selectedEvent)"

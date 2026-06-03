@@ -4,6 +4,7 @@ import { Switch } from '@muon/ui/switch';
 import { Lock, X } from 'lucide-vue-next';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { toast } from 'vue-sonner';
 import { useGroupManagement } from '../composables/useGroupManagement';
 import GroupMemberPicker from './GroupMemberPicker.vue';
 
@@ -32,6 +33,9 @@ async function handleCreate() {
       isEncrypted: encrypted.value,
     });
     emit('created', roomId);
+  } catch (error) {
+    console.error('Failed to create group:', error);
+    toast.error(t('contacts.group_create_failed'));
   } finally {
     creating.value = false;
   }

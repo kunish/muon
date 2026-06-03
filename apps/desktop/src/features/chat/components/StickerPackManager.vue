@@ -95,7 +95,7 @@ async function addStickers() {
         stickerStore.addSticker(activePackId.value!, sticker);
       }
     } catch {
-      toast.error(t('auth.error'));
+      toast.error(t('chat.upload_failed'));
     } finally {
       uploading.value = false;
     }
@@ -118,8 +118,13 @@ function getImageDimensions(file: File): Promise<{ width: number; height: number
   });
 }
 
-function removeSticker(stickerId: string) {
+async function removeSticker(stickerId: string) {
   if (!activePackId.value) return;
+  const confirmed = await ask(t('chat.sticker_remove_confirm'), {
+    title: t('chat.sticker_remove'),
+    kind: 'warning',
+  });
+  if (!confirmed) return;
   stickerStore.removeSticker(activePackId.value, stickerId);
 }
 

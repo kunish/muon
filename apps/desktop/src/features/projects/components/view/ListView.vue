@@ -108,6 +108,8 @@ function statusLabel(statusKey: string): string {
             </th>
             <th class="cursor-pointer px-4 py-2 font-medium" @click="toggleSort('dueDate')">
               {{ t('projects.due_date') }}
+              <ArrowUp v-if="sortBy === 'dueDate' && sortDir === 'asc'" class="inline h-3 w-3" />
+              <ArrowDown v-else-if="sortBy === 'dueDate'" class="inline h-3 w-3" />
             </th>
             <th class="px-4 py-2 font-medium">
               {{ t('projects.status') }}

@@ -3,6 +3,7 @@ import { getBlockedUsers, unblockUser } from '@matrix/index';
 import { UserX } from 'lucide-vue-next';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { toast } from 'vue-sonner';
 
 const { t } = useI18n();
 const blockedUsers = ref<string[]>(getBlockedUsers());
@@ -17,6 +18,9 @@ async function handleUnblock(userId: string) {
   try {
     await unblockUser(userId);
     refreshList();
+  } catch (error) {
+    console.error('Failed to unblock user:', error);
+    toast.error(t('settings.unblock_failed'));
   } finally {
     unblocking.value = null;
   }

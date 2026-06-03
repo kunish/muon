@@ -138,7 +138,7 @@ async function handleStartContactCall(userId: string, mode: CallMode): Promise<v
         class="min-h-0 flex-1"
         :selected-group-id="selectedGroupId"
         @select="handleSelectContact"
-        @open="handleSelectContact"
+        @open="handleOpenMessage"
         @select-group="handleSelectGroup"
       />
     </WorkspaceResizablePane>

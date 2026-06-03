@@ -136,7 +136,7 @@ async function startDm(userId: string) {
     router.push(`/dm/${encodeURIComponent(roomId)}`);
     emit('close');
   } catch {
-    toast.error(t('auth.error'));
+    toast.error(t('chat.open_dm_failed'));
   } finally {
     starting.value = false;
   }
@@ -163,7 +163,7 @@ async function handleCreateGroup() {
     router.push(`/dm/${encodeURIComponent(roomId)}`);
     emit('close');
   } catch {
-    toast.error(t('auth.error'));
+    toast.error(t('chat.create_group_failed'));
   } finally {
     creatingGroup.value = false;
   }

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { getClient } from '@matrix/client';
 import { isDirectRoom } from '@matrix/roomUtils';
-import { Hash, Search, Settings, Users } from 'lucide-vue-next';
+import { AtSign, Hash, Search, Settings, Users } from 'lucide-vue-next';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useChatStore } from '../stores/chatStore';
@@ -38,7 +38,7 @@ function openSearch() {
     <div class="mb-6 text-center">
       <div class="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-accent text-muted-foreground">
         <Hash v-if="!isDirect" :size="28" />
-        <Users v-else :size="26" />
+        <AtSign v-else :size="26" />
       </div>
       <h2 class="text-4xl font-extrabold tracking-tight text-foreground">
         {{ isDirect ? t('chat.welcome_dm_title') : t('chat.welcome_channel_title', { channel: roomName }) }}

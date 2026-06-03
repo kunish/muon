@@ -19,13 +19,13 @@ import { useViewportClampedFloating } from '@/shared/composables/useViewportClam
 import { isFullEmojiText } from '@/shared/lib/emoji';
 import { handleMatrixLinkClick } from '@/shared/lib/matrixLinks';
 import { getSystemLanguage, translateText } from '@/shared/lib/translate';
-import { safeJsonStringify } from '@/shared/lib/utils';
 import { getFloatingPosition } from '../composables/useFloatingPosition';
 import { useMediaViewer } from '../composables/useMediaViewer';
 import { useMessageActions } from '../composables/useMessageActions';
 import { useMessageContextMenuState } from '../composables/useMessageContextMenuState';
 import { useMessagePopoverSingleton } from '../composables/useMessagePopoverSingleton';
 import { getMediaFrameStyle } from '../lib/mediaFrame';
+import { buildRawEventJson } from '../lib/rawEventJson';
 import AnimatedEmoji from './AnimatedEmoji.vue';
 import ForwardDialog from './ForwardDialog.vue';
 import LinkPreview from './LinkPreview.vue';
@@ -623,26 +623,10 @@ function onViewRawJsonFromContextMenu() {
 
 async function onCopyRawJsonFromContextMenu() {
   try {
-    const parts: string[] = [];
-    const add = (key: string, val: unknown) => {
-      try {
-        parts.push(`"${key}": ${safeJsonStringify(val)}`);
-      } catch {
-        parts.push(`"${key}": "[Error]"`);
-      }
-    };
-    add('event_id', props.event.getId());
-    add('type', props.event.getType());
-    add('sender', props.event.getSender());
-    add('room_id', props.event.getRoomId());
-    add('origin_server_ts', props.event.getTs());
-    add('content', props.event.getContent());
-    add('unsigned', props.event.getUnsigned());
-    const json = `{\n  ${parts.join(',\n  ')}\n}`;
-    await copyToClipboard(json);
+    await copyToClipboard(buildRawEventJson(props.event));
     toast.success(t('chat.copy_raw_json'));
   } catch {
-    toast.error('Copy failed');
+    toast.error(t('chat.copy_message_text_failed'));
   }
   closeContextMenu();
 }

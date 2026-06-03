@@ -745,7 +745,7 @@ async function handleVoiceSend(blob: Blob, duration: number) {
   try {
     await sendAudioMessage(roomId, blob, duration);
   } catch {
-    toast.error(t('auth.error'));
+    toast.error(t('chat.send_failed'));
   }
 }
 

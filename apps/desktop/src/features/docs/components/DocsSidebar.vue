@@ -3,6 +3,7 @@ import { Clock3, Star, Users } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
+import { ask } from '@/desktop/dialog';
 import { useDocsStore } from '../stores/docsStore';
 import DocsCreateButton from './DocsCreateButton.vue';
 import DocsFolderTree from './DocsFolderTree.vue';
@@ -68,8 +69,18 @@ async function renameFolder(folderId: string, name: string): Promise<void> {
 }
 
 async function deleteFolder(folderId: string): Promise<void> {
-  await store.deleteFolder(folderId);
-  await router.push('/docs');
+  const confirmed = await ask(t('docs.delete_folder_confirm'), {
+    title: t('docs.delete_folder_title'),
+    kind: 'warning',
+  });
+  if (!confirmed) return;
+  try {
+    await store.deleteFolder(folderId);
+    await router.push('/docs');
+  } catch (error) {
+    console.error('Failed to delete folder:', error);
+    toast.error(t('docs.delete_folder_failed'));
+  }
 }
 </script>
 

@@ -88,7 +88,7 @@ function onSubmit() {
 
           <div class="block">
             <span class="mb-1 block text-xs text-muted-foreground">{{ t('chat.task_assignee') }}</span>
-            <GroupMemberPicker v-model="assigneeIds" label="负责人" />
+            <GroupMemberPicker v-model="assigneeIds" :label="t('chat.task_assignee')" />
           </div>
 
           <Label class="block">

@@ -13,6 +13,7 @@ import { Trash2, X } from 'lucide-vue-next';
 import { RoomEvent } from 'matrix-js-sdk';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { ask } from '@/desktop/dialog';
 import { getWorkItemComments, isWorkItemCommentEvent, sendWorkItemComment } from '@/matrix/projects';
 import { useContactList } from '@/shared/composables/useContactList';
 import { useWorkflow } from '../composables/useWorkflow';
@@ -137,6 +138,11 @@ async function handleTransition(toStatus: string) {
 
 async function handleDelete() {
   if (!item.value) return;
+  const confirmed = await ask(t('projects.delete_task_confirm'), {
+    title: t('projects.delete_task'),
+    kind: 'warning',
+  });
+  if (!confirmed) return;
   await store.deleteItem(item.value.id, item.value.projectId);
   emit('close');
 }
@@ -250,8 +256,8 @@ function toggleMultiSelectCustomField(field: CustomField, option: string, checke
     class="absolute inset-y-0 right-0 z-40 flex w-96 max-w-full flex-col border-l bg-background shadow-xl"
   >
     <div class="flex shrink-0 items-center justify-between border-b px-4 py-3">
-      <h2 class="font-semibold">
-        {{ t('projects.task_title') }}
+      <h2 class="truncate font-semibold">
+        {{ item.title }}
       </h2>
       <Button variant="ghost" size="icon" @click="emit('close')">
         <X class="h-4 w-4" />

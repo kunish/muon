@@ -245,6 +245,7 @@ onUnmounted(() => {
             <Download :size="14" />
             导出
           </button>
+          <div v-if="showExportMenu" class="fixed inset-0 z-10" @click="showExportMenu = false" />
           <div
             v-if="showExportMenu"
             class="absolute right-0 top-full z-20 mt-1 w-36 overflow-hidden rounded-md border border-border bg-popover shadow-lg"

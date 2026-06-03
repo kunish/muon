@@ -148,6 +148,7 @@
     "sticker_uploading": "Uploading...",
     "sticker_add": "Add Sticker",
     "sticker_remove": "Remove Sticker",
+    "sticker_remove_confirm": "Remove this sticker from the pack?",
     "sticker_btn": "Sticker",
     "thread": "Thread",
     "thread_inbox": "Threads",
@@ -262,6 +263,7 @@
     "reaction_failed": "Failed to react",
     "task_create_failed": "Failed to create task",
     "open_dm_failed": "Failed to open conversation",
+    "create_group_failed": "Failed to create group",
     "resend": "Resend",
     "hide_for_me": "Hide for me",
     "edit_message": "Edit",
@@ -517,6 +519,7 @@
     "change_avatar": "Change group avatar",
     "publish": "Publish",
     "remove_member": "Remove",
+    "remove_member_confirm": "Remove this member from the group?",
     "leave_group": "Leave Group",
     "leave_confirm": "Are you sure you want to leave? You'll need to be re-invited.",
     "update_failed": "Failed to update settings",
@@ -639,7 +642,8 @@
     "block_confirm": "Are you sure you want to block this user? You will no longer receive their messages.",
     "block_confirm_title": "Block User",
     "user_blocked_banner": "This user is blocked",
-    "unblock_user": "Unblock"
+    "unblock_user": "Unblock",
+    "unblock_failed": "Failed to unblock user"
   },
   "network": {
     "disconnected": "Network disconnected, trying to reconnect...",
@@ -733,6 +737,7 @@
     "create_failed": "Failed to create server",
     "update_failed": "Failed to update server",
     "channel_failed": "Failed to perform channel operation",
+    "category_failed": "Failed to create category",
     "voice_join_failed": "Could not join voice channel",
     "microphone_toggle_failed": "Could not toggle microphone",
     "role_failed": "Failed to update role",
@@ -949,7 +954,9 @@
     "add_field": "Add Field",
     "no_custom_fields": "No custom fields yet",
     "delete_project_confirm": "Are you sure you want to delete this project? This action cannot be undone.",
-    "delete_project": "Delete Project"
+    "delete_project": "Delete Project",
+    "delete_task_confirm": "Are you sure you want to delete this task? This action cannot be undone.",
+    "delete_task": "Delete Task"
   },
   "organization": {
     "subtitle": "Members, groups, and organizational structure",
@@ -1158,6 +1165,7 @@
     "current_message": "Current message",
     "subject_placeholder": "Subject",
     "body_placeholder": "Body",
+    "default_body": "(no content)",
     "recipients_label": "Recipients",
     "no_messages": "No messages in this folder",
     "no_subject": "(no subject)",
@@ -1184,6 +1192,9 @@
     "reply_draft": "Reply draft: {subject}",
     "notice_reply_generated": "Reply draft generated: {subject}",
     "notice_starred": "Starred: {subject}",
+    "notice_unstarred": "Unstarred: {subject}",
+    "star": "Star",
+    "unstar": "Unstar",
     "notice_archived": "Archived: {subject}",
     "notice_trashed": "Moved to trash: {subject}",
     "default_subject": "Draft: New email",
@@ -1291,6 +1302,12 @@
     "import_too_large": "File too large; max 1 MB",
     "untitled_import": "Imported document",
     "create_failed": "Failed to create document",
-    "import_failed": "Failed to import document"
+    "import_failed": "Failed to import document",
+    "delete_title": "Delete Document",
+    "delete_confirm": "Are you sure you want to delete this document? This action cannot be undone.",
+    "delete_failed": "Failed to delete document",
+    "delete_folder_title": "Delete Folder",
+    "delete_folder_confirm": "Delete this folder? Documents inside will be moved to the root.",
+    "delete_folder_failed": "Failed to delete folder"
   }
 }

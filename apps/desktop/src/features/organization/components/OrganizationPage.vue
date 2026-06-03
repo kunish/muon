@@ -635,7 +635,6 @@ onMounted(async () => {
           type="text"
           placeholder="搜索成员、群组或组织"
           class="h-full min-w-0 flex-1 bg-transparent text-[13px] text-foreground outline-none placeholder:text-muted-foreground"
-          @focus="activeSection = 'members'"
         />
       </label>
 

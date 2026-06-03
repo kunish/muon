@@ -51,7 +51,7 @@ export function useMessageActions(event: MaybeRefOrGetter<MatrixEvent>, roomId: 
     try {
       await sendReaction(room, id, emoji)
     } catch {
-      toast.error(t('auth.error'))
+      toast.error(t('chat.reaction_failed'))
     }
   }
 

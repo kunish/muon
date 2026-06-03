@@ -4,7 +4,9 @@ import { Check, Plus, Search, SlidersHorizontal, X } from 'lucide-vue-next';
 import { computed, shallowRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
+import { toast } from 'vue-sonner';
 import WorkspaceResizablePane from '@/app/components/workspace/WorkspaceResizablePane.vue';
+import { ask } from '@/desktop/dialog';
 import { useDocsStore } from '../stores/docsStore';
 import DocPreviewCard from './DocPreviewCard.vue';
 import DocsSidebar from './DocsSidebar.vue';
@@ -112,7 +114,17 @@ async function updateDocumentStatus(doc: DocEntry, status: DocEntry['status']): 
 }
 
 async function deleteDocument(doc: DocEntry): Promise<void> {
-  await store.deleteDocument(doc.id);
+  const confirmed = await ask(t('docs.delete_confirm'), {
+    title: t('docs.delete_title'),
+    kind: 'warning',
+  });
+  if (!confirmed) return;
+  try {
+    await store.deleteDocument(doc.id);
+  } catch (error) {
+    console.error('Failed to delete document:', error);
+    toast.error(t('docs.delete_failed'));
+  }
 }
 </script>
 

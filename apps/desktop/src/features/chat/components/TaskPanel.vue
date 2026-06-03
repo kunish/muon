@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { preloadAndNavigate } from '@/shared/lib/contextPreload';
 import { useTaskStore } from '../stores/taskStore';
+import { canTransitionTaskStatus } from '../types/task';
 
 const { t } = useI18n();
 const taskStore = useTaskStore();
@@ -76,7 +77,7 @@ async function jumpToSourceMessage(task: TaskItem) {
                 {{ t('chat.task_jump_source') }}
               </button>
               <button
-                v-if="status !== 'todo'"
+                v-if="canTransitionTaskStatus(status, 'todo')"
                 class="rounded border border-border px-2 py-1 text-xs"
                 :data-testid="`task-move-todo-${task.id}`"
                 @click="transitionTask(task, 'todo')"
@@ -84,7 +85,7 @@ async function jumpToSourceMessage(task: TaskItem) {
                 {{ t('chat.task_move_todo') }}
               </button>
               <button
-                v-if="status !== 'doing'"
+                v-if="canTransitionTaskStatus(status, 'doing')"
                 class="rounded border border-border px-2 py-1 text-xs"
                 :data-testid="`task-move-doing-${task.id}`"
                 @click="transitionTask(task, 'doing')"
@@ -92,7 +93,7 @@ async function jumpToSourceMessage(task: TaskItem) {
                 {{ t('chat.task_move_doing') }}
               </button>
               <button
-                v-if="status !== 'done'"
+                v-if="canTransitionTaskStatus(status, 'done')"
                 class="rounded border border-border px-2 py-1 text-xs"
                 :data-testid="`task-move-done-${task.id}`"
                 @click="transitionTask(task, 'done')"

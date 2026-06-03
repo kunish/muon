@@ -85,7 +85,7 @@ function openHistoryAnswer(answerId: string) {
         </button>
       </div>
 
-      <div v-if="answer" data-testid="qa-answer-card" class="rounded-md border border-border/70 p-3">
+      <div v-if="answer && !error" data-testid="qa-answer-card" class="rounded-md border border-border/70 p-3">
         <div class="text-sm font-semibold text-foreground">
           {{ answer.question }}
         </div>
