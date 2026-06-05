@@ -5,12 +5,13 @@ import { nextTick } from 'vue'
 import UnifiedInboxPanel from '@/features/chat/components/UnifiedInboxPanel.vue'
 import { __resetUnifiedInboxForTests } from '@/features/chat/composables/useUnifiedInbox'
 import { useDeferStore } from '@/features/chat/stores/deferStore'
-import { useInboxStore } from '@/features/chat/stores/inboxStore'
+import { resetInboxStore, setFilter } from '@/features/chat/stores/inboxStore'
 
 describe('unifiedInboxPanel', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     localStorage.clear()
+    resetInboxStore()
     __resetUnifiedInboxForTests()
   })
 
@@ -26,8 +27,7 @@ describe('unifiedInboxPanel', () => {
     const allItems = wrapper.findAll('[data-testid^="inbox-item-"]')
     expect(allItems.length).toBeGreaterThan(0)
 
-    const store = useInboxStore()
-    store.setFilter('mention')
+    setFilter('mention')
     await nextTick()
     expect(
       wrapper
@@ -35,7 +35,7 @@ describe('unifiedInboxPanel', () => {
         .every((node) => node.attributes('data-testid') === 'inbox-item-mention'),
     ).toBe(true)
 
-    store.setFilter('priority-unread')
+    setFilter('priority-unread')
     await nextTick()
     expect(
       wrapper
@@ -43,7 +43,7 @@ describe('unifiedInboxPanel', () => {
         .every((node) => node.attributes('data-testid') === 'inbox-item-priority-unread'),
     ).toBe(true)
 
-    store.setFilter('reply-needed')
+    setFilter('reply-needed')
     await nextTick()
     expect(
       wrapper
@@ -51,7 +51,7 @@ describe('unifiedInboxPanel', () => {
         .every((node) => node.attributes('data-testid') === 'inbox-item-reply-needed'),
     ).toBe(true)
 
-    store.setFilter('all')
+    setFilter('all')
     await nextTick()
     expect(wrapper.findAll('[data-testid^="inbox-item-"]').length).toBeGreaterThanOrEqual(allItems.length)
   })

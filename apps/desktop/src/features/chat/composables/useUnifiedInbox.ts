@@ -2,9 +2,10 @@ import type { RoomSummary } from '@matrix/types'
 import type { UnifiedInboxItem } from '../types/unifiedInbox'
 import { getClient } from '@matrix/client'
 import { getRoom, getRoomSummaries, invalidateRoomSummariesCache, matrixEvents } from '@matrix/index'
+import { useSelector } from '@tanstack/vue-store'
 import { computed, getCurrentInstance, onMounted, ref, shallowRef } from 'vue'
 import { registerSessionSubscriber } from '@/auth/lifecycleEvents'
-import { useInboxStore } from '../stores/inboxStore'
+import { inboxStore, isProcessed } from '../stores/inboxStore'
 
 const LISTENED_EVENTS = ['room.message', 'room.member', 'room.receipt'] as const
 const RECOVERY_SYNC_STATES = new Set(['RECONNECTING', 'CATCHUP', 'PREPARED', 'SYNCING'])
@@ -112,7 +113,8 @@ function toInboxItems(roomList: RoomSummary[], currentUserId?: string): UnifiedI
 }
 
 export function useUnifiedInbox() {
-  const store = useInboxStore()
+  const filter = useSelector(inboxStore, (s) => s.filter)
+  const processedItemIds = useSelector(inboxStore, (s) => s.processedItemIds)
 
   if (getCurrentInstance()) {
     onMounted(() => {
@@ -130,13 +132,17 @@ export function useUnifiedInbox() {
   })
 
   const items = computed(() => {
-    let list = allItems.value.filter((item) => !store.isProcessed(item.id))
-    if (store.filter !== 'all') list = list.filter((item) => item.type === store.filter)
+    // Access processedItemIds.value to subscribe to Set changes
+    void processedItemIds.value
+    let list = allItems.value.filter((item) => !isProcessed(item.id))
+    if (filter.value !== 'all') list = list.filter((item) => item.type === filter.value)
     return list
   })
 
   const counts = computed(() => {
-    const raw = allItems.value.filter((item) => !store.isProcessed(item.id))
+    // Access processedItemIds.value to subscribe to Set changes
+    void processedItemIds.value
+    const raw = allItems.value.filter((item) => !isProcessed(item.id))
     return {
       all: raw.length,
       mention: raw.filter((item) => item.type === 'mention').length,

@@ -1,10 +1,13 @@
 import type { InboxFilterType } from '../types/unifiedInbox'
 import type { DesktopEffect } from '@/shared/lib/effect'
+import { Store } from '@tanstack/vue-store'
 import { Effect } from 'effect'
-import { defineStore } from 'pinia'
-import { reactive, ref } from 'vue'
 import { fromSync, runDesktopSync } from '@/shared/lib/effect'
 import { INBOX_PROCESSED_STORAGE_KEY } from '../types/unifiedInbox'
+
+// ---------------------------------------------------------------------------
+// localStorage helpers (kept as-is — self-contained Effect wrappers)
+// ---------------------------------------------------------------------------
 
 function loadProcessedIds(): Set<string> {
   return runDesktopSync(loadProcessedIdsEffect())
@@ -33,127 +36,109 @@ function persistProcessedIdsEffect(ids: Set<string>): DesktopEffect<void> {
   ).pipe(Effect.catchAll(() => Effect.void))
 }
 
-export const useInboxStore = defineStore('inbox', () => {
-  const filter = ref<InboxFilterType>('all')
-  const selectedItemIds = reactive(new Set<string>())
-  const processedItemIds = reactive(new Set<string>())
-  const hydrated = ref(false)
+// ---------------------------------------------------------------------------
+// State
+// ---------------------------------------------------------------------------
 
-  function hydrateProcessedEffect(): DesktopEffect<void> {
-    return fromSync(() => {
-      if (hydrated.value) return
-      hydrated.value = true
-      processedItemIds.clear()
-      for (const id of loadProcessedIds()) {
-        processedItemIds.add(id)
-      }
-    })
-  }
+export interface InboxState {
+  filter: InboxFilterType
+  selectedItemIds: Set<string>
+  processedItemIds: Set<string>
+  hydrated: boolean
+}
 
-  function hydrateProcessed() {
-    return runDesktopSync(hydrateProcessedEffect())
-  }
-
-  function setFilter(next: InboxFilterType) {
-    filter.value = next
-  }
-
-  function toggleSelection(itemId: string) {
-    if (selectedItemIds.has(itemId)) selectedItemIds.delete(itemId)
-    else selectedItemIds.add(itemId)
-  }
-
-  function selectAll(itemIds: string[]) {
-    selectedItemIds.clear()
-    for (const id of itemIds) {
-      selectedItemIds.add(id)
-    }
-  }
-
-  function clearSelection() {
-    selectedItemIds.clear()
-  }
-
-  function isSelected(itemId: string) {
-    return selectedItemIds.has(itemId)
-  }
-
-  function markProcessedEffect(itemId: string): DesktopEffect<void> {
-    return fromSync(() => {
-      processedItemIds.add(itemId)
-      persistProcessedIds(processedItemIds)
-    })
-  }
-
-  function markProcessed(itemId: string) {
-    return runDesktopSync(markProcessedEffect(itemId))
-  }
-
-  function markProcessedBatchEffect(itemIds: string[]): DesktopEffect<void> {
-    return fromSync(() => {
-      for (const id of itemIds) {
-        processedItemIds.add(id)
-      }
-      persistProcessedIds(processedItemIds)
-    })
-  }
-
-  function markProcessedBatch(itemIds: string[]) {
-    return runDesktopSync(markProcessedBatchEffect(itemIds))
-  }
-
-  function markSelectedProcessedEffect(): DesktopEffect<void> {
-    return fromSync(() => {
-      if (selectedItemIds.size === 0) return
-      for (const id of selectedItemIds) {
-        processedItemIds.add(id)
-      }
-      persistProcessedIds(processedItemIds)
-      selectedItemIds.clear()
-    })
-  }
-
-  function markSelectedProcessed() {
-    return runDesktopSync(markSelectedProcessedEffect())
-  }
-
-  function isProcessed(itemId: string) {
-    return processedItemIds.has(itemId)
-  }
-
-  function clearProcessedEffect(): DesktopEffect<void> {
-    return fromSync(() => {
-      processedItemIds.clear()
-      persistProcessedIds(processedItemIds)
-    })
-  }
-
-  function clearProcessed() {
-    return runDesktopSync(clearProcessedEffect())
-  }
-
-  hydrateProcessed()
-
+function createInitialState(): InboxState {
   return {
-    filter,
-    selectedItemIds,
-    processedItemIds,
-    hydrated,
-    hydrateProcessedEffect,
-    markProcessedEffect,
-    markProcessedBatchEffect,
-    markSelectedProcessedEffect,
-    clearProcessedEffect,
-    hydrateProcessed,
-    setFilter,
-    toggleSelection,
-    selectAll,
-    clearSelection,
-    isSelected,
-    markProcessed,
-    markProcessedBatch,
-    markSelectedProcessed,
-    isProcessed,
-    clearProcessed,
+    filter: 'all',
+    selectedItemIds: new Set(),
+    processedItemIds: new Set(),
+    hydrated: false,
   }
-})
+}
+
+export const inboxStore = new Store<InboxState>(createInitialState())
+
+// ---------------------------------------------------------------------------
+// Actions
+// ---------------------------------------------------------------------------
+
+export function setFilter(next: InboxFilterType): void {
+  inboxStore.setState((s) => ({ ...s, filter: next }))
+}
+
+export function toggleSelection(id: string): void {
+  inboxStore.setState((s) => {
+    const next = new Set(s.selectedItemIds)
+    if (next.has(id)) next.delete(id)
+    else next.add(id)
+    return { ...s, selectedItemIds: next }
+  })
+}
+
+export function selectAll(ids: string[]): void {
+  inboxStore.setState((s) => ({ ...s, selectedItemIds: new Set(ids) }))
+}
+
+export function clearSelection(): void {
+  inboxStore.setState((s) => ({ ...s, selectedItemIds: new Set() }))
+}
+
+export function isSelected(id: string): boolean {
+  return inboxStore.state.selectedItemIds.has(id)
+}
+
+export function markProcessed(id: string): void {
+  inboxStore.setState((s) => {
+    const next = new Set(s.processedItemIds)
+    next.add(id)
+    return { ...s, processedItemIds: next }
+  })
+  persistProcessedIds(inboxStore.state.processedItemIds)
+}
+
+export function markProcessedBatch(ids: string[]): void {
+  inboxStore.setState((s) => {
+    const next = new Set(s.processedItemIds)
+    for (const id of ids) next.add(id)
+    return { ...s, processedItemIds: next }
+  })
+  persistProcessedIds(inboxStore.state.processedItemIds)
+}
+
+export function markSelectedProcessed(): void {
+  if (inboxStore.state.selectedItemIds.size === 0) return
+  inboxStore.setState((s) => {
+    const processed = new Set(s.processedItemIds)
+    for (const id of s.selectedItemIds) processed.add(id)
+    return { ...s, processedItemIds: processed, selectedItemIds: new Set() }
+  })
+  persistProcessedIds(inboxStore.state.processedItemIds)
+}
+
+export function isProcessed(id: string): boolean {
+  return inboxStore.state.processedItemIds.has(id)
+}
+
+export function clearProcessed(): void {
+  inboxStore.setState((s) => ({ ...s, processedItemIds: new Set() }))
+  persistProcessedIds(inboxStore.state.processedItemIds)
+}
+
+export function hydrateProcessed(): void {
+  if (inboxStore.state.hydrated) return
+  inboxStore.setState((s) => ({
+    ...s,
+    processedItemIds: new Set(loadProcessedIds()),
+    hydrated: true,
+  }))
+}
+
+export function resetInboxStore(): void {
+  inboxStore.setState(() => createInitialState())
+}
+
+// ---------------------------------------------------------------------------
+// Module-load hydration (once)
+// ---------------------------------------------------------------------------
+
+hydrateProcessed()

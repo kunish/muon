@@ -1,20 +1,29 @@
 <script setup lang="ts">
 import type { ReminderPreset } from '../types/defer';
 import type { InboxFilterType, UnifiedInboxItem } from '../types/unifiedInbox';
+import { useSelector } from '@tanstack/vue-store';
 import { useVirtualizer } from '@tanstack/vue-virtual';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useUnifiedInbox } from '../composables/useUnifiedInbox';
 import { useDeferStore } from '../stores/deferStore';
-import { useInboxStore } from '../stores/inboxStore';
+import {
+  inboxStore,
+  isSelected,
+  markSelectedProcessed,
+  selectAll,
+  setFilter,
+  toggleSelection,
+} from '../stores/inboxStore';
 
 const emit = defineEmits<{
   jump: [payload: { roomId: string; eventId: string }];
 }>();
 
 const { t } = useI18n();
-const store = useInboxStore();
 const deferStore = useDeferStore();
+const filter = useSelector(inboxStore, (s) => s.filter);
+const selectedItemIds = useSelector(inboxStore, (s) => s.selectedItemIds);
 const { items, counts, isLoading } = useUnifiedInbox();
 
 const deferMenuItemId = ref<string | null>(null);
@@ -43,7 +52,7 @@ const filterTabs: Array<{ key: InboxFilterType; label: string }> = [
   { key: 'reply-needed', label: t('chat.inbox_filter_reply') },
 ];
 
-const selectedCount = computed(() => store.selectedItemIds.size);
+const selectedCount = computed(() => selectedItemIds.value.size);
 const virtualizer = useVirtualizer(
   computed(() => ({
     count: items.value.length,
@@ -78,11 +87,11 @@ function onItemClick(item: UnifiedInboxItem) {
 }
 
 function toggleItemSelection(itemId: string) {
-  store.toggleSelection(itemId);
+  toggleSelection(itemId);
 }
 
 function selectAllVisible() {
-  store.selectAll(items.value.map((item) => item.id));
+  selectAll(items.value.map((item) => item.id));
 }
 
 function toggleDeferMenu(itemId: string) {
@@ -138,12 +147,12 @@ function submitCustomDefer(item: UnifiedInboxItem) {
           type="button"
           class="px-2 py-1 text-[11px] rounded-md border transition-colors"
           :class="
-            store.filter === tab.key
+            filter === tab.key
               ? 'bg-primary/10 border-primary/40 text-primary'
               : 'border-border text-muted-foreground hover:bg-accent'
           "
           :data-testid="`inbox-filter-${tab.key}`"
-          @click="store.setFilter(tab.key)"
+          @click="setFilter(tab.key)"
         >
           {{ tab.label }}
         </button>
@@ -164,7 +173,7 @@ function submitCustomDefer(item: UnifiedInboxItem) {
         class="text-xs px-2 py-1 rounded-md bg-primary text-primary-foreground disabled:opacity-50"
         :disabled="selectedCount === 0"
         data-testid="inbox-mark-processed"
-        @click="store.markSelectedProcessed"
+        @click="markSelectedProcessed()"
       >
         {{ t('chat.inbox_mark_processed') }} ({{ selectedCount }})
       </button>
@@ -195,7 +204,7 @@ function submitCustomDefer(item: UnifiedInboxItem) {
             <input
               type="checkbox"
               class="mt-0.5"
-              :checked="store.isSelected(items[virtualItem.index]!.id)"
+              :checked="isSelected(items[virtualItem.index]!.id)"
               :data-testid="`inbox-select-${items[virtualItem.index]!.id}`"
               @change="toggleItemSelection(items[virtualItem.index]!.id)"
             />
