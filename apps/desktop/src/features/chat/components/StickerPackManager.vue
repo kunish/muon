@@ -12,7 +12,6 @@ import {
   addSticker,
   createPack as createStickerPack,
   deletePack,
-  getPackById,
   removeSticker,
   stickerStore,
 } from '../stores/stickerStore';
@@ -31,7 +30,9 @@ const customPacks = useSelector(stickerStore, (s) => s.customPacks);
 const view = ref<'list' | 'detail'>('list');
 const activePackId = ref<string | null>(null);
 
-const activePack = computed(() => (activePackId.value ? getPackById(activePackId.value) : null));
+const activePack = computed(() =>
+  activePackId.value ? (customPacks.value.find((p) => p.id === activePackId.value) ?? null) : null,
+);
 
 // 新建包
 const newPackName = ref('');
