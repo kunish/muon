@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import type { RecentSticker } from '../stores/stickerStore';
 import type { ImageSticker } from '@/shared/data/stickerPacks';
+import { useSelector } from '@tanstack/vue-store';
 import { Settings } from 'lucide-vue-next';
 import { computed, defineComponent, h, ref, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useAuthMedia } from '@/shared/composables/useAuthMedia';
 import { BUILTIN_STICKER_PACKS } from '@/shared/data/stickerPacks';
-import { useStickerStore } from '../stores/stickerStore';
+import { addRecentEmoji, addRecentImage, stickerStore } from '../stores/stickerStore';
 
 const emit = defineEmits<{
   select: [emoji: string, name: string];
@@ -16,20 +17,21 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 
-const stickerStore = useStickerStore();
+const customPacks = useSelector(stickerStore, (s) => s.customPacks);
+const recentStickers = useSelector(stickerStore, (s) => s.recentStickers);
 
-const activeTabId = ref<string>(stickerStore.recentStickers.length > 0 ? 'recent' : BUILTIN_STICKER_PACKS[0].id);
+const activeTabId = ref<string>(recentStickers.value.length > 0 ? 'recent' : BUILTIN_STICKER_PACKS[0].id);
 
 // 所有 tab：最近 → 内置 → 自定义
 const tabs = computed(() => {
   const list: { id: string; icon: string; label: string; type: 'recent' | 'builtin' | 'custom' }[] = [];
-  if (stickerStore.recentStickers.length > 0) {
+  if (recentStickers.value.length > 0) {
     list.push({ id: 'recent', icon: '🕐', label: t('chat.sticker_recent'), type: 'recent' });
   }
   for (const p of BUILTIN_STICKER_PACKS) {
     list.push({ id: p.id, icon: p.icon, label: p.label, type: 'builtin' });
   }
-  for (const p of stickerStore.customPacks) {
+  for (const p of customPacks.value) {
     // p.icon 存的是 mxc:// URL，无法作为文本图标渲染，统一用占位 emoji
     list.push({ id: p.id, icon: '📦', label: p.name, type: 'custom' });
   }
@@ -40,21 +42,21 @@ const activeTab = computed(() => tabs.value.find((t) => t.id === activeTabId.val
 
 const activeBuiltinPack = computed(() => BUILTIN_STICKER_PACKS.find((p) => p.id === activeTabId.value));
 
-const activeCustomPack = computed(() => stickerStore.customPacks.find((p) => p.id === activeTabId.value));
+const activeCustomPack = computed(() => customPacks.value.find((p) => p.id === activeTabId.value));
 
 function onEmojiSelect(emoji: string, name: string) {
-  stickerStore.addRecentEmoji(emoji, name);
+  addRecentEmoji(emoji, name);
   emit('select', emoji, name);
 }
 
 function onImageSelect(sticker: ImageSticker) {
-  stickerStore.addRecentImage(sticker, activeTabId.value);
+  addRecentImage(sticker, activeTabId.value);
   emit('selectImage', sticker);
 }
 
 function onRecentSelect(recent: RecentSticker) {
   if (recent.type === 'emoji') {
-    stickerStore.addRecentEmoji(recent.value, recent.name);
+    addRecentEmoji(recent.value, recent.name);
     emit('select', recent.value, recent.name);
   } else if (recent.mxcUrl) {
     const sticker: ImageSticker = {
@@ -65,7 +67,7 @@ function onRecentSelect(recent: RecentSticker) {
       height: recent.height || 128,
       mimetype: recent.mimetype || 'image/webp',
     };
-    stickerStore.addRecentImage(sticker, recent.packId);
+    addRecentImage(sticker, recent.packId);
     emit('selectImage', sticker);
   }
 }
@@ -126,7 +128,7 @@ const StickerThumb = defineComponent({
       <template v-if="activeTabId === 'recent'">
         <div class="grid grid-cols-5 gap-1">
           <button
-            v-for="(recent, idx) in stickerStore.recentStickers"
+            v-for="(recent, idx) in recentStickers"
             :key="idx"
             class="flex size-12 cursor-pointer items-center justify-center rounded-[10px] text-[2rem] transition-[background,transform] duration-150 hover:bg-accent hover:scale-[1.15] active:scale-[0.92]"
             :title="recent.name"

@@ -1,13 +1,21 @@
 <script setup lang="ts">
 import type { ImageSticker } from '@/shared/data/stickerPacks';
 import { uploadMedia } from '@matrix/media';
+import { useSelector } from '@tanstack/vue-store';
 import { ArrowLeft, ImagePlus, Plus, Trash2, X } from 'lucide-vue-next';
 import { computed, defineComponent, h, ref, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
 import { ask } from '@/desktop/dialog';
 import { useAuthMedia } from '@/shared/composables/useAuthMedia';
-import { useStickerStore } from '../stores/stickerStore';
+import {
+  addSticker,
+  createPack as createStickerPack,
+  deletePack,
+  getPackById,
+  removeSticker,
+  stickerStore,
+} from '../stores/stickerStore';
 
 const emit = defineEmits<{
   close: [];
@@ -17,13 +25,13 @@ const FILE_EXT_RE = /\.[^.]+$/;
 
 const { t } = useI18n();
 
-const stickerStore = useStickerStore();
+const customPacks = useSelector(stickerStore, (s) => s.customPacks);
 
 // 当前视图: 'list' | 'detail'
 const view = ref<'list' | 'detail'>('list');
 const activePackId = ref<string | null>(null);
 
-const activePack = computed(() => (activePackId.value ? stickerStore.getPackById(activePackId.value) : null));
+const activePack = computed(() => (activePackId.value ? getPackById(activePackId.value) : null));
 
 // 新建包
 const newPackName = ref('');
@@ -32,7 +40,7 @@ const showNewPackInput = ref(false);
 function createPack() {
   const name = newPackName.value.trim();
   if (!name) return;
-  const pack = stickerStore.createPack(name);
+  const pack = createStickerPack(name);
   newPackName.value = '';
   showNewPackInput.value = false;
   // 跳转到新建的包详情
@@ -40,13 +48,13 @@ function createPack() {
   view.value = 'detail';
 }
 
-async function deletePack(packId: string) {
+async function deleteActivePack(packId: string) {
   const confirmed = await ask(t('chat.sticker_delete_confirm'), {
     title: t('chat.sticker_delete_title'),
     kind: 'warning',
   });
   if (!confirmed) return;
-  stickerStore.deletePack(packId);
+  deletePack(packId);
   if (activePackId.value === packId) {
     activePackId.value = null;
     view.value = 'list';
@@ -92,7 +100,7 @@ async function addStickers() {
           mimetype: file.type || 'image/png',
           size: file.size,
         };
-        stickerStore.addSticker(activePackId.value!, sticker);
+        addSticker(activePackId.value!, sticker);
       }
     } catch {
       toast.error(t('chat.upload_failed'));
@@ -118,14 +126,14 @@ function getImageDimensions(file: File): Promise<{ width: number; height: number
   });
 }
 
-async function removeSticker(stickerId: string) {
+async function removeActiveSticker(stickerId: string) {
   if (!activePackId.value) return;
   const confirmed = await ask(t('chat.sticker_remove_confirm'), {
     title: t('chat.sticker_remove'),
     kind: 'warning',
   });
   if (!confirmed) return;
-  stickerStore.removeSticker(activePackId.value, stickerId);
+  removeSticker(activePackId.value, stickerId);
 }
 
 // 贴纸缩略图子组件
@@ -177,7 +185,7 @@ const StickerThumb = defineComponent({
             <div class="p-3 space-y-1.5">
               <!-- 现有包列表 -->
               <div
-                v-for="pack in stickerStore.customPacks"
+                v-for="pack in customPacks"
                 :key="pack.id"
                 class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-accent/50 cursor-pointer transition-colors group"
                 @click="openPack(pack.id)"
@@ -201,7 +209,7 @@ const StickerThumb = defineComponent({
                 <button
                   class="p-1.5 rounded-md text-destructive opacity-0 group-hover:opacity-100 hover:bg-destructive/10 transition-all"
                   :title="t('chat.sticker_delete_title')"
-                  @click.stop="deletePack(pack.id)"
+                  @click.stop="deleteActivePack(pack.id)"
                 >
                   <Trash2 :size="14" />
                 </button>
@@ -209,7 +217,7 @@ const StickerThumb = defineComponent({
 
               <!-- 空状态 -->
               <div
-                v-if="stickerStore.customPacks.length === 0"
+                v-if="customPacks.length === 0"
                 class="flex flex-col items-center justify-center py-12 text-muted-foreground"
               >
                 <div class="text-3xl mb-2">📦</div>
@@ -270,7 +278,7 @@ const StickerThumb = defineComponent({
                   <button
                     class="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
                     :title="t('chat.sticker_remove')"
-                    @click="removeSticker(sticker.id)"
+                    @click="removeActiveSticker(sticker.id)"
                   >
                     <X :size="10" />
                   </button>
@@ -304,7 +312,7 @@ const StickerThumb = defineComponent({
               </button>
               <button
                 class="px-3 py-2.5 text-sm rounded-lg text-destructive hover:bg-destructive/10 transition-colors"
-                @click="deletePack(activePack.id)"
+                @click="deleteActivePack(activePack.id)"
               >
                 <Trash2 :size="16" />
               </button>
