@@ -1,5 +1,4 @@
-import { defineStore } from 'pinia'
-import { computed, ref } from 'vue'
+import { Store } from '@tanstack/vue-store'
 
 export const SCHEDULED_MESSAGES_STORAGE_KEY = 'muon.chat.scheduledMessages.v1'
 
@@ -47,68 +46,75 @@ function generateId(now: number): string {
   return `sched:${now}:${Math.random().toString(36).slice(2, 10)}`
 }
 
-export const useScheduledMessageStore = defineStore('scheduledMessages', () => {
-  const messages = ref<ScheduledMessage[]>(loadState())
+export interface ScheduledMessageState {
+  messages: ScheduledMessage[]
+}
 
-  function persist(): void {
-    const payload: PersistedState = { version: 1, messages: messages.value }
-    try {
-      localStorage.setItem(SCHEDULED_MESSAGES_STORAGE_KEY, JSON.stringify(payload))
-    } catch (err) {
-      console.warn('[scheduledMessageStore] Failed to persist:', err)
-    }
+function createInitialState(): ScheduledMessageState {
+  return { messages: loadState() }
+}
+
+export const scheduledMessageStore = new Store<ScheduledMessageState>(createInitialState())
+
+function persist(): void {
+  const payload: PersistedState = { version: 1, messages: scheduledMessageStore.state.messages }
+  try {
+    localStorage.setItem(SCHEDULED_MESSAGES_STORAGE_KEY, JSON.stringify(payload))
+  } catch (err) {
+    console.warn('[scheduledMessageStore] Failed to persist:', err)
   }
+}
 
-  function schedule(input: {
-    roomId: string
-    body: string
-    html?: string
-    sendAt: number
-    now?: number
-  }): ScheduledMessage {
-    const message: ScheduledMessage = {
-      id: generateId(input.now ?? Date.now()),
-      roomId: input.roomId,
-      body: input.body,
-      html: input.html,
-      sendAt: input.sendAt,
-    }
-    messages.value = [...messages.value, message].sort((a, b) => a.sendAt - b.sendAt)
-    persist()
-    return message
+scheduledMessageStore.subscribe(() => persist())
+
+export function schedule(input: {
+  roomId: string
+  body: string
+  html?: string
+  sendAt: number
+  now?: number
+}): ScheduledMessage {
+  const message: ScheduledMessage = {
+    id: generateId(input.now ?? Date.now()),
+    roomId: input.roomId,
+    body: input.body,
+    html: input.html,
+    sendAt: input.sendAt,
   }
+  scheduledMessageStore.setState((s) => ({
+    messages: [...s.messages, message].sort((a, b) => a.sendAt - b.sendAt),
+  }))
+  return message
+}
 
-  function cancel(id: string): void {
-    const next = messages.value.filter((message) => message.id !== id)
-    if (next.length === messages.value.length) return
-    messages.value = next
-    persist()
-  }
+export function cancel(id: string): void {
+  const next = scheduledMessageStore.state.messages.filter((m) => m.id !== id)
+  if (next.length === scheduledMessageStore.state.messages.length) return
+  scheduledMessageStore.setState((s) => ({
+    messages: s.messages.filter((m) => m.id !== id),
+  }))
+}
 
-  function dueMessages(now: number): ScheduledMessage[] {
-    return messages.value.filter((message) => message.sendAt <= now)
-  }
+export function remove(ids: string[]): void {
+  if (ids.length === 0) return
+  const idSet = new Set(ids)
+  scheduledMessageStore.setState((s) => ({
+    messages: s.messages.filter((m) => !idSet.has(m.id)),
+  }))
+}
 
-  function remove(ids: string[]): void {
-    if (ids.length === 0) return
-    const idSet = new Set(ids)
-    messages.value = messages.value.filter((message) => !idSet.has(message.id))
-    persist()
-  }
+export function dueMessages(now: number): ScheduledMessage[] {
+  return scheduledMessageStore.state.messages.filter((m) => m.sendAt <= now)
+}
 
-  function pendingForRoom(roomId: string): ScheduledMessage[] {
-    return messages.value.filter((message) => message.roomId === roomId)
-  }
+export function pendingForRoom(roomId: string): ScheduledMessage[] {
+  return scheduledMessageStore.state.messages.filter((m) => m.roomId === roomId)
+}
 
-  const pendingCount = computed(() => messages.value.length)
+export function selectPendingCount(state: ScheduledMessageState): number {
+  return state.messages.length
+}
 
-  return {
-    messages,
-    pendingCount,
-    schedule,
-    cancel,
-    dueMessages,
-    remove,
-    pendingForRoom,
-  }
-})
+export function resetScheduledMessageStore(): void {
+  scheduledMessageStore.setState(() => createInitialState())
+}

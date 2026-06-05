@@ -37,7 +37,7 @@ import { useMediaViewer } from '../composables/useMediaViewer';
 import { useMention } from '../composables/useMention';
 import { useTyping } from '../composables/useTyping';
 import { useChatStore } from '../stores/chatStore';
-import { useScheduledMessageStore } from '../stores/scheduledMessageStore';
+import { schedule } from '../stores/scheduledMessageStore';
 import AttachmentMenu from './AttachmentMenu.vue';
 import ContactCardPicker from './ContactCardPicker.vue';
 import ExpressionPicker from './ExpressionPicker.vue';
@@ -637,7 +637,6 @@ function submitEditorUrgent() {
 }
 
 // ── 定时发送（客户端待发队列，到点由 useScheduledMessageFlush 发送） ──
-const scheduledStore = useScheduledMessageStore();
 const showSchedulePicker = ref(false);
 const scheduleAt = ref('');
 
@@ -661,7 +660,7 @@ function confirmSchedule() {
     toast.error(t('chat.schedule_past'));
     return;
   }
-  scheduledStore.schedule({ roomId: store.currentRoomId, body: payload.text, html: payload.html, sendAt });
+  schedule({ roomId: store.currentRoomId, body: payload.text, html: payload.html, sendAt });
   clear();
   stopTyping();
   store.clearCompose();
