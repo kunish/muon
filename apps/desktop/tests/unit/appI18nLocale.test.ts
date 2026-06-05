@@ -1,11 +1,9 @@
-import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { nextTick } from 'vue'
 
 describe('app i18n locale', () => {
   beforeEach(() => {
     localStorage.clear()
-    setActivePinia(createPinia())
     vi.resetModules()
   })
 
@@ -19,11 +17,10 @@ describe('app i18n locale', () => {
 
   it('syncs runtime settings locale changes to vue-i18n', async () => {
     const { i18n, syncI18nLocaleWithSettings } = await import('@/app/plugins/i18n')
-    const { useSettingsStore } = await import('@/features/settings/stores/settingsStore')
+    const { setLocale } = await import('@/features/settings/stores/settingsStore')
     const stopSync = syncI18nLocaleWithSettings()
-    const settingsStore = useSettingsStore()
 
-    settingsStore.locale = 'en'
+    setLocale('en')
     await nextTick()
 
     expect(i18n.global.locale.value).toBe('en')
