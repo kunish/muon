@@ -7,7 +7,8 @@ import MessageActionBar from '@/features/chat/components/MessageActionBar.vue'
 import TaskComposerDialog from '@/features/chat/components/TaskComposerDialog.vue'
 import { useChatStore } from '@/features/chat/stores/chatStore'
 import { resolveReminderDueAt, useDeferStore } from '@/features/chat/stores/deferStore'
-import { useTaskStore } from '@/features/chat/stores/taskStore'
+import { resetTaskStore } from '@/features/chat/stores/taskStore'
+import * as taskStoreModule from '@/features/chat/stores/taskStore'
 
 const clipboardMocks = vi.hoisted(() => ({
   writeText: vi.fn(),
@@ -106,6 +107,7 @@ describe('messageActionBar', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     localStorage.clear()
+    resetTaskStore()
     document.body.innerHTML = ''
     clipboardMocks.writeText.mockReset()
     clipboardMocks.writeText.mockResolvedValue(undefined)
@@ -408,8 +410,7 @@ describe('messageActionBar', () => {
       attachTo: document.body,
     })
 
-    const taskStore = useTaskStore()
-    const createTaskSpy = vi.spyOn(taskStore, 'createTask')
+    const createTaskSpy = vi.spyOn(taskStoreModule, 'createTask')
 
     await wrapper.find('[data-testid="message-more-trigger"]').trigger('click')
     await flushPromises()
@@ -437,6 +438,8 @@ describe('messageActionBar', () => {
         },
       }),
     )
+
+    createTaskSpy.mockRestore()
   })
 
   it('create task from message prevents duplicate submission while pending', async () => {
@@ -448,9 +451,8 @@ describe('messageActionBar', () => {
       attachTo: document.body,
     })
 
-    const taskStore = useTaskStore()
     let _resolveCreateTask: ((value: unknown) => void) | null = null
-    const createTaskSpy = vi.spyOn(taskStore, 'createTask').mockImplementation(() => {
+    const createTaskSpy = vi.spyOn(taskStoreModule, 'createTask').mockImplementation(() => {
       return new Promise((resolve) => {
         _resolveCreateTask = resolve
       }) as any

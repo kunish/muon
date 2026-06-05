@@ -1,18 +1,22 @@
-import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { useTaskStore } from '@/features/chat/stores/taskStore'
+import {
+  createTask,
+  resetTaskStore,
+  selectTasksByStatus,
+  taskStore,
+  transitionStatus,
+} from '@/features/chat/stores/taskStore'
 import { TASK_STORAGE_KEY } from '@/features/chat/types/task'
 
 describe('taskStore', () => {
   beforeEach(() => {
-    setActivePinia(createPinia())
     localStorage.clear()
+    resetTaskStore()
   })
 
   it('createTask 必须写入 assignee/dueAt/status/sourceRef', () => {
-    const store = useTaskStore()
     const now = Date.UTC(2026, 0, 1, 10, 0, 0)
-    const task = store.createTask({
+    const task = createTask({
       id: 'task-1',
       title: 'Follow up',
       assignee: '@alice:example.org',
@@ -34,9 +38,8 @@ describe('taskStore', () => {
   })
 
   it('transitionStatus 仅接受合法状态迁移', () => {
-    const store = useTaskStore()
     const now = Date.UTC(2026, 0, 1, 10, 0, 0)
-    store.createTask({
+    createTask({
       id: 'task-2',
       title: 'Follow up',
       assignee: '@alice:example.org',
@@ -48,19 +51,18 @@ describe('taskStore', () => {
       now,
     })
 
-    store.transitionStatus('task-2', 'doing')
-    store.transitionStatus('task-2', 'todo')
-    store.transitionStatus('task-2', 'doing')
-    store.transitionStatus('task-2', 'done')
+    transitionStatus('task-2', 'doing')
+    transitionStatus('task-2', 'todo')
+    transitionStatus('task-2', 'doing')
+    transitionStatus('task-2', 'done')
 
-    expect(() => store.transitionStatus('task-2', 'todo')).toThrowError()
+    expect(() => transitionStatus('task-2', 'todo')).toThrowError()
   })
 
   it('tasksByStatus 三组列表互斥', () => {
-    const store = useTaskStore()
     const now = Date.UTC(2026, 0, 1, 10, 0, 0)
 
-    store.createTask({
+    createTask({
       id: 'todo-1',
       title: 'Todo',
       assignee: '@alice:example.org',
@@ -68,7 +70,7 @@ describe('taskStore', () => {
       sourceRef: { roomId: '!room:example.org', eventId: '$todo' },
       now,
     })
-    store.createTask({
+    createTask({
       id: 'doing-1',
       title: 'Doing',
       assignee: '@alice:example.org',
@@ -76,7 +78,7 @@ describe('taskStore', () => {
       sourceRef: { roomId: '!room:example.org', eventId: '$doing' },
       now,
     })
-    store.createTask({
+    createTask({
       id: 'done-1',
       title: 'Done',
       assignee: '@alice:example.org',
@@ -85,11 +87,11 @@ describe('taskStore', () => {
       now,
     })
 
-    store.transitionStatus('doing-1', 'doing')
-    store.transitionStatus('done-1', 'doing')
-    store.transitionStatus('done-1', 'done')
+    transitionStatus('doing-1', 'doing')
+    transitionStatus('done-1', 'doing')
+    transitionStatus('done-1', 'done')
 
-    const grouped = store.tasksByStatus
+    const grouped = selectTasksByStatus(taskStore.state)
     const allIds = new Set([
       ...grouped.todo.map((item) => item.id),
       ...grouped.doing.map((item) => item.id),
@@ -126,10 +128,9 @@ describe('taskStore', () => {
       }),
     )
 
-    const store = useTaskStore()
-    store.hydrate()
+    resetTaskStore()
 
-    expect(store.tasks).toHaveLength(1)
-    expect(store.tasks[0]?.id).toBe('persisted-task')
+    expect(taskStore.state.tasks).toHaveLength(1)
+    expect(taskStore.state.tasks[0]?.id).toBe('persisted-task')
   })
 })

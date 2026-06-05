@@ -1,17 +1,17 @@
 <script setup lang="ts">
 import type { TaskItem } from '../types/task';
-import { computed } from 'vue';
+import { useSelector } from '@tanstack/vue-store';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { preloadAndNavigate } from '@/shared/lib/contextPreload';
-import { useTaskStore } from '../stores/taskStore';
+import { selectTasksByStatus, taskStore, transitionStatus } from '../stores/taskStore';
 import { canTransitionTaskStatus } from '../types/task';
 
 const { t } = useI18n();
-const taskStore = useTaskStore();
 const router = useRouter();
 
-const taskGroups = computed(() => taskStore.tasksByStatus);
+const taskGroups = useSelector(taskStore, selectTasksByStatus);
+const taskCount = useSelector(taskStore, (s) => s.tasks.length);
 
 const statusMeta: Record<'todo' | 'doing' | 'done', { label: string }> = {
   todo: { label: t('chat.task_status_todo') },
@@ -20,7 +20,7 @@ const statusMeta: Record<'todo' | 'doing' | 'done', { label: string }> = {
 };
 
 function transitionTask(task: TaskItem, to: 'todo' | 'doing' | 'done') {
-  taskStore.transitionStatus(task.id, to);
+  transitionStatus(task.id, to);
 }
 
 async function jumpToSourceMessage(task: TaskItem) {
@@ -36,7 +36,7 @@ async function jumpToSourceMessage(task: TaskItem) {
         {{ t('chat.tasks') }}
       </h3>
       <span class="text-xs text-muted-foreground">
-        {{ taskStore.tasks.length }}
+        {{ taskCount }}
       </span>
     </header>
 

@@ -1,6 +1,5 @@
-import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { useTaskStore } from '@/features/chat/stores/taskStore'
+import { createTask, hydrate, resetTaskStore, taskStore, transitionStatus } from '@/features/chat/stores/taskStore'
 import { TASK_STORAGE_KEY } from '@/features/chat/types/task'
 
 function seedPersistedTasks(items: unknown[]) {
@@ -31,20 +30,22 @@ function createPersistedTask(id: string) {
 
 describe('taskStore recovery continuity', () => {
   beforeEach(() => {
-    setActivePinia(createPinia())
     localStorage.clear()
+    resetTaskStore()
   })
 
   it('repeated hydrate/recovery entry restores persisted tasks exactly once', () => {
     seedPersistedTasks([createPersistedTask('persisted-task')])
 
-    const store = useTaskStore()
+    // re-run createInitialState via resetTaskStore to load persisted data
+    resetTaskStore()
 
-    store.tasks = []
-    store.hydrate()
-    store.hydrate()
+    // Reset tasks to empty then hydrate twice — should always restore exactly the persisted list
+    taskStore.setState((s) => ({ ...s, tasks: [] }))
+    hydrate()
+    hydrate()
 
-    expect(store.tasks.map((task) => task.id)).toEqual(['persisted-task'])
+    expect(taskStore.state.tasks.map((task) => task.id)).toEqual(['persisted-task'])
   })
 
   it('recovery bootstrap filters invalid legacy rows and rewrites a deterministic payload', () => {
@@ -56,10 +57,9 @@ describe('taskStore recovery continuity', () => {
       },
     ])
 
-    const store = useTaskStore()
-    store.hydrate()
+    resetTaskStore()
 
-    expect(store.tasks.map((task) => task.id)).toEqual(['persisted-task'])
+    expect(taskStore.state.tasks.map((task) => task.id)).toEqual(['persisted-task'])
 
     const persisted = JSON.parse(localStorage.getItem(TASK_STORAGE_KEY) ?? '{}')
     expect(persisted.items).toHaveLength(1)
@@ -69,12 +69,14 @@ describe('taskStore recovery continuity', () => {
   it('task creation and status updates still work after recovery hydrate restores persisted tasks', () => {
     seedPersistedTasks([createPersistedTask('persisted-task')])
 
-    const store = useTaskStore()
+    resetTaskStore()
 
-    store.tasks = []
-    store.hydrate()
-    store.transitionStatus('persisted-task', 'doing')
-    store.createTask({
+    // Reset tasks then re-hydrate to simulate the original test's store.tasks = [] + store.hydrate()
+    taskStore.setState((s) => ({ ...s, tasks: [] }))
+    hydrate()
+
+    transitionStatus('persisted-task', 'doing')
+    createTask({
       id: 'fresh-task',
       title: 'Fresh task',
       assignee: '@bob:example.org',
@@ -86,7 +88,7 @@ describe('taskStore recovery continuity', () => {
       now: 200,
     })
 
-    expect(store.tasks.map((task) => ({ id: task.id, status: task.status }))).toEqual([
+    expect(taskStore.state.tasks.map((task) => ({ id: task.id, status: task.status }))).toEqual([
       { id: 'persisted-task', status: 'doing' },
       { id: 'fresh-task', status: 'todo' },
     ])

@@ -31,7 +31,7 @@ import { toast } from 'vue-sonner';
 import { getFloatingPosition } from '../composables/useFloatingPosition';
 import { useMessageActions } from '../composables/useMessageActions';
 import { useDeferStore } from '../stores/deferStore';
-import { useTaskStore } from '../stores/taskStore';
+import { createTask } from '../stores/taskStore';
 import ForwardDialog from './ForwardDialog.vue';
 import ReactionPickerPopover from './ReactionPickerPopover.vue';
 import TaskComposerDialog from './TaskComposerDialog.vue';
@@ -51,7 +51,6 @@ const emit = defineEmits<{
 }>();
 
 const deferStore = useDeferStore();
-const taskStore = useTaskStore();
 const { t } = useI18n();
 const actions = useMessageActions(
   () => props.event,
@@ -224,7 +223,7 @@ async function onSubmitTask(payload: { title: string; assignee: string; dueAt: s
   creatingTask.value = true;
   try {
     await Promise.resolve(
-      taskStore.createTask({
+      createTask({
         title: payload.title,
         assignee: payload.assignee,
         dueAt: payload.dueAt,
