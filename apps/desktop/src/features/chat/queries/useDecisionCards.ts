@@ -15,6 +15,8 @@ export function useDecisionCardsQuery() {
     queryFn: loadDecisionCards,
   })
   const cards = computed(() => query.data.value ?? [])
+  // Spread the full query so callers can reach isLoading/isError/refetch; `cards`
+  // is a convenience computed so call sites avoid `data.value ?? []` everywhere.
   return { ...query, cards }
 }
 

@@ -34,3 +34,24 @@ plain `async` `queryFn`/`mutationFn`. Run the Effect to a Promise at the
 boundary and let errors reject — do not swallow them. Retry/error behavior that
 the Effect provided is reproduced via QueryClient `retry`/`onError`, not via a
 catch-all.
+
+## Cache as the source of truth (mutations: `setQueryData`, not invalidate)
+
+For local Dexie/IndexedDB-backed lists, mutations update the cache directly with
+`setQueryData` (upsert the returned row) rather than `invalidateQueries`. Two
+reasons: invalidation re-runs the whole `queryFn` (often an expensive hydrate —
+e.g. digest materialization + re-persist) on every write and causes list
+flicker; and in this single-renderer desktop app every write already flows
+through the cache, so the cache is authoritative. This preserves the instant
+list update the old Pinia stores got from in-place mutation.
+
+Because of that, the app default `staleTime` (60s) is intentional, not
+accidental: an unmount/remount within the window renders from cache without
+re-hitting Dexie, which is correct since no external process writes the same
+table. A mutation that needs the current row reads it from the cache via
+`getQueryData(<key>)` and throws if absent — same "not found" contract the
+stores had.
+
+`features/chat/queries/{decisionKeys,decisionCardsApi,useDecisionCards}.ts` is
+the reference three-layer split: opaque key factory → Vue-free async data layer
+(IO + merge logic, unit-tested directly) → composables (cache wiring only).
