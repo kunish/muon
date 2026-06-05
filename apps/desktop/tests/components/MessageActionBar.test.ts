@@ -6,7 +6,12 @@ import ForwardDialog from '@/features/chat/components/ForwardDialog.vue'
 import MessageActionBar from '@/features/chat/components/MessageActionBar.vue'
 import TaskComposerDialog from '@/features/chat/components/TaskComposerDialog.vue'
 import { useChatStore } from '@/features/chat/stores/chatStore'
-import { resolveReminderDueAt, useDeferStore } from '@/features/chat/stores/deferStore'
+import {
+  deferStore,
+  resetDeferStore,
+  resolveReminderDueAt,
+  selectActiveDeferItems,
+} from '@/features/chat/stores/deferStore'
 import { resetTaskStore } from '@/features/chat/stores/taskStore'
 import * as taskStoreModule from '@/features/chat/stores/taskStore'
 
@@ -108,6 +113,7 @@ describe('messageActionBar', () => {
     setActivePinia(createPinia())
     localStorage.clear()
     resetTaskStore()
+    resetDeferStore()
     document.body.innerHTML = ''
     clipboardMocks.writeText.mockReset()
     clipboardMocks.writeText.mockResolvedValue(undefined)
@@ -256,9 +262,9 @@ describe('messageActionBar', () => {
     await clickBodyElement('[data-testid="message-defer-trigger"]')
     await clickBodyElement('[data-testid="message-defer-preset-tomorrow"]')
 
-    const deferStore = useDeferStore()
-    expect(deferStore.activeItems.length).toBe(1)
-    expect(deferStore.activeItems[0]).toMatchObject({
+    const activeItems = selectActiveDeferItems(deferStore.state)
+    expect(activeItems.length).toBe(1)
+    expect(activeItems[0]).toMatchObject({
       roomId: '!room:test',
       eventId: '$event-1',
       status: 'deferred',
@@ -366,9 +372,8 @@ describe('messageActionBar', () => {
     await clickBodyElement('[data-testid="message-defer-trigger"]')
     await clickBodyElement('[data-testid="message-defer-preset-1h"]')
 
-    const deferStore = useDeferStore()
-    expect(deferStore.activeItems.length).toBe(1)
-    expect(deferStore.activeItems[0]?.dueAt).toBe(resolveReminderDueAt({ preset: 'in-1-hour' }, now))
+    expect(selectActiveDeferItems(deferStore.state).length).toBe(1)
+    expect(selectActiveDeferItems(deferStore.state)[0]?.dueAt).toBe(resolveReminderDueAt({ preset: 'in-1-hour' }, now))
 
     await wrapper.find('[data-testid="message-more-trigger"]').trigger('click')
     await flushPromises()
@@ -377,8 +382,8 @@ describe('messageActionBar', () => {
     await setBodyInputValue('[data-testid="message-defer-custom-input"]', '2026-03-06T10:30')
     await clickBodyElement('[data-testid="message-defer-custom-submit"]')
 
-    expect(deferStore.activeItems.length).toBe(2)
-    const latestItem = deferStore.activeItems[1]
+    expect(selectActiveDeferItems(deferStore.state).length).toBe(2)
+    const latestItem = selectActiveDeferItems(deferStore.state)[1]
     expect(latestItem).toBeTruthy()
     expect(Math.abs((latestItem?.dueAt ?? 0) - new Date('2026-03-06T10:30:00').getTime())).toBeLessThan(60_000)
 

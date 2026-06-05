@@ -1,25 +1,23 @@
 import { mount } from '@vue/test-utils'
-import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { nextTick } from 'vue'
 import DeferQueuePanel from '@/features/chat/components/DeferQueuePanel.vue'
-import { useDeferStore } from '@/features/chat/stores/deferStore'
+import { createDeferredItem, markCompleted, resetDeferStore } from '@/features/chat/stores/deferStore'
 
 describe('defer queue panel', () => {
   beforeEach(() => {
-    setActivePinia(createPinia())
     localStorage.clear()
+    resetDeferStore()
   })
 
   it('renders active defer items sorted by dueAt ascending', async () => {
-    const deferStore = useDeferStore()
-    deferStore.createDeferredItem({
+    createDeferredItem({
       id: 'later',
       roomId: '!room:test',
       eventId: '$event-later',
       reminder: { preset: 'custom', dueAt: Date.parse('2026-03-07T10:00:00Z') },
     })
-    deferStore.createDeferredItem({
+    createDeferredItem({
       id: 'earlier',
       roomId: '!room:test',
       eventId: '$event-earlier',
@@ -37,14 +35,13 @@ describe('defer queue panel', () => {
   })
 
   it('moves completed and archived items from active into history', async () => {
-    const deferStore = useDeferStore()
-    deferStore.createDeferredItem({
+    createDeferredItem({
       id: 'for-complete',
       roomId: '!room:test',
       eventId: '$event-complete',
       reminder: { preset: 'custom', dueAt: Date.parse('2026-03-06T09:00:00Z') },
     })
-    deferStore.createDeferredItem({
+    createDeferredItem({
       id: 'for-archive',
       roomId: '!room:test',
       eventId: '$event-archive',
@@ -69,21 +66,20 @@ describe('defer queue panel', () => {
   })
 
   it('shows only completed/archived items in history view', async () => {
-    const deferStore = useDeferStore()
-    deferStore.createDeferredItem({
+    createDeferredItem({
       id: 'still-active',
       roomId: '!room:test',
       eventId: '$event-active',
       reminder: { preset: 'custom', dueAt: Date.parse('2026-03-08T09:00:00Z') },
     })
-    deferStore.createDeferredItem({
+    createDeferredItem({
       id: 'done-item',
       roomId: '!room:test',
       eventId: '$event-done',
       reminder: { preset: 'custom', dueAt: Date.parse('2026-03-06T09:00:00Z') },
     })
 
-    deferStore.markCompleted('done-item')
+    markCompleted('done-item')
 
     const wrapper = mount(DeferQueuePanel)
     await nextTick()
@@ -95,10 +91,8 @@ describe('defer queue panel', () => {
   })
 
   it('provides scrollable containers for active/history lists', async () => {
-    const deferStore = useDeferStore()
-
     for (let index = 0; index < 20; index += 1) {
-      deferStore.createDeferredItem({
+      createDeferredItem({
         id: `active-${index}`,
         roomId: '!room:test',
         eventId: `$event-active-${index}`,
@@ -122,10 +116,8 @@ describe('defer queue panel', () => {
   })
 
   it('keeps long list items actionable beyond first screen', async () => {
-    const deferStore = useDeferStore()
-
     for (let index = 0; index < 24; index += 1) {
-      deferStore.createDeferredItem({
+      createDeferredItem({
         id: `long-${index}`,
         roomId: '!room:test',
         eventId: `$event-long-${index}`,

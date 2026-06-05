@@ -1,19 +1,26 @@
-import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { useDeferStore } from '@/features/chat/stores/deferStore'
+import {
+  createDeferredItem,
+  deferStore,
+  markArchived,
+  markCompleted,
+  resetDeferStore,
+  resolveReminderDueAt,
+  selectActiveDeferItems,
+  selectHistoryDeferItems,
+} from '@/features/chat/stores/deferStore'
 import { DEFER_STORAGE_KEY } from '@/features/chat/types/defer'
 
 describe('deferStore', () => {
   beforeEach(() => {
-    setActivePinia(createPinia())
     localStorage.clear()
+    resetDeferStore()
   })
 
   it('createDeferredItem 接收 preset/custom 时间并写入 dueAt', () => {
-    const store = useDeferStore()
     const now = Date.UTC(2026, 0, 1, 10, 0, 0)
 
-    const presetItem = store.createDeferredItem({
+    const presetItem = createDeferredItem({
       id: 'defer-preset',
       roomId: '!room:example.org',
       eventId: '$event:preset',
@@ -21,7 +28,7 @@ describe('deferStore', () => {
       now,
     })
 
-    const customItem = store.createDeferredItem({
+    const customItem = createDeferredItem({
       id: 'defer-custom',
       roomId: '!room:example.org',
       eventId: '$event:custom',
@@ -34,17 +41,16 @@ describe('deferStore', () => {
   })
 
   it('activeItems 仅包含 deferred，且按 dueAt 升序', () => {
-    const store = useDeferStore()
     const now = Date.UTC(2026, 0, 1, 10, 0, 0)
 
-    store.createDeferredItem({
+    createDeferredItem({
       id: 'late',
       roomId: '!room:example.org',
       eventId: '$late',
       reminder: { preset: 'custom', dueAt: now + 9_000 },
       now,
     })
-    store.createDeferredItem({
+    createDeferredItem({
       id: 'early',
       roomId: '!room:example.org',
       eventId: '$early',
@@ -52,23 +58,22 @@ describe('deferStore', () => {
       now,
     })
 
-    store.markCompleted('late')
+    markCompleted('late')
 
-    expect(store.activeItems.map((item) => item.id)).toEqual(['early'])
+    expect(selectActiveDeferItems(deferStore.state).map((item) => item.id)).toEqual(['early'])
   })
 
   it('markCompleted/markArchived 后进入 historyItems 并移出 activeItems', () => {
-    const store = useDeferStore()
     const now = Date.UTC(2026, 0, 1, 10, 0, 0)
 
-    store.createDeferredItem({
+    createDeferredItem({
       id: 'defer-1',
       roomId: '!room:example.org',
       eventId: '$event-1',
       reminder: { preset: 'custom', dueAt: now + 1_000 },
       now,
     })
-    store.createDeferredItem({
+    createDeferredItem({
       id: 'defer-2',
       roomId: '!room:example.org',
       eventId: '$event-2',
@@ -76,11 +81,15 @@ describe('deferStore', () => {
       now,
     })
 
-    store.markCompleted('defer-1')
-    store.markArchived('defer-2')
+    markCompleted('defer-1')
+    markArchived('defer-2')
 
-    expect(store.activeItems).toHaveLength(0)
-    expect(store.historyItems.map((item) => item.status).sort()).toEqual(['archived', 'completed'])
+    expect(selectActiveDeferItems(deferStore.state)).toHaveLength(0)
+    expect(
+      selectHistoryDeferItems(deferStore.state)
+        .map((item) => item.status)
+        .sort(),
+    ).toEqual(['archived', 'completed'])
   })
 
   it('hydrate 可恢复 localStorage，schema 无效时降级为空', () => {
@@ -102,15 +111,23 @@ describe('deferStore', () => {
       }),
     )
 
-    const store = useDeferStore()
-    store.hydrate()
-    expect(store.activeItems.map((item) => item.id)).toEqual(['persisted'])
+    resetDeferStore()
+    expect(selectActiveDeferItems(deferStore.state).map((item) => item.id)).toEqual(['persisted'])
 
     localStorage.setItem(DEFER_STORAGE_KEY, JSON.stringify({ version: 1, items: [{ bad: true }] }))
-    setActivePinia(createPinia())
-    const degraded = useDeferStore()
-    degraded.hydrate()
-    expect(degraded.activeItems).toHaveLength(0)
-    expect(degraded.historyItems).toHaveLength(0)
+    resetDeferStore()
+    expect(selectActiveDeferItems(deferStore.state)).toHaveLength(0)
+    expect(selectHistoryDeferItems(deferStore.state)).toHaveLength(0)
+  })
+
+  it('resolveReminderDueAt preset cases', () => {
+    const now = Date.UTC(2026, 0, 1, 10, 0, 0)
+
+    expect(resolveReminderDueAt({ preset: 'in-1-hour' }, now)).toBe(now + 60 * 60 * 1000)
+    expect(resolveReminderDueAt({ preset: 'later-today' }, now)).toBe(now + 2 * 60 * 60 * 1000)
+    expect(resolveReminderDueAt({ preset: 'tomorrow' }, now)).toBe(now + 24 * 60 * 60 * 1000)
+    expect(resolveReminderDueAt({ preset: 'next-week' }, now)).toBe(now + 7 * 24 * 60 * 60 * 1000)
+    expect(resolveReminderDueAt({ preset: 'custom', dueAt: now + 5_000 }, now)).toBe(now + 5_000)
+    expect(resolveReminderDueAt({ preset: 'custom' }, now)).toBe(now)
   })
 })

@@ -1,10 +1,18 @@
 <script setup lang="ts">
+import { useSelector } from '@tanstack/vue-store';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useDeferStore } from '../stores/deferStore';
+import {
+  deferStore,
+  markArchived,
+  markCompleted,
+  selectActiveDeferItems,
+  selectHistoryDeferItems,
+} from '../stores/deferStore';
 
 const { t } = useI18n();
-const deferStore = useDeferStore();
+const activeItems = useSelector(deferStore, selectActiveDeferItems);
+const historyItems = useSelector(deferStore, selectHistoryDeferItems);
 const activeTab = ref<'active' | 'history'>('active');
 
 const now = computed(() => Date.now());
@@ -24,7 +32,7 @@ function isOverdue(dueAt: number) {
       <h3 class="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
         {{ t('chat.defer_queue_title') }}
       </h3>
-      <span class="text-[10px] text-muted-foreground">{{ deferStore.activeItems.length }}</span>
+      <span class="text-[10px] text-muted-foreground">{{ activeItems.length }}</span>
     </div>
 
     <div class="mt-2 grid grid-cols-2 gap-1 rounded-md border border-border/60 p-1">
@@ -55,7 +63,7 @@ function isOverdue(dueAt: number) {
     >
       <ul class="space-y-1" data-testid="defer-active-list">
         <li
-          v-for="item in deferStore.activeItems"
+          v-for="item in activeItems"
           :key="item.id"
           :data-testid="`defer-active-item-${item.id}`"
           class="rounded-md border border-border/60 px-2 py-1"
@@ -74,7 +82,7 @@ function isOverdue(dueAt: number) {
               type="button"
               class="rounded bg-accent px-2 py-0.5 text-[11px] text-foreground"
               :data-testid="`defer-complete-${item.id}`"
-              @click="deferStore.markCompleted(item.id)"
+              @click="markCompleted(item.id)"
             >
               {{ t('chat.defer_mark_completed') }}
             </button>
@@ -82,14 +90,14 @@ function isOverdue(dueAt: number) {
               type="button"
               class="rounded bg-muted px-2 py-0.5 text-[11px] text-muted-foreground"
               :data-testid="`defer-archive-${item.id}`"
-              @click="deferStore.markArchived(item.id)"
+              @click="markArchived(item.id)"
             >
               {{ t('chat.defer_archive') }}
             </button>
           </div>
         </li>
 
-        <li v-if="deferStore.activeItems.length === 0" class="px-2 py-2 text-xs text-muted-foreground">
+        <li v-if="activeItems.length === 0" class="px-2 py-2 text-xs text-muted-foreground">
           {{ t('chat.defer_empty_active') }}
         </li>
       </ul>
@@ -98,7 +106,7 @@ function isOverdue(dueAt: number) {
     <div v-else class="mt-2 max-h-56 overflow-y-auto pr-1" data-testid="defer-history-scroll-container">
       <ul class="space-y-1" data-testid="defer-history-list">
         <li
-          v-for="item in deferStore.historyItems"
+          v-for="item in historyItems"
           :key="item.id"
           :data-testid="`defer-history-item-${item.id}`"
           class="rounded-md border border-border/60 px-2 py-1"
@@ -111,7 +119,7 @@ function isOverdue(dueAt: number) {
           </p>
         </li>
 
-        <li v-if="deferStore.historyItems.length === 0" class="px-2 py-2 text-xs text-muted-foreground">
+        <li v-if="historyItems.length === 0" class="px-2 py-2 text-xs text-muted-foreground">
           {{ t('chat.defer_empty_history') }}
         </li>
       </ul>

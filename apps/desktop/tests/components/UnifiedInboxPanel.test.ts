@@ -4,13 +4,14 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { nextTick } from 'vue'
 import UnifiedInboxPanel from '@/features/chat/components/UnifiedInboxPanel.vue'
 import { __resetUnifiedInboxForTests } from '@/features/chat/composables/useUnifiedInbox'
-import { useDeferStore } from '@/features/chat/stores/deferStore'
+import { deferStore, resetDeferStore, selectActiveDeferItems } from '@/features/chat/stores/deferStore'
 import { resetInboxStore, setFilter } from '@/features/chat/stores/inboxStore'
 
 describe('unifiedInboxPanel', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     localStorage.clear()
+    resetDeferStore()
     resetInboxStore()
     __resetUnifiedInboxForTests()
   })
@@ -115,9 +116,9 @@ describe('unifiedInboxPanel', () => {
     await wrapper.find(`[data-testid="inbox-defer-preset-1h-${itemId}"]`).trigger('click')
     await nextTick()
 
-    const deferStore = useDeferStore()
-    expect(deferStore.activeItems.length).toBe(1)
-    const firstDeferred = deferStore.activeItems[0]!
+    const activeItems = selectActiveDeferItems(deferStore.state)
+    expect(activeItems.length).toBe(1)
+    const firstDeferred = activeItems[0]!
     expect(firstDeferred).toMatchObject({
       id: `inbox:${itemId}:1h`,
       status: 'deferred',
@@ -146,9 +147,9 @@ describe('unifiedInboxPanel', () => {
     await wrapper.find(`[data-testid="inbox-defer-custom-submit-${itemId}"]`).trigger('click')
     await nextTick()
 
-    const deferStore = useDeferStore()
-    expect(deferStore.activeItems.length).toBe(1)
-    const firstDeferred = deferStore.activeItems[0]!
+    const activeItems = selectActiveDeferItems(deferStore.state)
+    expect(activeItems.length).toBe(1)
+    const firstDeferred = activeItems[0]!
     expect(firstDeferred).toMatchObject({
       id: `inbox:${itemId}:custom`,
       status: 'deferred',
@@ -170,9 +171,9 @@ describe('unifiedInboxPanel', () => {
     await wrapper.find(`[data-testid="inbox-defer-preset-tomorrow-${itemId}"]`).trigger('click')
     await nextTick()
 
-    const deferStore = useDeferStore()
-    expect(deferStore.activeItems.length).toBe(1)
-    const firstDeferred = deferStore.activeItems[0]!
+    const activeItems = selectActiveDeferItems(deferStore.state)
+    expect(activeItems.length).toBe(1)
+    const firstDeferred = activeItems[0]!
     expect(firstDeferred.dueAt).toBeGreaterThan(Date.now())
   })
 })

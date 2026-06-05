@@ -30,7 +30,7 @@ import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
 import { getFloatingPosition } from '../composables/useFloatingPosition';
 import { useMessageActions } from '../composables/useMessageActions';
-import { useDeferStore } from '../stores/deferStore';
+import { createDeferredItem } from '../stores/deferStore';
 import { createTask } from '../stores/taskStore';
 import ForwardDialog from './ForwardDialog.vue';
 import ReactionPickerPopover from './ReactionPickerPopover.vue';
@@ -50,7 +50,6 @@ const emit = defineEmits<{
   menuOpenChange: [open: boolean];
 }>();
 
-const deferStore = useDeferStore();
 const { t } = useI18n();
 const actions = useMessageActions(
   () => props.event,
@@ -176,7 +175,7 @@ function onToggleDeferMenu() {
 
 function createDeferredFromMessage(preset: 'in-1-hour' | 'tonight' | 'tomorrow-morning' | 'tomorrow', suffix: string) {
   if (!eventId.value || !props.roomId) return;
-  deferStore.createDeferredItem({
+  createDeferredItem({
     id: `message:${props.roomId}:${eventId.value}:${suffix}`,
     roomId: props.roomId,
     eventId: eventId.value,
@@ -192,7 +191,7 @@ function submitCustomDeferredFromMessage() {
   const dueAt = Date.parse(customDeferValue.value);
   if (!Number.isFinite(dueAt)) return;
 
-  deferStore.createDeferredItem({
+  createDeferredItem({
     id: `message:${props.roomId}:${eventId.value}:custom`,
     roomId: props.roomId,
     eventId: eventId.value,

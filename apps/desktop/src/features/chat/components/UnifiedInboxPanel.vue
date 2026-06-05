@@ -6,7 +6,7 @@ import { useVirtualizer } from '@tanstack/vue-virtual';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useUnifiedInbox } from '../composables/useUnifiedInbox';
-import { useDeferStore } from '../stores/deferStore';
+import { createDeferredItem } from '../stores/deferStore';
 import { inboxStore, markSelectedProcessed, selectAll, setFilter, toggleSelection } from '../stores/inboxStore';
 
 const emit = defineEmits<{
@@ -14,7 +14,6 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
-const deferStore = useDeferStore();
 const filter = useSelector(inboxStore, (s) => s.filter);
 const selectedItemIds = useSelector(inboxStore, (s) => s.selectedItemIds);
 const { items, counts, isLoading } = useUnifiedInbox();
@@ -97,7 +96,7 @@ function toggleDeferMenu(itemId: string) {
 }
 
 function createDeferredByPreset(item: UnifiedInboxItem, preset: Exclude<ReminderPreset, 'custom'>, actionId: string) {
-  deferStore.createDeferredItem({
+  createDeferredItem({
     id: `inbox:${item.id}:${actionId}`,
     roomId: item.roomId,
     eventId: item.eventId,
@@ -111,7 +110,7 @@ function submitCustomDefer(item: UnifiedInboxItem) {
   const dueAt = Date.parse(customRaw);
   if (!Number.isFinite(dueAt)) return;
 
-  deferStore.createDeferredItem({
+  createDeferredItem({
     id: `inbox:${item.id}:custom`,
     roomId: item.roomId,
     eventId: item.eventId,
