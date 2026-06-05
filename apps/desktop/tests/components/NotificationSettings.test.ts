@@ -1,7 +1,7 @@
 import { mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import NotificationSettings from '@/features/settings/components/NotificationSettings.vue'
-import { useSettingsStore } from '@/features/settings/stores/settingsStore'
+import { resetSettingsStore, setNotificationsEnabled, settingsStore } from '@/features/settings/stores/settingsStore'
 
 const requestPermission = vi.fn()
 
@@ -25,6 +25,7 @@ const SwitchStub = {
 describe('notification settings', () => {
   beforeEach(() => {
     localStorage.clear()
+    resetSettingsStore()
     requestPermission.mockReset()
   })
 
@@ -33,7 +34,6 @@ describe('notification settings', () => {
   })
 
   it('lets users tune notification channels, sound, and badge count', async () => {
-    const store = useSettingsStore()
     const wrapper = mount(NotificationSettings, {
       global: {
         stubs: {
@@ -48,9 +48,9 @@ describe('notification settings', () => {
     await wrapper.get('[data-testid="settings-notification-sound"]').trigger('click')
     await wrapper.get('[data-testid="settings-badge-count"]').trigger('click')
 
-    expect(store.notificationChannels.approvals).toBe(false)
-    expect(store.notificationSound).toBe(false)
-    expect(store.badgeCount).toBe(false)
+    expect(settingsStore.state.notificationChannels.approvals).toBe(false)
+    expect(settingsStore.state.notificationSound).toBe(false)
+    expect(settingsStore.state.badgeCount).toBe(false)
     expect(wrapper.get('[data-testid="settings-notification-channel-summary"]').text()).toContain('3')
   })
 
@@ -63,8 +63,7 @@ describe('notification settings', () => {
       configurable: true,
       value: FakeNotification,
     })
-    const store = useSettingsStore()
-    store.notificationsEnabled = false
+    setNotificationsEnabled(false)
     const wrapper = mount(NotificationSettings, {
       global: {
         stubs: {
@@ -75,7 +74,7 @@ describe('notification settings', () => {
 
     await wrapper.get('[data-testid="settings-enable-notifications"]').trigger('click')
 
-    expect(store.notificationsEnabled).toBe(true)
+    expect(settingsStore.state.notificationsEnabled).toBe(true)
     expect(requestPermission).toHaveBeenCalledTimes(1)
   })
 })

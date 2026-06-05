@@ -1,13 +1,26 @@
 <script setup lang="ts">
 import type { MessageAlignment, MessageFontScale, SendMessageShortcut, ThemeMode } from '../stores/settingsStore';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@muon/ui/select';
+import { useSelector } from '@tanstack/vue-store';
 import { Check } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
-import { MESSAGE_FONT_SCALE_VALUES } from '@/shared/stores/settingsStore';
-import { useSettingsStore } from '../stores/settingsStore';
+import {
+  MESSAGE_FONT_SCALE_VALUES,
+  setLocale,
+  setMessageAlignment,
+  setMessageFontScale,
+  setSendMessageShortcut,
+  setTheme,
+  settingsStore,
+} from '@/shared/stores/settingsStore';
 
 const { t } = useI18n();
-const store = useSettingsStore();
+
+const theme = useSelector(settingsStore, (s) => s.theme);
+const locale = useSelector(settingsStore, (s) => s.locale);
+const messageAlignment = useSelector(settingsStore, (s) => s.messageAlignment);
+const messageFontScale = useSelector(settingsStore, (s) => s.messageFontScale);
+const sendMessageShortcut = useSelector(settingsStore, (s) => s.sendMessageShortcut);
 
 const themeOptions: { value: ThemeMode; label: () => string }[] = [
   { value: 'light', label: () => t('settings.theme_light') },
@@ -55,8 +68,8 @@ const fontScaleOptions: { value: MessageFontScale; label: () => string }[] = [
           :key="opt.value"
           type="button"
           class="group relative flex flex-col gap-2 rounded-lg border bg-card p-3 text-left transition-colors hover:bg-accent focus-visible:outline-none focus-visible:border-primary"
-          :class="store.theme === opt.value ? 'border-primary ring-1 ring-primary' : 'border-border'"
-          @click="store.theme = opt.value"
+          :class="theme === opt.value ? 'border-primary ring-1 ring-primary' : 'border-border'"
+          @click="setTheme(opt.value)"
         >
           <!-- preview: stylized mini app frame in this theme -->
           <div
@@ -82,7 +95,7 @@ const fontScaleOptions: { value: MessageFontScale; label: () => string }[] = [
             </div>
           </div>
           <span class="text-xs font-medium">{{ opt.label() }}</span>
-          <Check v-if="store.theme === opt.value" :size="14" class="absolute right-2 top-2 text-primary" />
+          <Check v-if="theme === opt.value" :size="14" class="absolute right-2 top-2 text-primary" />
         </button>
       </div>
     </div>
@@ -92,7 +105,7 @@ const fontScaleOptions: { value: MessageFontScale; label: () => string }[] = [
       <div class="text-sm">
         {{ t('settings.language') }}
       </div>
-      <Select :model-value="store.locale" @update:model-value="(v) => (store.locale = v as string)">
+      <Select :model-value="locale" @update:model-value="(v) => setLocale(v as string)">
         <SelectTrigger class="w-56">
           <SelectValue />
         </SelectTrigger>
@@ -116,8 +129,8 @@ const fontScaleOptions: { value: MessageFontScale; label: () => string }[] = [
           type="button"
           :title="opt.desc()"
           class="group relative flex flex-col gap-2 rounded-lg border bg-card p-3 text-left transition-colors hover:bg-accent focus-visible:outline-none focus-visible:border-primary"
-          :class="store.messageAlignment === opt.value ? 'border-primary ring-1 ring-primary' : 'border-border'"
-          @click="store.messageAlignment = opt.value"
+          :class="messageAlignment === opt.value ? 'border-primary ring-1 ring-primary' : 'border-border'"
+          @click="setMessageAlignment(opt.value)"
         >
           <!-- bubble preview -->
           <div class="flex flex-col gap-1.5 px-1">
@@ -129,11 +142,11 @@ const fontScaleOptions: { value: MessageFontScale; label: () => string }[] = [
             <div class="h-2 w-3/5 rounded-full bg-muted self-start" />
           </div>
           <span class="text-xs font-medium">{{ opt.label() }}</span>
-          <Check v-if="store.messageAlignment === opt.value" :size="14" class="absolute right-2 top-2 text-primary" />
+          <Check v-if="messageAlignment === opt.value" :size="14" class="absolute right-2 top-2 text-primary" />
         </button>
       </div>
       <p class="text-xs text-muted-foreground">
-        {{ alignmentOptions.find((o) => o.value === store.messageAlignment)?.desc() }}
+        {{ alignmentOptions.find((o) => o.value === messageAlignment)?.desc() }}
       </p>
     </div>
 
@@ -150,14 +163,14 @@ const fontScaleOptions: { value: MessageFontScale; label: () => string }[] = [
           data-testid="font-scale-option"
           :data-value="opt.value"
           class="group relative flex flex-col items-center gap-1.5 rounded-lg border bg-card p-3 transition-colors hover:bg-accent focus-visible:outline-none focus-visible:border-primary"
-          :class="store.messageFontScale === opt.value ? 'border-primary ring-1 ring-primary' : 'border-border'"
-          @click="store.messageFontScale = opt.value"
+          :class="messageFontScale === opt.value ? 'border-primary ring-1 ring-primary' : 'border-border'"
+          @click="setMessageFontScale(opt.value)"
         >
           <span class="font-semibold leading-none" :style="{ fontSize: `${MESSAGE_FONT_SCALE_VALUES[opt.value]}rem` }">
             Aa
           </span>
           <span class="text-[11px] text-muted-foreground">{{ opt.label() }}</span>
-          <Check v-if="store.messageFontScale === opt.value" :size="14" class="absolute right-2 top-2 text-primary" />
+          <Check v-if="messageFontScale === opt.value" :size="14" class="absolute right-2 top-2 text-primary" />
         </button>
       </div>
     </div>
@@ -176,16 +189,12 @@ const fontScaleOptions: { value: MessageFontScale; label: () => string }[] = [
           data-testid="send-shortcut-option"
           :data-value="opt.value"
           class="group relative flex flex-col gap-1.5 rounded-lg border bg-card p-3 text-left transition-colors hover:bg-accent focus-visible:outline-none focus-visible:border-primary"
-          :class="store.sendMessageShortcut === opt.value ? 'border-primary ring-1 ring-primary' : 'border-border'"
-          @click="store.sendMessageShortcut = opt.value"
+          :class="sendMessageShortcut === opt.value ? 'border-primary ring-1 ring-primary' : 'border-border'"
+          @click="setSendMessageShortcut(opt.value)"
         >
           <span class="text-xs font-medium">{{ opt.label() }}</span>
           <span class="text-[11px] text-muted-foreground">{{ opt.desc() }}</span>
-          <Check
-            v-if="store.sendMessageShortcut === opt.value"
-            :size="14"
-            class="absolute right-2 top-2 text-primary"
-          />
+          <Check v-if="sendMessageShortcut === opt.value" :size="14" class="absolute right-2 top-2 text-primary" />
         </button>
       </div>
     </div>

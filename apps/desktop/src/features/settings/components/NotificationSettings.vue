@@ -2,12 +2,32 @@
 import type { NotificationChannelId } from '../stores/settingsStore';
 import { Label } from '@muon/ui/label';
 import { Switch } from '@muon/ui/switch';
+import { useSelector } from '@tanstack/vue-store';
 import { AtSign, BellRing, CalendarDays, ClipboardCheck, MessageSquare, Volume2 } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
-import { useSettingsStore } from '../stores/settingsStore';
+import {
+  selectActiveNotificationChannelCount,
+  selectNormalizedNotificationChannels,
+  setBadgeCount,
+  setDndEnd,
+  setDndStart,
+  setNotificationChannel,
+  setNotificationPreview,
+  setNotificationsEnabled as setNotificationsEnabledStore,
+  setNotificationSound,
+  settingsStore,
+} from '@/shared/stores/settingsStore';
 
 const { t } = useI18n();
-const store = useSettingsStore();
+
+const notificationsEnabled = useSelector(settingsStore, (s) => s.notificationsEnabled);
+const notificationPreview = useSelector(settingsStore, (s) => s.notificationPreview);
+const notificationSound = useSelector(settingsStore, (s) => s.notificationSound);
+const badgeCount = useSelector(settingsStore, (s) => s.badgeCount);
+const dndStart = useSelector(settingsStore, (s) => s.dndStart);
+const dndEnd = useSelector(settingsStore, (s) => s.dndEnd);
+const activeNotificationChannelCount = useSelector(settingsStore, selectActiveNotificationChannelCount);
+const channelStates = useSelector(settingsStore, selectNormalizedNotificationChannels);
 
 const notificationChannels: {
   id: NotificationChannelId;
@@ -51,7 +71,7 @@ function requestSystemNotificationPermission(): void {
 }
 
 function setNotificationsEnabled(enabled: boolean): void {
-  store.notificationsEnabled = enabled;
+  setNotificationsEnabledStore(enabled);
   if (enabled) requestSystemNotificationPermission();
 }
 </script>
@@ -69,7 +89,7 @@ function setNotificationsEnabled(enabled: boolean): void {
       </div>
       <Switch
         data-testid="settings-enable-notifications"
-        :model-value="store.notificationsEnabled"
+        :model-value="notificationsEnabled"
         @update:model-value="setNotificationsEnabled"
       />
     </Label>
@@ -79,7 +99,7 @@ function setNotificationsEnabled(enabled: boolean): void {
         <div class="text-sm">{{ t('settings.message_preview') }}</div>
         <div class="text-xs text-muted-foreground">{{ t('settings.message_preview_desc') }}</div>
       </div>
-      <Switch v-model="store.notificationPreview" />
+      <Switch :model-value="notificationPreview" @update:model-value="setNotificationPreview" />
     </Label>
 
     <Label class="flex items-center justify-between">
@@ -90,7 +110,11 @@ function setNotificationsEnabled(enabled: boolean): void {
           <div class="text-xs text-muted-foreground">{{ t('settings.notification_sound_desc') }}</div>
         </div>
       </div>
-      <Switch v-model="store.notificationSound" data-testid="settings-notification-sound" />
+      <Switch
+        :model-value="notificationSound"
+        data-testid="settings-notification-sound"
+        @update:model-value="setNotificationSound"
+      />
     </Label>
 
     <Label class="flex items-center justify-between">
@@ -101,7 +125,7 @@ function setNotificationsEnabled(enabled: boolean): void {
           <div class="text-xs text-muted-foreground">{{ t('settings.badge_count_desc') }}</div>
         </div>
       </div>
-      <Switch v-model="store.badgeCount" data-testid="settings-badge-count" />
+      <Switch :model-value="badgeCount" data-testid="settings-badge-count" @update:model-value="setBadgeCount" />
     </Label>
 
     <div class="space-y-3">
@@ -118,7 +142,7 @@ function setNotificationsEnabled(enabled: boolean): void {
           data-testid="settings-notification-channel-summary"
           class="shrink-0 rounded-md bg-muted px-2.5 py-1 text-[12px] font-semibold text-muted-foreground"
         >
-          {{ t('settings.notification_channel_summary', { count: store.activeNotificationChannelCount }) }}
+          {{ t('settings.notification_channel_summary', { count: activeNotificationChannelCount }) }}
         </div>
       </div>
 
@@ -127,7 +151,7 @@ function setNotificationsEnabled(enabled: boolean): void {
           v-for="channel in notificationChannels"
           :key="channel.id"
           class="flex items-center justify-between rounded-md border border-border bg-background px-3 py-2"
-          :class="!store.notificationsEnabled ? 'opacity-60' : ''"
+          :class="!notificationsEnabled ? 'opacity-60' : ''"
         >
           <div class="flex min-w-0 items-center gap-3">
             <component :is="channel.icon" :size="18" class="shrink-0 text-muted-foreground" />
@@ -142,9 +166,9 @@ function setNotificationsEnabled(enabled: boolean): void {
           </div>
           <Switch
             :data-testid="`settings-channel-${channel.id}`"
-            :model-value="store.notificationChannels[channel.id]"
-            :disabled="!store.notificationsEnabled"
-            @update:model-value="(val: boolean) => store.setNotificationChannel(channel.id, val)"
+            :model-value="channelStates[channel.id]"
+            :disabled="!notificationsEnabled"
+            @update:model-value="(val: boolean) => setNotificationChannel(channel.id, val)"
           />
         </Label>
       </div>
@@ -156,15 +180,17 @@ function setNotificationsEnabled(enabled: boolean): void {
       </div>
       <div class="flex items-center gap-2">
         <input
-          v-model="store.dndStart"
+          :value="dndStart"
           type="time"
           class="h-8 px-2 text-sm rounded border border-border bg-background outline-none"
+          @input="(e) => setDndStart((e.target as HTMLInputElement).value)"
         />
         <span class="text-sm text-muted-foreground">{{ t('settings.dnd_to') }}</span>
         <input
-          v-model="store.dndEnd"
+          :value="dndEnd"
           type="time"
           class="h-8 px-2 text-sm rounded border border-border bg-background outline-none"
+          @input="(e) => setDndEnd((e.target as HTMLInputElement).value)"
         />
       </div>
     </div>

@@ -1,18 +1,29 @@
 <script setup lang="ts">
 import { Label } from '@muon/ui/label';
 import { Switch } from '@muon/ui/switch';
+import { useSelector } from '@tanstack/vue-store';
 import { watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { setAnalyticsEnabled } from '@/shared/lib/analytics';
-import { useSettingsStore } from '../stores/settingsStore';
+import { setAnalyticsEnabled as setAnalyticsEnabledLib } from '@/shared/lib/analytics';
+import {
+  setAnalyticsEnabled,
+  setAutoLaunch,
+  setCloseToTray,
+  setDebugMode,
+  settingsStore,
+} from '@/shared/stores/settingsStore';
 
 const { t } = useI18n();
-const store = useSettingsStore();
+
+const autoLaunch = useSelector(settingsStore, (s) => s.autoLaunch);
+const closeToTray = useSelector(settingsStore, (s) => s.closeToTray);
+const analyticsEnabled = useSelector(settingsStore, (s) => s.analyticsEnabled);
+const debugMode = useSelector(settingsStore, (s) => s.debugMode);
 
 watch(
-  () => store.analyticsEnabled,
+  analyticsEnabled,
   (val) => {
-    setAnalyticsEnabled(val);
+    setAnalyticsEnabledLib(val);
   },
   { immediate: true },
 );
@@ -29,7 +40,7 @@ watch(
         <div class="text-sm">{{ t('settings.auto_launch') }}</div>
         <div class="text-xs text-muted-foreground">{{ t('settings.auto_launch_desc') }}</div>
       </div>
-      <Switch v-model="store.autoLaunch" />
+      <Switch :model-value="autoLaunch" @update:model-value="setAutoLaunch" />
     </Label>
 
     <Label class="flex items-center justify-between">
@@ -37,7 +48,7 @@ watch(
         <div class="text-sm">{{ t('settings.close_to_tray') }}</div>
         <div class="text-xs text-muted-foreground">{{ t('settings.close_to_tray_desc') }}</div>
       </div>
-      <Switch v-model="store.closeToTray" />
+      <Switch :model-value="closeToTray" @update:model-value="setCloseToTray" />
     </Label>
 
     <Label class="flex items-center justify-between">
@@ -45,7 +56,7 @@ watch(
         <div class="text-sm">{{ t('settings.analytics') }}</div>
         <div class="text-xs text-muted-foreground">{{ t('settings.analytics_desc') }}</div>
       </div>
-      <Switch v-model="store.analyticsEnabled" />
+      <Switch :model-value="analyticsEnabled" @update:model-value="setAnalyticsEnabled" />
     </Label>
 
     <div class="space-y-3">
@@ -58,7 +69,7 @@ watch(
           <div class="text-sm">{{ t('settings.debug_mode') }}</div>
           <div class="text-xs text-muted-foreground">{{ t('settings.debug_mode_desc') }}</div>
         </div>
-        <Switch v-model="store.debugMode" />
+        <Switch :model-value="debugMode" @update:model-value="setDebugMode" />
       </Label>
     </div>
   </div>

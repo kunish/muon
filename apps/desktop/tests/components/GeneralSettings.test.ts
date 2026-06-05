@@ -1,7 +1,7 @@
 import { mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import GeneralSettings from '@/features/settings/components/GeneralSettings.vue'
-import { useSettingsStore } from '@/features/settings/stores/settingsStore'
+import { resetSettingsStore, settingsStore } from '@/features/settings/stores/settingsStore'
 
 const setAnalyticsEnabled = vi.hoisted(() => vi.fn())
 
@@ -36,20 +36,20 @@ function mountGeneralSettings() {
 describe('general settings', () => {
   beforeEach(() => {
     localStorage.clear()
+    resetSettingsStore()
     setAnalyticsEnabled.mockClear()
   })
 
   it('lets users change launch, tray, and analytics preferences', async () => {
-    const store = useSettingsStore()
     const wrapper = mountGeneralSettings()
 
     await wrapper.findAll('button')[0].trigger('click')
     await wrapper.findAll('button')[1].trigger('click')
     await wrapper.findAll('button')[2].trigger('click')
 
-    expect(store.autoLaunch).toBe(true)
-    expect(store.closeToTray).toBe(false)
-    expect(store.analyticsEnabled).toBe(false)
+    expect(settingsStore.state.autoLaunch).toBe(true)
+    expect(settingsStore.state.closeToTray).toBe(false)
+    expect(settingsStore.state.analyticsEnabled).toBe(false)
     expect(setAnalyticsEnabled).toHaveBeenLastCalledWith(false)
   })
 })
