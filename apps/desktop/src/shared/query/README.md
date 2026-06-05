@@ -55,3 +55,22 @@ stores had.
 `features/chat/queries/{decisionKeys,decisionCardsApi,useDecisionCards}.ts` is
 the reference three-layer split: opaque key factory → Vue-free async data layer
 (IO + merge logic, unit-tested directly) → composables (cache wiring only).
+
+## Mixed stores: server → query, client selection → vue-store (store the id, derive the object)
+
+When a Pinia store mixed server data (a list) with a client "current/selected
+item", split it: the list goes to vue-query; the selection goes to a
+`@tanstack/vue-store` holding only the **id** (`selectedXId: string | null`),
+never the object. The component derives the active object from the query:
+`(selectedId ? list.find(id) : null) ?? list[0] ?? null`. This keeps a single
+source of truth (the object always comes from the cache) and lets the selection
+survive the component unmounting (the vue-store is a module singleton, like the
+old Pinia singleton).
+
+Note the derivation falls back to a default (`list[0]`) when the selected id is
+absent, rather than keeping a stale prior object. That differs slightly from a
+store that kept the last selection on a not-found set — fine when every caller
+passes an id that exists in the list (the only safe source of ids anyway).
+
+`features/chat/{queries/{qaKeys,qaApi,useQaHistory},stores/qaStore}.ts` is the
+reference for this mixed split.

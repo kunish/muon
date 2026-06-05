@@ -9,7 +9,7 @@ import CrossSessionQaPanel from '@/features/chat/components/CrossSessionQaPanel.
 import KnowledgeCapturePanel from '@/features/chat/components/KnowledgeCapturePanel.vue'
 import { qaKeys } from '@/features/chat/queries/qaKeys'
 import { useChatStore } from '@/features/chat/stores/chatStore'
-import { resetQaStore } from '@/features/chat/stores/qaStore'
+import { resetQaStore, selectQaAnswer } from '@/features/chat/stores/qaStore'
 import { createTestQueryClient } from '../helpers/queryClient'
 
 const askCrossSessionQuestionMock = vi.fn()
@@ -93,6 +93,18 @@ describe('crossSessionQaPanel', () => {
     await vi.waitFor(() => {
       expect(wrapper.text()).toContain('Latest answer')
     })
+    // The derived active answer is the newest; the older answer must NOT be the active card.
+    expect(wrapper.get('[data-testid="qa-answer-card"]').text()).not.toContain('Earlier answer')
+  })
+
+  it('surfaces a hydration error when listSavedQaSessions rejects', async () => {
+    listSavedQaSessionsMock.mockRejectedValue(new Error('db offline'))
+
+    const { wrapper } = mountWithQuery(CrossSessionQaPanel)
+
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain('db offline')
+    })
   })
 
   it('asks a question and renders the cited answer', async () => {
@@ -117,6 +129,9 @@ describe('crossSessionQaPanel', () => {
       updatedAt: 200,
     })
 
+    // Pre-select the older answer to prove asking overrides the existing selection.
+    selectQaAnswer('qa-1')
+
     const { wrapper, queryClient } = mountWithQuery(CrossSessionQaPanel)
     await wrapper.get('[data-testid="qa-question-input"]').setValue('What should ship this week?')
     await wrapper.get('[data-testid="qa-submit-button"]').trigger('click')
@@ -125,6 +140,8 @@ describe('crossSessionQaPanel', () => {
     expect(askCrossSessionQuestionMock).toHaveBeenCalledWith('What should ship this week?')
     expect(wrapper.text()).toContain('Digest panel should ship this week.')
     expect(wrapper.text()).toContain('Earlier question')
+    // The newly-asked answer is active even though qa-1 was previously selected.
+    expect(wrapper.get('[data-testid="qa-answer-card"]').text()).toContain('Digest panel should ship this week.')
 
     const history = queryClient.getQueryData<{ id: string }[]>(qaKeys.history()) ?? []
     expect(history.map((item) => item.id)).toEqual(['qa-2', 'qa-1'])
