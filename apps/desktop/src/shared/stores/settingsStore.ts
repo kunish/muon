@@ -1,6 +1,4 @@
-import { useStorage } from '@vueuse/core'
-import { defineStore } from 'pinia'
-import { computed } from 'vue'
+import { Store } from '@tanstack/vue-store'
 
 export type ThemeMode = 'light' | 'dark' | 'system'
 export type MessageAlignment = 'left' | 'leftright'
@@ -24,73 +22,185 @@ const DEFAULT_NOTIFICATION_CHANNELS: NotificationChannels = {
   messages: true,
 }
 
-/**
- * Application-wide user preferences store.
- *
- * Settings are inherently global configuration consumed by many features.
- * This store lives in shared/ to avoid every feature importing from the
- * settings feature for simple preference reads.
- */
-export const useSettingsStore = defineStore('settings', () => {
-  const theme = useStorage<ThemeMode>('muon_theme', 'system')
-  const locale = useStorage<string>('muon_locale', 'zh')
-  const notificationsEnabled = useStorage('muon_notifications', true)
-  const notificationPreview = useStorage('muon_notification_preview', true)
-  const notificationSound = useStorage('muon_notification_sound', true)
-  const badgeCount = useStorage('muon_badge_count', true)
-  const notificationChannels = useStorage<NotificationChannels>(
-    'muon_notification_channels',
-    DEFAULT_NOTIFICATION_CHANNELS,
-  )
-  const dndStart = useStorage('muon_dnd_start', '')
-  const dndEnd = useStorage('muon_dnd_end', '')
-  const messageAlignment = useStorage<MessageAlignment>('muon_message_alignment', 'leftright')
-  const messageFontScale = useStorage<MessageFontScale>('muon_message_font_scale', 'standard')
-  const sendMessageShortcut = useStorage<SendMessageShortcut>('muon_send_message_shortcut', 'enter')
-  const closeToTray = useStorage('muon_close_to_tray', true)
-  const autoLaunch = useStorage('muon_auto_launch', false)
-  const analyticsEnabled = useStorage('muon_analytics_enabled', true)
-  const watermarkEnabled = useStorage('muon_watermark_enabled', false)
-  const debugMode = useStorage('muon_debug_mode', false)
+export interface SettingsState {
+  theme: ThemeMode
+  locale: string
+  notificationsEnabled: boolean
+  notificationPreview: boolean
+  notificationSound: boolean
+  badgeCount: boolean
+  notificationChannels: NotificationChannels
+  dndStart: string
+  dndEnd: string
+  messageAlignment: MessageAlignment
+  messageFontScale: MessageFontScale
+  sendMessageShortcut: SendMessageShortcut
+  closeToTray: boolean
+  autoLaunch: boolean
+  analyticsEnabled: boolean
+  watermarkEnabled: boolean
+  debugMode: boolean
+}
 
-  const normalizedNotificationChannels = computed<NotificationChannels>(() => ({
-    ...DEFAULT_NOTIFICATION_CHANNELS,
-    ...notificationChannels.value,
-  }))
+const STORAGE_KEYS = {
+  theme: 'muon_theme',
+  locale: 'muon_locale',
+  notificationsEnabled: 'muon_notifications',
+  notificationPreview: 'muon_notification_preview',
+  notificationSound: 'muon_notification_sound',
+  badgeCount: 'muon_badge_count',
+  notificationChannels: 'muon_notification_channels',
+  dndStart: 'muon_dnd_start',
+  dndEnd: 'muon_dnd_end',
+  messageAlignment: 'muon_message_alignment',
+  messageFontScale: 'muon_message_font_scale',
+  sendMessageShortcut: 'muon_send_message_shortcut',
+  closeToTray: 'muon_close_to_tray',
+  autoLaunch: 'muon_auto_launch',
+  analyticsEnabled: 'muon_analytics_enabled',
+  watermarkEnabled: 'muon_watermark_enabled',
+  debugMode: 'muon_debug_mode',
+} as const
 
-  const activeNotificationChannelCount = computed(
-    () => Object.values(normalizedNotificationChannels.value).filter(Boolean).length,
-  )
+function readString<T extends string>(key: string, fallback: T): T {
+  const raw = localStorage.getItem(key)
+  return raw === null ? fallback : (raw as T)
+}
 
-  const messageFontScaleValue = computed(() => MESSAGE_FONT_SCALE_VALUES[messageFontScale.value] ?? 1)
+function readBoolean(key: string, fallback: boolean): boolean {
+  const raw = localStorage.getItem(key)
+  return raw === null ? fallback : raw === 'true'
+}
 
-  function setNotificationChannel(channel: NotificationChannelId, enabled: boolean): void {
-    notificationChannels.value = {
-      ...normalizedNotificationChannels.value,
-      [channel]: enabled,
-    }
+function readChannels(): NotificationChannels {
+  const raw = localStorage.getItem(STORAGE_KEYS.notificationChannels)
+  if (raw === null) return { ...DEFAULT_NOTIFICATION_CHANNELS }
+  try {
+    return { ...DEFAULT_NOTIFICATION_CHANNELS, ...(JSON.parse(raw) as Partial<NotificationChannels>) }
+  } catch {
+    return { ...DEFAULT_NOTIFICATION_CHANNELS }
   }
+}
 
+function createInitialState(): SettingsState {
   return {
-    theme,
-    locale,
-    notificationsEnabled,
-    notificationPreview,
-    notificationSound,
-    badgeCount,
-    notificationChannels,
-    activeNotificationChannelCount,
-    dndStart,
-    dndEnd,
-    messageAlignment,
-    messageFontScale,
-    messageFontScaleValue,
-    sendMessageShortcut,
-    closeToTray,
-    autoLaunch,
-    analyticsEnabled,
-    watermarkEnabled,
-    debugMode,
-    setNotificationChannel,
+    theme: readString<ThemeMode>(STORAGE_KEYS.theme, 'system'),
+    locale: readString(STORAGE_KEYS.locale, 'zh'),
+    notificationsEnabled: readBoolean(STORAGE_KEYS.notificationsEnabled, true),
+    notificationPreview: readBoolean(STORAGE_KEYS.notificationPreview, true),
+    notificationSound: readBoolean(STORAGE_KEYS.notificationSound, true),
+    badgeCount: readBoolean(STORAGE_KEYS.badgeCount, true),
+    notificationChannels: readChannels(),
+    dndStart: readString(STORAGE_KEYS.dndStart, ''),
+    dndEnd: readString(STORAGE_KEYS.dndEnd, ''),
+    messageAlignment: readString<MessageAlignment>(STORAGE_KEYS.messageAlignment, 'leftright'),
+    messageFontScale: readString<MessageFontScale>(STORAGE_KEYS.messageFontScale, 'standard'),
+    sendMessageShortcut: readString<SendMessageShortcut>(STORAGE_KEYS.sendMessageShortcut, 'enter'),
+    closeToTray: readBoolean(STORAGE_KEYS.closeToTray, true),
+    autoLaunch: readBoolean(STORAGE_KEYS.autoLaunch, false),
+    analyticsEnabled: readBoolean(STORAGE_KEYS.analyticsEnabled, true),
+    watermarkEnabled: readBoolean(STORAGE_KEYS.watermarkEnabled, false),
+    debugMode: readBoolean(STORAGE_KEYS.debugMode, false),
   }
+}
+
+function persist(state: SettingsState): void {
+  try {
+    localStorage.setItem(STORAGE_KEYS.theme, state.theme)
+    localStorage.setItem(STORAGE_KEYS.locale, state.locale)
+    localStorage.setItem(STORAGE_KEYS.notificationsEnabled, String(state.notificationsEnabled))
+    localStorage.setItem(STORAGE_KEYS.notificationPreview, String(state.notificationPreview))
+    localStorage.setItem(STORAGE_KEYS.notificationSound, String(state.notificationSound))
+    localStorage.setItem(STORAGE_KEYS.badgeCount, String(state.badgeCount))
+    localStorage.setItem(STORAGE_KEYS.notificationChannels, JSON.stringify(state.notificationChannels))
+    localStorage.setItem(STORAGE_KEYS.dndStart, state.dndStart)
+    localStorage.setItem(STORAGE_KEYS.dndEnd, state.dndEnd)
+    localStorage.setItem(STORAGE_KEYS.messageAlignment, state.messageAlignment)
+    localStorage.setItem(STORAGE_KEYS.messageFontScale, state.messageFontScale)
+    localStorage.setItem(STORAGE_KEYS.sendMessageShortcut, state.sendMessageShortcut)
+    localStorage.setItem(STORAGE_KEYS.closeToTray, String(state.closeToTray))
+    localStorage.setItem(STORAGE_KEYS.autoLaunch, String(state.autoLaunch))
+    localStorage.setItem(STORAGE_KEYS.analyticsEnabled, String(state.analyticsEnabled))
+    localStorage.setItem(STORAGE_KEYS.watermarkEnabled, String(state.watermarkEnabled))
+    localStorage.setItem(STORAGE_KEYS.debugMode, String(state.debugMode))
+  } catch (err) {
+    console.warn('[settingsStore] Failed to persist settings:', err)
+  }
+}
+
+export const settingsStore = new Store<SettingsState>(createInitialState())
+
+settingsStore.subscribe(() => {
+  persist(settingsStore.state)
 })
+
+export function setTheme(theme: ThemeMode): void {
+  settingsStore.setState((s) => ({ ...s, theme }))
+}
+export function setLocale(locale: string): void {
+  settingsStore.setState((s) => ({ ...s, locale }))
+}
+export function setNotificationsEnabled(notificationsEnabled: boolean): void {
+  settingsStore.setState((s) => ({ ...s, notificationsEnabled }))
+}
+export function setNotificationPreview(notificationPreview: boolean): void {
+  settingsStore.setState((s) => ({ ...s, notificationPreview }))
+}
+export function setNotificationSound(notificationSound: boolean): void {
+  settingsStore.setState((s) => ({ ...s, notificationSound }))
+}
+export function setBadgeCount(badgeCount: boolean): void {
+  settingsStore.setState((s) => ({ ...s, badgeCount }))
+}
+export function setDndStart(dndStart: string): void {
+  settingsStore.setState((s) => ({ ...s, dndStart }))
+}
+export function setDndEnd(dndEnd: string): void {
+  settingsStore.setState((s) => ({ ...s, dndEnd }))
+}
+export function setMessageAlignment(messageAlignment: MessageAlignment): void {
+  settingsStore.setState((s) => ({ ...s, messageAlignment }))
+}
+export function setMessageFontScale(messageFontScale: MessageFontScale): void {
+  settingsStore.setState((s) => ({ ...s, messageFontScale }))
+}
+export function setSendMessageShortcut(sendMessageShortcut: SendMessageShortcut): void {
+  settingsStore.setState((s) => ({ ...s, sendMessageShortcut }))
+}
+export function setCloseToTray(closeToTray: boolean): void {
+  settingsStore.setState((s) => ({ ...s, closeToTray }))
+}
+export function setAutoLaunch(autoLaunch: boolean): void {
+  settingsStore.setState((s) => ({ ...s, autoLaunch }))
+}
+export function setAnalyticsEnabled(analyticsEnabled: boolean): void {
+  settingsStore.setState((s) => ({ ...s, analyticsEnabled }))
+}
+export function setWatermarkEnabled(watermarkEnabled: boolean): void {
+  settingsStore.setState((s) => ({ ...s, watermarkEnabled }))
+}
+export function setDebugMode(debugMode: boolean): void {
+  settingsStore.setState((s) => ({ ...s, debugMode }))
+}
+
+export function setNotificationChannel(channel: NotificationChannelId, enabled: boolean): void {
+  settingsStore.setState((s) => ({
+    ...s,
+    notificationChannels: { ...DEFAULT_NOTIFICATION_CHANNELS, ...s.notificationChannels, [channel]: enabled },
+  }))
+}
+
+export function selectNormalizedNotificationChannels(state: SettingsState): NotificationChannels {
+  return { ...DEFAULT_NOTIFICATION_CHANNELS, ...state.notificationChannels }
+}
+export function selectActiveNotificationChannelCount(state: SettingsState): number {
+  return Object.values(selectNormalizedNotificationChannels(state)).filter(Boolean).length
+}
+export function selectMessageFontScaleValue(state: SettingsState): number {
+  return MESSAGE_FONT_SCALE_VALUES[state.messageFontScale] ?? 1
+}
+
+/** Reset to values hydrated from localStorage. Used by tests for isolation and by future logout cleanup. */
+export function resetSettingsStore(): void {
+  settingsStore.setState(() => createInitialState())
+}
