@@ -7,14 +7,7 @@ import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useUnifiedInbox } from '../composables/useUnifiedInbox';
 import { useDeferStore } from '../stores/deferStore';
-import {
-  inboxStore,
-  isSelected,
-  markSelectedProcessed,
-  selectAll,
-  setFilter,
-  toggleSelection,
-} from '../stores/inboxStore';
+import { inboxStore, markSelectedProcessed, selectAll, setFilter, toggleSelection } from '../stores/inboxStore';
 
 const emit = defineEmits<{
   jump: [payload: { roomId: string; eventId: string }];
@@ -204,7 +197,7 @@ function submitCustomDefer(item: UnifiedInboxItem) {
             <input
               type="checkbox"
               class="mt-0.5"
-              :checked="isSelected(items[virtualItem.index]!.id)"
+              :checked="selectedItemIds.has(items[virtualItem.index]!.id)"
               :data-testid="`inbox-select-${items[virtualItem.index]!.id}`"
               @change="toggleItemSelection(items[virtualItem.index]!.id)"
             />
