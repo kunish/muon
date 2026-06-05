@@ -1,7 +1,7 @@
 import { useTheme } from '@features/settings/composables/useTheme'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { effectScope, nextTick } from 'vue'
-import { useSettingsStore } from '@/features/settings/stores/settingsStore'
+import { resetSettingsStore, setTheme } from '@/shared/stores/settingsStore'
 
 function createColorSchemeQuery(initialMatches: boolean) {
   const listeners = new Set<(event: MediaQueryListEvent) => void>()
@@ -31,6 +31,7 @@ function createColorSchemeQuery(initialMatches: boolean) {
 describe('useTheme', () => {
   beforeEach(() => {
     localStorage.clear()
+    resetSettingsStore()
     document.documentElement.className = ''
     vi.stubGlobal('matchMedia', vi.fn().mockReturnValue(createColorSchemeQuery(false)))
   })
@@ -42,8 +43,7 @@ describe('useTheme', () => {
   })
 
   it('applies theme changes from the settings store', async () => {
-    const store = useSettingsStore()
-    store.theme = 'light'
+    setTheme('light')
 
     const scope = effectScope()
     scope.run(() => useTheme())
@@ -51,7 +51,7 @@ describe('useTheme', () => {
     await nextTick()
     expect(document.documentElement.classList.contains('dark')).toBe(false)
 
-    store.theme = 'dark'
+    setTheme('dark')
     await nextTick()
 
     expect(document.documentElement.classList.contains('dark')).toBe(true)
@@ -63,8 +63,7 @@ describe('useTheme', () => {
     const systemTheme = createColorSchemeQuery(false)
     vi.stubGlobal('matchMedia', vi.fn().mockReturnValue(systemTheme))
 
-    const store = useSettingsStore()
-    store.theme = 'system'
+    setTheme('system')
 
     const scope = effectScope()
     scope.run(() => useTheme())

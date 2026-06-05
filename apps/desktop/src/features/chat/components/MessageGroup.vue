@@ -3,7 +3,8 @@ import type { ReactionSummary } from '@matrix/index';
 import type { MatrixEvent } from 'matrix-js-sdk';
 import { getClient } from '@matrix/client';
 import { canMergeSystemEvents, isSystemEvent } from '@matrix/index';
-import { useSettingsStore } from '@shared/stores/settingsStore';
+import { settingsStore } from '@shared/stores/settingsStore';
+import { useSelector } from '@tanstack/vue-store';
 import { computed } from 'vue';
 import ChatMessage from './ChatMessage.vue';
 import MessageGroupAvatar from './MessageGroupAvatar.vue';
@@ -36,7 +37,7 @@ const emit = defineEmits<{
   jumpToEvent: [eventId: string];
 }>();
 
-const settingsStore = useSettingsStore();
+const messageAlignment = useSelector(settingsStore, (s) => s.messageAlignment);
 const currentUserId = computed(() => getClient().getUserId() || '');
 
 function eventId(event: MatrixEvent): string {
@@ -52,7 +53,7 @@ function eventThreadReplyCount(event: MatrixEvent): number {
 }
 
 function isRightAlignedGroup(senderId: string): boolean {
-  return settingsStore.messageAlignment === 'leftright' && senderId === currentUserId.value;
+  return messageAlignment.value === 'leftright' && senderId === currentUserId.value;
 }
 
 function messageHasRichMediaEmbed(event: MatrixEvent): boolean {

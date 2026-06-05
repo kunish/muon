@@ -4,8 +4,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent } from 'vue'
 import { useNotificationSound } from '@/features/chat/composables/useNotificationSound'
 import { useChatStore } from '@/features/chat/stores/chatStore'
-import { useSettingsStore } from '@/features/settings/stores/settingsStore'
 import { matrixEvents } from '@/matrix/events'
+import {
+  resetSettingsStore,
+  setNotificationChannel,
+  setNotificationPreview,
+  setNotificationsEnabled,
+  setNotificationSound,
+  settingsStore,
+} from '@/shared/stores/settingsStore'
 
 const playNotificationSound = vi.hoisted(() => vi.fn())
 const shownNotifications = vi.hoisted<{ title: string; options?: NotificationOptions }[]>(() => [])
@@ -54,6 +61,7 @@ function emitUrgentMessage(roomId = '!other:localhost', sender = '@alice:localho
 describe('useNotificationSound', () => {
   beforeEach(() => {
     localStorage.clear()
+    resetSettingsStore()
     playNotificationSound.mockClear()
     shownNotifications.length = 0
     Object.defineProperty(globalThis, 'Notification', {
@@ -69,20 +77,19 @@ describe('useNotificationSound', () => {
   })
 
   it('respects notification settings before playing message sounds', () => {
-    const settings = useSettingsStore()
     const wrapper = mount(createHost())
 
-    settings.notificationsEnabled = false
+    setNotificationsEnabled(false)
     emitMessage()
     expect(playNotificationSound).not.toHaveBeenCalled()
 
-    settings.notificationsEnabled = true
-    settings.notificationSound = false
+    setNotificationsEnabled(true)
+    setNotificationSound(false)
     emitMessage()
     expect(playNotificationSound).not.toHaveBeenCalled()
 
-    settings.notificationSound = true
-    settings.setNotificationChannel('messages', false)
+    setNotificationSound(true)
+    setNotificationChannel('messages', false)
     emitMessage()
     expect(playNotificationSound).not.toHaveBeenCalled()
 
@@ -92,9 +99,7 @@ describe('useNotificationSound', () => {
   it('suppresses sounds during do-not-disturb time windows', () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date(2026, 4, 4, 22, 30))
-    const settings = useSettingsStore()
-    settings.dndStart = '22:00'
-    settings.dndEnd = '08:00'
+    settingsStore.setState((s) => ({ ...s, dndStart: '22:00', dndEnd: '08:00' }))
     const wrapper = mount(createHost())
 
     emitMessage()
@@ -106,9 +111,7 @@ describe('useNotificationSound', () => {
   it('forces urgent (DING) message sounds through do-not-disturb windows', () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date(2026, 4, 4, 22, 30))
-    const settings = useSettingsStore()
-    settings.dndStart = '22:00'
-    settings.dndEnd = '08:00'
+    settingsStore.setState((s) => ({ ...s, dndStart: '22:00', dndEnd: '08:00' }))
     const wrapper = mount(createHost())
 
     emitMessage()
@@ -120,7 +123,6 @@ describe('useNotificationSound', () => {
   })
 
   it('plays sounds for enabled notifications outside the current room', () => {
-    useSettingsStore()
     const chatStore = useChatStore()
     chatStore.setCurrentRoom('!current:localhost')
     const wrapper = mount(createHost())
@@ -132,9 +134,8 @@ describe('useNotificationSound', () => {
   })
 
   it('shows desktop notifications without message content when preview is disabled', () => {
-    const settings = useSettingsStore()
-    settings.notificationSound = false
-    settings.notificationPreview = false
+    setNotificationSound(false)
+    setNotificationPreview(false)
     const wrapper = mount(createHost())
 
     emitMessage('!other:localhost', '@alice:localhost', 'confidential launch checklist')

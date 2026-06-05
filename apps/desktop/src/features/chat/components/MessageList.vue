@@ -2,11 +2,12 @@
 import type { MatrixEvent } from 'matrix-js-sdk';
 import { getClient } from '@matrix/client';
 import { getReadMarkerEventId, syncState } from '@matrix/index';
+import { useSelector } from '@tanstack/vue-store';
 import { ChevronDown, Undo2 } from 'lucide-vue-next';
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
-import { useSettingsStore } from '@/shared/stores/settingsStore';
+import { selectMessageFontScaleValue, settingsStore } from '@/shared/stores/settingsStore';
 import { useMessages } from '../composables/useMessages';
 import { useChatStore } from '../stores/chatStore';
 import ChannelWelcome from './ChannelWelcome.vue';
@@ -26,7 +27,7 @@ import UserInfoPanel from './UserInfoPanel.vue';
 
 const { messages, isLoading, hasMore, loadMore, relationSummaries, timelineVersion } = useMessages();
 const store = useChatStore();
-const settings = useSettingsStore();
+const messageFontScaleValue = useSelector(settingsStore, selectMessageFontScaleValue);
 const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
@@ -686,7 +687,7 @@ onUnmounted(() => {
       :style="{
         overflowAnchor: 'none',
         visibility: isRestoring ? 'hidden' : 'visible',
-        '--msg-font-scale': settings.messageFontScaleValue,
+        '--msg-font-scale': messageFontScaleValue,
       }"
       @scroll="onScroll"
     >

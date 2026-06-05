@@ -20,6 +20,7 @@ import {
 import { useRichTextEditor } from '@muon/rich-text/editor';
 import { htmlToPlainText } from '@muon/rich-text/markdown';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@muon/ui/dropdown-menu';
+import { useSelector } from '@tanstack/vue-store';
 import { EditorContent } from '@tiptap/vue-3';
 import { ALargeSmall, AtSign, ChevronDown, Maximize2, Minimize2, SendHorizontal, Smile } from 'lucide-vue-next';
 import { computed, nextTick, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue';
@@ -28,7 +29,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
 import { captureScreen } from '@/desktop/screenshot';
 import { escapeHtml } from '@/shared/lib/utils';
-import { useSettingsStore } from '@/shared/stores/settingsStore';
+import { settingsStore } from '@/shared/stores/settingsStore';
 import { useCurrentRoom } from '../composables/useCurrentRoom';
 import { getFloatingPosition } from '../composables/useFloatingPosition';
 import { useMediaUpload } from '../composables/useMediaUpload';
@@ -50,7 +51,7 @@ import UploadProgress from './UploadProgress.vue';
 import VoiceRecorder from './VoiceRecorder.vue';
 
 const store = useChatStore();
-const settingsStore = useSettingsStore();
+const sendMessageShortcut = useSelector(settingsStore, (s) => s.sendMessageShortcut);
 const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
@@ -306,7 +307,7 @@ const { editor, clear, insertEmoji, insertPendingMediaAttachment } = useRichText
     onRemove: removePendingPasteAttachment,
   },
   submitOnEnter: computed(() => !editorExpanded.value),
-  submitShortcut: computed(() => settingsStore.sendMessageShortcut),
+  submitShortcut: computed(() => sendMessageShortcut.value),
   mentionSearch: (query: string) => filterMembers(query),
   onMentionState: (state: MentionPopupState) => {
     mentionState.value = state;

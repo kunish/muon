@@ -8,7 +8,8 @@ import { hasPlainUrl, linkifyPlainText, sanitizeMatrixHtml } from '@muon/rich-te
 import RichMessageContent from '@muon/rich-text/message-content';
 import { Avatar } from '@muon/ui/avatar';
 import { Dialog } from '@muon/ui/dialog';
-import { useSettingsStore } from '@shared/stores/settingsStore';
+import { settingsStore } from '@shared/stores/settingsStore';
+import { useSelector } from '@tanstack/vue-store';
 import { useClipboard } from '@vueuse/core';
 import { computed, inject, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -73,7 +74,8 @@ const RICH_MEDIA_FALLBACK_HEIGHT = 180;
 
 const { t } = useI18n();
 const { copy: copyToClipboard } = useClipboard();
-const settingsStore = useSettingsStore();
+const messageAlignment = useSelector(settingsStore, (s) => s.messageAlignment);
+const debugMode = useSelector(settingsStore, (s) => s.debugMode);
 const { openImage } = useMediaViewer();
 const triggerEmojiEffect = inject<(emoji: string, rect: DOMRect) => void>('triggerEmojiEffect');
 const actions = useMessageActions(
@@ -135,7 +137,7 @@ const isUrgent = computed(() => props.event.getContent()?.['xyz.muon.urgent'] ==
 
 const myUserId = computed(() => getClient().getUserId() || '');
 const isMine = computed(() => !!sender.value && sender.value === myUserId.value);
-const isRightAligned = computed(() => settingsStore.messageAlignment === 'leftright' && isMine.value);
+const isRightAligned = computed(() => messageAlignment.value === 'leftright' && isMine.value);
 const textBubbleClass = computed(() => [
   'w-fit max-w-full rounded-[20px] px-4 py-2.5',
   isRightAligned.value ? 'self-end bg-[var(--B100)]' : 'bg-[var(--N200)]',
@@ -917,7 +919,7 @@ onUnmounted(() => {
         <div v-if="showContextMenu" ref="contextMenuRef" class="fixed z-[220]" :style="contextMenuStyle">
           <MessageContextMenu
             :is-mine="isMine"
-            :show-debug="settingsStore.debugMode"
+            :show-debug="debugMode"
             :is-pinned="messageIsPinned"
             :is-starred="messageIsStarred"
             :can-translate="isTextMessage"

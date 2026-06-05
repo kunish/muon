@@ -1,7 +1,7 @@
 import type { MatrixEvent } from 'matrix-js-sdk'
 import { getClient } from '@matrix/client'
 import { matrixEvents } from '@matrix/index'
-import { useSettingsStore } from '@shared/stores/settingsStore'
+import { selectNormalizedNotificationChannels, settingsStore } from '@shared/stores/settingsStore'
 import { onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { playNotificationSound } from '@/shared/lib/audio'
@@ -34,7 +34,6 @@ function isWithinDoNotDisturb(start: string, end: string, now = new Date()): boo
  */
 export function useNotificationSound() {
   const store = useChatStore()
-  const settingsStore = useSettingsStore()
   const { t } = useI18n()
 
   function senderNameFor(event: MatrixEvent): string {
@@ -43,7 +42,7 @@ export function useNotificationSound() {
 
   function notificationBodyFor(event: MatrixEvent): string {
     const sender = senderNameFor(event)
-    if (!settingsStore.notificationPreview) return t('notifications.new_message_from', { name: sender })
+    if (!settingsStore.state.notificationPreview) return t('notifications.new_message_from', { name: sender })
 
     const body = event.getContent()?.body
     return typeof body === 'string' && body.trim() ? body : t('notifications.new_message_from', { name: sender })
@@ -67,14 +66,14 @@ export function useNotificationSound() {
   }
 
   function shouldHandleMessageNotification(payload: { roomId: string; event: MatrixEvent }): boolean {
-    if (!settingsStore.notificationsEnabled) return false
+    if (!settingsStore.state.notificationsEnabled) return false
 
-    if (settingsStore.notificationChannels.messages === false) return false
+    if (selectNormalizedNotificationChannels(settingsStore.state).messages === false) return false
 
     // 加急/DING 消息强制提醒：绕过免打扰时段与房间免打扰
     const urgent = isUrgentEvent(payload.event)
 
-    if (!urgent && isWithinDoNotDisturb(settingsStore.dndStart, settingsStore.dndEnd)) return false
+    if (!urgent && isWithinDoNotDisturb(settingsStore.state.dndStart, settingsStore.state.dndEnd)) return false
 
     const client = getClient()
     const myUserId = client.getUserId()
@@ -94,7 +93,7 @@ export function useNotificationSound() {
   function onNewMessage(payload: { roomId: string; event: MatrixEvent }) {
     if (!shouldHandleMessageNotification(payload)) return
 
-    if (settingsStore.notificationSound) playNotificationSound()
+    if (settingsStore.state.notificationSound) playNotificationSound()
 
     showDesktopNotification(payload)
   }

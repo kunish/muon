@@ -9,7 +9,8 @@ import ServerSettings from '@features/server/components/ServerSettings.vue';
 import { useServerStore } from '@features/server/stores/serverStore';
 import { getClient } from '@matrix/client';
 import { getMyDisplayName } from '@matrix/index';
-import { useSettingsStore } from '@shared/stores/settingsStore';
+import { settingsStore } from '@shared/stores/settingsStore';
+import { useSelector } from '@tanstack/vue-store';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
@@ -22,8 +23,9 @@ import WatermarkOverlay from './WatermarkOverlay.vue';
 import { getWorkspaceAppForPath } from './workspace/navigation';
 import WorkspaceLayout from './workspace/WorkspaceLayout.vue';
 
-const settingsStore = useSettingsStore();
 const serverStore = useServerStore();
+const badgeCount = useSelector(settingsStore, (s) => s.badgeCount);
+const watermarkEnabled = useSelector(settingsStore, (s) => s.watermarkEnabled);
 const { totalUnreadCount } = useConversations();
 const route = useRoute();
 const router = useRouter();
@@ -36,7 +38,7 @@ const showChannelSidebar = computed(() => {
 });
 
 const visibleMessageUnreadCount = computed(() => {
-  return settingsStore.badgeCount ? totalUnreadCount.value : 0;
+  return badgeCount.value ? totalUnreadCount.value : 0;
 });
 
 const showServerSettings = ref(false);
@@ -94,7 +96,7 @@ watch(() => route.fullPath, syncServerSelectionFromRoute);
 const watermarkText = computed(() => {
   const date = new Date().toLocaleDateString();
   const displayName = getMyDisplayName() || 'User';
-  return `${settingsStore.watermarkEnabled ? displayName : ''} ${date}`;
+  return `${watermarkEnabled.value ? displayName : ''} ${date}`;
 });
 
 onMounted(() => {

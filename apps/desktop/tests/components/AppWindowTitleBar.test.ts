@@ -2,6 +2,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { nextTick } from 'vue'
 import App from '@/app/App.vue'
+import { resetSettingsStore } from '@/shared/stores/settingsStore'
 
 const routerReplace = vi.fn()
 const routerIsReady = vi.fn()
@@ -85,6 +86,7 @@ describe('app native window frame runtime', () => {
     toastMocks.error.mockClear()
     delete window.muonDesktop
     localStorage.removeItem('muon_theme')
+    resetSettingsStore()
     document.documentElement.classList.remove('dark')
     vi.stubGlobal('matchMedia', vi.fn().mockReturnValue(createColorSchemeQuery(false)))
   })
@@ -92,6 +94,7 @@ describe('app native window frame runtime', () => {
   afterEach(() => {
     delete window.muonDesktop
     localStorage.removeItem('muon_theme')
+    resetSettingsStore()
     document.documentElement.classList.remove('dark')
     vi.unstubAllGlobals()
   })
@@ -144,6 +147,7 @@ describe('app native window frame runtime', () => {
 
   it('applies the saved dark theme before rendering the startup skeleton', async () => {
     localStorage.setItem('muon_theme', 'dark')
+    resetSettingsStore()
     let resolveBootstrap!: (value: { restored: false }) => void
     lifecycleMocks.bootstrap.mockReturnValueOnce(
       new Promise((resolve) => {

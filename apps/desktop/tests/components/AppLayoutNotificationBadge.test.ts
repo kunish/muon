@@ -2,7 +2,7 @@ import { mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { nextTick } from 'vue'
 import AppLayout from '@/app/components/AppLayout.vue'
-import { useSettingsStore } from '@/features/settings/stores/settingsStore'
+import { resetSettingsStore, setBadgeCount, setWatermarkEnabled } from '@/shared/stores/settingsStore'
 
 const totalUnreadCount = vi.hoisted(() => ({
   __v_isRef: true,
@@ -117,6 +117,7 @@ function mountAppLayout() {
 describe('app layout notification badges', () => {
   beforeEach(() => {
     localStorage.clear()
+    resetSettingsStore()
     totalUnreadCount.value = 8
     route.fullPath = '/dm'
     route.params = {}
@@ -132,22 +133,20 @@ describe('app layout notification badges', () => {
   })
 
   it('passes zero unread count to the app rail when badge count is disabled', async () => {
-    const settingsStore = useSettingsStore()
-    settingsStore.badgeCount = false
+    setBadgeCount(false)
 
     const wrapper = mountAppLayout()
 
     expect(wrapper.get('[data-testid="workspace-layout"]').attributes('data-message-unread-count')).toBe('0')
 
-    settingsStore.badgeCount = true
+    setBadgeCount(true)
     await nextTick()
 
     expect(wrapper.get('[data-testid="workspace-layout"]').attributes('data-message-unread-count')).toBe('8')
   })
 
   it('uses the current Matrix display name in the security watermark', () => {
-    const settingsStore = useSettingsStore()
-    settingsStore.watermarkEnabled = true
+    setWatermarkEnabled(true)
 
     const wrapper = mountAppLayout()
 
