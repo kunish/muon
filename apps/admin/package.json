@@ -11,12 +11,12 @@
     "@muon/enterprise-contracts": "workspace:*",
     "@muon/ui": "workspace:*",
     "@tailwindcss/vite": "catalog:",
+    "@tanstack/vue-form": "catalog:",
+    "@tanstack/vue-table": "catalog:",
     "@vitejs/plugin-vue": "catalog:",
     "effect": "catalog:",
     "vite": "catalog:",
     "vue": "catalog:",
-    "@tanstack/vue-form": "catalog:",
-    "@tanstack/vue-table": "catalog:",
     "vue-router": "catalog:"
   }
 }
