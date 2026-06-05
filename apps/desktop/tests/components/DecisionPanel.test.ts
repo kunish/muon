@@ -1,8 +1,10 @@
+import type { DecisionCard } from '@/features/chat/types/decision'
+import { VueQueryPlugin } from '@tanstack/vue-query'
 import { flushPromises, mount } from '@vue/test-utils'
-import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import DecisionPanel from '@/features/chat/components/DecisionPanel.vue'
-import { useDecisionStore } from '@/features/chat/stores/decisionStore'
+import { decisionKeys } from '@/features/chat/queries/decisionKeys'
+import { createTestQueryClient } from '../helpers/queryClient'
 
 const listDecisionCardsMock = vi.fn()
 const listDigestEntriesMock = vi.fn()
@@ -43,7 +45,6 @@ vi.mock('@matrix/index', async (importOriginal) => {
 
 describe('decisionPanel', () => {
   beforeEach(() => {
-    setActivePinia(createPinia())
     listDecisionCardsMock.mockReset()
     listDecisionCardsMock.mockResolvedValue([])
     listDigestEntriesMock.mockReset()
@@ -62,8 +63,16 @@ describe('decisionPanel', () => {
     toastErrorMock.mockReset()
   })
 
+  function mountPanel() {
+    const queryClient = createTestQueryClient()
+    const wrapper = mount(DecisionPanel, {
+      global: { plugins: [[VueQueryPlugin, { queryClient }]] },
+    })
+    return { wrapper, queryClient }
+  }
+
   it('creates a decision card from panel inputs', async () => {
-    const wrapper = mount(DecisionPanel)
+    const { wrapper } = mountPanel()
 
     await wrapper.get('[data-testid="decision-conclusion-input"]').setValue('Ship digest panel')
     await wrapper.get('[data-testid="decision-context-input"]').setValue('Offline catch-up is missing')
@@ -72,13 +81,17 @@ describe('decisionPanel', () => {
     await wrapper.get('[data-testid="decision-room-input"]').setValue('!room:muon.dev')
     await wrapper.get('[data-testid="decision-event-input"]').setValue('$event-1')
     await wrapper.get('[data-testid="decision-save-button"]').trigger('click')
+    await flushPromises()
 
     expect(saveDecisionCardMock).toHaveBeenCalledTimes(1)
-    expect(wrapper.text()).toContain('Ship digest panel')
+    // Assert the card rendered in the v-for list from the query cache, not merely that
+    // the (uncleared) form input still shows the typed conclusion.
+    const renderedCard = wrapper.get('[data-testid^="decision-card-"]')
+    expect(renderedCard.text()).toContain('Ship digest panel')
   })
 
   it('shows all missing fields before saving a decision card', async () => {
-    const wrapper = mount(DecisionPanel)
+    const { wrapper } = mountPanel()
 
     await wrapper.get('[data-testid="decision-conclusion-input"]').setValue('确认发布窗口')
     await wrapper.get('[data-testid="decision-save-button"]').trigger('click')
@@ -92,27 +105,34 @@ describe('decisionPanel', () => {
     expect(toastErrorMock.mock.calls[0]?.[0]).not.toContain('结论')
   })
 
-  it('accepts a suggestion through store action', async () => {
-    const store = useDecisionStore()
-    await store.createDecisionCard({
-      id: 'decision-1',
-      conclusion: 'Ship digest panel',
-      context: 'Offline catch-up is missing',
-      owner: '@alice:muon.dev',
-      status: 'open',
-      citations: [{ roomId: '!room:muon.dev', eventId: '$event-1' }],
-      suggestions: [
-        {
-          id: 'suggestion-1',
-          kind: 'action',
-          summary: 'Create panel',
-          citations: [{ roomId: '!room:muon.dev', eventId: '$event-1' }],
-        },
-      ],
-      now: 100,
-    })
+  it('accepts a suggestion through the mutation', async () => {
+    listDecisionCardsMock.mockResolvedValue([
+      {
+        id: 'decision-1',
+        conclusion: 'Ship digest panel',
+        context: 'Offline catch-up is missing',
+        owner: '@alice:muon.dev',
+        status: 'open',
+        citations: [{ roomId: '!room:muon.dev', eventId: '$event-1' }],
+        citationEventIds: ['$event-1'],
+        suggestions: [
+          {
+            id: 'suggestion-1',
+            kind: 'action',
+            summary: 'Create panel',
+            disposition: 'pending',
+            updatedAt: 100,
+            citations: [{ roomId: '!room:muon.dev', eventId: '$event-1' }],
+            citationEventIds: ['$event-1'],
+          },
+        ],
+        createdAt: 100,
+        updatedAt: 100,
+      },
+    ])
 
-    const wrapper = mount(DecisionPanel)
+    const { wrapper } = mountPanel()
+    await flushPromises()
     await wrapper.get('[data-testid="decision-accept-suggestion-1"]').trigger('click')
 
     expect(updateSuggestionDispositionMock).toHaveBeenCalledWith(
@@ -124,27 +144,34 @@ describe('decisionPanel', () => {
     )
   })
 
-  it('rejects a suggestion through store action', async () => {
-    const store = useDecisionStore()
-    await store.createDecisionCard({
-      id: 'decision-1',
-      conclusion: 'Ship digest panel',
-      context: 'Offline catch-up is missing',
-      owner: '@alice:muon.dev',
-      status: 'open',
-      citations: [{ roomId: '!room:muon.dev', eventId: '$event-1' }],
-      suggestions: [
-        {
-          id: 'suggestion-1',
-          kind: 'blocker',
-          summary: 'Need audit trail',
-          citations: [{ roomId: '!room:muon.dev', eventId: '$event-1' }],
-        },
-      ],
-      now: 100,
-    })
+  it('rejects a suggestion through the mutation', async () => {
+    listDecisionCardsMock.mockResolvedValue([
+      {
+        id: 'decision-1',
+        conclusion: 'Ship digest panel',
+        context: 'Offline catch-up is missing',
+        owner: '@alice:muon.dev',
+        status: 'open',
+        citations: [{ roomId: '!room:muon.dev', eventId: '$event-1' }],
+        citationEventIds: ['$event-1'],
+        suggestions: [
+          {
+            id: 'suggestion-1',
+            kind: 'blocker',
+            summary: 'Need audit trail',
+            disposition: 'pending',
+            updatedAt: 100,
+            citations: [{ roomId: '!room:muon.dev', eventId: '$event-1' }],
+            citationEventIds: ['$event-1'],
+          },
+        ],
+        createdAt: 100,
+        updatedAt: 100,
+      },
+    ])
 
-    const wrapper = mount(DecisionPanel)
+    const { wrapper } = mountPanel()
+    await flushPromises()
     await wrapper.get('[data-testid="decision-reject-suggestion-1"]').trigger('click')
 
     expect(updateSuggestionDispositionMock).toHaveBeenCalledWith(
@@ -183,7 +210,7 @@ describe('decisionPanel', () => {
       },
     ])
 
-    const wrapper = mount(DecisionPanel)
+    const { wrapper } = mountPanel()
     await flushPromises()
 
     expect(wrapper.text()).toContain('已确认')
@@ -221,16 +248,14 @@ describe('decisionPanel', () => {
       },
     ])
 
-    const wrapper = mount(DecisionPanel)
+    const { wrapper, queryClient } = mountPanel()
     await flushPromises()
 
-    // Only latest-session digest entry should produce visible suggestion cards
     expect(wrapper.text()).toContain('Schedule the release call')
     expect(wrapper.text()).not.toContain('Review the design doc')
 
-    // Verify only the latest-session card exists in the store
-    const store = useDecisionStore()
-    const digestCards = store.cards.filter((card) => card.owner === 'digest')
+    const cards = queryClient.getQueryData<DecisionCard[]>(decisionKeys.cards()) ?? []
+    const digestCards = cards.filter((card) => card.owner === 'digest')
     expect(digestCards).toHaveLength(1)
     expect(digestCards[0]?.id).toBe('decision:digest:digest-latest-1')
   })
@@ -266,7 +291,7 @@ describe('decisionPanel', () => {
     ])
     loadInboxEventContextMock.mockResolvedValue({})
 
-    const wrapper = mount(DecisionPanel)
+    const { wrapper } = mountPanel()
     await flushPromises()
 
     expect(wrapper.text()).toContain('Keep current rollout window')

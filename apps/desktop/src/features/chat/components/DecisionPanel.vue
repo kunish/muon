@@ -1,15 +1,17 @@
 <script setup lang="ts">
 import type { DecisionStatus, DecisionSuggestion, SuggestionDisposition } from '../types/decision';
 import { Textarea } from '@muon/ui/textarea';
-import { onMounted, reactive, ref, watch } from 'vue';
+import { reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
 import GroupMemberPicker from '@/features/contacts/components/GroupMemberPicker.vue';
 import { preloadAndNavigate } from '@/shared/lib/contextPreload';
-import { useDecisionStore } from '../stores/decisionStore';
+import { useCreateDecisionCard, useDecisionCardsQuery, useSetSuggestionDisposition } from '../queries/useDecisionCards';
 
-const decisionStore = useDecisionStore();
+const { cards } = useDecisionCardsQuery();
+const createCard = useCreateDecisionCard();
+const setDisposition = useSetSuggestionDisposition();
 const router = useRouter();
 const { locale, t } = useI18n();
 
@@ -22,10 +24,6 @@ const form = reactive({
   eventId: '',
 });
 const ownerIds = ref<string[]>([]);
-
-onMounted(async () => {
-  await decisionStore.hydrateCards();
-});
 
 watch(ownerIds, (ids) => {
   if (ids.length > 1) {
@@ -52,7 +50,7 @@ async function saveDecisionCard() {
     return;
   }
 
-  await decisionStore.createDecisionCard({
+  await createCard.mutateAsync({
     id: `decision:${Date.now()}`,
     conclusion: form.conclusion.trim(),
     context: form.context.trim(),
@@ -64,7 +62,7 @@ async function saveDecisionCard() {
 
 async function acceptSuggestion(decisionId: string, suggestionId: string) {
   try {
-    await decisionStore.setSuggestionDisposition(decisionId, suggestionId, 'accepted');
+    await setDisposition.mutateAsync({ decisionId, suggestionId, disposition: 'accepted' });
   } catch {
     toast.error(t('auth.error'));
   }
@@ -72,7 +70,7 @@ async function acceptSuggestion(decisionId: string, suggestionId: string) {
 
 async function rejectSuggestion(decisionId: string, suggestionId: string) {
   try {
-    await decisionStore.setSuggestionDisposition(decisionId, suggestionId, 'rejected');
+    await setDisposition.mutateAsync({ decisionId, suggestionId, disposition: 'rejected' });
   } catch {
     toast.error(t('auth.error'));
   }
@@ -142,7 +140,7 @@ function suggestionDispositionLabel(disposition: SuggestionDisposition) {
 
     <div class="flex-1 overflow-y-auto px-4 py-3">
       <article
-        v-for="card in decisionStore.cards"
+        v-for="card in cards"
         :key="card.id"
         class="rounded-md border border-border/70 p-3"
         :data-testid="`decision-card-${card.id}`"
