@@ -1,9 +1,7 @@
-import type { WatchStopHandle } from 'vue'
 import type { DesktopEffect } from '@/shared/lib/effect'
 import { Effect } from 'effect'
-import { watch } from 'vue'
 import { createI18n } from 'vue-i18n'
-import { useSettingsStore } from '@/features/settings/stores/settingsStore'
+import { settingsStore } from '@/features/settings/stores/settingsStore'
 import en from '@/locales/en.json'
 import zh from '@/locales/zh.json'
 import { fromSync, runDesktopSync } from '@/shared/lib/effect'
@@ -12,7 +10,7 @@ type SupportedLocale = 'en' | 'zh'
 
 const SUPPORTED_LOCALES = new Set<SupportedLocale>(['en', 'zh'])
 
-let stopLocaleSync: WatchStopHandle | undefined
+let stopLocaleSync: (() => void) | undefined
 
 function normalizeLocale(value: unknown): SupportedLocale {
   return typeof value === 'string' && SUPPORTED_LOCALES.has(value as SupportedLocale)
@@ -42,14 +40,24 @@ function setI18nLocale(locale: unknown): void {
   i18n.global.locale.value = normalizeLocale(locale)
 }
 
-export function syncI18nLocaleWithSettings(): WatchStopHandle {
+export function syncI18nLocaleWithSettings(): () => void {
   stopLocaleSync?.()
 
-  const settingsStore = useSettingsStore()
-  stopLocaleSync = watch(() => settingsStore.locale, setI18nLocale, { immediate: true })
+  setI18nLocale(settingsStore.state.locale)
+  let lastLocale = settingsStore.state.locale
 
-  return () => {
-    stopLocaleSync?.()
+  const subscription = settingsStore.subscribe(() => {
+    const locale = settingsStore.state.locale
+    if (locale !== lastLocale) {
+      lastLocale = locale
+      setI18nLocale(locale)
+    }
+  })
+
+  stopLocaleSync = () => {
+    subscription.unsubscribe()
     stopLocaleSync = undefined
   }
+
+  return stopLocaleSync
 }

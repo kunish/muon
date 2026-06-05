@@ -1,10 +1,9 @@
-import { storeToRefs } from 'pinia'
+import { useSelector } from '@tanstack/vue-store'
 import { onScopeDispose, watch } from 'vue'
-import { useSettingsStore } from '../stores/settingsStore'
+import { settingsStore } from '../stores/settingsStore'
 
 export function useTheme() {
-  const settingsStore = useSettingsStore()
-  const { theme } = storeToRefs(settingsStore)
+  const theme = useSelector(settingsStore, (s) => s.theme)
   const systemTheme = window.matchMedia('(prefers-color-scheme: dark)')
 
   function applyTheme() {

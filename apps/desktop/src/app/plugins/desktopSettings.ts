@@ -1,28 +1,32 @@
-import type { WatchStopHandle } from 'vue'
-import { useSettingsStore } from '@shared/stores/settingsStore'
-import { watch } from 'vue'
+import { settingsStore } from '@shared/stores/settingsStore'
 import { setAutoLaunchEnabled, setCloseToTrayEnabled } from '@/desktop/app'
 
-let stopDesktopSettingsSync: WatchStopHandle | undefined
+let stopDesktopSettingsSync: (() => void) | undefined
 
-export function syncDesktopSettingsWithStore(): WatchStopHandle {
+export function syncDesktopSettingsWithStore(): () => void {
   stopDesktopSettingsSync?.()
 
-  const settingsStore = useSettingsStore()
-  const stopAutoLaunchSync = watch(
-    () => settingsStore.autoLaunch,
-    (value) => void setAutoLaunchEnabled(value),
-    { immediate: true },
-  )
-  const stopCloseToTraySync = watch(
-    () => settingsStore.closeToTray,
-    (value) => void setCloseToTrayEnabled(value),
-    { immediate: true },
-  )
+  let lastAutoLaunch = settingsStore.state.autoLaunch
+  let lastCloseToTray = settingsStore.state.closeToTray
+
+  // immediate sync
+  void setAutoLaunchEnabled(lastAutoLaunch)
+  void setCloseToTrayEnabled(lastCloseToTray)
+
+  const subscription = settingsStore.subscribe(() => {
+    const { autoLaunch, closeToTray } = settingsStore.state
+    if (autoLaunch !== lastAutoLaunch) {
+      lastAutoLaunch = autoLaunch
+      void setAutoLaunchEnabled(autoLaunch)
+    }
+    if (closeToTray !== lastCloseToTray) {
+      lastCloseToTray = closeToTray
+      void setCloseToTrayEnabled(closeToTray)
+    }
+  })
 
   stopDesktopSettingsSync = () => {
-    stopAutoLaunchSync()
-    stopCloseToTraySync()
+    subscription.unsubscribe()
     stopDesktopSettingsSync = undefined
   }
 
