@@ -14,8 +14,9 @@ const watermarkEnabled = useSelector(settingsStore, (s) => s.watermarkEnabled);
 const { enabled } = useWatermark();
 
 function toggleWatermark() {
-  setWatermarkEnabled(!settingsStore.state.watermarkEnabled);
-  enabled.value = settingsStore.state.watermarkEnabled;
+  const next = !settingsStore.state.watermarkEnabled;
+  setWatermarkEnabled(next);
+  enabled.value = next;
 }
 </script>
 
