@@ -1,38 +1,41 @@
-import { defineStore } from 'pinia'
-import { shallowRef } from 'vue'
+import { Store } from '@tanstack/vue-store'
 
-export const useGlobalUiStore = defineStore('global-ui', () => {
-  const globalSearchOpen = shallowRef(false)
-  const newChatOpen = shallowRef(false)
+export interface GlobalUiState {
+  globalSearchOpen: boolean
+  newChatOpen: boolean
+}
 
-  function openGlobalSearch(): void {
-    globalSearchOpen.value = true
-  }
-
-  function closeGlobalSearch(): void {
-    globalSearchOpen.value = false
-  }
-
-  function openNewChat(): void {
-    newChatOpen.value = true
-  }
-
-  function closeNewChat(): void {
-    newChatOpen.value = false
-  }
-
-  function closeTransientOverlays(): void {
-    closeGlobalSearch()
-    closeNewChat()
-  }
-
+function createInitialState(): GlobalUiState {
   return {
-    globalSearchOpen,
-    newChatOpen,
-    openGlobalSearch,
-    closeGlobalSearch,
-    openNewChat,
-    closeNewChat,
-    closeTransientOverlays,
+    globalSearchOpen: false,
+    newChatOpen: false,
   }
-})
+}
+
+export const globalUiStore = new Store<GlobalUiState>(createInitialState())
+
+export function openGlobalSearch(): void {
+  globalUiStore.setState((s) => ({ ...s, globalSearchOpen: true }))
+}
+
+export function closeGlobalSearch(): void {
+  globalUiStore.setState((s) => ({ ...s, globalSearchOpen: false }))
+}
+
+export function openNewChat(): void {
+  globalUiStore.setState((s) => ({ ...s, newChatOpen: true }))
+}
+
+export function closeNewChat(): void {
+  globalUiStore.setState((s) => ({ ...s, newChatOpen: false }))
+}
+
+export function closeTransientOverlays(): void {
+  closeGlobalSearch()
+  closeNewChat()
+}
+
+/** Reset to initial state. Used by tests for isolation and by future logout cleanup. */
+export function resetGlobalUiStore(): void {
+  globalUiStore.setState(() => createInitialState())
+}
