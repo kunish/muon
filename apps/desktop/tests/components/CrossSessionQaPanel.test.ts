@@ -1,12 +1,16 @@
-import { mount, shallowMount } from '@vue/test-utils'
+import type { Component } from 'vue'
+import { VueQueryPlugin } from '@tanstack/vue-query'
+import { flushPromises, mount, shallowMount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { nextTick } from 'vue'
 import ChatWindow from '@/features/chat/components/ChatWindow.vue'
 import CrossSessionQaPanel from '@/features/chat/components/CrossSessionQaPanel.vue'
 import KnowledgeCapturePanel from '@/features/chat/components/KnowledgeCapturePanel.vue'
+import { qaKeys } from '@/features/chat/queries/qaKeys'
 import { useChatStore } from '@/features/chat/stores/chatStore'
-import { useQaStore } from '@/features/chat/stores/qaStore'
+import { resetQaStore } from '@/features/chat/stores/qaStore'
+import { createTestQueryClient } from '../helpers/queryClient'
 
 const askCrossSessionQuestionMock = vi.fn()
 const listSavedQaSessionsMock = vi.fn()
@@ -47,11 +51,20 @@ vi.mock('@matrix/index', async (importOriginal) => {
 describe('crossSessionQaPanel', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    resetQaStore()
     askCrossSessionQuestionMock.mockReset()
     listSavedQaSessionsMock.mockReset()
     routerPush.mockReset()
     loadInboxEventContextMock.mockReset()
   })
+
+  function mountWithQuery(component: Component) {
+    const queryClient = createTestQueryClient()
+    const wrapper = mount(component, {
+      global: { plugins: [[VueQueryPlugin, { queryClient }]] },
+    })
+    return { wrapper, queryClient }
+  }
 
   it('hydrates the latest saved answer on mount', async () => {
     listSavedQaSessionsMock.mockResolvedValue([
@@ -75,7 +88,7 @@ describe('crossSessionQaPanel', () => {
       },
     ])
 
-    const wrapper = mount(CrossSessionQaPanel)
+    const { wrapper } = mountWithQuery(CrossSessionQaPanel)
 
     await vi.waitFor(() => {
       expect(wrapper.text()).toContain('Latest answer')
@@ -104,16 +117,17 @@ describe('crossSessionQaPanel', () => {
       updatedAt: 200,
     })
 
-    const wrapper = mount(CrossSessionQaPanel)
+    const { wrapper, queryClient } = mountWithQuery(CrossSessionQaPanel)
     await wrapper.get('[data-testid="qa-question-input"]').setValue('What should ship this week?')
     await wrapper.get('[data-testid="qa-submit-button"]').trigger('click')
+    await flushPromises()
 
     expect(askCrossSessionQuestionMock).toHaveBeenCalledWith('What should ship this week?')
     expect(wrapper.text()).toContain('Digest panel should ship this week.')
     expect(wrapper.text()).toContain('Earlier question')
 
-    const store = useQaStore()
-    expect(store.history.map((item) => item.id)).toEqual(['qa-2', 'qa-1'])
+    const history = queryClient.getQueryData<{ id: string }[]>(qaKeys.history()) ?? []
+    expect(history.map((item) => item.id)).toEqual(['qa-2', 'qa-1'])
   })
 
   it('supports citation click with preload fallback navigation', async () => {
@@ -130,9 +144,10 @@ describe('crossSessionQaPanel', () => {
     loadInboxEventContextMock.mockRejectedValue(new Error('network error'))
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
-    const wrapper = mount(CrossSessionQaPanel)
+    const wrapper = mountWithQuery(CrossSessionQaPanel).wrapper
     await wrapper.get('[data-testid="qa-question-input"]').setValue('What should ship this week?')
     await wrapper.get('[data-testid="qa-submit-button"]').trigger('click')
+    await flushPromises()
     await wrapper.get('[data-testid="qa-citation-$event-1"]').trigger('click')
 
     expect(loadInboxEventContextMock).toHaveBeenCalledWith('!joined:muon.dev', '$event-1')
@@ -148,7 +163,7 @@ describe('crossSessionQaPanel', () => {
     listSavedQaSessionsMock.mockResolvedValue([])
     askCrossSessionQuestionMock.mockRejectedValue(new Error('No cited answer available'))
 
-    const wrapper = mount(CrossSessionQaPanel)
+    const wrapper = mountWithQuery(CrossSessionQaPanel).wrapper
     await wrapper.get('[data-testid="qa-question-input"]').setValue('有没有上线结论？')
     await wrapper.get('[data-testid="qa-submit-button"]').trigger('click')
 
@@ -159,7 +174,7 @@ describe('crossSessionQaPanel', () => {
   })
 
   it('integrates knowledge tabs and chat side-panel toggle', async () => {
-    const knowledgeWrapper = mount(KnowledgeCapturePanel)
+    const knowledgeWrapper = mountWithQuery(KnowledgeCapturePanel).wrapper
     await knowledgeWrapper.get('[data-testid="knowledge-tab-qa"]').trigger('click')
     expect(knowledgeWrapper.findComponent(CrossSessionQaPanel).exists()).toBe(true)
 

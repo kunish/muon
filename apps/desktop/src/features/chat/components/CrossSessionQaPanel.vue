@@ -1,27 +1,34 @@
 <script setup lang="ts">
 import { Textarea } from '@muon/ui/textarea';
-import { computed, onMounted, ref } from 'vue';
+import { useSelector } from '@tanstack/vue-store';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { preloadAndNavigate } from '@/shared/lib/contextPreload';
-import { useQaStore } from '../stores/qaStore';
+import { useAskQuestion, useQaHistoryQuery } from '../queries/useQaHistory';
+import { qaStore, selectQaAnswer } from '../stores/qaStore';
 
 const { t } = useI18n();
 const router = useRouter();
-const qaStore = useQaStore();
+
+const qaHistoryQuery = useQaHistoryQuery();
+const askMutation = useAskQuestion();
+const selectedAnswerId = useSelector(qaStore, (s) => s.selectedAnswerId);
 
 const question = ref('');
 const loading = ref(false);
 const error = ref<string | null>(null);
-const answer = computed(() => qaStore.activeAnswer);
-const history = computed(() => qaStore.history);
 
-onMounted(async () => {
-  try {
-    await qaStore.hydrateHistory();
-  } catch (err) {
-    error.value = formatQaError(err);
-  }
+const history = computed(() => qaHistoryQuery.history.value);
+const answer = computed(() => {
+  const id = selectedAnswerId.value;
+  const list = history.value;
+  return (id ? list.find((item) => item.id === id) : null) ?? list[0] ?? null;
+});
+
+// Surface hydrate (query) errors in the same place ask errors render.
+watch(qaHistoryQuery.error, (queryError) => {
+  if (queryError) error.value = formatQaError(queryError);
 });
 
 function formatQaError(err: unknown) {
@@ -35,7 +42,8 @@ async function submitQuestion() {
   loading.value = true;
   error.value = null;
   try {
-    await qaStore.askQuestion(question.value);
+    const created = await askMutation.mutateAsync(question.value);
+    selectQaAnswer(created.id);
   } catch (err) {
     error.value = formatQaError(err);
   } finally {
@@ -48,7 +56,7 @@ async function openCitation(roomId: string, eventId: string) {
 }
 
 function openHistoryAnswer(answerId: string) {
-  qaStore.selectAnswer(answerId);
+  selectQaAnswer(answerId);
 }
 </script>
 
