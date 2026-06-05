@@ -2,7 +2,7 @@ import { mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent } from 'vue'
 import { useGlobalShortcuts } from '@/app/composables/useGlobalShortcuts'
-import { useGlobalUiStore } from '@/app/stores/globalUiStore'
+import { globalUiStore, openGlobalSearch, openNewChat, resetGlobalUiStore } from '@/app/stores/globalUiStore'
 import { useChatStore } from '@/features/chat/stores/chatStore'
 
 const routerPush = vi.hoisted(() => vi.fn())
@@ -45,32 +45,31 @@ describe('useGlobalShortcuts', () => {
     route.fullPath = '/contacts'
     route.path = '/contacts'
     routerPush.mockReset()
+    resetGlobalUiStore()
   })
 
   it('opens global search with Cmd/Ctrl + K', () => {
     const wrapper = mountShortcutHost()
-    const globalUi = useGlobalUiStore()
 
     const event = dispatchKey(document, 'k', { metaKey: true })
 
     expect(event.defaultPrevented).toBe(true)
-    expect(globalUi.globalSearchOpen).toBe(true)
+    expect(globalUiStore.state.globalSearchOpen).toBe(true)
 
     wrapper.unmount()
   })
 
   it('opens settings with Cmd/Ctrl + comma and closes transient overlays', () => {
     const wrapper = mountShortcutHost()
-    const globalUi = useGlobalUiStore()
-    globalUi.openGlobalSearch()
-    globalUi.openNewChat()
+    openGlobalSearch()
+    openNewChat()
 
     const event = dispatchKey(document, ',', { ctrlKey: true })
 
     expect(event.defaultPrevented).toBe(true)
     expect(routerPush).toHaveBeenCalledWith('/settings')
-    expect(globalUi.globalSearchOpen).toBe(false)
-    expect(globalUi.newChatOpen).toBe(false)
+    expect(globalUiStore.state.globalSearchOpen).toBe(false)
+    expect(globalUiStore.state.newChatOpen).toBe(false)
 
     wrapper.unmount()
   })
@@ -93,24 +92,22 @@ describe('useGlobalShortcuts', () => {
 
   it('opens new chat with Cmd/Ctrl + N', () => {
     const wrapper = mountShortcutHost()
-    const globalUi = useGlobalUiStore()
 
     const event = dispatchKey(document, 'n', { metaKey: true })
 
     expect(event.defaultPrevented).toBe(true)
-    expect(globalUi.newChatOpen).toBe(true)
+    expect(globalUiStore.state.newChatOpen).toBe(true)
 
     wrapper.unmount()
   })
 
   it('uses Escape to close the topmost transient UI', () => {
     const wrapper = mountShortcutHost()
-    const globalUi = useGlobalUiStore()
     const chatStore = useChatStore()
 
-    globalUi.openNewChat()
+    openNewChat()
     dispatchKey(document, 'Escape')
-    expect(globalUi.newChatOpen).toBe(false)
+    expect(globalUiStore.state.newChatOpen).toBe(false)
 
     chatStore.toggleSidePanel('search')
     dispatchKey(document, 'Escape')
@@ -121,7 +118,6 @@ describe('useGlobalShortcuts', () => {
 
   it('does not steal Escape from editable fields unless a global overlay is open', () => {
     const wrapper = mountShortcutHost()
-    const globalUi = useGlobalUiStore()
     const chatStore = useChatStore()
     const input = document.createElement('input')
     document.body.append(input)
@@ -130,9 +126,9 @@ describe('useGlobalShortcuts', () => {
     dispatchKey(input, 'Escape')
     expect(chatStore.activeSidePanel).toBe('search')
 
-    globalUi.openGlobalSearch()
+    openGlobalSearch()
     dispatchKey(input, 'Escape')
-    expect(globalUi.globalSearchOpen).toBe(false)
+    expect(globalUiStore.state.globalSearchOpen).toBe(false)
 
     input.remove()
     wrapper.unmount()

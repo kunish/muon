@@ -4,7 +4,7 @@ import { Search } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
-import { useGlobalUiStore } from '../../stores/globalUiStore';
+import { openGlobalSearch } from '../../stores/globalUiStore';
 import { footerWorkspaceApps, getWorkspaceAppForPath, primaryWorkspaceApps } from './navigation';
 
 withDefaults(
@@ -19,7 +19,6 @@ withDefaults(
 const route = useRoute();
 const router = useRouter();
 const { t } = useI18n();
-const globalUi = useGlobalUiStore();
 const lastMessagesPath = ref('/dm');
 
 const activeApp = computed(() => getWorkspaceAppForPath(route.path));
@@ -90,7 +89,7 @@ function openApp(app: WorkspaceApp): void {
           data-testid="workspace-global-search"
           :aria-label="t('settings.shortcut_search')"
           :title="`${t('settings.shortcut_search')} (Ctrl/Cmd + K)`"
-          @click="globalUi.openGlobalSearch"
+          @click="openGlobalSearch"
         >
           <Search :size="16" aria-hidden="true" />
         </button>

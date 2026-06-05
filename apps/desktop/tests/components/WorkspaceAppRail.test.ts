@@ -1,7 +1,7 @@
 import { mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import WorkspaceAppRail from '@/app/components/workspace/WorkspaceAppRail.vue'
-import { useGlobalUiStore } from '@/app/stores/globalUiStore'
+import { globalUiStore, resetGlobalUiStore } from '@/app/stores/globalUiStore'
 
 const push = vi.hoisted(() => vi.fn())
 const route = vi.hoisted(() => ({
@@ -20,6 +20,7 @@ describe('workspaceAppRail', () => {
     route.fullPath = '/contacts'
     route.path = '/contacts'
     push.mockReset()
+    resetGlobalUiStore()
   })
 
   it('renders the Muon brand logo in the rail header', () => {
@@ -92,10 +93,9 @@ describe('workspaceAppRail', () => {
 
   it('opens global search from the rail action', async () => {
     const wrapper = mount(WorkspaceAppRail)
-    const globalUi = useGlobalUiStore()
 
     await wrapper.find('[data-testid="workspace-global-search"]').trigger('click')
 
-    expect(globalUi.globalSearchOpen).toBe(true)
+    expect(globalUiStore.state.globalSearchOpen).toBe(true)
   })
 })

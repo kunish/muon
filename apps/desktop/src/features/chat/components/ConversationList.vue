@@ -7,7 +7,7 @@ import { CheckCheck, MessageSquarePlus, Search } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
-import { useGlobalUiStore } from '@/app/stores/globalUiStore';
+import { openNewChat } from '@/app/stores/globalUiStore';
 import { useConversations } from '../composables/useConversations';
 import { useGlobalTyping } from '../composables/useGlobalTyping';
 import { useChatStore } from '../stores/chatStore';
@@ -18,7 +18,6 @@ import UserInfoPanel from './UserInfoPanel.vue';
 const router = useRouter();
 const route = useRoute();
 const store = useChatStore();
-const globalUi = useGlobalUiStore();
 const { t } = useI18n();
 const { conversations, pinnedCount, isLoading, totalUnreadCount, markAllRead } = useConversations();
 const { getTypingUsers } = useGlobalTyping();
@@ -111,7 +110,7 @@ function isConversationContextMenuOpen(roomId: string): boolean {
         <button
           class="conv-new-btn rounded-md p-1.5 text-primary transition-colors hover:bg-accent"
           :title="t('chat.new_conversation')"
-          @click="globalUi.openNewChat"
+          @click="openNewChat"
         >
           <MessageSquarePlus :size="15" />
         </button>

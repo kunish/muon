@@ -2,7 +2,14 @@ import { useChatStore } from '@features/chat/stores/chatStore'
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getWorkspaceAppForPath, workspaceApps } from '../components/workspace/navigation'
-import { useGlobalUiStore } from '../stores/globalUiStore'
+import {
+  closeGlobalSearch,
+  closeNewChat,
+  closeTransientOverlays,
+  globalUiStore,
+  openGlobalSearch,
+  openNewChat,
+} from '../stores/globalUiStore'
 
 function isEditableTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false
@@ -20,7 +27,6 @@ function isPlainModifier(event: KeyboardEvent): boolean {
 export function useGlobalShortcuts(): void {
   const route = useRoute()
   const router = useRouter()
-  const globalUi = useGlobalUiStore()
   const chatStore = useChatStore()
   const lastMessagesPath = ref('/dm')
 
@@ -35,13 +41,13 @@ export function useGlobalShortcuts(): void {
   )
 
   function closeTopmostTransient(): boolean {
-    if (globalUi.globalSearchOpen) {
-      globalUi.closeGlobalSearch()
+    if (globalUiStore.state.globalSearchOpen) {
+      closeGlobalSearch()
       return true
     }
 
-    if (globalUi.newChatOpen) {
-      globalUi.closeNewChat()
+    if (globalUiStore.state.newChatOpen) {
+      closeNewChat()
       return true
     }
 
@@ -75,20 +81,20 @@ export function useGlobalShortcuts(): void {
 
     if (isPlainModifier(event) && key === 'k') {
       event.preventDefault()
-      globalUi.openGlobalSearch()
+      openGlobalSearch()
       return
     }
 
     if (isPlainModifier(event) && event.key === ',') {
       event.preventDefault()
-      globalUi.closeTransientOverlays()
+      closeTransientOverlays()
       void router.push('/settings')
       return
     }
 
     if (isPlainModifier(event) && key === 'n') {
       event.preventDefault()
-      globalUi.openNewChat()
+      openNewChat()
       return
     }
 
@@ -106,7 +112,8 @@ export function useGlobalShortcuts(): void {
 
     if (event.key !== 'Escape') return
 
-    if (!globalUi.globalSearchOpen && !globalUi.newChatOpen && isEditableTarget(event.target)) return
+    if (!globalUiStore.state.globalSearchOpen && !globalUiStore.state.newChatOpen && isEditableTarget(event.target))
+      return
 
     if (closeTopmostTransient()) event.preventDefault()
   }
