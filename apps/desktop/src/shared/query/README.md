@@ -6,7 +6,8 @@ lives in `@tanstack/vue-query`, not in a store.
 ## QueryClient
 
 `createAppQueryClient()` in `queryClient.ts` is the only place query/mutation
-defaults are configured. The plugin layer creates the singleton; tests use
+defaults are configured. The plugin layer calls it once at startup and passes
+the result to `VueQueryPlugin` (one client per app instance); tests use
 `createTestQueryClient()` from `tests/helpers/queryClient.ts`.
 
 ## Query keys: one factory per feature
