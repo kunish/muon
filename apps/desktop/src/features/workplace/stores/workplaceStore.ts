@@ -1,5 +1,4 @@
-import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { Store } from '@tanstack/vue-store'
 
 export const WORKPLACE_STORAGE_KEY = 'muon.workplace.customization.v1'
 
@@ -49,53 +48,54 @@ function loadState(): Pick<PersistedWorkplaceState, 'hiddenAppIds' | 'appOrder' 
   }
 }
 
-export const useWorkplaceStore = defineStore('workplace', () => {
-  const initial = loadState()
-  const hiddenAppIds = ref<string[]>(initial.hiddenAppIds)
-  const appOrder = ref<string[]>(initial.appOrder)
-  const customApps = ref<PersistedCustomApp[]>(initial.customApps)
+export interface WorkplaceState {
+  hiddenAppIds: string[]
+  appOrder: string[]
+  customApps: PersistedCustomApp[]
+}
 
-  function persist(): void {
-    const payload: PersistedWorkplaceState = {
-      version: 1,
-      hiddenAppIds: hiddenAppIds.value,
-      appOrder: appOrder.value,
-      customApps: customApps.value,
-    }
-    try {
-      localStorage.setItem(WORKPLACE_STORAGE_KEY, JSON.stringify(payload))
-    } catch (err) {
-      console.warn('[workplaceStore] Failed to persist customization:', err)
-    }
-  }
+function createInitialState(): WorkplaceState {
+  const s = loadState()
+  return { hiddenAppIds: s.hiddenAppIds, appOrder: s.appOrder, customApps: s.customApps }
+}
 
-  function addCustomApp(app: PersistedCustomApp): void {
-    customApps.value = [app, ...customApps.value]
-    persist()
-  }
+export const workplaceStore = new Store<WorkplaceState>(createInitialState())
 
-  function updateCustomApp(id: string, patch: { name: string; desc: string }): void {
-    customApps.value = customApps.value.map((app) => (app.id === id ? { ...app, ...patch } : app))
-    persist()
+function persist(): void {
+  const payload: PersistedWorkplaceState = {
+    version: 1,
+    hiddenAppIds: workplaceStore.state.hiddenAppIds,
+    appOrder: workplaceStore.state.appOrder,
+    customApps: workplaceStore.state.customApps,
   }
+  try {
+    localStorage.setItem(WORKPLACE_STORAGE_KEY, JSON.stringify(payload))
+  } catch (err) {
+    console.warn('[workplaceStore] Failed to persist customization:', err)
+  }
+}
 
-  function hideApp(id: string): void {
-    hiddenAppIds.value = [...new Set([...hiddenAppIds.value, id])]
-    persist()
-  }
+workplaceStore.subscribe(() => persist())
 
-  function setOrder(orderedIds: string[]): void {
-    appOrder.value = orderedIds
-    persist()
-  }
+export function addCustomApp(app: PersistedCustomApp): void {
+  workplaceStore.setState((s) => ({ ...s, customApps: [app, ...s.customApps] }))
+}
 
-  return {
-    hiddenAppIds,
-    appOrder,
-    customApps,
-    addCustomApp,
-    updateCustomApp,
-    hideApp,
-    setOrder,
-  }
-})
+export function updateCustomApp(id: string, patch: { name: string; desc: string }): void {
+  workplaceStore.setState((s) => ({
+    ...s,
+    customApps: s.customApps.map((app) => (app.id === id ? { ...app, ...patch } : app)),
+  }))
+}
+
+export function hideApp(id: string): void {
+  workplaceStore.setState((s) => ({ ...s, hiddenAppIds: [...new Set([...s.hiddenAppIds, id])] }))
+}
+
+export function setOrder(orderedIds: string[]): void {
+  workplaceStore.setState((s) => ({ ...s, appOrder: orderedIds }))
+}
+
+export function resetWorkplaceStore(): void {
+  workplaceStore.setState(() => createInitialState())
+}

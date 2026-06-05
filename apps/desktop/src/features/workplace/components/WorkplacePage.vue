@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Component } from 'vue';
+import { useSelector } from '@tanstack/vue-store';
 import {
   AppWindow,
   BriefcaseBusiness,
@@ -19,11 +20,20 @@ import { computed, shallowRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import WorkspaceResizablePane from '@/app/components/workspace/WorkspaceResizablePane.vue';
-import { useWorkplaceStore } from '@/features/workplace/stores/workplaceStore';
+import {
+  addCustomApp as storeAddCustomApp,
+  hideApp as storeHideApp,
+  setOrder as storeSetOrder,
+  updateCustomApp as storeUpdateCustomApp,
+  workplaceStore,
+} from '@/features/workplace/stores/workplaceStore';
 
 const { t } = useI18n();
 const router = useRouter();
-const workplaceStore = useWorkplaceStore();
+
+const customApps = useSelector(workplaceStore, (s) => s.customApps);
+const appOrder = useSelector(workplaceStore, (s) => s.appOrder);
+const hiddenAppIds = useSelector(workplaceStore, (s) => s.hiddenAppIds);
 
 const WORKPLACE_WIDTH_STORAGE_KEY = 'muon_workplace_sidebar_width';
 const DEFAULT_WORKPLACE_WIDTH = 240;
@@ -164,8 +174,8 @@ function customAppToEntry(app: { id: string; name: string; desc: string; categor
 
 // 展示用应用列表 = 自定义应用（置顶）+ 内置目录，按持久化的排序重排
 const apps = computed<WorkplaceAppEntry[]>(() => {
-  const combined = [...workplaceStore.customApps.map(customAppToEntry), ...builtInApps];
-  const order = workplaceStore.appOrder;
+  const combined = [...customApps.value.map(customAppToEntry), ...builtInApps];
+  const order = appOrder.value;
   if (order.length === 0) return combined;
 
   const byId = new Map(combined.map((app) => [app.id, app]));
@@ -207,7 +217,7 @@ const filteredApps = computed(() => {
   return apps.value.filter((app) => {
     const matchesCategory = activeCategory.value === 'all' || app.category === activeCategory.value;
     const matchesQuery = !query || [app.name, app.desc].some((value) => value.toLowerCase().includes(query));
-    const isVisible = !workplaceStore.hiddenAppIds.includes(app.id);
+    const isVisible = !hiddenAppIds.value.includes(app.id);
     return isVisible && matchesCategory && matchesQuery;
   });
 });
@@ -221,12 +231,9 @@ const filteredProjectRecords = computed(() => {
   if (projectFilter.value === 'risks') return projectRecords.value.filter((record) => record.status === '风险项');
   return projectRecords.value;
 });
-const enabledAppsCount = computed(
-  () => apps.value.filter((app) => !workplaceStore.hiddenAppIds.includes(app.id)).length,
-);
+const enabledAppsCount = computed(() => apps.value.filter((app) => !hiddenAppIds.value.includes(app.id)).length);
 const todayUsedAppCount = computed(
-  () =>
-    new Set(workItems.map((item) => item.appId).filter((appId) => !workplaceStore.hiddenAppIds.includes(appId))).size,
+  () => new Set(workItems.map((item) => item.appId).filter((appId) => !hiddenAppIds.value.includes(appId))).size,
 );
 const blockedWorkItemCount = computed(() => workItems.filter((item) => item.status === '受阻').length);
 const calendarWorkItemCount = computed(() => workItems.filter((item) => item.appId === 'calendar').length);
@@ -245,7 +252,7 @@ function addCustomApp(): void {
   appDraftDesc.value = '连接团队审批、自动化和数据看板';
   searchQuery.value = '';
   activeCategory.value = 'all';
-  workplaceStore.addCustomApp({
+  storeAddCustomApp({
     id: appId,
     name: '自定义流程',
     desc: '连接团队审批、自动化和数据看板',
@@ -262,7 +269,7 @@ function saveDraftApp(): void {
   const name = appDraftName.value.trim() || '自定义流程';
   const desc = appDraftDesc.value.trim() || '连接团队审批、自动化和数据看板';
 
-  workplaceStore.updateCustomApp(appId, { name, desc });
+  storeUpdateCustomApp(appId, { name, desc });
   selectedAppId.value = appId;
   quickAction.value = `已添加：${name}`;
   appEditorOpen.value = false;
@@ -335,7 +342,7 @@ function moveAppDown(appId: string): void {
   const app = apps.value[currentIndex];
   const [id] = orderedIds.splice(currentIndex, 1);
   orderedIds.splice(currentIndex + 1, 0, id);
-  workplaceStore.setOrder(orderedIds);
+  storeSetOrder(orderedIds);
   quickAction.value = `已下移：${app.name}`;
 }
 
@@ -343,7 +350,7 @@ function hideAppEntry(appId: string): void {
   const app = apps.value.find((item) => item.id === appId);
   if (!app) return;
 
-  workplaceStore.hideApp(appId);
+  storeHideApp(appId);
   if (selectedAppId.value === appId) selectedAppId.value = filteredApps.value[0]?.id ?? apps.value[0]?.id ?? '';
   quickAction.value = `已隐藏：${app.name}`;
 }

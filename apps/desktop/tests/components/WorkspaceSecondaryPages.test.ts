@@ -8,6 +8,7 @@ import DocsPage from '@/features/docs/components/DocsPage.vue'
 import EmailPage from '@/features/email/components/EmailPage.vue'
 import OrganizationPage from '@/features/organization/components/OrganizationPage.vue'
 import WorkplacePage from '@/features/workplace/components/WorkplacePage.vue'
+import { resetWorkplaceStore } from '@/features/workplace/stores/workplaceStore'
 
 const routerPush = vi.fn()
 const mockRouteParams = vi.fn(() => ({}))
@@ -117,6 +118,7 @@ describe('workspace secondary pages', () => {
     localStorage.removeItem('muon_calendar_subscriptions')
     localStorage.removeItem('muon.workplace.customization.v1')
     localStorage.removeItem('muon.contacts.profiles.v1')
+    resetWorkplaceStore()
     mockRouteParams.mockReset()
     mockRouteParams.mockReturnValue({})
     routerPush.mockReset()
