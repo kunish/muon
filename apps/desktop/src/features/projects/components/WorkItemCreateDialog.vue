@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import type { Priority, WorkItemType } from '../types';
 import { Button } from '@muon/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@muon/ui/dialog';
 import { Input } from '@muon/ui/input';
 import { Label } from '@muon/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@muon/ui/select';
 import { Textarea } from '@muon/ui/textarea';
-import { computed, ref } from 'vue';
+import { useForm } from '@tanstack/vue-form';
 import { useI18n } from 'vue-i18n';
+import { z } from 'zod';
 import { createItem } from '../composables/useWorkItemStore';
 import { PRIORITIES, WORK_ITEM_TYPES } from '../types';
 import WorkItemAssigneePicker from './WorkItemAssigneePicker.vue';
@@ -26,63 +26,43 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 
-const title = ref(props.initialTitle ?? '');
-const description = ref('');
-const assignee = ref<string | undefined>(undefined);
-const priority = ref<Priority>('none');
-const workItemType = ref<WorkItemType>('task');
-const dueDate = ref('');
-const creating = ref(false);
-
-const canSubmit = computed(() => title.value.trim().length > 0 && !creating.value);
 const priorityOptions = PRIORITIES;
 const typeOptions = WORK_ITEM_TYPES;
 
-function isPriority(value: string | number): value is Priority {
-  return typeof value === 'string' && priorityOptions.includes(value as Priority);
-}
+const workItemFormSchema = z.object({
+  title: z.string().trim().min(1),
+  description: z.string(),
+  assignee: z.string(),
+  priority: z.enum(PRIORITIES),
+  type: z.enum(WORK_ITEM_TYPES),
+  dueDate: z.string(),
+});
 
-function isWorkItemType(value: string | number): value is WorkItemType {
-  return typeof value === 'string' && typeOptions.includes(value as WorkItemType);
-}
-
-function updatePriority(value: string | number) {
-  if (isPriority(value)) priority.value = value;
-}
-
-function updateType(value: string | number) {
-  if (isWorkItemType(value)) workItemType.value = value;
-}
-
-function selectedDueDateTimestamp(): number | undefined {
-  return dueDate.value ? new Date(dueDate.value).getTime() : undefined;
-}
-
-async function submit() {
-  if (!canSubmit.value) return;
-  creating.value = true;
-  try {
+const form = useForm({
+  defaultValues: {
+    title: props.initialTitle ?? '',
+    description: '',
+    assignee: '',
+    priority: 'none' as (typeof PRIORITIES)[number],
+    type: 'task' as (typeof WORK_ITEM_TYPES)[number],
+    dueDate: '',
+  },
+  validators: { onMount: workItemFormSchema, onChange: workItemFormSchema },
+  onSubmit: async ({ value }) => {
     await createItem(props.projectId, {
-      title: title.value.trim(),
-      description: description.value.trim(),
-      assignee: assignee.value,
-      priority: priority.value,
-      type: workItemType.value,
-      dueDate: selectedDueDateTimestamp(),
+      title: value.title.trim(),
+      description: value.description.trim(),
+      assignee: value.assignee || undefined,
+      priority: value.priority,
+      type: value.type,
+      dueDate: value.dueDate ? new Date(value.dueDate).getTime() : undefined,
       status: props.defaultStatus,
     });
     emit('created');
     emit('update:open', false);
-    title.value = '';
-    description.value = '';
-    assignee.value = undefined;
-    priority.value = 'none';
-    workItemType.value = 'task';
-    dueDate.value = '';
-  } finally {
-    creating.value = false;
-  }
-}
+    form.reset();
+  },
+});
 </script>
 
 <template>
@@ -94,66 +74,102 @@ async function submit() {
       <div class="grid gap-4 py-4">
         <div class="grid gap-2">
           <Label for="task-title">{{ t('projects.task_title') }}</Label>
-          <Input
-            id="task-title"
-            v-model="title"
-            data-testid="project-task-title-input"
-            :placeholder="t('projects.task_title_placeholder')"
-            @keyup.enter="submit()"
-          />
+          <form.Field v-slot="{ field }" name="title">
+            <Input
+              id="task-title"
+              data-testid="project-task-title-input"
+              :model-value="field.state.value"
+              :placeholder="t('projects.task_title_placeholder')"
+              @update:model-value="(value) => field.handleChange(String(value))"
+              @blur="field.handleBlur"
+              @keyup.enter="form.handleSubmit"
+            />
+          </form.Field>
         </div>
         <div class="grid gap-2">
           <Label for="task-desc">{{ t('projects.project_description') }}</Label>
-          <Textarea id="task-desc" v-model="description" data-testid="project-task-description-input" :rows="3" />
+          <form.Field v-slot="{ field }" name="description">
+            <Textarea
+              id="task-desc"
+              data-testid="project-task-description-input"
+              :model-value="field.state.value"
+              :rows="3"
+              @update:model-value="field.handleChange"
+            />
+          </form.Field>
         </div>
         <div class="grid gap-2">
           <Label>{{ t('projects.assignee') }}</Label>
-          <WorkItemAssigneePicker v-model="assignee" data-testid="project-task-assignee-picker" />
+          <form.Field v-slot="{ field }" name="assignee">
+            <WorkItemAssigneePicker
+              data-testid="project-task-assignee-picker"
+              :model-value="field.state.value"
+              @update:model-value="(value) => field.handleChange(value ?? '')"
+            />
+          </form.Field>
         </div>
         <div class="grid gap-4 sm:grid-cols-2">
           <div class="grid gap-2">
             <Label>{{ t('projects.type') }}</Label>
-            <Select data-testid="project-task-type-select" :model-value="workItemType" @update:model-value="updateType">
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem v-for="tp in typeOptions" :key="tp" :value="tp">
-                  {{ t(`projects.type_${tp}`) }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
+            <form.Field v-slot="{ field }" name="type">
+              <Select
+                data-testid="project-task-type-select"
+                :model-value="field.state.value"
+                @update:model-value="(value) => field.handleChange(value as (typeof WORK_ITEM_TYPES)[number])"
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem v-for="tp in typeOptions" :key="tp" :value="tp">
+                    {{ t(`projects.type_${tp}`) }}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </form.Field>
           </div>
           <div class="grid gap-2">
             <Label>{{ t('projects.priority') }}</Label>
-            <Select
-              data-testid="project-task-priority-select"
-              :model-value="priority"
-              @update:model-value="updatePriority"
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem v-for="p in priorityOptions" :key="p" :value="p">
-                  {{ t(`projects.priority_${p}`) }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
+            <form.Field v-slot="{ field }" name="priority">
+              <Select
+                data-testid="project-task-priority-select"
+                :model-value="field.state.value"
+                @update:model-value="(value) => field.handleChange(value as (typeof PRIORITIES)[number])"
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem v-for="p in priorityOptions" :key="p" :value="p">
+                    {{ t(`projects.priority_${p}`) }}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </form.Field>
           </div>
         </div>
         <div class="grid gap-2">
           <Label for="task-due-date">{{ t('projects.due_date') }}</Label>
-          <Input id="task-due-date" v-model="dueDate" data-testid="project-task-due-date-input" type="date" />
+          <form.Field v-slot="{ field }" name="dueDate">
+            <Input
+              id="task-due-date"
+              data-testid="project-task-due-date-input"
+              type="date"
+              :model-value="field.state.value"
+              @update:model-value="(value) => field.handleChange(String(value))"
+            />
+          </form.Field>
         </div>
       </div>
       <DialogFooter>
-        <Button variant="outline" @click="emit('update:open', false)">
+        <Button type="button" variant="outline" @click="emit('update:open', false)">
           {{ t('common.cancel') }}
         </Button>
-        <Button :disabled="!canSubmit" :loading="creating" @click="submit()">
-          {{ t('common.confirm') }}
-        </Button>
+        <form.Subscribe v-slot="{ canSubmit, isSubmitting }">
+          <Button type="button" :disabled="!canSubmit" :loading="isSubmitting" @click="form.handleSubmit">
+            {{ t('common.confirm') }}
+          </Button>
+        </form.Subscribe>
       </DialogFooter>
     </DialogContent>
   </Dialog>

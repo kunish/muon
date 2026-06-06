@@ -2,10 +2,12 @@
 import { Input } from '@muon/ui/input';
 import { Label } from '@muon/ui/label';
 import { Tabs, TabsList, TabsTrigger } from '@muon/ui/tabs';
+import { useForm } from '@tanstack/vue-form';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
+import { z } from 'zod';
 import {
   isEnterpriseAuthConfigured,
   signInWithEnterprise,
@@ -18,12 +20,7 @@ import { getDesktopBridge } from '@/desktop/bridge';
 const router = useRouter();
 const { t } = useI18n();
 const tab = ref<'login' | 'register'>('login');
-const serverUrl = ref('http://127.0.0.1:6167');
-const username = ref('');
-const password = ref('');
-const displayName = ref('');
 const error = ref('');
-const loading = ref(false);
 const enterpriseLoading = ref(false);
 const enterpriseEnabled = computed(() => isEnterpriseAuthConfigured());
 let unsubscribeEnterpriseCallback: (() => void) | undefined;
@@ -92,30 +89,46 @@ function validateServerUrl(url: string): boolean {
   }
 }
 
-async function handleSubmit() {
-  error.value = '';
-  if (!validateServerUrl(serverUrl.value)) return;
-  loading.value = true;
-  try {
-    if (tab.value === 'login') {
-      await signInWithPassword(serverUrl.value, {
-        username: username.value,
-        password: password.value,
-      });
-    } else {
-      await signUpWithPassword(serverUrl.value, {
-        username: username.value,
-        password: password.value,
-        displayName: displayName.value || undefined,
-      });
+// serverUrl/displayName stay loosely typed: server URL is validated on submit
+// (preserving the old protocol/insecure checks), and the submit button's enabled
+// state mirrors the old `!username || !password` gate via the required fields below.
+const loginFormSchema = z.object({
+  serverUrl: z.string(),
+  username: z.string().min(1),
+  password: z.string().min(1),
+  displayName: z.string(),
+});
+
+const form = useForm({
+  defaultValues: {
+    serverUrl: 'http://127.0.0.1:6167',
+    username: '',
+    password: '',
+    displayName: '',
+  },
+  validators: { onMount: loginFormSchema, onChange: loginFormSchema },
+  onSubmit: async ({ value }) => {
+    error.value = '';
+    if (!validateServerUrl(value.serverUrl)) return;
+    try {
+      if (tab.value === 'login') {
+        await signInWithPassword(value.serverUrl, {
+          username: value.username,
+          password: value.password,
+        });
+      } else {
+        await signUpWithPassword(value.serverUrl, {
+          username: value.username,
+          password: value.password,
+          displayName: value.displayName || undefined,
+        });
+      }
+      router.push('/dm');
+    } catch (e: unknown) {
+      error.value = getAuthErrorMessage(e);
     }
-    router.push('/dm');
-  } catch (e: unknown) {
-    error.value = getAuthErrorMessage(e);
-  } finally {
-    loading.value = false;
-  }
-}
+  },
+});
 
 async function handleEnterpriseLogin() {
   error.value = '';
@@ -180,38 +193,75 @@ onBeforeUnmount(() => {
         </TabsList>
       </Tabs>
 
-      <form class="space-y-4" @submit.prevent="handleSubmit">
+      <form class="space-y-4" @submit.prevent.stop="form.handleSubmit">
         <div>
           <Label class="block text-sm mb-1.5">{{ t('auth.server') }}</Label>
-          <Input v-model="serverUrl" type="text" class="h-9" />
+          <form.Field v-slot="{ field }" name="serverUrl">
+            <Input
+              type="text"
+              class="h-9"
+              :model-value="field.state.value"
+              @update:model-value="(value) => field.handleChange(String(value))"
+              @blur="field.handleBlur"
+            />
+          </form.Field>
         </div>
 
         <div>
           <Label class="block text-sm mb-1.5">{{ t('auth.username') }}</Label>
-          <Input v-model="username" type="text" autocomplete="username" class="h-9" />
+          <form.Field v-slot="{ field }" name="username">
+            <Input
+              type="text"
+              autocomplete="username"
+              class="h-9"
+              :model-value="field.state.value"
+              @update:model-value="(value) => field.handleChange(String(value))"
+              @blur="field.handleBlur"
+            />
+          </form.Field>
         </div>
 
         <div>
           <Label class="block text-sm mb-1.5">{{ t('auth.password') }}</Label>
-          <Input v-model="password" type="password" autocomplete="current-password" class="h-9" />
+          <form.Field v-slot="{ field }" name="password">
+            <Input
+              type="password"
+              autocomplete="current-password"
+              class="h-9"
+              :model-value="field.state.value"
+              @update:model-value="(value) => field.handleChange(String(value))"
+              @blur="field.handleBlur"
+            />
+          </form.Field>
         </div>
 
         <div v-if="tab === 'register'">
           <Label class="block text-sm mb-1.5">{{ t('auth.display_name') }}</Label>
-          <Input v-model="displayName" type="text" :placeholder="t('auth.optional')" class="h-9" />
+          <form.Field v-slot="{ field }" name="displayName">
+            <Input
+              type="text"
+              :placeholder="t('auth.optional')"
+              class="h-9"
+              :model-value="field.state.value"
+              @update:model-value="(value) => field.handleChange(String(value))"
+            />
+          </form.Field>
         </div>
 
         <div v-if="error" class="text-sm text-destructive">
           {{ error }}
         </div>
 
-        <button
-          type="submit"
-          :disabled="loading || !username || !password"
-          class="w-full h-9 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {{ loading ? t('auth.processing') : tab === 'login' ? t('auth.login') : t('auth.register') }}
-        </button>
+        <form.Subscribe v-slot="{ canSubmit, isSubmitting }">
+          <button
+            type="button"
+            :disabled="!canSubmit"
+            class="w-full h-9 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+            @click="form.handleSubmit"
+          >
+            {{ isSubmitting ? t('auth.processing') : tab === 'login' ? t('auth.login') : t('auth.register') }}
+          </button>
+        </form.Subscribe>
       </form>
     </div>
   </div>

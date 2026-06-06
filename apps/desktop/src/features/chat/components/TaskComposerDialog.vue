@@ -2,8 +2,10 @@
 import type { TaskStatus } from '../types/task';
 import { Label } from '@muon/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@muon/ui/select';
-import { computed, ref, watch } from 'vue';
+import { useForm } from '@tanstack/vue-form';
+import { watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { z } from 'zod';
 import GroupMemberPicker from '@/features/contacts/components/GroupMemberPicker.vue';
 
 const props = defineProps<{
@@ -19,21 +21,47 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 
-const title = ref('');
-const assigneeIds = ref<string[]>([]);
-const dueAt = ref('');
-const status = ref<TaskStatus>('todo');
-const selectedAssigneeId = computed(() => assigneeIds.value[0] ?? '');
-
-const canSubmit = computed(() => {
-  return !!title.value.trim() && !!selectedAssigneeId.value && !!dueAt.value && !props.submitting;
+const taskFormSchema = z.object({
+  title: z.string().trim().min(1),
+  assigneeIds: z.array(z.string()).min(1),
+  dueAt: z.string().min(1),
+  status: z.enum(['todo', 'doing', 'done']),
 });
 
+const form = useForm({
+  defaultValues: {
+    title: props.initialTitle?.trim() || '',
+    assigneeIds: [] as string[],
+    dueAt: '',
+    status: 'todo' as TaskStatus,
+  },
+  validators: { onMount: taskFormSchema, onChange: taskFormSchema },
+  onSubmit: ({ value }) => {
+    emitTask(value);
+  },
+});
+
+function emitTask(value: { title: string; assigneeIds: string[]; dueAt: string; status: TaskStatus }) {
+  emit('submit', {
+    title: value.title.trim(),
+    assignee: value.assigneeIds[0] ?? '',
+    dueAt: value.dueAt,
+    status: value.status,
+  });
+}
+
+function handleSubmitClick() {
+  if (props.submitting || !form.state.canSubmit) return;
+  emitTask(form.state.values);
+}
+
 function resetForm() {
-  title.value = props.initialTitle?.trim() || '';
-  assigneeIds.value = [];
-  dueAt.value = '';
-  status.value = 'todo';
+  form.reset({
+    title: props.initialTitle?.trim() || '',
+    assigneeIds: [],
+    dueAt: '',
+    status: 'todo',
+  });
 }
 
 watch(
@@ -44,19 +72,8 @@ watch(
   { immediate: true },
 );
 
-watch(assigneeIds, (ids) => {
-  if (ids.length > 1) assigneeIds.value = [ids[ids.length - 1]!];
-});
-
-function onSubmit() {
-  if (!canSubmit.value) return;
-
-  emit('submit', {
-    title: title.value.trim(),
-    assignee: selectedAssigneeId.value,
-    dueAt: dueAt.value,
-    status: status.value,
-  });
+function selectSingleAssignee(ids: string[]) {
+  form.setFieldValue('assigneeIds', ids.length > 1 ? [ids[ids.length - 1]!] : ids);
 }
 </script>
 
@@ -78,49 +95,68 @@ function onSubmit() {
         <div class="mt-3 space-y-3">
           <Label class="block">
             <span class="mb-1 block text-xs text-muted-foreground">{{ t('chat.task_title') }}</span>
-            <input
-              v-model="title"
-              type="text"
-              class="h-9 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-1 focus:ring-primary/40"
-              data-testid="task-title-input"
-            />
+            <form.Field v-slot="{ field }" name="title">
+              <input
+                :value="field.state.value"
+                type="text"
+                class="h-9 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-1 focus:ring-primary/40"
+                data-testid="task-title-input"
+                @input="(e) => field.handleChange((e.target as HTMLInputElement).value)"
+                @blur="field.handleBlur"
+              />
+            </form.Field>
           </Label>
 
           <div class="block">
             <span class="mb-1 block text-xs text-muted-foreground">{{ t('chat.task_assignee') }}</span>
-            <GroupMemberPicker v-model="assigneeIds" :label="t('chat.task_assignee')" />
+            <form.Field v-slot="{ field }" name="assigneeIds">
+              <GroupMemberPicker
+                :model-value="field.state.value"
+                :label="t('chat.task_assignee')"
+                @update:model-value="selectSingleAssignee"
+              />
+            </form.Field>
           </div>
 
           <Label class="block">
             <span class="mb-1 block text-xs text-muted-foreground">{{ t('chat.task_due_at') }}</span>
-            <input
-              v-model="dueAt"
-              type="datetime-local"
-              class="h-9 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-1 focus:ring-primary/40"
-              data-testid="task-due-at-input"
-            />
+            <form.Field v-slot="{ field }" name="dueAt">
+              <input
+                :value="field.state.value"
+                type="datetime-local"
+                class="h-9 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-1 focus:ring-primary/40"
+                data-testid="task-due-at-input"
+                @input="(e) => field.handleChange((e.target as HTMLInputElement).value)"
+              />
+            </form.Field>
           </Label>
 
           <div class="block">
             <span class="mb-1 block text-xs text-muted-foreground">{{ t('chat.task_status') }}</span>
-            <Select v-model="status" data-testid="task-status-select">
-              <SelectTrigger
-                class="h-9 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-1 focus:ring-primary/40"
+            <form.Field v-slot="{ field }" name="status">
+              <Select
+                :model-value="field.state.value"
+                data-testid="task-status-select"
+                @update:model-value="(value) => field.handleChange(value as TaskStatus)"
               >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todo">
-                  {{ t('chat.task_status_todo') }}
-                </SelectItem>
-                <SelectItem value="doing">
-                  {{ t('chat.task_status_doing') }}
-                </SelectItem>
-                <SelectItem value="done">
-                  {{ t('chat.task_status_done') }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
+                <SelectTrigger
+                  class="h-9 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-1 focus:ring-primary/40"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todo">
+                    {{ t('chat.task_status_todo') }}
+                  </SelectItem>
+                  <SelectItem value="doing">
+                    {{ t('chat.task_status_doing') }}
+                  </SelectItem>
+                  <SelectItem value="done">
+                    {{ t('chat.task_status_done') }}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </form.Field>
           </div>
         </div>
 
@@ -133,14 +169,17 @@ function onSubmit() {
           >
             {{ t('common.cancel') }}
           </button>
-          <button
-            class="rounded-lg bg-primary px-3 py-1.5 text-sm text-primary-foreground disabled:opacity-50"
-            data-testid="task-submit"
-            :disabled="!canSubmit"
-            @click="onSubmit"
-          >
-            {{ t('chat.task_create') }}
-          </button>
+          <form.Subscribe v-slot="{ canSubmit }">
+            <button
+              class="rounded-lg bg-primary px-3 py-1.5 text-sm text-primary-foreground disabled:opacity-50"
+              data-testid="task-submit"
+              type="button"
+              :disabled="!canSubmit || submitting"
+              @click="handleSubmitClick"
+            >
+              {{ t('chat.task_create') }}
+            </button>
+          </form.Subscribe>
         </div>
       </div>
     </div>

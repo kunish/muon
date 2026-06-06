@@ -12,10 +12,12 @@ import { Avatar } from '@muon/ui/avatar';
 import { Input } from '@muon/ui/input';
 import { Label } from '@muon/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@muon/ui/popover';
+import { useForm } from '@tanstack/vue-form';
 import { Camera, Check, LogOut, Pencil, SmilePlus, X } from 'lucide-vue-next';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
+import { z } from 'zod';
 import { signOut } from '@/auth/lifecycle';
 import { open } from '@/desktop/dialog';
 import { readFile } from '@/desktop/fs';
@@ -28,7 +30,6 @@ const displayName = ref(getMyDisplayName());
 const mxcAvatar = ref(getMyAvatarUrl());
 const avatarUrl = useAuthMedia(mxcAvatar, 96, 96);
 const editingName = ref(false);
-const nameInput = ref('');
 const saving = ref(false);
 const currentStatus = ref(getMyStatus());
 const showStatusPicker = ref(false);
@@ -36,6 +37,30 @@ const userId = getMyUserId();
 const homeserver = getMyHomeserver();
 const confirmingLogout = ref(false);
 const loggingOut = ref(false);
+
+const nameFormSchema = z.object({
+  displayName: z.string().trim().min(1),
+});
+
+const nameForm = useForm({
+  defaultValues: { displayName: '' },
+  validators: { onMount: nameFormSchema, onChange: nameFormSchema },
+  onSubmit: async ({ value }) => {
+    const name = value.displayName.trim();
+    if (!name || name === displayName.value) {
+      editingName.value = false;
+      return;
+    }
+    saving.value = true;
+    try {
+      await setMyDisplayName(name);
+      displayName.value = name;
+    } finally {
+      saving.value = false;
+      editingName.value = false;
+    }
+  },
+});
 
 async function handleLogout() {
   // 二次确认，避免误触退出登录
@@ -58,24 +83,8 @@ function onStatusUpdated(status: string) {
 }
 
 function startEditName() {
-  nameInput.value = displayName.value;
+  nameForm.reset({ displayName: displayName.value });
   editingName.value = true;
-}
-
-async function saveName() {
-  const name = nameInput.value.trim();
-  if (!name || name === displayName.value) {
-    editingName.value = false;
-    return;
-  }
-  saving.value = true;
-  try {
-    await setMyDisplayName(name);
-    displayName.value = name;
-  } finally {
-    saving.value = false;
-    editingName.value = false;
-  }
 }
 
 async function changeAvatar() {
@@ -152,10 +161,26 @@ async function changeAvatar() {
         </button>
       </div>
       <div v-else class="flex items-center gap-2">
-        <Input v-model="nameInput" class="flex-1" @keydown.enter="saveName" @keydown.escape="editingName = false" />
-        <button class="p-1 rounded hover:bg-accent text-primary" :disabled="saving" @click="saveName">
-          <Check :size="14" />
-        </button>
+        <nameForm.Field v-slot="{ field }" name="displayName">
+          <Input
+            class="flex-1"
+            :model-value="field.state.value"
+            @update:model-value="(value) => field.handleChange(String(value))"
+            @blur="field.handleBlur"
+            @keydown.enter="nameForm.handleSubmit"
+            @keydown.escape="editingName = false"
+          />
+        </nameForm.Field>
+        <nameForm.Subscribe v-slot="{ canSubmit }">
+          <button
+            type="button"
+            class="p-1 rounded hover:bg-accent text-primary"
+            :disabled="saving || !canSubmit"
+            @click="nameForm.handleSubmit"
+          >
+            <Check :size="14" />
+          </button>
+        </nameForm.Subscribe>
         <button class="p-1 rounded hover:bg-accent" @click="editingName = false">
           <X :size="14" />
         </button>
