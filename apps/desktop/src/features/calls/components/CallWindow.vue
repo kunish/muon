@@ -1,16 +1,34 @@
 <script setup lang="ts">
 import type { LocalVideoTrack, RemoteVideoTrack } from 'livekit-client';
+import { useSelector } from '@tanstack/vue-store';
 import { Circle, Disc, Mic, MicOff, MonitorOff, MonitorUp, PhoneOff, Users, Video, VideoOff } from 'lucide-vue-next';
 import { computed, onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { callParticipants, localVideoTrack, remoteVideos } from '../lib/callMedia';
-import { useCallStore } from '../stores/callStore';
+import {
+  callStore,
+  hangup,
+  selectIsActive,
+  toggleCamera,
+  toggleMute,
+  toggleRecording,
+  toggleScreenShare,
+} from '../stores/callStore';
 import CallVideoTile from './CallVideoTile.vue';
 
-const call = useCallStore();
 const { t } = useI18n();
 
-const isVideoActive = computed(() => call.isActive && call.mode === 'video');
+const isActive = useSelector(callStore, selectIsActive);
+const status = useSelector(callStore, (s) => s.status);
+const mode = useSelector(callStore, (s) => s.mode);
+const peerName = useSelector(callStore, (s) => s.peerName);
+const startedAt = useSelector(callStore, (s) => s.startedAt);
+const isMuted = useSelector(callStore, (s) => s.isMuted);
+const isCameraOff = useSelector(callStore, (s) => s.isCameraOff);
+const isScreenSharing = useSelector(callStore, (s) => s.isScreenSharing);
+const isRecording = useSelector(callStore, (s) => s.isRecording);
+
+const isVideoActive = computed(() => isActive.value && mode.value === 'video');
 const hasRemote = computed(() => remoteVideos.value.length > 0);
 const showRoster = ref(false);
 const participants = computed(() => callParticipants.value);
@@ -33,12 +51,12 @@ const tiles = computed<CallTile[]>(() => {
     key: feed.id,
     track: feed.track,
     label:
-      remoteVideos.value.length === 1 ? call.peerName || identityLabel(feed.identity) : identityLabel(feed.identity),
+      remoteVideos.value.length === 1 ? peerName.value || identityLabel(feed.identity) : identityLabel(feed.identity),
     muted: false,
   }));
   remote.push({
     key: 'local',
-    track: call.isCameraOff ? null : localVideoTrack.value,
+    track: isCameraOff.value ? null : localVideoTrack.value,
     label: t('calls.you_label'),
     muted: true,
     placeholder: t('calls.camera_disabled'),
@@ -64,21 +82,18 @@ function stopTimer() {
   }
 }
 
-watch(
-  () => call.status,
-  (status) => {
-    if (status === 'connected') {
-      elapsed.value = 0;
-      stopTimer();
-      timer = setInterval(() => {
-        elapsed.value = call.startedAt ? Math.floor((Date.now() - call.startedAt) / 1000) : 0;
-      }, 1000);
-    } else {
-      stopTimer();
-      elapsed.value = 0;
-    }
-  },
-);
+watch(status, (value) => {
+  if (value === 'connected') {
+    elapsed.value = 0;
+    stopTimer();
+    timer = setInterval(() => {
+      elapsed.value = startedAt.value ? Math.floor((Date.now() - startedAt.value) / 1000) : 0;
+    }, 1000);
+  } else {
+    stopTimer();
+    elapsed.value = 0;
+  }
+});
 
 onUnmounted(stopTimer);
 
@@ -91,7 +106,7 @@ const duration = computed(() => {
 });
 
 const statusLabel = computed(() => {
-  switch (call.status) {
+  switch (status.value) {
     case 'outgoing':
       return t('calls.outgoing_call');
     case 'connecting':
@@ -116,7 +131,7 @@ const statusLabel = computed(() => {
         <div
           class="absolute left-0 right-0 top-0 z-10 flex items-center gap-2 bg-gradient-to-b from-black/60 to-transparent p-4"
         >
-          <span class="text-sm font-medium">{{ call.peerName }}</span>
+          <span class="text-sm font-medium">{{ peerName }}</span>
           <span class="text-xs tabular-nums text-neutral-300" data-testid="call-window-status">{{ statusLabel }}</span>
         </div>
 
@@ -170,37 +185,37 @@ const statusLabel = computed(() => {
       <div class="flex items-center justify-center gap-4 bg-black/40 py-4">
         <button
           class="flex size-12 items-center justify-center rounded-full bg-white/10 transition-colors hover:bg-white/20"
-          :title="call.isMuted ? t('calls.unmute') : t('calls.mute')"
+          :title="isMuted ? t('calls.unmute') : t('calls.mute')"
           data-testid="call-window-mute"
-          @click="call.toggleMute()"
+          @click="toggleMute()"
         >
-          <component :is="call.isMuted ? MicOff : Mic" :size="20" />
+          <component :is="isMuted ? MicOff : Mic" :size="20" />
         </button>
         <button
           class="flex size-12 items-center justify-center rounded-full bg-white/10 transition-colors hover:bg-white/20"
-          :title="call.isCameraOff ? t('calls.turn_on_camera') : t('calls.turn_off_camera')"
+          :title="isCameraOff ? t('calls.turn_on_camera') : t('calls.turn_off_camera')"
           data-testid="call-window-camera"
-          @click="call.toggleCamera()"
+          @click="toggleCamera()"
         >
-          <component :is="call.isCameraOff ? VideoOff : Video" :size="20" />
+          <component :is="isCameraOff ? VideoOff : Video" :size="20" />
         </button>
         <button
           class="flex size-12 items-center justify-center rounded-full transition-colors"
-          :class="call.isScreenSharing ? 'bg-primary hover:bg-primary/90' : 'bg-white/10 hover:bg-white/20'"
-          :title="call.isScreenSharing ? t('calls.stop_share') : t('calls.share_screen')"
+          :class="isScreenSharing ? 'bg-primary hover:bg-primary/90' : 'bg-white/10 hover:bg-white/20'"
+          :title="isScreenSharing ? t('calls.stop_share') : t('calls.share_screen')"
           data-testid="call-window-screen"
-          @click="call.toggleScreenShare()"
+          @click="toggleScreenShare()"
         >
-          <component :is="call.isScreenSharing ? MonitorOff : MonitorUp" :size="20" />
+          <component :is="isScreenSharing ? MonitorOff : MonitorUp" :size="20" />
         </button>
         <button
           class="flex size-12 items-center justify-center rounded-full transition-colors"
-          :class="call.isRecording ? 'bg-destructive hover:opacity-90' : 'bg-white/10 hover:bg-white/20'"
-          :title="call.isRecording ? t('calls.stop_recording') : t('calls.start_recording')"
+          :class="isRecording ? 'bg-destructive hover:opacity-90' : 'bg-white/10 hover:bg-white/20'"
+          :title="isRecording ? t('calls.stop_recording') : t('calls.start_recording')"
           data-testid="call-window-record"
-          @click="call.toggleRecording()"
+          @click="toggleRecording()"
         >
-          <component :is="call.isRecording ? Disc : Circle" :size="20" />
+          <component :is="isRecording ? Disc : Circle" :size="20" />
         </button>
         <button
           class="flex size-12 items-center justify-center rounded-full transition-colors"
@@ -215,7 +230,7 @@ const statusLabel = computed(() => {
           class="flex size-12 items-center justify-center rounded-full bg-destructive transition-opacity hover:opacity-90"
           :title="t('calls.end_call')"
           data-testid="call-window-hangup"
-          @click="call.hangup()"
+          @click="hangup()"
         >
           <PhoneOff :size="20" />
         </button>

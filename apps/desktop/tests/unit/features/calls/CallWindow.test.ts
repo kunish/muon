@@ -1,9 +1,8 @@
 import { mount } from '@vue/test-utils'
-import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import CallVideoTile from '@/features/calls/components/CallVideoTile.vue'
 import CallWindow from '@/features/calls/components/CallWindow.vue'
-import { useCallStore } from '@/features/calls/stores/callStore'
+import { callStore, resetCallStore } from '@/features/calls/stores/callStore'
 
 const media = vi.hoisted(() => ({
   localVideoTrack: { value: null as unknown },
@@ -24,6 +23,23 @@ vi.mock('@/features/calls/lib/callMedia', () => ({
   stopCallRecording: vi.fn().mockResolvedValue(undefined),
 }))
 
+const callActions = vi.hoisted(() => ({
+  toggleMute: vi.fn().mockResolvedValue(undefined),
+  toggleCamera: vi.fn().mockResolvedValue(undefined),
+  toggleScreenShare: vi.fn().mockResolvedValue(undefined),
+  toggleRecording: vi.fn().mockResolvedValue(undefined),
+  hangup: vi.fn().mockResolvedValue(undefined),
+}))
+
+vi.mock('@/features/calls/stores/callStore', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/features/calls/stores/callStore')>()),
+  toggleMute: callActions.toggleMute,
+  toggleCamera: callActions.toggleCamera,
+  toggleScreenShare: callActions.toggleScreenShare,
+  toggleRecording: callActions.toggleRecording,
+  hangup: callActions.hangup,
+}))
+
 function fakeFeed(id: string) {
   return { id, identity: `@${id}:localhost`, track: { attach: vi.fn(), detach: vi.fn() } }
 }
@@ -34,26 +50,22 @@ function mountWindow() {
 
 describe('call window', () => {
   beforeEach(() => {
-    setActivePinia(createPinia())
+    resetCallStore()
+    vi.clearAllMocks()
     media.localVideoTrack.value = null
     media.remoteVideos.value = []
     media.callParticipants.value = []
   })
 
   it('stays hidden for an audio call', () => {
-    const store = useCallStore()
-    store.status = 'connected'
-    store.mode = 'audio'
+    callStore.setState((s) => ({ ...s, status: 'connected', mode: 'audio' }))
 
     const wrapper = mountWindow()
     expect(wrapper.find('[data-testid="call-window"]').exists()).toBe(false)
   })
 
   it('renders the video stage and waiting state for a video call', () => {
-    const store = useCallStore()
-    store.status = 'connected'
-    store.mode = 'video'
-    store.peerName = 'Bob'
+    callStore.setState((s) => ({ ...s, status: 'connected', mode: 'video', peerName: 'Bob' }))
 
     const wrapper = mountWindow()
     const window = wrapper.find('[data-testid="call-window"]')
@@ -64,9 +76,7 @@ describe('call window', () => {
 
   it('renders one tile per remote participant plus the local preview', () => {
     media.remoteVideos.value = [fakeFeed('alice'), fakeFeed('bob')]
-    const store = useCallStore()
-    store.status = 'connected'
-    store.mode = 'video'
+    callStore.setState((s) => ({ ...s, status: 'connected', mode: 'video' }))
 
     const wrapper = mountWindow()
     // 2 remote participants + 1 local tile = 3 tiles
@@ -78,14 +88,7 @@ describe('call window', () => {
   })
 
   it('routes mute, camera and hangup controls to the store', async () => {
-    const store = useCallStore()
-    store.status = 'connected'
-    store.mode = 'video'
-    const mute = vi.spyOn(store, 'toggleMute').mockResolvedValue()
-    const camera = vi.spyOn(store, 'toggleCamera').mockResolvedValue()
-    const screen = vi.spyOn(store, 'toggleScreenShare').mockResolvedValue()
-    const record = vi.spyOn(store, 'toggleRecording').mockResolvedValue()
-    const hangup = vi.spyOn(store, 'hangup').mockResolvedValue()
+    callStore.setState((s) => ({ ...s, status: 'connected', mode: 'video' }))
 
     const wrapper = mountWindow()
     await wrapper.find('[data-testid="call-window-mute"]').trigger('click')
@@ -94,10 +97,10 @@ describe('call window', () => {
     await wrapper.find('[data-testid="call-window-record"]').trigger('click')
     await wrapper.find('[data-testid="call-window-hangup"]').trigger('click')
 
-    expect(mute).toHaveBeenCalledOnce()
-    expect(camera).toHaveBeenCalledOnce()
-    expect(screen).toHaveBeenCalledOnce()
-    expect(record).toHaveBeenCalledOnce()
-    expect(hangup).toHaveBeenCalledOnce()
+    expect(callActions.toggleMute).toHaveBeenCalledOnce()
+    expect(callActions.toggleCamera).toHaveBeenCalledOnce()
+    expect(callActions.toggleScreenShare).toHaveBeenCalledOnce()
+    expect(callActions.toggleRecording).toHaveBeenCalledOnce()
+    expect(callActions.hangup).toHaveBeenCalledOnce()
   })
 })

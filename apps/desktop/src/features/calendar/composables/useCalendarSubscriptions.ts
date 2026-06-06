@@ -2,7 +2,7 @@ import { useStorage } from '@vueuse/core'
 import { ref } from 'vue'
 import { fetch as desktopFetch } from '@/desktop/http'
 import { parseIcs } from '../lib/ics'
-import { useCalendarStore } from '../stores/calendarStore'
+import { replaceSubscriptionEvents } from '../stores/calendarStore'
 
 const SUBSCRIPTIONS_STORAGE_KEY = 'muon_calendar_subscriptions'
 
@@ -19,7 +19,6 @@ function subscriptionId(url: string): string {
 }
 
 export function useCalendarSubscriptions() {
-  const calendar = useCalendarStore()
   const subscriptions = useStorage<CalendarSubscription[]>(SUBSCRIPTIONS_STORAGE_KEY, [])
   const syncing = ref(false)
 
@@ -33,7 +32,7 @@ export function useCalendarSubscriptions() {
 
   function removeSubscription(id: string): void {
     subscriptions.value = subscriptions.value.filter((sub) => sub.id !== id)
-    calendar.replaceSubscriptionEvents(id, [])
+    replaceSubscriptionEvents(id, [])
   }
 
   /** 拉取单个 iCal 订阅并把事件合并进日历（幂等） */
@@ -41,7 +40,7 @@ export function useCalendarSubscriptions() {
     const response = await desktopFetch(sub.url)
     if (!response.ok) throw new Error(`calendar subscription fetch failed: ${response.status}`)
     const parsed = parseIcs(await response.text())
-    calendar.replaceSubscriptionEvents(sub.id, parsed)
+    replaceSubscriptionEvents(sub.id, parsed)
     return parsed.length
   }
 

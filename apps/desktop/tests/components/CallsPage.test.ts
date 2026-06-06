@@ -1,11 +1,11 @@
 import { flushPromises, mount } from '@vue/test-utils'
-import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h } from 'vue'
 import CallsPage from '@/features/calls/components/CallsPage.vue'
-import { useCallStore } from '@/features/calls/stores/callStore'
+import { callStore, resetCallStore } from '@/features/calls/stores/callStore'
 
 const findOrCreateDm = vi.hoisted(() => vi.fn().mockResolvedValue('!dm:localhost'))
+const callActions = vi.hoisted(() => ({ startCall: vi.fn().mockResolvedValue(undefined) }))
 
 vi.mock('@/features/calls/lib/callMedia', () => ({
   connectCallRoom: vi.fn().mockResolvedValue(undefined),
@@ -15,6 +15,11 @@ vi.mock('@/features/calls/lib/callMedia', () => ({
   setCallScreenShareEnabled: vi.fn().mockResolvedValue(undefined),
   localVideoTrack: { value: null },
   remoteVideos: { value: [] },
+}))
+
+vi.mock('@/features/calls/stores/callStore', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/features/calls/stores/callStore')>()),
+  startCall: callActions.startCall,
 }))
 
 vi.mock('@matrix/index', async (importOriginal) => ({
@@ -42,8 +47,9 @@ function mountCalls() {
 
 describe('calls page', () => {
   beforeEach(() => {
-    setActivePinia(createPinia())
     localStorage.clear()
+    resetCallStore()
+    vi.clearAllMocks()
     findOrCreateDm.mockClear()
   })
 
@@ -55,29 +61,31 @@ describe('calls page', () => {
   })
 
   it('renders real call history entries from the store', () => {
-    const store = useCallStore()
-    store.callHistory = [
-      {
-        id: 'c1',
-        peerId: '@alice:localhost',
-        peerName: 'Alice',
-        mode: 'video',
-        direction: 'outgoing',
-        outcome: 'completed',
-        durationSec: 90,
-        endedAt: 1700000000000,
-      },
-      {
-        id: 'c2',
-        peerId: '@bob:localhost',
-        peerName: 'Bob',
-        mode: 'audio',
-        direction: 'incoming',
-        outcome: 'missed',
-        durationSec: 0,
-        endedAt: 1700000100000,
-      },
-    ]
+    callStore.setState((s) => ({
+      ...s,
+      callHistory: [
+        {
+          id: 'c1',
+          peerId: '@alice:localhost',
+          peerName: 'Alice',
+          mode: 'video',
+          direction: 'outgoing',
+          outcome: 'completed',
+          durationSec: 90,
+          endedAt: 1700000000000,
+        },
+        {
+          id: 'c2',
+          peerId: '@bob:localhost',
+          peerName: 'Bob',
+          mode: 'audio',
+          direction: 'incoming',
+          outcome: 'missed',
+          durationSec: 0,
+          endedAt: 1700000100000,
+        },
+      ],
+    }))
 
     const wrapper = mountCalls()
     expect(wrapper.get('[data-testid="calls-stat-total"]').text()).toBe('2')
@@ -91,9 +99,6 @@ describe('calls page', () => {
   })
 
   it('starts a real call with the picked contact', async () => {
-    const store = useCallStore()
-    const startCall = vi.spyOn(store, 'startCall').mockResolvedValue()
-
     const wrapper = mountCalls()
     await wrapper.get('[data-testid="calls-start"]').trigger('click')
     await wrapper.get('[data-testid="pick-alice"]').trigger('click')
@@ -101,6 +106,6 @@ describe('calls page', () => {
     await flushPromises()
 
     expect(findOrCreateDm).toHaveBeenCalledWith('@alice:localhost')
-    expect(startCall).toHaveBeenCalledWith('!dm:localhost', '@alice:localhost', expect.any(String), 'video')
+    expect(callActions.startCall).toHaveBeenCalledWith('!dm:localhost', '@alice:localhost', expect.any(String), 'video')
   })
 })

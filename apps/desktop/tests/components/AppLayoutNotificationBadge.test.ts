@@ -51,6 +51,8 @@ vi.mock('@matrix/client', () => ({
 
 vi.mock('@matrix/index', () => ({
   getMyDisplayName: myDisplayName,
+  // callStore (loaded transitively) registers a call.signal listener at module load.
+  matrixEvents: { on: vi.fn(), off: vi.fn() },
 }))
 
 vi.mock('vue-router', async (importOriginal) => ({

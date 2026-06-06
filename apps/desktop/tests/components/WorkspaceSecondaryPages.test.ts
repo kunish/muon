@@ -2,7 +2,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import ApprovalsPage from '@/features/approvals/components/ApprovalsPage.vue'
 import CalendarPage from '@/features/calendar/components/CalendarPage.vue'
-import { useCalendarStore } from '@/features/calendar/stores/calendarStore'
+import { addEvent as addCalendarEvent, resetCalendarStore } from '@/features/calendar/stores/calendarStore'
 import CallsPage from '@/features/calls/components/CallsPage.vue'
 import DocsPage from '@/features/docs/components/DocsPage.vue'
 import EmailPage from '@/features/email/components/EmailPage.vue'
@@ -118,6 +118,8 @@ describe('workspace secondary pages', () => {
     localStorage.removeItem('muon_calendar_subscriptions')
     localStorage.removeItem('muon.workplace.customization.v1')
     localStorage.removeItem('muon.contacts.profiles.v1')
+    localStorage.removeItem('muon.calendar.events.v1')
+    resetCalendarStore()
     resetWorkplaceStore()
     mockRouteParams.mockReset()
     mockRouteParams.mockReturnValue({})
@@ -578,7 +580,8 @@ describe('workspace secondary pages', () => {
     const today = new Date()
     const todayDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
     localStorage.removeItem('muon.calendar.events.v1')
-    useCalendarStore().addEvent({
+    resetCalendarStore()
+    addCalendarEvent({
       id: 'sec-seed',
       title: '产品周会',
       date: todayDate,

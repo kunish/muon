@@ -1,9 +1,8 @@
 import { mount } from '@vue/test-utils'
-import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { nextTick } from 'vue'
 import CalendarPage from '@/features/calendar/components/CalendarPage.vue'
-import { useCalendarStore } from '@/features/calendar/stores/calendarStore'
+import { addEvent, calendarStore, resetCalendarStore } from '@/features/calendar/stores/calendarStore'
 
 function todayStr(): string {
   const now = new Date()
@@ -11,7 +10,7 @@ function todayStr(): string {
 }
 
 function seedTodayEvent() {
-  useCalendarStore().addEvent({
+  addEvent({
     id: 'seed-1',
     title: '产品周会',
     date: todayStr(),
@@ -23,8 +22,8 @@ function seedTodayEvent() {
 
 describe('calendar reschedule popover', () => {
   beforeEach(() => {
-    setActivePinia(createPinia())
     localStorage.clear()
+    resetCalendarStore()
     seedTodayEvent()
   })
 
@@ -78,9 +77,8 @@ describe('calendar reschedule popover', () => {
     await wrapper.find('[data-testid="reschedule-confirm"]').trigger('click')
     await nextTick()
 
-    setActivePinia(createPinia())
-    const reloaded = useCalendarStore()
-    expect(reloaded.events[0]).toMatchObject({ date: '2026-06-01', time: '10:00', endTime: '11:00' })
+    resetCalendarStore()
+    expect(calendarStore.state.events[0]).toMatchObject({ date: '2026-06-01', time: '10:00', endTime: '11:00' })
   })
 
   it('disables confirm when end time is not after start time', async () => {

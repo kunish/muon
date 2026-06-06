@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { CalendarEvent, EventRecurrence, RecurrenceFreq } from '../types/event';
+import { useSelector } from '@tanstack/vue-store';
 import {
   CalendarDays,
   ChevronLeft,
@@ -25,12 +26,18 @@ import { useContactList } from '@/shared/composables/useContactList';
 import { triggerBlobDownload } from '@/shared/lib/download';
 import { useCalendarSubscriptions } from '../composables/useCalendarSubscriptions';
 import { eventsToIcs, parseIcs } from '../lib/ics';
-import { useCalendarStore } from '../stores/calendarStore';
+import {
+  addEvent as addCalendarEvent,
+  calendarStore,
+  reschedule as rescheduleCalendarEvent,
+  selectEvents,
+  setRsvp as setCalendarRsvp,
+} from '../stores/calendarStore';
 import { expandRecurringEvents } from '../types/event';
 
 const { t } = useI18n();
 const contactList = useContactList();
-const calendarStore = useCalendarStore();
+const calendarEvents = useSelector(calendarStore, selectEvents);
 const subscriptions = useCalendarSubscriptions();
 
 const icsInput = ref<HTMLInputElement | null>(null);
@@ -50,7 +57,7 @@ async function syncCalendarSubscriptions(): Promise<void> {
 }
 
 function exportIcs(): void {
-  const ics = eventsToIcs(calendarStore.events, Date.now());
+  const ics = eventsToIcs(calendarStore.state.events, Date.now());
   triggerBlobDownload(new Blob([ics], { type: 'text/calendar' }), 'muon-calendar.ics');
 }
 
@@ -64,7 +71,7 @@ async function onIcsSelected(event: Event): Promise<void> {
   if (!file) return;
   try {
     const parsed = parseIcs(await file.text());
-    for (const item of parsed) calendarStore.addEvent(item);
+    for (const item of parsed) addCalendarEvent(item);
     toast.success(t('calendar.import_done', { count: parsed.length }));
   } catch {
     toast.error(t('calendar.import_failed'));
@@ -287,7 +294,7 @@ function fmtDate(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-const allEvents = computed(() => [...calendarStore.events, ...projectTaskEvents.value]);
+const allEvents = computed(() => [...calendarEvents.value, ...projectTaskEvents.value]);
 
 // 把重复日程展开为可见范围（月视图 42 格覆盖周/日视图常见导航）内的具体实例
 const expandedEvents = computed(() => {
@@ -423,7 +430,7 @@ function saveNewEvent() {
     eventDraft.value.recurrence === 'none' ? undefined : { freq: eventDraft.value.recurrence };
 
   const title = eventDraft.value.title;
-  calendarStore.addEvent({
+  addCalendarEvent({
     title,
     date: eventDraft.value.date,
     time: eventDraft.value.time,
@@ -469,7 +476,7 @@ function checkReminders(): void {
 
 // ── RSVP actions ──
 function acceptEvent(event: CalendarEvent) {
-  calendarStore.setRsvp(event.id, '已接受');
+  setCalendarRsvp(event.id, '已接受');
   toast.success(t('calendar.notice_accepted', { title: event.title }));
 }
 
@@ -499,7 +506,7 @@ function rescheduleConfirmDisabled(): boolean {
 function rescheduleEvent(event: CalendarEvent) {
   if (rescheduleConfirmDisabled()) return;
   const { date, time, endTime } = rescheduleDraft.value;
-  calendarStore.reschedule(event.id, { date, time, endTime });
+  rescheduleCalendarEvent(event.id, { date, time, endTime });
   const parts = date.split('-').map(Number);
   if (parts.length === 3 && parts.every((n) => Number.isFinite(n))) {
     selectedDate.value = new Date(parts[0], parts[1] - 1, parts[2]);

@@ -26,7 +26,7 @@ import {
 } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useCallStore } from '@/features/calls/stores/callStore';
+import { callStore, selectIsActive, startCall } from '@/features/calls/stores/callStore';
 import { useCurrentRoom } from '../composables/useCurrentRoom';
 import { chatStore, toggleSidePanel } from '../stores/chatStore';
 import DisappearingMessageSettings from './DisappearingMessageSettings.vue';
@@ -50,7 +50,7 @@ const { room, currentRoomId } = useCurrentRoom();
 const activeSidePanel = useSelector(chatStore, (s) => s.activeSidePanel);
 const activeThreadId = useSelector(chatStore, (s) => s.activeThreadId);
 const sidebarPromotionPreviews = useSelector(chatStore, (s) => s.sidebarPromotionPreviews);
-const callStore = useCallStore();
+const isCallActive = useSelector(callStore, selectIsActive);
 const { t } = useI18n();
 const showDisappearing = ref(false);
 const showMore = ref(false);
@@ -137,15 +137,15 @@ function openExtendedTab(panel: SidePanelType) {
 }
 
 function startRoomCall(mode: CallMode) {
-  if (!currentRoomId.value || callStore.isActive) return;
+  if (!currentRoomId.value || isCallActive.value) return;
   if (isDirect.value) {
     const peer = getDirectRoomPeer(currentRoomId.value);
     if (!peer) return;
-    void callStore.startCall(currentRoomId.value, peer.userId, peer.displayName, mode);
+    void startCall(currentRoomId.value, peer.userId, peer.displayName, mode);
     return;
   }
   // 群聊：面向整个房间发起，对端以房间名展示（信令广播给全员）
-  void callStore.startCall(currentRoomId.value, currentRoomId.value, roomName.value, mode);
+  void startCall(currentRoomId.value, currentRoomId.value, roomName.value, mode);
 }
 </script>
 
@@ -171,7 +171,7 @@ function startRoomCall(mode: CallMode) {
           class="flex cursor-pointer items-center justify-center rounded-md p-1.5 text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
           :title="t('calls.audio_call_label')"
           data-testid="chat-header-call-audio"
-          :disabled="callStore.isActive"
+          :disabled="isCallActive"
           @click="startRoomCall('audio')"
         >
           <Phone :size="18" />
@@ -181,7 +181,7 @@ function startRoomCall(mode: CallMode) {
           class="flex cursor-pointer items-center justify-center rounded-md p-1.5 text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
           :title="t('calls.video_call_label')"
           data-testid="chat-header-call-video"
-          :disabled="callStore.isActive"
+          :disabled="isCallActive"
           @click="startRoomCall('video')"
         >
           <Video :size="18" />

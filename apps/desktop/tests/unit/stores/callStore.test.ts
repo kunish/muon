@@ -1,5 +1,18 @@
-import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+import {
+  acceptCall,
+  callStore,
+  declineCall,
+  handleSignal,
+  hangup,
+  resetCallStore,
+  startCall,
+  toggleCamera,
+  toggleMute,
+  toggleRecording,
+  toggleScreenShare,
+} from '@/features/calls/stores/callStore'
 
 const media = vi.hoisted(() => ({
   connectCallRoom: vi.fn().mockResolvedValue(undefined),
@@ -43,221 +56,200 @@ vi.mock('@matrix/index', () => ({
   CALL_HANGUP_EVENT: 'im.muon.call.hangup',
 }))
 
-async function importStore() {
-  return (await import('@/features/calls/stores/callStore')).useCallStore()
-}
-
 function invite(content: Record<string, unknown>, senderId = '@alice:localhost') {
   return { roomId: '!dm:localhost', senderId, type: 'im.muon.call.invite', content }
 }
 
 describe('callStore', () => {
   beforeEach(() => {
-    setActivePinia(createPinia())
+    localStorage.clear()
+    resetCallStore()
     vi.clearAllMocks()
   })
 
   it('startCall goes outgoing, joins the room and sends an invite', async () => {
-    const store = await importStore()
-    await store.startCall('!dm:localhost', '@alice:localhost', 'Alice')
+    await startCall('!dm:localhost', '@alice:localhost', 'Alice')
 
-    expect(store.status).toBe('outgoing')
-    expect(store.callId).toBeTruthy()
-    expect(store.mode).toBe('audio')
-    expect(media.connectCallRoom).toHaveBeenCalledWith(store.callId, 'audio')
+    expect(callStore.state.status).toBe('outgoing')
+    expect(callStore.state.callId).toBeTruthy()
+    expect(callStore.state.mode).toBe('audio')
+    expect(media.connectCallRoom).toHaveBeenCalledWith(callStore.state.callId, 'audio')
     expect(signaling.sendCallInvite).toHaveBeenCalledWith('!dm:localhost', {
-      callId: store.callId,
-      livekitRoom: store.callId,
+      callId: callStore.state.callId,
+      livekitRoom: callStore.state.callId,
       mode: 'audio',
     })
   })
 
   it('startCall in video mode publishes the camera and advertises the mode', async () => {
-    const store = await importStore()
-    await store.startCall('!dm:localhost', '@alice:localhost', 'Alice', 'video')
+    await startCall('!dm:localhost', '@alice:localhost', 'Alice', 'video')
 
-    expect(store.mode).toBe('video')
-    expect(media.connectCallRoom).toHaveBeenCalledWith(store.callId, 'video')
+    expect(callStore.state.mode).toBe('video')
+    expect(media.connectCallRoom).toHaveBeenCalledWith(callStore.state.callId, 'video')
     expect(signaling.sendCallInvite).toHaveBeenCalledWith('!dm:localhost', {
-      callId: store.callId,
-      livekitRoom: store.callId,
+      callId: callStore.state.callId,
+      livekitRoom: callStore.state.callId,
       mode: 'video',
     })
   })
 
   it('connects when the callee answers the outgoing call', async () => {
-    const store = await importStore()
-    await store.startCall('!dm:localhost', '@alice:localhost', 'Alice')
-    store.handleSignal({
+    await startCall('!dm:localhost', '@alice:localhost', 'Alice')
+    handleSignal({
       roomId: '!dm:localhost',
       senderId: '@alice:localhost',
       type: 'im.muon.call.answer',
-      content: { callId: store.callId },
+      content: { callId: callStore.state.callId },
     })
 
-    expect(store.status).toBe('connected')
-    expect(store.startedAt).toBeTruthy()
+    expect(callStore.state.status).toBe('connected')
+    expect(callStore.state.startedAt).toBeTruthy()
   })
 
   it('an incoming invite moves to incoming with the resolved peer name', async () => {
-    const store = await importStore()
-    store.handleSignal(invite({ callId: 'c1', livekitRoom: 'c1', mode: 'audio' }))
+    handleSignal(invite({ callId: 'c1', livekitRoom: 'c1', mode: 'audio' }))
 
-    expect(store.status).toBe('incoming')
-    expect(store.callId).toBe('c1')
-    expect(store.peerName).toBe('Alice')
+    expect(callStore.state.status).toBe('incoming')
+    expect(callStore.state.callId).toBe('c1')
+    expect(callStore.state.peerName).toBe('Alice')
   })
 
   it('acceptCall joins the room and answers', async () => {
-    const store = await importStore()
-    store.handleSignal(invite({ callId: 'c1', livekitRoom: 'c1', mode: 'audio' }))
-    await store.acceptCall()
+    handleSignal(invite({ callId: 'c1', livekitRoom: 'c1', mode: 'audio' }))
+    await acceptCall()
 
     expect(media.connectCallRoom).toHaveBeenCalledWith('c1', 'audio')
     expect(signaling.sendCallAnswer).toHaveBeenCalledWith('!dm:localhost', 'c1')
-    expect(store.status).toBe('connected')
+    expect(callStore.state.status).toBe('connected')
   })
 
   it('acceptCall joins a video invite with the camera enabled', async () => {
-    const store = await importStore()
-    store.handleSignal(invite({ callId: 'c1', livekitRoom: 'c1', mode: 'video' }))
-    await store.acceptCall()
+    handleSignal(invite({ callId: 'c1', livekitRoom: 'c1', mode: 'video' }))
+    await acceptCall()
 
-    expect(store.mode).toBe('video')
+    expect(callStore.state.mode).toBe('video')
     expect(media.connectCallRoom).toHaveBeenCalledWith('c1', 'video')
   })
 
   it('declineCall hangs up and returns to idle', async () => {
-    const store = await importStore()
-    store.handleSignal(invite({ callId: 'c1', livekitRoom: 'c1', mode: 'audio' }))
-    store.declineCall()
+    handleSignal(invite({ callId: 'c1', livekitRoom: 'c1', mode: 'audio' }))
+    declineCall()
 
     expect(signaling.sendCallHangup).toHaveBeenCalledWith('!dm:localhost', 'c1', 'declined')
-    expect(store.status).toBe('idle')
+    expect(callStore.state.status).toBe('idle')
   })
 
   it('auto-declines a second invite while busy', async () => {
-    const store = await importStore()
-    store.handleSignal(invite({ callId: 'c1', livekitRoom: 'c1', mode: 'audio' }))
-    store.handleSignal(invite({ callId: 'c2', livekitRoom: 'c2', mode: 'audio' }, '@bob:localhost'))
+    handleSignal(invite({ callId: 'c1', livekitRoom: 'c1', mode: 'audio' }))
+    handleSignal(invite({ callId: 'c2', livekitRoom: 'c2', mode: 'audio' }, '@bob:localhost'))
 
     expect(signaling.sendCallHangup).toHaveBeenCalledWith('!dm:localhost', 'c2', 'busy')
-    expect(store.callId).toBe('c1') // still on the first call
+    expect(callStore.state.callId).toBe('c1') // still on the first call
   })
 
   it('hangup tears down media and resets', async () => {
-    const store = await importStore()
-    await store.startCall('!dm:localhost', '@alice:localhost', 'Alice')
-    await store.hangup()
+    await startCall('!dm:localhost', '@alice:localhost', 'Alice')
+    await hangup()
 
     expect(signaling.sendCallHangup).toHaveBeenCalled()
     expect(media.disconnectCallRoom).toHaveBeenCalled()
-    expect(store.status).toBe('idle')
+    expect(callStore.state.status).toBe('idle')
   })
 
   it('remote hangup ends the active call', async () => {
-    const store = await importStore()
-    await store.startCall('!dm:localhost', '@alice:localhost', 'Alice')
-    store.handleSignal({
+    await startCall('!dm:localhost', '@alice:localhost', 'Alice')
+    handleSignal({
       roomId: '!dm:localhost',
       senderId: '@alice:localhost',
       type: 'im.muon.call.hangup',
-      content: { callId: store.callId },
+      content: { callId: callStore.state.callId },
     })
     await Promise.resolve()
 
     expect(media.disconnectCallRoom).toHaveBeenCalled()
-    expect(store.status).toBe('idle')
+    expect(callStore.state.status).toBe('idle')
   })
 
   it('toggleMute flips state and updates the mic', async () => {
-    const store = await importStore()
-    await store.startCall('!dm:localhost', '@alice:localhost', 'Alice')
-    await store.toggleMute()
+    await startCall('!dm:localhost', '@alice:localhost', 'Alice')
+    await toggleMute()
 
-    expect(store.isMuted).toBe(true)
+    expect(callStore.state.isMuted).toBe(true)
     expect(media.setCallMicEnabled).toHaveBeenCalledWith(false)
   })
 
   it('toggleCamera flips state and updates the camera', async () => {
-    const store = await importStore()
-    await store.startCall('!dm:localhost', '@alice:localhost', 'Alice', 'video')
-    await store.toggleCamera()
+    await startCall('!dm:localhost', '@alice:localhost', 'Alice', 'video')
+    await toggleCamera()
 
-    expect(store.isCameraOff).toBe(true)
+    expect(callStore.state.isCameraOff).toBe(true)
     expect(media.setCallCameraEnabled).toHaveBeenCalledWith(false)
   })
 
   it('toggleScreenShare publishes the screen and tracks the state', async () => {
-    const store = await importStore()
-    await store.startCall('!dm:localhost', '@alice:localhost', 'Alice', 'video')
-    await store.toggleScreenShare()
+    await startCall('!dm:localhost', '@alice:localhost', 'Alice', 'video')
+    await toggleScreenShare()
 
     expect(media.setCallScreenShareEnabled).toHaveBeenCalledWith(true)
-    expect(store.isScreenSharing).toBe(true)
+    expect(callStore.state.isScreenSharing).toBe(true)
   })
 
   it('toggleRecording starts and stops the local recorder', async () => {
-    const store = await importStore()
-    await store.startCall('!dm:localhost', '@alice:localhost', 'Alice', 'video')
+    await startCall('!dm:localhost', '@alice:localhost', 'Alice', 'video')
 
-    await store.toggleRecording()
-    expect(store.isRecording).toBe(true)
+    await toggleRecording()
+    expect(callStore.state.isRecording).toBe(true)
     expect(media.startCallRecording).toHaveBeenCalled()
 
-    await store.toggleRecording()
-    expect(store.isRecording).toBe(false)
+    await toggleRecording()
+    expect(callStore.state.isRecording).toBe(false)
     expect(media.stopCallRecording).toHaveBeenCalled()
   })
 
   it('toggleRecording uses the local recorder when no backend is configured', async () => {
     recordingApi.isRecordingBackendConfigured.mockReturnValue(false)
-    const store = await importStore()
-    await store.startCall('!dm:localhost', '@alice:localhost', 'Alice', 'video')
+    await startCall('!dm:localhost', '@alice:localhost', 'Alice', 'video')
 
-    await store.toggleRecording()
-    expect(store.isRecording).toBe(true)
+    await toggleRecording()
+    expect(callStore.state.isRecording).toBe(true)
     expect(media.startCallRecording).toHaveBeenCalled()
     expect(recordingApi.startCloudRecording).not.toHaveBeenCalled()
   })
 
   it('toggleRecording uses cloud egress when the backend is configured', async () => {
     recordingApi.isRecordingBackendConfigured.mockReturnValue(true)
-    const store = await importStore()
-    await store.startCall('!dm:localhost', '@alice:localhost', 'Alice', 'video')
+    await startCall('!dm:localhost', '@alice:localhost', 'Alice', 'video')
 
-    await store.toggleRecording()
-    expect(store.isRecording).toBe(true)
-    expect(recordingApi.startCloudRecording).toHaveBeenCalledWith(store.callId)
+    await toggleRecording()
+    expect(callStore.state.isRecording).toBe(true)
+    expect(recordingApi.startCloudRecording).toHaveBeenCalledWith(callStore.state.callId)
     expect(media.startCallRecording).not.toHaveBeenCalled()
 
-    await store.toggleRecording()
-    expect(store.isRecording).toBe(false)
+    await toggleRecording()
+    expect(callStore.state.isRecording).toBe(false)
     expect(recordingApi.stopCloudRecording).toHaveBeenCalledWith('eg-1')
   })
 
   it('keeps screen sharing off when the picker is cancelled', async () => {
-    const store = await importStore()
     media.setCallScreenShareEnabled.mockRejectedValueOnce(new Error('cancelled'))
-    await store.startCall('!dm:localhost', '@alice:localhost', 'Alice', 'video')
-    await store.toggleScreenShare()
+    await startCall('!dm:localhost', '@alice:localhost', 'Alice', 'video')
+    await toggleScreenShare()
 
-    expect(store.isScreenSharing).toBe(false)
+    expect(callStore.state.isScreenSharing).toBe(false)
   })
 
   it('records a completed call in local history when it ends', async () => {
     localStorage.clear()
-    const store = await importStore()
-    await store.startCall('!dm:localhost', '@alice:localhost', 'Alice', 'video')
-    store.handleSignal({
+    await startCall('!dm:localhost', '@alice:localhost', 'Alice', 'video')
+    handleSignal({
       roomId: '!dm:localhost',
       senderId: '@alice:localhost',
       type: 'im.muon.call.answer',
-      content: { callId: store.callId },
+      content: { callId: callStore.state.callId },
     })
-    await store.hangup()
+    await hangup()
 
-    expect(store.callHistory[0]).toMatchObject({
+    expect(callStore.state.callHistory[0]).toMatchObject({
       peerId: '@alice:localhost',
       mode: 'video',
       direction: 'outgoing',
@@ -267,17 +259,15 @@ describe('callStore', () => {
 
   it('records a declined incoming call as missed', async () => {
     localStorage.clear()
-    const store = await importStore()
-    store.handleSignal(invite({ callId: 'c1', livekitRoom: 'c1', mode: 'audio' }))
-    store.declineCall()
+    handleSignal(invite({ callId: 'c1', livekitRoom: 'c1', mode: 'audio' }))
+    declineCall()
 
-    expect(store.callHistory[0]).toMatchObject({ id: 'c1', direction: 'incoming', outcome: 'missed' })
+    expect(callStore.state.callHistory[0]).toMatchObject({ id: 'c1', direction: 'incoming', outcome: 'missed' })
   })
 
   it('ignores its own signals', async () => {
-    const store = await importStore()
-    store.handleSignal(invite({ callId: 'c1', livekitRoom: 'c1', mode: 'audio' }, '@me:localhost'))
+    handleSignal(invite({ callId: 'c1', livekitRoom: 'c1', mode: 'audio' }, '@me:localhost'))
 
-    expect(store.status).toBe('idle')
+    expect(callStore.state.status).toBe('idle')
   })
 })

@@ -29,8 +29,9 @@ vi.mock('@/features/contacts/queries/useContacts', () => ({
   }),
 }))
 
-vi.mock('@/features/calls/stores/callStore', () => ({
-  useCallStore: () => ({ startCall }),
+vi.mock('@/features/calls/stores/callStore', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/features/calls/stores/callStore')>()),
+  startCall,
 }))
 
 vi.mock('@matrix/index', async (importOriginal) => ({

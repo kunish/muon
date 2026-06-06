@@ -1,8 +1,22 @@
 import { mount } from '@vue/test-utils'
-import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import CallOverlay from '@/features/calls/components/CallOverlay.vue'
-import { useCallStore } from '@/features/calls/stores/callStore'
+import { callStore, resetCallStore } from '@/features/calls/stores/callStore'
+
+const callActions = vi.hoisted(() => ({
+  acceptCall: vi.fn().mockResolvedValue(undefined),
+  declineCall: vi.fn(),
+  toggleMute: vi.fn().mockResolvedValue(undefined),
+  hangup: vi.fn().mockResolvedValue(undefined),
+}))
+
+vi.mock('@/features/calls/stores/callStore', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/features/calls/stores/callStore')>()),
+  acceptCall: callActions.acceptCall,
+  declineCall: callActions.declineCall,
+  toggleMute: callActions.toggleMute,
+  hangup: callActions.hangup,
+}))
 
 function mountOverlay() {
   return mount(CallOverlay, { global: { stubs: { teleport: true } } })
@@ -10,7 +24,8 @@ function mountOverlay() {
 
 describe('call overlay', () => {
   beforeEach(() => {
-    setActivePinia(createPinia())
+    resetCallStore()
+    vi.clearAllMocks()
   })
 
   it('renders nothing while idle', () => {
@@ -20,12 +35,7 @@ describe('call overlay', () => {
   })
 
   it('shows the incoming banner and routes accept/decline to the store', async () => {
-    const store = useCallStore()
-    store.status = 'incoming'
-    store.peerName = 'Alice'
-    store.peerId = '@alice:localhost'
-    const accept = vi.spyOn(store, 'acceptCall').mockResolvedValue()
-    const decline = vi.spyOn(store, 'declineCall').mockImplementation(() => {})
+    callStore.setState((s) => ({ ...s, status: 'incoming', peerName: 'Alice', peerId: '@alice:localhost' }))
 
     const wrapper = mountOverlay()
     const banner = wrapper.find('[data-testid="call-incoming"]')
@@ -35,18 +45,13 @@ describe('call overlay', () => {
     expect(wrapper.find('[data-testid="call-active"]').exists()).toBe(false)
 
     await wrapper.find('[data-testid="call-decline"]').trigger('click')
-    expect(decline).toHaveBeenCalledOnce()
+    expect(callActions.declineCall).toHaveBeenCalledOnce()
     await wrapper.find('[data-testid="call-accept"]').trigger('click')
-    expect(accept).toHaveBeenCalledOnce()
+    expect(callActions.acceptCall).toHaveBeenCalledOnce()
   })
 
   it('shows the active call bar and routes mute/hangup to the store', async () => {
-    const store = useCallStore()
-    store.status = 'connected'
-    store.peerName = 'Bob'
-    store.peerId = '@bob:localhost'
-    const mute = vi.spyOn(store, 'toggleMute').mockResolvedValue()
-    const hangup = vi.spyOn(store, 'hangup').mockResolvedValue()
+    callStore.setState((s) => ({ ...s, status: 'connected', peerName: 'Bob', peerId: '@bob:localhost' }))
 
     const wrapper = mountOverlay()
     expect(wrapper.find('[data-testid="call-incoming"]').exists()).toBe(false)
@@ -55,15 +60,13 @@ describe('call overlay', () => {
     expect(bar.text()).toContain('Bob')
 
     await wrapper.find('[data-testid="call-mute"]').trigger('click')
-    expect(mute).toHaveBeenCalledOnce()
+    expect(callActions.toggleMute).toHaveBeenCalledOnce()
     await wrapper.find('[data-testid="call-hangup"]').trigger('click')
-    expect(hangup).toHaveBeenCalledOnce()
+    expect(callActions.hangup).toHaveBeenCalledOnce()
   })
 
   it('renders the outgoing status label before the call connects', () => {
-    const store = useCallStore()
-    store.status = 'outgoing'
-    store.peerName = 'Carol'
+    callStore.setState((s) => ({ ...s, status: 'outgoing', peerName: 'Carol' }))
 
     const wrapper = mountOverlay()
     const status = wrapper.find('[data-testid="call-status"]')

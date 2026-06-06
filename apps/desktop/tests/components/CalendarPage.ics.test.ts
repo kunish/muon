@@ -1,7 +1,7 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import CalendarPage from '@/features/calendar/components/CalendarPage.vue'
-import { useCalendarStore } from '@/features/calendar/stores/calendarStore'
+import { addEvent, calendarStore, resetCalendarStore } from '@/features/calendar/stores/calendarStore'
 
 const triggerBlobDownload = vi.hoisted(() => vi.fn())
 vi.mock('@/shared/lib/download', () => ({ triggerBlobDownload }))
@@ -9,12 +9,12 @@ vi.mock('@/shared/lib/download', () => ({ triggerBlobDownload }))
 describe('calendar ics import/export', () => {
   beforeEach(() => {
     localStorage.removeItem('muon.calendar.events.v1')
+    resetCalendarStore()
     triggerBlobDownload.mockClear()
   })
 
   it('exports the current events to an .ics download', async () => {
-    const store = useCalendarStore()
-    store.addEvent({ title: 'Design Review', date: '2026-05-30', time: '10:00' })
+    addEvent({ title: 'Design Review', date: '2026-05-30', time: '10:00' })
 
     const wrapper = mount(CalendarPage)
     await wrapper.get('[data-testid="calendar-export-ics"]').trigger('click')
@@ -26,7 +26,6 @@ describe('calendar ics import/export', () => {
   })
 
   it('imports events from a selected .ics file', async () => {
-    const store = useCalendarStore()
     const wrapper = mount(CalendarPage)
 
     const ics = [
@@ -43,6 +42,6 @@ describe('calendar ics import/export', () => {
     await input.trigger('change')
     await flushPromises()
 
-    expect(store.events.some((event) => event.title === 'Imported Meeting')).toBe(true)
+    expect(calendarStore.state.events.some((event) => event.title === 'Imported Meeting')).toBe(true)
   })
 })
