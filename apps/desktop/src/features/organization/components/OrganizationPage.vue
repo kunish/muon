@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Component } from 'vue';
-import type { Contact, GroupInfo } from '@/features/contacts/stores/contactStore';
+import type { Contact, GroupInfo } from '@/features/contacts/types';
 import { getClient } from '@matrix/client';
 import { Avatar } from '@muon/ui/avatar';
 import { useContactList } from '@shared/composables/useContactList';

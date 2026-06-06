@@ -1,8 +1,6 @@
 import { getRoom } from '@matrix/index'
 import { useContactList } from '@shared/composables/useContactList'
-import { Effect } from 'effect'
 import { computed } from 'vue'
-import { fromPromise, runDesktopEffect } from '@/shared/lib/effect'
 import { localizedText } from '@/shared/lib/localizedText'
 import { useChatStore } from '../stores/chatStore'
 
@@ -19,11 +17,8 @@ interface MentionMember {
 
 export function useMention() {
   const store = useChatStore()
+  // The contacts query auto-fetches on mount, so no explicit load is needed here.
   const contactList = useContactList()
-
-  if (contactList.contacts.length === 0) {
-    void runDesktopEffect(fromPromise(() => contactList.loadContacts()).pipe(Effect.catchAll(() => Effect.void)))
-  }
 
   const mentionCandidates = computed<MentionMember[]>(() => {
     const candidates = new Map<string, MentionMember>()

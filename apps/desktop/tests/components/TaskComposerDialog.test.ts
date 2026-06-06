@@ -1,15 +1,34 @@
 import { mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import TaskComposerDialog from '@/features/chat/components/TaskComposerDialog.vue'
-import { useContactStore } from '@/features/contacts/stores/contactStore'
+import { resetContactStore } from '@/features/contacts/stores/contactStore'
+
+const contactsSeed = vi.hoisted(() => ({ contacts: [] as any[], groups: [] as any[] }))
+vi.mock('@/features/contacts/queries/useContacts', () => ({
+  useContactsQuery: () => ({
+    contacts: {
+      get value() {
+        return contactsSeed.contacts
+      },
+    },
+    refetch: vi.fn().mockResolvedValue(undefined),
+  }),
+  useGroupsQuery: () => ({
+    groups: {
+      get value() {
+        return contactsSeed.groups
+      },
+    },
+    refetch: vi.fn().mockResolvedValue(undefined),
+  }),
+}))
 
 vi.mock('@matrix/media', () => ({
   fetchMediaBlobUrl: vi.fn(async (url: string) => `blob:${url}`),
 }))
 
 function seedContacts() {
-  const store = useContactStore()
-  store.contacts = [
+  contactsSeed.contacts = [
     { userId: '@alice:localhost', displayName: 'Alice Chen', presence: 'online' },
     { userId: '@bob:localhost', displayName: 'Bob Li', presence: 'offline' },
   ]
@@ -31,6 +50,10 @@ function mountDialog() {
 
 describe('task composer dialog', () => {
   beforeEach(() => {
+    resetContactStore()
+    localStorage.clear()
+    contactsSeed.contacts = []
+    contactsSeed.groups = []
     seedContacts()
   })
 

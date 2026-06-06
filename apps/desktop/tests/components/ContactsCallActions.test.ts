@@ -3,11 +3,31 @@ import { mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h } from 'vue'
 import ContactsPage from '@/features/contacts/components/ContactsPage.vue'
-import { useContactStore } from '@/features/contacts/stores/contactStore'
+import { resetContactStore, selectContact } from '@/features/contacts/stores/contactStore'
 
 const startCall = vi.hoisted(() => vi.fn().mockResolvedValue(undefined))
 const findOrCreateDm = vi.hoisted(() => vi.fn().mockResolvedValue('!dm_alice:localhost'))
 const restoreRoom = vi.hoisted(() => vi.fn())
+
+const contactsSeed = vi.hoisted(() => ({ contacts: [] as any[], groups: [] as any[] }))
+vi.mock('@/features/contacts/queries/useContacts', () => ({
+  useContactsQuery: () => ({
+    contacts: {
+      get value() {
+        return contactsSeed.contacts
+      },
+    },
+    refetch: vi.fn().mockResolvedValue(undefined),
+  }),
+  useGroupsQuery: () => ({
+    groups: {
+      get value() {
+        return contactsSeed.groups
+      },
+    },
+    refetch: vi.fn().mockResolvedValue(undefined),
+  }),
+}))
 
 vi.mock('@/features/calls/stores/callStore', () => ({
   useCallStore: () => ({ startCall }),
@@ -78,9 +98,11 @@ const UserProfileStub = defineComponent({
 })
 
 function mountContactsPage() {
-  const store = useContactStore()
-  store.contacts = [{ userId: '@alice:localhost', displayName: 'Alice', presence: 'online' }]
-  store.selectedContactId = '@alice:localhost'
+  // The call name comes from the contacts query (displayName), and the assertion
+  // expects alice's real display name '小红' (see tests/mocks/data.ts). Previously the
+  // real query supplied it; now the seeded query data must carry the same value.
+  contactsSeed.contacts = [{ userId: '@alice:localhost', displayName: '小红', presence: 'online' }]
+  selectContact('@alice:localhost')
 
   return mount(ContactsPage, {
     global: {
@@ -97,6 +119,10 @@ function mountContactsPage() {
 
 describe('contacts call actions', () => {
   beforeEach(() => {
+    resetContactStore()
+    localStorage.clear()
+    contactsSeed.contacts = []
+    contactsSeed.groups = []
     startCall.mockClear()
     findOrCreateDm.mockClear()
     restoreRoom.mockClear()

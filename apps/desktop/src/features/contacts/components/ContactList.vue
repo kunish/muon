@@ -1,10 +1,13 @@
 <script setup lang="ts">
-import type { Contact } from '../stores/contactStore';
+import type { Contact } from '../types';
 import { Avatar } from '@muon/ui/avatar';
 import { SearchBox } from '@muon/ui/search-box';
+import { useSelector } from '@tanstack/vue-store';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useContactStore } from '../stores/contactStore';
+import { filterContacts, filterGroups } from '../queries/contactsApi';
+import { useContactsQuery, useGroupsQuery } from '../queries/useContacts';
+import { contactStore, getContactProfile, selectContact, setSearchQuery } from '../stores/contactStore';
 import ContactItem from './ContactItem.vue';
 
 const props = defineProps<{
@@ -18,15 +21,27 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
-const store = useContactStore();
+const contactsQuery = useContactsQuery();
+const groupsQuery = useGroupsQuery();
+const searchQueryState = useSelector(contactStore, (s) => s.searchQuery);
+const selectedContactId = useSelector(contactStore, (s) => s.selectedContactId);
+const profiles = useSelector(contactStore, (s) => s.contactProfiles);
+
+const searchQuery = computed({
+  get: () => searchQueryState.value,
+  set: (value: string) => setSearchQuery(value),
+});
+
+const filteredContacts = computed(() => filterContacts(contactsQuery.contacts.value, searchQueryState.value));
+const filteredGroups = computed(() => filterGroups(groupsQuery.groups.value, searchQueryState.value));
 
 const UNTAGGED = '__untagged__';
 
 // 按标签分组联系人；无标签的归在默认「联系人」分组下，标签组按名称排序、默认组置底
 const contactGroups = computed<{ tag: string; label: string; contacts: Contact[] }[]>(() => {
   const buckets = new Map<string, Contact[]>();
-  for (const contact of store.filteredContacts) {
-    const tag = store.contactProfileFor(contact.userId).tag.trim() || UNTAGGED;
+  for (const contact of filteredContacts.value) {
+    const tag = getContactProfile(profiles.value, contact.userId).tag.trim() || UNTAGGED;
     const list = buckets.get(tag) ?? [];
     list.push(contact);
     buckets.set(tag, list);
@@ -37,7 +52,7 @@ const contactGroups = computed<{ tag: string; label: string; contacts: Contact[]
 });
 
 function handleSelectContact(userId: string): void {
-  store.selectedContactId = userId;
+  selectContact(userId);
   emit('select', userId);
 }
 </script>
@@ -45,11 +60,7 @@ function handleSelectContact(userId: string): void {
 <template>
   <div class="flex h-full min-h-0 flex-col">
     <div class="shrink-0 p-3">
-      <SearchBox
-        v-model="store.searchQuery"
-        data-testid="contacts-search-control"
-        :placeholder="t('contacts.search')"
-      />
+      <SearchBox v-model="searchQuery" data-testid="contacts-search-control" :placeholder="t('contacts.search')" />
     </div>
     <div data-testid="contacts-list-scroll-container" class="min-h-0 flex-1 overflow-y-auto px-2 pb-3">
       <section
@@ -65,21 +76,21 @@ function handleSelectContact(userId: string): void {
           v-for="contact in group.contacts"
           :key="contact.userId"
           :contact="contact"
-          :selected="store.selectedContactId === contact.userId"
+          :selected="selectedContactId === contact.userId"
           @click="handleSelectContact(contact.userId)"
           @dblclick="emit('open', contact.userId)"
         />
       </section>
       <section
-        v-if="store.filteredGroups.length > 0"
+        v-if="filteredGroups.length > 0"
         class="space-y-0.5"
-        :class="store.filteredContacts.length > 0 ? 'pt-3' : 'pt-1'"
+        :class="filteredContacts.length > 0 ? 'pt-3' : 'pt-1'"
       >
         <div class="px-2 pb-1 text-[11px] font-bold uppercase leading-4 tracking-[0.05em] text-muted-foreground">
           {{ t('contacts.groups') }}
         </div>
         <button
-          v-for="group in store.filteredGroups"
+          v-for="group in filteredGroups"
           :key="group.roomId"
           type="button"
           class="workspace-row gap-2 px-3 py-2 text-left text-muted-foreground"
@@ -99,7 +110,7 @@ function handleSelectContact(userId: string): void {
         </button>
       </section>
       <div
-        v-if="store.filteredContacts.length === 0 && store.filteredGroups.length === 0"
+        v-if="filteredContacts.length === 0 && filteredGroups.length === 0"
         class="px-4 py-8 text-center text-sm text-muted-foreground"
       >
         {{ t('contacts.empty') }}

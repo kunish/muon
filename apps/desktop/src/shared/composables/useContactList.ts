@@ -1,44 +1,36 @@
-import { Effect } from 'effect'
 /**
  * Shared contact-list data facade.
  *
- * Cross-feature consumers (chat, organization) read the contact list through
- * this composable instead of importing the contacts feature store directly.
- * The Pinia store remains the single source of truth for the contacts feature
- * while other features only depend on this thin shared contract.
+ * Cross-feature consumers (chat, organization, projects, approvals, calendar,
+ * email) read the contact list through this composable instead of importing the
+ * contacts feature internals directly. The facade now backs onto the
+ * `@tanstack/vue-query` contacts/groups queries; its shape is unchanged so those
+ * consumers need no edits.
  *
- * Reactive properties are exposed via getters that delegate to the Pinia
- * store so consumers see live updates without importing the store directly.
+ * The queries auto-fetch on first use (keyed + deduped across all consumers), so
+ * `ensureContactsLoaded`/`ensureGroupsLoaded` are kept only for API
+ * compatibility and are no-ops — loading happens on mount.
  */
-import { useContactStore } from '@/features/contacts/stores/contactStore'
-import { fromPromise, runDesktopEffect } from '@/shared/lib/effect'
+import { useContactsQuery, useGroupsQuery } from '@/features/contacts/queries/useContacts'
 
 export function useContactList() {
-  const store = useContactStore()
+  const contactsQuery = useContactsQuery()
+  const groupsQuery = useGroupsQuery()
 
-  function ensureContactsLoaded() {
-    if (store.contacts.length === 0) {
-      void runDesktopEffect(fromPromise(() => store.loadContacts()).pipe(Effect.catchAll(() => Effect.void)))
-    }
-  }
-
-  function ensureGroupsLoaded() {
-    if (store.groups.length === 0) {
-      void runDesktopEffect(fromPromise(() => store.loadGroups()).pipe(Effect.catchAll(() => Effect.void)))
-    }
-  }
+  function ensureContactsLoaded() {}
+  function ensureGroupsLoaded() {}
 
   return {
-    /** Reactive — delegates to the Pinia store getter on every access. */
+    /** Reactive — delegates to the query's data on every access. */
     get contacts() {
-      return store.contacts
+      return contactsQuery.contacts.value
     },
-    /** Reactive — delegates to the Pinia store getter on every access. */
+    /** Reactive — delegates to the query's data on every access. */
     get groups() {
-      return store.groups
+      return groupsQuery.groups.value
     },
-    loadContacts: store.loadContacts,
-    loadGroups: store.loadGroups,
+    loadContacts: () => contactsQuery.refetch(),
+    loadGroups: () => groupsQuery.refetch(),
     ensureContactsLoaded,
     ensureGroupsLoaded,
   }

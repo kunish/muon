@@ -4,10 +4,10 @@ import { Avatar } from '@muon/ui/avatar';
 import { Checkbox } from '@muon/ui/checkbox';
 import { Label } from '@muon/ui/label';
 import { Check, Search, X } from 'lucide-vue-next';
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useContacts } from '../composables/useContacts';
-import { useContactStore } from '../stores/contactStore';
+import { useContactsQuery } from '../queries/useContacts';
 
 interface MemberOption {
   userId: string;
@@ -29,7 +29,7 @@ const props = withDefaults(
 const selectedIds = defineModel<string[]>({ default: () => [] });
 
 const { t } = useI18n();
-const contactStore = useContactStore();
+const contactsQuery = useContactsQuery();
 const { searchUsers } = useContacts();
 
 const query = ref('');
@@ -39,9 +39,7 @@ const directoryResults = ref<MemberOption[]>([]);
 let searchTimer: ReturnType<typeof setTimeout> | null = null;
 let searchSeq = 0;
 
-onMounted(() => {
-  if (contactStore.contacts.length === 0) void contactStore.loadContacts().catch(() => {});
-});
+// The contacts query auto-fetches on mount (keyed + deduped), so no explicit load is needed.
 
 onUnmounted(() => {
   if (searchTimer) clearTimeout(searchTimer);
@@ -81,7 +79,7 @@ const selectedIdSet = computed(() => new Set(selectedIds.value));
 const excludedIdSet = computed(() => new Set(props.excludeIds));
 
 const contactOptions = computed<MemberOption[]>(() =>
-  contactStore.contacts
+  contactsQuery.contacts.value
     .filter((contact) => !excludedIdSet.value.has(contact.userId))
     .map((contact) => ({
       userId: contact.userId,

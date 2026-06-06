@@ -3,7 +3,27 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { reactive } from 'vue'
 import GlobalSearch from '@/features/chat/components/GlobalSearch.vue'
 import { useChatStore } from '@/features/chat/stores/chatStore'
-import { useContactStore } from '@/features/contacts/stores/contactStore'
+import { resetContactStore } from '@/features/contacts/stores/contactStore'
+
+const contactsSeed = vi.hoisted(() => ({ contacts: [] as any[], groups: [] as any[] }))
+vi.mock('@/features/contacts/queries/useContacts', () => ({
+  useContactsQuery: () => ({
+    contacts: {
+      get value() {
+        return contactsSeed.contacts
+      },
+    },
+    refetch: vi.fn().mockResolvedValue(undefined),
+  }),
+  useGroupsQuery: () => ({
+    groups: {
+      get value() {
+        return contactsSeed.groups
+      },
+    },
+    refetch: vi.fn().mockResolvedValue(undefined),
+  }),
+}))
 
 const routerPush = vi.fn()
 const loadInboxEventContextMock = vi.fn()
@@ -112,7 +132,9 @@ describe('globalSearch', () => {
     chatStore.clearSidebarPromotions()
     chatStore.setFilter('all')
     chatStore.setSearchQuery('')
-    useContactStore().contacts = []
+    resetContactStore()
+    contactsSeed.contacts = []
+    contactsSeed.groups = []
   })
 
   it('resets native input chrome in the search header', () => {
@@ -299,8 +321,7 @@ describe('globalSearch', () => {
   })
 
   it('promotes a direct conversation opened from a contact result', async () => {
-    const contactStore = useContactStore()
-    contactStore.contacts = [
+    contactsSeed.contacts = [
       {
         userId: '@bob:muon.dev',
         displayName: 'Bob',

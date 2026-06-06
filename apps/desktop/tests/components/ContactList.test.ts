@@ -1,10 +1,30 @@
 import { setAuthMediaResolver } from '@muon/ui/media'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import ContactItem from '@/features/contacts/components/ContactItem.vue'
 import ContactList from '@/features/contacts/components/ContactList.vue'
-import { useContactStore } from '@/features/contacts/stores/contactStore'
+import { resetContactStore } from '@/features/contacts/stores/contactStore'
+
+const contactsSeed = vi.hoisted(() => ({ contacts: [] as any[], groups: [] as any[] }))
+vi.mock('@/features/contacts/queries/useContacts', () => ({
+  useContactsQuery: () => ({
+    contacts: {
+      get value() {
+        return contactsSeed.contacts
+      },
+    },
+    refetch: vi.fn().mockResolvedValue(undefined),
+  }),
+  useGroupsQuery: () => ({
+    groups: {
+      get value() {
+        return contactsSeed.groups
+      },
+    },
+    refetch: vi.fn().mockResolvedValue(undefined),
+  }),
+}))
 
 vi.mock('@matrix/client', () => ({
   getClient: vi.fn(() => ({
@@ -98,12 +118,15 @@ describe('contactItem', () => {
 describe('contactList layout', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    resetContactStore()
+    localStorage.clear()
+    contactsSeed.contacts = []
+    contactsSeed.groups = []
   })
 
   it('renders contacts and groups inside one bounded scroll container', () => {
-    const store = useContactStore()
-    store.contacts = [{ userId: '@alice:localhost', displayName: 'Alice', presence: 'online' }]
-    store.groups = Array.from({ length: 16 }, (_, index) => ({
+    contactsSeed.contacts = [{ userId: '@alice:localhost', displayName: 'Alice', presence: 'online' }]
+    contactsSeed.groups = Array.from({ length: 16 }, (_, index) => ({
       roomId: `!group_${index}:localhost`,
       name: `群组 ${index}`,
       memberCount: index + 3,

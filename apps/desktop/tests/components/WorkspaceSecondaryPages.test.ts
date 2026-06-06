@@ -397,6 +397,9 @@ describe('workspace secondary pages', () => {
 
   it('routes organization search to group results when the query only matches groups', async () => {
     const wrapper = mount(OrganizationPage)
+    // Groups now load via an async vue-query fetch; let it settle so the search,
+    // which snapshots the current group list on input, sees the loaded groups.
+    await flushPromises()
 
     await wrapper.get('[data-testid="organization-search-input"]').setValue('技术')
 

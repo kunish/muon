@@ -3,14 +3,15 @@ import type { CallMode } from '@matrix/index';
 import { findOrCreateDm } from '@matrix/index';
 import { useRoomNavigation } from '@shared/composables/useRoomNavigation';
 import { Plus, UserPlus } from 'lucide-vue-next';
-import { computed, onMounted, ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
 import WorkspaceResizablePane from '@/app/components/workspace/WorkspaceResizablePane.vue';
 import { useCallStore } from '@/features/calls/stores/callStore';
 import { useConversations } from '../../chat/composables/useConversations';
-import { useContactStore } from '../stores/contactStore';
+import { useContactsQuery } from '../queries/useContacts';
+import { selectContact } from '../stores/contactStore';
 import AddContactDialog from './AddContactDialog.vue';
 import ContactList from './ContactList.vue';
 import CreateGroupDialog from './CreateGroupDialog.vue';
@@ -19,7 +20,7 @@ import UserProfile from './UserProfile.vue';
 
 const { t } = useI18n();
 const router = useRouter();
-const store = useContactStore();
+const contactsQuery = useContactsQuery();
 const chatStore = useRoomNavigation();
 const callStore = useCallStore();
 const { restoreRoom } = useConversations();
@@ -34,14 +35,11 @@ const MIN_CONTACTS_WIDTH = 220;
 const MAX_CONTACTS_WIDTH = 360;
 const contactsResizeLabel = computed(() => t('sidebar.resize_contacts'));
 
-onMounted(() => {
-  void store.loadContacts();
-  void store.loadGroups();
-});
+// The contacts/groups queries auto-fetch on mount (here and in the ContactList child).
 
 function handleSelectContact(userId: string): void {
   selectedGroupId.value = null;
-  store.selectedContactId = userId;
+  selectContact(userId);
 }
 
 function handleGroupCreated(roomId: string): void {
@@ -51,18 +49,18 @@ function handleGroupCreated(roomId: string): void {
 
 async function handleContactAdded(userId: string): Promise<void> {
   showAddContact.value = false;
-  await store.loadContacts();
+  await contactsQuery.refetch();
   handleSelectContact(userId);
 }
 
 function handleSelectGroup(roomId: string): void {
-  store.selectedContactId = null;
+  selectContact(null);
   selectedGroupId.value = roomId;
 }
 
 async function handleOpenMessage(userId: string): Promise<void> {
   try {
-    const contact = store.contacts.find((item) => item.userId === userId);
+    const contact = contactsQuery.contacts.value.find((item) => item.userId === userId);
     const roomId = await findOrCreateDm(userId);
     restoreRoom(roomId);
     chatStore.navigateToRoom(roomId, {
@@ -82,7 +80,7 @@ async function handleOpenMessage(userId: string): Promise<void> {
 }
 
 async function handleStartContactCall(userId: string, mode: CallMode): Promise<void> {
-  const contact = store.contacts.find((item) => item.userId === userId);
+  const contact = contactsQuery.contacts.value.find((item) => item.userId === userId);
   try {
     const roomId = await findOrCreateDm(userId);
     restoreRoom(roomId);

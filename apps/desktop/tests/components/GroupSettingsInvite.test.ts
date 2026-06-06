@@ -1,8 +1,28 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import GroupSettings from '@/features/contacts/components/GroupSettings.vue'
-import { useContactStore } from '@/features/contacts/stores/contactStore'
+import { resetContactStore } from '@/features/contacts/stores/contactStore'
 import { mockClient } from '../mocks/matrix'
+
+const contactsSeed = vi.hoisted(() => ({ contacts: [] as any[], groups: [] as any[] }))
+vi.mock('@/features/contacts/queries/useContacts', () => ({
+  useContactsQuery: () => ({
+    contacts: {
+      get value() {
+        return contactsSeed.contacts
+      },
+    },
+    refetch: vi.fn().mockResolvedValue(undefined),
+  }),
+  useGroupsQuery: () => ({
+    groups: {
+      get value() {
+        return contactsSeed.groups
+      },
+    },
+    refetch: vi.fn().mockResolvedValue(undefined),
+  }),
+}))
 
 vi.mock('@matrix/media', () => ({
   fetchMediaBlobUrl: vi.fn(async (url: string) => `blob:${url}`),
@@ -26,8 +46,7 @@ vi.mock('@/desktop/dialog', () => ({
 }))
 
 function seedContacts() {
-  const store = useContactStore()
-  store.contacts = [
+  contactsSeed.contacts = [
     { userId: '@alice:localhost', displayName: 'Alice Chen', presence: 'online' },
     { userId: '@fiona:localhost', displayName: 'Fiona Lin', presence: 'online' },
     { userId: '@george:localhost', displayName: 'George Wu', presence: 'offline' },
@@ -44,6 +63,10 @@ function mountGroupSettings() {
 
 describe('group settings invite', () => {
   beforeEach(() => {
+    resetContactStore()
+    localStorage.clear()
+    contactsSeed.contacts = []
+    contactsSeed.groups = []
     vi.clearAllMocks()
     seedContacts()
   })

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Contact } from '../stores/contactStore';
+import type { Contact } from '../types';
 import { getUserPresenceInfo } from '@matrix/index';
 import { Avatar } from '@muon/ui/avatar';
 import { computed } from 'vue';

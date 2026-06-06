@@ -1,12 +1,20 @@
 <script setup lang="ts">
 import { blockUser, getUserPresenceInfo, isUserBlocked, unblockUser } from '@matrix/index';
+import { useSelector } from '@tanstack/vue-store';
 import { formatDistanceToNow } from 'date-fns';
 import { enUS, zhCN } from 'date-fns/locale';
 import { Ban, MessageSquare, Phone, Save, Star, StickyNote, Tag, Video } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
-import { useContactStore } from '../stores/contactStore';
+import { useContactsQuery } from '../queries/useContacts';
+import {
+  contactProfileFor,
+  contactStore,
+  getContactProfile,
+  toggleContactFavorite,
+  updateContactProfile,
+} from '../stores/contactStore';
 
 const emit = defineEmits<{
   message: [userId: string];
@@ -16,18 +24,17 @@ const emit = defineEmits<{
 
 const { t, locale } = useI18n();
 
-const store = useContactStore();
+const contactsQuery = useContactsQuery();
+const selectedContactId = useSelector(contactStore, (s) => s.selectedContactId);
+const profiles = useSelector(contactStore, (s) => s.contactProfiles);
 
-const contact = computed(() => store.contacts.find((c) => c.userId === store.selectedContactId));
+const contact = computed(() => contactsQuery.contacts.value.find((c) => c.userId === selectedContactId.value));
 
 const tagInput = ref('');
 const noteInput = ref('');
 const updatingBlock = ref(false);
 
-const profile = computed(() => {
-  if (!contact.value) return store.contactProfileFor('');
-  return store.contactProfileFor(contact.value.userId);
-});
+const profile = computed(() => getContactProfile(profiles.value, contact.value?.userId ?? ''));
 
 watch(
   () => contact.value?.userId,
@@ -38,8 +45,8 @@ watch(
       return;
     }
 
-    const nextProfile = store.contactProfileFor(userId);
-    store.updateContactProfile(userId, {
+    const nextProfile = contactProfileFor(userId);
+    updateContactProfile(userId, {
       isBlocked: nextProfile.isBlocked || isUserBlocked(userId),
     });
     tagInput.value = nextProfile.tag;
@@ -77,7 +84,7 @@ const profileStatus = computed(() => {
 function saveProfile(): void {
   if (!contact.value) return;
 
-  store.updateContactProfile(contact.value.userId, {
+  updateContactProfile(contact.value.userId, {
     note: noteInput.value.trim(),
     tag: tagInput.value.trim(),
   });
@@ -85,7 +92,7 @@ function saveProfile(): void {
 
 function toggleFavorite(): void {
   if (!contact.value) return;
-  store.toggleContactFavorite(contact.value.userId);
+  toggleContactFavorite(contact.value.userId);
 }
 
 async function toggleBlocked(): Promise<void> {
@@ -96,7 +103,7 @@ async function toggleBlocked(): Promise<void> {
   const previousBlocked = profile.value.isBlocked;
   const nextBlocked = !profile.value.isBlocked;
   updatingBlock.value = true;
-  store.updateContactProfile(userId, { isBlocked: nextBlocked });
+  updateContactProfile(userId, { isBlocked: nextBlocked });
   try {
     if (nextBlocked) {
       await blockUser(userId);
@@ -104,7 +111,7 @@ async function toggleBlocked(): Promise<void> {
       await unblockUser(userId);
     }
   } catch {
-    store.updateContactProfile(userId, { isBlocked: previousBlocked });
+    updateContactProfile(userId, { isBlocked: previousBlocked });
     toast.error(t('contacts.profile_failed'));
   } finally {
     updatingBlock.value = false;

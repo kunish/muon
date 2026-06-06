@@ -1,116 +1,84 @@
-import { describe, expect, it, vi } from 'vitest'
-import { useContactStore } from '@/features/contacts/stores/contactStore'
-import { mockClient } from '../../mocks/matrix'
+import { beforeEach, describe, expect, it } from 'vitest'
+import {
+  contactProfileFor,
+  contactStore,
+  getContactProfile,
+  resetContactStore,
+  selectContact,
+  setSearchQuery,
+  toggleContactBlocked,
+  toggleContactFavorite,
+  updateContactProfile,
+} from '@/features/contacts/stores/contactStore'
 
-describe('contactStore', () => {
-  it('should have empty contacts by default', () => {
-    const store = useContactStore()
-    expect(store.contacts).toEqual([])
-    expect(store.groups).toEqual([])
+const STORAGE_KEY = 'muon.contacts.profiles.v1'
+const DEFAULT_PROFILE = { isBlocked: false, isFavorite: false, note: '', tag: '' }
+
+describe('contactStore (client state)', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    resetContactStore()
   })
 
-  it('should filter contacts by search query', () => {
-    const store = useContactStore()
-    store.contacts = [
-      { userId: '@alice:localhost', displayName: 'Alice', presence: 'online' },
-      { userId: '@bob:localhost', displayName: 'Bob', presence: 'offline' },
-    ] as any
-
-    store.searchQuery = 'ali'
-    expect(store.filteredContacts).toHaveLength(1)
-    expect(store.filteredContacts[0].displayName).toBe('Alice')
+  it('starts with empty search, no selection, and no profiles', () => {
+    expect(contactStore.state.searchQuery).toBe('')
+    expect(contactStore.state.selectedContactId).toBeNull()
+    expect(contactStore.state.contactProfiles).toEqual({})
   })
 
-  it('should return all contacts when search is empty', () => {
-    const store = useContactStore()
-    store.contacts = [
-      { userId: '@alice:localhost', displayName: 'Alice', presence: 'online' },
-      { userId: '@bob:localhost', displayName: 'Bob', presence: 'offline' },
-    ] as any
+  it('setSearchQuery and selectContact update the client state', () => {
+    setSearchQuery('ali')
+    selectContact('@alice:localhost')
+    expect(contactStore.state.searchQuery).toBe('ali')
+    expect(contactStore.state.selectedContactId).toBe('@alice:localhost')
 
-    store.searchQuery = ''
-    expect(store.filteredContacts).toHaveLength(2)
+    selectContact(null)
+    expect(contactStore.state.selectedContactId).toBeNull()
   })
 
-  it('filters groups by the shared contact search query', () => {
-    const store = useContactStore()
-    store.groups = [
-      { roomId: '!product:localhost', name: '产品设计', memberCount: 7 },
-      { roomId: '!family:localhost', name: '家庭群', memberCount: 4 },
-    ]
-
-    store.searchQuery = '产品'
-
-    expect(store.filteredGroups).toHaveLength(1)
-    expect(store.filteredGroups[0].name).toBe('产品设计')
+  it('contactProfileFor returns the default profile for an unknown contact', () => {
+    expect(contactProfileFor('@nobody:localhost')).toEqual(DEFAULT_PROFILE)
   })
 
-  it('should track selected contact', () => {
-    const store = useContactStore()
-    store.selectedContactId = '@alice:localhost'
+  it('updateContactProfile merges fields onto the default and persists to localStorage', () => {
+    updateContactProfile('@alice:localhost', { tag: 'Work', note: 'PM' })
 
-    expect(store.selectedContactId).toBe('@alice:localhost')
+    expect(contactProfileFor('@alice:localhost')).toEqual({
+      isBlocked: false,
+      isFavorite: false,
+      note: 'PM',
+      tag: 'Work',
+    })
+
+    const raw = localStorage.getItem(STORAGE_KEY)
+    expect(raw).toBeTruthy()
+    expect(JSON.parse(raw!)).toEqual({
+      version: 1,
+      profiles: { '@alice:localhost': { isBlocked: false, isFavorite: false, note: 'PM', tag: 'Work' } },
+    })
   })
 
-  it('loads contacts with mxc avatars so the Avatar component can resolve media fallbacks', async () => {
-    const store = useContactStore()
-    const otherMember = {
-      userId: '@avatar:localhost',
-      name: 'Avatar User',
-      getMxcAvatarUrl: vi.fn().mockReturnValue('mxc://localhost/avatar_uploaded'),
-      getAvatarUrl: vi
-        .fn()
-        .mockReturnValue('http://127.0.0.1:6167/_matrix/media/v3/thumbnail/localhost/avatar_uploaded'),
-    }
-    const meMember = {
-      userId: '@test:localhost',
-      name: 'Me',
-      getMxcAvatarUrl: vi.fn().mockReturnValue('mxc://localhost/avatar_me'),
-      getAvatarUrl: vi.fn(),
-    }
+  it('toggleContactFavorite and toggleContactBlocked flip the respective flags', () => {
+    toggleContactFavorite('@alice:localhost')
+    expect(contactProfileFor('@alice:localhost').isFavorite).toBe(true)
+    toggleContactFavorite('@alice:localhost')
+    expect(contactProfileFor('@alice:localhost').isFavorite).toBe(false)
 
-    vi.mocked(mockClient.getUserId).mockReturnValue('@test:localhost')
-    vi.mocked(mockClient.getRooms).mockReturnValue([
-      {
-        getJoinedMembers: () => [meMember, otherMember],
-      },
-    ] as any)
-
-    await store.loadContacts()
-
-    expect(store.contacts).toEqual([
-      {
-        userId: '@avatar:localhost',
-        displayName: 'Avatar User',
-        avatarUrl: 'mxc://localhost/avatar_uploaded',
-        presence: 'offline',
-      },
-    ])
-    expect(otherMember.getAvatarUrl).not.toHaveBeenCalled()
+    toggleContactBlocked('@alice:localhost')
+    expect(contactProfileFor('@alice:localhost').isBlocked).toBe(true)
   })
 
-  it('skips the local homeserver system account from contacts', async () => {
-    const store = useContactStore()
-    const systemMember = {
-      userId: '@conduit:localhost',
-      name: '@conduit:localhost',
-      getMxcAvatarUrl: vi.fn(),
-    }
-    const meMember = {
-      userId: '@test:localhost',
-      name: 'Me',
-      getMxcAvatarUrl: vi.fn(),
-    }
+  it('getContactProfile is a pure lookup with a default fallback', () => {
+    const profiles = { '@a:localhost': { isBlocked: true, isFavorite: false, note: '', tag: 'x' } }
+    expect(getContactProfile(profiles, '@a:localhost').tag).toBe('x')
+    expect(getContactProfile(profiles, '@missing:localhost')).toEqual(DEFAULT_PROFILE)
+  })
 
-    vi.mocked(mockClient.getUserId).mockReturnValue('@test:localhost')
-    vi.mocked(mockClient.getRooms).mockReturnValue([
-      {
-        getJoinedMembers: () => [meMember, systemMember],
-      },
-    ] as any)
+  it('reloads persisted profiles from localStorage when the store re-initializes', () => {
+    updateContactProfile('@alice:localhost', { isFavorite: true })
 
-    await store.loadContacts()
+    resetContactStore()
 
-    expect(store.contacts).toEqual([])
+    expect(contactProfileFor('@alice:localhost').isFavorite).toBe(true)
   })
 })
