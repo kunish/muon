@@ -1,5 +1,4 @@
 import { mount } from '@vue/test-utils'
-import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { computed, defineComponent, h, nextTick, ref } from 'vue'
 
@@ -205,12 +204,8 @@ vi.mock('@muon/ui/badge', () => ({ Badge: createStub('BadgeStub') }))
 vi.mock('@muon/ui/input', () => ({ Input: createInputStub() }))
 vi.mock('@muon/ui/scroll-area', () => ({ ScrollArea: createScrollAreaStub() }))
 
-let pinia: ReturnType<typeof createPinia>
-
 describe('knowledgeCapturePanel integration', () => {
   beforeEach(() => {
-    pinia = createPinia()
-    setActivePinia(pinia)
     resetChatStore()
     chatStore.setState((s) => ({
       ...s,
@@ -251,18 +246,18 @@ describe('knowledgeCapturePanel integration', () => {
 
   it('mounts the knowledge panel through the existing chat side-panel slot without conflicting with other panels', () => {
     chatStore.setState((s) => ({ ...s, activeSidePanel: 'knowledge' }))
-    const knowledgeWrapper = mount(ChatWindow, { global: { plugins: [pinia] } })
+    const knowledgeWrapper = mount(ChatWindow)
     expect(knowledgeWrapper.get('[data-testid="knowledge-capture-panel"]')).toBeTruthy()
     expect(knowledgeWrapper.find('[data-testid="task-panel"]').exists()).toBe(false)
 
     chatStore.setState((s) => ({ ...s, activeSidePanel: 'tasks' }))
-    const taskWrapper = mount(ChatWindow, { global: { plugins: [pinia] } })
+    const taskWrapper = mount(ChatWindow)
     expect(taskWrapper.get('[data-testid="task-panel"]')).toBeTruthy()
     expect(taskWrapper.find('[data-testid="knowledge-capture-panel"]').exists()).toBe(false)
   })
 
   it('renders a Feishu-style DM sidebar without utility panels before the session list', () => {
-    const wrapper = mount(ChannelSidebar, { global: { plugins: [pinia] } })
+    const wrapper = mount(ChannelSidebar)
 
     expect(wrapper.get('[data-testid="conversation-list"]')).toBeTruthy()
     expect(wrapper.find('[data-testid="knowledge-panel-trigger"]').exists()).toBe(false)
@@ -293,7 +288,7 @@ describe('knowledgeCapturePanel integration', () => {
       },
     ]
 
-    const wrapper = mount(ChannelSidebar, { global: { plugins: [pinia] } })
+    const wrapper = mount(ChannelSidebar)
 
     expect(wrapper.text()).toContain('Alice')
     expect(wrapper.text()).toContain('Launch Group')
@@ -310,7 +305,7 @@ describe('knowledgeCapturePanel integration', () => {
       },
     ]
 
-    const wrapper = mount(ChannelSidebar, { global: { plugins: [pinia] } })
+    const wrapper = mount(ChannelSidebar)
 
     expect(wrapper.get('[data-testid="conversation-list"]').text()).toContain('Alice')
 
@@ -340,7 +335,7 @@ describe('knowledgeCapturePanel integration', () => {
   })
 
   it('supports Feishu-style message sidebar resizing with the mouse', async () => {
-    const wrapper = mount(ChannelSidebar, { global: { plugins: [pinia] } })
+    const wrapper = mount(ChannelSidebar)
     const sidebar = wrapper.get('[data-testid="channel-sidebar"]')
     const handle = wrapper.get('[data-testid="channel-sidebar-resize-handle"]')
 
@@ -385,7 +380,7 @@ describe('knowledgeCapturePanel integration', () => {
   it('does not render the message sidebar collapse toggle and ignores legacy collapsed state', async () => {
     localStorage.setItem('muon_message_sidebar_collapsed', 'true')
 
-    const wrapper = mount(ChannelSidebar, { global: { plugins: [pinia] } })
+    const wrapper = mount(ChannelSidebar)
     const sidebar = wrapper.get('[data-testid="channel-sidebar"]')
 
     await nextTick()

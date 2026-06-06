@@ -1,5 +1,4 @@
 import { mount } from '@vue/test-utils'
-import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { nextTick } from 'vue'
 import GlobalSearch from '@/features/chat/components/GlobalSearch.vue'
@@ -65,7 +64,6 @@ async function flushUi() {
 
 describe('globalSearch performance', () => {
   beforeEach(() => {
-    setActivePinia(createPinia())
     resetRetrievalStore()
     routerPush.mockReset()
     loadInboxEventContextMock.mockReset()

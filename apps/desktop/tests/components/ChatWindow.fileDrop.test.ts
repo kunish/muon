@@ -1,5 +1,4 @@
 import { mount } from '@vue/test-utils'
-import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h, nextTick } from 'vue'
 import ChatWindow from '@/features/chat/components/ChatWindow.vue'
@@ -57,7 +56,6 @@ function mountChatWindow() {
 
 describe('chatWindow file drag-and-drop', () => {
   beforeEach(() => {
-    setActivePinia(createPinia())
     resetChatStore()
     setCurrentRoom('!room:muon.dev')
     acceptDroppedFilesSpy.mockClear()

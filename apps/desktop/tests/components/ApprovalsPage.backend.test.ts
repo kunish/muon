@@ -1,5 +1,4 @@
 import { flushPromises, mount } from '@vue/test-utils'
-import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import ApprovalsPage from '@/features/approvals/components/ApprovalsPage.vue'
 
@@ -32,7 +31,6 @@ function backendSeed() {
 
 describe('approvals page backend mode', () => {
   beforeEach(() => {
-    setActivePinia(createPinia())
     localStorage.clear()
     vi.clearAllMocks()
     api.isApprovalsBackendConfigured.mockReturnValue(true)

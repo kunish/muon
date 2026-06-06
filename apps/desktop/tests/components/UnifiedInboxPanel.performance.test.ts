@@ -1,6 +1,5 @@
 import type { UnifiedInboxItem } from '@/features/chat/types/unifiedInbox'
 import { mount } from '@vue/test-utils'
-import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { computed, ref } from 'vue'
 import UnifiedInboxPanel from '@/features/chat/components/UnifiedInboxPanel.vue'
@@ -45,7 +44,6 @@ function createInboxItem(index: number): UnifiedInboxItem {
 
 describe('unifiedInboxPanel performance', () => {
   beforeEach(() => {
-    setActivePinia(createPinia())
     inboxItems.value = Array.from({ length: 200 }, (_, index) => createInboxItem(index))
   })
 

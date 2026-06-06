@@ -1,7 +1,6 @@
 import type { App } from 'vue'
 import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query'
 import { config } from '@vue/test-utils'
-import { createPinia, setActivePinia } from 'pinia'
 import { createI18n } from 'vue-i18n'
 import en from '../src/locales/en.json'
 import zh from '../src/locales/zh.json'
@@ -68,7 +67,6 @@ afterAll(() => server.close())
 let testQueryClient: QueryClient
 
 beforeEach(() => {
-  setActivePinia(createPinia())
   testQueryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false, gcTime: 0 },

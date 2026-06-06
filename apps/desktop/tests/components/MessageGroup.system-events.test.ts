@@ -1,5 +1,4 @@
 import { mount } from '@vue/test-utils'
-import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import MessageGroup from '@/features/chat/components/MessageGroup.vue'
 
@@ -95,7 +94,6 @@ function mountMessageGroup(events: any[]) {
       roomId: '!room:localhost',
     },
     global: {
-      plugins: [createPinia()],
       stubs: {
         ChatMessage: true,
         MessageGroupAvatar: true,
@@ -108,7 +106,6 @@ function mountMessageGroup(events: any[]) {
 
 describe('message group system events', () => {
   beforeEach(() => {
-    setActivePinia(createPinia())
     memberNames.clear()
     memberNames.set('@owner:localhost', 'Owner')
     memberNames.set('@alice:localhost', 'Alice')

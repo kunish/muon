@@ -1,5 +1,4 @@
 import { mount } from '@vue/test-utils'
-import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import ChatHeader from '@/features/chat/components/ChatHeader.vue'
 import {
@@ -38,7 +37,6 @@ vi.mock('@matrix/roomUtils', () => ({
 
 describe('chatHeader responsive layout', () => {
   beforeEach(() => {
-    setActivePinia(createPinia())
     resetChatStore()
     setCurrentRoom(mockedRoom.roomId)
   })

@@ -1,5 +1,4 @@
 import { mount } from '@vue/test-utils'
-import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { nextTick } from 'vue'
 import UnifiedInboxPanel from '@/features/chat/components/UnifiedInboxPanel.vue'
@@ -28,7 +27,6 @@ async function waitFor(assertion: () => void, attempts = 20) {
 describe('unifiedInboxPanel recovery', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    setActivePinia(createPinia())
     localStorage.clear()
     __resetUnifiedInboxForTests()
   })

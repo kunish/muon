@@ -219,9 +219,6 @@ catalogs:
     pg:
       specifier: ^8.20.0
       version: 8.20.0
-    pinia:
-      specifier: ^3.0.4
-      version: 3.0.4
     prettier:
       specifier: ^3.8.3
       version: 3.8.3
@@ -516,9 +513,6 @@ importers:
       nodemailer:
         specifier: 'catalog:'
         version: 8.0.10
-      pinia:
-        specifier: 'catalog:'
-        version: 3.0.4(typescript@6.0.3)(vue@3.5.33(typescript@6.0.3))
       reka-ui:
         specifier: 'catalog:'
         version: 2.9.6(vue@3.5.33(typescript@6.0.3))
@@ -9541,6 +9535,7 @@ snapshots:
   '@vue/devtools-api@7.7.9':
     dependencies:
       '@vue/devtools-kit': 7.7.9
+    optional: true
 
   '@vue/devtools-api@8.1.1':
     dependencies:
@@ -9555,6 +9550,7 @@ snapshots:
       perfect-debounce: 1.0.0
       speakingurl: 14.0.1
       superjson: 2.2.6
+    optional: true
 
   '@vue/devtools-kit@8.1.1':
     dependencies:
@@ -9566,6 +9562,7 @@ snapshots:
   '@vue/devtools-shared@7.7.9':
     dependencies:
       rfdc: 1.4.1
+    optional: true
 
   '@vue/devtools-shared@8.1.1': {}
 
@@ -10128,6 +10125,7 @@ snapshots:
   copy-anything@4.0.5:
     dependencies:
       is-what: 5.5.0
+    optional: true
 
   core-js-compat@3.49.0:
     dependencies:
@@ -11413,7 +11411,8 @@ snapshots:
     dependencies:
       which-typed-array: 1.1.20
 
-  is-what@5.5.0: {}
+  is-what@5.5.0:
+    optional: true
 
   is-wsl@2.2.0:
     dependencies:
@@ -12463,7 +12462,8 @@ snapshots:
 
   pend@1.2.0: {}
 
-  perfect-debounce@1.0.0: {}
+  perfect-debounce@1.0.0:
+    optional: true
 
   perfect-debounce@2.1.0: {}
 
@@ -12514,6 +12514,7 @@ snapshots:
       vue: 3.5.33(typescript@6.0.3)
     optionalDependencies:
       typescript: 6.0.3
+    optional: true
 
   pino-abstract-transport@3.0.0:
     dependencies:
@@ -13164,7 +13165,8 @@ snapshots:
 
   spdx-license-ids@3.0.23: {}
 
-  speakingurl@14.0.1: {}
+  speakingurl@14.0.1:
+    optional: true
 
   split2@4.2.0: {}
 
@@ -13241,6 +13243,7 @@ snapshots:
   superjson@2.2.6:
     dependencies:
       copy-anything: 4.0.5
+    optional: true
 
   supports-color@7.2.0:
     dependencies:

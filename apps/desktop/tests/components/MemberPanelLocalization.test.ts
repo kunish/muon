@@ -1,6 +1,5 @@
 import type { SpaceMember } from '@/matrix/spaces'
 import { mount } from '@vue/test-utils'
-import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h } from 'vue'
 import { chatStore, resetChatStore } from '@/features/chat/stores/chatStore'
@@ -20,8 +19,6 @@ vi.mock('@/matrix/profile', () => ({
 }))
 
 function mountMemberPanel(members: SpaceMember[]) {
-  const pinia = createPinia()
-  setActivePinia(pinia)
   memberPanelMocks.members = members
 
   serverStore.setState((s) => ({ ...s, currentServerId: '!server:localhost' }))
@@ -31,7 +28,6 @@ function mountMemberPanel(members: SpaceMember[]) {
       visible: true,
     },
     global: {
-      plugins: [pinia],
       stubs: {
         MemberContextMenu: defineComponent({
           name: 'MemberContextMenu',

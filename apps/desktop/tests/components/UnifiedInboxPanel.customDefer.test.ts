@@ -1,5 +1,4 @@
 import { mount } from '@vue/test-utils'
-import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { nextTick } from 'vue'
 import UnifiedInboxPanel from '@/features/chat/components/UnifiedInboxPanel.vue'
@@ -7,7 +6,6 @@ import { __resetUnifiedInboxForTests } from '@/features/chat/composables/useUnif
 
 describe('unifiedInboxPanel custom defer toggle', () => {
   beforeEach(() => {
-    setActivePinia(createPinia())
     localStorage.clear()
     __resetUnifiedInboxForTests()
   })

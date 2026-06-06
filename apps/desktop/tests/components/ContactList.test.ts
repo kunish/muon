@@ -1,6 +1,5 @@
 import { setAuthMediaResolver } from '@muon/ui/media'
 import { mount } from '@vue/test-utils'
-import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import ContactItem from '@/features/contacts/components/ContactItem.vue'
 import ContactList from '@/features/contacts/components/ContactList.vue'
@@ -34,7 +33,6 @@ vi.mock('@matrix/client', () => ({
 
 describe('contactItem', () => {
   beforeEach(() => {
-    setActivePinia(createPinia())
     setAuthMediaResolver(async (url: string) => `blob:${url}`)
   })
 
@@ -117,7 +115,6 @@ describe('contactItem', () => {
 
 describe('contactList layout', () => {
   beforeEach(() => {
-    setActivePinia(createPinia())
     resetContactStore()
     localStorage.clear()
     contactsSeed.contacts = []

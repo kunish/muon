@@ -1,5 +1,4 @@
 import { mount } from '@vue/test-utils'
-import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { nextTick } from 'vue'
 import UnifiedInboxPanel from '@/features/chat/components/UnifiedInboxPanel.vue'
@@ -9,7 +8,6 @@ import { resetInboxStore, setFilter } from '@/features/chat/stores/inboxStore'
 
 describe('unifiedInboxPanel', () => {
   beforeEach(() => {
-    setActivePinia(createPinia())
     localStorage.clear()
     resetDeferStore()
     resetInboxStore()

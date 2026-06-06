@@ -1,4 +1,3 @@
-import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const setMicrophoneEnabled = vi.hoisted(() => vi.fn().mockResolvedValue(undefined))
@@ -66,7 +65,6 @@ async function createVoiceChannel() {
 
 describe('useVoiceChannel', () => {
   beforeEach(() => {
-    setActivePinia(createPinia())
     setMicrophoneEnabled.mockClear()
     setMicrophoneEnabled.mockResolvedValue(undefined)
     getLiveKitToken.mockClear()

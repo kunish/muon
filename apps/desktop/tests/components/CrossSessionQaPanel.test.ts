@@ -1,7 +1,6 @@
 import type { Component } from 'vue'
 import { VueQueryPlugin } from '@tanstack/vue-query'
 import { flushPromises, mount, shallowMount } from '@vue/test-utils'
-import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { nextTick } from 'vue'
 import ChatWindow from '@/features/chat/components/ChatWindow.vue'
@@ -50,7 +49,6 @@ vi.mock('@matrix/index', async (importOriginal) => {
 
 describe('crossSessionQaPanel', () => {
   beforeEach(() => {
-    setActivePinia(createPinia())
     resetChatStore()
     resetQaStore()
     askCrossSessionQuestionMock.mockReset()

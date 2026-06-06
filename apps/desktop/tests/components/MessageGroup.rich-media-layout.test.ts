@@ -1,6 +1,5 @@
 import { mount } from '@vue/test-utils'
-import { createPinia, setActivePinia } from 'pinia'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import MessageGroup from '@/features/chat/components/MessageGroup.vue'
 
 vi.mock('@matrix/client', () => ({
@@ -37,7 +36,6 @@ function mountGroup(event: any) {
       roomId: '!room:localhost',
     },
     global: {
-      plugins: [createPinia()],
       stubs: {
         ChatMessage: {
           props: ['event', 'isFirst', 'roomId', 'hideAvatarColumn'],
@@ -55,10 +53,6 @@ function mountGroup(event: any) {
 }
 
 describe('message group rich media layout', () => {
-  beforeEach(() => {
-    setActivePinia(createPinia())
-  })
-
   it('anchors the avatar at the start of a rich image message group', () => {
     const wrapper = mountGroup(
       createTextEvent({

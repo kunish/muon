@@ -1,5 +1,4 @@
 import { flushPromises, mount } from '@vue/test-utils'
-import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { nextTick } from 'vue'
 import ForwardDialog from '@/features/chat/components/ForwardDialog.vue'
@@ -110,7 +109,6 @@ async function setBodyInputValue(selector: string, value: string) {
 
 describe('messageActionBar', () => {
   beforeEach(() => {
-    setActivePinia(createPinia())
     resetChatStore()
     localStorage.clear()
     resetTaskStore()

@@ -1,5 +1,4 @@
 import { flushPromises, mount } from '@vue/test-utils'
-import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import ChatDocsList from '@/features/chat/components/ChatDocsList.vue'
 import ChatFileList from '@/features/chat/components/ChatFileList.vue'
@@ -49,7 +48,6 @@ vi.mock('vue-sonner', () => ({
 }))
 
 function prepareStore() {
-  setActivePinia(createPinia())
   resetChatStore()
   setCurrentRoom('!room:localhost')
 }
