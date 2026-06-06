@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@muon/ui/textarea';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useWorkItemStore } from '../composables/useWorkItemStore';
+import { createItem } from '../composables/useWorkItemStore';
 import { PRIORITIES, WORK_ITEM_TYPES } from '../types';
 import WorkItemAssigneePicker from './WorkItemAssigneePicker.vue';
 
@@ -25,7 +25,6 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
-const store = useWorkItemStore();
 
 const title = ref(props.initialTitle ?? '');
 const description = ref('');
@@ -63,7 +62,7 @@ async function submit() {
   if (!canSubmit.value) return;
   creating.value = true;
   try {
-    await store.createItem(props.projectId, {
+    await createItem(props.projectId, {
       title: title.value.trim(),
       description: description.value.trim(),
       assignee: assignee.value,

@@ -3,12 +3,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h } from 'vue'
 import WorkItemCreateDialog from '@/features/projects/components/WorkItemCreateDialog.vue'
 import WorkItemDetail from '@/features/projects/components/WorkItemDetail.vue'
+import { resetWorkItemStore, setCurrentProject, setWorkItems } from '@/features/projects/composables/useWorkItemStore'
 
-const storeMock = vi.hoisted(() => ({
-  currentItems: [] as any[],
+const workItemActions = vi.hoisted(() => ({
   createItem: vi.fn(),
   updateItem: vi.fn(),
   deleteItem: vi.fn(),
+  reorderItem: vi.fn(),
+  loadItems: vi.fn(),
 }))
 
 const workflowMock = vi.hoisted(() => ({
@@ -21,9 +23,19 @@ const projectRepoMock = vi.hoisted(() => ({
   listCustomFields: vi.fn(),
 }))
 
-vi.mock('@/features/projects/composables/useWorkItemStore', () => ({
-  useWorkItemStore: () => storeMock,
+vi.mock('@/features/projects/composables/useWorkItemStore', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/features/projects/composables/useWorkItemStore')>()),
+  createItem: workItemActions.createItem,
+  updateItem: workItemActions.updateItem,
+  deleteItem: workItemActions.deleteItem,
+  reorderItem: workItemActions.reorderItem,
+  loadItems: workItemActions.loadItems,
 }))
+
+function seedCurrentItems(projectId: string, items: any[]) {
+  setCurrentProject(projectId)
+  setWorkItems(projectId, items)
+}
 
 vi.mock('@/features/projects/composables/useWorkflow', () => ({
   useWorkflow: () => workflowMock,
@@ -134,27 +146,27 @@ const projectStubs = {
 
 describe('project work item assignee editing', () => {
   beforeEach(() => {
-    storeMock.currentItems = [
-      {
-        id: 'item-1',
-        projectId: 'project-1',
-        type: 'task',
-        title: '跟进上线检查',
-        description: '确认客户端发版准备',
-        status: 'todo',
-        priority: 'medium',
-        assignee: '@bob:localhost',
-        customFields: {},
-        order: 0,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-      },
-    ]
-    storeMock.createItem.mockReset()
-    storeMock.createItem.mockResolvedValue({})
-    storeMock.updateItem.mockReset()
-    storeMock.updateItem.mockResolvedValue(storeMock.currentItems[0])
-    storeMock.deleteItem.mockReset()
+    resetWorkItemStore()
+    const baseItem = {
+      id: 'item-1',
+      projectId: 'project-1',
+      type: 'task',
+      title: '跟进上线检查',
+      description: '确认客户端发版准备',
+      status: 'todo',
+      priority: 'medium',
+      assignee: '@bob:localhost',
+      customFields: {},
+      order: 0,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    }
+    seedCurrentItems('project-1', [baseItem])
+    workItemActions.createItem.mockReset()
+    workItemActions.createItem.mockResolvedValue({})
+    workItemActions.updateItem.mockReset()
+    workItemActions.updateItem.mockResolvedValue(baseItem)
+    workItemActions.deleteItem.mockReset()
     workflowMock.loadWorkflow.mockReset()
     workflowMock.loadWorkflow.mockResolvedValue({ statuses: [], transitions: [] })
     workflowMock.getAvailableTransitions.mockReset()
@@ -184,13 +196,26 @@ describe('project work item assignee editing', () => {
     await wrapper.get('[data-testid="project-task-assignee-picker"]').trigger('click')
     await flushPromises()
 
-    expect(storeMock.updateItem).toHaveBeenCalledWith('item-1', { assignee: '@alice:localhost' })
+    expect(workItemActions.updateItem).toHaveBeenCalledWith('item-1', { assignee: '@alice:localhost' })
   })
 
   it('updates configured custom field values in the task detail drawer', async () => {
-    storeMock.currentItems[0].customFields = {
-      cf_score: 3,
-    }
+    seedCurrentItems('project-1', [
+      {
+        id: 'item-1',
+        projectId: 'project-1',
+        type: 'task',
+        title: '跟进上线检查',
+        description: '确认客户端发版准备',
+        status: 'todo',
+        priority: 'medium',
+        assignee: '@bob:localhost',
+        customFields: { cf_score: 3 },
+        order: 0,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      },
+    ])
     projectRepoMock.listCustomFields.mockResolvedValue([
       {
         id: 'cf_score',
@@ -223,14 +248,26 @@ describe('project work item assignee editing', () => {
     await wrapper.get('[data-testid="project-task-custom-field-cf_score"]').setValue('8')
     await flushPromises()
 
-    expect(storeMock.updateItem).toHaveBeenCalledWith('item-1', { customFields: { cf_score: 8 } })
+    expect(workItemActions.updateItem).toHaveBeenCalledWith('item-1', { customFields: { cf_score: 8 } })
   })
 
   it('updates select and multi-select custom field values from configured options', async () => {
-    storeMock.currentItems[0].customFields = {
-      cf_stage: '待确认',
-      cf_tags: ['移动端'],
-    }
+    seedCurrentItems('project-1', [
+      {
+        id: 'item-1',
+        projectId: 'project-1',
+        type: 'task',
+        title: '跟进上线检查',
+        description: '确认客户端发版准备',
+        status: 'todo',
+        priority: 'medium',
+        assignee: '@bob:localhost',
+        customFields: { cf_stage: '待确认', cf_tags: ['移动端'] },
+        order: 0,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      },
+    ])
     projectRepoMock.listCustomFields.mockResolvedValue([
       {
         id: 'cf_stage',
@@ -270,14 +307,14 @@ describe('project work item assignee editing', () => {
     await wrapper.get('[data-testid="project-task-custom-field-cf_stage"]').setValue('通过')
     await flushPromises()
 
-    expect(storeMock.updateItem).toHaveBeenCalledWith('item-1', {
+    expect(workItemActions.updateItem).toHaveBeenCalledWith('item-1', {
       customFields: { cf_stage: '通过', cf_tags: ['移动端'] },
     })
 
     await wrapper.get('[data-testid="project-task-custom-field-cf_tags-option-1"]').setValue(true)
     await flushPromises()
 
-    expect(storeMock.updateItem).toHaveBeenCalledWith('item-1', {
+    expect(workItemActions.updateItem).toHaveBeenCalledWith('item-1', {
       customFields: { cf_stage: '待确认', cf_tags: ['移动端', '桌面端'] },
     })
   })
@@ -336,7 +373,7 @@ describe('project work item assignee editing', () => {
       .trigger('click')
     await flushPromises()
 
-    expect(storeMock.createItem).toHaveBeenCalledWith('project-1', {
+    expect(workItemActions.createItem).toHaveBeenCalledWith('project-1', {
       title: '补齐验收清单',
       description: '',
       assignee: '@alice:localhost',

@@ -1,18 +1,19 @@
 <script setup lang="ts">
 import type { Priority } from '../../types';
 import { Button } from '@muon/ui/button';
+import { useSelector } from '@tanstack/vue-store';
 import { ArrowDown, ArrowUp, Plus } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useWorkflow } from '../../composables/useWorkflow';
-import { useWorkItemStore } from '../../composables/useWorkItemStore';
+import { selectCurrentItems, workItemStore } from '../../composables/useWorkItemStore';
 import WorkItemCreateDialog from '../WorkItemCreateDialog.vue';
 import WorkItemDetail from '../WorkItemDetail.vue';
 
 const props = defineProps<{ projectId: string }>();
 
 const { t } = useI18n();
-const store = useWorkItemStore();
+const currentItems = useSelector(workItemStore, selectCurrentItems);
 const { loadWorkflow } = useWorkflow(() => props.projectId);
 
 const sortBy = ref<'priority' | 'dueDate' | 'createdAt' | 'title'>('createdAt');
@@ -30,7 +31,7 @@ const priorityOrder: Record<Priority, number> = {
 };
 
 const sortedItems = computed(() => {
-  const items = [...store.currentItems];
+  const items = [...currentItems.value];
   items.sort((a, b) => {
     let cmp = 0;
     if (sortBy.value === 'priority') {

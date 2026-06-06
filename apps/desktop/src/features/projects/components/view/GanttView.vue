@@ -1,19 +1,20 @@
 <script setup lang="ts">
+import { useSelector } from '@tanstack/vue-store';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useWorkItemStore } from '../../composables/useWorkItemStore';
+import { selectCurrentItems, workItemStore } from '../../composables/useWorkItemStore';
 import WorkItemDetail from '../WorkItemDetail.vue';
 
 defineProps<{ projectId: string }>();
 
 const { t, locale } = useI18n();
-const store = useWorkItemStore();
+const currentItems = useSelector(workItemStore, selectCurrentItems);
 const monthsBack = ref(1);
 const monthsForward = ref(3);
 const selectedItemId = ref<string | null>(null);
 
 const itemsWithDates = computed(() =>
-  store.currentItems.filter((i) => i.dueDate).sort((a, b) => (a.dueDate ?? 0) - (b.dueDate ?? 0)),
+  currentItems.value.filter((i) => i.dueDate).sort((a, b) => (a.dueDate ?? 0) - (b.dueDate ?? 0)),
 );
 
 const MS_PER_DAY = 86_400_000;

@@ -7,7 +7,7 @@ import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { ask } from '@/desktop/dialog';
 import { setCurrentProject } from '../composables/useProjectStore';
-import { useWorkItemStore } from '../composables/useWorkItemStore';
+import { loadItems, setCurrentProject as setWorkItemProject } from '../composables/useWorkItemStore';
 import { useDeleteProject, useProjectsQuery } from '../queries/useProjects';
 import BoardView from './view/BoardView.vue';
 import GanttView from './view/GanttView.vue';
@@ -20,7 +20,6 @@ const route = useRoute();
 const router = useRouter();
 const projectsQuery = useProjectsQuery();
 const deleteProjectMutation = useDeleteProject();
-const itemStore = useWorkItemStore();
 
 const project = computed(() => projectsQuery.projects.value.find((p) => p.id === props.projectId));
 
@@ -34,9 +33,9 @@ watch(
   () => props.projectId,
   async (projectId) => {
     setCurrentProject(projectId);
-    itemStore.setCurrentProject(projectId);
+    setWorkItemProject(projectId);
     if (!project.value) await projectsQuery.refetch();
-    await itemStore.loadItems(projectId);
+    await loadItems(projectId);
   },
   { immediate: true },
 );

@@ -2,22 +2,24 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h } from 'vue'
 import ListView from '@/features/projects/components/view/ListView.vue'
+import { resetWorkItemStore, setCurrentProject, setWorkItems } from '@/features/projects/composables/useWorkItemStore'
 
 const workflowMock = vi.hoisted(() => ({
   loadWorkflow: vi.fn(),
-}))
-
-const itemStoreMock = vi.hoisted(() => ({
-  currentItems: [] as any[],
 }))
 
 vi.mock('@/features/projects/composables/useWorkflow', () => ({
   useWorkflow: () => workflowMock,
 }))
 
-vi.mock('@/features/projects/composables/useWorkItemStore', () => ({
-  useWorkItemStore: () => itemStoreMock,
+vi.mock('@/features/projects/composables/useWorkItemStore', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/features/projects/composables/useWorkItemStore')>()),
 }))
+
+function seedCurrentItems(projectId: string, items: any[]) {
+  setCurrentProject(projectId)
+  setWorkItems(projectId, items)
+}
 
 const ButtonStub = defineComponent({
   name: 'Button',
@@ -84,6 +86,7 @@ function mountListView() {
 
 describe('projectListViewWorkflow', () => {
   beforeEach(() => {
+    resetWorkItemStore()
     workflowMock.loadWorkflow.mockReset()
     workflowMock.loadWorkflow.mockResolvedValue({
       statuses: [
@@ -92,7 +95,7 @@ describe('projectListViewWorkflow', () => {
       ],
       transitions: [],
     })
-    itemStoreMock.currentItems = [
+    seedCurrentItems('project-1', [
       {
         id: 'item-1',
         title: '验收发版计划',
@@ -100,7 +103,7 @@ describe('projectListViewWorkflow', () => {
         priority: 'none',
         createdAt: 1,
       },
-    ]
+    ])
   })
 
   it('uses workflow status names and creates list tasks in the first workflow status', async () => {

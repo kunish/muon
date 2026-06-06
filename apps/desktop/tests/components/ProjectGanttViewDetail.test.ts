@@ -2,14 +2,16 @@ import { mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h } from 'vue'
 import GanttView from '@/features/projects/components/view/GanttView.vue'
+import { resetWorkItemStore, setCurrentProject, setWorkItems } from '@/features/projects/composables/useWorkItemStore'
 
-const itemStoreMock = vi.hoisted(() => ({
-  currentItems: [] as any[],
+vi.mock('@/features/projects/composables/useWorkItemStore', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/features/projects/composables/useWorkItemStore')>()),
 }))
 
-vi.mock('@/features/projects/composables/useWorkItemStore', () => ({
-  useWorkItemStore: () => itemStoreMock,
-}))
+function seedCurrentItems(projectId: string, items: any[]) {
+  setCurrentProject(projectId)
+  setWorkItems(projectId, items)
+}
 
 const WorkItemDetailStub = defineComponent({
   name: 'WorkItemDetail',
@@ -43,13 +45,14 @@ function mountGanttView() {
 
 describe('projectGanttViewDetail', () => {
   beforeEach(() => {
-    itemStoreMock.currentItems = [
+    resetWorkItemStore()
+    seedCurrentItems('project-1', [
       {
         id: 'item-1',
         title: '发版里程碑',
         dueDate: Date.now() + 86_400_000,
       },
-    ]
+    ])
   })
 
   it('opens the task detail drawer from a gantt row', async () => {

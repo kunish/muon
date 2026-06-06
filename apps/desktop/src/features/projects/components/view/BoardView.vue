@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import type { Workflow, WorkflowStatus } from '../../types';
 import { Button } from '@muon/ui/button';
+import { useSelector } from '@tanstack/vue-store';
 import { Plus } from 'lucide-vue-next';
 import { onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useWorkflow } from '../../composables/useWorkflow';
-import { useWorkItemStore } from '../../composables/useWorkItemStore';
+import { reorderItem, selectCurrentItems, workItemStore } from '../../composables/useWorkItemStore';
 import WorkItemCard from '../WorkItemCard.vue';
 import WorkItemCreateDialog from '../WorkItemCreateDialog.vue';
 import WorkItemDetail from '../WorkItemDetail.vue';
@@ -13,7 +14,7 @@ import WorkItemDetail from '../WorkItemDetail.vue';
 const props = defineProps<{ projectId: string }>();
 
 const { t } = useI18n();
-const itemStore = useWorkItemStore();
+const currentItems = useSelector(workItemStore, selectCurrentItems);
 const { loadWorkflow, canTransition } = useWorkflow(() => props.projectId);
 
 const statuses = ref<WorkflowStatus[]>([]);
@@ -29,7 +30,7 @@ onMounted(async () => {
 });
 
 function itemsForStatus(statusKey: string) {
-  return itemStore.currentItems.filter((i) => i.status === statusKey);
+  return currentItems.value.filter((i) => i.status === statusKey);
 }
 
 function openCreate(statusKey: string) {
@@ -53,13 +54,13 @@ async function onDrop(event: DragEvent, targetStatus: string) {
   event.preventDefault();
   const itemId = event.dataTransfer?.getData('text/plain');
   if (!itemId) return;
-  const item = itemStore.currentItems.find((current) => current.id === itemId);
+  const item = currentItems.value.find((current) => current.id === itemId);
   if (!item) return;
   if (item.status !== targetStatus && workflow.value && !canTransition(workflow.value, item.status, targetStatus))
     return;
   const items = itemsForStatus(targetStatus);
   const newOrder = items.length > 0 ? Math.max(...items.map((i) => i.order)) + 1 : 0;
-  await itemStore.reorderItem(itemId, props.projectId, newOrder, targetStatus);
+  await reorderItem(itemId, props.projectId, newOrder, targetStatus);
 }
 </script>
 

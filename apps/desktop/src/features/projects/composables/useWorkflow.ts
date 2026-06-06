@@ -4,7 +4,7 @@ import { Effect } from 'effect'
 import { computed } from 'vue'
 import { fromPromise, fromSync, runDesktopEffect } from '@/shared/lib/effect'
 import { projectRepo } from '../db/projectDb'
-import { useWorkItemStore } from './useWorkItemStore'
+import { updateItem } from './useWorkItemStore'
 
 const DEFAULT_WORKFLOW: Omit<Workflow, 'projectId'> = {
   id: '',
@@ -30,8 +30,6 @@ function createDefaultWorkflow(projectId: string): Workflow {
 }
 
 export function useWorkflow(projectId: () => string) {
-  const itemStore = useWorkItemStore()
-
   function loadWorkflowEffect(): DesktopEffect<Workflow> {
     return Effect.gen(function* () {
       const pid = projectId()
@@ -83,7 +81,7 @@ export function useWorkflow(projectId: () => string) {
         })
       }
 
-      yield* fromPromise(() => itemStore.updateItem(itemId, { status: toStatus }))
+      yield* fromPromise(() => updateItem(itemId, { status: toStatus }))
     })
   }
 

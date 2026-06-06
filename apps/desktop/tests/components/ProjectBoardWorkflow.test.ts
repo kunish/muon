@@ -2,14 +2,19 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h } from 'vue'
 import BoardView from '@/features/projects/components/view/BoardView.vue'
+import { resetWorkItemStore, setCurrentProject, setWorkItems } from '@/features/projects/composables/useWorkItemStore'
+
+function seedCurrentItems(projectId: string, items: any[]) {
+  setCurrentProject(projectId)
+  setWorkItems(projectId, items)
+}
 
 const workflowMock = vi.hoisted(() => ({
   canTransition: vi.fn(),
   loadWorkflow: vi.fn(),
 }))
 
-const itemStoreMock = vi.hoisted(() => ({
-  currentItems: [] as any[],
+const workItemActions = vi.hoisted(() => ({
   reorderItem: vi.fn(),
 }))
 
@@ -17,8 +22,9 @@ vi.mock('@/features/projects/composables/useWorkflow', () => ({
   useWorkflow: () => workflowMock,
 }))
 
-vi.mock('@/features/projects/composables/useWorkItemStore', () => ({
-  useWorkItemStore: () => itemStoreMock,
+vi.mock('@/features/projects/composables/useWorkItemStore', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/features/projects/composables/useWorkItemStore')>()),
+  reorderItem: workItemActions.reorderItem,
 }))
 
 const ButtonStub = defineComponent({
@@ -88,12 +94,13 @@ async function dropItem(wrapper: ReturnType<typeof mount>, targetStatus: string,
 
 describe('projectBoardWorkflow', () => {
   beforeEach(() => {
+    resetWorkItemStore()
     workflowMock.canTransition.mockReset()
     workflowMock.loadWorkflow.mockReset()
     workflowMock.loadWorkflow.mockResolvedValue(workflowFixture())
-    itemStoreMock.reorderItem.mockReset()
-    itemStoreMock.reorderItem.mockResolvedValue(undefined)
-    itemStoreMock.currentItems = [
+    workItemActions.reorderItem.mockReset()
+    workItemActions.reorderItem.mockResolvedValue(undefined)
+    seedCurrentItems('project-1', [
       {
         id: 'item-1',
         projectId: 'project-1',
@@ -108,7 +115,7 @@ describe('projectBoardWorkflow', () => {
         status: 'done',
         order: 2,
       },
-    ]
+    ])
   })
 
   it('does not move cards through a disallowed workflow transition', async () => {
@@ -119,7 +126,7 @@ describe('projectBoardWorkflow', () => {
     await dropItem(wrapper, 'done', 'item-1')
 
     expect(workflowMock.canTransition).toHaveBeenCalledWith(expect.any(Object), 'todo', 'done')
-    expect(itemStoreMock.reorderItem).not.toHaveBeenCalled()
+    expect(workItemActions.reorderItem).not.toHaveBeenCalled()
   })
 
   it('moves cards when the workflow transition is allowed', async () => {
@@ -129,6 +136,6 @@ describe('projectBoardWorkflow', () => {
 
     await dropItem(wrapper, 'done', 'item-1')
 
-    expect(itemStoreMock.reorderItem).toHaveBeenCalledWith('item-1', 'project-1', 3, 'done')
+    expect(workItemActions.reorderItem).toHaveBeenCalledWith('item-1', 'project-1', 3, 'done')
   })
 })

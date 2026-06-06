@@ -9,6 +9,7 @@ import { Input } from '@muon/ui/input';
 import { Label } from '@muon/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@muon/ui/select';
 import { Textarea } from '@muon/ui/textarea';
+import { useSelector } from '@tanstack/vue-store';
 import { Trash2, X } from 'lucide-vue-next';
 import { RoomEvent } from 'matrix-js-sdk';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
@@ -17,7 +18,7 @@ import { ask } from '@/desktop/dialog';
 import { getWorkItemComments, isWorkItemCommentEvent, sendWorkItemComment } from '@/matrix/projects';
 import { useContactList } from '@/shared/composables/useContactList';
 import { useWorkflow } from '../composables/useWorkflow';
-import { useWorkItemStore } from '../composables/useWorkItemStore';
+import { deleteItem, selectCurrentItems, updateItem, workItemStore } from '../composables/useWorkItemStore';
 import { projectRepo } from '../db/projectDb';
 import { PRIORITIES, WORK_ITEM_TYPES } from '../types';
 import WorkItemAssigneePicker from './WorkItemAssigneePicker.vue';
@@ -26,9 +27,9 @@ const props = defineProps<{ itemId: string }>();
 const emit = defineEmits<{ close: [] }>();
 
 const { t, locale } = useI18n();
-const store = useWorkItemStore();
+const currentItems = useSelector(workItemStore, selectCurrentItems);
 const contactList = useContactList();
-const item = computed(() => store.currentItems.find((i) => i.id === props.itemId));
+const item = computed(() => currentItems.value.find((i) => i.id === props.itemId));
 
 // ── 工作项评论（挂项目 Matrix 房间） ──
 const comments = ref<WorkItemComment[]>([]);
@@ -125,7 +126,7 @@ function buildAvailableTransitions(wf: Workflow, currentStatus: string): Availab
 
 async function handleSave() {
   if (!item.value) return;
-  await store.updateItem(item.value.id, {
+  await updateItem(item.value.id, {
     title: editTitle.value,
     description: editDescription.value,
   });
@@ -143,7 +144,7 @@ async function handleDelete() {
     kind: 'warning',
   });
   if (!confirmed) return;
-  await store.deleteItem(item.value.id, item.value.projectId);
+  await deleteItem(item.value.id, item.value.projectId);
   emit('close');
 }
 
@@ -161,27 +162,27 @@ function isWorkItemType(value: string | number): value is WorkItemType {
 async function updatePriority(value: string | number) {
   const current = item.value;
   if (!current || !isPriority(value)) return;
-  await store.updateItem(current.id, { priority: value });
+  await updateItem(current.id, { priority: value });
 }
 
 async function updateType(value: string | number) {
   const current = item.value;
   if (!current || !isWorkItemType(value)) return;
-  await store.updateItem(current.id, { type: value });
+  await updateItem(current.id, { type: value });
 }
 
 async function updateDueDate(value: string | number) {
   const current = item.value;
   if (!current) return;
   const dateValue = String(value);
-  await store.updateItem(current.id, { dueDate: dateValue ? new Date(dateValue).getTime() : undefined });
+  await updateItem(current.id, { dueDate: dateValue ? new Date(dateValue).getTime() : undefined });
 }
 
 async function updateAssignee(value: string | undefined) {
   const current = item.value;
   if (!current) return;
 
-  await store.updateItem(current.id, { assignee: value });
+  await updateItem(current.id, { assignee: value });
 }
 
 function customFieldInputType(field: CustomField): string {
@@ -239,7 +240,7 @@ async function updateCustomField(field: CustomField, value: string | number | st
   if (normalized === undefined) delete nextCustomFields[field.id];
   else nextCustomFields[field.id] = normalized;
 
-  await store.updateItem(current.id, { customFields: nextCustomFields });
+  await updateItem(current.id, { customFields: nextCustomFields });
 }
 
 function toggleMultiSelectCustomField(field: CustomField, option: string, checked: boolean) {
