@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import type { Priority } from '../../types';
+import type { SortingState } from '@tanstack/vue-table';
+import type { Priority, WorkItem } from '../../types';
 import { Button } from '@muon/ui/button';
 import { useSelector } from '@tanstack/vue-store';
+import { createColumnHelper, getCoreRowModel, getSortedRowModel, useVueTable } from '@tanstack/vue-table';
 import { ArrowDown, ArrowUp, Plus } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -16,8 +18,6 @@ const { t } = useI18n();
 const currentItems = useSelector(workItemStore, selectCurrentItems);
 const { loadWorkflow } = useWorkflow(() => props.projectId);
 
-const sortBy = ref<'priority' | 'dueDate' | 'createdAt' | 'title'>('createdAt');
-const sortDir = ref<'asc' | 'desc'>('desc');
 const showCreateDialog = ref(false);
 const selectedItemId = ref<string | null>(null);
 const statuses = ref<Array<{ key: string; name: string }>>([]);
@@ -30,23 +30,51 @@ const priorityOrder: Record<Priority, number> = {
   none: 4,
 };
 
-const sortedItems = computed(() => {
-  const items = [...currentItems.value];
-  items.sort((a, b) => {
-    let cmp = 0;
-    if (sortBy.value === 'priority') {
-      cmp = (priorityOrder[a.priority] ?? 4) - (priorityOrder[b.priority] ?? 4);
-    } else if (sortBy.value === 'dueDate') {
-      cmp = (a.dueDate ?? Infinity) - (b.dueDate ?? Infinity);
-    } else if (sortBy.value === 'title') {
-      cmp = a.title.localeCompare(b.title);
-    } else {
-      cmp = a.createdAt - b.createdAt;
-    }
-    return sortDir.value === 'desc' ? -cmp : cmp;
-  });
-  return items;
+const columnHelper = createColumnHelper<WorkItem>();
+const columns = [
+  // Hidden default-sort key (not rendered); preserves the old "newest first" default.
+  columnHelper.accessor('createdAt', { id: 'createdAt' }),
+  columnHelper.accessor('title', {
+    id: 'title',
+    sortingFn: (a, b) => a.original.title.localeCompare(b.original.title),
+  }),
+  columnHelper.accessor('priority', {
+    id: 'priority',
+    sortingFn: (a, b) => (priorityOrder[a.original.priority] ?? 4) - (priorityOrder[b.original.priority] ?? 4),
+  }),
+  columnHelper.accessor((row) => row.dueDate ?? Number.POSITIVE_INFINITY, { id: 'dueDate', sortingFn: 'basic' }),
+];
+
+const sorting = ref<SortingState>([{ id: 'createdAt', desc: true }]);
+
+const table = useVueTable({
+  get data() {
+    return currentItems.value;
+  },
+  columns,
+  state: {
+    get sorting() {
+      return sorting.value;
+    },
+  },
+  onSortingChange: (updater) => {
+    sorting.value = typeof updater === 'function' ? updater(sorting.value) : updater;
+  },
+  getCoreRowModel: getCoreRowModel(),
+  getSortedRowModel: getSortedRowModel(),
+  enableSortingRemoval: false,
+  sortDescFirst: false,
 });
+
+const rows = computed(() => table.getRowModel().rows);
+
+function sortDirection(columnId: string): false | 'asc' | 'desc' {
+  return table.getColumn(columnId)?.getIsSorted() ?? false;
+}
+
+function toggleSort(columnId: string) {
+  table.getColumn(columnId)?.toggleSorting();
+}
 
 const statusByKey = computed(() => new Map(statuses.value.map((status) => [status.key, status])));
 const defaultCreateStatus = computed(() => statuses.value[0]?.key ?? 'todo');
@@ -62,15 +90,6 @@ watch(
   },
   { immediate: true },
 );
-
-function toggleSort(field: typeof sortBy.value) {
-  if (sortBy.value === field) {
-    sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc';
-  } else {
-    sortBy.value = field;
-    sortDir.value = 'asc';
-  }
-}
 
 function statusLabel(statusKey: string): string {
   return statusByKey.value.get(statusKey)?.name || statusKey;
@@ -92,8 +111,8 @@ function statusLabel(statusKey: string): string {
           <tr class="border-b text-left text-xs text-muted-foreground">
             <th class="cursor-pointer px-4 py-2 font-medium" @click="toggleSort('title')">
               {{ t('projects.task_title') }}
-              <ArrowUp v-if="sortBy === 'title' && sortDir === 'asc'" class="inline h-3 w-3" />
-              <ArrowDown v-else-if="sortBy === 'title'" class="inline h-3 w-3" />
+              <ArrowUp v-if="sortDirection('title') === 'asc'" class="inline h-3 w-3" />
+              <ArrowDown v-else-if="sortDirection('title') === 'desc'" class="inline h-3 w-3" />
             </th>
             <th class="px-4 py-2 font-medium">
               {{ t('projects.assignee') }}
@@ -104,13 +123,13 @@ function statusLabel(statusKey: string): string {
               @click="toggleSort('priority')"
             >
               {{ t('projects.priority') }}
-              <ArrowUp v-if="sortBy === 'priority' && sortDir === 'asc'" class="inline h-3 w-3" />
-              <ArrowDown v-else-if="sortBy === 'priority'" class="inline h-3 w-3" />
+              <ArrowUp v-if="sortDirection('priority') === 'asc'" class="inline h-3 w-3" />
+              <ArrowDown v-else-if="sortDirection('priority') === 'desc'" class="inline h-3 w-3" />
             </th>
             <th class="cursor-pointer px-4 py-2 font-medium" @click="toggleSort('dueDate')">
               {{ t('projects.due_date') }}
-              <ArrowUp v-if="sortBy === 'dueDate' && sortDir === 'asc'" class="inline h-3 w-3" />
-              <ArrowDown v-else-if="sortBy === 'dueDate'" class="inline h-3 w-3" />
+              <ArrowUp v-if="sortDirection('dueDate') === 'asc'" class="inline h-3 w-3" />
+              <ArrowDown v-else-if="sortDirection('dueDate') === 'desc'" class="inline h-3 w-3" />
             </th>
             <th class="px-4 py-2 font-medium">
               {{ t('projects.status') }}
@@ -119,31 +138,31 @@ function statusLabel(statusKey: string): string {
         </thead>
         <tbody>
           <tr
-            v-for="item in sortedItems"
-            :key="item.id"
-            :data-testid="`project-list-row-${item.id}`"
+            v-for="row in rows"
+            :key="row.original.id"
+            :data-testid="`project-list-row-${row.original.id}`"
             class="cursor-pointer border-b text-sm hover:bg-muted/50"
-            @click="selectedItemId = item.id"
+            @click="selectedItemId = row.original.id"
           >
             <td class="max-w-0 px-4 py-2.5">
-              <span class="block truncate font-medium">{{ item.title }}</span>
+              <span class="block truncate font-medium">{{ row.original.title }}</span>
             </td>
             <td class="px-4 py-2.5 text-muted-foreground">
-              {{ item.assignee ? item.assignee.split(':')[0] : '-' }}
+              {{ row.original.assignee ? row.original.assignee.split(':')[0] : '-' }}
             </td>
             <td class="px-4 py-2.5 text-muted-foreground">
-              {{ t(`projects.priority_${item.priority}`) }}
+              {{ t(`projects.priority_${row.original.priority}`) }}
             </td>
             <td class="px-4 py-2.5 text-muted-foreground">
-              {{ item.dueDate ? new Date(item.dueDate).toLocaleDateString() : '-' }}
+              {{ row.original.dueDate ? new Date(row.original.dueDate).toLocaleDateString() : '-' }}
             </td>
             <td class="px-4 py-2.5">
-              <span class="rounded bg-muted px-2 py-0.5 text-xs">{{ statusLabel(item.status) }}</span>
+              <span class="rounded bg-muted px-2 py-0.5 text-xs">{{ statusLabel(row.original.status) }}</span>
             </td>
           </tr>
         </tbody>
       </table>
-      <p v-if="sortedItems.length === 0" class="py-12 text-center text-muted-foreground">
+      <p v-if="rows.length === 0" class="py-12 text-center text-muted-foreground">
         {{ t('projects.no_tasks') }}
       </p>
     </div>
