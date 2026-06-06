@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { getClient } from '@matrix/client';
+import { useSelector } from '@tanstack/vue-store';
 import { ArrowLeft, Download } from 'lucide-vue-next';
 import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue';
 import { useRouter } from 'vue-router';
@@ -11,7 +12,7 @@ import { useDocEditor } from '../../composables/useDocEditor';
 import { useDocSync } from '../../composables/useDocSync';
 import { resolveCurrentDocUser } from '../../lib/currentDocUser';
 import { exportDocAsHtml, exportDocAsMarkdown } from '../../lib/exportDoc';
-import { useDocsStore } from '../../stores/docsStore';
+import { docsStore, updateDocumentTitle } from '../../stores/docsStore';
 import { MATRIX_EVENT_TYPES } from '../../types/doc';
 import CollaboratorAvatars from '../collaboration/CollaboratorAvatars.vue';
 import CommentsPanel from '../collaboration/CommentsPanel.vue';
@@ -29,9 +30,9 @@ const currentUser = resolveCurrentDocUser(props.userName);
 const currentUserId = currentUser.id;
 const userName = computed(() => props.userName ?? currentUser.name);
 const color = currentUser.color;
-const docsStore = useDocsStore();
 const router = useRouter();
-const currentDoc = computed(() => docsStore.documents.find((doc) => doc.id === props.docId));
+const documents = useSelector(docsStore, (s) => s.documents);
+const currentDoc = computed(() => documents.value.find((doc) => doc.id === props.docId));
 const initialTitle = computed(() => currentDoc.value?.title ?? '');
 const exportTitle = computed(() => currentDoc.value?.title ?? initialTitle.value);
 
@@ -109,7 +110,7 @@ watch(
 );
 
 function handleTitleChange(title: string): void {
-  void docsStore.updateDocumentTitle(props.docId, title);
+  void updateDocumentTitle(props.docId, title);
 }
 
 function backToDocsList(): void {

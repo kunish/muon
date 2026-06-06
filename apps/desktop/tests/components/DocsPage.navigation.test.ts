@@ -2,6 +2,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent } from 'vue'
 import DocsPage from '@/features/docs/components/DocsPage.vue'
+import { resetDocsStore } from '@/features/docs/stores/docsStore'
 
 const routeParams = vi.hoisted(() => vi.fn(() => ({})))
 const routerPush = vi.hoisted(() => vi.fn())
@@ -98,6 +99,8 @@ describe('docsPage navigation', () => {
   beforeEach(() => {
     // 重置持久化的文档元数据覆盖，避免重命名等用例污染后续用例
     localStorage.clear()
+    // docsStore is now a module singleton — reset its UI/doc state between tests.
+    resetDocsStore()
     routeParams.mockReturnValue({})
     routerPush.mockReset()
   })

@@ -1,12 +1,8 @@
 import type { DocEntry, DocFolderNode, DocFolderRecord, DocSectionId } from '../types/doc'
-import type { DesktopEffect } from '@/shared/lib/effect'
 import { getClient } from '@matrix/client'
 import { sendTextMessage } from '@matrix/index'
-import { Effect } from 'effect'
+import { Store } from '@tanstack/vue-store'
 import { Visibility } from 'matrix-js-sdk'
-import { defineStore } from 'pinia'
-import { computed, shallowRef } from 'vue'
-import { fromPromise, fromSync, runDesktopEffect, runDesktopSync } from '@/shared/lib/effect'
 import { MATRIX_EVENT_TYPES } from '../types/doc'
 
 interface DocMetadataContent {
@@ -85,33 +81,28 @@ const LOCAL_DOC_METADATA_OVERRIDES_STORAGE_KEY = 'muon_docs_metadata_overrides_v
 const DELETED_DOC_FOLDERS_STORAGE_KEY = 'muon_docs_deleted_folders_v1'
 
 function readStorageItem(key: string): string | null {
-  return runDesktopSync(readStorageItemEffect(key))
-}
-
-function readStorageItemEffect(key: string): DesktopEffect<string | null> {
-  return fromSync(() => {
+  try {
     return globalThis.localStorage?.getItem(key) ?? null
-  }).pipe(Effect.catchAll(() => Effect.succeed(null)))
+  } catch {
+    // localStorage access is best-effort.
+    return null
+  }
 }
 
 function writeStorageItem(key: string, value: string): void {
-  runDesktopSync(writeStorageItemEffect(key, value))
-}
-
-function writeStorageItemEffect(key: string, value: string): DesktopEffect<void> {
-  return fromSync(() => {
+  try {
     globalThis.localStorage?.setItem(key, value)
-  }).pipe(Effect.catchAll(() => Effect.void))
+  } catch {
+    // localStorage persistence is best-effort.
+  }
 }
 
 function removeStorageItem(key: string): void {
-  runDesktopSync(removeStorageItemEffect(key))
-}
-
-function removeStorageItemEffect(key: string): DesktopEffect<void> {
-  return fromSync(() => {
+  try {
     globalThis.localStorage?.removeItem(key)
-  }).pipe(Effect.catchAll(() => Effect.void))
+  } catch {
+    // localStorage removal is best-effort.
+  }
 }
 
 function getDocMetadataEvent(room: MatrixDocRoom): MatrixDocEvent | undefined {
@@ -152,14 +143,10 @@ function normalizeLocalMetadataOverride(value: unknown): LocalDocMetadataOverrid
 }
 
 function readLocalMetadataOverrides(): Map<string, LocalDocMetadataOverride> {
-  return runDesktopSync(readLocalMetadataOverridesEffect())
-}
-
-function readLocalMetadataOverridesEffect(): DesktopEffect<Map<string, LocalDocMetadataOverride>> {
   const raw = readStorageItem(LOCAL_DOC_METADATA_OVERRIDES_STORAGE_KEY)
-  if (!raw) return Effect.succeed(new Map<string, LocalDocMetadataOverride>())
+  if (!raw) return new Map<string, LocalDocMetadataOverride>()
 
-  return fromSync(() => {
+  try {
     const parsed = JSON.parse(raw) as unknown
     const entries = Array.isArray(parsed) ? parsed : Object.entries(parsed as Record<string, unknown>)
     return new Map(
@@ -172,7 +159,10 @@ function readLocalMetadataOverridesEffect(): DesktopEffect<Map<string, LocalDocM
         })
         .filter((entry): entry is readonly [string, LocalDocMetadataOverride] => entry !== null),
     )
-  }).pipe(Effect.catchAll(() => Effect.succeed(new Map<string, LocalDocMetadataOverride>())))
+  } catch {
+    // Corrupt persisted overrides fall back to an empty map.
+    return new Map<string, LocalDocMetadataOverride>()
+  }
 }
 
 function writeLocalMetadataOverrides(overrides: Map<string, LocalDocMetadataOverride>): void {
@@ -185,19 +175,18 @@ function writeLocalMetadataOverrides(overrides: Map<string, LocalDocMetadataOver
 }
 
 function readDeletedFolderIds(): Set<string> {
-  return runDesktopSync(readDeletedFolderIdsEffect())
-}
-
-function readDeletedFolderIdsEffect(): DesktopEffect<Set<string>> {
   const raw = readStorageItem(DELETED_DOC_FOLDERS_STORAGE_KEY)
-  if (!raw) return Effect.succeed(new Set<string>())
+  if (!raw) return new Set<string>()
 
-  return fromSync(() => {
+  try {
     const parsed = JSON.parse(raw) as unknown
     if (!Array.isArray(parsed)) return new Set<string>()
 
     return new Set(parsed.map((value) => (typeof value === 'string' ? normalizeFolderId(value) : '')).filter(Boolean))
-  }).pipe(Effect.catchAll(() => Effect.succeed(new Set<string>())))
+  } catch {
+    // Corrupt persisted deleted-folder ids fall back to an empty set.
+    return new Set<string>()
+  }
 }
 
 function writeDeletedFolderIds(folderIds: Set<string>): void {
@@ -512,673 +501,607 @@ function deriveDocumentSectionIds(
   return [...sections]
 }
 
-function warnEffect(message: string, error: unknown): DesktopEffect<void> {
-  return fromSync(() => console.warn(message, error))
+/**
+ * Best-effort: swallow Matrix M_FORBIDDEN errors (logging a warning) while
+ * rethrowing everything else. Used when a write is allowed to fail silently if
+ * the user lacks permission, but real failures must still surface.
+ */
+function ignoreForbiddenMatrixError(message: string, error: unknown): void {
+  if (!isForbiddenMatrixError(error)) throw error
+  console.warn(message, error)
 }
 
-function ignoreForbiddenMatrixErrorEffect(message: string, error: unknown): DesktopEffect<void> {
-  return isForbiddenMatrixError(error) ? warnEffect(message, error) : Effect.fail(error)
+// ── Store state ──
+
+export interface DocsState {
+  documents: DocEntry[]
+  folders: DocFolderRecord[]
+  activeSection: DocSectionId
+  activeFolder: string
+  searchQuery: string
+  reviewOnly: boolean
+  isLoading: boolean
+  deletedFolderIds: Set<string>
 }
 
-export const useDocsStore = defineStore('docs', () => {
-  const documents = shallowRef<DocEntry[]>([])
-  const folders = shallowRef<DocFolderRecord[]>([])
-  const activeSection = shallowRef<DocSectionId>('recent')
-  const activeFolder = shallowRef(ROOT_DOC_FOLDER_ID)
-  const searchQuery = shallowRef('')
-  const reviewOnly = shallowRef(false)
-  const isLoading = shallowRef(false)
-  const localMetadataOverrides = readLocalMetadataOverrides()
-  const deletedFolderIds = shallowRef(readDeletedFolderIds())
+function createInitialState(): DocsState {
+  return {
+    documents: [],
+    folders: [],
+    activeSection: 'recent',
+    activeFolder: ROOT_DOC_FOLDER_ID,
+    searchQuery: '',
+    reviewOnly: false,
+    isLoading: false,
+    deletedFolderIds: readDeletedFolderIds(),
+  }
+}
 
-  const folderTree = computed(() => buildFolderTree(documents.value, folders.value, deletedFolderIds.value))
-  const selectedFolderIds = computed(() => {
-    const folderId = normalizeFolderId(activeFolder.value)
-    if (!folderId) return null
+export const docsStore = new Store<DocsState>(createInitialState())
 
-    const node = findFolderNode(folderTree.value, folderId)
-    if (!node) return new Set([folderId])
+/**
+ * Local, non-reactive metadata overrides keyed by doc id. Mirrors what is
+ * persisted in localStorage; kept outside store state because it is an
+ * implementation detail of optimistic metadata writes, not UI state.
+ */
+let localMetadataOverrides = readLocalMetadataOverrides()
 
-    const folderIds = new Set<string>()
-    collectFolderIds(node, folderIds)
-    return folderIds
+// ── Pure selectors (read via useSelector in consumers) ──
+
+export function selectFolderTree(state: DocsState): DocFolderNode {
+  return buildFolderTree(state.documents, state.folders, state.deletedFolderIds)
+}
+
+export function selectSelectedFolderIds(state: DocsState): Set<string> | null {
+  const folderId = normalizeFolderId(state.activeFolder)
+  if (!folderId) return null
+
+  const node = findFolderNode(selectFolderTree(state), folderId)
+  if (!node) return new Set([folderId])
+
+  const folderIds = new Set<string>()
+  collectFolderIds(node, folderIds)
+  return folderIds
+}
+
+export function selectFilteredDocuments(state: DocsState): DocEntry[] {
+  const query = state.searchQuery.trim().toLowerCase()
+  const selectedFolderIds = selectSelectedFolderIds(state)
+  return state.documents.filter((doc) => {
+    const matchesQuery = !query || doc.title.toLowerCase().includes(query) || doc.owner.toLowerCase().includes(query)
+    const matchesSection = doc.sectionIds.includes(state.activeSection)
+    const matchesFolder = selectedFolderIds === null || selectedFolderIds.has(normalizeFolderId(doc.folder))
+    const matchesReview = !state.reviewOnly || doc.status === '评审中'
+    return matchesSection && matchesFolder && matchesQuery && matchesReview
   })
+}
 
-  function resolveFolderNameForMetadata(folderId: string, fallback?: unknown): string | undefined {
-    const normalizedFolderId = normalizeFolderId(folderId)
-    if (!normalizedFolderId) return undefined
+// ── Internal helpers reading/writing store state ──
 
-    const readableFallback = folderNameForMetadataValue(fallback)
-    if (readableFallback) return readableFallback
+function resolveFolderNameForMetadata(folderId: string, fallback?: unknown): string | undefined {
+  const normalizedFolderId = normalizeFolderId(folderId)
+  if (!normalizedFolderId) return undefined
 
-    return folderNameForMetadataValue(findFolderNode(folderTree.value, normalizedFolderId)?.name)
-  }
+  const readableFallback = folderNameForMetadataValue(fallback)
+  if (readableFallback) return readableFallback
 
-  function mergeLocalOverride(roomId: string, content: DocMetadataContent): DocMetadataContent {
-    const override = localMetadataOverrides.get(roomId)
-    if (!override) return content
+  return folderNameForMetadataValue(findFolderNode(selectFolderTree(docsStore.state), normalizedFolderId)?.name)
+}
 
-    const titleSynced = !override.title || content.title === override.title
-    const folderSynced = override.folder === undefined || normalizeFolderId(content.folder) === override.folder
-    const folderNameSynced = !override.folderName || content.folderName === override.folderName
-    if ((titleSynced && folderSynced && folderNameSynced) || getMetadataTimestamp(content) > override.updatedAt) {
-      localMetadataOverrides.delete(roomId)
-      writeLocalMetadataOverrides(localMetadataOverrides)
-      return content
-    }
+function mergeLocalOverride(roomId: string, content: DocMetadataContent): DocMetadataContent {
+  const override = localMetadataOverrides.get(roomId)
+  if (!override) return content
 
-    return {
-      ...content,
-      title: override.title ?? content.title,
-      folder: override.folder ?? content.folder,
-      folderName: override.folderName ?? content.folderName,
-      updated: override.updated,
-      updatedAt: override.updatedAt,
-    }
-  }
-
-  function updateLocalMetadataOverride(
-    docId: string,
-    patch: Partial<LocalDocMetadataOverride> & Pick<LocalDocMetadataOverride, 'updated' | 'updatedAt'>,
-  ): void {
-    localMetadataOverrides.set(docId, {
-      ...(localMetadataOverrides.get(docId) ?? {}),
-      ...patch,
-    })
+  const titleSynced = !override.title || content.title === override.title
+  const folderSynced = override.folder === undefined || normalizeFolderId(content.folder) === override.folder
+  const folderNameSynced = !override.folderName || content.folderName === override.folderName
+  if ((titleSynced && folderSynced && folderNameSynced) || getMetadataTimestamp(content) > override.updatedAt) {
+    localMetadataOverrides.delete(roomId)
     writeLocalMetadataOverrides(localMetadataOverrides)
-  }
-
-  function rememberDeletedFolderIds(folderIds: Set<string>): void {
-    const next = new Set(deletedFolderIds.value)
-    folderIds.forEach((folderId) => {
-      const normalized = normalizeFolderId(folderId)
-      if (normalized) next.add(normalized)
-    })
-    deletedFolderIds.value = next
-    writeDeletedFolderIds(next)
-  }
-
-  function forgetDeletedFolderId(folderId: string): void {
-    const normalized = normalizeFolderId(folderId)
-    if (!normalized || !deletedFolderIds.value.has(normalized)) return
-
-    const next = new Set(deletedFolderIds.value)
-    next.delete(normalized)
-    deletedFolderIds.value = next
-    writeDeletedFolderIds(next)
-  }
-
-  const filteredDocuments = computed(() => {
-    const query = searchQuery.value.trim().toLowerCase()
-    return documents.value.filter((doc) => {
-      const matchesQuery = !query || doc.title.toLowerCase().includes(query) || doc.owner.toLowerCase().includes(query)
-      const matchesSection = doc.sectionIds.includes(activeSection.value)
-      const matchesFolder =
-        selectedFolderIds.value === null || selectedFolderIds.value.has(normalizeFolderId(doc.folder))
-      const matchesReview = !reviewOnly.value || doc.status === '评审中'
-      return matchesSection && matchesFolder && matchesQuery && matchesReview
-    })
-  })
-
-  function persistFoldersEffect(): DesktopEffect<void> {
-    const client = getClient() as unknown as MatrixDocAccountClient
-    return fromPromise(
-      () => client.setAccountData?.(MATRIX_EVENT_TYPES.DOC_FOLDERS, { folders: folders.value }) ?? Promise.resolve(),
-    ).pipe(
-      Effect.catchAll((err) =>
-        ignoreForbiddenMatrixErrorEffect('[Docs] Cannot persist folder tree account data:', err),
-      ),
-    )
-  }
-
-  function sendDocMetadataEventEffect(docId: string, content: DocMetadataContent): DesktopEffect<void> {
-    const client = getClient() as unknown as MatrixDocMetadataClient
-    return Effect.gen(function* () {
-      const stateResult = yield* fromPromise(() =>
-        client.sendStateEvent(docId, MATRIX_EVENT_TYPES.DOC_METADATA, content),
-      ).pipe(
-        Effect.as('state' as const),
-        Effect.catchAll((err) => {
-          if (!isForbiddenMatrixError(err)) return Effect.fail(err)
-
-          return Effect.gen(function* () {
-            if (!client.sendEvent) {
-              yield* warnEffect('[Docs] Cannot persist document metadata state event:', err)
-              return 'done' as const
-            }
-
-            yield* warnEffect('[Docs] Falling back to timeline metadata event:', err)
-            return 'fallback' as const
-          })
-        }),
-      )
-
-      if (stateResult !== 'fallback') return
-
-      yield* fromPromise(() => client.sendEvent!(docId, MATRIX_EVENT_TYPES.DOC_METADATA, content)).pipe(
-        Effect.catchAll((err) =>
-          ignoreForbiddenMatrixErrorEffect('[Docs] Cannot persist document metadata timeline event:', err),
-        ),
-      )
-    })
-  }
-
-  function setDocumentRoomNameEffect(docId: string, title: string): DesktopEffect<void> {
-    const client = getClient() as unknown as MatrixDocMetadataClient
-    return fromPromise(() => client.setRoomName?.(docId, title) ?? Promise.resolve()).pipe(
-      Effect.catchAll((err) => ignoreForbiddenMatrixErrorEffect('[Docs] Cannot update document room name:', err)),
-    )
-  }
-
-  function loadFoldersEffect(): DesktopEffect<void> {
-    return Effect.gen(function* () {
-      const client = getClient() as unknown as MatrixDocAccountClient
-      const nextFolders = yield* fromSync(() => {
-        const content = client.getAccountData?.(MATRIX_EVENT_TYPES.DOC_FOLDERS)?.getContent()
-        return normalizeFolderRecords(content?.folders).filter((folder) => !deletedFolderIds.value.has(folder.id))
-      })
-      folders.value = nextFolders
-    }).pipe(Effect.catchAll(() => fromSync(() => void (folders.value = []))))
-  }
-
-  function loadFolders(): Promise<void> {
-    return runDesktopEffect(loadFoldersEffect())
-  }
-
-  function loadDocumentsEffect(): DesktopEffect<void> {
-    return Effect.gen(function* () {
-      yield* fromSync(() => void (isLoading.value = true))
-      const client = getClient()
-      const nextDocuments = yield* fromSync(() => {
-        const currentUserId = client.getUserId()
-        const rooms = client.getRooms()
-        const docRooms = rooms.filter((r) => {
-          return !!getDocMetadataEvent(r as MatrixDocRoom)
-        })
-
-        return docRooms.map((room) => {
-          const metaEvent = getDocMetadataEvent(room as MatrixDocRoom)
-          const content = mergeLocalOverride(room.roomId, metaEvent?.getContent() ?? {})
-          const owner = content.owner || '未知'
-          const folder = normalizeFolderId(content.folder)
-          return {
-            id: room.roomId,
-            title: content.title || '无标题文档',
-            owner,
-            updated: content.updated || '',
-            type: content.type || '文档',
-            status: content.status || '草稿',
-            folder,
-            folderName: resolveFolderNameForMetadata(folder, content.folderName),
-            sectionIds: deriveDocumentSectionIds(content.sectionIds, owner, currentUserId),
-          }
-        })
-      })
-      documents.value = nextDocuments
-    }).pipe(
-      Effect.catchAll(() => fromSync(() => void (documents.value = []))),
-      Effect.ensuring(Effect.sync(() => void (isLoading.value = false))),
-    )
-  }
-
-  function loadDocuments(): Promise<void> {
-    return runDesktopEffect(loadDocumentsEffect())
-  }
-
-  function createDocumentEffect(title: string, folder: string): DesktopEffect<string> {
-    const client = getClient()
-    const now = Date.now()
-    const owner = client.getUserId()!
-    const folderId = normalizeFolderId(folder)
-    const folderName = resolveFolderNameForMetadata(folderId)
-    const metadataContent: DocMetadataContent = {
-      title,
-      owner,
-      updated: '刚刚',
-      type: '文档',
-      status: '草稿',
-      folder: folderId,
-      folderName,
-      sectionIds: ['recent'],
-      createdAt: now,
-    }
-    return Effect.gen(function* () {
-      const result = yield* fromPromise(() =>
-        client.createRoom({
-          name: title,
-          visibility: Visibility.Private,
-          initial_state: [
-            {
-              type: MATRIX_EVENT_TYPES.DOC_METADATA,
-              content: metadataContent,
-            },
-          ],
-        }),
-      ).pipe(
-        Effect.catchAll((err) => {
-          if (!isForbiddenMatrixError(err)) return Effect.fail(err)
-
-          return Effect.gen(function* () {
-            const fallbackResult = yield* fromPromise(() =>
-              client.createRoom({
-                name: title,
-                visibility: Visibility.Private,
-              }),
-            )
-            yield* sendDocMetadataEventEffect(fallbackResult.room_id, metadataContent)
-            return fallbackResult
-          })
-        }),
-      )
-      const createdDoc: DocEntry = {
-        id: result.room_id,
-        title,
-        owner,
-        updated: '刚刚',
-        type: '文档',
-        status: '草稿',
-        folder: folderId,
-        folderName,
-        sectionIds: ['recent'],
-      }
-      yield* loadDocumentsEffect()
-      yield* fromSync(() => {
-        if (!documents.value.some((doc) => doc.id === createdDoc.id)) {
-          documents.value = [createdDoc, ...documents.value]
-        }
-      })
-      return result.room_id
-    })
-  }
-
-  function createDocument(title: string, folder: string): Promise<string> {
-    return runDesktopEffect(createDocumentEffect(title, folder))
-  }
-
-  function appendMarkdownEffect(docId: string, markdown: string): DesktopEffect<void> {
-    return Effect.gen(function* () {
-      const trimmed = markdown.trim()
-      if (!trimmed) return
-      // Imported markdown should land in the doc room without paging every member.
-      yield* fromPromise(() => sendTextMessage(docId, trimmed, undefined, { silent: true }))
-    })
-  }
-
-  function appendMarkdown(docId: string, markdown: string): Promise<void> {
-    return runDesktopEffect(appendMarkdownEffect(docId, markdown))
-  }
-
-  function updateDocumentTitleEffect(docId: string, title: string): DesktopEffect<void> {
-    return Effect.gen(function* () {
-      const { nextTitle, nextContent, now } = yield* fromSync(() => {
-        const nextTitle = title.trim() || '无标题文档'
-        const now = Date.now()
-        const client = getClient()
-        const existing = documents.value.find((doc) => doc.id === docId)
-        const room = client.getRoom(docId)
-        const metaEvent = room ? getDocMetadataEvent(room as MatrixDocRoom) : undefined
-        const currentContent = metaEvent?.getContent() ?? {}
-        const folder = normalizeFolderId(currentContent.folder || existing?.folder)
-        const nextContent = {
-          ...currentContent,
-          title: nextTitle,
-          owner: currentContent.owner || existing?.owner || client.getUserId() || '未知',
-          updated: '刚刚',
-          type: currentContent.type || existing?.type || '文档',
-          status: currentContent.status || existing?.status || '草稿',
-          folder,
-          folderName: resolveFolderNameForMetadata(folder, currentContent.folderName || existing?.folderName),
-          sectionIds: currentContent.sectionIds || existing?.sectionIds || ['recent'],
-          updatedAt: now,
-          createdAt: currentContent.createdAt || now,
-        }
-        return { nextTitle, nextContent, now }
-      })
-
-      yield* sendDocMetadataEventEffect(docId, nextContent)
-      yield* setDocumentRoomNameEffect(docId, nextTitle)
-
-      yield* fromSync(() => {
-        updateLocalMetadataOverride(docId, {
-          title: nextTitle,
-          updated: '刚刚',
-          updatedAt: now,
-        })
-
-        documents.value = documents.value.map((doc) =>
-          doc.id === docId
-            ? {
-                ...doc,
-                title: nextTitle,
-                updated: '刚刚',
-                type: nextContent.type,
-                status: nextContent.status,
-                folder: nextContent.folder,
-                folderName: nextContent.folderName,
-                sectionIds: nextContent.sectionIds,
-              }
-            : doc,
-        )
-      })
-    })
-  }
-
-  function updateDocumentTitle(docId: string, title: string): Promise<void> {
-    return runDesktopEffect(updateDocumentTitleEffect(docId, title))
-  }
-
-  function updateDocumentFolderEffect(docId: string, folder: string): DesktopEffect<void> {
-    return Effect.gen(function* () {
-      const { nextFolder, nextFolderName, nextContent, now } = yield* fromSync(() => {
-        const nextFolder = normalizeFolderId(folder)
-        const nextFolderName = resolveFolderNameForMetadata(nextFolder)
-        const now = Date.now()
-        const client = getClient()
-        const existing = documents.value.find((doc) => doc.id === docId)
-        const room = client.getRoom(docId)
-        const metaEvent = room ? getDocMetadataEvent(room as MatrixDocRoom) : undefined
-        const currentContent = metaEvent?.getContent() ?? {}
-        const nextContent = {
-          ...currentContent,
-          title: currentContent.title || existing?.title || '无标题文档',
-          owner: currentContent.owner || existing?.owner || client.getUserId() || '未知',
-          updated: '刚刚',
-          type: currentContent.type || existing?.type || '文档',
-          status: currentContent.status || existing?.status || '草稿',
-          folder: nextFolder,
-          folderName: nextFolderName,
-          sectionIds: currentContent.sectionIds || existing?.sectionIds || ['recent'],
-          updatedAt: now,
-          createdAt: currentContent.createdAt || now,
-        }
-        return { nextFolder, nextFolderName, nextContent, now }
-      })
-
-      yield* sendDocMetadataEventEffect(docId, nextContent)
-
-      yield* fromSync(() => {
-        updateLocalMetadataOverride(docId, {
-          folder: nextFolder,
-          folderName: nextFolderName,
-          updated: '刚刚',
-          updatedAt: now,
-        })
-
-        documents.value = documents.value.map((doc) =>
-          doc.id === docId
-            ? {
-                ...doc,
-                updated: '刚刚',
-                type: nextContent.type,
-                status: nextContent.status,
-                folder: nextFolder,
-                folderName: nextFolderName,
-                sectionIds: nextContent.sectionIds,
-              }
-            : doc,
-        )
-      })
-    })
-  }
-
-  function updateDocumentFolder(docId: string, folder: string): Promise<void> {
-    return runDesktopEffect(updateDocumentFolderEffect(docId, folder))
-  }
-
-  function setDocumentStarredEffect(docId: string, starred: boolean): DesktopEffect<void> {
-    return Effect.gen(function* () {
-      const { nextContent, sectionIds } = yield* fromSync(() => {
-        const now = Date.now()
-        const client = getClient()
-        const existing = documents.value.find((doc) => doc.id === docId)
-        const room = client.getRoom(docId)
-        const metaEvent = room ? getDocMetadataEvent(room as MatrixDocRoom) : undefined
-        const currentContent = metaEvent?.getContent() ?? {}
-        const currentSections = new Set<DocSectionId>(currentContent.sectionIds || existing?.sectionIds || ['recent'])
-
-        if (starred) currentSections.add('starred')
-        else currentSections.delete('starred')
-
-        if (currentSections.size === 0) currentSections.add('recent')
-
-        const sectionIds = [...currentSections]
-        const folder = normalizeFolderId(existing?.folder || currentContent.folder)
-        const nextContent = {
-          ...currentContent,
-          title: existing?.title || currentContent.title || '无标题文档',
-          owner: currentContent.owner || existing?.owner || client.getUserId() || '未知',
-          updated: '刚刚',
-          type: currentContent.type || existing?.type || '文档',
-          status: currentContent.status || existing?.status || '草稿',
-          folder,
-          folderName: resolveFolderNameForMetadata(folder, existing?.folderName || currentContent.folderName),
-          sectionIds,
-          updatedAt: now,
-          createdAt: currentContent.createdAt || now,
-        }
-        return { nextContent, sectionIds }
-      })
-
-      yield* sendDocMetadataEventEffect(docId, nextContent)
-
-      yield* fromSync(() => {
-        documents.value = documents.value.map((doc) =>
-          doc.id === docId
-            ? {
-                ...doc,
-                updated: '刚刚',
-                type: nextContent.type,
-                status: nextContent.status,
-                folder: nextContent.folder,
-                folderName: nextContent.folderName,
-                sectionIds,
-              }
-            : doc,
-        )
-      })
-    })
-  }
-
-  function setDocumentStarred(docId: string, starred: boolean): Promise<void> {
-    return runDesktopEffect(setDocumentStarredEffect(docId, starred))
-  }
-
-  function setDocumentStatusEffect(docId: string, status: DocEntry['status']): DesktopEffect<void> {
-    return Effect.gen(function* () {
-      const nextContent = yield* fromSync(() => {
-        const now = Date.now()
-        const client = getClient()
-        const existing = documents.value.find((doc) => doc.id === docId)
-        const room = client.getRoom(docId)
-        const metaEvent = room ? getDocMetadataEvent(room as MatrixDocRoom) : undefined
-        const currentContent = metaEvent?.getContent() ?? {}
-        const folder = normalizeFolderId(existing?.folder || currentContent.folder)
-        return {
-          ...currentContent,
-          title: existing?.title || currentContent.title || '无标题文档',
-          owner: currentContent.owner || existing?.owner || client.getUserId() || '未知',
-          updated: '刚刚',
-          type: currentContent.type || existing?.type || '文档',
-          status,
-          folder,
-          folderName: resolveFolderNameForMetadata(folder, existing?.folderName || currentContent.folderName),
-          sectionIds: currentContent.sectionIds || existing?.sectionIds || ['recent'],
-          updatedAt: now,
-          createdAt: currentContent.createdAt || now,
-        }
-      })
-
-      yield* sendDocMetadataEventEffect(docId, nextContent)
-
-      yield* fromSync(() => {
-        documents.value = documents.value.map((doc) =>
-          doc.id === docId
-            ? {
-                ...doc,
-                updated: '刚刚',
-                type: nextContent.type,
-                status,
-                folder: nextContent.folder,
-                folderName: nextContent.folderName,
-                sectionIds: nextContent.sectionIds,
-              }
-            : doc,
-        )
-      })
-    })
-  }
-
-  function setDocumentStatus(docId: string, status: DocEntry['status']): Promise<void> {
-    return runDesktopEffect(setDocumentStatusEffect(docId, status))
-  }
-
-  function deleteDocumentEffect(docId: string): DesktopEffect<void> {
-    return Effect.gen(function* () {
-      const client = getClient()
-      yield* fromPromise(() => client.leave(docId))
-      yield* fromSync(() => {
-        localMetadataOverrides.delete(docId)
-        writeLocalMetadataOverrides(localMetadataOverrides)
-        documents.value = documents.value.filter((doc) => doc.id !== docId)
-      })
-    })
-  }
-
-  function deleteDocument(docId: string): Promise<void> {
-    return runDesktopEffect(deleteDocumentEffect(docId))
-  }
-
-  function createFolderEffect(name: string, parentId = activeFolder.value): DesktopEffect<string> {
-    return Effect.gen(function* () {
-      const folder = yield* fromSync(() => {
-        const targetParentId = normalizeFolderId(parentId)
-        const now = Date.now()
-        const folder: DocFolderRecord = {
-          id: createFolderId(),
-          name: sanitizeFolderName(name),
-          parentId: targetParentId,
-          createdAt: now,
-          updatedAt: now,
-        }
-
-        folders.value = [...folders.value, folder]
-        forgetDeletedFolderId(folder.id)
-        return folder
-      })
-      yield* persistFoldersEffect()
-      return folder.id
-    })
-  }
-
-  function createFolder(name: string, parentId = activeFolder.value): Promise<string> {
-    return runDesktopEffect(createFolderEffect(name, parentId))
-  }
-
-  function renameFolderEffect(folderId: string, name: string): DesktopEffect<void> {
-    return Effect.gen(function* () {
-      const targetFolderId = normalizeFolderId(folderId)
-      if (!targetFolderId) return
-
-      yield* fromSync(() => {
-        const nextName = sanitizeFolderName(name)
-        const now = Date.now()
-        const existingFolder = folders.value.find((folder) => folder.id === targetFolderId)
-        forgetDeletedFolderId(targetFolderId)
-        if (existingFolder) {
-          folders.value = folders.value.map((folder) =>
-            folder.id === targetFolderId ? { ...folder, name: nextName, updatedAt: now } : folder,
-          )
-          return
-        }
-
-        const node = findFolderNode(folderTree.value, targetFolderId)
-        folders.value = [
-          ...folders.value,
-          {
-            id: targetFolderId,
-            name: nextName,
-            parentId: normalizeFolderId(node?.parentId),
-            createdAt: now,
-            updatedAt: now,
-          },
-        ]
-      })
-      yield* persistFoldersEffect()
-    })
-  }
-
-  function renameFolder(folderId: string, name: string): Promise<void> {
-    return runDesktopEffect(renameFolderEffect(folderId, name))
-  }
-
-  function deleteFolderEffect(folderId: string): DesktopEffect<void> {
-    return Effect.gen(function* () {
-      const deleteContext = yield* fromSync(() => {
-        const targetFolderId = normalizeFolderId(folderId)
-        if (!targetFolderId) return null
-
-        const node = findFolderNode(folderTree.value, targetFolderId)
-        if (!node) return null
-
-        const folderIds = new Set<string>()
-        collectFolderIds(node, folderIds)
-        const documentsToMove = documents.value.filter((doc) => folderIds.has(normalizeFolderId(doc.folder)))
-        return { targetFolderId, folderIds, documentsToMove }
-      })
-      if (!deleteContext) return
-
-      yield* Effect.all(
-        deleteContext.documentsToMove.map((doc) => updateDocumentFolderEffect(doc.id, ROOT_DOC_FOLDER_ID)),
-      )
-      yield* fromSync(() => {
-        rememberDeletedFolderIds(deleteContext.folderIds)
-        folders.value = folders.value.filter((folder) => !deleteContext.folderIds.has(folder.id))
-        if (selectedFolderIds.value?.has(deleteContext.targetFolderId)) activeFolder.value = ROOT_DOC_FOLDER_ID
-      })
-      yield* persistFoldersEffect()
-    })
-  }
-
-  function deleteFolder(folderId: string): Promise<void> {
-    return runDesktopEffect(deleteFolderEffect(folderId))
+    return content
   }
 
   return {
-    documents,
-    folders,
-    activeSection,
-    activeFolder,
-    searchQuery,
-    reviewOnly,
-    isLoading,
-    folderTree,
-    filteredDocuments,
-    persistFoldersEffect,
-    sendDocMetadataEventEffect,
-    setDocumentRoomNameEffect,
-    loadFoldersEffect,
-    loadDocumentsEffect,
-    createDocumentEffect,
-    appendMarkdownEffect,
-    updateDocumentTitleEffect,
-    updateDocumentFolderEffect,
-    setDocumentStarredEffect,
-    setDocumentStatusEffect,
-    deleteDocumentEffect,
-    createFolderEffect,
-    renameFolderEffect,
-    deleteFolderEffect,
-    loadFolders,
-    loadDocuments,
-    createDocument,
-    appendMarkdown,
-    updateDocumentTitle,
-    updateDocumentFolder,
-    setDocumentStarred,
-    setDocumentStatus,
-    deleteDocument,
-    createFolder,
-    renameFolder,
-    deleteFolder,
+    ...content,
+    title: override.title ?? content.title,
+    folder: override.folder ?? content.folder,
+    folderName: override.folderName ?? content.folderName,
+    updated: override.updated,
+    updatedAt: override.updatedAt,
   }
-})
+}
+
+function updateLocalMetadataOverride(
+  docId: string,
+  patch: Partial<LocalDocMetadataOverride> & Pick<LocalDocMetadataOverride, 'updated' | 'updatedAt'>,
+): void {
+  localMetadataOverrides.set(docId, {
+    ...(localMetadataOverrides.get(docId) ?? {}),
+    ...patch,
+  })
+  writeLocalMetadataOverrides(localMetadataOverrides)
+}
+
+function rememberDeletedFolderIds(folderIds: Set<string>): void {
+  const next = new Set(docsStore.state.deletedFolderIds)
+  folderIds.forEach((folderId) => {
+    const normalized = normalizeFolderId(folderId)
+    if (normalized) next.add(normalized)
+  })
+  docsStore.setState((s) => ({ ...s, deletedFolderIds: next }))
+  writeDeletedFolderIds(next)
+}
+
+function forgetDeletedFolderId(folderId: string): void {
+  const normalized = normalizeFolderId(folderId)
+  if (!normalized || !docsStore.state.deletedFolderIds.has(normalized)) return
+
+  const next = new Set(docsStore.state.deletedFolderIds)
+  next.delete(normalized)
+  docsStore.setState((s) => ({ ...s, deletedFolderIds: next }))
+  writeDeletedFolderIds(next)
+}
+
+// ── Matrix metadata persistence helpers ──
+
+async function persistFolders(): Promise<void> {
+  const client = getClient() as unknown as MatrixDocAccountClient
+  try {
+    await (client.setAccountData?.(MATRIX_EVENT_TYPES.DOC_FOLDERS, { folders: docsStore.state.folders }) ??
+      Promise.resolve())
+  } catch (err) {
+    // Best-effort: folder persistence may be forbidden; keep local state and warn.
+    ignoreForbiddenMatrixError('[Docs] Cannot persist folder tree account data:', err)
+  }
+}
+
+async function sendDocMetadataEvent(docId: string, content: DocMetadataContent): Promise<void> {
+  const client = getClient() as unknown as MatrixDocMetadataClient
+  let needsFallback = false
+  try {
+    await client.sendStateEvent(docId, MATRIX_EVENT_TYPES.DOC_METADATA, content)
+  } catch (err) {
+    if (!isForbiddenMatrixError(err)) throw err
+
+    if (!client.sendEvent) {
+      // Best-effort: no timeline fallback available; warn and give up.
+      console.warn('[Docs] Cannot persist document metadata state event:', err)
+      return
+    }
+
+    console.warn('[Docs] Falling back to timeline metadata event:', err)
+    needsFallback = true
+  }
+
+  if (!needsFallback) return
+
+  try {
+    await client.sendEvent!(docId, MATRIX_EVENT_TYPES.DOC_METADATA, content)
+  } catch (err) {
+    // Best-effort: timeline fallback may also be forbidden; warn and keep local state.
+    ignoreForbiddenMatrixError('[Docs] Cannot persist document metadata timeline event:', err)
+  }
+}
+
+async function setDocumentRoomName(docId: string, title: string): Promise<void> {
+  const client = getClient() as unknown as MatrixDocMetadataClient
+  try {
+    await (client.setRoomName?.(docId, title) ?? Promise.resolve())
+  } catch (err) {
+    // Best-effort: room rename may be forbidden; warn and keep local state.
+    ignoreForbiddenMatrixError('[Docs] Cannot update document room name:', err)
+  }
+}
+
+// ── UI setter actions ──
+
+export function setActiveSection(activeSection: DocSectionId): void {
+  docsStore.setState((s) => ({ ...s, activeSection }))
+}
+
+export function setActiveFolder(activeFolder: string): void {
+  docsStore.setState((s) => ({ ...s, activeFolder }))
+}
+
+export function setSearchQuery(searchQuery: string): void {
+  docsStore.setState((s) => ({ ...s, searchQuery }))
+}
+
+export function setReviewOnly(reviewOnly: boolean): void {
+  docsStore.setState((s) => ({ ...s, reviewOnly }))
+}
+
+/** Reset all state to initial, re-reading persisted deleted-folder ids and overrides. */
+export function resetDocsStore(): void {
+  localMetadataOverrides = readLocalMetadataOverrides()
+  docsStore.setState(() => createInitialState())
+}
+
+// ── Async actions ──
+
+export async function loadFolders(): Promise<void> {
+  try {
+    const client = getClient() as unknown as MatrixDocAccountClient
+    const content = client.getAccountData?.(MATRIX_EVENT_TYPES.DOC_FOLDERS)?.getContent()
+    const nextFolders = normalizeFolderRecords(content?.folders).filter(
+      (folder) => !docsStore.state.deletedFolderIds.has(folder.id),
+    )
+    docsStore.setState((s) => ({ ...s, folders: nextFolders }))
+  } catch {
+    // Folder load failures fall back to an empty list.
+    docsStore.setState((s) => ({ ...s, folders: [] }))
+  }
+}
+
+export async function loadDocuments(): Promise<void> {
+  docsStore.setState((s) => ({ ...s, isLoading: true }))
+  try {
+    const client = getClient()
+    const currentUserId = client.getUserId()
+    const rooms = client.getRooms()
+    const docRooms = rooms.filter((r) => !!getDocMetadataEvent(r as MatrixDocRoom))
+
+    const nextDocuments = docRooms.map((room) => {
+      const metaEvent = getDocMetadataEvent(room as MatrixDocRoom)
+      const content = mergeLocalOverride(room.roomId, metaEvent?.getContent() ?? {})
+      const owner = content.owner || '未知'
+      const folder = normalizeFolderId(content.folder)
+      return {
+        id: room.roomId,
+        title: content.title || '无标题文档',
+        owner,
+        updated: content.updated || '',
+        type: content.type || '文档',
+        status: content.status || '草稿',
+        folder,
+        folderName: resolveFolderNameForMetadata(folder, content.folderName),
+        sectionIds: deriveDocumentSectionIds(content.sectionIds, owner, currentUserId),
+      }
+    })
+    docsStore.setState((s) => ({ ...s, documents: nextDocuments }))
+  } catch {
+    // Document load failures fall back to an empty list.
+    docsStore.setState((s) => ({ ...s, documents: [] }))
+  } finally {
+    docsStore.setState((s) => ({ ...s, isLoading: false }))
+  }
+}
+
+export async function createDocument(title: string, folder: string): Promise<string> {
+  const client = getClient()
+  const now = Date.now()
+  const owner = client.getUserId()!
+  const folderId = normalizeFolderId(folder)
+  const folderName = resolveFolderNameForMetadata(folderId)
+  const metadataContent: DocMetadataContent = {
+    title,
+    owner,
+    updated: '刚刚',
+    type: '文档',
+    status: '草稿',
+    folder: folderId,
+    folderName,
+    sectionIds: ['recent'],
+    createdAt: now,
+  }
+
+  let result: { room_id: string }
+  try {
+    result = await client.createRoom({
+      name: title,
+      visibility: Visibility.Private,
+      initial_state: [
+        {
+          type: MATRIX_EVENT_TYPES.DOC_METADATA,
+          content: metadataContent,
+        },
+      ],
+    })
+  } catch (err) {
+    if (!isForbiddenMatrixError(err)) throw err
+
+    // Initial-state metadata is forbidden: create a bare room then send metadata separately.
+    result = await client.createRoom({
+      name: title,
+      visibility: Visibility.Private,
+    })
+    await sendDocMetadataEvent(result.room_id, metadataContent)
+  }
+
+  const createdDoc: DocEntry = {
+    id: result.room_id,
+    title,
+    owner,
+    updated: '刚刚',
+    type: '文档',
+    status: '草稿',
+    folder: folderId,
+    folderName,
+    sectionIds: ['recent'],
+  }
+  await loadDocuments()
+  if (!docsStore.state.documents.some((doc) => doc.id === createdDoc.id)) {
+    docsStore.setState((s) => ({ ...s, documents: [createdDoc, ...s.documents] }))
+  }
+  return result.room_id
+}
+
+export async function appendMarkdown(docId: string, markdown: string): Promise<void> {
+  const trimmed = markdown.trim()
+  if (!trimmed) return
+  // Imported markdown should land in the doc room without paging every member.
+  await sendTextMessage(docId, trimmed, undefined, { silent: true })
+}
+
+export async function updateDocumentTitle(docId: string, title: string): Promise<void> {
+  const nextTitle = title.trim() || '无标题文档'
+  const now = Date.now()
+  const client = getClient()
+  const existing = docsStore.state.documents.find((doc) => doc.id === docId)
+  const room = client.getRoom(docId)
+  const metaEvent = room ? getDocMetadataEvent(room as MatrixDocRoom) : undefined
+  const currentContent = metaEvent?.getContent() ?? {}
+  const folder = normalizeFolderId(currentContent.folder || existing?.folder)
+  const nextContent = {
+    ...currentContent,
+    title: nextTitle,
+    owner: currentContent.owner || existing?.owner || client.getUserId() || '未知',
+    updated: '刚刚',
+    type: currentContent.type || existing?.type || '文档',
+    status: currentContent.status || existing?.status || '草稿',
+    folder,
+    folderName: resolveFolderNameForMetadata(folder, currentContent.folderName || existing?.folderName),
+    sectionIds: currentContent.sectionIds || existing?.sectionIds || ['recent'],
+    updatedAt: now,
+    createdAt: currentContent.createdAt || now,
+  }
+
+  await sendDocMetadataEvent(docId, nextContent)
+  await setDocumentRoomName(docId, nextTitle)
+
+  updateLocalMetadataOverride(docId, {
+    title: nextTitle,
+    updated: '刚刚',
+    updatedAt: now,
+  })
+
+  docsStore.setState((s) => ({
+    ...s,
+    documents: s.documents.map((doc) =>
+      doc.id === docId
+        ? {
+            ...doc,
+            title: nextTitle,
+            updated: '刚刚',
+            type: nextContent.type,
+            status: nextContent.status,
+            folder: nextContent.folder,
+            folderName: nextContent.folderName,
+            sectionIds: nextContent.sectionIds,
+          }
+        : doc,
+    ),
+  }))
+}
+
+export async function updateDocumentFolder(docId: string, folder: string): Promise<void> {
+  const nextFolder = normalizeFolderId(folder)
+  const nextFolderName = resolveFolderNameForMetadata(nextFolder)
+  const now = Date.now()
+  const client = getClient()
+  const existing = docsStore.state.documents.find((doc) => doc.id === docId)
+  const room = client.getRoom(docId)
+  const metaEvent = room ? getDocMetadataEvent(room as MatrixDocRoom) : undefined
+  const currentContent = metaEvent?.getContent() ?? {}
+  const nextContent = {
+    ...currentContent,
+    title: currentContent.title || existing?.title || '无标题文档',
+    owner: currentContent.owner || existing?.owner || client.getUserId() || '未知',
+    updated: '刚刚',
+    type: currentContent.type || existing?.type || '文档',
+    status: currentContent.status || existing?.status || '草稿',
+    folder: nextFolder,
+    folderName: nextFolderName,
+    sectionIds: currentContent.sectionIds || existing?.sectionIds || ['recent'],
+    updatedAt: now,
+    createdAt: currentContent.createdAt || now,
+  }
+
+  await sendDocMetadataEvent(docId, nextContent)
+
+  updateLocalMetadataOverride(docId, {
+    folder: nextFolder,
+    folderName: nextFolderName,
+    updated: '刚刚',
+    updatedAt: now,
+  })
+
+  docsStore.setState((s) => ({
+    ...s,
+    documents: s.documents.map((doc) =>
+      doc.id === docId
+        ? {
+            ...doc,
+            updated: '刚刚',
+            type: nextContent.type,
+            status: nextContent.status,
+            folder: nextFolder,
+            folderName: nextFolderName,
+            sectionIds: nextContent.sectionIds,
+          }
+        : doc,
+    ),
+  }))
+}
+
+export async function setDocumentStarred(docId: string, starred: boolean): Promise<void> {
+  const now = Date.now()
+  const client = getClient()
+  const existing = docsStore.state.documents.find((doc) => doc.id === docId)
+  const room = client.getRoom(docId)
+  const metaEvent = room ? getDocMetadataEvent(room as MatrixDocRoom) : undefined
+  const currentContent = metaEvent?.getContent() ?? {}
+  const currentSections = new Set<DocSectionId>(currentContent.sectionIds || existing?.sectionIds || ['recent'])
+
+  if (starred) currentSections.add('starred')
+  else currentSections.delete('starred')
+
+  if (currentSections.size === 0) currentSections.add('recent')
+
+  const sectionIds = [...currentSections]
+  const folder = normalizeFolderId(existing?.folder || currentContent.folder)
+  const nextContent = {
+    ...currentContent,
+    title: existing?.title || currentContent.title || '无标题文档',
+    owner: currentContent.owner || existing?.owner || client.getUserId() || '未知',
+    updated: '刚刚',
+    type: currentContent.type || existing?.type || '文档',
+    status: currentContent.status || existing?.status || '草稿',
+    folder,
+    folderName: resolveFolderNameForMetadata(folder, existing?.folderName || currentContent.folderName),
+    sectionIds,
+    updatedAt: now,
+    createdAt: currentContent.createdAt || now,
+  }
+
+  await sendDocMetadataEvent(docId, nextContent)
+
+  docsStore.setState((s) => ({
+    ...s,
+    documents: s.documents.map((doc) =>
+      doc.id === docId
+        ? {
+            ...doc,
+            updated: '刚刚',
+            type: nextContent.type,
+            status: nextContent.status,
+            folder: nextContent.folder,
+            folderName: nextContent.folderName,
+            sectionIds,
+          }
+        : doc,
+    ),
+  }))
+}
+
+export async function setDocumentStatus(docId: string, status: DocEntry['status']): Promise<void> {
+  const now = Date.now()
+  const client = getClient()
+  const existing = docsStore.state.documents.find((doc) => doc.id === docId)
+  const room = client.getRoom(docId)
+  const metaEvent = room ? getDocMetadataEvent(room as MatrixDocRoom) : undefined
+  const currentContent = metaEvent?.getContent() ?? {}
+  const folder = normalizeFolderId(existing?.folder || currentContent.folder)
+  const nextContent = {
+    ...currentContent,
+    title: existing?.title || currentContent.title || '无标题文档',
+    owner: currentContent.owner || existing?.owner || client.getUserId() || '未知',
+    updated: '刚刚',
+    type: currentContent.type || existing?.type || '文档',
+    status,
+    folder,
+    folderName: resolveFolderNameForMetadata(folder, existing?.folderName || currentContent.folderName),
+    sectionIds: currentContent.sectionIds || existing?.sectionIds || ['recent'],
+    updatedAt: now,
+    createdAt: currentContent.createdAt || now,
+  }
+
+  await sendDocMetadataEvent(docId, nextContent)
+
+  docsStore.setState((s) => ({
+    ...s,
+    documents: s.documents.map((doc) =>
+      doc.id === docId
+        ? {
+            ...doc,
+            updated: '刚刚',
+            type: nextContent.type,
+            status,
+            folder: nextContent.folder,
+            folderName: nextContent.folderName,
+            sectionIds: nextContent.sectionIds,
+          }
+        : doc,
+    ),
+  }))
+}
+
+export async function deleteDocument(docId: string): Promise<void> {
+  const client = getClient()
+  await client.leave(docId)
+  localMetadataOverrides.delete(docId)
+  writeLocalMetadataOverrides(localMetadataOverrides)
+  docsStore.setState((s) => ({ ...s, documents: s.documents.filter((doc) => doc.id !== docId) }))
+}
+
+export async function createFolder(name: string, parentId = docsStore.state.activeFolder): Promise<string> {
+  const targetParentId = normalizeFolderId(parentId)
+  const now = Date.now()
+  const folder: DocFolderRecord = {
+    id: createFolderId(),
+    name: sanitizeFolderName(name),
+    parentId: targetParentId,
+    createdAt: now,
+    updatedAt: now,
+  }
+
+  docsStore.setState((s) => ({ ...s, folders: [...s.folders, folder] }))
+  forgetDeletedFolderId(folder.id)
+  await persistFolders()
+  return folder.id
+}
+
+export async function renameFolder(folderId: string, name: string): Promise<void> {
+  const targetFolderId = normalizeFolderId(folderId)
+  if (!targetFolderId) return
+
+  const nextName = sanitizeFolderName(name)
+  const now = Date.now()
+  const existingFolder = docsStore.state.folders.find((folder) => folder.id === targetFolderId)
+  forgetDeletedFolderId(targetFolderId)
+  if (existingFolder) {
+    docsStore.setState((s) => ({
+      ...s,
+      folders: s.folders.map((folder) =>
+        folder.id === targetFolderId ? { ...folder, name: nextName, updatedAt: now } : folder,
+      ),
+    }))
+  } else {
+    const node = findFolderNode(selectFolderTree(docsStore.state), targetFolderId)
+    docsStore.setState((s) => ({
+      ...s,
+      folders: [
+        ...s.folders,
+        {
+          id: targetFolderId,
+          name: nextName,
+          parentId: normalizeFolderId(node?.parentId),
+          createdAt: now,
+          updatedAt: now,
+        },
+      ],
+    }))
+  }
+  await persistFolders()
+}
+
+export async function deleteFolder(folderId: string): Promise<void> {
+  const targetFolderId = normalizeFolderId(folderId)
+  if (!targetFolderId) return
+
+  const node = findFolderNode(selectFolderTree(docsStore.state), targetFolderId)
+  if (!node) return
+
+  const folderIds = new Set<string>()
+  collectFolderIds(node, folderIds)
+  const documentsToMove = docsStore.state.documents.filter((doc) => folderIds.has(normalizeFolderId(doc.folder)))
+
+  for (const doc of documentsToMove) {
+    await updateDocumentFolder(doc.id, ROOT_DOC_FOLDER_ID)
+  }
+
+  rememberDeletedFolderIds(folderIds)
+  docsStore.setState((s) => ({ ...s, folders: s.folders.filter((folder) => !folderIds.has(folder.id)) }))
+  if (selectSelectedFolderIds(docsStore.state)?.has(targetFolderId)) setActiveFolder(ROOT_DOC_FOLDER_ID)
+  await persistFolders()
+}

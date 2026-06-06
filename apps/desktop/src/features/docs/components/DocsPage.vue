@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { DocEntry, DocFolderNode } from '../types/doc';
+import { useSelector } from '@tanstack/vue-store';
 import { Check, Plus, Search, SlidersHorizontal, X } from 'lucide-vue-next';
 import { computed, shallowRef } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -7,7 +8,21 @@ import { useRoute, useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
 import WorkspaceResizablePane from '@/app/components/workspace/WorkspaceResizablePane.vue';
 import { ask } from '@/desktop/dialog';
-import { useDocsStore } from '../stores/docsStore';
+import {
+  createDocument,
+  deleteDocument as deleteDocumentAction,
+  docsStore,
+  loadDocuments,
+  loadFolders,
+  selectFilteredDocuments,
+  selectFolderTree,
+  setDocumentStarred,
+  setDocumentStatus,
+  setReviewOnly,
+  setSearchQuery,
+  updateDocumentFolder,
+  updateDocumentTitle,
+} from '../stores/docsStore';
 import DocPreviewCard from './DocPreviewCard.vue';
 import DocsSidebar from './DocsSidebar.vue';
 import DocEditor from './editor/DocEditor.vue';
@@ -15,7 +30,17 @@ import DocEditor from './editor/DocEditor.vue';
 const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
-const store = useDocsStore();
+
+const activeSection = useSelector(docsStore, (s) => s.activeSection);
+const activeFolder = useSelector(docsStore, (s) => s.activeFolder);
+const reviewOnly = useSelector(docsStore, (s) => s.reviewOnly);
+const folderTree = useSelector(docsStore, selectFolderTree);
+const filteredDocuments = useSelector(docsStore, selectFilteredDocuments);
+const searchQuerySel = useSelector(docsStore, (s) => s.searchQuery);
+const searchQuery = computed({
+  get: () => searchQuerySel.value,
+  set: setSearchQuery,
+});
 
 const selectedDocId = computed(() => (route.params?.docId as string | undefined) ?? '');
 const renamingDocId = shallowRef('');
@@ -23,8 +48,8 @@ const renameDraft = shallowRef('');
 const movingDocId = shallowRef('');
 const moveDraft = shallowRef('');
 
-store.loadDocuments();
-store.loadFolders();
+loadDocuments();
+loadFolders();
 
 const resizeLabel = computed(() => t('sidebar.resize_docs'));
 
@@ -42,28 +67,28 @@ const folderOptions = computed(() => {
     });
     folder.children.forEach(visit);
   }
-  visit(store.folderTree);
+  visit(folderTree.value);
   return options;
 });
 
 const emptyStateTitle = computed(() => {
-  if (store.searchQuery.trim()) return '没有找到匹配文档';
-  if (store.reviewOnly) return '暂无评审中文档';
-  if (store.activeSection === 'starred') return '暂无收藏文档';
-  if (store.activeSection === 'shared') return '暂无共享给我的文档';
+  if (searchQuery.value.trim()) return '没有找到匹配文档';
+  if (reviewOnly.value) return '暂无评审中文档';
+  if (activeSection.value === 'starred') return '暂无收藏文档';
+  if (activeSection.value === 'shared') return '暂无共享给我的文档';
   return '暂无文档';
 });
 
 const emptyStateDescription = computed(() => {
-  if (store.searchQuery.trim()) return '换个关键词，或清空搜索条件后再试。';
-  if (store.reviewOnly) return '将文档状态切换为评审中后，会出现在这里。';
-  if (store.activeSection === 'starred') return '点击文档行的星标后，会出现在这里。';
-  if (store.activeSection === 'shared') return '别人邀请你协作的文档会出现在这里。';
+  if (searchQuery.value.trim()) return '换个关键词，或清空搜索条件后再试。';
+  if (reviewOnly.value) return '将文档状态切换为评审中后，会出现在这里。';
+  if (activeSection.value === 'starred') return '点击文档行的星标后，会出现在这里。';
+  if (activeSection.value === 'shared') return '别人邀请你协作的文档会出现在这里。';
   return '新建一个文档，开始记录团队资料。';
 });
 
-async function createDocument(): Promise<void> {
-  const docId = await store.createDocument('新建协作文档', store.activeFolder);
+async function createDocumentAndOpen(): Promise<void> {
+  const docId = await createDocument('新建协作文档', activeFolder.value);
   await router.push(`/docs/${docId}`);
 }
 
@@ -84,7 +109,7 @@ function cancelRename(): void {
 
 async function saveRename(): Promise<void> {
   if (!renamingDocId.value) return;
-  await store.updateDocumentTitle(renamingDocId.value, renameDraft.value);
+  await updateDocumentTitle(renamingDocId.value, renameDraft.value);
   cancelRename();
 }
 
@@ -101,16 +126,16 @@ function cancelMove(): void {
 
 async function saveMove(): Promise<void> {
   if (!movingDocId.value) return;
-  await store.updateDocumentFolder(movingDocId.value, moveDraft.value);
+  await updateDocumentFolder(movingDocId.value, moveDraft.value);
   cancelMove();
 }
 
 async function toggleDocumentStarred(doc: DocEntry, starred: boolean): Promise<void> {
-  await store.setDocumentStarred(doc.id, starred);
+  await setDocumentStarred(doc.id, starred);
 }
 
 async function updateDocumentStatus(doc: DocEntry, status: DocEntry['status']): Promise<void> {
-  await store.setDocumentStatus(doc.id, status);
+  await setDocumentStatus(doc.id, status);
 }
 
 async function deleteDocument(doc: DocEntry): Promise<void> {
@@ -120,7 +145,7 @@ async function deleteDocument(doc: DocEntry): Promise<void> {
   });
   if (!confirmed) return;
   try {
-    await store.deleteDocument(doc.id);
+    await deleteDocumentAction(doc.id);
   } catch (error) {
     console.error('Failed to delete document:', error);
     toast.error(t('docs.delete_failed'));
@@ -155,7 +180,7 @@ async function deleteDocument(doc: DocEntry): Promise<void> {
         >
           <Search :size="18" />
           <input
-            v-model="store.searchQuery"
+            v-model="searchQuery"
             type="text"
             placeholder="搜索文档..."
             class="h-full min-w-0 flex-1 bg-transparent text-[13px] text-foreground outline-none placeholder:text-muted-foreground"
@@ -166,12 +191,12 @@ async function deleteDocument(doc: DocEntry): Promise<void> {
             data-testid="docs-review-filter"
             class="inline-flex h-9 min-w-0 max-w-[142px] shrink items-center gap-2 rounded-md border px-3 text-[13px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             :class="
-              store.reviewOnly
+              reviewOnly
                 ? 'border-primary/30 bg-primary/10 text-primary'
                 : 'border-border text-muted-foreground hover:bg-accent hover:text-foreground'
             "
-            :aria-pressed="store.reviewOnly"
-            @click="store.reviewOnly = !store.reviewOnly"
+            :aria-pressed="reviewOnly"
+            @click="setReviewOnly(!reviewOnly)"
           >
             <SlidersHorizontal :size="15" class="shrink-0" />
             <span class="min-w-0 truncate">只看评审中</span>
@@ -179,7 +204,7 @@ async function deleteDocument(doc: DocEntry): Promise<void> {
           <button
             data-testid="docs-list-create"
             class="inline-flex h-9 min-w-0 max-w-[136px] shrink items-center gap-2 rounded-md bg-primary px-3 text-[13px] font-semibold text-primary-foreground transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            @click="createDocument"
+            @click="createDocumentAndOpen"
           >
             <Plus :size="16" class="shrink-0" />
             <span class="min-w-0 truncate">新建文档</span>
@@ -188,7 +213,7 @@ async function deleteDocument(doc: DocEntry): Promise<void> {
       </header>
       <main class="min-h-0 flex-1 overflow-y-auto px-8 py-7">
         <div
-          v-if="store.filteredDocuments.length === 0"
+          v-if="filteredDocuments.length === 0"
           data-testid="docs-empty-state"
           class="mx-auto flex min-h-[280px] w-full max-w-6xl flex-col items-center justify-center rounded-lg border border-dashed border-border bg-muted/20 px-6 text-center"
         >
@@ -199,17 +224,17 @@ async function deleteDocument(doc: DocEntry): Promise<void> {
             {{ emptyStateDescription }}
           </p>
           <button
-            v-if="!store.searchQuery.trim() && store.activeSection !== 'shared'"
+            v-if="!searchQuery.trim() && activeSection !== 'shared'"
             data-testid="docs-empty-create"
             class="mt-4 inline-flex h-8 items-center gap-2 rounded-md bg-primary px-3 text-[13px] font-semibold text-primary-foreground transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            @click="createDocument"
+            @click="createDocumentAndOpen"
           >
             <Plus :size="15" />
             <span>新建文档</span>
           </button>
         </div>
         <div v-else class="mx-auto w-full max-w-6xl overflow-x-auto rounded-lg border border-border bg-card">
-          <div v-for="doc in store.filteredDocuments" :key="doc.id" class="border-b border-border last:border-b-0">
+          <div v-for="doc in filteredDocuments" :key="doc.id" class="border-b border-border last:border-b-0">
             <DocPreviewCard
               :doc="doc"
               :is-selected="false"

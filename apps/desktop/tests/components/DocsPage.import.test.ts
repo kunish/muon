@@ -1,10 +1,9 @@
 import { mount } from '@vue/test-utils'
-import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, nextTick } from 'vue'
 import { toast } from 'vue-sonner'
 import DocsPage from '@/features/docs/components/DocsPage.vue'
-import { useDocsStore } from '@/features/docs/stores/docsStore'
+import { resetDocsStore } from '@/features/docs/stores/docsStore'
 
 vi.mock('vue-sonner', () => ({
   toast: { error: vi.fn() },
@@ -39,16 +38,29 @@ vi.mock('@/features/docs/components/DocsCreateButton.vue', () => ({
   }),
 }))
 
+// Override only the async actions DocsPage's import handler invokes; keep the
+// real store, selectors, and UI setters so the component mounts and renders.
+const createDocument = vi.fn<(title: string, folder: string) => Promise<string>>()
+const appendMarkdown = vi.fn<(docId: string, markdown: string) => Promise<void>>()
+
+vi.mock('@/features/docs/stores/docsStore', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/features/docs/stores/docsStore')>()
+  return {
+    ...actual,
+    createDocument: (...args: [string, string]) => createDocument(...args),
+    appendMarkdown: (...args: [string, string]) => appendMarkdown(...args),
+  }
+})
+
 describe('docsPage import-doc handler', () => {
   beforeEach(() => {
-    setActivePinia(createPinia())
     vi.clearAllMocks()
+    resetDocsStore()
   })
 
   it('creates a document then appends the file body', async () => {
-    const store = useDocsStore()
-    const createDocument = vi.spyOn(store, 'createDocument').mockResolvedValue('!room:localhost')
-    const appendMarkdown = vi.spyOn(store, 'appendMarkdown').mockResolvedValue()
+    createDocument.mockResolvedValue('!room:localhost')
+    appendMarkdown.mockResolvedValue()
 
     const wrapper = mount(DocsPage)
     await nextTick()
@@ -69,10 +81,6 @@ describe('docsPage import-doc handler', () => {
   })
 
   it('rejects files larger than 1 MB without creating a document', async () => {
-    const store = useDocsStore()
-    const createDocument = vi.spyOn(store, 'createDocument')
-    const appendMarkdown = vi.spyOn(store, 'appendMarkdown')
-
     const wrapper = mount(DocsPage)
     await nextTick()
 

@@ -1,17 +1,32 @@
 <script setup lang="ts">
+import { useSelector } from '@tanstack/vue-store';
 import { Clock3, Star, Users } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
 import { ask } from '@/desktop/dialog';
-import { useDocsStore } from '../stores/docsStore';
+import {
+  appendMarkdown,
+  createDocument,
+  createFolder as createFolderAction,
+  deleteFolder as deleteFolderAction,
+  docsStore,
+  renameFolder as renameFolderAction,
+  selectFolderTree,
+  setActiveFolder,
+  setActiveSection,
+  setSearchQuery,
+} from '../stores/docsStore';
 import DocsCreateButton from './DocsCreateButton.vue';
 import DocsFolderTree from './DocsFolderTree.vue';
 import DocsSidebarNav from './DocsSidebarNav.vue';
 
 const { t } = useI18n();
-const store = useDocsStore();
 const router = useRouter();
+
+const activeSection = useSelector(docsStore, (s) => s.activeSection);
+const activeFolder = useSelector(docsStore, (s) => s.activeFolder);
+const folderTree = useSelector(docsStore, selectFolderTree);
 
 const IMPORT_DOC_MAX_BYTES = 1024 * 1024;
 
@@ -22,20 +37,20 @@ const sections = [
 ];
 
 function selectSection(id: (typeof sections)[number]['id']): void {
-  store.activeSection = id;
-  store.searchQuery = '';
+  setActiveSection(id);
+  setSearchQuery('');
   void router.push('/docs');
 }
 
 function selectFolder(folderId: string): void {
-  store.activeFolder = folderId;
-  store.searchQuery = '';
+  setActiveFolder(folderId);
+  setSearchQuery('');
   void router.push('/docs');
 }
 
 async function handleCreate(): Promise<void> {
   try {
-    const docId = await store.createDocument('新建协作文档', store.activeFolder);
+    const docId = await createDocument('新建协作文档', activeFolder.value);
     await router.push(`/docs/${docId}`);
   } catch {
     toast.error(t('docs.create_failed'));
@@ -50,22 +65,22 @@ async function importDoc(file: File): Promise<void> {
   try {
     const text = await file.text();
     const title = file.name.replace(/\.(md|markdown|txt)$/i, '') || t('docs.untitled_import');
-    const docId = await store.createDocument(title, store.activeFolder);
-    await store.appendMarkdown(docId, text);
+    const docId = await createDocument(title, activeFolder.value);
+    await appendMarkdown(docId, text);
   } catch {
     toast.error(t('docs.import_failed'));
   }
 }
 
 async function createFolder(parentId: string, name: string): Promise<void> {
-  const folderId = await store.createFolder(name, parentId);
-  store.activeFolder = folderId;
-  store.searchQuery = '';
+  const folderId = await createFolderAction(name, parentId);
+  setActiveFolder(folderId);
+  setSearchQuery('');
   await router.push('/docs');
 }
 
 async function renameFolder(folderId: string, name: string): Promise<void> {
-  await store.renameFolder(folderId, name);
+  await renameFolderAction(folderId, name);
 }
 
 async function deleteFolder(folderId: string): Promise<void> {
@@ -75,7 +90,7 @@ async function deleteFolder(folderId: string): Promise<void> {
   });
   if (!confirmed) return;
   try {
-    await store.deleteFolder(folderId);
+    await deleteFolderAction(folderId);
     await router.push('/docs');
   } catch (error) {
     console.error('Failed to delete folder:', error);
@@ -97,15 +112,15 @@ async function deleteFolder(folderId: string): Promise<void> {
       @import-doc="importDoc"
     />
 
-    <DocsSidebarNav :sections="sections" :active-section="store.activeSection" @select="selectSection" />
+    <DocsSidebarNav :sections="sections" :active-section="activeSection" @select="selectSection" />
 
     <div class="mt-6 px-3 pb-2 text-[11px] font-bold uppercase leading-4 tracking-[0.05em] text-muted-foreground">
       文件夹
     </div>
 
     <DocsFolderTree
-      :root="store.folderTree"
-      :active-folder="store.activeFolder"
+      :root="folderTree"
+      :active-folder="activeFolder"
       @select="selectFolder"
       @create="createFolder"
       @rename="renameFolder"
