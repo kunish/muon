@@ -1,6 +1,7 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import EmailPage from '@/features/email/components/EmailPage.vue'
+import { mailAccountStore, resetMailAccountStore } from '@/features/email/stores/mailAccountStore'
 
 const account = {
   user: 'me@example.com',
@@ -22,20 +23,21 @@ vi.mock('@/desktop/mail', () => ({
   fetchInbox,
 }))
 
-vi.mock('@/features/email/stores/mailAccountStore', () => ({
-  useMailAccountStore: () => ({
-    account,
-    isConfigured: true,
-    loaded: true,
-    load: vi.fn().mockResolvedValue(undefined),
-    save: vi.fn().mockResolvedValue(undefined),
-    clear: vi.fn(),
-  }),
+// Keep the real vue-store (so useSelector works) but stub the async actions; the
+// account is seeded into the store in beforeEach. `load` is stubbed so the
+// component's onMounted load does not clobber the seeded account.
+vi.mock('@/features/email/stores/mailAccountStore', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/features/email/stores/mailAccountStore')>()),
+  load: vi.fn().mockResolvedValue(undefined),
+  save: vi.fn().mockResolvedValue(undefined),
+  clear: vi.fn(),
 }))
 
 describe('email real send/receive', () => {
   beforeEach(() => {
     localStorage.clear()
+    resetMailAccountStore()
+    mailAccountStore.setState((prev) => ({ ...prev, account, loaded: true }))
     sendMail.mockClear()
     fetchInbox.mockClear()
     fetchInbox.mockResolvedValue([])

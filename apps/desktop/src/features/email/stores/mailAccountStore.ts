@@ -1,7 +1,6 @@
 import type { MailAccountConfig } from '@/desktop/mail'
 import type { SafeStorageLike } from '@/shared/safeStorageStore'
-import { defineStore } from 'pinia'
-import { computed, ref } from 'vue'
+import { Store } from '@tanstack/vue-store'
 import { z } from 'zod'
 import { getDesktopBridge, isElectronRuntime } from '@/desktop/bridge'
 import { makeEncryptedStore } from '@/shared/safeStorageStore'
@@ -34,28 +33,40 @@ function bridgeSafeStorage(): SafeStorageLike {
   }
 }
 
-/** 邮箱账号(SMTP/IMAP)凭据;密码经 safeStorage 加密落盘 */
-export const useMailAccountStore = defineStore('mailAccount', () => {
-  const account = ref<MailAccountConfig | null>(null)
-  const loaded = ref(false)
-  const store = makeEncryptedStore({ key: STORAGE_KEY, schema: mailAccountSchema, safeStorage: bridgeSafeStorage() })
-
-  const isConfigured = computed(() => account.value !== null)
-
-  async function load(): Promise<void> {
-    account.value = await store.read()
-    loaded.value = true
-  }
-
-  async function save(config: MailAccountConfig): Promise<void> {
-    account.value = config
-    await store.write(config)
-  }
-
-  function clear(): void {
-    account.value = null
-    store.clear()
-  }
-
-  return { account, loaded, isConfigured, load, save, clear }
+const encryptedStore = makeEncryptedStore({
+  key: STORAGE_KEY,
+  schema: mailAccountSchema,
+  safeStorage: bridgeSafeStorage(),
 })
+
+export interface MailAccountState {
+  /** SMTP/IMAP credentials; the password is encrypted at rest via safeStorage. */
+  account: MailAccountConfig | null
+  loaded: boolean
+}
+
+function createInitialState(): MailAccountState {
+  return { account: null, loaded: false }
+}
+
+export const mailAccountStore = new Store<MailAccountState>(createInitialState())
+
+export async function load(): Promise<void> {
+  const account = await encryptedStore.read()
+  mailAccountStore.setState((prev) => ({ ...prev, account, loaded: true }))
+}
+
+export async function save(config: MailAccountConfig): Promise<void> {
+  mailAccountStore.setState((prev) => ({ ...prev, account: config }))
+  await encryptedStore.write(config)
+}
+
+export function clear(): void {
+  mailAccountStore.setState((prev) => ({ ...prev, account: null }))
+  encryptedStore.clear()
+}
+
+/** Reset only the in-memory state (encrypted storage is untouched) — for tests/lifecycle. */
+export function resetMailAccountStore(): void {
+  mailAccountStore.setState(() => createInitialState())
+}

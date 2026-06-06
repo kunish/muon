@@ -1,7 +1,6 @@
 import type { MailAccountConfig } from '@/desktop/mail'
-import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { useMailAccountStore } from '@/features/email/stores/mailAccountStore'
+import { clear, load, mailAccountStore, resetMailAccountStore, save } from '@/features/email/stores/mailAccountStore'
 
 const account: MailAccountConfig = {
   user: 'me@example.com',
@@ -16,34 +15,35 @@ const account: MailAccountConfig = {
 
 describe('mail account store', () => {
   beforeEach(() => {
-    setActivePinia(createPinia())
     localStorage.clear()
+    resetMailAccountStore()
   })
 
   it('starts unconfigured', () => {
-    expect(useMailAccountStore().isConfigured).toBe(false)
+    expect(mailAccountStore.state.account).toBeNull()
   })
 
-  it('persists the account and reloads it on a fresh store', async () => {
-    await useMailAccountStore().save(account)
+  it('persists the account and reloads it after the in-memory state is reset', async () => {
+    await save(account)
 
-    setActivePinia(createPinia())
-    const reloaded = useMailAccountStore()
-    await reloaded.load()
+    // Simulate a fresh app start: wipe in-memory state, keep encrypted storage.
+    resetMailAccountStore()
+    expect(mailAccountStore.state.account).toBeNull()
 
-    expect(reloaded.isConfigured).toBe(true)
-    expect(reloaded.account).toEqual(account)
+    await load()
+
+    expect(mailAccountStore.state.account).toEqual(account)
+    expect(mailAccountStore.state.loaded).toBe(true)
   })
 
-  it('clears the stored account', async () => {
-    const store = useMailAccountStore()
-    await store.save(account)
-    store.clear()
-    expect(store.account).toBeNull()
+  it('clears the stored account from both memory and storage', async () => {
+    await save(account)
 
-    setActivePinia(createPinia())
-    const reloaded = useMailAccountStore()
-    await reloaded.load()
-    expect(reloaded.account).toBeNull()
+    clear()
+    expect(mailAccountStore.state.account).toBeNull()
+
+    resetMailAccountStore()
+    await load()
+    expect(mailAccountStore.state.account).toBeNull()
   })
 })

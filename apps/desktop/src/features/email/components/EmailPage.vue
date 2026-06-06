@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useSelector } from '@tanstack/vue-store';
 import { useStorage } from '@vueuse/core';
 import {
   Archive,
@@ -18,12 +19,17 @@ import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
 import WorkspaceResizablePane from '@/app/components/workspace/WorkspaceResizablePane.vue';
 import { fetchInbox, isMailBridgeAvailable, sendMail } from '@/desktop/mail';
-import { useMailAccountStore } from '@/features/email/stores/mailAccountStore';
+import {
+  load as loadMailAccount,
+  mailAccountStore,
+  save as saveMailAccount,
+} from '@/features/email/stores/mailAccountStore';
 import { useContactList } from '@/shared/composables/useContactList';
 
 const { t } = useI18n();
 const contactList = useContactList();
-const mailAccount = useMailAccountStore();
+const mailAccount = useSelector(mailAccountStore, (state) => state.account);
+const isMailConfigured = useSelector(mailAccountStore, (state) => state.account !== null);
 
 // ── 邮箱账号配置（真实 SMTP/IMAP） ──
 const accountPanelOpen = shallowRef(false);
@@ -42,12 +48,12 @@ const accountForm = ref({
 });
 
 function openAccountPanel(): void {
-  if (mailAccount.account) accountForm.value = { ...mailAccount.account };
+  if (mailAccount.value) accountForm.value = { ...mailAccount.value };
   accountPanelOpen.value = true;
 }
 
 async function saveAccount(): Promise<void> {
-  await mailAccount.save({ ...accountForm.value });
+  await saveMailAccount({ ...accountForm.value });
   accountPanelOpen.value = false;
   toast.success(t('email.account_saved'));
 }
@@ -187,14 +193,14 @@ const messages = shallowRef<EmailMessage[]>(
 );
 
 async function refreshInbox(): Promise<void> {
-  if (!mailAccount.isConfigured || !isMailBridgeAvailable()) {
+  if (!isMailConfigured.value || !isMailBridgeAvailable()) {
     openAccountPanel();
     toast.error(t('email.configure_required'));
     return;
   }
   refreshing.value = true;
   try {
-    const fetched = await fetchInbox(mailAccount.account!, 30);
+    const fetched = await fetchInbox(mailAccount.value!, 30);
     const inbox: EmailMessage[] = fetched.map((mail) => ({
       id: `imap:${mail.uid}`,
       folder: 'inbox',
@@ -254,7 +260,7 @@ const selectedReplyDraftSubject = computed(() => {
 onMounted(() => {
   composeSubject.value = defaultComposeSubject.value;
   contactList.ensureContactsLoaded();
-  void mailAccount.load();
+  void loadMailAccount();
 });
 
 function selectFolder(folderId: string): void {
@@ -375,7 +381,7 @@ async function sendComposeDraft(): Promise<void> {
   const toAddress = composeTo.value.trim();
 
   // 真实发送：必须配置邮箱账号且桥可用，否则诚实拒绝（不伪造已发送）
-  if (!mailAccount.isConfigured || !isMailBridgeAvailable()) {
+  if (!isMailConfigured.value || !isMailBridgeAvailable()) {
     openAccountPanel();
     toast.error(t('email.configure_required'));
     return;
@@ -387,7 +393,7 @@ async function sendComposeDraft(): Promise<void> {
 
   sending.value = true;
   try {
-    await sendMail(mailAccount.account!, { to: toAddress, subject, text: body });
+    await sendMail(mailAccount.value!, { to: toAddress, subject, text: body });
   } catch {
     toast.error(t('email.send_failed'));
     sending.value = false;
@@ -477,7 +483,7 @@ async function sendComposeDraft(): Promise<void> {
       </div>
 
       <div
-        v-if="!mailAccount.isConfigured"
+        v-if="!isMailConfigured"
         class="mx-2 mb-3 rounded-md border border-dashed border-border px-3 py-2 text-[11px] leading-4 text-muted-foreground"
         data-testid="email-not-configured"
       >
