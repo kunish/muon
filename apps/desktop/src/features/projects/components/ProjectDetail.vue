@@ -6,8 +6,9 @@ import { computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { ask } from '@/desktop/dialog';
-import { useProjectStore } from '../composables/useProjectStore';
+import { setCurrentProject } from '../composables/useProjectStore';
 import { useWorkItemStore } from '../composables/useWorkItemStore';
+import { useDeleteProject, useProjectsQuery } from '../queries/useProjects';
 import BoardView from './view/BoardView.vue';
 import GanttView from './view/GanttView.vue';
 import ListView from './view/ListView.vue';
@@ -17,10 +18,11 @@ const props = defineProps<{ projectId: string }>();
 const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
-const projectStore = useProjectStore();
+const projectsQuery = useProjectsQuery();
+const deleteProjectMutation = useDeleteProject();
 const itemStore = useWorkItemStore();
 
-const project = computed(() => projectStore.projects.find((p) => p.id === props.projectId));
+const project = computed(() => projectsQuery.projects.value.find((p) => p.id === props.projectId));
 
 const currentView = computed<ProjectView>(() => {
   const v = route.query.view as string;
@@ -31,9 +33,9 @@ const currentView = computed<ProjectView>(() => {
 watch(
   () => props.projectId,
   async (projectId) => {
-    projectStore.setCurrentProject(projectId);
+    setCurrentProject(projectId);
     itemStore.setCurrentProject(projectId);
-    if (!project.value) await projectStore.loadProjects();
+    if (!project.value) await projectsQuery.refetch();
     await itemStore.loadItems(projectId);
   },
   { immediate: true },
@@ -53,7 +55,7 @@ async function deleteProject() {
     kind: 'warning',
   });
   if (!confirmed) return;
-  await projectStore.deleteProject(props.projectId);
+  await deleteProjectMutation.mutateAsync(props.projectId);
   router.push('/projects');
 }
 </script>

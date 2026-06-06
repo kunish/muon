@@ -5,12 +5,8 @@ import ProjectSettings from '@/features/projects/components/ProjectSettings.vue'
 
 const routerPush = vi.fn()
 
-const projectStoreMock = vi.hoisted(() => ({
-  loadProjects: vi.fn(),
-  projects: [] as any[],
-  setCurrentProject: vi.fn(),
-  updateProject: vi.fn(),
-}))
+const projectsSeed = vi.hoisted(() => ({ projects: [] as any[] }))
+const updateMutateAsync = vi.hoisted(() => vi.fn())
 
 vi.mock('vue-router', () => ({
   useRouter: () => ({
@@ -18,8 +14,17 @@ vi.mock('vue-router', () => ({
   }),
 }))
 
-vi.mock('@/features/projects/composables/useProjectStore', () => ({
-  useProjectStore: () => projectStoreMock,
+vi.mock('@/features/projects/queries/useProjects', () => ({
+  useProjectsQuery: () => ({
+    projects: {
+      get value() {
+        return projectsSeed.projects
+      },
+    },
+    isLoading: { value: false },
+    refetch: vi.fn().mockResolvedValue(undefined),
+  }),
+  useUpdateProject: () => ({ mutateAsync: updateMutateAsync }),
 }))
 
 const ButtonStub = defineComponent({
@@ -92,12 +97,9 @@ function mountSettings() {
 describe('projectSettings', () => {
   beforeEach(() => {
     routerPush.mockReset()
-    projectStoreMock.loadProjects.mockReset()
-    projectStoreMock.loadProjects.mockResolvedValue(undefined)
-    projectStoreMock.setCurrentProject.mockReset()
-    projectStoreMock.updateProject.mockReset()
-    projectStoreMock.updateProject.mockResolvedValue({})
-    projectStoreMock.projects = [
+    updateMutateAsync.mockReset()
+    updateMutateAsync.mockResolvedValue({})
+    projectsSeed.projects = [
       {
         id: '!project:localhost',
         name: '旧项目',
@@ -125,9 +127,12 @@ describe('projectSettings', () => {
     await wrapper.get('[data-testid="project-settings-save-general"]').trigger('click')
     await flushPromises()
 
-    expect(projectStoreMock.updateProject).toHaveBeenCalledWith('!project:localhost', {
-      name: '新项目',
-      description: '新的项目描述',
+    expect(updateMutateAsync).toHaveBeenCalledWith({
+      id: '!project:localhost',
+      changes: {
+        name: '新项目',
+        description: '新的项目描述',
+      },
     })
   })
 })

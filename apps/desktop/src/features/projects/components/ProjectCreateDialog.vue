@@ -6,7 +6,7 @@ import { Label } from '@muon/ui/label';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
-import { useProjectStore } from '../composables/useProjectStore';
+import { useCreateProject } from '../queries/useProjects';
 
 defineProps<{
   open: boolean;
@@ -19,7 +19,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 const router = useRouter();
-const store = useProjectStore();
+const createProject = useCreateProject();
 
 const name = ref('');
 const description = ref('');
@@ -33,7 +33,7 @@ async function submit() {
   creating.value = true;
   error.value = '';
   try {
-    const project = await store.createProject({
+    const project = await createProject.mutateAsync({
       name: name.value.trim(),
       description: description.value.trim(),
     });

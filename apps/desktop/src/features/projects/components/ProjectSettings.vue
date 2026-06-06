@@ -7,7 +7,8 @@ import { ArrowLeft } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
-import { useProjectStore } from '../composables/useProjectStore';
+import { setCurrentProject } from '../composables/useProjectStore';
+import { useProjectsQuery, useUpdateProject } from '../queries/useProjects';
 import CustomFieldEditor from './settings/CustomFieldEditor.vue';
 import WorkflowEditor from './settings/WorkflowEditor.vue';
 
@@ -15,8 +16,9 @@ const props = defineProps<{ projectId: string }>();
 
 const { t } = useI18n();
 const router = useRouter();
-const store = useProjectStore();
-const project = computed(() => store.projects.find((p) => p.id === props.projectId));
+const projectsQuery = useProjectsQuery();
+const updateProjectMutation = useUpdateProject();
+const project = computed(() => projectsQuery.projects.value.find((p) => p.id === props.projectId));
 
 const activeTab = ref<'general' | 'workflow' | 'fields'>('general');
 const editName = ref('');
@@ -34,8 +36,8 @@ const canSaveGeneral = computed(() => {
 watch(
   () => props.projectId,
   async (projectId) => {
-    store.setCurrentProject(projectId);
-    if (!project.value) await store.loadProjects();
+    setCurrentProject(projectId);
+    if (!project.value) await projectsQuery.refetch();
   },
   { immediate: true },
 );
@@ -58,9 +60,12 @@ async function saveGeneralSettings() {
 
   savingGeneral.value = true;
   try {
-    await store.updateProject(project.value.id, {
-      name: editName.value.trim(),
-      description: editDescription.value.trim(),
+    await updateProjectMutation.mutateAsync({
+      id: project.value.id,
+      changes: {
+        name: editName.value.trim(),
+        description: editDescription.value.trim(),
+      },
     });
   } finally {
     savingGeneral.value = false;
