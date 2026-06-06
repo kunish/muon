@@ -1,8 +1,10 @@
+import type { Component } from 'vue'
+import { VueQueryPlugin } from '@tanstack/vue-query'
 import { flushPromises, mount } from '@vue/test-utils'
-import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import OfflineDigestPanel from '@/features/chat/components/OfflineDigestPanel.vue'
-import { useDigestStore } from '@/features/chat/stores/digestStore'
+import { digestStore, ingestEvent, resetDigestStore } from '@/features/chat/stores/digestStore'
+import { createTestQueryClient } from '../helpers/queryClient'
 
 const routerPush = vi.fn()
 const loadInboxEventContextMock = vi.fn()
@@ -54,9 +56,31 @@ vi.mock('@matrix/index', async (importOriginal) => {
   }
 })
 
+function digestEntry(id: string, relevance: string, createdAt: number) {
+  return {
+    id: `digest:${id}`,
+    sessionId: 'digest-session:test',
+    title: `Title ${id}`,
+    summary: `Summary ${id}`,
+    relevance,
+    citations: [{ roomId: '!room:muon.dev', eventId: `$${id}`, quote: `Summary ${id}` }],
+    citationEventIds: [`$${id}`],
+    createdAt,
+    updatedAt: createdAt,
+  }
+}
+
+function mountWithQuery(component: Component) {
+  const queryClient = createTestQueryClient()
+  const wrapper = mount(component, {
+    global: { plugins: [[VueQueryPlugin, { queryClient }]] },
+  })
+  return { wrapper, queryClient }
+}
+
 describe('offlineDigestPanel', () => {
   beforeEach(() => {
-    setActivePinia(createPinia())
+    resetDigestStore()
     routerPush.mockReset()
     loadInboxEventContextMock.mockReset()
     listDigestEntriesMock.mockReset()
@@ -66,18 +90,70 @@ describe('offlineDigestPanel', () => {
     saveDigestEntryMock.mockResolvedValue(undefined)
   })
 
-  it('initializes digest on mount so saved entries restore before refresh', async () => {
-    const store = useDigestStore()
-    const initializeSpy = vi.spyOn(store, 'initializeDigest')
+  it('hydrates persisted entries on mount and preserves them when there are no live events', async () => {
+    listDigestEntriesMock.mockResolvedValue([
+      digestEntry('persisted-a', 'responsibility', 150),
+      digestEntry('persisted-b', 'follow', 160),
+    ])
 
-    mount(OfflineDigestPanel)
+    const { wrapper } = mountWithQuery(OfflineDigestPanel)
     await flushPromises()
 
-    expect(initializeSpy).toHaveBeenCalledTimes(1)
+    expect(wrapper.findAll('article')).toHaveLength(2)
+    expect(wrapper.text()).toContain('Title persisted-a')
+    expect(wrapper.text()).toContain('Title persisted-b')
+    // Empty materialization must not overwrite the hydrated entries (no re-persist).
+    expect(saveDigestEntryMock).not.toHaveBeenCalled()
+  })
+
+  it('builds an away-window session from ingested source events and persists it', async () => {
+    // Nothing persisted yet; a live message arrived inside the away window.
+    ingestEvent({ roomId: '!ops:muon.dev', eventId: '$live', sender: '@alice:muon.dev', body: 'Live update', ts: 150 })
+
+    const { wrapper, queryClient } = mountWithQuery(OfflineDigestPanel)
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Live update')
+    expect(wrapper.get('[data-testid="digest-entry-$live"]')).toBeTruthy()
+    expect(saveDigestEntryMock).toHaveBeenCalledTimes(1)
+    expect(queryClient.getQueryData<Array<{ id: string }>>(['digest', 'entries'])).toHaveLength(1)
+  })
+
+  it('logs and keeps the panel usable when hydration fails, without attempting a build', async () => {
+    listDigestEntriesMock.mockRejectedValue(new Error('dexie offline'))
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    const { wrapper } = mountWithQuery(OfflineDigestPanel)
+    await flushPromises()
+
+    expect(wrapper.findAll('article')).toHaveLength(0)
+    expect(wrapper.text()).toContain('暂无离线摘要')
+    // A failed hydrate must short-circuit before the away-window build runs.
+    expect(saveDigestEntryMock).not.toHaveBeenCalled()
+    expect(errorSpy).toHaveBeenCalledWith('[OfflineDigestPanel] failed to hydrate digest entries', expect.any(Error))
+    errorSpy.mockRestore()
+  })
+
+  it('logs and does not crash when persisting a built session fails', async () => {
+    ingestEvent({ roomId: '!ops:muon.dev', eventId: '$live', sender: '@alice:muon.dev', body: 'Live update', ts: 150 })
+    saveDigestEntryMock.mockRejectedValue(new Error('quota exceeded'))
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    const { wrapper } = mountWithQuery(OfflineDigestPanel)
+    await flushPromises()
+
+    expect(saveDigestEntryMock).toHaveBeenCalled()
+    expect(errorSpy).toHaveBeenCalledWith(
+      '[OfflineDigestPanel] failed to build offline digest session',
+      expect.any(Error),
+    )
+    // Build failure leaves the cache unwritten; the panel still renders (empty here).
+    expect(wrapper.get('[data-testid="offline-digest-panel"]')).toBeTruthy()
+    errorSpy.mockRestore()
   })
 
   it('uses localized labels for filters and empty state', async () => {
-    const wrapper = mount(OfflineDigestPanel)
+    const { wrapper } = mountWithQuery(OfflineDigestPanel)
     await flushPromises()
 
     expect(wrapper.text()).toContain('离线摘要')
@@ -90,25 +166,14 @@ describe('offlineDigestPanel', () => {
     expect(wrapper.text()).not.toContain('No digest entries yet')
   })
 
-  it('clicking citation preloads context before focusEventId navigation', async () => {
-    const store = useDigestStore()
-    store.entries = [
-      {
-        id: 'digest:$event-1',
-        sessionId: 'digest-session:test',
-        title: 'Digest body',
-        summary: 'Digest body',
-        relevance: 'responsibility',
-        citations: [{ roomId: '!room:muon.dev', eventId: '$event-1', quote: 'Digest body' }],
-        citationEventIds: ['$event-1'],
-        createdAt: 150,
-        updatedAt: 150,
-      },
-    ]
+  it('clicking a citation preloads context before focusEventId navigation', async () => {
+    listDigestEntriesMock.mockResolvedValue([digestEntry('event-1', 'responsibility', 150)])
     loadInboxEventContextMock.mockResolvedValue({})
 
-    const wrapper = mount(OfflineDigestPanel)
-    await wrapper.find('[data-testid="digest-citation-$event-1"]').trigger('click')
+    const { wrapper } = mountWithQuery(OfflineDigestPanel)
+    await flushPromises()
+
+    await wrapper.get('[data-testid="digest-citation-$event-1"]').trigger('click')
 
     expect(loadInboxEventContextMock).toHaveBeenCalledWith('!room:muon.dev', '$event-1')
     expect(routerPush).toHaveBeenCalledWith({
@@ -117,75 +182,33 @@ describe('offlineDigestPanel', () => {
     })
   })
 
-  it('remounting panel after unmount shows previously persisted entries', async () => {
-    const persistedEntries = [
-      {
-        id: 'digest:$persisted-a',
-        sessionId: 'digest-session:test',
-        title: 'Persisted entry A',
-        summary: 'Persisted digest entry A',
-        relevance: 'responsibility',
-        citations: [{ roomId: '!room:muon.dev', eventId: '$persisted-a', quote: 'Persisted digest entry A' }],
-        citationEventIds: ['$persisted-a'],
-        createdAt: 150,
-        updatedAt: 150,
-      },
-      {
-        id: 'digest:$persisted-b',
-        sessionId: 'digest-session:test',
-        title: 'Persisted entry B',
-        summary: 'Persisted digest entry B',
-        relevance: 'follow',
-        citations: [{ roomId: '!room:muon.dev', eventId: '$persisted-b', quote: 'Persisted digest entry B' }],
-        citationEventIds: ['$persisted-b'],
-        createdAt: 160,
-        updatedAt: 160,
-      },
-    ]
+  it('remounting the panel after unmount shows the previously persisted entries', async () => {
+    const persisted = [digestEntry('persisted-a', 'responsibility', 150), digestEntry('persisted-b', 'follow', 160)]
+    listDigestEntriesMock.mockResolvedValue(persisted)
 
-    // First mount: Dexie returns persisted entries via hydration
-    listDigestEntriesMock.mockResolvedValue(persistedEntries)
-
-    const wrapper1 = mount(OfflineDigestPanel)
+    const first = mountWithQuery(OfflineDigestPanel)
     await flushPromises()
-    expect(wrapper1.findAll('article')).toHaveLength(2)
+    expect(first.wrapper.findAll('article')).toHaveLength(2)
+    first.wrapper.unmount()
 
-    // Unmount the panel (simulates user switching tabs)
-    wrapper1.unmount()
-
-    // Remount: Dexie still returns the same persisted entries
-    // sourceEvents is empty after remount, so initializeDigest should
-    // preserve hydrated entries (not overwrite with empty materialization)
-    listDigestEntriesMock.mockResolvedValue(persistedEntries)
-
-    const wrapper2 = mount(OfflineDigestPanel)
+    // sourceEvents is empty after remount, so hydration restores the persisted entries.
+    const second = mountWithQuery(OfflineDigestPanel)
     await flushPromises()
 
-    expect(wrapper2.findAll('article')).toHaveLength(2)
-    expect(wrapper2.text()).toContain('Persisted entry A')
-    expect(wrapper2.text()).toContain('Persisted entry B')
+    expect(second.wrapper.findAll('article')).toHaveLength(2)
+    expect(second.wrapper.text()).toContain('Title persisted-a')
+    expect(second.wrapper.text()).toContain('Title persisted-b')
   })
 
   it('preload failure only warns and still navigates', async () => {
-    const store = useDigestStore()
-    store.entries = [
-      {
-        id: 'digest:$event-1',
-        sessionId: 'digest-session:test',
-        title: 'Digest body',
-        summary: 'Digest body',
-        relevance: 'responsibility',
-        citations: [{ roomId: '!room:muon.dev', eventId: '$event-1', quote: 'Digest body' }],
-        citationEventIds: ['$event-1'],
-        createdAt: 150,
-        updatedAt: 150,
-      },
-    ]
+    listDigestEntriesMock.mockResolvedValue([digestEntry('event-1', 'responsibility', 150)])
     loadInboxEventContextMock.mockRejectedValue(new Error('network error'))
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
-    const wrapper = mount(OfflineDigestPanel)
-    await wrapper.find('[data-testid="digest-citation-$event-1"]').trigger('click')
+    const { wrapper } = mountWithQuery(OfflineDigestPanel)
+    await flushPromises()
+
+    await wrapper.get('[data-testid="digest-citation-$event-1"]').trigger('click')
 
     expect(warnSpy).toHaveBeenCalled()
     expect(routerPush).toHaveBeenCalledWith({
@@ -193,5 +216,14 @@ describe('offlineDigestPanel', () => {
       query: { focusEventId: '$event-1' },
     })
     warnSpy.mockRestore()
+  })
+
+  it('does not retain ingested source events across resetDigestStore', () => {
+    ingestEvent({ roomId: '!ops:muon.dev', eventId: '$live', sender: '@alice:muon.dev', body: 'Live update', ts: 150 })
+    expect(digestStore.state.sourceEvents).toHaveLength(1)
+
+    resetDigestStore()
+
+    expect(digestStore.state.sourceEvents).toEqual([])
   })
 })
