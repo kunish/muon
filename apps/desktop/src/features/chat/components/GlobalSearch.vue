@@ -3,6 +3,7 @@ import type { SidebarPreviewInput } from '@/features/chat/stores/chatStore';
 import { getClient } from '@matrix/client';
 import { findOrCreateDm, loadInboxEventContext } from '@matrix/index';
 import { useContactList } from '@shared/composables/useContactList';
+import { useSelector } from '@tanstack/vue-store';
 import { useVirtualizer } from '@tanstack/vue-virtual';
 import { Search } from 'lucide-vue-next';
 import { computed, nextTick, onMounted, onUnmounted, ref, useTemplateRef, watch } from 'vue';
@@ -12,7 +13,12 @@ import { toast } from 'vue-sonner';
 import { workspaceApps } from '@/app/components/workspace/navigation';
 import { useSearchHistory } from '@/features/chat/composables/useSearchHistory';
 import { useChatStore } from '@/features/chat/stores/chatStore';
-import { useRetrievalStore } from '@/features/chat/stores/retrievalStore';
+import {
+  loadMore as retrievalLoadMore,
+  resetState as retrievalResetState,
+  search as retrievalSearch,
+  retrievalStore,
+} from '@/features/chat/stores/retrievalStore';
 
 const emit = defineEmits<{
   close: [];
@@ -35,7 +41,7 @@ const query = ref('');
 const client = getClient();
 const chatStore = useChatStore();
 const contactList = useContactList();
-const retrievalStore = useRetrievalStore();
+const retrieval = useSelector(retrievalStore, (state) => state);
 const searchHistory = useSearchHistory();
 const resultsScrollRef = ref<HTMLElement | null>(null);
 const searchInputRef = useTemplateRef<HTMLInputElement>('searchInput');
@@ -88,7 +94,7 @@ const contactResults = computed(() => {
     .slice(0, 8);
 });
 
-const messageHits = computed(() => retrievalStore.results.filter((hit) => joinedRoomIds.value.has(hit.roomId)));
+const messageHits = computed(() => retrieval.value.results.filter((hit) => joinedRoomIds.value.has(hit.roomId)));
 const hasAnySearchResult = computed(
   () =>
     appResults.value.length > 0 ||
@@ -155,7 +161,7 @@ async function selectRoom(room: SearchRoomResult, sidebarPreview: SidebarPreview
 
 async function submitSearch() {
   searchHistory.record(query.value);
-  await retrievalStore.search(query.value);
+  await retrievalSearch(query.value);
   await nextTick();
   activeResultIndex.value = hasAnySearchResult.value ? 0 : -1;
 }
@@ -166,7 +172,7 @@ function runRecentSearch(term: string) {
 }
 
 async function loadMore() {
-  await retrievalStore.loadMore();
+  await retrievalLoadMore();
 }
 
 async function jumpToResult(roomId: string, eventId: string) {
@@ -301,7 +307,7 @@ watch(normalizedQuery, () => {
 
 onMounted(() => {
   // Reset retrieval state on open so stale results are never shown
-  retrievalStore.resetState();
+  retrievalResetState();
   query.value = '';
   void contactList.loadContacts().catch(() => {});
   void contactList.loadGroups().catch(() => {});
@@ -312,7 +318,7 @@ onMounted(() => {
 onUnmounted(() => {
   document.removeEventListener('keydown', onKeydown);
   // Clean up retrieval state on close
-  retrievalStore.resetState();
+  retrievalResetState();
 });
 </script>
 
@@ -336,7 +342,7 @@ onUnmounted(() => {
         <button
           type="submit"
           class="inline-flex h-8 shrink-0 items-center justify-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
-          :disabled="!query.trim() || retrievalStore.loading"
+          :disabled="!query.trim() || retrieval.loading"
         >
           {{ t('chat.search_btn') }}
         </button>
@@ -467,7 +473,7 @@ onUnmounted(() => {
         {{ t('chat.search_messages_global_title') }}
       </div>
 
-      <div v-if="retrievalStore.loading" class="px-3 py-3 text-sm text-muted-foreground">
+      <div v-if="retrieval.loading" class="px-3 py-3 text-sm text-muted-foreground">
         {{ t('chat.searching') }}
       </div>
 
@@ -506,7 +512,7 @@ onUnmounted(() => {
       </div>
 
       <div
-        v-if="retrievalStore.hasSearched && !retrievalStore.loading && messageHits.length === 0"
+        v-if="retrieval.hasSearched && !retrieval.loading && messageHits.length === 0"
         class="px-3 py-4 text-sm text-muted-foreground"
       >
         <div>{{ t('chat.search_no_result') }}</div>
@@ -515,24 +521,24 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <div v-if="retrievalStore.error" class="px-3 py-3 text-sm text-destructive">
-        {{ retrievalStore.error }}
+      <div v-if="retrieval.error" class="px-3 py-3 text-sm text-destructive">
+        {{ retrieval.error }}
       </div>
 
       <div
-        v-if="query.trim() && !retrievalStore.loading && !retrievalStore.hasSearched && !hasAnySearchResult"
+        v-if="query.trim() && !retrieval.loading && !retrieval.hasSearched && !hasAnySearchResult"
         class="px-3 py-6 text-center text-sm text-muted-foreground"
       >
         {{ t('chat.search_no_match') }}
       </div>
 
-      <div v-if="retrievalStore.canLoadMore" class="px-3 py-3">
+      <div v-if="retrieval.canLoadMore" class="px-3 py-3">
         <button
           class="w-full text-xs rounded-md border border-border px-3 py-2 hover:bg-accent/40 disabled:opacity-50"
-          :disabled="retrievalStore.loadingMore"
+          :disabled="retrieval.loadingMore"
           @click="loadMore"
         >
-          {{ retrievalStore.loadingMore ? t('chat.searching') : t('chat.search_load_more') }}
+          {{ retrieval.loadingMore ? t('chat.searching') : t('chat.search_load_more') }}
         </button>
       </div>
     </div>

@@ -1,8 +1,8 @@
 import { mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { reactive } from 'vue'
 import GlobalSearch from '@/features/chat/components/GlobalSearch.vue'
 import { useChatStore } from '@/features/chat/stores/chatStore'
+import { resetRetrievalStore, retrievalStore } from '@/features/chat/stores/retrievalStore'
 import { resetContactStore } from '@/features/contacts/stores/contactStore'
 
 const contactsSeed = vi.hoisted(() => ({ contacts: [] as any[], groups: [] as any[] }))
@@ -35,21 +35,13 @@ const localeMock = vi.hoisted(() => ({
 }))
 const NOVEMBER_15_NOON_UTC = Date.UTC(2023, 10, 15, 12, 13)
 
-const retrievalState = reactive({
-  query: '',
-  loading: false,
-  loadingMore: false,
-  error: null as string | null,
-  hasSearched: false,
-  canLoadMore: false,
-  results: [] as Array<{
-    roomId: string
-    eventId: string
-    body: string
-    sender: string
-    ts: number
-    rank: number
-  }>,
+// Seeds write through to the real retrieval vue-store so the component's
+// useSelector reflects them; the search/loadMore/resetState actions are mocked below.
+const retrievalState = new Proxy({} as Record<string, unknown>, {
+  set(_target, key, value) {
+    retrievalStore.setState((prev) => ({ ...prev, [key]: value }))
+    return true
+  },
 })
 
 vi.mock('vue-i18n', () => ({
@@ -90,13 +82,11 @@ vi.mock('@matrix/index', async (importOriginal) => {
 
 const resetStateMock = vi.fn()
 
-vi.mock('@/features/chat/stores/retrievalStore', () => ({
-  useRetrievalStore: () => ({
-    ...retrievalState,
-    search: (...args: unknown[]) => searchMock(...args),
-    loadMore: (...args: unknown[]) => loadMoreMock(...args),
-    resetState: (...args: unknown[]) => resetStateMock(...args),
-  }),
+vi.mock('@/features/chat/stores/retrievalStore', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/features/chat/stores/retrievalStore')>()),
+  search: (...args: unknown[]) => searchMock(...args),
+  loadMore: (...args: unknown[]) => loadMoreMock(...args),
+  resetState: (...args: unknown[]) => resetStateMock(...args),
 }))
 
 describe('globalSearch', () => {
@@ -120,13 +110,7 @@ describe('globalSearch', () => {
     searchMock.mockReset()
     loadMoreMock.mockReset()
     resetStateMock.mockReset()
-    retrievalState.query = ''
-    retrievalState.loading = false
-    retrievalState.loadingMore = false
-    retrievalState.error = null
-    retrievalState.hasSearched = false
-    retrievalState.canLoadMore = false
-    retrievalState.results = []
+    resetRetrievalStore()
     localeMock.value = 'en'
     const chatStore = useChatStore()
     chatStore.clearSidebarPromotions()

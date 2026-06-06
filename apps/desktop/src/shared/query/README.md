@@ -35,6 +35,20 @@ boundary and let errors reject — do not swallow them. Retry/error behavior tha
 the Effect provided is reproduced via QueryClient `retry`/`onError`, not via a
 catch-all.
 
+## Not everything server-fetched belongs in vue-query
+
+The "server state → vue-query" rule targets cacheable, shareable _resources_
+(a list, a row, a profile) keyed by a stable id. A **transient, imperative
+search** is the exception: the user types, you fetch a cursor-paginated page,
+render it, and discard it on the next query. There is no stable cache key worth
+keeping, no background refetch, and the consumer flow is imperative
+(`await search(q)` then read the result synchronously) which fights vue-query's
+reactive `enabled`-query model. Such a feature stays in `@tanstack/vue-store`
+with plain `async` actions that update state (`search`, `loadMore`, `resetState`).
+`features/chat/stores/retrievalStore.ts` is the reference (room-event search +
+session-cursor pagination, de-duped on merge). This is the same ephemeral-vs-
+cacheable line drawn for digest's runtime `sourceEvents`.
+
 ## Cache as the source of truth (mutations: `setQueryData`, not invalidate)
 
 For local Dexie/IndexedDB-backed lists, mutations update the cache directly with

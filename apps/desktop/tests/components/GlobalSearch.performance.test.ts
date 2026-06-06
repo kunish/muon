@@ -3,7 +3,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { nextTick } from 'vue'
 import GlobalSearch from '@/features/chat/components/GlobalSearch.vue'
-import { useRetrievalStore } from '@/features/chat/stores/retrievalStore'
+import { resetRetrievalStore, retrievalStore } from '@/features/chat/stores/retrievalStore'
 
 const routerPush = vi.fn()
 const loadInboxEventContextMock = vi.fn()
@@ -66,6 +66,7 @@ async function flushUi() {
 describe('globalSearch performance', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    resetRetrievalStore()
     routerPush.mockReset()
     loadInboxEventContextMock.mockReset()
     searchRoomEventsMock.mockReset()
@@ -106,7 +107,6 @@ describe('globalSearch performance', () => {
     })
 
     const wrapper = mountGlobalSearch()
-    const retrievalStore = useRetrievalStore()
 
     await wrapper.find('[data-testid="global-search-input"]').setValue('result')
     await wrapper.find('[data-testid="global-search-form"]').trigger('submit.prevent')
@@ -122,9 +122,9 @@ describe('globalSearch performance', () => {
     await loadMoreButton!.trigger('click')
     await flushUi()
 
-    expect(retrievalStore.results).toHaveLength(290)
-    expect(retrievalStore.results.some((item) => item.eventId === '$event-joined-0')).toBe(true)
-    expect(retrievalStore.results.some((item) => item.eventId === '$event-joined-239')).toBe(true)
+    expect(retrievalStore.state.results).toHaveLength(290)
+    expect(retrievalStore.state.results.some((item) => item.eventId === '$event-joined-0')).toBe(true)
+    expect(retrievalStore.state.results.some((item) => item.eventId === '$event-joined-239')).toBe(true)
     expect(wrapper.find('[data-testid="global-search-hit-$event-left-31"]').exists()).toBe(false)
     expect(wrapper.findAll('[data-testid^="global-search-hit-"]').length).toBeLessThan(100)
   })
