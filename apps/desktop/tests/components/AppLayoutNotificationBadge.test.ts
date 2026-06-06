@@ -1,3 +1,4 @@
+import { resetServerStore, serverStore } from '@features/server/stores/serverStore'
 import { mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { nextTick } from 'vue'
@@ -15,8 +16,7 @@ const route = vi.hoisted(() => ({
   params: {},
   path: '/dm',
 }))
-const serverStore = vi.hoisted(() => ({
-  currentServerId: null as string | null,
+const serverStoreActions = vi.hoisted(() => ({
   loadServers: vi.fn(),
   selectChannel: vi.fn(),
   selectServer: vi.fn(),
@@ -30,8 +30,13 @@ vi.mock('@features/chat/composables/useConversations', () => ({
   }),
 }))
 
-vi.mock('@features/server/stores/serverStore', () => ({
-  useServerStore: () => serverStore,
+vi.mock('@features/server/stores/serverStore', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@features/server/stores/serverStore')>()),
+  loadServers: serverStoreActions.loadServers,
+  selectChannel: serverStoreActions.selectChannel,
+  selectServer: serverStoreActions.selectServer,
+  startListening: serverStoreActions.startListening,
+  stopListening: serverStoreActions.stopListening,
 }))
 
 vi.mock('@features/settings/composables/useTheme', () => ({
@@ -118,16 +123,17 @@ describe('app layout notification badges', () => {
   beforeEach(() => {
     localStorage.clear()
     resetSettingsStore()
+    resetServerStore()
     totalUnreadCount.value = 8
     route.fullPath = '/dm'
     route.params = {}
     route.path = '/dm'
-    serverStore.currentServerId = null
-    serverStore.loadServers.mockClear()
-    serverStore.selectChannel.mockClear()
-    serverStore.selectServer.mockClear()
-    serverStore.startListening.mockClear()
-    serverStore.stopListening.mockClear()
+    serverStore.setState((s) => ({ ...s, currentServerId: null }))
+    serverStoreActions.loadServers.mockClear()
+    serverStoreActions.selectChannel.mockClear()
+    serverStoreActions.selectServer.mockClear()
+    serverStoreActions.startListening.mockClear()
+    serverStoreActions.stopListening.mockClear()
     myDisplayName.mockReturnValue('Ada Chen')
     push.mockClear()
   })

@@ -9,7 +9,7 @@ import { GripVertical, Hash, Pencil, Trash2, Volume2 } from 'lucide-vue-next';
 import { onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
-import { useServerStore } from '@/features/server/stores/serverStore';
+import { loadChannelTree } from '@/features/server/stores/serverStore';
 import { setRoomName, setRoomTopic } from '@/matrix/rooms';
 import { getCategoryChannels, getSpaceHierarchy, removeRoomFromSpace } from '@/matrix/spaces';
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue';
@@ -18,7 +18,6 @@ const props = defineProps<{
   serverId: string;
 }>();
 
-const serverStore = useServerStore();
 const { t } = useI18n();
 
 // ── Types ──
@@ -94,7 +93,7 @@ async function handleEdit() {
     if (topic !== (channel.topic ?? '')) await setRoomTopic(channel.roomId, topic);
 
     loadChannels();
-    serverStore.loadChannelTree(props.serverId);
+    loadChannelTree(props.serverId);
     closeEdit();
   } catch (err) {
     console.error('Failed to edit channel:', err);
@@ -130,7 +129,7 @@ async function handleDelete() {
 
     // Refresh
     loadChannels();
-    serverStore.loadChannelTree(props.serverId);
+    loadChannelTree(props.serverId);
     showDeleteDialog.value = false;
     deleteTarget.value = null;
   } catch (err) {

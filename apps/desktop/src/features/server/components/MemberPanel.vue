@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import type { SpaceMember } from '@/matrix/spaces';
 import { useRoomNavigation } from '@shared/composables/useRoomNavigation';
+import { useSelector } from '@tanstack/vue-store';
 import { Search, X } from 'lucide-vue-next';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useServerStore } from '@/features/server/stores/serverStore';
+import { serverStore } from '@/features/server/stores/serverStore';
 import { matrixEvents } from '@/matrix/events';
 import { getUserPresenceInfo } from '@/matrix/profile';
 import { getSpaceMembers } from '@/matrix/spaces';
@@ -21,7 +22,7 @@ const emit = defineEmits<{
   openContextMenu: [member: SpaceMember, event: MouseEvent];
 }>();
 
-const serverStore = useServerStore();
+const currentServerId = useSelector(serverStore, (s) => s.currentServerId);
 const chatStore = useRoomNavigation();
 const { t } = useI18n();
 const searchQuery = ref('');
@@ -31,7 +32,7 @@ const searchQuery = ref('');
 const rawMembers = ref<SpaceMember[]>([]);
 
 function refreshMembers() {
-  const serverId = serverStore.currentServerId;
+  const serverId = currentServerId.value;
   if (!serverId) {
     rawMembers.value = [];
     return;
@@ -39,7 +40,7 @@ function refreshMembers() {
   rawMembers.value = getSpaceMembers(serverId);
 }
 
-watch(() => serverStore.currentServerId, refreshMembers, { immediate: true });
+watch(currentServerId, refreshMembers, { immediate: true });
 
 // 监听成员变更事件
 onMounted(() => {
@@ -238,7 +239,7 @@ function handleMentionFromContext(userId: string) {
 
       <MemberContextMenu
         :member="contextMenuMember"
-        :server-id="serverStore.currentServerId ?? undefined"
+        :server-id="currentServerId ?? undefined"
         :position="contextMenuPosition"
         @close="closeContextMenu"
         @mention="handleMentionFromContext"

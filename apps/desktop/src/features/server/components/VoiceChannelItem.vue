@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import type { ChannelInfo } from '@/matrix/spaces';
 import { Avatar } from '@muon/ui/avatar';
+import { useSelector } from '@tanstack/vue-store';
 import { MicOff, Volume2 } from 'lucide-vue-next';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useVoiceChannel } from '@/features/server/composables/useVoiceChannel';
-import { useServerStore } from '@/features/server/stores/serverStore';
+import { serverStore } from '@/features/server/stores/serverStore';
 
 const props = defineProps<{
   channel: ChannelInfo;
@@ -14,8 +15,9 @@ const props = defineProps<{
   connectedUsers?: { userId: string; displayName: string; avatarUrl?: string; isMuted?: boolean }[];
 }>();
 
-const serverStore = useServerStore();
 const { t } = useI18n();
+
+const currentServerId = useSelector(serverStore, (s) => s.currentServerId);
 const {
   currentChannelId,
   isConnected,
@@ -45,7 +47,7 @@ const rowStateClass = computed(() => {
 });
 
 async function onJoinVoice() {
-  const serverId = serverStore.currentServerId;
+  const serverId = currentServerId.value;
   if (!serverId || isActive.value || isJoining.value) return;
 
   if (isConnected.value) {

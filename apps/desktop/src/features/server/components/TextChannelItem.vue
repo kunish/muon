@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import type { ChannelInfo } from '@/matrix/spaces';
 import { Badge } from '@muon/ui/badge';
+import { useSelector } from '@tanstack/vue-store';
 import { UserPlus } from 'lucide-vue-next';
 import { computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { useServerStore } from '@/features/server/stores/serverStore';
+import { selectChannel, serverStore } from '@/features/server/stores/serverStore';
 
 const props = defineProps<{
   channel: ChannelInfo;
@@ -12,9 +13,11 @@ const props = defineProps<{
 }>();
 
 const router = useRouter();
-const serverStore = useServerStore();
 
-const isSelected = computed(() => serverStore.currentChannelId === props.channel.roomId);
+const currentChannelId = useSelector(serverStore, (s) => s.currentChannelId);
+const currentServerId = useSelector(serverStore, (s) => s.currentServerId);
+
+const isSelected = computed(() => currentChannelId.value === props.channel.roomId);
 const isUnread = computed(() => props.channel.unreadCount > 0);
 const hasMentions = computed(() => props.channel.highlightCount > 0);
 const rowStateClass = computed(() => {
@@ -28,8 +31,8 @@ const hoverAffordanceClass = computed(() =>
 const badgeStyle = 'solid' as const;
 
 function navigate(): void {
-  serverStore.selectChannel(props.channel.roomId);
-  const serverId = serverStore.currentServerId;
+  selectChannel(props.channel.roomId);
+  const serverId = currentServerId.value;
   if (serverId) {
     router.push(`/server/${encodeURIComponent(serverId)}/channel/${encodeURIComponent(props.channel.roomId)}`);
   }

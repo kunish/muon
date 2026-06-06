@@ -3,7 +3,7 @@ import type { RoomSummary } from '@/matrix/types'
 import { enableAutoUnmount, mount } from '@vue/test-utils'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { nextTick } from 'vue'
-import { useServerStore } from '@/features/server/stores/serverStore'
+import { resetServerStore, serverStore } from '@/features/server/stores/serverStore'
 
 enableAutoUnmount(afterEach)
 
@@ -732,8 +732,8 @@ describe('context menu hover state', () => {
 
   it('keeps a text channel row visually hovered while its context menu is open', async () => {
     const TextChannelItem = (await import('@/features/server/components/TextChannelItem.vue')).default
-    const serverStore = useServerStore()
-    serverStore.currentChannelId = '!other:localhost'
+    resetServerStore()
+    serverStore.setState((s) => ({ ...s, currentChannelId: '!other:localhost' }))
 
     const wrapper = mount(TextChannelItem, {
       props: {

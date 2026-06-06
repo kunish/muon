@@ -3,16 +3,17 @@ import { Button } from '@muon/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@muon/ui/dialog';
 import { Input } from '@muon/ui/input';
 import { Label } from '@muon/ui/label';
+import { useSelector } from '@tanstack/vue-store';
 import { ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
-import { useServerStore } from '@/features/server/stores/serverStore';
+import { loadChannelTree, serverStore } from '@/features/server/stores/serverStore';
 import { createSpace } from '@/matrix/spaces';
 
 const open = defineModel<boolean>('open', { default: false });
 
 const { t } = useI18n();
-const serverStore = useServerStore();
+const currentServerId = useSelector(serverStore, (s) => s.currentServerId);
 
 const categoryName = ref('');
 const isCreating = ref(false);
@@ -25,7 +26,7 @@ watch(open, (val) => {
 });
 
 async function handleCreate() {
-  const serverId = serverStore.currentServerId;
+  const serverId = currentServerId.value;
   const name = categoryName.value.trim();
   if (!serverId || !name || isCreating.value) return;
 
@@ -35,7 +36,7 @@ async function handleCreate() {
       parentSpaceId: serverId,
       isPublic: false,
     });
-    serverStore.loadChannelTree(serverId);
+    loadChannelTree(serverId);
     open.value = false;
   } catch (error) {
     console.error('Failed to create category:', error);

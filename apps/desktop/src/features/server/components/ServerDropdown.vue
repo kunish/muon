@@ -6,10 +6,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@muon/ui/dropdown-menu';
+import { useSelector } from '@tanstack/vue-store';
 import { Bell, FolderPlus, Hash, LogOut, Settings, UserPlus } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useServerStore } from '@/features/server/stores/serverStore';
+import { serverStore } from '@/features/server/stores/serverStore';
 import { useRoomPermissions } from '@/shared/composables/useRoomPermissions';
 
 const emit = defineEmits<{
@@ -21,10 +22,10 @@ const emit = defineEmits<{
   leaveServer: [];
 }>();
 
-const serverStore = useServerStore();
+const currentServerId = useSelector(serverStore, (s) => s.currentServerId);
 const open = ref(false);
 const { t } = useI18n();
-const { isModerator: isAdmin } = useRoomPermissions(computed(() => serverStore.currentServerId));
+const { isModerator: isAdmin } = useRoomPermissions(computed(() => currentServerId.value));
 </script>
 
 <template>

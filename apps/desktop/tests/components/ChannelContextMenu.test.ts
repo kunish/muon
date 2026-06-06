@@ -1,10 +1,9 @@
 import type { ChannelInfo } from '@/matrix/spaces'
 import { flushPromises, mount } from '@vue/test-utils'
-import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h } from 'vue'
 import ChannelContextMenu from '@/features/server/components/ChannelContextMenu.vue'
-import { useServerStore } from '@/features/server/stores/serverStore'
+import { resetServerStore, serverStore } from '@/features/server/stores/serverStore'
 
 const clipboardMocks = vi.hoisted(() => ({
   writeText: vi.fn(),
@@ -70,15 +69,10 @@ function createChannel(overrides: Partial<ChannelInfo> = {}): ChannelInfo {
 }
 
 function mountMenu(channel = createChannel()) {
-  const pinia = createPinia()
-  setActivePinia(pinia)
-  useServerStore().currentServerId = '!server:localhost'
+  serverStore.setState((s) => ({ ...s, currentServerId: '!server:localhost' }))
 
   return mount(ChannelContextMenu, {
     props: { channel },
-    global: {
-      plugins: [pinia],
-    },
     slots: {
       default: '<span>general</span>',
     },
@@ -87,6 +81,7 @@ function mountMenu(channel = createChannel()) {
 
 describe('channelContextMenu', () => {
   beforeEach(() => {
+    resetServerStore()
     clipboardMocks.writeText.mockReset()
     clipboardMocks.writeText.mockResolvedValue(undefined)
     toastMocks.error.mockReset()

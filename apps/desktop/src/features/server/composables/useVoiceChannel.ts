@@ -8,7 +8,7 @@ import { getClient } from '@/matrix/client'
 import { fromPromise, fromSync, runDesktopEffect } from '@/shared/lib/effect'
 import { localizedText } from '@/shared/lib/localizedText'
 import { getLiveKitToken } from '../lib/livekitToken'
-import { useServerStore } from '../stores/serverStore'
+import { setVoiceConnection } from '../stores/serverStore'
 
 const LIVEKIT_URL = import.meta.env.VITE_LIVEKIT_URL || 'ws://localhost:7880'
 
@@ -37,8 +37,6 @@ const connectedUsers = ref<VoiceChannelUser[]>([])
 // ── Composable ──
 
 export function useVoiceChannel() {
-  const serverStore = useServerStore()
-
   /** Add the current user to the local connected-users list */
   function addSelfToUsers() {
     const client = getClient()
@@ -123,7 +121,7 @@ export function useVoiceChannel() {
 
       yield* fromSync(() => {
         const connection: VoiceConnection = { channelId: roomId, channelName, serverId }
-        serverStore.setVoiceConnection(connection)
+        setVoiceConnection(connection)
         addSelfToUsers()
       })
     }).pipe(
@@ -253,7 +251,7 @@ export function useVoiceChannel() {
     wasMutedBeforeDeafen.value = false
     currentChannelId.value = null
     room.value = null
-    serverStore.setVoiceConnection(null)
+    setVoiceConnection(null)
   }
 
   return {

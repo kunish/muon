@@ -1,10 +1,18 @@
 import { flushPromises, mount } from '@vue/test-utils'
-import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h } from 'vue'
 import ChannelManager from '@/features/server/components/ChannelManager.vue'
-import { useServerStore } from '@/features/server/stores/serverStore'
+import { loadChannelTree, resetServerStore } from '@/features/server/stores/serverStore'
 import { setRoomName, setRoomTopic } from '@/matrix/rooms'
+
+const serverStoreActions = vi.hoisted(() => ({
+  loadChannelTree: vi.fn(),
+}))
+
+vi.mock('@/features/server/stores/serverStore', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/features/server/stores/serverStore')>()),
+  loadChannelTree: serverStoreActions.loadChannelTree,
+}))
 
 const channelManagerMocks = vi.hoisted(() => ({
   getCategoryChannels: vi.fn(() => []),
@@ -83,17 +91,11 @@ function createModelFieldStub(name: string, tag: 'input' | 'textarea') {
 }
 
 function mountManager() {
-  const pinia = createPinia()
-  setActivePinia(pinia)
-  const serverStore = useServerStore()
-  const loadChannelTree = vi.spyOn(serverStore, 'loadChannelTree').mockImplementation(() => {})
-
   const wrapper = mount(ChannelManager, {
     props: {
       serverId: '!server:localhost',
     },
     global: {
-      plugins: [pinia],
       stubs: {
         Button: ButtonStub,
         Dialog: renderSlots('Dialog'),
@@ -108,11 +110,13 @@ function mountManager() {
     },
   })
 
-  return { loadChannelTree, wrapper }
+  return { wrapper }
 }
 
 describe('channelManager', () => {
   beforeEach(() => {
+    resetServerStore()
+    serverStoreActions.loadChannelTree.mockClear()
     channelManagerMocks.getCategoryChannels.mockClear()
     channelManagerMocks.getSpaceHierarchy.mockClear()
     channelManagerMocks.removeRoomFromSpace.mockClear()
@@ -121,7 +125,7 @@ describe('channelManager', () => {
   })
 
   it('edits channel name and topic from the management list', async () => {
-    const { loadChannelTree, wrapper } = mountManager()
+    const { wrapper } = mountManager()
     await flushPromises()
 
     await wrapper.get('[data-testid="channel-manager-edit"]').trigger('click')

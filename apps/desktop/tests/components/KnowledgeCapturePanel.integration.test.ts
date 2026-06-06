@@ -1,8 +1,9 @@
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { computed, defineComponent, h, nextTick, reactive, ref } from 'vue'
+import { computed, defineComponent, h, nextTick, ref } from 'vue'
 
+import { resetServerStore, serverStore } from '@/features/server/stores/serverStore'
 import ChatWindow from '../../src/features/chat/components/ChatWindow.vue'
 import KnowledgeCapturePanel from '../../src/features/chat/components/KnowledgeCapturePanel.vue'
 import { useChatStore } from '../../src/features/chat/stores/chatStore'
@@ -22,13 +23,6 @@ const { routerPush, loadInboxEventContext, mockConversationState } = vi.hoisted(
     }>,
   },
 }))
-
-const serverStore = reactive({
-  channelTree: [],
-  isDmMode: true,
-  currentServerId: null as string | null,
-  servers: [],
-})
 
 function createStub(name: string, testId = name) {
   return defineComponent({
@@ -124,8 +118,9 @@ vi.mock('lucide-vue-next', () => {
   }
 })
 
-vi.mock('@/features/server/stores/serverStore', () => ({
-  useServerStore: () => serverStore,
+vi.mock('@/features/server/stores/serverStore', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/features/server/stores/serverStore')>()),
+  loadChannelTree: vi.fn(),
 }))
 
 vi.mock('@/features/chat/composables/useConversations', () => ({
@@ -221,7 +216,8 @@ describe('knowledgeCapturePanel integration', () => {
     chatStore.activeSidePanel = null
     chatStore.multiSelectMode = false
     chatStore.activeThreadId = null
-    serverStore.isDmMode = true
+    resetServerStore()
+    serverStore.setState((s) => ({ ...s, isDmMode: true }))
     mockConversationState.items = []
     localStorage.clear()
     routerPush.mockReset()
@@ -318,21 +314,23 @@ describe('knowledgeCapturePanel integration', () => {
 
     expect(wrapper.get('[data-testid="conversation-list"]').text()).toContain('Alice')
 
-    serverStore.isDmMode = false
-    serverStore.currentServerId = '!server:example.org'
-    serverStore.servers = [
-      {
-        spaceId: '!server:example.org',
-        name: 'Launch Team',
-      },
-    ]
+    serverStore.setState((s) => ({
+      ...s,
+      isDmMode: false,
+      currentServerId: '!server:example.org',
+      servers: [
+        {
+          spaceId: '!server:example.org',
+          name: 'Launch Team',
+        },
+      ],
+    }))
     await nextTick()
 
     expect(wrapper.find('[data-testid="conversation-list"]').exists()).toBe(true)
     expect(wrapper.get('[data-testid="dm-conversation-sidebar"]').attributes('style')).toContain('display: none')
 
-    serverStore.isDmMode = true
-    serverStore.currentServerId = null
+    serverStore.setState((s) => ({ ...s, isDmMode: true, currentServerId: null }))
     await nextTick()
 
     expect(wrapper.get('[data-testid="dm-conversation-sidebar"]').attributes('style') ?? '').not.toContain(

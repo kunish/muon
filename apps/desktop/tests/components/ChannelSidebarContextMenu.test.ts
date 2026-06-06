@@ -1,11 +1,19 @@
 import { flushPromises, mount } from '@vue/test-utils'
-import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h } from 'vue'
 import ChannelSidebar from '@/features/server/components/ChannelSidebar.vue'
-import { useServerStore } from '@/features/server/stores/serverStore'
+import { resetServerStore, serverStore } from '@/features/server/stores/serverStore'
 import { markRoomAsRead, setRoomName, setRoomTopic, toggleRoomMute } from '@/matrix/rooms'
 import { removeRoomFromSpace } from '@/matrix/spaces'
+
+const serverStoreActions = vi.hoisted(() => ({
+  loadChannelTree: vi.fn(),
+}))
+
+vi.mock('@/features/server/stores/serverStore', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/features/server/stores/serverStore')>()),
+  loadChannelTree: serverStoreActions.loadChannelTree,
+}))
 
 const matrixRoomActions = vi.hoisted(() => ({
   markRoomAsRead: vi.fn().mockResolvedValue(undefined),
@@ -175,44 +183,42 @@ function createModelFieldStub(name: string, tag: 'input' | 'textarea') {
 }
 
 function mountSidebar() {
-  const pinia = createPinia()
-  setActivePinia(pinia)
+  serverStore.setState((s) => ({
+    ...s,
+    isDmMode: false,
+    currentServerId: '!server:localhost',
+    servers: [
+      {
+        spaceId: '!server:localhost',
+        name: 'Launch Team',
+        memberCount: 8,
+        childRoomIds: ['!general:localhost'],
+        childSpaceIds: [],
+      },
+    ],
+    channelTree: [
+      {
+        id: '__text_channels__',
+        name: '__text_channels__',
+        channels: [
+          {
+            roomId: '!general:localhost',
+            name: 'general',
+            isVoice: false,
+            categoryId: null,
+            unreadCount: 4,
+            highlightCount: 1,
+            memberCount: 8,
+          },
+        ],
+      },
+    ],
+  }))
 
-  const serverStore = useServerStore()
-  serverStore.isDmMode = false
-  serverStore.currentServerId = '!server:localhost'
-  serverStore.servers = [
-    {
-      spaceId: '!server:localhost',
-      name: 'Launch Team',
-      memberCount: 8,
-      childRoomIds: ['!general:localhost'],
-      childSpaceIds: [],
-    },
-  ]
-  serverStore.channelTree = [
-    {
-      id: '__text_channels__',
-      name: '__text_channels__',
-      channels: [
-        {
-          roomId: '!general:localhost',
-          name: 'general',
-          isVoice: false,
-          categoryId: null,
-          unreadCount: 4,
-          highlightCount: 1,
-          memberCount: 8,
-        },
-      ],
-    },
-  ]
-
-  const loadChannelTree = vi.spyOn(serverStore, 'loadChannelTree').mockImplementation(() => {})
+  const loadChannelTree = serverStoreActions.loadChannelTree
 
   const wrapper = mount(ChannelSidebar, {
     global: {
-      plugins: [pinia],
       stubs: {
         Avatar: renderSlots('Avatar'),
         Button: ButtonStub,
@@ -245,6 +251,8 @@ function mountSidebar() {
 
 describe('channelSidebar context menu actions', () => {
   beforeEach(() => {
+    resetServerStore()
+    serverStoreActions.loadChannelTree.mockClear()
     matrixRoomActions.markRoomAsRead.mockClear()
     matrixRoomActions.setRoomName.mockClear()
     matrixRoomActions.setRoomTopic.mockClear()

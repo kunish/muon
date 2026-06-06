@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { useServerStore } from '@/features/server/stores/serverStore';
+import { getServerUnreadInfo } from '@/features/server/stores/serverStore';
 import { useAuthMedia } from '@/shared/composables/useAuthMedia';
 
 const props = defineProps<{
@@ -9,8 +9,6 @@ const props = defineProps<{
   isSelected: boolean;
   spaceId: string;
 }>();
-
-const serverStore = useServerStore();
 
 // Avatar loading
 const avatarSrc = props.avatar ? useAuthMedia(() => props.avatar!) : ref<string | undefined>(undefined);
@@ -31,7 +29,7 @@ const bgColor = computed(() => {
 });
 
 // Unread info
-const unreadInfo = computed(() => serverStore.getServerUnreadInfo(props.spaceId));
+const unreadInfo = computed(() => getServerUnreadInfo(props.spaceId));
 const hasUnread = computed(() => unreadInfo.value.unreadCount > 0);
 const hasHighlight = computed(() => unreadInfo.value.highlightCount > 0);
 </script>

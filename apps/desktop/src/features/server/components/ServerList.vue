@@ -1,22 +1,27 @@
 <script setup lang="ts">
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@muon/ui/tooltip';
+import { useSelector } from '@tanstack/vue-store';
 import { Compass, MessageCircle, Plus } from 'lucide-vue-next';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { useConversations } from '@/features/chat/composables/useConversations';
-import { useServerStore } from '@/features/server/stores/serverStore';
+import {
+  getServerUnreadInfo,
+  reorderServer,
+  selectServer as selectServerAction,
+  serverStore,
+} from '@/features/server/stores/serverStore';
 import CreateServerDialog from './CreateServerDialog.vue';
 import ServerIcon from './ServerIcon.vue';
 
 const router = useRouter();
-const serverStore = useServerStore();
 const { conversations } = useConversations();
 const { t } = useI18n();
 
-const servers = computed(() => serverStore.servers);
-const currentServerId = computed(() => serverStore.currentServerId);
-const isDmMode = computed(() => serverStore.isDmMode);
+const servers = useSelector(serverStore, (s) => s.servers);
+const currentServerId = useSelector(serverStore, (s) => s.currentServerId);
+const isDmMode = useSelector(serverStore, (s) => s.isDmMode);
 
 const homeUnread = computed(() =>
   conversations.value.filter((r) => r.isDirect).reduce((sum, r) => sum + r.unreadCount, 0),
@@ -35,20 +40,20 @@ function homeIndicatorClass(): string {
 
 function serverIndicatorClass(serverId: string): string {
   if (currentServerId.value === serverId) return 'w-5 opacity-100';
-  const info = serverStore.getServerUnreadInfo(serverId);
+  const info = getServerUnreadInfo(serverId);
   if (info.highlightCount > 0) return 'w-2.5 opacity-100';
   if (info.unreadCount > 0) return 'w-1.5 opacity-100';
   return 'w-0 opacity-0 group-hover:w-1.5 group-hover:opacity-100';
 }
 
 function selectHome() {
-  serverStore.selectServer(null);
+  selectServerAction(null);
   router.push('/dm');
 }
 
 function selectServer(serverId: string) {
-  serverStore.selectServer(serverId);
-  const channelId = serverStore.currentChannelId;
+  selectServerAction(serverId);
+  const channelId = serverStore.state.currentChannelId;
   if (channelId) {
     router.push(`/server/${encodeURIComponent(serverId)}/channel/${encodeURIComponent(channelId)}`);
   }
@@ -67,7 +72,7 @@ function onDragOver(e: DragEvent) {
 
 function onDrop(targetIndex: number) {
   if (dragIndex !== null && dragIndex !== targetIndex) {
-    serverStore.reorderServer(dragIndex, targetIndex);
+    reorderServer(dragIndex, targetIndex);
   }
   dragIndex = null;
 }

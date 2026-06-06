@@ -7,13 +7,14 @@ import { Input } from '@muon/ui/input';
 import { Label } from '@muon/ui/label';
 import { ScrollArea } from '@muon/ui/scroll-area';
 import { Textarea } from '@muon/ui/textarea';
+import { useSelector } from '@tanstack/vue-store';
 import { ChevronDown, X } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
 import WorkspaceResizablePane from '@/app/components/workspace/WorkspaceResizablePane.vue';
 import ConversationList from '@/features/chat/components/ConversationList.vue';
-import { useServerStore } from '@/features/server/stores/serverStore';
+import { loadChannelTree, serverStore } from '@/features/server/stores/serverStore';
 import { markRoomAsRead, setRoomName, setRoomTopic, toggleRoomMute } from '@/matrix/rooms';
 import { removeRoomFromSpace } from '@/matrix/spaces';
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue';
@@ -34,7 +35,6 @@ defineEmits<{
   leaveServer: [];
 }>();
 
-const serverStore = useServerStore();
 const { t } = useI18n();
 
 const SIDEBAR_WIDTH_STORAGE_KEY = 'muon_message_sidebar_width';
@@ -42,11 +42,13 @@ const DEFAULT_SIDEBAR_WIDTH = 260;
 const MIN_SIDEBAR_WIDTH = 220;
 const MAX_SIDEBAR_WIDTH = 360;
 
-const channelTree = computed(() => serverStore.channelTree);
-const isDmMode = computed(() => serverStore.isDmMode);
+const channelTree = useSelector(serverStore, (s) => s.channelTree);
+const isDmMode = useSelector(serverStore, (s) => s.isDmMode);
+const currentServerId = useSelector(serverStore, (s) => s.currentServerId);
+const servers = useSelector(serverStore, (s) => s.servers);
 const currentServer = computed(() => {
-  if (!serverStore.currentServerId) return null;
-  return serverStore.servers.find((s) => s.spaceId === serverStore.currentServerId) ?? null;
+  if (!currentServerId.value) return null;
+  return servers.value.find((s) => s.spaceId === currentServerId.value) ?? null;
 });
 
 const showCreateChannel = ref(false);
@@ -73,7 +75,7 @@ function findChannel(roomId: string): ChannelInfo | null {
 }
 
 function refreshCurrentServerChannels(): void {
-  if (serverStore.currentServerId) serverStore.loadChannelTree(serverStore.currentServerId);
+  if (currentServerId.value) loadChannelTree(currentServerId.value);
 }
 
 async function handleMarkChannelAsRead(roomId: string): Promise<void> {
@@ -132,7 +134,7 @@ function closeDeleteChannelDialog(): void {
 
 async function confirmDeleteChannel(): Promise<void> {
   const channel = deleteTarget.value;
-  const serverId = serverStore.currentServerId;
+  const serverId = currentServerId.value;
   if (!channel || !serverId || isDeletingChannel.value) return;
 
   isDeletingChannel.value = true;

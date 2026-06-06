@@ -1,15 +1,16 @@
 <script setup lang="ts">
+import { useSelector } from '@tanstack/vue-store';
 import { HeadphoneOff, Headphones, Mic, MicOff, PhoneOff } from 'lucide-vue-next';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useVoiceChannel } from '@/features/server/composables/useVoiceChannel';
-import { useServerStore } from '@/features/server/stores/serverStore';
+import { serverStore } from '@/features/server/stores/serverStore';
 
-const serverStore = useServerStore();
 const { t } = useI18n();
 const { isMuted, isDeafened, connectedUsers, toggleMute, toggleDeafen, leaveVoiceChannel } = useVoiceChannel();
 
-const connection = computed(() => serverStore.voiceConnection);
+const voiceConnection = useSelector(serverStore, (s) => s.voiceConnection);
+const connection = computed(() => voiceConnection.value);
 const isConnected = computed(() => !!connection.value);
 
 const participantCount = computed(() => connectedUsers.value.length);

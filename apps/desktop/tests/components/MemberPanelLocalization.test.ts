@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h } from 'vue'
 import { useChatStore } from '@/features/chat/stores/chatStore'
 import MemberPanel from '@/features/server/components/MemberPanel.vue'
-import { useServerStore } from '@/features/server/stores/serverStore'
+import { resetServerStore, serverStore } from '@/features/server/stores/serverStore'
 
 const memberPanelMocks = vi.hoisted(() => ({
   members: [] as SpaceMember[],
@@ -24,8 +24,7 @@ function mountMemberPanel(members: SpaceMember[]) {
   setActivePinia(pinia)
   memberPanelMocks.members = members
 
-  const serverStore = useServerStore()
-  serverStore.currentServerId = '!server:localhost'
+  serverStore.setState((s) => ({ ...s, currentServerId: '!server:localhost' }))
 
   return mount(MemberPanel, {
     props: {
@@ -65,6 +64,7 @@ function mountMemberPanel(members: SpaceMember[]) {
 
 describe('memberPanel localization', () => {
   beforeEach(() => {
+    resetServerStore()
     memberPanelMocks.members = []
   })
 

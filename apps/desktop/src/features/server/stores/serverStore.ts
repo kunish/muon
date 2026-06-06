@@ -1,8 +1,5 @@
 import type { ChannelInfo, SpaceInfo } from '@/matrix/spaces'
-import type { DesktopEffect } from '@/shared/lib/effect'
-import { Effect } from 'effect'
-import { defineStore } from 'pinia'
-import { reactive, ref, shallowRef } from 'vue'
+import { Store } from '@tanstack/vue-store'
 import { registerSessionSubscriber } from '@/auth/lifecycleEvents'
 import { getClient } from '@/matrix/client'
 import { matrixEvents } from '@/matrix/events'
@@ -14,7 +11,6 @@ import {
   getTopLevelSpaces,
   isVoiceChannel,
 } from '@/matrix/spaces'
-import { fromSync, runDesktopSync } from '@/shared/lib/effect'
 
 // ── Types ──
 
@@ -31,322 +27,264 @@ export interface VoiceConnection {
   serverId: string
 }
 
-function loadServerOrder(): string[] {
-  return runDesktopSync(loadServerOrderEffect())
-}
+const SERVER_ORDER_STORAGE_KEY = 'muon_server_order'
 
-function loadServerOrderEffect(): DesktopEffect<string[]> {
-  return fromSync(() => {
+function loadServerOrder(): string[] {
+  try {
     if (typeof localStorage?.getItem !== 'function') return []
-    const raw = localStorage.getItem('muon_server_order')
-    return raw ? JSON.parse(raw) : []
-  }).pipe(Effect.catchAll(() => Effect.succeed([])))
+    const raw = localStorage.getItem(SERVER_ORDER_STORAGE_KEY)
+    return raw ? (JSON.parse(raw) as string[]) : []
+  } catch {
+    return []
+  }
 }
 
 function saveServerOrder(order: string[]): void {
-  runDesktopSync(saveServerOrderEffect(order))
+  try {
+    if (typeof localStorage?.setItem === 'function')
+      localStorage.setItem(SERVER_ORDER_STORAGE_KEY, JSON.stringify(order))
+  } catch {
+    /* persistence is best-effort */
+  }
 }
 
-function saveServerOrderEffect(order: string[]): DesktopEffect<void> {
-  return fromSync(() => {
-    if (typeof localStorage?.setItem === 'function') localStorage.setItem('muon_server_order', JSON.stringify(order))
-  }).pipe(Effect.catchAll(() => Effect.void))
+export interface ServerState {
+  servers: SpaceInfo[]
+  currentServerId: string | null
+  serverOrder: string[]
+  channelTree: ChannelTreeCategory[]
+  currentChannelId: string | null
+  collapsedCategories: Set<string>
+  lastVisitedChannel: Map<string, string>
+  voiceConnection: VoiceConnection | null
+  isDmMode: boolean
+  orphanChannels: ChannelInfo[]
 }
 
-// ── Store ──
-
-export const useServerStore = defineStore('server', () => {
-  // --- Server list ---
-  const servers = shallowRef<SpaceInfo[]>([])
-  const currentServerId = ref<string | null>(null)
-  const serverOrder = ref<string[]>(loadServerOrder())
-
-  // --- Channel tree for current server ---
-  const channelTree = shallowRef<ChannelTreeCategory[]>([])
-  const currentChannelId = ref<string | null>(null)
-  const collapsedCategories = reactive(new Set<string>())
-
-  // --- Per-server last visited channel ---
-  const lastVisitedChannel = reactive(new Map<string, string>())
-
-  // --- Voice ---
-  const voiceConnection = ref<VoiceConnection | null>(null)
-
-  // --- DM mode ---
-  const isDmMode = ref(false)
-
-  // --- Orphan rooms (not in any Space) ---
-  const orphanChannels = shallowRef<ChannelInfo[]>([])
-
-  // ── Server list management ──
-
-  function loadServers() {
-    const spaces = getTopLevelSpaces()
-    // Sort by user-defined order, unordered spaces go to end
-    const orderMap = new Map(serverOrder.value.map((id, idx) => [id, idx]))
-    servers.value = spaces.sort((a, b) => {
-      const aIdx = orderMap.get(a.spaceId) ?? Number.MAX_SAFE_INTEGER
-      const bIdx = orderMap.get(b.spaceId) ?? Number.MAX_SAFE_INTEGER
-      return aIdx - bIdx
-    })
-
-    // Also load orphan rooms
-    loadOrphanRooms()
+function createInitialState(): ServerState {
+  return {
+    servers: [],
+    currentServerId: null,
+    serverOrder: loadServerOrder(),
+    channelTree: [],
+    currentChannelId: null,
+    collapsedCategories: new Set<string>(),
+    lastVisitedChannel: new Map<string, string>(),
+    voiceConnection: null,
+    isDmMode: false,
+    orphanChannels: [],
   }
+}
 
-  function loadOrphanRooms() {
-    const rooms = getOrphanRooms()
-    orphanChannels.value = rooms.map((room) => buildChannelInfo(room, null))
-  }
+export const serverStore = new Store<ServerState>(createInitialState())
 
-  function setServerOrder(order: string[]) {
-    serverOrder.value = order
-    saveServerOrder(order)
-    loadServers() // re-sort
-  }
+// ── Pure helpers ──
 
-  function reorderServer(fromIndex: number, toIndex: number) {
-    const ids = servers.value.map((s) => s.spaceId)
-    const [moved] = ids.splice(fromIndex, 1)
-    ids.splice(toIndex, 0, moved)
-    setServerOrder(ids)
-  }
+function buildChannelTree(serverId: string): ChannelTreeCategory[] {
+  const { categories, uncategorizedChannels } = getSpaceHierarchy(serverId)
+  const tree: ChannelTreeCategory[] = []
 
-  // ── Channel tree ──
+  if (uncategorizedChannels.length > 0) {
+    const textChannels = uncategorizedChannels.filter((ch) => !ch.isVoice)
+    const voiceChannels = uncategorizedChannels.filter((ch) => ch.isVoice)
 
-  function loadChannelTree(serverId: string) {
-    const { categories, uncategorizedChannels } = getSpaceHierarchy(serverId)
-    const tree: ChannelTreeCategory[] = []
-
-    // Uncategorized channels split into default sections
-    if (uncategorizedChannels.length > 0) {
-      const textChannels = uncategorizedChannels.filter((ch) => !ch.isVoice)
-      const voiceChannels = uncategorizedChannels.filter((ch) => ch.isVoice)
-
-      if (textChannels.length > 0) {
-        tree.push({
-          id: '__text_channels__',
-          name: '__text_channels__',
-          channels: textChannels,
-        })
-      }
-
-      if (voiceChannels.length > 0) {
-        tree.push({
-          id: '__voice_channels__',
-          name: '__voice_channels__',
-          channels: voiceChannels,
-        })
-      }
+    if (textChannels.length > 0) {
+      tree.push({ id: '__text_channels__', name: '__text_channels__', channels: textChannels })
     }
-
-    // Then real categories
-    for (const cat of categories) {
-      const channels = getCategoryChannels(cat.spaceId)
-      tree.push({
-        id: cat.spaceId,
-        name: cat.name,
-        channels,
-        order: cat.order,
-      })
+    if (voiceChannels.length > 0) {
+      tree.push({ id: '__voice_channels__', name: '__voice_channels__', channels: voiceChannels })
     }
-
-    channelTree.value = tree
   }
 
-  // ── Navigation ──
+  for (const cat of categories) {
+    tree.push({ id: cat.spaceId, name: cat.name, channels: getCategoryChannels(cat.spaceId), order: cat.order })
+  }
 
-  function selectServer(serverId: string | null) {
-    if (serverId === null) {
-      // Switch to DM mode
-      isDmMode.value = true
-      currentServerId.value = null
-      channelTree.value = []
-      return
-    }
+  return tree
+}
 
-    isDmMode.value = false
-    currentServerId.value = serverId
-    loadChannelTree(serverId)
+function sortServers(spaces: SpaceInfo[], order: string[]): SpaceInfo[] {
+  const orderMap = new Map(order.map((id, idx) => [id, idx]))
+  return [...spaces].sort((a, b) => {
+    const aIdx = orderMap.get(a.spaceId) ?? Number.MAX_SAFE_INTEGER
+    const bIdx = orderMap.get(b.spaceId) ?? Number.MAX_SAFE_INTEGER
+    return aIdx - bIdx
+  })
+}
 
-    // Restore last visited channel
-    const lastChannel = lastVisitedChannel.get(serverId)
-    if (lastChannel) {
-      currentChannelId.value = lastChannel
-    } else {
-      // Auto-select first text channel
-      for (const cat of channelTree.value) {
-        const firstText = cat.channels.find((ch) => !ch.isVoice)
-        if (firstText) {
-          currentChannelId.value = firstText.roomId
-          break
-        }
+// ── Server list management ──
+
+export function loadServers() {
+  serverStore.setState((s) => ({
+    ...s,
+    servers: sortServers(getTopLevelSpaces(), s.serverOrder),
+    orphanChannels: getOrphanRooms().map((room) => buildChannelInfo(room, null)),
+  }))
+}
+
+export function loadOrphanRooms() {
+  serverStore.setState((s) => ({
+    ...s,
+    orphanChannels: getOrphanRooms().map((room) => buildChannelInfo(room, null)),
+  }))
+}
+
+export function setServerOrder(order: string[]) {
+  saveServerOrder(order)
+  serverStore.setState((s) => ({ ...s, serverOrder: order, servers: sortServers(getTopLevelSpaces(), order) }))
+  loadOrphanRooms()
+}
+
+export function reorderServer(fromIndex: number, toIndex: number) {
+  const ids = serverStore.state.servers.map((s) => s.spaceId)
+  const [moved] = ids.splice(fromIndex, 1)
+  ids.splice(toIndex, 0, moved)
+  setServerOrder(ids)
+}
+
+export function loadChannelTree(serverId: string) {
+  serverStore.setState((s) => ({ ...s, channelTree: buildChannelTree(serverId) }))
+}
+
+// ── Navigation ──
+
+export function selectServer(serverId: string | null) {
+  if (serverId === null) {
+    serverStore.setState((s) => ({ ...s, isDmMode: true, currentServerId: null, channelTree: [] }))
+    return
+  }
+
+  const tree = buildChannelTree(serverId)
+  const lastChannel = serverStore.state.lastVisitedChannel.get(serverId)
+  let nextChannelId = serverStore.state.currentChannelId
+  if (lastChannel) {
+    nextChannelId = lastChannel
+  } else {
+    for (const cat of tree) {
+      const firstText = cat.channels.find((ch) => !ch.isVoice)
+      if (firstText) {
+        nextChannelId = firstText.roomId
+        break
       }
     }
   }
 
-  function selectChannel(channelId: string) {
-    currentChannelId.value = channelId
-    if (currentServerId.value) {
-      lastVisitedChannel.set(currentServerId.value, channelId)
-    }
+  serverStore.setState((s) => ({
+    ...s,
+    isDmMode: false,
+    currentServerId: serverId,
+    channelTree: tree,
+    currentChannelId: nextChannelId,
+  }))
+}
+
+export function selectChannel(channelId: string) {
+  serverStore.setState((s) => {
+    const lastVisitedChannel = new Map(s.lastVisitedChannel)
+    if (s.currentServerId) lastVisitedChannel.set(s.currentServerId, channelId)
+    return { ...s, currentChannelId: channelId, lastVisitedChannel }
+  })
+}
+
+// ── Category collapse ──
+
+export function toggleCategory(categoryId: string) {
+  serverStore.setState((s) => {
+    const collapsedCategories = new Set(s.collapsedCategories)
+    if (collapsedCategories.has(categoryId)) collapsedCategories.delete(categoryId)
+    else collapsedCategories.add(categoryId)
+    return { ...s, collapsedCategories }
+  })
+}
+
+export function isCategoryCollapsed(categoryId: string): boolean {
+  return serverStore.state.collapsedCategories.has(categoryId)
+}
+
+// ── Voice channel ──
+
+export function setVoiceConnection(connection: VoiceConnection | null) {
+  serverStore.setState((s) => ({ ...s, voiceConnection: connection }))
+}
+
+// ── Unread aggregation for server icons ──
+
+export function getServerUnreadInfo(serverId: string) {
+  let totalUnread = 0
+  let totalHighlight = 0
+
+  const { categories, uncategorizedChannels } = getSpaceHierarchy(serverId)
+  for (const ch of uncategorizedChannels) {
+    totalUnread += ch.unreadCount
+    totalHighlight += ch.highlightCount
   }
-
-  // ── Category collapse ──
-
-  function toggleCategory(categoryId: string) {
-    if (collapsedCategories.has(categoryId)) {
-      collapsedCategories.delete(categoryId)
-    } else {
-      collapsedCategories.add(categoryId)
-    }
-  }
-
-  function isCategoryCollapsed(categoryId: string) {
-    return collapsedCategories.has(categoryId)
-  }
-
-  // ── Voice channel ──
-
-  function setVoiceConnection(connection: VoiceConnection | null) {
-    voiceConnection.value = connection
-  }
-
-  // ── Unread aggregation for server icons ──
-
-  function getServerUnreadInfo(serverId: string) {
-    let totalUnread = 0
-    let totalHighlight = 0
-
-    const { categories, uncategorizedChannels } = getSpaceHierarchy(serverId)
-    for (const ch of uncategorizedChannels) {
+  for (const cat of categories) {
+    for (const ch of getCategoryChannels(cat.spaceId)) {
       totalUnread += ch.unreadCount
       totalHighlight += ch.highlightCount
     }
-    for (const cat of categories) {
-      const channels = getCategoryChannels(cat.spaceId)
-      for (const ch of channels) {
-        totalUnread += ch.unreadCount
-        totalHighlight += ch.highlightCount
-      }
-    }
-
-    return { unreadCount: totalUnread, highlightCount: totalHighlight }
   }
 
-  // ── Voice channel detection ──
+  return { unreadCount: totalUnread, highlightCount: totalHighlight }
+}
 
-  function isRoomVoiceChannel(roomId: string): boolean {
-    const client = getClient()
-    const room = client.getRoom(roomId)
-    if (!room) return false
-    return isVoiceChannel(room)
+// ── Voice channel detection ──
+
+export function isRoomVoiceChannel(roomId: string): boolean {
+  const room = getClient().getRoom(roomId)
+  if (!room) return false
+  return isVoiceChannel(room)
+}
+
+// ── Event listeners for incremental updates ──
+
+let eventsListening = false
+
+function onSpaceUpdate({ spaceId }: { spaceId: string }) {
+  loadServers()
+  const { currentServerId, channelTree } = serverStore.state
+  if (currentServerId === spaceId || channelTree.some((cat) => cat.id === spaceId)) {
+    loadChannelTree(currentServerId!)
   }
+}
 
-  // ── Event listeners for incremental updates ──
+function onSpaceMember() {
+  loadServers()
+}
 
-  let eventsListening = false
+function onRoomMember() {
+  if (serverStore.state.currentServerId) loadChannelTree(serverStore.state.currentServerId)
+}
 
-  function onSpaceUpdate({ spaceId }: { spaceId: string }) {
-    // Refresh server list if a top-level space changed
-    loadServers()
-    // Refresh channel tree if current server's hierarchy changed
-    if (currentServerId.value === spaceId || channelTree.value.some((cat) => cat.id === spaceId)) {
-      loadChannelTree(currentServerId.value!)
-    }
-  }
+export function startListening() {
+  if (eventsListening) return
+  eventsListening = true
+  matrixEvents.on('space.update', onSpaceUpdate)
+  matrixEvents.on('space.member', onSpaceMember)
+  matrixEvents.on('room.member', onRoomMember)
+}
 
-  function onSpaceMember() {
-    // Refresh on membership changes
-    loadServers()
-  }
+export function stopListening() {
+  if (!eventsListening) return
+  matrixEvents.off('space.update', onSpaceUpdate)
+  matrixEvents.off('space.member', onSpaceMember)
+  matrixEvents.off('room.member', onRoomMember)
+  eventsListening = false
+}
 
-  function onRoomMember() {
-    // Could affect member counts
-    if (currentServerId.value) {
-      loadChannelTree(currentServerId.value)
-    }
-  }
-
-  function startListening() {
-    if (eventsListening) return
-    eventsListening = true
-
-    matrixEvents.on('space.update', onSpaceUpdate)
-    matrixEvents.on('space.member', onSpaceMember)
-    matrixEvents.on('room.member', onRoomMember)
-  }
-
-  function stopListening() {
-    if (!eventsListening) return
-    matrixEvents.off('space.update', onSpaceUpdate)
-    matrixEvents.off('space.member', onSpaceMember)
-    matrixEvents.off('room.member', onRoomMember)
-    eventsListening = false
-  }
-
-  /** Full cleanup for logout — stop listeners and reset all state */
-  function resetStore() {
-    stopListening()
-    servers.value = []
-    currentServerId.value = null
-    channelTree.value = []
-    currentChannelId.value = null
-    collapsedCategories.clear()
-    lastVisitedChannel.clear()
-    voiceConnection.value = null
-    isDmMode.value = false
-    orphanChannels.value = []
-  }
-
-  return {
-    // State
-    servers,
-    currentServerId,
-    serverOrder,
-    channelTree,
-    currentChannelId,
-    collapsedCategories,
-    lastVisitedChannel,
-    voiceConnection,
-    isDmMode,
-    orphanChannels,
-
-    // Actions
-    loadServers,
-    loadOrphanRooms,
-    setServerOrder,
-    reorderServer,
-    loadChannelTree,
-    selectServer,
-    selectChannel,
-    toggleCategory,
-    isCategoryCollapsed,
-    setVoiceConnection,
-    getServerUnreadInfo,
-    isRoomVoiceChannel,
-    startListening,
-    stopListening,
-    resetStore,
-  }
-})
-
-let lifecycleStore: ReturnType<typeof useServerStore> | null = null
-
-function getLifecycleStore(): ReturnType<typeof useServerStore> {
-  lifecycleStore ??= useServerStore()
-  return lifecycleStore
+/** Full cleanup for logout — stop listeners and reset all state. */
+export function resetServerStore() {
+  stopListening()
+  serverStore.setState(() => ({ ...createInitialState(), serverOrder: loadServerOrder() }))
 }
 
 const unregisterServerStoreSessionSubscriber = registerSessionSubscriber({
   onSignIn: () => {
-    const store = getLifecycleStore()
-    store.loadServers()
-    store.startListening()
+    loadServers()
+    startListening()
   },
   onSignOut: () => {
-    lifecycleStore?.resetStore()
-    lifecycleStore = null
+    resetServerStore()
   },
 })
 

@@ -4,12 +4,13 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from '@muon/ui/input';
 import { Label } from '@muon/ui/label';
 import { Switch } from '@muon/ui/switch';
+import { useSelector } from '@tanstack/vue-store';
 import { Hash, Lock, Volume2 } from 'lucide-vue-next';
 import { ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
-import { useServerStore } from '@/features/server/stores/serverStore';
+import { loadChannelTree, selectChannel, serverStore } from '@/features/server/stores/serverStore';
 import { createChannel } from '@/matrix/spaces';
 
 const props = withDefaults(
@@ -25,7 +26,7 @@ const props = withDefaults(
 const open = defineModel<boolean>('open', { default: false });
 
 const router = useRouter();
-const serverStore = useServerStore();
+const currentServerId = useSelector(serverStore, (s) => s.currentServerId);
 const { t } = useI18n();
 
 const channelName = ref('');
@@ -44,7 +45,7 @@ watch(open, (val) => {
 });
 
 async function handleCreate() {
-  const serverId = serverStore.currentServerId;
+  const serverId = currentServerId.value;
   if (!serverId || !channelName.value.trim() || isCreating.value) return;
 
   isCreating.value = true;
@@ -56,11 +57,11 @@ async function handleCreate() {
     });
 
     // Refresh channel tree
-    serverStore.loadChannelTree(serverId);
+    loadChannelTree(serverId);
 
     // Navigate to the new channel (text only)
     if (channelType.value === 'text') {
-      serverStore.selectChannel(roomId);
+      selectChannel(roomId);
       router.push(`/server/${encodeURIComponent(serverId)}/channel/${encodeURIComponent(roomId)}`);
     }
 

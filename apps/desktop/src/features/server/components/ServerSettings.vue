@@ -1,8 +1,9 @@
 <script setup lang="ts">
+import { useSelector } from '@tanstack/vue-store';
 import { X } from 'lucide-vue-next';
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useServerStore } from '@/features/server/stores/serverStore';
+import { serverStore } from '@/features/server/stores/serverStore';
 import ChannelManager from './ChannelManager.vue';
 import MemberManager from './MemberManager.vue';
 import RoleManager from './RoleManager.vue';
@@ -11,13 +12,15 @@ import ServerOverview from './ServerOverview.vue';
 const open = defineModel<boolean>('open', { default: false });
 
 const { t } = useI18n();
-const serverStore = useServerStore();
+
+const currentServerId = useSelector(serverStore, (s) => s.currentServerId);
+const servers = useSelector(serverStore, (s) => s.servers);
 
 const currentSection = ref<'overview' | 'roles' | 'channels' | 'members'>('overview');
 
 const currentServer = computed(() => {
-  if (!serverStore.currentServerId) return null;
-  return serverStore.servers.find((s) => s.spaceId === serverStore.currentServerId) ?? null;
+  if (!currentServerId.value) return null;
+  return servers.value.find((s) => s.spaceId === currentServerId.value) ?? null;
 });
 
 const navSections = computed(() => [

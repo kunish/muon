@@ -7,11 +7,12 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from '@muon/ui/context-menu';
+import { useSelector } from '@tanstack/vue-store';
 import { BellOff, CheckCheck, Copy, Pencil, Trash2 } from 'lucide-vue-next';
 import { computed, shallowRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
-import { useServerStore } from '@/features/server/stores/serverStore';
+import { serverStore } from '@/features/server/stores/serverStore';
 import { useRoomPermissions } from '@/shared/composables/useRoomPermissions';
 
 const props = defineProps<{
@@ -30,18 +31,18 @@ defineSlots<{
   default?: (props: { open: boolean }) => unknown;
 }>();
 const { t } = useI18n();
-const serverStore = useServerStore();
+const currentServerId = useSelector(serverStore, (s) => s.currentServerId);
 const open = shallowRef(false);
 
-const { isModerator: isAdmin } = useRoomPermissions(computed(() => serverStore.currentServerId));
+const { isModerator: isAdmin } = useRoomPermissions(computed(() => currentServerId.value));
 
 async function handleCopyLink() {
-  if (!serverStore.currentServerId || !navigator.clipboard?.writeText) {
+  if (!currentServerId.value || !navigator.clipboard?.writeText) {
     toast.error(t('channel.copy_link_failed'));
     return;
   }
 
-  const link = `${window.location.origin}/server/${encodeURIComponent(serverStore.currentServerId)}/channel/${encodeURIComponent(props.channel.roomId)}`;
+  const link = `${window.location.origin}/server/${encodeURIComponent(currentServerId.value)}/channel/${encodeURIComponent(props.channel.roomId)}`;
 
   try {
     await navigator.clipboard.writeText(link);

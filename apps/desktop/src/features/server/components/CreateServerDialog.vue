@@ -6,10 +6,9 @@ import { Label } from '@muon/ui/label';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
-import { useServerStore } from '@/features/server/stores/serverStore';
+import { loadServers, selectServer } from '@/features/server/stores/serverStore';
 import { createSpace } from '@/matrix/spaces';
 
-const serverStore = useServerStore();
 const { t } = useI18n();
 
 const open = ref(false);
@@ -21,8 +20,8 @@ async function handleCreate() {
   isCreating.value = true;
   try {
     const spaceId = await createSpace(serverName.value.trim());
-    serverStore.loadServers();
-    serverStore.selectServer(spaceId);
+    loadServers();
+    selectServer(spaceId);
     open.value = false;
     serverName.value = '';
     // 新建的服务器还没有频道，选中即可（无可跳转的频道路由）

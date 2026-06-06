@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import type { ChannelTreeCategory } from '@/features/server/stores/serverStore';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@muon/ui/tooltip';
+import { useSelector } from '@tanstack/vue-store';
 import { ChevronDown, Plus } from 'lucide-vue-next';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useServerStore } from '@/features/server/stores/serverStore';
+import { serverStore, toggleCategory } from '@/features/server/stores/serverStore';
 
 const props = defineProps<{
   category: ChannelTreeCategory;
@@ -14,10 +15,10 @@ const emit = defineEmits<{
   createChannel: [categoryId: string];
 }>();
 
-const serverStore = useServerStore();
+const collapsedCategories = useSelector(serverStore, (s) => s.collapsedCategories);
 const { t } = useI18n();
 
-const isCollapsed = computed(() => serverStore.isCategoryCollapsed(props.category.id));
+const isCollapsed = computed(() => collapsedCategories.value.has(props.category.id));
 
 const displayName = computed(() => {
   if (props.category.name === '__text_channels__') return t('channel.text_channels');
@@ -26,7 +27,7 @@ const displayName = computed(() => {
 });
 
 function toggle() {
-  serverStore.toggleCategory(props.category.id);
+  toggleCategory(props.category.id);
 }
 
 function onCreateChannel(e: MouseEvent) {

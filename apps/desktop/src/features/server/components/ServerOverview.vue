@@ -3,11 +3,12 @@ import { Button } from '@muon/ui/button';
 import { Input } from '@muon/ui/input';
 import { Label } from '@muon/ui/label';
 import { Textarea } from '@muon/ui/textarea';
+import { useSelector } from '@tanstack/vue-store';
 import { Camera } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
-import { useServerStore } from '@/features/server/stores/serverStore';
+import { loadChannelTree, loadServers, serverStore } from '@/features/server/stores/serverStore';
 import { getClient } from '@/matrix/client';
 import { setRoomName, setRoomTopic } from '@/matrix/rooms';
 
@@ -18,8 +19,9 @@ const props = defineProps<{
   serverAvatar?: string;
 }>();
 
-const serverStore = useServerStore();
 const { t } = useI18n();
+
+const currentServerId = useSelector(serverStore, (s) => s.currentServerId);
 
 const name = ref(props.serverName);
 const topic = ref(props.serverTopic ?? '');
@@ -58,9 +60,9 @@ async function saveChanges() {
       await setRoomTopic(props.serverId, topic.value.trim());
     }
     // Refresh server data
-    serverStore.loadServers();
-    if (serverStore.currentServerId) {
-      serverStore.loadChannelTree(serverStore.currentServerId);
+    loadServers();
+    if (currentServerId.value) {
+      loadChannelTree(currentServerId.value);
     }
   } catch (err: unknown) {
     saveError.value = err instanceof Error ? err.message : t('server.update_failed');
@@ -92,7 +94,7 @@ async function handleAvatarChange(event: Event) {
     const { content_uri } = await client.uploadContent(file);
     await client.sendStateEvent(props.serverId, 'm.room.avatar', { url: content_uri });
 
-    serverStore.loadServers();
+    loadServers();
   } catch (err) {
     console.error('Failed to upload avatar:', err);
     toast.error(t('server.update_failed'));

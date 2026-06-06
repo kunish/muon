@@ -6,7 +6,7 @@ import ChannelSidebar from '@features/server/components/ChannelSidebar.vue';
 import CreateCategoryDialog from '@features/server/components/CreateCategoryDialog.vue';
 import InviteDialog from '@features/server/components/InviteDialog.vue';
 import ServerSettings from '@features/server/components/ServerSettings.vue';
-import { useServerStore } from '@features/server/stores/serverStore';
+import { selectChannel, selectServer, serverStore } from '@features/server/stores/serverStore';
 import { getClient } from '@matrix/client';
 import { getMyDisplayName } from '@matrix/index';
 import { settingsStore } from '@shared/stores/settingsStore';
@@ -23,7 +23,7 @@ import WatermarkOverlay from './WatermarkOverlay.vue';
 import { getWorkspaceAppForPath } from './workspace/navigation';
 import WorkspaceLayout from './workspace/WorkspaceLayout.vue';
 
-const serverStore = useServerStore();
+const currentServerId = useSelector(serverStore, (s) => s.currentServerId);
 const badgeCount = useSelector(settingsStore, (s) => s.badgeCount);
 const watermarkEnabled = useSelector(settingsStore, (s) => s.watermarkEnabled);
 const { totalUnreadCount } = useConversations();
@@ -48,18 +48,18 @@ const showLeaveConfirm = ref(false);
 const isLeavingServer = ref(false);
 
 function requestLeaveServer(): void {
-  if (!serverStore.currentServerId) return;
+  if (!currentServerId.value) return;
   showLeaveConfirm.value = true;
 }
 
 async function confirmLeaveServer(): Promise<void> {
-  const spaceId = serverStore.currentServerId;
+  const spaceId = currentServerId.value;
   if (!spaceId || isLeavingServer.value) return;
 
   isLeavingServer.value = true;
   try {
     await getClient().leave(spaceId);
-    serverStore.selectServer(null);
+    selectServer(null);
     showLeaveConfirm.value = false;
     router.push('/dm');
   } catch (err: unknown) {
@@ -79,15 +79,15 @@ function syncServerSelectionFromRoute(): void {
   const channelId = route.params.channelId as string | undefined;
 
   if (route.path.startsWith('/server') && serverId) {
-    serverStore.selectServer(serverId);
+    selectServer(serverId);
     if (channelId) {
-      serverStore.selectChannel(channelId);
+      selectChannel(channelId);
     }
     return;
   }
 
   if (route.path.startsWith('/dm')) {
-    serverStore.selectServer(null);
+    selectServer(null);
   }
 }
 
@@ -123,11 +123,7 @@ onMounted(() => {
 
     <template #overlays>
       <ServerSettings v-model:open="showServerSettings" />
-      <InviteDialog
-        v-if="serverStore.currentServerId"
-        v-model:open="showInviteDialog"
-        :space-id="serverStore.currentServerId"
-      />
+      <InviteDialog v-if="currentServerId" v-model:open="showInviteDialog" :space-id="currentServerId" />
 
       <CreateCategoryDialog v-model:open="showCreateCategoryDialog" />
 
