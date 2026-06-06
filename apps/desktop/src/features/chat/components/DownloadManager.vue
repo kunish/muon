@@ -1,19 +1,20 @@
 <script setup lang="ts">
 import type { DownloadItem } from '../stores/downloadStore';
 import { Progress } from '@muon/ui/progress';
+import { useSelector } from '@tanstack/vue-store';
 import { AlertCircle, CheckCircle2, Clock, Download, FileText, FolderOpen, Trash2, X } from 'lucide-vue-next';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
 import { openPath, revealItemInDir } from '@/desktop/opener';
-import { useDownloadStore } from '../stores/downloadStore';
+import { clearCompleted, downloadStore, removeDownload } from '../stores/downloadStore';
 
 defineEmits<{ close: [] }>();
 
 const { t } = useI18n();
-const downloadStore = useDownloadStore();
+const items = useSelector(downloadStore, (state) => state.items);
 
-const hasCompleted = computed(() => downloadStore.items.some((i) => i.status === 'completed'));
+const hasCompleted = computed(() => items.value.some((i) => i.status === 'completed'));
 
 function formatSize(bytes: number): string {
   if (bytes === 0) return '0 B';
@@ -73,7 +74,7 @@ async function openFolder(item: DownloadItem) {
         <button
           v-if="hasCompleted"
           class="text-xs text-muted-foreground hover:text-foreground px-2 py-1 rounded hover:bg-accent transition-colors"
-          @click="downloadStore.clearCompleted()"
+          @click="clearCompleted()"
         >
           {{ t('downloads.clear_completed') }}
         </button>
@@ -90,7 +91,7 @@ async function openFolder(item: DownloadItem) {
     <div class="flex-1 overflow-y-auto">
       <!-- Empty state -->
       <div
-        v-if="downloadStore.items.length === 0"
+        v-if="items.length === 0"
         class="flex flex-col items-center justify-center h-full text-muted-foreground gap-2"
       >
         <Download :size="32" :stroke-width="1.5" />
@@ -99,7 +100,7 @@ async function openFolder(item: DownloadItem) {
 
       <!-- Download items -->
       <div
-        v-for="item in downloadStore.items"
+        v-for="item in items"
         :key="item.id"
         class="px-4 py-3 border-b border-border hover:bg-accent/50 transition-colors group"
       >
@@ -112,7 +113,7 @@ async function openFolder(item: DownloadItem) {
               <span class="text-sm font-medium truncate">{{ item.fileName }}</span>
               <button
                 class="flex-shrink-0 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all"
-                @click="downloadStore.removeDownload(item.id)"
+                @click="removeDownload(item.id)"
               >
                 <Trash2 :size="14" />
               </button>

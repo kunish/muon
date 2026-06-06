@@ -1,7 +1,7 @@
 import { mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import DownloadManager from '@/features/chat/components/DownloadManager.vue'
-import { useDownloadStore } from '@/features/chat/stores/downloadStore'
+import { resetDownloadStore, setDownloadItems } from '@/features/chat/stores/downloadStore'
 
 const openerMocks = vi.hoisted(() => ({
   openPath: vi.fn(),
@@ -21,7 +21,7 @@ vi.mock('vue-sonner', () => ({
 }))
 
 function seedCompletedDownload() {
-  useDownloadStore().items = [
+  setDownloadItems([
     {
       id: 'download-1',
       fileName: 'report.pdf',
@@ -33,7 +33,7 @@ function seedCompletedDownload() {
       startedAt: 100,
       completedAt: 200,
     },
-  ]
+  ])
 }
 
 describe('download manager localization', () => {
@@ -41,6 +41,7 @@ describe('download manager localization', () => {
     openerMocks.openPath.mockReset()
     openerMocks.revealItemInDir.mockReset()
     openerMocks.toastError.mockReset()
+    resetDownloadStore()
     seedCompletedDownload()
   })
 
