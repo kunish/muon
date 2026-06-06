@@ -3,6 +3,7 @@ import type { RoomSummary } from '@matrix/types';
 import { getClient } from '@matrix/client';
 import { normalizeRoomId } from '@matrix/roomUtils';
 import { Avatar } from '@muon/ui/avatar';
+import { useSelector } from '@tanstack/vue-store';
 import { CheckCheck, MessageSquarePlus, Search } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -10,15 +11,20 @@ import { useRoute, useRouter } from 'vue-router';
 import { openNewChat } from '@/app/stores/globalUiStore';
 import { useConversations } from '../composables/useConversations';
 import { useGlobalTyping } from '../composables/useGlobalTyping';
-import { useChatStore } from '../stores/chatStore';
+import { chatStore, openContextMenu, selectRoomFromHistory, setFilter, setSearchQuery } from '../stores/chatStore';
 import ConversationContextMenu from './ConversationContextMenu.vue';
 import ConversationItem from './ConversationItem.vue';
 import UserInfoPanel from './UserInfoPanel.vue';
 
 const router = useRouter();
 const route = useRoute();
-const store = useChatStore();
 const { t } = useI18n();
+
+const currentRoomId = useSelector(chatStore, (s) => s.currentRoomId);
+const contextMenu = useSelector(chatStore, (s) => s.contextMenu);
+const searchQuery = useSelector(chatStore, (s) => s.searchQuery);
+const activeFilter = useSelector(chatStore, (s) => s.activeFilter);
+const pinnedRooms = useSelector(chatStore, (s) => s.pinnedRooms);
 const { conversations, pinnedCount, isLoading, totalUnreadCount, markAllRead } = useConversations();
 const { getTypingUsers } = useGlobalTyping();
 
@@ -39,7 +45,7 @@ const infoPanelPos = ref({ x: 0, y: 0 });
 const searchFocused = ref(false);
 
 function selectRoom(roomId: string) {
-  store.selectRoomFromHistory(roomId);
+  selectRoomFromHistory(roomId);
   router.push(`/dm/${encodeURIComponent(roomId)}`);
 }
 
@@ -59,13 +65,13 @@ const filterTabs = computed(() => [
 
 // --- 右键菜单 ---
 function onContextMenu(roomId: string, event: MouseEvent) {
-  store.openContextMenu(roomId, event.clientX, event.clientY);
+  openContextMenu(roomId, event.clientX, event.clientY);
 }
 
 // --- 快捷入口：置顶的 DM 联系人 ---
 const quickAccessContacts = computed(() => {
   // 飞书风格：最多显示 5 个，从左侧开始排列
-  const dms = conversations.value.filter((r) => r.isDirect && store.isPinned(r.roomId)).slice(0, 5);
+  const dms = conversations.value.filter((r) => r.isDirect && pinnedRooms.value.has(r.roomId)).slice(0, 5);
   return dms.map((r) => ({
     roomId: r.roomId,
     name: r.name,
@@ -74,18 +80,18 @@ const quickAccessContacts = computed(() => {
 });
 
 function selectQuickContact(roomId: string) {
-  store.selectRoomFromHistory(roomId);
+  selectRoomFromHistory(roomId);
   router.push(`/dm/${encodeURIComponent(roomId)}`);
 }
 
 const activeRoomId = computed(
   () =>
-    normalizeRoomId(store.currentRoomId) ??
+    normalizeRoomId(currentRoomId.value) ??
     normalizeRoomId((route.params.roomId || route.params.channelId) as string | undefined),
 );
 
 function isConversationContextMenuOpen(roomId: string): boolean {
-  return normalizeRoomId(store.contextMenu?.roomId) === normalizeRoomId(roomId);
+  return normalizeRoomId(contextMenu.value?.roomId) === normalizeRoomId(roomId);
 }
 </script>
 
@@ -123,11 +129,11 @@ function isConversationContextMenuOpen(roomId: string): boolean {
           :size="15"
         />
         <input
-          :value="store.searchQuery"
+          :value="searchQuery"
           type="text"
           :placeholder="t('chat.search_conversation')"
           class="conv-search h-8 w-full rounded-md border border-transparent bg-input pl-8 pr-3 text-[13px] text-foreground outline-none transition-colors duration-150 placeholder:text-muted-foreground focus:border-primary"
-          @input="store.setSearchQuery(($event.target as HTMLInputElement).value)"
+          @input="setSearchQuery(($event.target as HTMLInputElement).value)"
           @focus="searchFocused = true"
           @blur="searchFocused = false"
         />
@@ -136,7 +142,7 @@ function isConversationContextMenuOpen(roomId: string): boolean {
 
     <!-- 快捷入口：置顶联系人 — 从左侧开始排列 -->
     <div
-      v-if="quickAccessContacts.length > 0 && !store.searchQuery"
+      v-if="quickAccessContacts.length > 0 && !searchQuery"
       class="muon-scrollbar-hidden flex items-start justify-start gap-2 overflow-x-auto border-b border-sidebar-border px-3 py-2"
     >
       <button
@@ -172,11 +178,11 @@ function isConversationContextMenuOpen(roomId: string): boolean {
           :key="tab.key"
           class="cursor-pointer select-none rounded-md px-2.5 py-[3px] text-[11px] font-semibold transition-colors duration-150 active:scale-95"
           :class="
-            store.activeFilter === tab.key
+            activeFilter === tab.key
               ? 'bg-accent text-foreground shadow-[inset_2px_0_0_var(--color-primary)]'
               : 'text-muted-foreground hover:bg-accent hover:text-foreground'
           "
-          @click="store.setFilter(tab.key)"
+          @click="setFilter(tab.key)"
         >
           {{ tab.label }}
         </button>
@@ -244,10 +250,8 @@ function isConversationContextMenuOpen(roomId: string): boolean {
         >
           <MessageSquarePlus :size="18" class="opacity-60" />
         </div>
-        <span class="text-[12px] font-medium">{{
-          store.searchQuery ? t('chat.no_match') : t('chat.no_conversations')
-        }}</span>
-        <span v-if="!store.searchQuery" class="mt-1 text-[11px] text-muted-foreground">{{ t('chat.start_new') }}</span>
+        <span class="text-[12px] font-medium">{{ searchQuery ? t('chat.no_match') : t('chat.no_conversations') }}</span>
+        <span v-if="!searchQuery" class="mt-1 text-[11px] text-muted-foreground">{{ t('chat.start_new') }}</span>
       </div>
     </div>
 

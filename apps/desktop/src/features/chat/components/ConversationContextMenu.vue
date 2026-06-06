@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { leaveRoom, toggleRoomMute, toggleRoomPin } from '@matrix/index';
 import { isDirectRoom } from '@matrix/roomUtils';
+import { useSelector } from '@tanstack/vue-store';
 import { onClickOutside } from '@vueuse/core';
 import { Bell, BellOff, Clock, Eye, EyeOff, LogOut, Pin, PinOff } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
@@ -10,28 +11,40 @@ import { ask } from '@/desktop/dialog';
 import { useContextMenuScrollLock } from '@/shared/composables/useContextMenuScrollLock';
 import { useViewportClampedFloating } from '@/shared/composables/useViewportClampedFloating';
 import { useConversations } from '../composables/useConversations';
-import { useChatStore } from '../stores/chatStore';
+import {
+  chatStore,
+  closeContextMenu,
+  isPinned as isPinnedSnapshot,
+  muteWithExpiry,
+  selectIsMarkedUnread,
+  selectIsMuted,
+  selectIsPinned,
+  setCurrentRoom,
+  setPin,
+  toggleMarkedUnread,
+  toggleMute,
+} from '../stores/chatStore';
 
-const store = useChatStore();
 const { t } = useI18n();
 const { refresh, removeRoom, archiveDm } = useConversations();
 
 const menuRef = ref<HTMLElement | null>(null);
 const showMuteOptions = ref(false);
 
-const isOpen = computed(() => !!store.contextMenu);
+const contextMenu = useSelector(chatStore, (s) => s.contextMenu);
+const isOpen = computed(() => !!contextMenu.value);
 
 // 菜单关闭时重置免打扰子菜单展开态
 watch(isOpen, (open) => {
   if (!open) showMuteOptions.value = false;
 });
-const roomId = computed(() => store.contextMenu?.roomId || '');
-const pinned = computed(() => store.isPinned(roomId.value));
-const muted = computed(() => store.isMuted(roomId.value));
-const markedUnread = computed(() => store.isMarkedUnread(roomId.value));
+const roomId = computed(() => contextMenu.value?.roomId || '');
+const pinned = useSelector(chatStore, (s) => selectIsPinned(s.contextMenu?.roomId || '')(s));
+const muted = useSelector(chatStore, (s) => selectIsMuted(s.contextMenu?.roomId || '')(s));
+const markedUnread = useSelector(chatStore, (s) => selectIsMarkedUnread(s.contextMenu?.roomId || '')(s));
 const menuPosition = computed(() => ({
-  x: store.contextMenu?.x ?? 0,
-  y: store.contextMenu?.y ?? 0,
+  x: contextMenu.value?.x ?? 0,
+  y: contextMenu.value?.y ?? 0,
 }));
 const { style } = useViewportClampedFloating({
   open: isOpen,
@@ -44,36 +57,36 @@ useContextMenuScrollLock(isOpen);
 
 // 点击外部关闭
 onClickOutside(menuRef, () => {
-  if (isOpen.value) store.closeContextMenu();
+  if (isOpen.value) closeContextMenu();
 });
 
 // --- 操作 ---
 async function handlePin() {
   const targetRoomId = roomId.value;
-  const nextPinned = !store.isPinned(targetRoomId);
-  store.setPin(targetRoomId, nextPinned);
+  const nextPinned = !isPinnedSnapshot(targetRoomId);
+  setPin(targetRoomId, nextPinned);
   try {
     await toggleRoomPin(targetRoomId);
   } catch {
     /* Conduit 可能不支持 */
   }
   refresh();
-  store.closeContextMenu();
+  closeContextMenu();
 }
 
 async function handleUnmute() {
-  store.toggleMute(roomId.value);
+  toggleMute(roomId.value);
   try {
     await toggleRoomMute(roomId.value);
   } catch {
     /* Conduit 可能不支持 */
   }
   refresh();
-  store.closeContextMenu();
+  closeContextMenu();
 }
 
 async function handleMuteFor(expiry: number | null) {
-  const needsServerMute = store.muteWithExpiry(roomId.value, expiry);
+  const needsServerMute = muteWithExpiry(roomId.value, expiry);
   if (needsServerMute) {
     try {
       await toggleRoomMute(roomId.value);
@@ -83,7 +96,7 @@ async function handleMuteFor(expiry: number | null) {
   }
   showMuteOptions.value = false;
   refresh();
-  store.closeContextMenu();
+  closeContextMenu();
 }
 
 const HOUR_MS = 3_600_000;
@@ -104,13 +117,13 @@ function muteForever() {
 }
 
 function handleMarkUnread() {
-  store.toggleMarkedUnread(roomId.value);
-  store.closeContextMenu();
+  toggleMarkedUnread(roomId.value);
+  closeContextMenu();
 }
 
 async function handleLeave() {
   const targetRoomId = roomId.value;
-  store.closeContextMenu();
+  closeContextMenu();
 
   // 判断是否为 DM 房间
   const isDm = isDirectRoom(targetRoomId);
@@ -123,8 +136,8 @@ async function handleLeave() {
   });
   if (!confirmed) return;
   try {
-    if (store.currentRoomId === targetRoomId) {
-      store.setCurrentRoom(null);
+    if (chatStore.state.currentRoomId === targetRoomId) {
+      setCurrentRoom(null);
     }
     if (isDm) {
       // DM 房间：仅从列表隐藏（归档），不真正离开，保留历史消息

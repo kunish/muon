@@ -1,4 +1,10 @@
-import { useChatStore } from '@features/chat/stores/chatStore'
+import {
+  chatStore,
+  closeContextMenu,
+  closeSidePanel,
+  closeThread,
+  exitMultiSelect,
+} from '@features/chat/stores/chatStore'
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getWorkspaceAppForPath, workspaceApps } from '../components/workspace/navigation'
@@ -27,7 +33,6 @@ function isPlainModifier(event: KeyboardEvent): boolean {
 export function useGlobalShortcuts(): void {
   const route = useRoute()
   const router = useRouter()
-  const chatStore = useChatStore()
   const lastMessagesPath = ref('/dm')
 
   watch(
@@ -51,23 +56,23 @@ export function useGlobalShortcuts(): void {
       return true
     }
 
-    if (chatStore.contextMenu) {
-      chatStore.closeContextMenu()
+    if (chatStore.state.contextMenu) {
+      closeContextMenu()
       return true
     }
 
-    if (chatStore.activeSidePanel) {
-      chatStore.closeSidePanel()
+    if (chatStore.state.activeSidePanel) {
+      closeSidePanel()
       return true
     }
 
-    if (chatStore.activeThreadId) {
-      chatStore.closeThread()
+    if (chatStore.state.activeThreadId) {
+      closeThread()
       return true
     }
 
-    if (chatStore.multiSelectMode) {
-      chatStore.exitMultiSelect()
+    if (chatStore.state.multiSelectMode) {
+      exitMultiSelect()
       return true
     }
 

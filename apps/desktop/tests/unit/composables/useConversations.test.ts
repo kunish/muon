@@ -3,7 +3,17 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h, nextTick } from 'vue'
 import { resetConversationsListeners, useConversations } from '@/features/chat/composables/useConversations'
-import { useChatStore } from '@/features/chat/stores/chatStore'
+import {
+  chatStore,
+  clearSidebarPromotions,
+  resetChatStore,
+  selectRoomFromHistory,
+  setCurrentRoom,
+  setCurrentRoomFromRoute,
+  setFilter,
+  setSearchQuery,
+  syncServerState,
+} from '@/features/chat/stores/chatStore'
 
 const roomSummaries = vi.hoisted<RoomSummary[]>(() => [])
 const matrixEventsOn = vi.hoisted(() => vi.fn())
@@ -111,7 +121,8 @@ describe('useConversations', () => {
     roomSummaryCacheState.enabled = false
     roomSummaryCacheState.cached = null
     vi.useRealTimers()
-    useChatStore().clearSidebarPromotions()
+    resetChatStore()
+    clearSidebarPromotions()
   })
 
   afterEach(() => {
@@ -125,8 +136,7 @@ describe('useConversations', () => {
       createRoom({ roomId: '!bob:localhost', name: 'Bob', lastMessageTs: 1000 }),
     )
 
-    const store = useChatStore()
-    store.setCurrentRoomFromRoute('!bob:localhost')
+    setCurrentRoomFromRoute('!bob:localhost')
 
     const wrapper = mountUseConversationsHarness()
     await nextTick()
@@ -145,8 +155,7 @@ describe('useConversations', () => {
       createRoom({ roomId: '!bob:localhost', name: 'Bob', lastMessageTs: 1000 }),
     )
 
-    const store = useChatStore()
-    store.setCurrentRoom('!bob:localhost')
+    setCurrentRoom('!bob:localhost')
 
     const wrapper = mountUseConversationsHarness()
     await nextTick()
@@ -168,9 +177,8 @@ describe('useConversations', () => {
     const wrapper = mountUseConversationsHarness()
     await nextTick()
 
-    const store = useChatStore()
-    store.setCurrentRoom('!bob:localhost', { sidebarPlacement: 'promote' })
-    store.setCurrentRoomFromRoute('!bob:localhost')
+    setCurrentRoom('!bob:localhost', { sidebarPlacement: 'promote' })
+    setCurrentRoomFromRoute('!bob:localhost')
     await nextTick()
 
     expect(wrapper.findAll('li').map((row) => row.attributes('data-room-id'))).toEqual([
@@ -191,8 +199,7 @@ describe('useConversations', () => {
     const wrapper = mountUseConversationsHarness()
     await nextTick()
 
-    const store = useChatStore()
-    store.setCurrentRoom('!bob:localhost', { sidebarPlacement: 'promote' })
+    setCurrentRoom('!bob:localhost', { sidebarPlacement: 'promote' })
     await nextTick()
 
     expect(wrapper.findAll('li').map((row) => row.attributes('data-room-id'))).toEqual([
@@ -212,9 +219,8 @@ describe('useConversations', () => {
     const wrapper = mountUseConversationsHarness()
     await nextTick()
 
-    const store = useChatStore()
-    store.syncServerState(roomSummaries)
-    store.setCurrentRoom('!bob:localhost', { sidebarPlacement: 'promote' })
+    syncServerState(roomSummaries)
+    setCurrentRoom('!bob:localhost', { sidebarPlacement: 'promote' })
     await nextTick()
 
     expect(wrapper.findAll('li').map((row) => row.attributes('data-room-id'))).toEqual([
@@ -231,8 +237,7 @@ describe('useConversations', () => {
       createRoom({ roomId: '!bob:localhost', name: 'Bob', lastMessageTs: 1000 }),
     )
 
-    const store = useChatStore()
-    store.syncServerState(roomSummaries)
+    syncServerState(roomSummaries)
 
     const wrapper = mountUseConversationsHarness()
     await nextTick()
@@ -248,8 +253,7 @@ describe('useConversations', () => {
     const wrapper = mountUseConversationsHarness()
     await nextTick()
 
-    const store = useChatStore()
-    store.setCurrentRoom('!bob:localhost', {
+    setCurrentRoom('!bob:localhost', {
       sidebarPlacement: 'promote',
       sidebarPreview: {
         name: 'Bob',
@@ -273,14 +277,13 @@ describe('useConversations', () => {
     const wrapper = mountUseConversationsHarness()
     await nextTick()
 
-    const store = useChatStore()
-    store.setFilter('unread')
-    store.setSearchQuery('alice')
+    setFilter('unread')
+    setSearchQuery('alice')
     await nextTick()
 
     expect(wrapper.findAll('li').map((row) => row.attributes('data-room-id'))).toEqual(['!alice:localhost'])
 
-    store.setCurrentRoom('!bob:localhost', {
+    setCurrentRoom('!bob:localhost', {
       sidebarPlacement: 'promote',
       sidebarPreview: {
         name: 'Bob',
@@ -290,8 +293,8 @@ describe('useConversations', () => {
     })
     await nextTick()
 
-    expect(store.activeFilter).toBe('all')
-    expect(store.searchQuery).toBe('')
+    expect(chatStore.state.activeFilter).toBe('all')
+    expect(chatStore.state.searchQuery).toBe('')
     expect(wrapper.findAll('li').map((row) => row.attributes('data-room-id'))).toEqual([
       '!bob:localhost',
       '!alice:localhost',
@@ -309,8 +312,7 @@ describe('useConversations', () => {
     const wrapper = mountUseConversationsHarness()
     await nextTick()
 
-    const store = useChatStore()
-    store.setCurrentRoom('!bob:localhost', { sidebarPlacement: 'promote' })
+    setCurrentRoom('!bob:localhost', { sidebarPlacement: 'promote' })
     await nextTick()
 
     expect(wrapper.findAll('li').map((row) => row.attributes('data-room-id'))).toEqual([
@@ -341,17 +343,16 @@ describe('useConversations', () => {
       createRoom({ roomId: '!bob:localhost', name: 'Bob', lastMessageTs: 1000 }),
     )
 
-    const store = useChatStore()
-    store.setCurrentRoom('!bob:localhost', { sidebarPlacement: 'promote' })
+    setCurrentRoom('!bob:localhost', { sidebarPlacement: 'promote' })
 
     const wrapper = mountUseConversationsHarness()
     await nextTick()
 
-    store.selectRoomFromHistory('!alice:localhost')
-    store.setCurrentRoomFromRoute('!alice:localhost')
+    selectRoomFromHistory('!alice:localhost')
+    setCurrentRoomFromRoute('!alice:localhost')
     await nextTick()
 
-    expect(store.currentRoomId).toBe('!alice:localhost')
+    expect(chatStore.state.currentRoomId).toBe('!alice:localhost')
     expect(wrapper.findAll('li').map((row) => row.attributes('data-room-id'))).toEqual([
       '!bob:localhost',
       '!alice:localhost',
@@ -642,8 +643,7 @@ describe('useConversations', () => {
   })
 
   it('preloads the active room from the conversation startup queue as a fallback', async () => {
-    const store = useChatStore()
-    store.setCurrentRoom('!active-history:localhost')
+    setCurrentRoom('!active-history:localhost')
     roomSummaries.push(
       createRoom({
         roomId: '!active-history:localhost',
@@ -668,8 +668,7 @@ describe('useConversations', () => {
           pendingHydrations.set(roomId, resolve)
         }),
     )
-    const store = useChatStore()
-    store.setCurrentRoom('!active:localhost')
+    setCurrentRoom('!active:localhost')
     roomSummaries.push(
       createRoom({ roomId: '!active:localhost', name: 'Active', lastMessage: 'active latest', lastMessageTs: 4000 }),
       createRoom({ roomId: '!alice:localhost', name: 'Alice', lastMessage: 'alice latest', lastMessageTs: 3000 }),
@@ -881,7 +880,7 @@ describe('useConversations', () => {
       '!carol:localhost',
     ])
 
-    useChatStore().selectRoomFromHistory('!bob:localhost')
+    selectRoomFromHistory('!bob:localhost')
     roomSummaries.splice(
       0,
       roomSummaries.length,

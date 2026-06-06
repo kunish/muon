@@ -2,7 +2,7 @@ import { mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { nextTick, ref } from 'vue'
 
-import { useChatStore } from '@/features/chat/stores/chatStore'
+import { resetChatStore, setCurrentRoom } from '@/features/chat/stores/chatStore'
 
 vi.mock('vue-router', () => ({
   useRoute: () => ({ query: {} }),
@@ -38,6 +38,7 @@ class ObserverMock {
 describe('messageList room restore', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    resetChatStore()
     vi.stubGlobal('IntersectionObserver', ObserverMock)
     vi.stubGlobal('ResizeObserver', ObserverMock)
     vi.stubGlobal('MutationObserver', ObserverMock)
@@ -45,7 +46,6 @@ describe('messageList room restore', () => {
 
   it('shows an empty room after pending restore completes', async () => {
     const MessageList = (await import('@/features/chat/components/MessageList.vue')).default
-    const store = useChatStore()
 
     const wrapper = mount(MessageList, {
       global: {
@@ -61,7 +61,7 @@ describe('messageList room restore', () => {
       },
     })
 
-    store.setCurrentRoom('!empty:localhost')
+    setCurrentRoom('!empty:localhost')
     await nextTick()
     await nextTick()
     await nextTick()

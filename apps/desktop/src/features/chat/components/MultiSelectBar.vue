@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { redactMessage } from '@matrix/index';
+import { useSelector } from '@tanstack/vue-store';
 import { Forward, Trash2, X } from 'lucide-vue-next';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
 import { ask } from '@/desktop/dialog';
-import { useChatStore } from '../stores/chatStore';
+import { chatStore, exitMultiSelect } from '../stores/chatStore';
 
 const emit = defineEmits<{
   forward: [];
@@ -13,9 +14,10 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 
-const store = useChatStore();
+const selectedMessages = useSelector(chatStore, (s) => s.selectedMessages);
+const currentRoomId = useSelector(chatStore, (s) => s.currentRoomId);
 
-const selectedCount = computed(() => store.selectedMessages.size);
+const selectedCount = computed(() => selectedMessages.value.size);
 
 async function onBatchDelete() {
   const confirmed = await ask(t('chat.confirm_batch_redact', { count: selectedCount.value }), {
@@ -24,17 +26,17 @@ async function onBatchDelete() {
   });
   if (!confirmed) return;
 
-  const roomId = store.currentRoomId;
+  const roomId = currentRoomId.value;
   if (!roomId) return;
 
-  for (const eventId of store.selectedMessages) {
+  for (const eventId of selectedMessages.value) {
     try {
       await redactMessage(roomId, eventId);
     } catch {
       toast.error(t('auth.error'));
     }
   }
-  store.exitMultiSelect();
+  exitMultiSelect();
 }
 
 function onForward() {
@@ -42,7 +44,7 @@ function onForward() {
 }
 
 function onCancel() {
-  store.exitMultiSelect();
+  exitMultiSelect();
 }
 </script>
 

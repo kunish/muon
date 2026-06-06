@@ -1,9 +1,14 @@
 import { mount } from '@vue/test-utils'
-import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { nextTick } from 'vue'
 import ChatWindow from '@/features/chat/components/ChatWindow.vue'
-import { useChatStore } from '@/features/chat/stores/chatStore'
+import {
+  chatStore,
+  closeSidePanel,
+  resetChatStore,
+  setCurrentRoom,
+  toggleSidePanel,
+} from '@/features/chat/stores/chatStore'
 
 const routerPush = vi.fn()
 const loadInboxEventContextMock = vi.fn()
@@ -112,12 +117,9 @@ async function flushUi() {
 }
 
 describe('chatWindow search integration', () => {
-  let chatStore: ReturnType<typeof useChatStore>
-
   beforeEach(() => {
-    setActivePinia(createPinia())
-    chatStore = useChatStore()
-    chatStore.setCurrentRoom('!joined:muon.dev')
+    resetChatStore()
+    setCurrentRoom('!joined:muon.dev')
     routerPush.mockReset()
     loadInboxEventContextMock.mockReset()
     searchRoomEventsMock.mockReset()
@@ -143,7 +145,7 @@ describe('chatWindow search integration', () => {
     await flushUi()
 
     // The side panel should be open
-    expect(chatStore.activeSidePanel).toBe('search')
+    expect(chatStore.state.activeSidePanel).toBe('search')
 
     // Should mount GlobalSearch (cross-conversation), NOT SearchMessages (room-scoped)
     // GlobalSearch has a search form with data-testid="global-search-form"
@@ -179,7 +181,7 @@ describe('chatWindow search integration', () => {
     const wrapper = mountChatWindow()
 
     // Open search panel
-    chatStore.toggleSidePanel('search')
+    toggleSidePanel('search')
     await flushUi()
 
     // Submit search
@@ -228,7 +230,7 @@ describe('chatWindow search integration', () => {
 
     const wrapper = mountChatWindow()
 
-    chatStore.toggleSidePanel('search')
+    toggleSidePanel('search')
     await flushUi()
 
     await wrapper.find('[data-testid="global-search-input"]').setValue('paginate')
@@ -267,7 +269,7 @@ describe('chatWindow search integration', () => {
 
     const wrapper = mountChatWindow()
 
-    chatStore.toggleSidePanel('search')
+    toggleSidePanel('search')
     await flushUi()
 
     await wrapper.find('[data-testid="global-search-input"]').setValue('jump')
@@ -307,7 +309,7 @@ describe('chatWindow search integration', () => {
     const wrapper = mountChatWindow()
 
     // Open and search
-    chatStore.toggleSidePanel('search')
+    toggleSidePanel('search')
     await flushUi()
     await wrapper.find('[data-testid="global-search-input"]').setValue('stale')
     await wrapper.find('[data-testid="global-search-form"]').trigger('submit.prevent')
@@ -316,13 +318,13 @@ describe('chatWindow search integration', () => {
     expect(wrapper.find('[data-testid="global-search-hit-$stale"]').exists()).toBe(true)
 
     // Close search panel
-    chatStore.closeSidePanel()
+    closeSidePanel()
     await flushUi()
 
-    expect(chatStore.activeSidePanel).toBeNull()
+    expect(chatStore.state.activeSidePanel).toBeNull()
 
     // Reopen - should NOT show stale results
-    chatStore.toggleSidePanel('search')
+    toggleSidePanel('search')
     await flushUi()
 
     expect(wrapper.find('[data-testid="global-search-hit-$stale"]').exists()).toBe(false)

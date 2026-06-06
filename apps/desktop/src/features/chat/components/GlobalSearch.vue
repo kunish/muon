@@ -12,7 +12,7 @@ import { useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
 import { workspaceApps } from '@/app/components/workspace/navigation';
 import { useSearchHistory } from '@/features/chat/composables/useSearchHistory';
-import { useChatStore } from '@/features/chat/stores/chatStore';
+import { setCurrentRoom } from '@/features/chat/stores/chatStore';
 import {
   loadMore as retrievalLoadMore,
   resetState as retrievalResetState,
@@ -39,7 +39,6 @@ const { t, locale } = useI18n();
 const router = useRouter();
 const query = ref('');
 const client = getClient();
-const chatStore = useChatStore();
 const contactList = useContactList();
 const retrieval = useSelector(retrievalStore, (state) => state);
 const searchHistory = useSearchHistory();
@@ -148,7 +147,7 @@ async function openApp(path: string) {
 }
 
 async function selectRoom(room: SearchRoomResult, sidebarPreview: SidebarPreviewInput = {}) {
-  chatStore.setCurrentRoom(room.roomId, {
+  setCurrentRoom(room.roomId, {
     sidebarPlacement: 'promote',
     sidebarPreview: {
       name: room.name || room.roomId,

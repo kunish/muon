@@ -5,21 +5,32 @@ import { isDirectRoom } from '@matrix/roomUtils';
 import { Avatar } from '@muon/ui/avatar';
 import { Switch } from '@muon/ui/switch';
 import { Textarea } from '@muon/ui/textarea';
+import { useSelector } from '@tanstack/vue-store';
 import { Bell, BellOff, Check, ChevronRight, Copy, Pin, Shield, X } from 'lucide-vue-next';
 import { computed, onUnmounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
 import { ask } from '@/desktop/dialog';
-import { useChatStore } from '../stores/chatStore';
+import {
+  chatStore,
+  closeSidePanel,
+  isPinned as isPinnedSnapshot,
+  selectIsMuted,
+  selectIsPinned,
+  setCurrentRoom,
+  setPin,
+  toggleMute,
+  toggleSidePanel,
+} from '../stores/chatStore';
 
 const { t } = useI18n();
-const store = useChatStore();
+const currentRoomId = useSelector(chatStore, (s) => s.currentRoomId);
 
 // ── Room data ───────────────────────────────────────────────
 
 const room = computed(() => {
   const client = getClient();
-  return store.currentRoomId ? client.getRoom(store.currentRoomId) : null;
+  return currentRoomId.value ? client.getRoom(currentRoomId.value) : null;
 });
 
 const roomName = computed(() => room.value?.name || '');
@@ -27,8 +38,8 @@ const roomName = computed(() => room.value?.name || '');
 const roomMxcAvatar = computed(() => room.value?.getMxcAvatarUrl() || undefined);
 
 const roomTopic = computed(() => {
-  if (!store.currentRoomId) return '';
-  return getRoomTopic(store.currentRoomId);
+  if (!currentRoomId.value) return '';
+  return getRoomTopic(currentRoomId.value);
 });
 
 const isEncrypted = computed(() => {
@@ -36,12 +47,12 @@ const isEncrypted = computed(() => {
   return room.value.hasEncryptionStateEvent();
 });
 
-const isDirect = computed(() => (store.currentRoomId ? isDirectRoom(store.currentRoomId) : false));
+const isDirect = computed(() => (currentRoomId.value ? isDirectRoom(currentRoomId.value) : false));
 
 const memberCount = computed(() => room.value?.getJoinedMemberCount() || 0);
 
-const isPinned = computed(() => (store.currentRoomId ? store.isPinned(store.currentRoomId) : false));
-const isMuted = computed(() => (store.currentRoomId ? store.isMuted(store.currentRoomId) : false));
+const isPinned = useSelector(chatStore, (s) => (s.currentRoomId ? selectIsPinned(s.currentRoomId)(s) : false));
+const isMuted = useSelector(chatStore, (s) => (s.currentRoomId ? selectIsMuted(s.currentRoomId)(s) : false));
 
 // ── Members preview (top 8) ─────────────────────────────────
 
@@ -69,10 +80,10 @@ const memberPreviews = computed<MemberPreview[]>(() => {
 // ── Actions ─────────────────────────────────────────────────
 
 async function onTogglePin() {
-  if (!store.currentRoomId) return;
-  const targetRoomId = store.currentRoomId;
-  const nextPinned = !store.isPinned(targetRoomId);
-  store.setPin(targetRoomId, nextPinned);
+  if (!currentRoomId.value) return;
+  const targetRoomId = currentRoomId.value;
+  const nextPinned = !isPinnedSnapshot(targetRoomId);
+  setPin(targetRoomId, nextPinned);
   try {
     await toggleRoomPin(targetRoomId);
   } catch {
@@ -81,21 +92,21 @@ async function onTogglePin() {
 }
 
 async function onToggleMute() {
-  if (!store.currentRoomId) return;
-  await toggleRoomMute(store.currentRoomId);
-  store.toggleMute(store.currentRoomId);
+  if (!currentRoomId.value) return;
+  await toggleRoomMute(currentRoomId.value);
+  toggleMute(currentRoomId.value);
 }
 
 async function onLeaveRoom() {
-  if (!store.currentRoomId) return;
+  if (!currentRoomId.value) return;
   const msg = isDirect.value ? t('chat.ctx_leave_dm_msg') : t('chat.ctx_leave_group_msg');
   const confirmed = await ask(msg, {
     title: t('chat.ctx_leave_title'),
     kind: 'warning',
   });
   if (!confirmed) return;
-  await leaveRoom(store.currentRoomId);
-  store.setCurrentRoom(null);
+  await leaveRoom(currentRoomId.value);
+  setCurrentRoom(null);
 }
 
 // ── Copy Room ID ────────────────────────────────────────────
@@ -104,9 +115,9 @@ const copied = ref(false);
 let copyTimer: ReturnType<typeof setTimeout> | undefined;
 
 async function copyRoomId() {
-  if (!store.currentRoomId) return;
+  if (!currentRoomId.value) return;
   try {
-    await navigator.clipboard.writeText(store.currentRoomId);
+    await navigator.clipboard.writeText(currentRoomId.value);
     copied.value = true;
     clearTimeout(copyTimer);
     copyTimer = setTimeout(() => {
@@ -132,8 +143,8 @@ function startEditTopic() {
 }
 
 async function saveTopic() {
-  if (!store.currentRoomId) return;
-  await setRoomTopic(store.currentRoomId, topicDraft.value.trim());
+  if (!currentRoomId.value) return;
+  await setRoomTopic(currentRoomId.value, topicDraft.value.trim());
   editingTopic.value = false;
 }
 
@@ -147,7 +158,7 @@ function cancelEditTopic() {
     <!-- Header -->
     <div class="flex items-center justify-between px-4 h-12 border-b border-border shrink-0">
       <span class="font-medium text-sm">{{ t('chat.room_settings') }}</span>
-      <button class="p-1 rounded-md hover:bg-accent text-muted-foreground" @click="store.closeSidePanel()">
+      <button class="p-1 rounded-md hover:bg-accent text-muted-foreground" @click="closeSidePanel()">
         <X :size="16" />
       </button>
     </div>
@@ -156,7 +167,7 @@ function cancelEditTopic() {
     <div class="flex-1 overflow-y-auto">
       <!-- Room info header -->
       <div class="flex items-center gap-3 px-4 py-4">
-        <Avatar :src="roomMxcAvatar" :alt="roomName" :color-id="store.currentRoomId || ''" size="lg" shape="circle" />
+        <Avatar :src="roomMxcAvatar" :alt="roomName" :color-id="currentRoomId || ''" size="lg" shape="circle" />
         <div class="min-w-0 flex-1">
           <div class="font-medium truncate">
             {{ roomName }}
@@ -218,7 +229,7 @@ function cancelEditTopic() {
 
       <!-- Members preview -->
       <div class="px-4 py-3">
-        <button class="flex items-center justify-between w-full group" @click="store.toggleSidePanel('members')">
+        <button class="flex items-center justify-between w-full group" @click="toggleSidePanel('members')">
           <span class="text-sm font-medium">{{ t('chat.member_list') }}</span>
           <span class="flex items-center gap-1 text-xs text-muted-foreground/60">
             {{ memberCount }}
@@ -232,7 +243,7 @@ function cancelEditTopic() {
           <button
             v-if="memberCount > 8"
             class="w-8 h-8 rounded-full bg-accent/60 flex items-center justify-center text-[10px] text-muted-foreground hover:bg-accent transition-colors"
-            @click="store.toggleSidePanel('members')"
+            @click="toggleSidePanel('members')"
           >
             +{{ memberCount - 8 }}
           </button>
@@ -279,7 +290,7 @@ function cancelEditTopic() {
         </div>
         <button class="flex items-center gap-2 group w-full" @click="copyRoomId">
           <span class="text-[11px] text-muted-foreground/60 truncate flex-1 text-left font-mono">
-            {{ store.currentRoomId }}
+            {{ currentRoomId }}
           </span>
           <Check v-if="copied" :size="12" class="shrink-0 text-success" />
           <Copy

@@ -7,8 +7,8 @@ import type { ComposerMentionRequest, SidebarPlacement, SidebarPreviewInput } fr
  * chat store as an implementation detail so callers are not coupled to the
  * internal store shape.
  */
-import { computed } from 'vue'
-import { useChatStore } from '@/features/chat/stores/chatStore'
+import { useSelector } from '@tanstack/vue-store'
+import { chatStore, requestMention as requestMentionAction, setCurrentRoom } from '@/features/chat/stores/chatStore'
 
 export type { SidebarPlacement, SidebarPreviewInput }
 
@@ -18,20 +18,18 @@ export interface NavigateToRoomOptions {
 }
 
 export function useRoomNavigation() {
-  const store = useChatStore()
-
   /** Navigate to a room, optionally promoting it in the sidebar. */
   function navigateToRoom(roomId: string | null, options: NavigateToRoomOptions = {}) {
-    store.setCurrentRoom(roomId, options)
+    setCurrentRoom(roomId, options)
   }
 
   /** Request an @-mention insertion in the composer. */
   function requestMention(mention: ComposerMentionRequest) {
-    store.requestMention(mention)
+    requestMentionAction(mention)
   }
 
   /** The currently active room id (read-only from outside chat). */
-  const currentRoomId = computed(() => store.currentRoomId)
+  const currentRoomId = useSelector(chatStore, (s) => s.currentRoomId)
 
   return { navigateToRoom, requestMention, currentRoomId }
 }

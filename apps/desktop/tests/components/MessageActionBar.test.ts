@@ -5,7 +5,7 @@ import { nextTick } from 'vue'
 import ForwardDialog from '@/features/chat/components/ForwardDialog.vue'
 import MessageActionBar from '@/features/chat/components/MessageActionBar.vue'
 import TaskComposerDialog from '@/features/chat/components/TaskComposerDialog.vue'
-import { useChatStore } from '@/features/chat/stores/chatStore'
+import { chatStore, isHidden, isMessageSelected, resetChatStore } from '@/features/chat/stores/chatStore'
 import {
   deferStore,
   resetDeferStore,
@@ -111,6 +111,7 @@ async function setBodyInputValue(selector: string, value: string) {
 describe('messageActionBar', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    resetChatStore()
     localStorage.clear()
     resetTaskStore()
     resetDeferStore()
@@ -541,14 +542,12 @@ describe('messageActionBar', () => {
         roomId: '!room:test',
       },
     })
-    const chatStore = useChatStore()
-
     await wrapper.find('[data-testid="message-more-trigger"]').trigger('click')
     await flushPromises()
     await clickBodyElement('[data-testid="message-multiselect-trigger"]')
 
-    expect(chatStore.multiSelectMode).toBe(true)
-    expect(chatStore.isMessageSelected('$event-1')).toBe(true)
+    expect(chatStore.state.multiSelectMode).toBe(true)
+    expect(isMessageSelected('$event-1')).toBe(true)
   })
 
   it('hides a message for me from the more menu', async () => {
@@ -558,13 +557,11 @@ describe('messageActionBar', () => {
         roomId: '!room:test',
       },
     })
-    const chatStore = useChatStore()
-
     await wrapper.find('[data-testid="message-more-trigger"]').trigger('click')
     await flushPromises()
     await clickBodyElement('[data-testid="message-hide-trigger"]')
 
-    expect(chatStore.isHidden('$event-1')).toBe(true)
+    expect(isHidden('$event-1')).toBe(true)
   })
 
   it('recalls own message after confirmation from the more menu', async () => {

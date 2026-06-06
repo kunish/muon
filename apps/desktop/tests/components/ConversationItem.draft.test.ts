@@ -1,8 +1,8 @@
 import type { RoomSummary } from '@matrix/types'
 import { mount } from '@vue/test-utils'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import ConversationItem from '@/features/chat/components/ConversationItem.vue'
-import { useChatStore } from '@/features/chat/stores/chatStore'
+import { resetChatStore, setDraftPreview } from '@/features/chat/stores/chatStore'
 
 function createRoom(overrides: Partial<RoomSummary> = {}): RoomSummary {
   return {
@@ -23,9 +23,12 @@ function createRoom(overrides: Partial<RoomSummary> = {}): RoomSummary {
 }
 
 describe('conversationItem draft preview', () => {
+  beforeEach(() => {
+    resetChatStore()
+  })
+
   it('shows media-only draft previews in the sidebar', () => {
-    const store = useChatStore()
-    ;(store as any).setDraftPreview('!room:localhost', 'draft.png')
+    setDraftPreview('!room:localhost', 'draft.png')
 
     const wrapper = mount(ConversationItem, {
       props: {

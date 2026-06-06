@@ -1,7 +1,7 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import NewChatDialog from '@/features/chat/components/NewChatDialog.vue'
-import { useChatStore } from '@/features/chat/stores/chatStore'
+import { getSidebarPromotionPreview, resetChatStore } from '@/features/chat/stores/chatStore'
 import { mockClient } from '../mocks/matrix'
 
 vi.mock('vue-router', () => ({
@@ -29,6 +29,7 @@ function mountNewChatDialog() {
 describe('new chat dialog', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    resetChatStore()
     vi.mocked(mockClient.createRoom).mockResolvedValue({ room_id: '!new-group:localhost' })
   })
 
@@ -94,7 +95,7 @@ describe('new chat dialog', () => {
     await createButton!.trigger('click')
     await flushPromises()
 
-    const preview = useChatStore().getSidebarPromotionPreview('!new-group:localhost')
+    const preview = getSidebarPromotionPreview('!new-group:localhost')
     expect(preview?.name).toBe('设计评审')
     expect(preview?.isDirect).toBe(false)
   })

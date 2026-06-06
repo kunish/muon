@@ -3,7 +3,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import ChatDocsList from '@/features/chat/components/ChatDocsList.vue'
 import ChatFileList from '@/features/chat/components/ChatFileList.vue'
-import { useChatStore } from '@/features/chat/stores/chatStore'
+import { resetChatStore, setCurrentRoom } from '@/features/chat/stores/chatStore'
 
 const downloadMocks = vi.hoisted(() => ({
   downloadMediaFile: vi.fn(),
@@ -50,7 +50,8 @@ vi.mock('vue-sonner', () => ({
 
 function prepareStore() {
   setActivePinia(createPinia())
-  useChatStore().setCurrentRoom('!room:localhost')
+  resetChatStore()
+  setCurrentRoom('!room:localhost')
 }
 
 describe('chat side-panel downloads', () => {

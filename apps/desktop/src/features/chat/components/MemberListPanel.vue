@@ -1,14 +1,15 @@
 <script setup lang="ts">
 import { getClient } from '@matrix/client';
 import { Avatar } from '@muon/ui/avatar';
+import { useSelector } from '@tanstack/vue-store';
 import { Crown, Search, Shield, ShieldCheck, X } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useChatStore } from '../stores/chatStore';
+import { chatStore, closeSidePanel } from '../stores/chatStore';
 import UserInfoPanel from './UserInfoPanel.vue';
 
 const { t } = useI18n();
-const store = useChatStore();
+const currentRoomId = useSelector(chatStore, (s) => s.currentRoomId);
 const searchQuery = ref('');
 const infoPanelUserId = ref<string | null>(null);
 const infoPanelPosition = ref({ x: 0, y: 0 });
@@ -24,7 +25,7 @@ interface MemberInfo {
 
 const members = computed<MemberInfo[]>(() => {
   const client = getClient();
-  const roomId = store.currentRoomId;
+  const roomId = currentRoomId.value;
   if (!roomId) return [];
 
   const room = client.getRoom(roomId);
@@ -86,7 +87,7 @@ function closeInfoPanel() {
     <!-- Header -->
     <div class="flex items-center justify-between px-4 h-12 border-b border-border shrink-0">
       <span class="font-medium text-sm">{{ t('chat.member_list') }} ({{ members.length }})</span>
-      <button class="p-1 rounded-md hover:bg-accent text-muted-foreground" @click="store.closeSidePanel()">
+      <button class="p-1 rounded-md hover:bg-accent text-muted-foreground" @click="closeSidePanel()">
         <X :size="16" />
       </button>
     </div>
@@ -153,7 +154,7 @@ function closeInfoPanel() {
       <UserInfoPanel
         :room="null"
         :user-id="infoPanelUserId"
-        :room-id="store.currentRoomId"
+        :room-id="currentRoomId"
         :position="infoPanelPosition"
         @close="closeInfoPanel"
       />

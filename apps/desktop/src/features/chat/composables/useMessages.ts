@@ -9,18 +9,19 @@ import {
   sendReadReceipt,
   syncState,
 } from '@matrix/index'
+import { useSelector } from '@tanstack/vue-store'
 import { useDebounceFn } from '@vueuse/core'
 import { Effect } from 'effect'
 import { onMounted, onUnmounted, ref, shallowRef, watch } from 'vue'
 import { fromPromise, fromSync, runDesktopEffect } from '@/shared/lib/effect'
-import { useChatStore } from '../stores/chatStore'
+import { chatStore } from '../stores/chatStore'
 
 const TIMELINE_REFRESH_SYNC_STATES = new Set(['CATCHUP', 'PREPARED', 'SYNCING'])
 const HISTORY_PAGE_SIZE = 30
 const INITIAL_HISTORY_BACKFILL_MAX_ATTEMPTS = 5
 
 export function useMessages() {
-  const store = useChatStore()
+  const currentRoomId = useSelector(chatStore, (s) => s.currentRoomId)
   const messages = shallowRef<MatrixEvent[]>([])
   const isLoading = ref(false)
   const hasMore = ref(true)
@@ -34,7 +35,7 @@ export function useMessages() {
   let activeBackfillKey: string | null = null
 
   function isActiveRoomRequest(roomId: string, version: number) {
-    return store.currentRoomId === roomId && roomSessionVersion === version
+    return chatStore.state.currentRoomId === roomId && roomSessionVersion === version
   }
 
   function replaceTimeline(roomId: string) {
@@ -46,13 +47,13 @@ export function useMessages() {
   }
 
   function loadTimeline() {
-    const roomId = store.currentRoomId
+    const roomId = chatStore.state.currentRoomId
     if (!roomId) return
     replaceTimeline(roomId)
   }
 
   function refreshTimelineAndBackfill() {
-    const roomId = store.currentRoomId
+    const roomId = chatStore.state.currentRoomId
     if (!roomId) return
 
     const requestVersion = roomSessionVersion
@@ -125,7 +126,7 @@ export function useMessages() {
   }
 
   function loadMoreEffect(): DesktopEffect<boolean> {
-    const roomId = store.currentRoomId
+    const roomId = chatStore.state.currentRoomId
     const requestVersion = roomSessionVersion
     let ownsLoading = false
 
@@ -179,7 +180,7 @@ export function useMessages() {
 
   /** 对当前房间最新消息发送已读回执 */
   function markAsReadEffect(): DesktopEffect<void> {
-    const roomId = store.currentRoomId
+    const roomId = chatStore.state.currentRoomId
     if (!roomId) return Effect.succeed(undefined)
     const list = messages.value
     if (list.length === 0) return Effect.succeed(undefined)
@@ -201,12 +202,12 @@ export function useMessages() {
   const debouncedRefreshTimeline = useDebounceFn(() => refreshTimelineAndBackfill(), 80)
 
   function onTimelineUpdate(payload: { roomId: string }) {
-    if (payload.roomId === store.currentRoomId) debouncedRefreshTimeline()
+    if (payload.roomId === chatStore.state.currentRoomId) debouncedRefreshTimeline()
   }
 
   /** 当前房间收到新消息时自动标记已读 */
   function onNewMessage(payload: { roomId: string }) {
-    if (payload.roomId === store.currentRoomId) markAsRead()
+    if (payload.roomId === chatStore.state.currentRoomId) markAsRead()
   }
 
   function onSyncState(payload: { state: string }) {
@@ -223,7 +224,7 @@ export function useMessages() {
 
       // 原子性切换：先同步获取新房间消息，直接替换旧消息
       // 避免 messages=[] 清空导致的 DOM 闪白
-      const roomId = store.currentRoomId
+      const roomId = chatStore.state.currentRoomId
       if (roomId) {
         // 直接替换，不经过空数组中间态
         const timeline = replaceTimeline(roomId)
@@ -246,7 +247,7 @@ export function useMessages() {
   }
 
   watch(
-    () => store.currentRoomId,
+    currentRoomId,
     () => {
       void runDesktopEffect(handleCurrentRoomChangeEffect())
     },

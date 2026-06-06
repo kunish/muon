@@ -5,7 +5,7 @@ import { selectNormalizedNotificationChannels, settingsStore } from '@shared/sto
 import { onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { playNotificationSound } from '@/shared/lib/audio'
-import { useChatStore } from '../stores/chatStore'
+import { chatStore, isMuted } from '../stores/chatStore'
 
 function parseTimeToMinutes(value: string): number | null {
   const match = /^(\d{2}):(\d{2})$/.exec(value)
@@ -33,7 +33,6 @@ function isWithinDoNotDisturb(start: string, end: string, now = new Date()): boo
  * 监听新消息，在非当前会话收到消息时播放提示音
  */
 export function useNotificationSound() {
-  const store = useChatStore()
   const { t } = useI18n()
 
   function senderNameFor(event: MatrixEvent): string {
@@ -82,10 +81,10 @@ export function useNotificationSound() {
     if (payload.event.getSender() === myUserId) return false
 
     // 当前正在查看的房间不播放提示音
-    if (payload.roomId === store.currentRoomId) return false
+    if (payload.roomId === chatStore.state.currentRoomId) return false
 
     // 免打扰的房间不播放（加急消息除外）
-    if (!urgent && store.isMuted(payload.roomId)) return false
+    if (!urgent && isMuted(payload.roomId)) return false
 
     return true
   }

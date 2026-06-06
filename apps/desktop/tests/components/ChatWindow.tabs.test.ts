@@ -1,9 +1,8 @@
 import { mount } from '@vue/test-utils'
-import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h } from 'vue'
 import ChatWindow from '@/features/chat/components/ChatWindow.vue'
-import { useChatStore } from '@/features/chat/stores/chatStore'
+import { resetChatStore, setCurrentRoom } from '@/features/chat/stores/chatStore'
 
 const ChatHeaderStub = defineComponent({
   name: 'ChatHeaderStub',
@@ -33,9 +32,8 @@ vi.mock('@/features/chat/composables/useTyping', () => ({
 
 describe('chatWindow tabs', () => {
   beforeEach(() => {
-    setActivePinia(createPinia())
-    const store = useChatStore()
-    store.currentRoomId = '!room:localhost'
+    resetChatStore()
+    setCurrentRoom('!room:localhost')
   })
 
   it('switches between chat, docs, and file views from the Feishu-style header tabs', async () => {

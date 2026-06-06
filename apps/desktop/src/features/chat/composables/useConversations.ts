@@ -9,11 +9,21 @@ import {
   syncState,
   toggleRoomMute,
 } from '@matrix/index'
+import { useSelector } from '@tanstack/vue-store'
 import { Effect } from 'effect'
 import { computed, onMounted, ref, shallowRef } from 'vue'
 import { registerSessionSubscriber } from '@/auth/lifecycleEvents'
 import { fromPromise, fromSync, runDesktopEffect, runDesktopSync } from '@/shared/lib/effect'
-import { useChatStore } from '../stores/chatStore'
+import {
+  chatStore,
+  clearSidebarPromotions,
+  collectExpiredMutes,
+  getSidebarPromotionPreview,
+  getSidebarPromotionRoomIds,
+  isMarkedUnread,
+  syncServerState,
+  toggleMarkedUnread,
+} from '../stores/chatStore'
 
 const LISTENED_EVENTS = [
   'room.message',
@@ -142,12 +152,11 @@ function orderBySidebarPromotion(
   })
 }
 
-function mergeSidebarPromotionPreviews(list: RoomSummary[], store: ReturnType<typeof useChatStore>): RoomSummary[] {
+function mergeSidebarPromotionPreviews(list: RoomSummary[]): RoomSummary[] {
   const knownRoomIds = new Set(list.map((room) => room.roomId))
-  const previews = store
-    .getSidebarPromotionRoomIds()
+  const previews = getSidebarPromotionRoomIds()
     .filter((roomId) => !knownRoomIds.has(roomId))
-    .map((roomId) => store.getSidebarPromotionPreview(roomId))
+    .map((roomId) => getSidebarPromotionPreview(roomId))
     .filter((room): room is RoomSummary => !!room)
 
   return previews.length > 0 ? [...previews, ...list] : list
@@ -217,8 +226,7 @@ function refreshNow(mode: RefreshMode = 'resort') {
 const unmutingRoomIds = new Set<string>()
 
 function pruneExpiredMutes() {
-  const store = useChatStore()
-  for (const roomId of store.collectExpiredMutes()) {
+  for (const roomId of collectExpiredMutes()) {
     if (unmutingRoomIds.has(roomId)) continue
     unmutingRoomIds.add(roomId)
     void toggleRoomMute(roomId)
@@ -233,8 +241,7 @@ function refreshMountedInstance() {
 
 function syncServerStateEffect(summaries: RoomSummary[]): DesktopEffect<void> {
   return fromSync(() => {
-    const store = useChatStore()
-    store.syncServerState(summaries)
+    syncServerState(summaries)
   }).pipe(Effect.catchAll(() => Effect.succeed(undefined)))
 }
 
@@ -318,10 +325,9 @@ function removeRoom(roomId: string) {
 
 /** 标记全部会话为已读：清除未读计数与"标记未读"圆点（飞书"全部已读"） */
 function markAllRead() {
-  const store = useChatStore()
   for (const room of rooms.value) {
     if (room.unreadCount > 0) void markRoomAsRead(room.roomId).catch(() => {})
-    if (store.isMarkedUnread(room.roomId)) store.toggleMarkedUnread(room.roomId)
+    if (isMarkedUnread(room.roomId)) toggleMarkedUnread(room.roomId)
   }
   refreshNow('preserve-order')
 }
@@ -357,7 +363,13 @@ function restoreRoom(roomId: string) {
  * - 搜索同时匹配房间名和最近消息
  */
 export function useConversations() {
-  const store = useChatStore()
+  // 订阅底层响应式状态，使 conversations / pinnedCount 在 chatStore 变化时重算
+  const activeFilter = useSelector(chatStore, (s) => s.activeFilter)
+  const searchQuery = useSelector(chatStore, (s) => s.searchQuery)
+  const pinnedRooms = useSelector(chatStore, (s) => s.pinnedRooms)
+  const markedUnreadRooms = useSelector(chatStore, (s) => s.markedUnreadRooms)
+  const sidebarPromotionTimes = useSelector(chatStore, (s) => s.sidebarPromotionTimes)
+  const sidebarPromotionPreviews = useSelector(chatStore, (s) => s.sidebarPromotionPreviews)
 
   onMounted(() => {
     bindConversationsListeners()
@@ -366,12 +378,15 @@ export function useConversations() {
 
   // --- 筛选 + 搜索 + 置顶排序 ---
   const conversations = computed(() => {
-    let list = mergeSidebarPromotionPreviews(rooms.value, store)
+    // 触达 sidebarPromotionPreviews 以建立响应式依赖（mergeSidebarPromotionPreviews 内部走快照读）
+    void sidebarPromotionPreviews.value
+    const promotionTimes = sidebarPromotionTimes.value
+    let list = mergeSidebarPromotionPreviews(rooms.value)
 
     // 筛选
-    const filter = store.activeFilter
+    const filter = activeFilter.value
     if (filter === 'unread') {
-      list = list.filter((r) => r.unreadCount > 0 || store.isMarkedUnread(r.roomId))
+      list = list.filter((r) => r.unreadCount > 0 || markedUnreadRooms.value.has(r.roomId))
     } else if (filter === 'dm') {
       list = list.filter((r) => r.isDirect)
     } else if (filter === 'group') {
@@ -379,7 +394,7 @@ export function useConversations() {
     }
 
     // 搜索
-    const q = store.searchQuery.toLowerCase().trim()
+    const q = searchQuery.value.toLowerCase().trim()
     if (q) {
       list = list.filter(
         (r) => r.name.toLowerCase().includes(q) || (r.lastMessage && r.lastMessage.toLowerCase().includes(q)),
@@ -387,12 +402,12 @@ export function useConversations() {
     }
 
     const promoted = orderBySidebarPromotion(
-      list.filter((r) => store.getSidebarPromotionTime(r.roomId) !== undefined),
-      store.getSidebarPromotionTime,
+      list.filter((r) => promotionTimes.get(r.roomId) !== undefined),
+      (roomId) => promotionTimes.get(roomId),
     )
     const promotedIds = new Set(promoted.map((room) => room.roomId))
-    const pinned = list.filter((r) => !promotedIds.has(r.roomId) && store.isPinned(r.roomId))
-    const normal = list.filter((r) => !promotedIds.has(r.roomId) && !store.isPinned(r.roomId))
+    const pinned = list.filter((r) => !promotedIds.has(r.roomId) && pinnedRooms.value.has(r.roomId))
+    const normal = list.filter((r) => !promotedIds.has(r.roomId) && !pinnedRooms.value.has(r.roomId))
     return [...promoted, ...pinned, ...normal]
   })
 
@@ -400,7 +415,7 @@ export function useConversations() {
   const pinnedCount = computed(() => {
     let count = 0
     for (const room of conversations.value) {
-      if (!store.isPinned(room.roomId)) break
+      if (!pinnedRooms.value.has(room.roomId)) break
       count++
     }
     return count
@@ -448,7 +463,7 @@ export function resetConversationsListeners() {
 }
 
 function clearSidebarPromotionsEffect(): DesktopEffect<void> {
-  return fromSync(() => useChatStore().clearSidebarPromotions()).pipe(Effect.catchAll(() => Effect.succeed(undefined)))
+  return fromSync(() => clearSidebarPromotions()).pipe(Effect.catchAll(() => Effect.succeed(undefined)))
 }
 
 const unregisterConversationsSessionSubscriber = registerSessionSubscriber({

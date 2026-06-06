@@ -12,7 +12,7 @@ import { ask } from '@/desktop/dialog';
 import { useAuthMedia } from '@/shared/composables/useAuthMedia';
 import { useConversations } from '../composables/useConversations';
 import { avatarGradient as getGradient, initials as getInitials } from '../lib/format';
-import { useChatStore } from '../stores/chatStore';
+import { setCurrentRoom } from '../stores/chatStore';
 
 const props = defineProps<{
   room: RoomSummary | null;
@@ -141,7 +141,6 @@ const panelStyle = computed(() => {
   };
 });
 
-const chatStore = useChatStore();
 const { restoreRoom } = useConversations();
 
 /** 点击"发送消息"：找到或创建 DM 房间并跳转 */
@@ -153,7 +152,7 @@ async function onSendMessage() {
     const roomId = await findOrCreateDm(uid);
     // 确保房间在会话列表中可见（可能之前被归档/隐藏）
     restoreRoom(roomId);
-    chatStore.setCurrentRoom(roomId, {
+    setCurrentRoom(roomId, {
       sidebarPlacement: 'promote',
       sidebarPreview: {
         name: memberInfo.value?.displayName,

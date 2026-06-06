@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import type { RoomSummary } from '@matrix/types';
 import { Avatar } from '@muon/ui/avatar';
+import { useSelector } from '@tanstack/vue-store';
 import { BellOff, FileText, Film, Image, Lock, Mic, Pin } from 'lucide-vue-next';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { formatMessageTime, messageTypeLabel as getTypeLabel, isLikelyBot } from '../lib/format';
-import { useChatStore } from '../stores/chatStore';
+import { chatStore, selectIsMarkedUnread, selectIsMuted, selectIsPinned } from '../stores/chatStore';
 
 const props = defineProps<{
   room: RoomSummary;
@@ -20,12 +21,15 @@ defineEmits<{
   contextmenu: [roomId: string, event: MouseEvent];
 }>();
 
-const store = useChatStore();
 const { t } = useI18n();
-const pinned = computed(() => store.isPinned(props.room.roomId));
-const muted = computed(() => store.isMuted(props.room.roomId));
-const markedUnread = computed(() => store.isMarkedUnread(props.room.roomId));
-const draftPreview = computed(() => store.getDraftPreview(props.room.roomId));
+const pinned = useSelector(chatStore, (s) => selectIsPinned(props.room.roomId)(s));
+const muted = useSelector(chatStore, (s) => selectIsMuted(props.room.roomId)(s));
+const markedUnread = useSelector(chatStore, (s) => selectIsMarkedUnread(props.room.roomId)(s));
+const draftPreviews = useSelector(chatStore, (s) => s.draftPreviews);
+const drafts = useSelector(chatStore, (s) => s.drafts);
+const draftPreview = computed(
+  () => draftPreviews.value.get(props.room.roomId) || drafts.value.get(props.room.roomId) || '',
+);
 
 const timeLabel = computed(() => formatMessageTime(props.room.lastMessageTs));
 const mxcAvatar = computed(() => props.room.avatar || props.room.dmUserAvatar);

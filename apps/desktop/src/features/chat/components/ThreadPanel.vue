@@ -8,14 +8,13 @@ import { MessageSquare, Send, X } from 'lucide-vue-next';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
-import { useChatStore } from '../stores/chatStore';
+import { closeThread } from '../stores/chatStore';
 
 const props = defineProps<{
   roomId: string;
   threadRootId: string;
 }>();
 
-const store = useChatStore();
 const { t } = useI18n();
 const replyText = ref('');
 const sending = ref(false);
@@ -110,7 +109,7 @@ watch(replies, async () => {
       <button
         class="p-1 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
         :title="t('common.close')"
-        @click="store.closeThread()"
+        @click="closeThread()"
       >
         <X :size="16" />
       </button>

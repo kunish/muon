@@ -1,9 +1,15 @@
 import { mount } from '@vue/test-utils'
-import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h, nextTick } from 'vue'
 import ChatWindow from '@/features/chat/components/ChatWindow.vue'
-import { useChatStore } from '@/features/chat/stores/chatStore'
+import {
+  closeSidePanel,
+  closeThread,
+  openThread,
+  resetChatStore,
+  setCurrentRoom,
+  toggleSidePanel,
+} from '@/features/chat/stores/chatStore'
 
 vi.mock('@/features/chat/composables/useTyping', () => ({
   useTyping: () => ({ typingUsers: [] }),
@@ -50,8 +56,8 @@ async function flushUi() {
 
 describe('chatWindow side panel layout', () => {
   beforeEach(() => {
-    setActivePinia(createPinia())
-    useChatStore().setCurrentRoom('!room:muon.dev')
+    resetChatStore()
+    setCurrentRoom('!room:muon.dev')
   })
 
   function mountChatWindow() {
@@ -63,7 +69,6 @@ describe('chatWindow side panel layout', () => {
   }
 
   it('animates the shared side panel from a stable width shell instead of direct flex insertion', async () => {
-    const store = useChatStore()
     const wrapper = mountChatWindow()
 
     let shell = wrapper.get('[data-testid="chat-side-panel-shell"]')
@@ -79,7 +84,7 @@ describe('chatWindow side panel layout', () => {
     expect(shell.classes()).not.toContain('transition-all')
     expect(wrapper.find('[data-testid="chat-side-panel-frame"]').exists()).toBe(false)
 
-    store.toggleSidePanel('settings')
+    toggleSidePanel('settings')
     await flushUi()
 
     shell = wrapper.get('[data-testid="chat-side-panel-shell"]')
@@ -91,7 +96,7 @@ describe('chatWindow side panel layout', () => {
     expect(frame.classes()).toEqual(expect.arrayContaining(['h-full', 'w-[320px]', 'overflow-hidden']))
     expect(wrapper.get('[data-testid="stub-settings"]').exists()).toBe(true)
 
-    store.closeSidePanel()
+    closeSidePanel()
     await flushUi()
 
     shell = wrapper.get('[data-testid="chat-side-panel-shell"]')
@@ -100,7 +105,6 @@ describe('chatWindow side panel layout', () => {
   })
 
   it('uses the same stable shell pattern for opened thread panels', async () => {
-    const store = useChatStore()
     const wrapper = mountChatWindow()
 
     let shell = wrapper.get('[data-testid="thread-panel-shell"]')
@@ -115,7 +119,7 @@ describe('chatWindow side panel layout', () => {
     )
     expect(shell.classes()).not.toContain('transition-all')
 
-    store.openThread('$thread-root')
+    openThread('$thread-root')
     await flushUi()
 
     shell = wrapper.get('[data-testid="thread-panel-shell"]')
@@ -126,7 +130,7 @@ describe('chatWindow side panel layout', () => {
     expect(frame.classes()).toEqual(expect.arrayContaining(['h-full', 'w-[360px]', 'overflow-hidden']))
     expect(wrapper.get('[data-testid="stub-thread-panel"]').exists()).toBe(true)
 
-    store.closeThread()
+    closeThread()
     await flushUi()
 
     shell = wrapper.get('[data-testid="thread-panel-shell"]')

@@ -1,11 +1,7 @@
 import type { RoomSummary } from '@matrix/types'
 import type { MatrixEvent } from 'matrix-js-sdk'
-import type { DesktopEffect } from '@/shared/lib/effect'
 import { getClient } from '@matrix/client'
-import { Effect } from 'effect'
-import { defineStore } from 'pinia'
-import { reactive, ref } from 'vue'
-import { fromSync, runDesktopSync } from '@/shared/lib/effect'
+import { Store } from '@tanstack/vue-store'
 
 export type ConversationFilter = 'all' | 'unread' | 'dm' | 'group'
 export type SidePanelType = 'threads' | 'search' | 'pinned' | 'starred' | 'members' | 'settings' | 'tasks' | 'knowledge'
@@ -29,494 +25,520 @@ interface SetCurrentRoomOptions {
   sidebarPreview?: SidebarPreviewInput
 }
 
-export const useChatStore = defineStore('chat', () => {
-  const currentRoomId = ref<string | null>(null)
-  const searchQuery = ref('')
-  const replyingTo = ref<MatrixEvent | null>(null)
-  const editingEvent = ref<MatrixEvent | null>(null)
+interface ContextMenuState {
+  roomId: string
+  x: number
+  y: number
+}
 
-  // --- 会话管理状态 ---
-  const pinnedRooms = reactive(new Set<string>())
-  const pendingPinStates = reactive(new Map<string, boolean>())
-  const mutedRooms = reactive(new Set<string>())
-  // 定时免打扰：roomId -> 到期时间戳(ms)。永久免打扰不写条目；条目到期即视为不再免打扰。
-  const muteExpiry = reactive(new Map<string, number>())
-  const markedUnreadRooms = reactive(new Set<string>())
-  const drafts = reactive(new Map<string, string>())
-  const htmlDrafts = reactive(new Map<string, string>())
-  const draftPreviews = reactive(new Map<string, string>())
+const DRAFTS_STORAGE_KEY = 'muon_chat_drafts'
+const MUTE_EXPIRY_STORAGE_KEY = 'muon_chat_mute_expiry'
 
-  // --- 草稿持久化到 localStorage ---
-  const DRAFTS_STORAGE_KEY = 'muon_chat_drafts'
-  // 定时免打扰到期时间持久化（Matrix push rule 无到期概念，需客户端本地维护）
-  const MUTE_EXPIRY_STORAGE_KEY = 'muon_chat_mute_expiry'
+export interface ChatState {
+  currentRoomId: string | null
+  searchQuery: string
+  replyingTo: MatrixEvent | null
+  editingEvent: MatrixEvent | null
+  activeFilter: ConversationFilter
+  contextMenu: ContextMenuState | null
+  multiSelectMode: boolean
+  activeSidePanel: SidePanelType | null
+  activeThreadId: string | null
+  pinnedRooms: Set<string>
+  pendingPinStates: Map<string, boolean>
+  mutedRooms: Set<string>
+  muteExpiry: Map<string, number>
+  markedUnreadRooms: Set<string>
+  drafts: Map<string, string>
+  htmlDrafts: Map<string, string>
+  draftPreviews: Map<string, string>
+  pendingMentionRequests: ComposerMentionRequest[]
+  sidebarPromotionTimes: Map<string, number>
+  sidebarPromotionPreviews: Map<string, RoomSummary>
+  hiddenMessages: Set<string>
+  selectedMessages: Set<string>
+}
 
-  function loadDraftsFromStorage() {
-    runDesktopSync(loadDraftsFromStorageEffect())
-  }
-
-  function loadDraftsFromStorageEffect(): DesktopEffect<void> {
-    return fromSync(() => {
-      const userId = getClient().getUserId()
-      if (!userId) return
-      const key = `${DRAFTS_STORAGE_KEY}:${userId}`
-      const stored = localStorage.getItem(key)
-      if (!stored) return
-      const parsed = JSON.parse(stored)
-      for (const [roomId, entry] of Object.entries(parsed) as [
-        string,
-        { text?: string; html?: string; preview?: string },
-      ][]) {
-        if (entry?.text) drafts.set(roomId, entry.text)
-        if (entry?.html) htmlDrafts.set(roomId, entry.html)
-        if (entry?.preview) draftPreviews.set(roomId, entry.preview)
-      }
-    }).pipe(Effect.catchAll(() => Effect.void))
-  }
-
-  function persistDrafts() {
-    runDesktopSync(persistDraftsEffect())
-  }
-
-  function persistDraftsEffect(): DesktopEffect<void> {
-    return fromSync(() => {
-      const userId = getClient().getUserId()
-      if (!userId) return
-      const key = `${DRAFTS_STORAGE_KEY}:${userId}`
-      const allRoomIds = new Set([...drafts.keys(), ...htmlDrafts.keys(), ...draftPreviews.keys()])
-      if (allRoomIds.size === 0) {
-        localStorage.removeItem(key)
-      } else {
-        const data: Record<string, { text?: string; html?: string; preview?: string }> = {}
-        for (const roomId of allRoomIds) {
-          const text = drafts.get(roomId)
-          const html = htmlDrafts.get(roomId)
-          const preview = draftPreviews.get(roomId)
-          if (text || html || preview) {
-            data[roomId] = {}
-            if (text) data[roomId].text = text
-            if (html) data[roomId].html = html
-            if (preview) data[roomId].preview = preview
-          }
-        }
-        localStorage.setItem(key, JSON.stringify(data))
-      }
-    }).pipe(Effect.catchAll(() => Effect.void))
-  }
-
-  function loadMuteExpiry() {
-    runDesktopSync(
-      fromSync(() => {
-        const userId = getClient().getUserId()
-        if (!userId) return
-        const stored = localStorage.getItem(`${MUTE_EXPIRY_STORAGE_KEY}:${userId}`)
-        if (!stored) return
-        const parsed = JSON.parse(stored) as Record<string, number>
-        for (const [roomId, expiry] of Object.entries(parsed)) {
-          if (typeof expiry === 'number' && Number.isFinite(expiry)) muteExpiry.set(roomId, expiry)
-        }
-      }).pipe(Effect.catchAll(() => Effect.void)),
-    )
-  }
-
-  function persistMuteExpiry() {
-    runDesktopSync(
-      fromSync(() => {
-        const userId = getClient().getUserId()
-        if (!userId) return
-        const key = `${MUTE_EXPIRY_STORAGE_KEY}:${userId}`
-        if (muteExpiry.size === 0) {
-          localStorage.removeItem(key)
-          return
-        }
-        localStorage.setItem(key, JSON.stringify(Object.fromEntries(muteExpiry)))
-      }).pipe(Effect.catchAll(() => Effect.void)),
-    )
-  }
-
-  loadDraftsFromStorage()
-  loadMuteExpiry()
-  const pendingMentionRequests = reactive<ComposerMentionRequest[]>([])
-  const sidebarPromotionTimes = reactive(new Map<string, number>())
-  const sidebarPromotionPreviews = reactive(new Map<string, RoomSummary>())
-  const activeFilter = ref<ConversationFilter>('all')
-  const hiddenMessages = reactive(new Set<string>()) // 仅对自己隐藏的消息ID
-
-  // --- 消息多选 ---
-  const multiSelectMode = ref(false)
-  const selectedMessages = reactive(new Set<string>()) // eventId set
-
-  function enterMultiSelect() {
-    multiSelectMode.value = true
-  }
-  function exitMultiSelect() {
-    multiSelectMode.value = false
-    selectedMessages.clear()
-  }
-  function toggleMessageSelection(eventId: string) {
-    if (selectedMessages.has(eventId)) selectedMessages.delete(eventId)
-    else selectedMessages.add(eventId)
-  }
-  function isMessageSelected(eventId: string) {
-    return selectedMessages.has(eventId)
-  }
-
-  // --- Side panel ---
-  const activeSidePanel = ref<SidePanelType | null>(null)
-
-  function setActiveTab(_tab: string) {
-    // No-op: tabs removed, kept for API compat
-  }
-
-  function toggleSidePanel(panel: SidePanelType) {
-    if (activeSidePanel.value === panel) {
-      activeSidePanel.value = null
-    } else {
-      activeSidePanel.value = panel
+function loadDraftsFromStorage(): {
+  drafts: Map<string, string>
+  htmlDrafts: Map<string, string>
+  draftPreviews: Map<string, string>
+} {
+  const drafts = new Map<string, string>()
+  const htmlDrafts = new Map<string, string>()
+  const draftPreviews = new Map<string, string>()
+  try {
+    const userId = getClient().getUserId()
+    if (!userId) return { drafts, htmlDrafts, draftPreviews }
+    const stored = localStorage.getItem(`${DRAFTS_STORAGE_KEY}:${userId}`)
+    if (!stored) return { drafts, htmlDrafts, draftPreviews }
+    const parsed = JSON.parse(stored) as Record<string, { text?: string; html?: string; preview?: string }>
+    for (const [roomId, entry] of Object.entries(parsed)) {
+      if (entry?.text) drafts.set(roomId, entry.text)
+      if (entry?.html) htmlDrafts.set(roomId, entry.html)
+      if (entry?.preview) draftPreviews.set(roomId, entry.preview)
     }
+  } catch {
+    /* best-effort hydrate */
   }
+  return { drafts, htmlDrafts, draftPreviews }
+}
 
-  function closeSidePanel() {
-    activeSidePanel.value = null
+function loadMuteExpiry(): Map<string, number> {
+  const muteExpiry = new Map<string, number>()
+  try {
+    const userId = getClient().getUserId()
+    if (!userId) return muteExpiry
+    const stored = localStorage.getItem(`${MUTE_EXPIRY_STORAGE_KEY}:${userId}`)
+    if (!stored) return muteExpiry
+    const parsed = JSON.parse(stored) as Record<string, number>
+    for (const [roomId, expiry] of Object.entries(parsed)) {
+      if (typeof expiry === 'number' && Number.isFinite(expiry)) muteExpiry.set(roomId, expiry)
+    }
+  } catch {
+    /* best-effort hydrate */
   }
+  return muteExpiry
+}
 
-  // --- Thread ---
-  const activeThreadId = ref<string | null>(null)
-  function openThread(eventId: string) {
-    activeThreadId.value = eventId
+function persistDrafts(state: ChatState): void {
+  try {
+    const userId = getClient().getUserId()
+    if (!userId) return
+    const key = `${DRAFTS_STORAGE_KEY}:${userId}`
+    const allRoomIds = new Set([...state.drafts.keys(), ...state.htmlDrafts.keys(), ...state.draftPreviews.keys()])
+    if (allRoomIds.size === 0) {
+      localStorage.removeItem(key)
+      return
+    }
+    const data: Record<string, { text?: string; html?: string; preview?: string }> = {}
+    for (const roomId of allRoomIds) {
+      const text = state.drafts.get(roomId)
+      const html = state.htmlDrafts.get(roomId)
+      const preview = state.draftPreviews.get(roomId)
+      if (text || html || preview) {
+        data[roomId] = {}
+        if (text) data[roomId].text = text
+        if (html) data[roomId].html = html
+        if (preview) data[roomId].preview = preview
+      }
+    }
+    localStorage.setItem(key, JSON.stringify(data))
+  } catch {
+    /* best-effort persist */
   }
-  function closeThread() {
-    activeThreadId.value = null
+}
+
+function persistMuteExpiry(state: ChatState): void {
+  try {
+    const userId = getClient().getUserId()
+    if (!userId) return
+    const key = `${MUTE_EXPIRY_STORAGE_KEY}:${userId}`
+    if (state.muteExpiry.size === 0) {
+      localStorage.removeItem(key)
+      return
+    }
+    localStorage.setItem(key, JSON.stringify(Object.fromEntries(state.muteExpiry)))
+  } catch {
+    /* best-effort persist */
   }
+}
 
-  // --- 右键菜单状态 ---
-  const contextMenu = ref<{
-    roomId: string
-    x: number
-    y: number
-  } | null>(null)
+function createInitialState(): ChatState {
+  const { drafts, htmlDrafts, draftPreviews } = loadDraftsFromStorage()
+  return {
+    currentRoomId: null,
+    searchQuery: '',
+    replyingTo: null,
+    editingEvent: null,
+    activeFilter: 'all',
+    contextMenu: null,
+    multiSelectMode: false,
+    activeSidePanel: null,
+    activeThreadId: null,
+    pinnedRooms: new Set(),
+    pendingPinStates: new Map(),
+    mutedRooms: new Set(),
+    muteExpiry: loadMuteExpiry(),
+    markedUnreadRooms: new Set(),
+    drafts,
+    htmlDrafts,
+    draftPreviews,
+    pendingMentionRequests: [],
+    sidebarPromotionTimes: new Map(),
+    sidebarPromotionPreviews: new Map(),
+    hiddenMessages: new Set(),
+    selectedMessages: new Set(),
+  }
+}
 
-  // --- 基础操作 ---
-  function setCurrentRoom(roomId: string | null, options: SetCurrentRoomOptions = {}) {
-    currentRoomId.value = roomId
-    replyingTo.value = null
-    editingEvent.value = null
-    activeSidePanel.value = null
-    // 切换房间时清理多选状态
-    exitMultiSelect()
+export const chatStore = new Store<ChatState>(createInitialState())
+
+const set = (updater: (s: ChatState) => ChatState) => chatStore.setState(updater)
+
+// ── Pure selectors for reactive component reads ──
+export function selectIsPinned(roomId: string) {
+  return (s: ChatState) => s.pinnedRooms.has(roomId)
+}
+export function selectIsMuted(roomId: string) {
+  return (s: ChatState) => s.mutedRooms.has(roomId) && !isMuteExpiredIn(s, roomId)
+}
+export function selectIsMarkedUnread(roomId: string) {
+  return (s: ChatState) => s.markedUnreadRooms.has(roomId)
+}
+export function selectIsMessageSelected(eventId: string) {
+  return (s: ChatState) => s.selectedMessages.has(eventId)
+}
+export function selectIsHidden(eventId: string) {
+  return (s: ChatState) => s.hiddenMessages.has(eventId)
+}
+
+// ── Basic ops ──
+function createSidebarPreview(roomId: string, promotedAt: number, preview: SidebarPreviewInput = {}): RoomSummary {
+  const isDirect = preview.isDirect ?? !!preview.dmUserId
+  return {
+    roomId,
+    name: preview.name || preview.dmUserId?.split(':')[0]?.slice(1) || roomId,
+    avatar: preview.avatar,
+    lastMessageTs: promotedAt,
+    unreadCount: 0,
+    isDirect,
+    isEncrypted: false,
+    members: preview.dmUserId ? [preview.dmUserId] : [],
+    dmUserId: preview.dmUserId,
+    dmUserAvatar: preview.dmUserAvatar || preview.avatar,
+    isPinned: false,
+    isMuted: false,
+    highlightCount: 0,
+    memberCount: isDirect ? 2 : 0,
+  }
+}
+
+export function setCurrentRoom(roomId: string | null, options: SetCurrentRoomOptions = {}) {
+  set((s) => {
+    const next: ChatState = {
+      ...s,
+      currentRoomId: roomId,
+      replyingTo: null,
+      editingEvent: null,
+      activeSidePanel: null,
+      // 切换房间时清理多选状态
+      multiSelectMode: false,
+      selectedMessages: new Set(),
+    }
     // 进入房间时清除手动标记未读
-    if (roomId) markedUnreadRooms.delete(roomId)
-    if (roomId && options.sidebarPlacement === 'promote') {
-      activeFilter.value = 'all'
-      searchQuery.value = ''
-      const promotedAt = Date.now()
-      sidebarPromotionTimes.set(roomId, promotedAt)
-      sidebarPromotionPreviews.set(roomId, createSidebarPreview(roomId, promotedAt, options.sidebarPreview))
+    if (roomId && next.markedUnreadRooms.has(roomId)) {
+      const markedUnreadRooms = new Set(next.markedUnreadRooms)
+      markedUnreadRooms.delete(roomId)
+      next.markedUnreadRooms = markedUnreadRooms
     }
-  }
+    if (roomId && options.sidebarPlacement === 'promote') {
+      const promotedAt = Date.now()
+      next.activeFilter = 'all'
+      next.searchQuery = ''
+      next.sidebarPromotionTimes = new Map(next.sidebarPromotionTimes).set(roomId, promotedAt)
+      next.sidebarPromotionPreviews = new Map(next.sidebarPromotionPreviews).set(
+        roomId,
+        createSidebarPreview(roomId, promotedAt, options.sidebarPreview),
+      )
+    }
+    return next
+  })
+}
 
-  function setCurrentRoomFromRoute(roomId: string | null) {
-    setCurrentRoom(roomId)
-  }
+export function setCurrentRoomFromRoute(roomId: string | null) {
+  setCurrentRoom(roomId)
+}
 
-  function selectRoomFromHistory(roomId: string) {
-    setCurrentRoom(roomId, { sidebarPlacement: 'history' })
-  }
+export function selectRoomFromHistory(roomId: string) {
+  setCurrentRoom(roomId, { sidebarPlacement: 'history' })
+}
 
-  function setSearchQuery(query: string) {
-    searchQuery.value = query
-  }
+export function setSearchQuery(query: string) {
+  set((s) => ({ ...s, searchQuery: query }))
+}
 
-  function setReplyingTo(event: MatrixEvent | null) {
-    editingEvent.value = null
-    replyingTo.value = event
-  }
+export function setReplyingTo(event: MatrixEvent | null) {
+  set((s) => ({ ...s, editingEvent: null, replyingTo: event }))
+}
 
-  function setEditingEvent(event: MatrixEvent | null) {
-    replyingTo.value = null
-    editingEvent.value = event
-  }
+export function setEditingEvent(event: MatrixEvent | null) {
+  set((s) => ({ ...s, replyingTo: null, editingEvent: event }))
+}
 
-  function clearCompose() {
-    replyingTo.value = null
-    editingEvent.value = null
-  }
+export function clearCompose() {
+  set((s) => ({ ...s, replyingTo: null, editingEvent: null }))
+}
 
-  function requestMention(mention: ComposerMentionRequest) {
-    pendingMentionRequests.push(mention)
-  }
+export function requestMention(mention: ComposerMentionRequest) {
+  set((s) => ({ ...s, pendingMentionRequests: [...s.pendingMentionRequests, mention] }))
+}
 
-  function consumePendingMentionRequests() {
-    return pendingMentionRequests.splice(0)
-  }
+export function consumePendingMentionRequests(): ComposerMentionRequest[] {
+  const pending = chatStore.state.pendingMentionRequests
+  set((s) => ({ ...s, pendingMentionRequests: [] }))
+  return pending
+}
 
-  // --- Set toggle 辅助函数 ---
-  function toggleSet(set: Set<string>, id: string) {
-    set.has(id) ? set.delete(id) : set.add(id)
-  }
+// ── Pin ──
+function applyPinTo(rooms: Set<string>, roomId: string, pinned: boolean): Set<string> {
+  const next = new Set(rooms)
+  if (pinned) next.add(roomId)
+  else next.delete(roomId)
+  return next
+}
 
-  // --- 置顶 ---
-  function applyPin(roomId: string, pinned: boolean) {
-    if (pinned) pinnedRooms.add(roomId)
-    else pinnedRooms.delete(roomId)
-  }
-  function setPin(roomId: string, pinned: boolean) {
-    applyPin(roomId, pinned)
-    pendingPinStates.set(roomId, pinned)
-  }
-  function togglePin(roomId: string) {
-    const nextPinned = !isPinned(roomId)
-    setPin(roomId, nextPinned)
-    return nextPinned
-  }
-  function isPinned(roomId: string) {
-    return pinnedRooms.has(roomId)
-  }
+export function setPin(roomId: string, pinned: boolean) {
+  set((s) => ({
+    ...s,
+    pinnedRooms: applyPinTo(s.pinnedRooms, roomId, pinned),
+    pendingPinStates: new Map(s.pendingPinStates).set(roomId, pinned),
+  }))
+}
 
-  // --- 免打扰（支持定时） ---
-  function toggleMute(roomId: string) {
-    toggleSet(mutedRooms, roomId)
-    if (!mutedRooms.has(roomId) && muteExpiry.delete(roomId)) persistMuteExpiry()
-  }
-  /** 到期时间戳已过（即定时免打扰已失效） */
-  function isMuteExpired(roomId: string) {
-    const expiry = muteExpiry.get(roomId)
-    return expiry !== undefined && Date.now() >= expiry
-  }
-  function isMuted(roomId: string) {
-    return mutedRooms.has(roomId) && !isMuteExpired(roomId)
-  }
-  /** 设置/清除某会话的免打扰到期时间；expiry 为 null 表示永久免打扰 */
-  function setMuteExpiry(roomId: string, expiry: number | null) {
+export function togglePin(roomId: string): boolean {
+  const nextPinned = !isPinned(roomId)
+  setPin(roomId, nextPinned)
+  return nextPinned
+}
+
+export function isPinned(roomId: string): boolean {
+  return chatStore.state.pinnedRooms.has(roomId)
+}
+
+// ── Mute (with optional expiry) ──
+function isMuteExpiredIn(state: ChatState, roomId: string): boolean {
+  const expiry = state.muteExpiry.get(roomId)
+  return expiry !== undefined && Date.now() >= expiry
+}
+
+export function toggleMute(roomId: string) {
+  set((s) => {
+    const mutedRooms = new Set(s.mutedRooms)
+    if (mutedRooms.has(roomId)) mutedRooms.delete(roomId)
+    else mutedRooms.add(roomId)
+    let muteExpiry = s.muteExpiry
+    if (!mutedRooms.has(roomId) && s.muteExpiry.has(roomId)) {
+      muteExpiry = new Map(s.muteExpiry)
+      muteExpiry.delete(roomId)
+    }
+    return { ...s, mutedRooms, muteExpiry }
+  })
+  // toggleMute may clear an expiry entry — persist if it changed.
+  persistMuteExpiry(chatStore.state)
+}
+
+export function isMuteExpired(roomId: string): boolean {
+  return isMuteExpiredIn(chatStore.state, roomId)
+}
+
+export function isMuted(roomId: string): boolean {
+  const s = chatStore.state
+  return s.mutedRooms.has(roomId) && !isMuteExpiredIn(s, roomId)
+}
+
+export function setMuteExpiry(roomId: string, expiry: number | null) {
+  set((s) => {
+    const muteExpiry = new Map(s.muteExpiry)
     if (expiry === null) muteExpiry.delete(roomId)
     else muteExpiry.set(roomId, expiry)
-    persistMuteExpiry()
-  }
-  /**
-   * 开启免打扰并设置到期（expiry 为 null 表示永久）。
-   * 返回 true 表示该会话此前未免打扰、需要上层新增服务端 push rule。
-   */
-  function muteWithExpiry(roomId: string, expiry: number | null): boolean {
-    const wasMuted = mutedRooms.has(roomId)
-    if (!wasMuted) mutedRooms.add(roomId)
-    setMuteExpiry(roomId, expiry)
-    return !wasMuted
-  }
-  function getMuteExpiry(roomId: string): number | undefined {
-    return muteExpiry.get(roomId)
-  }
-  /** 仍被本地标记为免打扰、但定时已到期的会话（供上层移除服务端 push rule） */
-  function collectExpiredMutes(): string[] {
-    return [...mutedRooms].filter((roomId) => isMuteExpired(roomId))
-  }
+    return { ...s, muteExpiry }
+  })
+  persistMuteExpiry(chatStore.state)
+}
 
-  // --- 标记未读 ---
-  function toggleMarkedUnread(roomId: string) {
-    toggleSet(markedUnreadRooms, roomId)
-  }
-  function isMarkedUnread(roomId: string) {
-    return markedUnreadRooms.has(roomId)
-  }
+export function muteWithExpiry(roomId: string, expiry: number | null): boolean {
+  const wasMuted = chatStore.state.mutedRooms.has(roomId)
+  if (!wasMuted) set((s) => ({ ...s, mutedRooms: new Set(s.mutedRooms).add(roomId) }))
+  setMuteExpiry(roomId, expiry)
+  return !wasMuted
+}
 
-  // --- 草稿 ---
-  function setDraft(roomId: string, text: string) {
-    if (text.trim()) {
-      drafts.set(roomId, text)
-    } else {
-      drafts.delete(roomId)
-    }
-    persistDrafts()
-  }
+export function getMuteExpiry(roomId: string): number | undefined {
+  return chatStore.state.muteExpiry.get(roomId)
+}
 
-  function getDraft(roomId: string) {
-    return drafts.get(roomId) || ''
-  }
+export function collectExpiredMutes(): string[] {
+  const s = chatStore.state
+  return [...s.mutedRooms].filter((roomId) => isMuteExpiredIn(s, roomId))
+}
 
-  function setDraftPreview(roomId: string, preview: string) {
-    const value = preview.trim()
-    if (value) {
-      draftPreviews.set(roomId, value)
-    } else {
-      draftPreviews.delete(roomId)
-    }
-    persistDrafts()
-  }
+// ── Marked unread ──
+export function toggleMarkedUnread(roomId: string) {
+  set((s) => {
+    const markedUnreadRooms = new Set(s.markedUnreadRooms)
+    if (markedUnreadRooms.has(roomId)) markedUnreadRooms.delete(roomId)
+    else markedUnreadRooms.add(roomId)
+    return { ...s, markedUnreadRooms }
+  })
+}
 
-  function getDraftPreview(roomId: string) {
-    return draftPreviews.get(roomId) || drafts.get(roomId) || ''
-  }
+export function isMarkedUnread(roomId: string): boolean {
+  return chatStore.state.markedUnreadRooms.has(roomId)
+}
 
-  function setHtmlDraft(roomId: string, html: string) {
-    if (html.trim()) {
-      htmlDrafts.set(roomId, html)
-    } else {
-      htmlDrafts.delete(roomId)
-    }
-    persistDrafts()
-  }
+// ── Drafts ──
+function setMapEntry(map: Map<string, string>, key: string, value: string): Map<string, string> {
+  const next = new Map(map)
+  if (value.trim()) next.set(key, value)
+  else next.delete(key)
+  return next
+}
 
-  function getHtmlDraft(roomId: string) {
-    return htmlDrafts.get(roomId) || ''
-  }
+export function setDraft(roomId: string, text: string) {
+  set((s) => ({ ...s, drafts: setMapEntry(s.drafts, roomId, text) }))
+  persistDrafts(chatStore.state)
+}
 
-  function clearAllDrafts(roomId: string) {
+export function getDraft(roomId: string): string {
+  return chatStore.state.drafts.get(roomId) || ''
+}
+
+export function setDraftPreview(roomId: string, preview: string) {
+  set((s) => ({ ...s, draftPreviews: setMapEntry(s.draftPreviews, roomId, preview) }))
+  persistDrafts(chatStore.state)
+}
+
+export function getDraftPreview(roomId: string): string {
+  const s = chatStore.state
+  return s.draftPreviews.get(roomId) || s.drafts.get(roomId) || ''
+}
+
+export function setHtmlDraft(roomId: string, html: string) {
+  set((s) => ({ ...s, htmlDrafts: setMapEntry(s.htmlDrafts, roomId, html) }))
+  persistDrafts(chatStore.state)
+}
+
+export function getHtmlDraft(roomId: string): string {
+  return chatStore.state.htmlDrafts.get(roomId) || ''
+}
+
+export function clearAllDrafts(roomId: string) {
+  set((s) => {
+    const drafts = new Map(s.drafts)
+    const htmlDrafts = new Map(s.htmlDrafts)
+    const draftPreviews = new Map(s.draftPreviews)
     drafts.delete(roomId)
     htmlDrafts.delete(roomId)
     draftPreviews.delete(roomId)
-    persistDrafts()
-  }
+    return { ...s, drafts, htmlDrafts, draftPreviews }
+  })
+  persistDrafts(chatStore.state)
+}
 
-  function getSidebarPromotionTime(roomId: string) {
-    return sidebarPromotionTimes.get(roomId)
-  }
+// ── Sidebar promotions ──
+export function getSidebarPromotionTime(roomId: string): number | undefined {
+  return chatStore.state.sidebarPromotionTimes.get(roomId)
+}
 
-  function getSidebarPromotionRoomIds() {
-    return [...sidebarPromotionTimes.keys()]
-  }
+export function getSidebarPromotionRoomIds(): string[] {
+  return [...chatStore.state.sidebarPromotionTimes.keys()]
+}
 
-  function getSidebarPromotionPreview(roomId: string) {
-    return sidebarPromotionPreviews.get(roomId)
-  }
+export function getSidebarPromotionPreview(roomId: string): RoomSummary | undefined {
+  return chatStore.state.sidebarPromotionPreviews.get(roomId)
+}
 
-  function clearSidebarPromotions() {
-    sidebarPromotionTimes.clear()
-    sidebarPromotionPreviews.clear()
-  }
+export function clearSidebarPromotions() {
+  set((s) => ({ ...s, sidebarPromotionTimes: new Map(), sidebarPromotionPreviews: new Map() }))
+}
 
-  function createSidebarPreview(roomId: string, promotedAt: number, preview: SidebarPreviewInput = {}): RoomSummary {
-    const isDirect = preview.isDirect ?? !!preview.dmUserId
+// ── Filter ──
+export function setFilter(filter: ConversationFilter) {
+  set((s) => ({ ...s, activeFilter: filter }))
+}
 
-    return {
-      roomId,
-      name: preview.name || preview.dmUserId?.split(':')[0]?.slice(1) || roomId,
-      avatar: preview.avatar,
-      lastMessageTs: promotedAt,
-      unreadCount: 0,
-      isDirect,
-      isEncrypted: false,
-      members: preview.dmUserId ? [preview.dmUserId] : [],
-      dmUserId: preview.dmUserId,
-      dmUserAvatar: preview.dmUserAvatar || preview.avatar,
-      isPinned: false,
-      isMuted: false,
-      highlightCount: 0,
-      memberCount: isDirect ? 2 : 0,
-    }
-  }
+// ── Context menu ──
+export function openContextMenu(roomId: string, x: number, y: number) {
+  set((s) => ({ ...s, contextMenu: { roomId, x, y } }))
+}
 
-  // --- 筛选 ---
-  function setFilter(filter: ConversationFilter) {
-    activeFilter.value = filter
-  }
+export function closeContextMenu() {
+  set((s) => ({ ...s, contextMenu: null }))
+}
 
-  // --- 右键菜单 ---
-  function openContextMenu(roomId: string, x: number, y: number) {
-    contextMenu.value = { roomId, x, y }
-  }
-
-  function closeContextMenu() {
-    contextMenu.value = null
-  }
-
-  // --- 从服务端同步 pin/mute 状态 ---
-  function syncServerState(rooms: RoomSummary[]) {
-    pinnedRooms.clear()
-    mutedRooms.clear()
+// ── Sync pin/mute state from the server ──
+export function syncServerState(rooms: RoomSummary[]) {
+  set((s) => {
+    const pinnedRooms = new Set<string>()
+    const mutedRooms = new Set<string>()
+    const pendingPinStates = new Map(s.pendingPinStates)
     const serverMutedRoomIds = new Set<string>()
+
     for (const r of rooms) {
       const pendingPin = pendingPinStates.get(r.roomId)
-      const isPinned = pendingPin ?? r.isPinned
+      const pinned = pendingPin ?? r.isPinned
       if (pendingPin !== undefined && pendingPin === r.isPinned) pendingPinStates.delete(r.roomId)
-
-      if (isPinned) pinnedRooms.add(r.roomId)
+      if (pinned) pinnedRooms.add(r.roomId)
       if (r.isMuted) {
         mutedRooms.add(r.roomId)
         serverMutedRoomIds.add(r.roomId)
       }
     }
-    // 服务端已取消免打扰的会话，清除残留的到期记录
-    let expiryChanged = false
-    for (const roomId of [...muteExpiry.keys()]) {
-      if (!serverMutedRoomIds.has(roomId)) {
-        muteExpiry.delete(roomId)
-        expiryChanged = true
-      }
-    }
-    if (expiryChanged) persistMuteExpiry()
-  }
 
-  return {
-    // 基础状态
-    currentRoomId,
-    searchQuery,
-    replyingTo,
-    editingEvent,
-    // 会话管理状态
-    activeFilter,
-    // 右键菜单
-    contextMenu,
-    // 基础操作
-    setCurrentRoom,
-    setCurrentRoomFromRoute,
-    selectRoomFromHistory,
-    setSearchQuery,
-    setReplyingTo,
-    setEditingEvent,
-    clearCompose,
-    requestMention,
-    consumePendingMentionRequests,
-    // 会话管理操作
-    setPin,
-    togglePin,
-    isPinned,
-    toggleMute,
-    isMuted,
-    setMuteExpiry,
-    muteWithExpiry,
-    getMuteExpiry,
-    collectExpiredMutes,
-    toggleMarkedUnread,
-    isMarkedUnread,
-    setDraft,
-    getDraft,
-    setDraftPreview,
-    getDraftPreview,
-    setHtmlDraft,
-    getHtmlDraft,
-    clearAllDrafts,
-    pendingMentionRequests,
-    getSidebarPromotionTime,
-    getSidebarPromotionRoomIds,
-    getSidebarPromotionPreview,
-    clearSidebarPromotions,
-    setFilter,
-    openContextMenu,
-    closeContextMenu,
-    // 服务端状态同步
-    syncServerState,
-    // 隐藏消息（仅对自己删除）
-    hiddenMessages,
-    hideMessage(eventId: string) {
-      hiddenMessages.add(eventId)
-    },
-    isHidden(eventId: string) {
-      return hiddenMessages.has(eventId)
-    },
-    // 消息多选
-    multiSelectMode,
-    selectedMessages,
-    enterMultiSelect,
-    exitMultiSelect,
-    toggleMessageSelection,
-    isMessageSelected,
-    // Thread
-    activeThreadId,
-    openThread,
-    closeThread,
-    // 飞书风格 Tab & 侧边面板
-    activeSidePanel,
-    setActiveTab,
-    toggleSidePanel,
-    closeSidePanel,
-  }
-})
+    const muteExpiry = new Map(s.muteExpiry)
+    for (const roomId of [...muteExpiry.keys()]) {
+      if (!serverMutedRoomIds.has(roomId)) muteExpiry.delete(roomId)
+    }
+
+    return { ...s, pinnedRooms, mutedRooms, pendingPinStates, muteExpiry }
+  })
+  persistMuteExpiry(chatStore.state)
+}
+
+// ── Hidden messages ──
+export function hideMessage(eventId: string) {
+  set((s) => ({ ...s, hiddenMessages: new Set(s.hiddenMessages).add(eventId) }))
+}
+
+export function isHidden(eventId: string): boolean {
+  return chatStore.state.hiddenMessages.has(eventId)
+}
+
+// ── Multi-select ──
+export function enterMultiSelect() {
+  set((s) => ({ ...s, multiSelectMode: true }))
+}
+
+export function exitMultiSelect() {
+  set((s) => ({ ...s, multiSelectMode: false, selectedMessages: new Set() }))
+}
+
+export function toggleMessageSelection(eventId: string) {
+  set((s) => {
+    const selectedMessages = new Set(s.selectedMessages)
+    if (selectedMessages.has(eventId)) selectedMessages.delete(eventId)
+    else selectedMessages.add(eventId)
+    return { ...s, selectedMessages }
+  })
+}
+
+export function isMessageSelected(eventId: string): boolean {
+  return chatStore.state.selectedMessages.has(eventId)
+}
+
+// ── Thread ──
+export function openThread(eventId: string) {
+  set((s) => ({ ...s, activeThreadId: eventId }))
+}
+
+export function closeThread() {
+  set((s) => ({ ...s, activeThreadId: null }))
+}
+
+// ── Side panel ──
+export function setActiveTab(_tab: string) {
+  // No-op: tabs removed, kept for API compat
+}
+
+export function toggleSidePanel(panel: SidePanelType) {
+  set((s) => ({ ...s, activeSidePanel: s.activeSidePanel === panel ? null : panel }))
+}
+
+export function closeSidePanel() {
+  set((s) => ({ ...s, activeSidePanel: null }))
+}
+
+export function resetChatStore() {
+  set(() => createInitialState())
+}

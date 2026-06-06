@@ -1,7 +1,7 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import ChatSettingsPanel from '@/features/chat/components/ChatSettingsPanel.vue'
-import { useChatStore } from '@/features/chat/stores/chatStore'
+import { isMuted, isPinned, resetChatStore, setCurrentRoom } from '@/features/chat/stores/chatStore'
 
 const clipboardMocks = vi.hoisted(() => ({
   writeText: vi.fn(),
@@ -96,28 +96,26 @@ describe('chat settings panel switches', () => {
         writeText: clipboardMocks.writeText,
       },
     })
-    const store = useChatStore()
-    store.setCurrentRoom('!project:localhost')
+    resetChatStore()
+    setCurrentRoom('!project:localhost')
   })
 
   it('does not double-toggle mute when clicking the switch control', async () => {
-    const store = useChatStore()
     const wrapper = mountPanel()
 
     await wrapper.findAll('[data-testid="switch-stub"]')[0]!.trigger('click')
 
     expect(toggleRoomMute).toHaveBeenCalledTimes(1)
-    expect(store.isMuted('!project:localhost')).toBe(true)
+    expect(isMuted('!project:localhost')).toBe(true)
   })
 
   it('does not double-toggle pin when clicking the switch control', async () => {
-    const store = useChatStore()
     const wrapper = mountPanel()
 
     await wrapper.findAll('[data-testid="switch-stub"]')[1]!.trigger('click')
 
     expect(toggleRoomPin).toHaveBeenCalledTimes(1)
-    expect(store.isPinned('!project:localhost')).toBe(true)
+    expect(isPinned('!project:localhost')).toBe(true)
   })
 
   it('shows a visible error when copying the room ID fails', async () => {

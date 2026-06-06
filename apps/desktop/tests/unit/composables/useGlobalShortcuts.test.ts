@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent } from 'vue'
 import { useGlobalShortcuts } from '@/app/composables/useGlobalShortcuts'
 import { globalUiStore, openGlobalSearch, openNewChat, resetGlobalUiStore } from '@/app/stores/globalUiStore'
-import { useChatStore } from '@/features/chat/stores/chatStore'
+import { chatStore, resetChatStore, toggleSidePanel } from '@/features/chat/stores/chatStore'
 
 const routerPush = vi.hoisted(() => vi.fn())
 const route = vi.hoisted(() => ({
@@ -46,6 +46,7 @@ describe('useGlobalShortcuts', () => {
     route.path = '/contacts'
     routerPush.mockReset()
     resetGlobalUiStore()
+    resetChatStore()
   })
 
   it('opens global search with Cmd/Ctrl + K', () => {
@@ -103,28 +104,26 @@ describe('useGlobalShortcuts', () => {
 
   it('uses Escape to close the topmost transient UI', () => {
     const wrapper = mountShortcutHost()
-    const chatStore = useChatStore()
 
     openNewChat()
     dispatchKey(document, 'Escape')
     expect(globalUiStore.state.newChatOpen).toBe(false)
 
-    chatStore.toggleSidePanel('search')
+    toggleSidePanel('search')
     dispatchKey(document, 'Escape')
-    expect(chatStore.activeSidePanel).toBe(null)
+    expect(chatStore.state.activeSidePanel).toBe(null)
 
     wrapper.unmount()
   })
 
   it('does not steal Escape from editable fields unless a global overlay is open', () => {
     const wrapper = mountShortcutHost()
-    const chatStore = useChatStore()
     const input = document.createElement('input')
     document.body.append(input)
 
-    chatStore.toggleSidePanel('search')
+    toggleSidePanel('search')
     dispatchKey(input, 'Escape')
-    expect(chatStore.activeSidePanel).toBe('search')
+    expect(chatStore.state.activeSidePanel).toBe('search')
 
     openGlobalSearch()
     dispatchKey(input, 'Escape')

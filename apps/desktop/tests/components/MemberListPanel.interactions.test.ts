@@ -1,7 +1,7 @@
 import { mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import MemberListPanel from '@/features/chat/components/MemberListPanel.vue'
-import { useChatStore } from '@/features/chat/stores/chatStore'
+import { resetChatStore, setCurrentRoom } from '@/features/chat/stores/chatStore'
 
 vi.mock('vue-router', () => ({
   useRouter: () => ({
@@ -27,7 +27,8 @@ function mountMemberListPanel() {
 
 describe('member list panel interactions', () => {
   beforeEach(() => {
-    useChatStore().setCurrentRoom('!group_project:localhost')
+    resetChatStore()
+    setCurrentRoom('!group_project:localhost')
   })
 
   it('opens a profile card when selecting a room member', async () => {

@@ -3,7 +3,7 @@ import { mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { computed, defineComponent, h, ref } from 'vue'
 import ConversationList from '@/features/chat/components/ConversationList.vue'
-import { useChatStore } from '@/features/chat/stores/chatStore'
+import { resetChatStore, setCurrentRoom, syncServerState } from '@/features/chat/stores/chatStore'
 
 const rooms = vi.hoisted<RoomSummary[]>(() => [])
 const routeParams = vi.hoisted<Record<string, string>>(() => ({}))
@@ -88,6 +88,7 @@ function mountConversationList() {
 
 describe('conversation list spacing', () => {
   beforeEach(() => {
+    resetChatStore()
     for (const key of Object.keys(routeParams)) delete routeParams[key]
     rooms.splice(
       0,
@@ -153,8 +154,7 @@ describe('conversation list spacing', () => {
         memberCount: 3,
       }),
     )
-    const store = useChatStore()
-    store.syncServerState(rooms)
+    syncServerState(rooms)
 
     const wrapper = mountConversationList()
 
@@ -173,8 +173,7 @@ describe('conversation list spacing', () => {
         isPinned: true,
       }),
     )
-    const store = useChatStore()
-    store.syncServerState(rooms)
+    syncServerState(rooms)
 
     const wrapper = mountConversationList()
     const quickContact = wrapper.get('button[title="Pinned DM"]')
@@ -193,8 +192,7 @@ describe('conversation list spacing', () => {
         isPinned: true,
       }),
     )
-    const store = useChatStore()
-    store.syncServerState(rooms)
+    syncServerState(rooms)
 
     const wrapper = mountConversationList()
     const quickAvatar = wrapper.get('button[title="Pinned DM"]').getComponent({ name: 'Avatar' })
@@ -212,8 +210,7 @@ describe('conversation list spacing', () => {
     )
     routeParams.roomId = '!old:localhost'
 
-    const store = useChatStore()
-    store.setCurrentRoom('!current:localhost')
+    setCurrentRoom('!current:localhost')
 
     const wrapper = mountConversationList()
     const rows = wrapper.findAllComponents({ name: 'ConversationItem' })

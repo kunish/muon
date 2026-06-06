@@ -1,7 +1,14 @@
 import { mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import GlobalSearch from '@/features/chat/components/GlobalSearch.vue'
-import { useChatStore } from '@/features/chat/stores/chatStore'
+import {
+  chatStore,
+  clearSidebarPromotions,
+  getSidebarPromotionTime,
+  resetChatStore,
+  setFilter,
+  setSearchQuery,
+} from '@/features/chat/stores/chatStore'
 import { resetRetrievalStore, retrievalStore } from '@/features/chat/stores/retrievalStore'
 import { resetContactStore } from '@/features/contacts/stores/contactStore'
 
@@ -112,10 +119,10 @@ describe('globalSearch', () => {
     resetStateMock.mockReset()
     resetRetrievalStore()
     localeMock.value = 'en'
-    const chatStore = useChatStore()
-    chatStore.clearSidebarPromotions()
-    chatStore.setFilter('all')
-    chatStore.setSearchQuery('')
+    resetChatStore()
+    clearSidebarPromotions()
+    setFilter('all')
+    setSearchQuery('')
     resetContactStore()
     contactsSeed.contacts = []
     contactsSeed.groups = []
@@ -288,9 +295,8 @@ describe('globalSearch', () => {
   })
 
   it('promotes a conversation opened from a room search result', async () => {
-    const chatStore = useChatStore()
-    chatStore.setFilter('unread')
-    chatStore.setSearchQuery('joined')
+    setFilter('unread')
+    setSearchQuery('joined')
 
     const wrapper = mountGlobalSearch()
 
@@ -299,9 +305,9 @@ describe('globalSearch', () => {
     await flushUi()
 
     expect(routerPush).toHaveBeenCalledWith('/dm/!joined%3Amuon.dev')
-    expect(chatStore.getSidebarPromotionTime('!joined:muon.dev')).toEqual(expect.any(Number))
-    expect(chatStore.activeFilter).toBe('all')
-    expect(chatStore.searchQuery).toBe('')
+    expect(getSidebarPromotionTime('!joined:muon.dev')).toEqual(expect.any(Number))
+    expect(chatStore.state.activeFilter).toBe('all')
+    expect(chatStore.state.searchQuery).toBe('')
   })
 
   it('promotes a direct conversation opened from a contact result', async () => {
@@ -322,6 +328,6 @@ describe('globalSearch', () => {
 
     expect(findOrCreateDmMock).toHaveBeenCalledWith('@bob:muon.dev')
     expect(routerPush).toHaveBeenCalledWith('/dm/!bob%3Amuon.dev')
-    expect(useChatStore().getSidebarPromotionTime('!bob:muon.dev')).toEqual(expect.any(Number))
+    expect(getSidebarPromotionTime('!bob:muon.dev')).toEqual(expect.any(Number))
   })
 })

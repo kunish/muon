@@ -3,7 +3,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { describe, expect, it, vi } from 'vitest'
 import { defineComponent, h, nextTick } from 'vue'
 import { useMessages } from '@/features/chat/composables/useMessages'
-import { useChatStore } from '@/features/chat/stores/chatStore'
+import { resetChatStore, setCurrentRoom } from '@/features/chat/stores/chatStore'
 
 const {
   getTimelineMock,
@@ -79,6 +79,7 @@ describe('useMessages', () => {
     matrixEventsMock.on.mockClear()
     matrixEventsMock.off.mockClear()
     syncStateMock.value = 'PREPARED'
+    resetChatStore()
   })
 
   it('ignores stale pagination results after switching rooms', async () => {
@@ -93,8 +94,7 @@ describe('useMessages', () => {
       },
     })
 
-    const store = useChatStore()
-    store.setCurrentRoom('!room-a:localhost')
+    setCurrentRoom('!room-a:localhost')
 
     const wrapper = mount(Harness)
     await nextTick()
@@ -104,7 +104,7 @@ describe('useMessages', () => {
     expect(paginateBackMock).toHaveBeenCalledWith('!room-a:localhost', 30)
 
     timelines.set('!room-a:localhost', [createEvent('$a-old'), createEvent('$a-new')])
-    store.setCurrentRoom('!room-b:localhost')
+    setCurrentRoom('!room-b:localhost')
     await nextTick()
     expect(eventIds(api.messages.value)).toEqual(['$b-new'])
 
@@ -127,8 +127,7 @@ describe('useMessages', () => {
       },
     })
 
-    const store = useChatStore()
-    store.setCurrentRoom('!room:localhost')
+    setCurrentRoom('!room:localhost')
 
     const wrapper = mount(Harness)
     await nextTick()
@@ -160,8 +159,7 @@ describe('useMessages', () => {
       },
     })
 
-    const store = useChatStore()
-    store.setCurrentRoom('!room:localhost')
+    setCurrentRoom('!room:localhost')
 
     const wrapper = mount(Harness)
     await nextTick()
@@ -198,8 +196,7 @@ describe('useMessages', () => {
       },
     })
 
-    const store = useChatStore()
-    store.setCurrentRoom('!room:localhost')
+    setCurrentRoom('!room:localhost')
 
     const wrapper = mount(Harness)
     await flushPromises()
@@ -228,8 +225,7 @@ describe('useMessages', () => {
       },
     })
 
-    const store = useChatStore()
-    store.setCurrentRoom('!room:localhost')
+    setCurrentRoom('!room:localhost')
 
     const wrapper = mount(Harness)
     await flushPromises()
@@ -267,8 +263,7 @@ describe('useMessages', () => {
         },
       })
 
-      const store = useChatStore()
-      store.setCurrentRoom('!room:localhost')
+      setCurrentRoom('!room:localhost')
 
       const wrapper = mount(Harness)
       await flushPromises()

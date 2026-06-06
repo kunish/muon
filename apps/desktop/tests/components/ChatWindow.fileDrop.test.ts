@@ -3,7 +3,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h, nextTick } from 'vue'
 import ChatWindow from '@/features/chat/components/ChatWindow.vue'
-import { useChatStore } from '@/features/chat/stores/chatStore'
+import { resetChatStore, setCurrentRoom } from '@/features/chat/stores/chatStore'
 
 vi.mock('@/features/chat/composables/useTyping', () => ({
   useTyping: () => ({ typingUsers: [] }),
@@ -58,7 +58,8 @@ function mountChatWindow() {
 describe('chatWindow file drag-and-drop', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
-    useChatStore().setCurrentRoom('!room:muon.dev')
+    resetChatStore()
+    setCurrentRoom('!room:muon.dev')
     acceptDroppedFilesSpy.mockClear()
   })
 

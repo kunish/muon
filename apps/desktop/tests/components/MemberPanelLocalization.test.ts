@@ -3,7 +3,7 @@ import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h } from 'vue'
-import { useChatStore } from '@/features/chat/stores/chatStore'
+import { chatStore, resetChatStore } from '@/features/chat/stores/chatStore'
 import MemberPanel from '@/features/server/components/MemberPanel.vue'
 import { resetServerStore, serverStore } from '@/features/server/stores/serverStore'
 
@@ -65,6 +65,7 @@ function mountMemberPanel(members: SpaceMember[]) {
 describe('memberPanel localization', () => {
   beforeEach(() => {
     resetServerStore()
+    resetChatStore()
     memberPanelMocks.members = []
   })
 
@@ -117,6 +118,6 @@ describe('memberPanel localization', () => {
 
     await wrapper.get('[data-testid="member-context-mention"]').trigger('click')
 
-    expect((useChatStore() as any).pendingMentionRequests).toEqual([{ id: '@alice:localhost', label: 'Alice' }])
+    expect(chatStore.state.pendingMentionRequests).toEqual([{ id: '@alice:localhost', label: 'Alice' }])
   })
 })

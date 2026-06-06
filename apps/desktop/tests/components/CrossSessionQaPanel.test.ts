@@ -8,7 +8,7 @@ import ChatWindow from '@/features/chat/components/ChatWindow.vue'
 import CrossSessionQaPanel from '@/features/chat/components/CrossSessionQaPanel.vue'
 import KnowledgeCapturePanel from '@/features/chat/components/KnowledgeCapturePanel.vue'
 import { qaKeys } from '@/features/chat/queries/qaKeys'
-import { useChatStore } from '@/features/chat/stores/chatStore'
+import { chatStore, resetChatStore, toggleSidePanel } from '@/features/chat/stores/chatStore'
 import { resetQaStore, selectQaAnswer } from '@/features/chat/stores/qaStore'
 import { createTestQueryClient } from '../helpers/queryClient'
 
@@ -51,6 +51,7 @@ vi.mock('@matrix/index', async (importOriginal) => {
 describe('crossSessionQaPanel', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    resetChatStore()
     resetQaStore()
     askCrossSessionQuestionMock.mockReset()
     listSavedQaSessionsMock.mockReset()
@@ -195,7 +196,6 @@ describe('crossSessionQaPanel', () => {
     await knowledgeWrapper.get('[data-testid="knowledge-tab-qa"]').trigger('click')
     expect(knowledgeWrapper.findComponent(CrossSessionQaPanel).exists()).toBe(true)
 
-    const chatStore = useChatStore()
     const chatWindow = shallowMount(ChatWindow, {
       global: {
         stubs: {
@@ -204,10 +204,10 @@ describe('crossSessionQaPanel', () => {
       },
     })
 
-    chatStore.toggleSidePanel('knowledge')
+    toggleSidePanel('knowledge')
     await nextTick()
 
-    expect(chatStore.activeSidePanel).toBe('knowledge')
+    expect(chatStore.state.activeSidePanel).toBe('knowledge')
     expect(chatWindow.find('knowledge-capture-panel-stub').exists()).toBe(true)
   })
 })

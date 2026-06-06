@@ -4,7 +4,7 @@ import { getTimeline, matrixEvents } from '@matrix/index';
 import { MessageSquareText, X } from 'lucide-vue-next';
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useChatStore } from '../stores/chatStore';
+import { closeSidePanel, openThread } from '../stores/chatStore';
 
 interface ThreadItem {
   rootId: string;
@@ -19,7 +19,6 @@ const props = defineProps<{
 }>();
 
 const { t } = useI18n();
-const store = useChatStore();
 const version = ref(0);
 
 function bump() {
@@ -80,9 +79,9 @@ const threadItems = computed<ThreadItem[]>(() => {
   return items.sort((a, b) => b.lastReplyTs - a.lastReplyTs);
 });
 
-function openThread(rootId: string) {
-  store.openThread(rootId);
-  store.closeSidePanel();
+function openThreadAndClosePanel(rootId: string) {
+  openThread(rootId);
+  closeSidePanel();
 }
 
 function formatTime(ts: number): string {
@@ -107,7 +106,7 @@ function formatTime(ts: number): string {
       <button
         class="rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
         :title="t('common.close')"
-        @click="store.closeSidePanel()"
+        @click="closeSidePanel()"
       >
         <X :size="16" />
       </button>
@@ -126,7 +125,7 @@ function formatTime(ts: number): string {
         v-for="item in threadItems"
         :key="item.rootId"
         class="w-full rounded-md border border-transparent bg-muted/20 px-3 py-2 text-left transition-colors hover:border-border hover:bg-accent/40"
-        @click="openThread(item.rootId)"
+        @click="openThreadAndClosePanel(item.rootId)"
       >
         <div class="mb-0.5 flex items-center gap-2">
           <span class="truncate text-xs font-medium text-foreground">{{ item.rootSender }}</span>

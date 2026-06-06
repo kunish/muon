@@ -1,11 +1,18 @@
 import { downloadMedia, editMessage, replyToMessage, sendTextMessage } from '@matrix/index'
-import { mount } from '@vue/test-utils'
-import { createPinia, setActivePinia } from 'pinia'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { enableAutoUnmount, mount } from '@vue/test-utils'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h, nextTick, ref } from 'vue'
 import { toast } from 'vue-sonner'
 import RichTextInput from '@/features/chat/components/RichTextInput.vue'
-import { useChatStore } from '@/features/chat/stores/chatStore'
+import {
+  chatStore,
+  getDraftPreview,
+  requestMention,
+  resetChatStore,
+  setCurrentRoom,
+  setEditingEvent,
+  setReplyingTo,
+} from '@/features/chat/stores/chatStore'
 
 const mocks = vi.hoisted(() => ({
   clear: vi.fn(),
@@ -216,9 +223,13 @@ function mountInput() {
   })
 }
 
+// Unmount each test's component before the next runs. The chatStore is a shared
+// module singleton, so a lingering component's watchers would keep reacting to
+// setCurrentRoom in later tests and re-persist stale drafts.
+enableAutoUnmount(afterEach)
+
 describe('richTextInput send recovery', () => {
   beforeEach(() => {
-    setActivePinia(createPinia())
     vi.clearAllMocks()
     Object.defineProperty(URL, 'createObjectURL', {
       configurable: true,
@@ -238,13 +249,14 @@ describe('richTextInput send recovery', () => {
     mocks.onPasteMediaSources = undefined
     mocks.pendingMediaGetAttachment = undefined
     localStorage.clear()
+    // Reset after clearing storage so the store re-hydrates from an empty slate.
+    resetChatStore()
   })
 
   it('inserts queued member mentions into the composer', async () => {
-    const store = useChatStore()
-    store.setCurrentRoom('!room:localhost')
+    setCurrentRoom('!room:localhost')
     mountInput()
-    ;(store as any).requestMention({ id: '@alice:localhost', label: 'Alice' })
+    requestMention({ id: '@alice:localhost', label: 'Alice' })
     await nextTick()
 
     expect(mocks.insertContent).toHaveBeenCalledWith([
@@ -255,8 +267,7 @@ describe('richTextInput send recovery', () => {
   })
 
   it('stages pasted media files and only uploads them when the composer is submitted', async () => {
-    const store = useChatStore()
-    store.setCurrentRoom('!room:localhost')
+    setCurrentRoom('!room:localhost')
     const wrapper = mountInput()
     const imageFile = new File(['image'], 'pasted.png', { type: 'image/png' })
     const videoFile = new File(['video'], 'pasted.mp4', { type: 'video/mp4' })
@@ -293,8 +304,7 @@ describe('richTextInput send recovery', () => {
   })
 
   it('restores an image-only draft when returning to a room', async () => {
-    const store = useChatStore()
-    store.setCurrentRoom('!room-a:localhost')
+    setCurrentRoom('!room-a:localhost')
     mountInput()
     const imageFile = new File(['image'], 'draft.png', { type: 'image/png' })
 
@@ -304,12 +314,12 @@ describe('richTextInput send recovery', () => {
     mocks.editorText = ''
     mocks.editorHtml = pendingMediaHtml
 
-    store.setCurrentRoom('!room-b:localhost')
+    setCurrentRoom('!room-b:localhost')
     await nextTick()
     mocks.clear.mockClear()
     mocks.setContent.mockClear()
 
-    store.setCurrentRoom('!room-a:localhost')
+    setCurrentRoom('!room-a:localhost')
     await nextTick()
 
     expect(mocks.setContent).toHaveBeenCalledWith(pendingMediaHtml)
@@ -317,8 +327,7 @@ describe('richTextInput send recovery', () => {
   })
 
   it('stores a sidebar preview for an image-only draft', async () => {
-    const store = useChatStore()
-    store.setCurrentRoom('!room-a:localhost')
+    setCurrentRoom('!room-a:localhost')
     mountInput()
     const imageFile = new File(['image'], 'draft.png', { type: 'image/png' })
 
@@ -327,10 +336,10 @@ describe('richTextInput send recovery', () => {
     mocks.editorText = ''
     mocks.editorHtml = `<div data-pending-media-id="${insertedId}"></div>`
 
-    store.setCurrentRoom('!room-b:localhost')
+    setCurrentRoom('!room-b:localhost')
     await nextTick()
 
-    expect((store as any).getDraftPreview('!room-a:localhost')).toBe('draft.png')
+    expect(getDraftPreview('!room-a:localhost')).toBe('draft.png')
   })
 
   it('restores pasted image draft metadata after a reload', async () => {
@@ -356,10 +365,11 @@ describe('richTextInput send recovery', () => {
         ],
       }),
     )
-    const store = useChatStore()
+    // Re-hydrate the store from the seeded storage to simulate a reload.
+    resetChatStore()
     mountInput()
 
-    store.setCurrentRoom('!room-a:localhost')
+    setCurrentRoom('!room-a:localhost')
     await nextTick()
 
     expect(mocks.setContent).toHaveBeenCalledWith(pendingMediaHtml)
@@ -382,8 +392,9 @@ describe('richTextInput send recovery', () => {
         '!room-a:localhost': { text: 'Restored after refresh', html: savedHtml },
       }),
     )
-    const store = useChatStore()
-    store.setCurrentRoom('!room-a:localhost')
+    // Re-hydrate the store from the seeded storage to simulate a reload.
+    resetChatStore()
+    setCurrentRoom('!room-a:localhost')
 
     mountInput()
     await nextTick()
@@ -399,8 +410,9 @@ describe('richTextInput send recovery', () => {
         '!room-a:localhost': { text: 'Visible after editor ready', html: savedHtml },
       }),
     )
-    const store = useChatStore()
-    store.setCurrentRoom('!room-a:localhost')
+    // Re-hydrate the store from the seeded storage to simulate a reload.
+    resetChatStore()
+    setCurrentRoom('!room-a:localhost')
     mocks.editorStartsNull = true
 
     mountInput()
@@ -415,8 +427,7 @@ describe('richTextInput send recovery', () => {
 
   it('sends rich text and staged media together from one composer submission', async () => {
     mocks.sendTextMessage.mockResolvedValueOnce('$text')
-    const store = useChatStore()
-    store.setCurrentRoom('!room:localhost')
+    setCurrentRoom('!room:localhost')
     mountInput()
     const imageFile = new File(['image'], 'mixed.png', { type: 'image/png' })
     mocks.editorText = 'Bold caption'
@@ -441,8 +452,7 @@ describe('richTextInput send recovery', () => {
   })
 
   it('stages rich text pasted Matrix images as pending media previews', async () => {
-    const store = useChatStore()
-    store.setCurrentRoom('!room:localhost')
+    setCurrentRoom('!room:localhost')
     mountInput()
     mocks.downloadMedia.mockResolvedValueOnce(new Blob(['image'], { type: 'application/octet-stream' }))
 
@@ -465,8 +475,7 @@ describe('richTextInput send recovery', () => {
 
   it('keeps editor and typing state when text send fails', async () => {
     mocks.sendTextMessage.mockRejectedValueOnce(new Error('send failed'))
-    const store = useChatStore()
-    store.setCurrentRoom('!room:localhost')
+    setCurrentRoom('!room:localhost')
     mocks.editorText = 'Hello'
     mocks.editorHtml = '<p>Hello</p>'
     mountInput()
@@ -480,8 +489,7 @@ describe('richTextInput send recovery', () => {
 
   it('clears editor and typing state after successful text send', async () => {
     mocks.sendTextMessage.mockResolvedValueOnce('$event-success')
-    const store = useChatStore()
-    store.setCurrentRoom('!room:localhost')
+    setCurrentRoom('!room:localhost')
     mocks.editorText = 'Hello'
     mocks.editorHtml = '<p>Hello</p>'
     mountInput()
@@ -491,16 +499,15 @@ describe('richTextInput send recovery', () => {
     expect(sendTextMessage).toHaveBeenCalledWith('!room:localhost', 'Hello', '<p>Hello</p>', undefined)
     expect(mocks.clear).toHaveBeenCalledTimes(1)
     expect(mocks.stopTyping).toHaveBeenCalledTimes(1)
-    expect(store.replyingTo).toBeNull()
-    expect(store.editingEvent).toBeNull()
+    expect(chatStore.state.replyingTo).toBeNull()
+    expect(chatStore.state.editingEvent).toBeNull()
   })
 
   it('clears editor, compose state, and typing state after successful reply', async () => {
     mocks.replyToMessage.mockResolvedValueOnce('$reply')
     const replyEvent = createEvent('$event-1')
-    const store = useChatStore()
-    store.setCurrentRoom('!room:localhost')
-    store.setReplyingTo(replyEvent)
+    setCurrentRoom('!room:localhost')
+    setReplyingTo(replyEvent)
     mocks.editorText = 'Reply'
     mocks.editorHtml = '<p>Reply</p>'
     mountInput()
@@ -509,17 +516,16 @@ describe('richTextInput send recovery', () => {
 
     expect(replyToMessage).toHaveBeenCalledWith('!room:localhost', '$event-1', 'Reply', '<p>Reply</p>', undefined)
     expect(mocks.clear).toHaveBeenCalledTimes(1)
-    expect(store.replyingTo).toBeNull()
-    expect(store.editingEvent).toBeNull()
+    expect(chatStore.state.replyingTo).toBeNull()
+    expect(chatStore.state.editingEvent).toBeNull()
     expect(mocks.stopTyping).toHaveBeenCalledTimes(1)
   })
 
   it('keeps reply context when reply send fails', async () => {
     mocks.replyToMessage.mockRejectedValueOnce(new Error('reply failed'))
     const replyEvent = createEvent('$event-2')
-    const store = useChatStore()
-    store.setCurrentRoom('!room:localhost')
-    store.setReplyingTo(replyEvent)
+    setCurrentRoom('!room:localhost')
+    setReplyingTo(replyEvent)
     mocks.editorText = 'Retry reply'
     mocks.editorHtml = '<p>Retry reply</p>'
     mountInput()
@@ -533,7 +539,7 @@ describe('richTextInput send recovery', () => {
       '<p>Retry reply</p>',
       undefined,
     )
-    expect(store.replyingTo?.getId()).toBe('$event-2')
+    expect(chatStore.state.replyingTo?.getId()).toBe('$event-2')
     expect(mocks.clear).not.toHaveBeenCalled()
     expect(mocks.stopTyping).not.toHaveBeenCalled()
   })
@@ -541,8 +547,7 @@ describe('richTextInput send recovery', () => {
   it('does not clear new editor content when a pending text send resolves', async () => {
     const pendingSend = deferred<string>()
     mocks.sendTextMessage.mockReturnValueOnce(pendingSend.promise)
-    const store = useChatStore()
-    store.setCurrentRoom('!room:localhost')
+    setCurrentRoom('!room:localhost')
     mocks.editorText = 'Original'
     mocks.editorHtml = '<p>Original</p>'
     mountInput()
@@ -561,8 +566,7 @@ describe('richTextInput send recovery', () => {
   it('ignores a duplicate text submit while the first send is pending', async () => {
     const pendingSend = deferred<string>()
     mocks.sendTextMessage.mockReturnValueOnce(pendingSend.promise)
-    const store = useChatStore()
-    store.setCurrentRoom('!room:localhost')
+    setCurrentRoom('!room:localhost')
     mocks.editorText = 'Hello'
     mocks.editorHtml = '<p>Hello</p>'
     mountInput()
@@ -586,15 +590,14 @@ describe('richTextInput send recovery', () => {
     mocks.replyToMessage.mockReturnValueOnce(pendingReply.promise)
     const firstReplyEvent = createEvent('$event-4')
     const secondReplyEvent = createEvent('$event-5')
-    const store = useChatStore()
-    store.setCurrentRoom('!room:localhost')
-    store.setReplyingTo(firstReplyEvent)
+    setCurrentRoom('!room:localhost')
+    setReplyingTo(firstReplyEvent)
     mocks.editorText = 'Reply one'
     mocks.editorHtml = '<p>Reply one</p>'
     mountInput()
 
     const submitPromise = mocks.onSubmit?.('<p>Reply one</p>', 'Reply one') as Promise<void>
-    store.setReplyingTo(secondReplyEvent)
+    setReplyingTo(secondReplyEvent)
     pendingReply.resolve('$reply-2')
     await submitPromise
 
@@ -605,16 +608,15 @@ describe('richTextInput send recovery', () => {
       '<p>Reply one</p>',
       undefined,
     )
-    expect(store.replyingTo?.getId()).toBe('$event-5')
+    expect(chatStore.state.replyingTo?.getId()).toBe('$event-5')
   })
 
   it('keeps same reply context when editor content changes before pending reply resolves', async () => {
     const pendingReply = deferred<string>()
     mocks.replyToMessage.mockReturnValueOnce(pendingReply.promise)
     const replyEvent = createEvent('$event-6')
-    const store = useChatStore()
-    store.setCurrentRoom('!room:localhost')
-    store.setReplyingTo(replyEvent)
+    setCurrentRoom('!room:localhost')
+    setReplyingTo(replyEvent)
     mocks.editorText = 'First reply'
     mocks.editorHtml = '<p>First reply</p>'
     mountInput()
@@ -634,7 +636,7 @@ describe('richTextInput send recovery', () => {
     )
     expect(mocks.clear).not.toHaveBeenCalled()
     expect(mocks.stopTyping).not.toHaveBeenCalled()
-    expect(store.replyingTo?.getId()).toBe('$event-6')
+    expect(chatStore.state.replyingTo?.getId()).toBe('$event-6')
   })
 
   it('does not clear when pending reply context changes but text stays the same', async () => {
@@ -642,15 +644,14 @@ describe('richTextInput send recovery', () => {
     mocks.replyToMessage.mockReturnValueOnce(pendingReply.promise)
     const firstReplyEvent = createEvent('$event-7')
     const secondReplyEvent = createEvent('$event-8')
-    const store = useChatStore()
-    store.setCurrentRoom('!room:localhost')
-    store.setReplyingTo(firstReplyEvent)
+    setCurrentRoom('!room:localhost')
+    setReplyingTo(firstReplyEvent)
     mocks.editorText = 'Same reply'
     mocks.editorHtml = '<p>Same reply</p>'
     mountInput()
 
     const submitPromise = mocks.onSubmit?.('<p>Same reply</p>', 'Same reply') as Promise<void>
-    store.setReplyingTo(secondReplyEvent)
+    setReplyingTo(secondReplyEvent)
     pendingReply.resolve('$reply-4')
     await submitPromise
 
@@ -661,7 +662,7 @@ describe('richTextInput send recovery', () => {
       '<p>Same reply</p>',
       undefined,
     )
-    expect(store.replyingTo?.getId()).toBe('$event-8')
+    expect(chatStore.state.replyingTo?.getId()).toBe('$event-8')
     expect(mocks.clear).not.toHaveBeenCalled()
     expect(mocks.stopTyping).not.toHaveBeenCalled()
   })
@@ -669,14 +670,13 @@ describe('richTextInput send recovery', () => {
   it('does not clear when room changes before a pending text send resolves', async () => {
     const pendingSend = deferred<string>()
     mocks.sendTextMessage.mockReturnValueOnce(pendingSend.promise)
-    const store = useChatStore()
-    store.setCurrentRoom('!room:localhost')
+    setCurrentRoom('!room:localhost')
     mocks.editorText = 'Same room text'
     mocks.editorHtml = '<p>Same room text</p>'
     mountInput()
 
     const submitPromise = mocks.onSubmit?.('<p>Same room text</p>', 'Same room text') as Promise<void>
-    store.setCurrentRoom('!other:localhost')
+    setCurrentRoom('!other:localhost')
     await nextTick()
     mocks.clear.mockClear()
     mocks.stopTyping.mockClear()
@@ -689,7 +689,7 @@ describe('richTextInput send recovery', () => {
       '<p>Same room text</p>',
       undefined,
     )
-    expect(store.currentRoomId).toBe('!other:localhost')
+    expect(chatStore.state.currentRoomId).toBe('!other:localhost')
     expect(mocks.clear).not.toHaveBeenCalled()
     expect(mocks.stopTyping).not.toHaveBeenCalled()
   })
@@ -697,20 +697,19 @@ describe('richTextInput send recovery', () => {
   it('deletes submitted room draft after pending send succeeds from another room', async () => {
     const pendingSend = deferred<string>()
     mocks.sendTextMessage.mockReturnValueOnce(pendingSend.promise)
-    const store = useChatStore()
-    store.setCurrentRoom('!room-a:localhost')
+    setCurrentRoom('!room-a:localhost')
     mocks.editorText = 'Hello'
     mocks.editorHtml = '<p>Hello</p>'
     mountInput()
 
     const submitPromise = mocks.onSubmit?.('<p>Hello</p>', 'Hello') as Promise<void>
-    store.setCurrentRoom('!room-b:localhost')
+    setCurrentRoom('!room-b:localhost')
     await nextTick()
     mocks.setContent.mockClear()
     pendingSend.resolve('$event-13')
     await submitPromise
 
-    store.setCurrentRoom('!room-a:localhost')
+    setCurrentRoom('!room-a:localhost')
     await nextTick()
 
     expect(sendTextMessage).toHaveBeenCalledWith('!room-a:localhost', 'Hello', '<p>Hello</p>', undefined)
@@ -720,26 +719,25 @@ describe('richTextInput send recovery', () => {
   it('does not delete a newer draft for the submitted room when old send succeeds', async () => {
     const pendingSend = deferred<string>()
     mocks.sendTextMessage.mockReturnValueOnce(pendingSend.promise)
-    const store = useChatStore()
-    store.setCurrentRoom('!room-a:localhost')
+    setCurrentRoom('!room-a:localhost')
     mocks.editorText = 'Hello'
     mocks.editorHtml = '<p>Hello</p>'
     mountInput()
 
     const submitPromise = mocks.onSubmit?.('<p>Hello</p>', 'Hello') as Promise<void>
-    store.setCurrentRoom('!room-b:localhost')
+    setCurrentRoom('!room-b:localhost')
     await nextTick()
-    store.setCurrentRoom('!room-a:localhost')
+    setCurrentRoom('!room-a:localhost')
     await nextTick()
     mocks.editorText = 'Newer draft'
     mocks.editorHtml = '<p>Newer draft</p>'
-    store.setCurrentRoom('!room-b:localhost')
+    setCurrentRoom('!room-b:localhost')
     await nextTick()
     mocks.setContent.mockClear()
 
     pendingSend.resolve('$event-14')
     await submitPromise
-    store.setCurrentRoom('!room-a:localhost')
+    setCurrentRoom('!room-a:localhost')
     await nextTick()
 
     expect(sendTextMessage).toHaveBeenCalledWith('!room-a:localhost', 'Hello', '<p>Hello</p>', undefined)
@@ -751,27 +749,26 @@ describe('richTextInput send recovery', () => {
     const pendingReply = deferred<string>()
     mocks.replyToMessage.mockReturnValueOnce(pendingReply.promise)
     const replyEvent = createEvent('$event-17')
-    const store = useChatStore()
-    store.setCurrentRoom('!room-a:localhost')
+    setCurrentRoom('!room-a:localhost')
     mocks.editorText = 'Saved draft'
     mocks.editorHtml = '<p>Saved draft</p>'
     mountInput()
 
-    store.setCurrentRoom('!room-b:localhost')
+    setCurrentRoom('!room-b:localhost')
     await nextTick()
-    store.setCurrentRoom('!room-a:localhost')
+    setCurrentRoom('!room-a:localhost')
     await nextTick()
-    store.setReplyingTo(replyEvent)
+    setReplyingTo(replyEvent)
     mocks.setContent.mockClear()
 
     const submitPromise = mocks.onSubmit?.('<p>Saved draft</p>', 'Saved draft') as Promise<void>
-    store.setCurrentRoom('!room-b:localhost')
+    setCurrentRoom('!room-b:localhost')
     await nextTick()
     mocks.setContent.mockClear()
     pendingReply.resolve('$reply-6')
     await submitPromise
 
-    store.setCurrentRoom('!room-a:localhost')
+    setCurrentRoom('!room-a:localhost')
     await nextTick()
 
     expect(replyToMessage).toHaveBeenCalledWith(
@@ -788,27 +785,26 @@ describe('richTextInput send recovery', () => {
     const pendingEdit = deferred<string>()
     mocks.editMessage.mockReturnValueOnce(pendingEdit.promise)
     const editEvent = createEvent('$event-18')
-    const store = useChatStore()
-    store.setCurrentRoom('!room-a:localhost')
+    setCurrentRoom('!room-a:localhost')
     mocks.editorText = 'Saved draft'
     mocks.editorHtml = '<p>Saved draft</p>'
     mountInput()
 
-    store.setCurrentRoom('!room-b:localhost')
+    setCurrentRoom('!room-b:localhost')
     await nextTick()
-    store.setCurrentRoom('!room-a:localhost')
+    setCurrentRoom('!room-a:localhost')
     await nextTick()
-    store.setEditingEvent(editEvent)
+    setEditingEvent(editEvent)
     mocks.setContent.mockClear()
 
     const submitPromise = mocks.onSubmit?.('<p>Saved draft</p>', 'Saved draft') as Promise<void>
-    store.setCurrentRoom('!room-b:localhost')
+    setCurrentRoom('!room-b:localhost')
     await nextTick()
     mocks.setContent.mockClear()
     pendingEdit.resolve('$edit-3')
     await submitPromise
 
-    store.setCurrentRoom('!room-a:localhost')
+    setCurrentRoom('!room-a:localhost')
     await nextTick()
 
     expect(editMessage).toHaveBeenCalledWith(
@@ -824,8 +820,7 @@ describe('richTextInput send recovery', () => {
   it('does not clear when editor html changes but text stays the same before pending send resolves', async () => {
     const pendingSend = deferred<string>()
     mocks.sendTextMessage.mockReturnValueOnce(pendingSend.promise)
-    const store = useChatStore()
-    store.setCurrentRoom('!room:localhost')
+    setCurrentRoom('!room:localhost')
     mocks.editorText = 'Formatted text'
     mocks.editorHtml = '<p>Formatted text</p>'
     mountInput()
@@ -848,9 +843,8 @@ describe('richTextInput send recovery', () => {
   it('clears editor, compose state, and typing state after successful edit', async () => {
     mocks.editMessage.mockResolvedValueOnce('$edit')
     const editEvent = createEvent('$event-11')
-    const store = useChatStore()
-    store.setCurrentRoom('!room:localhost')
-    store.setEditingEvent(editEvent)
+    setCurrentRoom('!room:localhost')
+    setEditingEvent(editEvent)
     mocks.editorText = 'Edited message'
     mocks.editorHtml = '<p>Edited message</p>'
     mountInput()
@@ -865,17 +859,16 @@ describe('richTextInput send recovery', () => {
       undefined,
     )
     expect(mocks.clear).toHaveBeenCalledTimes(1)
-    expect(store.editingEvent).toBeNull()
-    expect(store.replyingTo).toBeNull()
+    expect(chatStore.state.editingEvent).toBeNull()
+    expect(chatStore.state.replyingTo).toBeNull()
     expect(mocks.stopTyping).toHaveBeenCalledTimes(1)
   })
 
   it('keeps edit context when edit send fails', async () => {
     mocks.editMessage.mockRejectedValueOnce(new Error('edit failed'))
     const editEvent = createEvent('$event-12')
-    const store = useChatStore()
-    store.setCurrentRoom('!room:localhost')
-    store.setEditingEvent(editEvent)
+    setCurrentRoom('!room:localhost')
+    setEditingEvent(editEvent)
     mocks.editorText = 'Retry edit'
     mocks.editorHtml = '<p>Retry edit</p>'
     mountInput()
@@ -889,16 +882,15 @@ describe('richTextInput send recovery', () => {
       '<p>Retry edit</p>',
       undefined,
     )
-    expect(store.editingEvent?.getId()).toBe('$event-12')
+    expect(chatStore.state.editingEvent?.getId()).toBe('$event-12')
     expect(mocks.clear).not.toHaveBeenCalled()
     expect(mocks.stopTyping).not.toHaveBeenCalled()
   })
 
   it('keeps reply context when reply event id is missing', async () => {
     const replyEvent = createEvent(undefined)
-    const store = useChatStore()
-    store.setCurrentRoom('!room:localhost')
-    store.setReplyingTo(replyEvent)
+    setCurrentRoom('!room:localhost')
+    setReplyingTo(replyEvent)
     mocks.editorText = 'Reply without id'
     mocks.editorHtml = '<p>Reply without id</p>'
     mountInput()
@@ -907,16 +899,15 @@ describe('richTextInput send recovery', () => {
 
     expect(replyToMessage).not.toHaveBeenCalled()
     expect(toast.error).toHaveBeenCalled()
-    expect(store.replyingTo).toBeTruthy()
+    expect(chatStore.state.replyingTo).toBeTruthy()
     expect(mocks.clear).not.toHaveBeenCalled()
     expect(mocks.stopTyping).not.toHaveBeenCalled()
   })
 
   it('keeps edit context when edit event id is missing', async () => {
     const editEvent = createEvent(undefined)
-    const store = useChatStore()
-    store.setCurrentRoom('!room:localhost')
-    store.setEditingEvent(editEvent)
+    setCurrentRoom('!room:localhost')
+    setEditingEvent(editEvent)
     mocks.editorText = 'Edit without id'
     mocks.editorHtml = '<p>Edit without id</p>'
     mountInput()
@@ -925,7 +916,7 @@ describe('richTextInput send recovery', () => {
 
     expect(editMessage).not.toHaveBeenCalled()
     expect(toast.error).toHaveBeenCalled()
-    expect(store.editingEvent).toBeTruthy()
+    expect(chatStore.state.editingEvent).toBeTruthy()
     expect(mocks.clear).not.toHaveBeenCalled()
     expect(mocks.stopTyping).not.toHaveBeenCalled()
   })
@@ -933,8 +924,7 @@ describe('richTextInput send recovery', () => {
   it('does not clear when input event occurs before pending text send resolves', async () => {
     const pendingSend = deferred<string>()
     mocks.sendTextMessage.mockReturnValueOnce(pendingSend.promise)
-    const store = useChatStore()
-    store.setCurrentRoom('!room:localhost')
+    setCurrentRoom('!room:localhost')
     mocks.editorText = 'Same text'
     mocks.editorHtml = '<p>Same text</p>'
     const wrapper = mountInput()
@@ -953,16 +943,15 @@ describe('richTextInput send recovery', () => {
     const pendingReply = deferred<string>()
     mocks.replyToMessage.mockReturnValueOnce(pendingReply.promise)
     const replyEvent = createEvent('$event-15')
-    const store = useChatStore()
-    store.setCurrentRoom('!room:localhost')
-    store.setReplyingTo(replyEvent)
+    setCurrentRoom('!room:localhost')
+    setReplyingTo(replyEvent)
     mocks.editorText = 'Same reply again'
     mocks.editorHtml = '<p>Same reply again</p>'
     mountInput()
 
     const submitPromise = mocks.onSubmit?.('<p>Same reply again</p>', 'Same reply again') as Promise<void>
-    store.setReplyingTo(null)
-    store.setReplyingTo(replyEvent)
+    setReplyingTo(null)
+    setReplyingTo(replyEvent)
     pendingReply.resolve('$reply-5')
     await submitPromise
 
@@ -973,7 +962,7 @@ describe('richTextInput send recovery', () => {
       '<p>Same reply again</p>',
       undefined,
     )
-    expect(store.replyingTo?.getId()).toBe('$event-15')
+    expect(chatStore.state.replyingTo?.getId()).toBe('$event-15')
     expect(mocks.clear).not.toHaveBeenCalled()
     expect(mocks.stopTyping).not.toHaveBeenCalled()
   })
@@ -982,16 +971,15 @@ describe('richTextInput send recovery', () => {
     const pendingEdit = deferred<string>()
     mocks.editMessage.mockReturnValueOnce(pendingEdit.promise)
     const editEvent = createEvent('$event-16')
-    const store = useChatStore()
-    store.setCurrentRoom('!room:localhost')
-    store.setEditingEvent(editEvent)
+    setCurrentRoom('!room:localhost')
+    setEditingEvent(editEvent)
     mocks.editorText = 'Same edit again'
     mocks.editorHtml = '<p>Same edit again</p>'
     mountInput()
 
     const submitPromise = mocks.onSubmit?.('<p>Same edit again</p>', 'Same edit again') as Promise<void>
-    store.setEditingEvent(null)
-    store.setEditingEvent(editEvent)
+    setEditingEvent(null)
+    setEditingEvent(editEvent)
     pendingEdit.resolve('$edit-2')
     await submitPromise
 
@@ -1002,7 +990,7 @@ describe('richTextInput send recovery', () => {
       '<p>Same edit again</p>',
       undefined,
     )
-    expect(store.editingEvent?.getId()).toBe('$event-16')
+    expect(chatStore.state.editingEvent?.getId()).toBe('$event-16')
     expect(mocks.clear).not.toHaveBeenCalled()
     expect(mocks.stopTyping).not.toHaveBeenCalled()
   })

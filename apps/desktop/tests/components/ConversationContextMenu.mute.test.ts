@@ -1,9 +1,14 @@
 import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
-import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { nextTick } from 'vue'
 import ConversationContextMenu from '@/features/chat/components/ConversationContextMenu.vue'
-import { useChatStore } from '@/features/chat/stores/chatStore'
+import {
+  getMuteExpiry,
+  isMuted,
+  muteWithExpiry,
+  openContextMenu,
+  resetChatStore,
+} from '@/features/chat/stores/chatStore'
 
 enableAutoUnmount(afterEach)
 
@@ -35,16 +40,15 @@ function clickBody(testid: string) {
 
 describe('conversation context menu timed mute', () => {
   beforeEach(() => {
-    setActivePinia(createPinia())
+    resetChatStore()
     localStorage.clear()
     toggleRoomMute.mockClear()
     document.body.innerHTML = ''
   })
 
   it('expands timed mute options and mutes for 1 hour with a server push rule', async () => {
-    const store = useChatStore()
     mount(ConversationContextMenu, { attachTo: document.body })
-    store.openContextMenu(ROOM, 100, 100)
+    openContextMenu(ROOM, 100, 100)
     await nextTick()
 
     // Not muted yet → the toggle expands the duration options instead of muting directly.
@@ -55,16 +59,15 @@ describe('conversation context menu timed mute', () => {
     clickBody('ctx-mute-1h')
     await flushPromises()
 
-    expect(store.isMuted(ROOM)).toBe(true)
-    const expiry = store.getMuteExpiry(ROOM)
+    expect(isMuted(ROOM)).toBe(true)
+    const expiry = getMuteExpiry(ROOM)
     expect(expiry).toBeGreaterThan(Date.now())
     expect(toggleRoomMute).toHaveBeenCalledWith(ROOM)
   })
 
   it('mutes forever without an expiry', async () => {
-    const store = useChatStore()
     mount(ConversationContextMenu, { attachTo: document.body })
-    store.openContextMenu(ROOM, 100, 100)
+    openContextMenu(ROOM, 100, 100)
     await nextTick()
 
     clickBody('ctx-mute-toggle')
@@ -72,16 +75,15 @@ describe('conversation context menu timed mute', () => {
     clickBody('ctx-mute-forever')
     await flushPromises()
 
-    expect(store.isMuted(ROOM)).toBe(true)
-    expect(store.getMuteExpiry(ROOM)).toBeUndefined()
+    expect(isMuted(ROOM)).toBe(true)
+    expect(getMuteExpiry(ROOM)).toBeUndefined()
     expect(toggleRoomMute).toHaveBeenCalledWith(ROOM)
   })
 
   it('shows a single unmute action when already muted', async () => {
-    const store = useChatStore()
-    store.muteWithExpiry(ROOM, null)
+    muteWithExpiry(ROOM, null)
     mount(ConversationContextMenu, { attachTo: document.body })
-    store.openContextMenu(ROOM, 100, 100)
+    openContextMenu(ROOM, 100, 100)
     await nextTick()
 
     // Already muted → no expand options, just unmute.
@@ -89,7 +91,7 @@ describe('conversation context menu timed mute', () => {
     clickBody('ctx-mute-toggle')
     await flushPromises()
 
-    expect(store.isMuted(ROOM)).toBe(false)
+    expect(isMuted(ROOM)).toBe(false)
     expect(toggleRoomMute).toHaveBeenCalledWith(ROOM)
   })
 })

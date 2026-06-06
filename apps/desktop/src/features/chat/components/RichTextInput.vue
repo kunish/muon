@@ -36,7 +36,17 @@ import { useMediaUpload } from '../composables/useMediaUpload';
 import { useMediaViewer } from '../composables/useMediaViewer';
 import { useMention } from '../composables/useMention';
 import { useTyping } from '../composables/useTyping';
-import { useChatStore } from '../stores/chatStore';
+import {
+  chatStore,
+  clearAllDrafts,
+  clearCompose,
+  consumePendingMentionRequests,
+  getDraftPreview,
+  getHtmlDraft,
+  setDraft,
+  setDraftPreview,
+  setHtmlDraft,
+} from '../stores/chatStore';
 import { schedule } from '../stores/scheduledMessageStore';
 import AttachmentMenu from './AttachmentMenu.vue';
 import ContactCardPicker from './ContactCardPicker.vue';
@@ -50,7 +60,11 @@ import StickerPackManager from './StickerPackManager.vue';
 import UploadProgress from './UploadProgress.vue';
 import VoiceRecorder from './VoiceRecorder.vue';
 
-const store = useChatStore();
+const currentRoomId = useSelector(chatStore, (s) => s.currentRoomId);
+const editingEvent = useSelector(chatStore, (s) => s.editingEvent);
+const replyingTo = useSelector(chatStore, (s) => s.replyingTo);
+const pendingMentionRequests = useSelector(chatStore, (s) => s.pendingMentionRequests);
+const multiSelectMode = useSelector(chatStore, (s) => s.multiSelectMode);
 const sendMessageShortcut = useSelector(settingsStore, (s) => s.sendMessageShortcut);
 const { t } = useI18n();
 const route = useRoute();
@@ -69,7 +83,7 @@ const {
   waitForAll,
   removeUpload,
   clearUploads,
-} = useMediaUpload(() => store.currentRoomId);
+} = useMediaUpload(() => currentRoomId.value);
 const { filterMembers } = useMention();
 
 /** 附件菜单「截图」：抓屏后作为图片上传（与展开态 ScreenshotButton 行为一致） */
@@ -176,8 +190,8 @@ function loadAttachmentDraftsFromStorage() {
         .filter((attachment): attachment is PendingPasteAttachment => Boolean(attachment));
 
       if (attachments.length) pendingPasteAttachmentDrafts.set(roomId, attachments);
-      if (attachments.length && !store.getDraftPreview(roomId))
-        store.setDraftPreview(roomId, formatAttachmentDraftPreview(attachments));
+      if (attachments.length && !getDraftPreview(roomId))
+        setDraftPreview(roomId, formatAttachmentDraftPreview(attachments));
     }
   } catch {
     // Attachment drafts are best-effort; bad storage should not block the composer.
@@ -319,8 +333,8 @@ watch(
   (instance, _prev, onCleanup) => {
     if (!instance) return;
 
-    if (pendingDraftRestoreRoomId === store.currentRoomId)
-      restoreRoomDraft(store.currentRoomId, { clearWhenMissing: false });
+    if (pendingDraftRestoreRoomId === currentRoomId.value)
+      restoreRoomDraft(currentRoomId.value, { clearWhenMissing: false });
 
     const handler = () => {
       instance.commands.scrollIntoView();
@@ -393,7 +407,7 @@ function toggleGifPicker() {
 
 async function handleGifSelect(gif: GifResult) {
   showExpressionPicker.value = false;
-  const roomId = store.currentRoomId;
+  const roomId = currentRoomId.value;
   if (!roomId) return;
   try {
     await sendGifMessage(roomId, gif.url, gif.width, gif.height);
@@ -408,15 +422,15 @@ function handleEmojiSelect(emoji: string) {
 }
 
 const composeLabel = computed(() => {
-  if (store.editingEvent) return t('chat.edit_label');
+  if (editingEvent.value) return t('chat.edit_label');
   return '';
 });
 
 const replyingToSenderName = computed(() => {
-  const replyEvent = store.replyingTo;
+  const replyEvent = replyingTo.value;
   if (!replyEvent) return '';
   const senderId = replyEvent.getSender() || '';
-  const roomId = store.currentRoomId;
+  const roomId = currentRoomId.value;
   if (!roomId) return senderId;
   const room = getClient().getRoom(roomId);
   const member = room?.getMember(senderId);
@@ -424,7 +438,7 @@ const replyingToSenderName = computed(() => {
 });
 
 const replyingToPreview = computed(() => {
-  const replyEvent = store.replyingTo;
+  const replyEvent = replyingTo.value;
   if (!replyEvent) return '';
   const content = replyEvent.getContent() || {};
   const eventType = replyEvent.getType();
@@ -440,7 +454,7 @@ const replyingToPreview = computed(() => {
 });
 
 async function jumpToReplyTarget() {
-  const eventId = store.replyingTo?.getId();
+  const eventId = replyingTo.value?.getId();
   if (!eventId) return;
   await router.replace({
     query: {
@@ -469,12 +483,12 @@ async function submitComposer(
 
   if (sendInFlight.value) return false;
 
-  const roomId = store.currentRoomId;
+  const roomId = currentRoomId.value;
   if (!roomId) return false;
 
   sendInFlight.value = true;
-  const editingEvent = store.editingEvent;
-  const replyingTo = store.replyingTo;
+  const editingEvent = chatStore.state.editingEvent;
+  const replyingTo = chatStore.state.replyingTo;
   const submittedHtml = html;
   const submittedText = text.trim();
   const submittedComposeVersion = composeVersion.value;
@@ -495,8 +509,8 @@ async function submitComposer(
 
   const editorTextUnchanged = editor.value?.getText().trim() === submittedText;
   const editorHtmlUnchanged = editor.value?.getHTML() === submittedHtml;
-  const roomUnchanged = store.currentRoomId === roomId;
-  const composeUnchanged = store.editingEvent === editingEvent && store.replyingTo === replyingTo;
+  const roomUnchanged = chatStore.state.currentRoomId === roomId;
+  const composeUnchanged = chatStore.state.editingEvent === editingEvent && chatStore.state.replyingTo === replyingTo;
   const composeVersionUnchanged = composeVersion.value === submittedComposeVersion;
   const canCleanSubmittedState =
     roomUnchanged && composeUnchanged && composeVersionUnchanged && editorTextUnchanged && editorHtmlUnchanged;
@@ -509,7 +523,7 @@ async function submitComposer(
     (attachment) => !submittedAttachmentIds.has(attachment.id),
   );
   revokePendingPasteAttachmentUrls(submittedAttachments);
-  if (store.getHtmlDraft(roomId) === submittedHtml) store.clearAllDrafts(roomId);
+  if (getHtmlDraft(roomId) === submittedHtml) clearAllDrafts(roomId);
   if (roomId) {
     pendingPasteAttachmentDrafts.delete(roomId);
     void persistAttachmentDrafts({ roomId, attachments: pendingPasteAttachments.value });
@@ -517,7 +531,7 @@ async function submitComposer(
   if (canCleanSubmittedState) {
     clear();
     stopTyping();
-    store.clearCompose();
+    clearCompose();
   }
   markComposeChanged();
 
@@ -529,12 +543,12 @@ async function handleSend(
   text: string,
   options?: { silent?: boolean; urgent?: boolean },
 ): Promise<boolean> {
-  const roomId = store.currentRoomId;
+  const roomId = currentRoomId.value;
   if (!roomId || !text.trim()) return false;
   if (sendInFlight.value) return false;
   sendInFlight.value = true;
-  const editingEvent = store.editingEvent;
-  const replyingTo = store.replyingTo;
+  const editingEvent = chatStore.state.editingEvent;
+  const replyingTo = chatStore.state.replyingTo;
   const submittedHtml = html;
   const submittedText = text.trim();
   const submittedComposeVersion = composeVersion.value;
@@ -553,16 +567,16 @@ async function handleSend(
 
   const editorTextUnchanged = editor.value?.getText().trim() === submittedText;
   const editorHtmlUnchanged = editor.value?.getHTML() === submittedHtml;
-  const roomUnchanged = store.currentRoomId === roomId;
-  const composeUnchanged = store.editingEvent === editingEvent && store.replyingTo === replyingTo;
+  const roomUnchanged = chatStore.state.currentRoomId === roomId;
+  const composeUnchanged = chatStore.state.editingEvent === editingEvent && chatStore.state.replyingTo === replyingTo;
   const composeVersionUnchanged = composeVersion.value === submittedComposeVersion;
   const canCleanSubmittedState =
     roomUnchanged && composeUnchanged && composeVersionUnchanged && editorTextUnchanged && editorHtmlUnchanged;
-  if (sentPlainText && store.getHtmlDraft(roomId) === submittedHtml) store.clearAllDrafts(roomId);
+  if (sentPlainText && getHtmlDraft(roomId) === submittedHtml) clearAllDrafts(roomId);
   if (canCleanSubmittedState) {
     clear();
     stopTyping();
-    store.clearCompose();
+    clearCompose();
   }
 
   return true;
@@ -572,8 +586,8 @@ async function sendTextContent(
   roomId: string,
   html: string,
   text: string,
-  editingEvent: typeof store.editingEvent,
-  replyingTo: typeof store.replyingTo,
+  editingEvent: typeof chatStore.state.editingEvent,
+  replyingTo: typeof chatStore.state.replyingTo,
   options?: { silent?: boolean; urgent?: boolean },
 ): Promise<{ ok: boolean; sentPlainText: boolean }> {
   try {
@@ -623,7 +637,7 @@ async function submitEditor(options?: { silent?: boolean; urgent?: boolean }) {
   const html = editor.value?.getHTML() || '';
   const text = editor.value?.getText() || '';
   const payload = createSubmitPayload(html, text);
-  if (!store.currentRoomId || (!payload.text.trim() && !hasPendingPasteAttachments.value)) return;
+  if (!currentRoomId.value || (!payload.text.trim() && !hasPendingPasteAttachments.value)) return;
   const submitted = await submitComposer(payload.html, payload.text, options);
   if (submitted) postTitle.value = '';
 }
@@ -655,15 +669,15 @@ function confirmSchedule() {
   const text = editor.value?.getText() || '';
   const payload = createSubmitPayload(html, text);
   const sendAt = new Date(scheduleAt.value).getTime();
-  if (!store.currentRoomId || !payload.text.trim() || !Number.isFinite(sendAt)) return;
+  if (!currentRoomId.value || !payload.text.trim() || !Number.isFinite(sendAt)) return;
   if (sendAt <= Date.now()) {
     toast.error(t('chat.schedule_past'));
     return;
   }
-  schedule({ roomId: store.currentRoomId, body: payload.text, html: payload.html, sendAt });
+  schedule({ roomId: currentRoomId.value, body: payload.text, html: payload.html, sendAt });
   clear();
   stopTyping();
-  store.clearCompose();
+  clearCompose();
   showSchedulePicker.value = false;
   toast.success(t('chat.scheduled_toast'));
 }
@@ -674,7 +688,7 @@ function toggleStickerPicker() {
 
 async function handleStickerSelect(emoji: string, name: string) {
   showExpressionPicker.value = false;
-  const roomId = store.currentRoomId;
+  const roomId = currentRoomId.value;
   if (!roomId) return;
   try {
     await sendStickerMessage(roomId, emoji, name);
@@ -685,7 +699,7 @@ async function handleStickerSelect(emoji: string, name: string) {
 
 async function handleImageStickerSelect(sticker: ImageSticker) {
   showExpressionPicker.value = false;
-  const roomId = store.currentRoomId;
+  const roomId = currentRoomId.value;
   if (!roomId) return;
   try {
     await sendImageStickerMessage(roomId, sticker.name, sticker.mxcUrl, {
@@ -719,7 +733,7 @@ function toggleContactCardPicker() {
 
 async function handleContactCardSelect(contact: { userId: string; displayName: string; avatarUrl?: string }) {
   showContactCardPicker.value = false;
-  const roomId = store.currentRoomId;
+  const roomId = currentRoomId.value;
   if (!roomId) return;
   try {
     await sendContactCard(roomId, contact.userId, contact.displayName, contact.avatarUrl);
@@ -730,7 +744,7 @@ async function handleContactCardSelect(contact: { userId: string; displayName: s
 
 async function handleLocationSelect(payload: { latitude: number; longitude: number; description: string }) {
   showLocationPicker.value = false;
-  const roomId = store.currentRoomId;
+  const roomId = currentRoomId.value;
   if (!roomId) return;
   try {
     await sendLocationMessage(roomId, payload.latitude, payload.longitude, payload.description || undefined);
@@ -740,7 +754,7 @@ async function handleLocationSelect(payload: { latitude: number; longitude: numb
 }
 
 async function handleVoiceSend(blob: Blob, duration: number) {
-  const roomId = store.currentRoomId;
+  const roomId = currentRoomId.value;
   if (!roomId) return;
   try {
     await sendAudioMessage(roomId, blob, duration);
@@ -777,7 +791,7 @@ function stagePasteFiles(files: File[], options: { insert: boolean }): string[] 
   // 秒发: start pre-upload immediately
   for (const attachment of attachments) kickoffPreUpload(attachment);
 
-  const roomId = store.currentRoomId;
+  const roomId = currentRoomId.value;
   if (roomId) void persistAttachmentDrafts({ roomId, attachments: pendingPasteAttachments.value });
 
   markComposeChanged();
@@ -818,7 +832,7 @@ function kickoffPreUpload(attachment: PendingPasteAttachment) {
       };
 
       if (u.status === 'done') {
-        const roomId = store.currentRoomId;
+        const roomId = currentRoomId.value;
         if (roomId) void persistAttachmentDrafts({ roomId, attachments: pendingPasteAttachments.value });
       }
 
@@ -893,7 +907,7 @@ function removePendingPasteAttachment(id: string) {
   pendingPasteAttachments.value = pendingPasteAttachments.value.filter((attachment) => attachment.id !== id);
   if (removedAttachment) revokePendingPasteAttachmentUrls([removedAttachment]);
   removeUpload(id);
-  const roomId = store.currentRoomId;
+  const roomId = currentRoomId.value;
   if (roomId) void persistAttachmentDrafts({ roomId, attachments: pendingPasteAttachments.value });
   markComposeChanged();
 }
@@ -908,7 +922,7 @@ function syncPendingPasteAttachmentsFromEditor(html: string) {
   pendingPasteAttachments.value = pendingPasteAttachments.value.filter((attachment) => visibleIds.has(attachment.id));
   revokePendingPasteAttachmentUrls(removedAttachments);
   for (const attachment of removedAttachments) removeUpload(attachment.id);
-  const roomId = store.currentRoomId;
+  const roomId = currentRoomId.value;
   if (roomId) void persistAttachmentDrafts({ roomId, attachments: pendingPasteAttachments.value });
   markComposeChanged();
 }
@@ -1091,11 +1105,11 @@ function revokeAllPendingPasteAttachmentUrls() {
 
 function saveRoomDraft(roomId: string, text: string, html: string, attachments: PendingPasteAttachment[]) {
   if (text || attachments.length) {
-    store.setHtmlDraft(roomId, html);
-    store.setDraft(roomId, text);
-    store.setDraftPreview(roomId, text || formatAttachmentDraftPreview(attachments));
+    setHtmlDraft(roomId, html);
+    setDraft(roomId, text);
+    setDraftPreview(roomId, text || formatAttachmentDraftPreview(attachments));
   } else {
-    store.clearAllDrafts(roomId);
+    clearAllDrafts(roomId);
   }
   void persistAttachmentDrafts({ roomId, attachments });
 }
@@ -1113,7 +1127,7 @@ function getPendingPasteAttachmentLabel(kind: PendingPasteAttachment['kind']) {
 }
 
 function saveCurrentRoomDraft() {
-  const roomId = store.currentRoomId;
+  const roomId = currentRoomId.value;
   const activeEditor = editor.value;
   if (!roomId || !activeEditor) return;
 
@@ -1138,9 +1152,9 @@ function insertMention() {
 
 function insertQueuedMentions() {
   const activeEditor = editor.value;
-  if (!activeEditor || store.pendingMentionRequests.length === 0) return;
+  if (!activeEditor || pendingMentionRequests.value.length === 0) return;
 
-  const mentions = store.consumePendingMentionRequests();
+  const mentions = consumePendingMentionRequests();
   for (const mention of mentions) {
     activeEditor
       .chain()
@@ -1160,7 +1174,7 @@ function focusEditor() {
 }
 
 function restoreRoomDraft(roomId: string | null, options: { clearWhenMissing: boolean }) {
-  const savedHtml = roomId ? store.getHtmlDraft(roomId) : '';
+  const savedHtml = roomId ? getHtmlDraft(roomId) : '';
   pendingPasteAttachments.value = roomId && savedHtml ? (pendingPasteAttachmentDrafts.get(roomId) ?? []) : [];
   if (savedHtml) {
     if (editor.value) {
@@ -1176,7 +1190,7 @@ function restoreRoomDraft(roomId: string | null, options: { clearWhenMissing: bo
 }
 
 watch(
-  () => store.currentRoomId,
+  () => currentRoomId.value,
   (newId, oldId) => {
     const isInitialRun = oldId === undefined;
     markComposeChanged();
@@ -1202,7 +1216,7 @@ watch(
     // 恢复目标房间草稿或清空
     restoreRoomDraft(newId, { clearWhenMissing: !isInitialRun });
     if (!isInitialRun) {
-      store.clearCompose();
+      clearCompose();
       showExpressionPicker.value = false;
       showLocationPicker.value = false;
       showContactCardPicker.value = false;
@@ -1212,12 +1226,12 @@ watch(
   { immediate: true },
 );
 
-watch(() => [store.replyingTo, store.editingEvent], markComposeChanged);
+watch(() => [replyingTo.value, editingEvent.value], markComposeChanged);
 
-watch([editor, () => store.pendingMentionRequests.length], insertQueuedMentions, { flush: 'post' });
+watch([editor, () => pendingMentionRequests.value.length], insertQueuedMentions, { flush: 'post' });
 
 watch(
-  () => store.editingEvent,
+  () => editingEvent.value,
   (ev) => {
     if (ev) {
       const body = ev.getContent()?.body || '';
@@ -1240,7 +1254,7 @@ function onGlobalKeydown(e: KeyboardEvent) {
   const tag = target.tagName;
   if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable) return;
   if (e.ctrlKey || e.metaKey || e.altKey) return;
-  if (store.multiSelectMode) return;
+  if (multiSelectMode.value) return;
   if (e.key.length !== 1) return;
   e.preventDefault();
   focusEditor();
@@ -1289,7 +1303,7 @@ function onGlobalPaste(e: ClipboardEvent) {
   if (!target) return;
   const tag = target.tagName;
   if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable) return;
-  if (store.multiSelectMode) return;
+  if (multiSelectMode.value) return;
 
   const dt = e.clipboardData;
   if (!dt) return;
@@ -1356,9 +1370,9 @@ onUnmounted(() => {
       :replying-to-sender-name="replyingToSenderName"
       :replying-to-preview="replyingToPreview"
       :compose-label="composeLabel"
-      :is-replying="!!store.replyingTo"
+      :is-replying="!!replyingTo"
       @clear="
-        store.clearCompose();
+        clearCompose();
         clear();
       "
       @jump-to-reply-target="jumpToReplyTarget"

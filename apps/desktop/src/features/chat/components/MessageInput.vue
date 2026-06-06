@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { sendTextMessage } from '@matrix/index';
+import { useSelector } from '@tanstack/vue-store';
 import { Send } from 'lucide-vue-next';
 import { ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useTyping } from '../composables/useTyping';
-import { useChatStore } from '../stores/chatStore';
+import { chatStore, getDraft, setDraft } from '../stores/chatStore';
 
-const store = useChatStore();
+const currentRoomId = useSelector(chatStore, (s) => s.currentRoomId);
 const { t } = useI18n();
 const { startTyping, stopTyping } = useTyping();
 const text = ref('');
@@ -20,12 +21,12 @@ function adjustHeight() {
 }
 
 async function send() {
-  const roomId = store.currentRoomId;
+  const roomId = currentRoomId.value;
   const msg = text.value.trim();
   if (!roomId || !msg) return;
   text.value = '';
   stopTyping();
-  if (roomId) store.setDraft(roomId, '');
+  if (roomId) setDraft(roomId, '');
   if (textareaRef.value) textareaRef.value.style.height = 'auto';
   await sendTextMessage(roomId, msg);
 }
@@ -44,14 +45,14 @@ function onInput() {
 
 // 切换房间时保存草稿 & 恢复草稿
 watch(
-  () => store.currentRoomId,
+  () => currentRoomId.value,
   (newId, oldId) => {
     // 保存旧房间草稿
     if (oldId) {
-      store.setDraft(oldId, text.value);
+      setDraft(oldId, text.value);
     }
     // 恢复新房间草稿
-    text.value = newId ? store.getDraft(newId) : '';
+    text.value = newId ? getDraft(newId) : '';
     if (textareaRef.value) {
       textareaRef.value.style.height = 'auto';
       if (text.value) {

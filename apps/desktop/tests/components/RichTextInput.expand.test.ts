@@ -1,7 +1,7 @@
 import { mount } from '@vue/test-utils'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import RichTextInput from '@/features/chat/components/RichTextInput.vue'
-import { useChatStore } from '@/features/chat/stores/chatStore'
+import { resetChatStore, setCurrentRoom } from '@/features/chat/stores/chatStore'
 
 const matrixMocks = vi.hoisted(() => ({
   sendTextMessage: vi.fn().mockResolvedValue('$event'),
@@ -91,6 +91,10 @@ vi.mock('@/features/chat/composables/useTyping', () => ({
 }))
 
 describe('rich text input editor expansion', () => {
+  beforeEach(() => {
+    resetChatStore()
+  })
+
   it('gives the editor a visibly taller minimum height when expanded', async () => {
     const wrapper = mount(RichTextInput, {
       global: {
@@ -195,7 +199,7 @@ describe('rich text input editor expansion', () => {
         },
       },
     })
-    useChatStore().setCurrentRoom('!room:localhost')
+    setCurrentRoom('!room:localhost')
 
     await wrapper.get('button[title="展开编辑器"]').trigger('click')
     await wrapper.get('[data-testid="expanded-composer-title"]').setValue('Release notes')

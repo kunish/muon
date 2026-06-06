@@ -3,7 +3,7 @@ import { findOrCreateDm } from '@matrix/rooms'
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import UserInfoPanel from '@/features/chat/components/UserInfoPanel.vue'
-import { useChatStore } from '@/features/chat/stores/chatStore'
+import { chatStore, resetChatStore, setCurrentRoom } from '@/features/chat/stores/chatStore'
 
 const userInfoMocks = vi.hoisted(() => ({
   findOrCreateDm: vi.fn().mockResolvedValue('!dm:localhost'),
@@ -68,7 +68,8 @@ describe('userInfoPanel navigation', () => {
     userInfoMocks.findOrCreateDm.mockClear()
     userInfoMocks.restoreRoom.mockClear()
     userInfoMocks.routerPush.mockClear()
-    useChatStore().setCurrentRoom(null)
+    resetChatStore()
+    setCurrentRoom(null)
   })
 
   it('opens a DM route when sending a message from the profile card', async () => {
@@ -79,7 +80,7 @@ describe('userInfoPanel navigation', () => {
 
     expect(findOrCreateDm).toHaveBeenCalledWith('@alice:localhost')
     expect(userInfoMocks.restoreRoom).toHaveBeenCalledWith('!dm:localhost')
-    expect(useChatStore().currentRoomId).toBe('!dm:localhost')
+    expect(chatStore.state.currentRoomId).toBe('!dm:localhost')
     expect(userInfoMocks.routerPush).toHaveBeenCalledWith('/dm/!dm%3Alocalhost')
   })
 })

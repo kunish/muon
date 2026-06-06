@@ -3,6 +3,7 @@ import type { CallMode } from '@matrix/index';
 import type { SidePanelType } from '../stores/chatStore';
 import { getRoomTopic } from '@matrix/rooms';
 import { getDirectRoomPeer, isDirectRoom } from '@matrix/roomUtils';
+import { useSelector } from '@tanstack/vue-store';
 import {
   AtSign,
   Bell,
@@ -27,7 +28,7 @@ import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useCallStore } from '@/features/calls/stores/callStore';
 import { useCurrentRoom } from '../composables/useCurrentRoom';
-import { useChatStore } from '../stores/chatStore';
+import { chatStore, toggleSidePanel } from '../stores/chatStore';
 import DisappearingMessageSettings from './DisappearingMessageSettings.vue';
 
 type ChatContentTab = 'chat' | 'docs' | 'files';
@@ -46,7 +47,9 @@ const emit = defineEmits<{
 }>();
 
 const { room, currentRoomId } = useCurrentRoom();
-const store = useChatStore();
+const activeSidePanel = useSelector(chatStore, (s) => s.activeSidePanel);
+const activeThreadId = useSelector(chatStore, (s) => s.activeThreadId);
+const sidebarPromotionPreviews = useSelector(chatStore, (s) => s.sidebarPromotionPreviews);
 const callStore = useCallStore();
 const { t } = useI18n();
 const showDisappearing = ref(false);
@@ -54,7 +57,7 @@ const showMore = ref(false);
 const showAddTabMenu = ref(false);
 
 const roomPreview = computed(() =>
-  currentRoomId.value ? store.getSidebarPromotionPreview(currentRoomId.value) : undefined,
+  currentRoomId.value ? sidebarPromotionPreviews.value.get(currentRoomId.value) : undefined,
 );
 
 const hasHeaderInfo = computed(() => !!room.value || !!roomPreview.value);
@@ -94,12 +97,12 @@ const extendedTabActions = computed(() => [
   { id: 'knowledge', label: t('chat.knowledge'), icon: Brain, panel: 'knowledge' as const },
 ]);
 
-const isCompactHeader = computed(() => Boolean(store.activeSidePanel || store.activeThreadId));
+const isCompactHeader = computed(() => Boolean(activeSidePanel.value || activeThreadId.value));
 
 function toggleStarred() {
   showMore.value = false;
   showAddTabMenu.value = false;
-  store.toggleSidePanel('starred');
+  toggleSidePanel('starred');
 }
 
 function openDisappearing() {
@@ -115,7 +118,7 @@ function selectTab(tab: ChatContentTab) {
 function toggleSidePanelFromMenu(panel: SidePanelType) {
   showMore.value = false;
   showAddTabMenu.value = false;
-  store.toggleSidePanel(panel);
+  toggleSidePanel(panel);
 }
 
 function toggleMoreMenu() {
@@ -130,7 +133,7 @@ function toggleAddTabMenu() {
 
 function openExtendedTab(panel: SidePanelType) {
   showAddTabMenu.value = false;
-  store.toggleSidePanel(panel);
+  toggleSidePanel(panel);
 }
 
 function startRoomCall(mode: CallMode) {
@@ -191,9 +194,9 @@ function startRoomCall(mode: CallMode) {
           :data-testid="`chat-header-action-${action.id}`"
           :class="[
             isCompactHeader ? 'hidden' : 'hidden sm:flex',
-            store.activeSidePanel === action.panel && 'bg-accent text-foreground',
+            activeSidePanel === action.panel && 'bg-accent text-foreground',
           ]"
-          @click="store.toggleSidePanel(action.panel)"
+          @click="toggleSidePanel(action.panel)"
         >
           <component :is="action.icon" :size="18" />
         </button>
@@ -201,7 +204,7 @@ function startRoomCall(mode: CallMode) {
           type="button"
           class="header-search-btn group flex cursor-pointer items-center rounded-md text-muted-foreground transition-colors duration-150"
           :title="t('chat.search_messages')"
-          @click="store.toggleSidePanel('search')"
+          @click="toggleSidePanel('search')"
         >
           <div
             data-testid="chat-header-search-control"
@@ -210,7 +213,7 @@ function startRoomCall(mode: CallMode) {
               isCompactHeader
                 ? 'size-8 justify-center'
                 : 'size-8 justify-center sm:w-[140px] sm:justify-start sm:px-2 sm:py-1.5',
-              store.activeSidePanel === 'search' && 'bg-accent text-foreground',
+              activeSidePanel === 'search' && 'bg-accent text-foreground',
             ]"
           >
             <Search :size="14" class="shrink-0" />
@@ -239,7 +242,7 @@ function startRoomCall(mode: CallMode) {
               :data-testid="`chat-header-menu-${action.id}`"
               :class="[
                 !isCompactHeader && 'sm:hidden',
-                store.activeSidePanel === action.panel && 'bg-accent text-foreground',
+                activeSidePanel === action.panel && 'bg-accent text-foreground',
               ]"
               @click="toggleSidePanelFromMenu(action.panel)"
             >
@@ -312,7 +315,7 @@ function startRoomCall(mode: CallMode) {
           :key="action.id"
           role="menuitem"
           class="flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-muted-foreground transition-colors duration-[120ms] hover:bg-accent hover:text-accent-foreground"
-          :class="store.activeSidePanel === action.panel && 'bg-accent text-foreground'"
+          :class="activeSidePanel === action.panel && 'bg-accent text-foreground'"
           :data-testid="`chat-tab-add-${action.id}`"
           @click="openExtendedTab(action.panel)"
         >

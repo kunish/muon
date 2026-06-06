@@ -1,9 +1,8 @@
 import { mount } from '@vue/test-utils'
-import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h, nextTick } from 'vue'
 import ChatWindow from '@/features/chat/components/ChatWindow.vue'
-import { useChatStore } from '@/features/chat/stores/chatStore'
+import { resetChatStore, setCurrentRoom, toggleSidePanel } from '@/features/chat/stores/chatStore'
 
 vi.mock('@/features/chat/composables/useTyping', () => ({
   useTyping: () => ({ typingUsers: [] }),
@@ -67,16 +66,15 @@ async function flushUi() {
 
 describe('chatWindow panel jump-to', () => {
   beforeEach(() => {
-    setActivePinia(createPinia())
-    useChatStore().setCurrentRoom('!room:muon.dev')
+    resetChatStore()
+    setCurrentRoom('!room:muon.dev')
     focusEventSpy.mockClear()
   })
 
   it('focuses the timeline message when a pinned message is clicked', async () => {
-    const store = useChatStore()
     const wrapper = mount(ChatWindow, { global: { stubs } })
 
-    store.toggleSidePanel('pinned')
+    toggleSidePanel('pinned')
     await flushUi()
 
     const pinned = wrapper.findComponent({ name: 'PinnedMessagesStub' })

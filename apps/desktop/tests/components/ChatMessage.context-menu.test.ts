@@ -1,5 +1,6 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { chatStore, isHidden, isMessageSelected, resetChatStore } from '@/features/chat/stores/chatStore'
 import { SELF_USER_ID } from '../mocks/data'
 
 const { roomsMocks, matrixMocks, askMock } = vi.hoisted(() => ({
@@ -87,6 +88,7 @@ function clickContextItem(testid: string) {
 describe('chatMessage right-click context menu parity', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    resetChatStore()
     document.body.innerHTML = ''
     roomsMocks.isMessagePinned.mockReturnValue(false)
     roomsMocks.isMessageStarred.mockReturnValue(false)
@@ -119,23 +121,19 @@ describe('chatMessage right-click context menu parity', () => {
   })
 
   it('enters multi-select from the context menu', async () => {
-    const { useChatStore } = await import('@/features/chat/stores/chatStore')
     const wrapper = await mountWithContextMenu(textEvent())
-    const chatStore = useChatStore()
     clickContextItem('context-multiselect')
     await flushPromises()
-    expect(chatStore.multiSelectMode).toBe(true)
-    expect(chatStore.isMessageSelected('$ctx-1')).toBe(true)
+    expect(chatStore.state.multiSelectMode).toBe(true)
+    expect(isMessageSelected('$ctx-1')).toBe(true)
     wrapper.unmount()
   })
 
   it('hides a message for me from the context menu', async () => {
-    const { useChatStore } = await import('@/features/chat/stores/chatStore')
     const wrapper = await mountWithContextMenu(textEvent())
-    const chatStore = useChatStore()
     clickContextItem('context-hide')
     await flushPromises()
-    expect(chatStore.isHidden('$ctx-1')).toBe(true)
+    expect(isHidden('$ctx-1')).toBe(true)
     wrapper.unmount()
   })
 

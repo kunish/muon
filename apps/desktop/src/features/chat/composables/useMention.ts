@@ -1,8 +1,9 @@
 import { getRoom } from '@matrix/index'
 import { useContactList } from '@shared/composables/useContactList'
+import { useSelector } from '@tanstack/vue-store'
 import { computed } from 'vue'
 import { localizedText } from '@/shared/lib/localizedText'
-import { useChatStore } from '../stores/chatStore'
+import { chatStore } from '../stores/chatStore'
 
 /** @所有人 的哨兵 mention id（发送时转为 m.mentions.room） */
 export const ROOM_MENTION_ID = '@room'
@@ -16,13 +17,13 @@ interface MentionMember {
 }
 
 export function useMention() {
-  const store = useChatStore()
+  const currentRoomId = useSelector(chatStore, (s) => s.currentRoomId)
   // The contacts query auto-fetches on mount, so no explicit load is needed here.
   const contactList = useContactList()
 
   const mentionCandidates = computed<MentionMember[]>(() => {
     const candidates = new Map<string, MentionMember>()
-    const roomId = store.currentRoomId
+    const roomId = currentRoomId.value
     let isGroupRoom = false
     if (roomId) {
       const room = getRoom(roomId)

@@ -1,10 +1,14 @@
 import type { SpaceMember } from '@/matrix/spaces'
 import { enableAutoUnmount, mount } from '@vue/test-utils'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { nextTick } from 'vue'
-import { useChatStore } from '@/features/chat/stores/chatStore'
+import { closeContextMenu, openContextMenu, resetChatStore } from '@/features/chat/stores/chatStore'
 
 enableAutoUnmount(afterEach)
+
+beforeEach(() => {
+  resetChatStore()
+})
 
 afterEach(() => {
   document.body.innerHTML = ''
@@ -103,15 +107,14 @@ describe('context menu scroll lock', () => {
 
   it('prevents the conversation list from scrolling while its context menu is open', async () => {
     const ConversationContextMenu = (await import('@/features/chat/components/ConversationContextMenu.vue')).default
-    const store = useChatStore()
 
-    store.openContextMenu('!dm:localhost', 32, 48)
+    openContextMenu('!dm:localhost', 32, 48)
     const wrapper = mount(ConversationContextMenu)
     await nextTick()
 
     expect(dispatchBackgroundWheel().defaultPrevented).toBe(true)
 
-    store.closeContextMenu()
+    closeContextMenu()
     await nextTick()
 
     expect(dispatchBackgroundWheel().defaultPrevented).toBe(false)

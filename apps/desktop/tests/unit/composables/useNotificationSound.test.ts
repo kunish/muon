@@ -3,7 +3,7 @@ import { mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent } from 'vue'
 import { useNotificationSound } from '@/features/chat/composables/useNotificationSound'
-import { useChatStore } from '@/features/chat/stores/chatStore'
+import { resetChatStore, setCurrentRoom } from '@/features/chat/stores/chatStore'
 import { matrixEvents } from '@/matrix/events'
 import {
   resetSettingsStore,
@@ -62,6 +62,7 @@ describe('useNotificationSound', () => {
   beforeEach(() => {
     localStorage.clear()
     resetSettingsStore()
+    resetChatStore()
     playNotificationSound.mockClear()
     shownNotifications.length = 0
     Object.defineProperty(globalThis, 'Notification', {
@@ -123,8 +124,7 @@ describe('useNotificationSound', () => {
   })
 
   it('plays sounds for enabled notifications outside the current room', () => {
-    const chatStore = useChatStore()
-    chatStore.setCurrentRoom('!current:localhost')
+    setCurrentRoom('!current:localhost')
     const wrapper = mount(createHost())
 
     emitMessage('!other:localhost')

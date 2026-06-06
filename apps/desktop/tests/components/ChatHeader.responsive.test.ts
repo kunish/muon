@@ -2,7 +2,13 @@ import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import ChatHeader from '@/features/chat/components/ChatHeader.vue'
-import { useChatStore } from '@/features/chat/stores/chatStore'
+import {
+  chatStore,
+  resetChatStore,
+  setCurrentRoom,
+  setCurrentRoomFromRoute,
+  toggleSidePanel,
+} from '@/features/chat/stores/chatStore'
 
 const mockedRoom = vi.hoisted(() => ({
   roomId: '!responsive:localhost',
@@ -33,7 +39,8 @@ vi.mock('@matrix/roomUtils', () => ({
 describe('chatHeader responsive layout', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
-    useChatStore().setCurrentRoom(mockedRoom.roomId)
+    resetChatStore()
+    setCurrentRoom(mockedRoom.roomId)
   })
 
   it('lets the room title shrink before compact actions overflow it', () => {
@@ -59,7 +66,6 @@ describe('chatHeader responsive layout', () => {
   })
 
   it('keeps compact-only actions reachable from the more menu', async () => {
-    const store = useChatStore()
     const wrapper = mount(ChatHeader)
 
     await wrapper.get('[data-testid="chat-header-more-button"]').trigger('click')
@@ -68,12 +74,11 @@ describe('chatHeader responsive layout', () => {
     expect(membersAction.classes()).toContain('sm:hidden')
 
     await membersAction.trigger('click')
-    expect(store.activeSidePanel).toBe('members')
+    expect(chatStore.state.activeSidePanel).toBe('members')
   })
 
   it('uses compact header controls while a secondary panel constrains the chat area', async () => {
-    const store = useChatStore()
-    store.toggleSidePanel('search')
+    toggleSidePanel('search')
 
     const wrapper = mount(ChatHeader)
 
@@ -90,15 +95,14 @@ describe('chatHeader responsive layout', () => {
   })
 
   it('renders a promoted room title while the Matrix room is still unavailable', () => {
-    const store = useChatStore()
-    store.setCurrentRoom('!pending-group:localhost', {
+    setCurrentRoom('!pending-group:localhost', {
       sidebarPlacement: 'promote',
       sidebarPreview: {
         name: '设计评审',
         isDirect: false,
       },
     })
-    store.setCurrentRoomFromRoute('!pending-group:localhost')
+    setCurrentRoomFromRoute('!pending-group:localhost')
 
     const wrapper = mount(ChatHeader)
 
@@ -106,14 +110,13 @@ describe('chatHeader responsive layout', () => {
   })
 
   it('opens Feishu-style extended chat tabs from the add tab button', async () => {
-    const store = useChatStore()
     const wrapper = mount(ChatHeader)
 
     await wrapper.get('[data-testid="chat-tab-add-button"]').trigger('click')
     expect(wrapper.get('[data-testid="chat-tab-add-menu"]').exists()).toBe(true)
 
     await wrapper.get('[data-testid="chat-tab-add-tasks"]').trigger('click')
-    expect(store.activeSidePanel).toBe('tasks')
+    expect(chatStore.state.activeSidePanel).toBe('tasks')
     expect(wrapper.find('[data-testid="chat-tab-add-menu"]').exists()).toBe(false)
   })
 })

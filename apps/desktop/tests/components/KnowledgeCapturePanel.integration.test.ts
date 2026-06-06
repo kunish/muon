@@ -6,7 +6,7 @@ import { computed, defineComponent, h, nextTick, ref } from 'vue'
 import { resetServerStore, serverStore } from '@/features/server/stores/serverStore'
 import ChatWindow from '../../src/features/chat/components/ChatWindow.vue'
 import KnowledgeCapturePanel from '../../src/features/chat/components/KnowledgeCapturePanel.vue'
-import { useChatStore } from '../../src/features/chat/stores/chatStore'
+import { chatStore, resetChatStore } from '../../src/features/chat/stores/chatStore'
 import ChannelSidebar from '../../src/features/server/components/ChannelSidebar.vue'
 
 const { routerPush, loadInboxEventContext, mockConversationState } = vi.hoisted(() => ({
@@ -211,11 +211,14 @@ describe('knowledgeCapturePanel integration', () => {
   beforeEach(() => {
     pinia = createPinia()
     setActivePinia(pinia)
-    const chatStore = useChatStore()
-    chatStore.currentRoomId = '!room:example.org'
-    chatStore.activeSidePanel = null
-    chatStore.multiSelectMode = false
-    chatStore.activeThreadId = null
+    resetChatStore()
+    chatStore.setState((s) => ({
+      ...s,
+      currentRoomId: '!room:example.org',
+      activeSidePanel: null,
+      multiSelectMode: false,
+      activeThreadId: null,
+    }))
     resetServerStore()
     serverStore.setState((s) => ({ ...s, isDmMode: true }))
     mockConversationState.items = []
@@ -225,9 +228,7 @@ describe('knowledgeCapturePanel integration', () => {
   })
 
   afterEach(() => {
-    const chatStore = useChatStore()
-    chatStore.currentRoomId = null
-    chatStore.activeSidePanel = null
+    chatStore.setState((s) => ({ ...s, currentRoomId: null, activeSidePanel: null }))
   })
 
   it('renders digest/decision/qa as an accessible tabbed knowledge shell', async () => {
@@ -249,13 +250,12 @@ describe('knowledgeCapturePanel integration', () => {
   })
 
   it('mounts the knowledge panel through the existing chat side-panel slot without conflicting with other panels', () => {
-    const chatStore = useChatStore()
-    chatStore.activeSidePanel = 'knowledge'
+    chatStore.setState((s) => ({ ...s, activeSidePanel: 'knowledge' }))
     const knowledgeWrapper = mount(ChatWindow, { global: { plugins: [pinia] } })
     expect(knowledgeWrapper.get('[data-testid="knowledge-capture-panel"]')).toBeTruthy()
     expect(knowledgeWrapper.find('[data-testid="task-panel"]').exists()).toBe(false)
 
-    chatStore.activeSidePanel = 'tasks'
+    chatStore.setState((s) => ({ ...s, activeSidePanel: 'tasks' }))
     const taskWrapper = mount(ChatWindow, { global: { plugins: [pinia] } })
     expect(taskWrapper.get('[data-testid="task-panel"]')).toBeTruthy()
     expect(taskWrapper.find('[data-testid="knowledge-capture-panel"]').exists()).toBe(false)

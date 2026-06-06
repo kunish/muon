@@ -1,7 +1,7 @@
 import type { SpaceMember } from '@/matrix/spaces'
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { useChatStore } from '@/features/chat/stores/chatStore'
+import { chatStore, resetChatStore, setCurrentRoom } from '@/features/chat/stores/chatStore'
 import MemberContextMenu from '@/features/server/components/MemberContextMenu.vue'
 import UserPopover from '@/features/server/components/UserPopover.vue'
 import { findOrCreateDm } from '@/matrix/rooms'
@@ -48,7 +48,8 @@ describe('member dm navigation', () => {
     dmNavigationMocks.findOrCreateDm.mockClear()
     dmNavigationMocks.restoreRoom.mockClear()
     dmNavigationMocks.routerPush.mockClear()
-    useChatStore().setCurrentRoom(null)
+    resetChatStore()
+    setCurrentRoom(null)
   })
 
   it('opens the selected member from the member context menu in the DM workspace', async () => {
@@ -71,7 +72,7 @@ describe('member dm navigation', () => {
 
     expect(findOrCreateDm).toHaveBeenCalledWith('@alice:localhost')
     expect(dmNavigationMocks.restoreRoom).toHaveBeenCalledWith('!dm:localhost')
-    expect(useChatStore().currentRoomId).toBe('!dm:localhost')
+    expect(chatStore.state.currentRoomId).toBe('!dm:localhost')
     expect(dmNavigationMocks.routerPush).toHaveBeenCalledWith('/dm/!dm%3Alocalhost')
   })
 
@@ -95,7 +96,7 @@ describe('member dm navigation', () => {
 
     expect(findOrCreateDm).toHaveBeenCalledWith('@alice:localhost')
     expect(dmNavigationMocks.restoreRoom).toHaveBeenCalledWith('!dm:localhost')
-    expect(useChatStore().currentRoomId).toBe('!dm:localhost')
+    expect(chatStore.state.currentRoomId).toBe('!dm:localhost')
     expect(dmNavigationMocks.routerPush).toHaveBeenCalledWith('/dm/!dm%3Alocalhost')
   })
 

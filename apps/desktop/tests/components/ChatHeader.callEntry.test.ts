@@ -3,7 +3,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useCallStore } from '@/features/calls/stores/callStore'
 import ChatHeader from '@/features/chat/components/ChatHeader.vue'
-import { useChatStore } from '@/features/chat/stores/chatStore'
+import { resetChatStore, setCurrentRoom } from '@/features/chat/stores/chatStore'
 
 const mockedRoom = vi.hoisted(() => ({
   roomId: '!dm:localhost',
@@ -33,8 +33,9 @@ vi.mock('@matrix/roomUtils', () => ({
 describe('chat header call entry', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    resetChatStore()
     direct.value = true
-    useChatStore().setCurrentRoom(mockedRoom.roomId)
+    setCurrentRoom(mockedRoom.roomId)
   })
 
   it('starts an audio call with the direct peer', async () => {

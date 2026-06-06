@@ -12,7 +12,7 @@ import { toast } from 'vue-sonner';
 import GroupMemberPicker from '@/features/contacts/components/GroupMemberPicker.vue';
 import { useContacts } from '@/features/contacts/composables/useContacts';
 import { useGroupManagement } from '@/features/contacts/composables/useGroupManagement';
-import { useChatStore } from '../stores/chatStore';
+import { setCurrentRoom } from '../stores/chatStore';
 
 const emit = defineEmits<{
   close: [];
@@ -20,7 +20,6 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 const router = useRouter();
-const store = useChatStore();
 const contactList = useContactList();
 const { searchUsers } = useContacts();
 
@@ -123,7 +122,7 @@ async function startDm(userId: string) {
   try {
     const user = dmList.value.find((item) => item.userId === userId);
     const roomId = await findOrCreateDm(userId);
-    store.setCurrentRoom(roomId, {
+    setCurrentRoom(roomId, {
       sidebarPlacement: 'promote',
       sidebarPreview: {
         name: user?.displayName,
@@ -153,7 +152,7 @@ async function handleCreateGroup() {
       userIds: groupMemberIds.value,
       isEncrypted: false,
     });
-    store.setCurrentRoom(roomId, {
+    setCurrentRoom(roomId, {
       sidebarPlacement: 'promote',
       sidebarPreview: {
         name: groupName.value.trim(),

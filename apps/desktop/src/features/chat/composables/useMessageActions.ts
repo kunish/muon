@@ -6,7 +6,14 @@ import { computed, toValue } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import { ask } from '@/desktop/dialog'
-import { useChatStore } from '../stores/chatStore'
+import {
+  enterMultiSelect,
+  hideMessage,
+  openThread as openThreadAction,
+  setEditingEvent,
+  setReplyingTo,
+  toggleMessageSelection,
+} from '../stores/chatStore'
 import { useMessageClipboardFeedback } from './useMessageClipboardFeedback'
 
 /**
@@ -16,7 +23,6 @@ import { useMessageClipboardFeedback } from './useMessageClipboardFeedback'
  * UI 状态保留在各自组件内，避免把渲染关注点泄漏进 composable。
  */
 export function useMessageActions(event: MaybeRefOrGetter<MatrixEvent>, roomId: MaybeRefOrGetter<string>) {
-  const store = useChatStore()
   const { t } = useI18n()
   const { copyMessageContentWithFeedback } = useMessageClipboardFeedback()
 
@@ -37,11 +43,11 @@ export function useMessageActions(event: MaybeRefOrGetter<MatrixEvent>, roomId: 
   })
 
   function reply() {
-    store.setReplyingTo(currentEvent())
+    setReplyingTo(currentEvent())
   }
 
   function edit() {
-    store.setEditingEvent(currentEvent())
+    setEditingEvent(currentEvent())
   }
 
   async function react(emoji: string) {
@@ -80,19 +86,19 @@ export function useMessageActions(event: MaybeRefOrGetter<MatrixEvent>, roomId: 
   }
 
   function multiSelect() {
-    store.enterMultiSelect()
+    enterMultiSelect()
     const id = eventId()
-    if (id) store.toggleMessageSelection(id)
+    if (id) toggleMessageSelection(id)
   }
 
   function hideForMe() {
     const id = eventId()
-    if (id) store.hideMessage(id)
+    if (id) hideMessage(id)
   }
 
   function openThread() {
     const id = eventId()
-    if (id) store.openThread(id)
+    if (id) openThreadAction(id)
   }
 
   function copyText() {

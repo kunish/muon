@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useMention } from '@/features/chat/composables/useMention'
-import { useChatStore } from '@/features/chat/stores/chatStore'
+import { resetChatStore, setCurrentRoom } from '@/features/chat/stores/chatStore'
 import { resetContactStore } from '@/features/contacts/stores/contactStore'
 
 const contactsSeed = vi.hoisted(() => ({ contacts: [] as any[], groups: [] as any[] }))
@@ -26,14 +26,13 @@ vi.mock('@/features/contacts/queries/useContacts', () => ({
 describe('useMention', () => {
   beforeEach(() => {
     resetContactStore()
+    resetChatStore()
     contactsSeed.contacts = []
     contactsSeed.groups = []
   })
 
   it('includes contacts outside the current room context', () => {
-    const chatStore = useChatStore()
-
-    chatStore.setCurrentRoom('!group_family:localhost')
+    setCurrentRoom('!group_family:localhost')
     contactsSeed.contacts = [
       {
         userId: '@edward:localhost',
@@ -56,9 +55,7 @@ describe('useMention', () => {
   })
 
   it('marks current room members as present in context', () => {
-    const chatStore = useChatStore()
-
-    chatStore.setCurrentRoom('!group_family:localhost')
+    setCurrentRoom('!group_family:localhost')
 
     const { filterMembers } = useMention()
 
@@ -73,7 +70,7 @@ describe('useMention', () => {
   })
 
   it('offers @所有人 at the top of a group room', () => {
-    useChatStore().setCurrentRoom('!group_family:localhost')
+    setCurrentRoom('!group_family:localhost')
 
     const { filterMembers } = useMention()
     const candidates = filterMembers('')
@@ -84,7 +81,7 @@ describe('useMention', () => {
   })
 
   it('does not offer @所有人 in a direct message', () => {
-    useChatStore().setCurrentRoom('!dm_alice:localhost')
+    setCurrentRoom('!dm_alice:localhost')
 
     const { filterMembers } = useMention()
 

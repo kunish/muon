@@ -670,8 +670,8 @@ describe('context menu hover state', () => {
 
   it('keeps the conversation context menu away from the viewport edge', async () => {
     const ConversationContextMenu = (await import('@/features/chat/components/ConversationContextMenu.vue')).default
-    const { useChatStore } = await import('@/features/chat/stores/chatStore')
-    const store = useChatStore()
+    const { closeContextMenu, openContextMenu, resetChatStore } = await import('@/features/chat/stores/chatStore')
+    resetChatStore()
 
     const originalInnerHeight = window.innerHeight
     const originalInnerWidth = window.innerWidth
@@ -706,7 +706,7 @@ describe('context menu hover state', () => {
       } as DOMRect
     })
 
-    store.openContextMenu('!dm:localhost', 310, 230)
+    openContextMenu('!dm:localhost', 310, 230)
     const wrapper = mount(ConversationContextMenu, {
       attachTo: document.body,
     })
@@ -724,7 +724,7 @@ describe('context menu hover state', () => {
       rectSpy.mockRestore()
       Object.defineProperty(window, 'innerHeight', { configurable: true, value: originalInnerHeight })
       Object.defineProperty(window, 'innerWidth', { configurable: true, value: originalInnerWidth })
-      store.closeContextMenu()
+      closeContextMenu()
       wrapper.unmount()
       document.body.innerHTML = ''
     }

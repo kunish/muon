@@ -1,9 +1,8 @@
 import { mount } from '@vue/test-utils'
-import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h, nextTick, ref } from 'vue'
 import RichTextInput from '@/features/chat/components/RichTextInput.vue'
-import { useChatStore } from '@/features/chat/stores/chatStore'
+import { resetChatStore, setCurrentRoom } from '@/features/chat/stores/chatStore'
 
 const mocks = vi.hoisted(() => ({
   clear: vi.fn(),
@@ -187,7 +186,7 @@ function mountInput() {
 
 describe('richTextInput silent send', () => {
   beforeEach(() => {
-    setActivePinia(createPinia())
+    resetChatStore()
     vi.clearAllMocks()
     mocks.editorText = 'hi'
     mocks.editorHtml = '<p>hi</p>'
@@ -195,8 +194,7 @@ describe('richTextInput silent send', () => {
   })
 
   it('threads silent: true when the silent-send menu item is clicked', async () => {
-    const store = useChatStore()
-    store.setCurrentRoom('!room:localhost')
+    setCurrentRoom('!room:localhost')
     const wrapper = mountInput()
     await nextTick()
 
@@ -224,8 +222,7 @@ describe('richTextInput silent send', () => {
   })
 
   it('passes no options when the regular send button is clicked', async () => {
-    const store = useChatStore()
-    store.setCurrentRoom('!room:localhost')
+    setCurrentRoom('!room:localhost')
     const wrapper = mountInput()
     await nextTick()
 

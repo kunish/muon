@@ -1,9 +1,14 @@
 import { mount } from '@vue/test-utils'
-import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h, nextTick } from 'vue'
 import ChatWindow from '@/features/chat/components/ChatWindow.vue'
-import { useChatStore } from '@/features/chat/stores/chatStore'
+import {
+  chatStore,
+  enterMultiSelect,
+  resetChatStore,
+  setCurrentRoom,
+  toggleMessageSelection,
+} from '@/features/chat/stores/chatStore'
 
 vi.mock('@/features/chat/composables/useTyping', () => ({
   useTyping: () => ({ typingUsers: [] }),
@@ -60,12 +65,11 @@ const stubs = {
 
 describe('chatWindow merged forward', () => {
   beforeEach(() => {
-    setActivePinia(createPinia())
-    const store = useChatStore()
-    store.setCurrentRoom('!room:muon.dev')
-    store.enterMultiSelect()
-    store.toggleMessageSelection('$e1')
-    store.toggleMessageSelection('$e2')
+    resetChatStore()
+    setCurrentRoom('!room:muon.dev')
+    enterMultiSelect()
+    toggleMessageSelection('$e1')
+    toggleMessageSelection('$e2')
   })
 
   it('opens the forward dialog when multi-select forward is triggered', async () => {
@@ -80,7 +84,6 @@ describe('chatWindow merged forward', () => {
   })
 
   it('closing the forward dialog exits multi-select mode', async () => {
-    const store = useChatStore()
     const wrapper = mount(ChatWindow, { global: { stubs } })
 
     wrapper.findComponent({ name: 'MultiSelectBarStub' }).vm.$emit('forward')
@@ -88,7 +91,7 @@ describe('chatWindow merged forward', () => {
     wrapper.findComponent({ name: 'ForwardDialogStub' }).vm.$emit('close')
     await nextTick()
 
-    expect(store.multiSelectMode).toBe(false)
+    expect(chatStore.state.multiSelectMode).toBe(false)
     expect(wrapper.findComponent({ name: 'ForwardDialogStub' }).exists()).toBe(false)
   })
 })

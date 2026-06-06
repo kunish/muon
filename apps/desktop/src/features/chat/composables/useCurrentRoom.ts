@@ -1,14 +1,15 @@
 import { getRoom } from '@matrix/index'
+import { useSelector } from '@tanstack/vue-store'
 import { computed } from 'vue'
-import { useChatStore } from '../stores/chatStore'
+import { chatStore } from '../stores/chatStore'
 
 export function useCurrentRoom() {
-  const store = useChatStore()
+  const currentRoomId = useSelector(chatStore, (s) => s.currentRoomId)
 
   const room = computed(() => {
-    if (!store.currentRoomId) return null
-    return getRoom(store.currentRoomId)
+    if (!currentRoomId.value) return null
+    return getRoom(currentRoomId.value)
   })
 
-  return { room, currentRoomId: computed(() => store.currentRoomId) }
+  return { room, currentRoomId }
 }

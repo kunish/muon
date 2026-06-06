@@ -4,14 +4,13 @@ import { isDirectRoom } from '@matrix/roomUtils';
 import { AtSign, Hash, Search, Settings, Users } from 'lucide-vue-next';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useChatStore } from '../stores/chatStore';
+import { toggleSidePanel } from '../stores/chatStore';
 
 const props = defineProps<{
   roomId: string;
 }>();
 
 const { t } = useI18n();
-const store = useChatStore();
 
 const roomName = computed(() => {
   const room = getClient().getRoom(props.roomId);
@@ -21,15 +20,15 @@ const roomName = computed(() => {
 const isDirect = computed(() => isDirectRoom(props.roomId));
 
 function openMembers() {
-  store.toggleSidePanel('members');
+  toggleSidePanel('members');
 }
 
 function openSettings() {
-  store.toggleSidePanel('settings');
+  toggleSidePanel('settings');
 }
 
 function openSearch() {
-  store.toggleSidePanel('search');
+  toggleSidePanel('search');
 }
 </script>
 

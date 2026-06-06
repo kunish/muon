@@ -9,7 +9,7 @@ import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { selectMessageFontScaleValue, settingsStore } from '@/shared/stores/settingsStore';
 import { useMessages } from '../composables/useMessages';
-import { useChatStore } from '../stores/chatStore';
+import { chatStore } from '../stores/chatStore';
 import ChannelWelcome from './ChannelWelcome.vue';
 import MessageGroup from './MessageGroup.vue';
 import UserInfoPanel from './UserInfoPanel.vue';
@@ -26,7 +26,8 @@ import UserInfoPanel from './UserInfoPanel.vue';
 // ──────────────────────────────────────────────────────────────
 
 const { messages, isLoading, hasMore, loadMore, relationSummaries, timelineVersion } = useMessages();
-const store = useChatStore();
+const currentRoomId = useSelector(chatStore, (s) => s.currentRoomId);
+const hiddenMessages = useSelector(chatStore, (s) => s.hiddenMessages);
 const messageFontScaleValue = useSelector(settingsStore, selectMessageFontScaleValue);
 const { t } = useI18n();
 const route = useRoute();
@@ -55,7 +56,7 @@ function closeInfoPanel() {
 }
 
 const visibleMessages = computed(
-  () => messages.value.filter((ev) => !store.isHidden(ev.getId() || '')) as MatrixEvent[],
+  () => messages.value.filter((ev) => !hiddenMessages.value.has(ev.getId() || '')) as MatrixEvent[],
 );
 
 const currentUserId = computed(() => getClient().getUserId() || '');
@@ -67,7 +68,7 @@ function isCurrentUserEvent(event: MatrixEvent): boolean {
 }
 
 const unreadEventId = computed(() => {
-  const roomId = store.currentRoomId;
+  const roomId = currentRoomId.value;
   if (!roomId) return null;
   const markerEventId = getReadMarkerEventId(roomId);
   if (!markerEventId) return null;
@@ -107,9 +108,9 @@ const showJumpToBottom = computed(() => !isRestoring.value && !isAtBottom.value)
 const showJumpToPrevious = computed(() => !isRestoring.value && returnPosition.value !== null);
 const jumpToBottomLabel = computed(() => (showNewMsg.value ? t('chat.new_msg_btn') : t('chat.jump_to_bottom')));
 const currentRoomIdForWelcome = computed(() => {
-  if (!store.currentRoomId || isLoading.value) return null;
+  if (!currentRoomId.value || isLoading.value) return null;
   if (syncState.value !== 'PREPARED' && syncState.value !== 'SYNCING') return null;
-  return store.currentRoomId;
+  return currentRoomId.value;
 });
 
 // 切换房间后等消息到达再恢复
@@ -370,7 +371,7 @@ async function restorePendingScrollIfReady() {
     !pendingRestore ||
     sessionVersion !== restoreSessionVersion ||
     roomId !== pendingRestoreRoomId ||
-    roomId !== store.currentRoomId
+    roomId !== currentRoomId.value
   ) {
     return true;
   }
@@ -468,7 +469,7 @@ function onScroll() {
 
 async function triggerPagination() {
   if (isPaginating.value || !hasMore.value || isLoading.value) return;
-  const roomId = store.currentRoomId;
+  const roomId = currentRoomId.value;
   if (!roomId) return;
   const sessionVersion = restoreSessionVersion;
   const el = containerRef.value;
@@ -495,7 +496,7 @@ async function triggerPagination() {
     if (!didLoad) return;
     await nextTick();
 
-    if (sessionVersion !== restoreSessionVersion || roomId !== store.currentRoomId) return;
+    if (sessionVersion !== restoreSessionVersion || roomId !== currentRoomId.value) return;
 
     if (savedId) {
       scrollToPosition(savedId, savedOff);
@@ -503,11 +504,11 @@ async function triggerPagination() {
       scrollToBottom();
     }
   } finally {
-    if (sessionVersion === restoreSessionVersion && roomId === store.currentRoomId) isPaginating.value = false;
+    if (sessionVersion === restoreSessionVersion && roomId === currentRoomId.value) isPaginating.value = false;
   }
 
   await nextTick();
-  if (sessionVersion === restoreSessionVersion && roomId === store.currentRoomId) {
+  if (sessionVersion === restoreSessionVersion && roomId === currentRoomId.value) {
     if (sentinelRef.value && hasMore.value) {
       const rect = sentinelRef.value.getBoundingClientRect();
       const containerRect = el.getBoundingClientRect();
@@ -521,7 +522,7 @@ async function triggerPagination() {
 // ── 房间切换 ─────────────────────────────────────────────────
 
 watch(
-  () => store.currentRoomId,
+  () => currentRoomId.value,
   (newId, oldId) => {
     // 保存旧房间锚点
     if (oldId) {
@@ -700,7 +701,7 @@ onUnmounted(() => {
       <MessageGroup
         v-if="visibleMessages.length"
         :events="visibleMessages"
-        :room-id="store.currentRoomId || ''"
+        :room-id="currentRoomId || ''"
         :reactions-by-event-id="relationSummaries.reactionsByEventId"
         :thread-reply-counts-by-event-id="relationSummaries.threadReplyCountsByEventId"
         :timeline-version="timelineVersion"
@@ -715,7 +716,7 @@ onUnmounted(() => {
       <UserInfoPanel
         :room="null"
         :user-id="infoPanelUserId"
-        :room-id="store.currentRoomId"
+        :room-id="currentRoomId"
         :position="infoPanelPos"
         @close="closeInfoPanel"
       />

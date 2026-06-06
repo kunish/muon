@@ -1,10 +1,9 @@
 import { mount, shallowMount } from '@vue/test-utils'
-import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { nextTick } from 'vue'
 import ChatWindow from '@/features/chat/components/ChatWindow.vue'
 import TaskPanel from '@/features/chat/components/TaskPanel.vue'
-import { useChatStore } from '@/features/chat/stores/chatStore'
+import { chatStore, resetChatStore, toggleSidePanel } from '@/features/chat/stores/chatStore'
 import { resetTaskStore, taskStore } from '@/features/chat/stores/taskStore'
 
 const routerPush = vi.fn()
@@ -36,9 +35,9 @@ vi.mock('@matrix/index', async (importOriginal) => {
 
 describe('taskPanel', () => {
   beforeEach(() => {
-    setActivePinia(createPinia())
     localStorage.clear()
     resetTaskStore()
+    resetChatStore()
     routerPush.mockReset()
     loadInboxEventContextMock.mockReset()
   })
@@ -95,7 +94,6 @@ describe('taskPanel', () => {
   })
 
   it('transition task status: toggles task side panel in ChatWindow', async () => {
-    const chatStore = useChatStore()
     const wrapper = shallowMount(ChatWindow, {
       global: {
         stubs: {
@@ -106,14 +104,14 @@ describe('taskPanel', () => {
 
     expect(wrapper.find('task-panel-stub').exists()).toBe(false)
 
-    chatStore.toggleSidePanel('tasks')
+    toggleSidePanel('tasks')
     await nextTick()
-    expect(chatStore.activeSidePanel).toBe('tasks')
+    expect(chatStore.state.activeSidePanel).toBe('tasks')
     expect(wrapper.find('task-panel-stub').exists()).toBe(true)
 
-    chatStore.toggleSidePanel('tasks')
+    toggleSidePanel('tasks')
     await nextTick()
-    expect(chatStore.activeSidePanel).toBe(null)
+    expect(chatStore.state.activeSidePanel).toBe(null)
   })
 
   it('jump to source message: preloads context before navigation', async () => {

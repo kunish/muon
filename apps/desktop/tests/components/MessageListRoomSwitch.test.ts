@@ -2,7 +2,7 @@ import type { MatrixEvent } from 'matrix-js-sdk'
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h, nextTick } from 'vue'
-import { useChatStore } from '@/features/chat/stores/chatStore'
+import { resetChatStore, setCurrentRoom } from '@/features/chat/stores/chatStore'
 
 const {
   getReadMarkerEventIdMock,
@@ -177,6 +177,7 @@ const MessageGroupUnreadStub = defineComponent({
 
 describe('message list room switching', () => {
   beforeEach(() => {
+    resetChatStore()
     getReadMarkerEventIdMock.mockReturnValue(null)
     syncStateMock.value = 'PREPARED'
   })
@@ -191,8 +192,7 @@ describe('message list room switching', () => {
 
     timelines.set('!room-loading:localhost', [])
 
-    const store = useChatStore()
-    store.setCurrentRoom('!room-loading:localhost')
+    setCurrentRoom('!room-loading:localhost')
 
     const MessageList = (await import('@/features/chat/components/MessageList.vue')).default
     const wrapper = mount(MessageList, {
@@ -228,8 +228,7 @@ describe('message list room switching', () => {
       createMessageEvent('$own-local-echo', '@test:localhost'),
     ])
 
-    const store = useChatStore()
-    store.setCurrentRoom('!room-own-message:localhost')
+    setCurrentRoom('!room-own-message:localhost')
 
     const MessageList = (await import('@/features/chat/components/MessageList.vue')).default
     const wrapper = mount(MessageList, {
@@ -263,8 +262,7 @@ describe('message list room switching', () => {
     timelines.set('!room-a:localhost', [createEvent('$a-new')])
     timelines.set('!room-empty:localhost', [])
 
-    const store = useChatStore()
-    store.setCurrentRoom('!room-a:localhost')
+    setCurrentRoom('!room-a:localhost')
 
     const MessageList = (await import('@/features/chat/components/MessageList.vue')).default
     const wrapper = mount(MessageList, {
@@ -281,7 +279,7 @@ describe('message list room switching', () => {
     const scrollerWrapper = wrapper.get('[data-testid="message-list-scroller"]')
     expect((scrollerWrapper.element as HTMLElement).style.visibility).toBe('visible')
 
-    store.setCurrentRoom('!room-empty:localhost')
+    setCurrentRoom('!room-empty:localhost')
     await nextTick()
     await flushPromises()
     await nextTick()
@@ -304,8 +302,7 @@ describe('message list room switching', () => {
     timelines.set('!room-a:localhost', [createEvent('$a-old'), createEvent('$a-new')])
     timelines.set('!room-b:localhost', [createEvent('$b-new')])
 
-    const store = useChatStore()
-    store.setCurrentRoom('!room-a:localhost')
+    setCurrentRoom('!room-a:localhost')
 
     const MessageList = (await import('@/features/chat/components/MessageList.vue')).default
     const wrapper = mount(MessageList, {
@@ -333,11 +330,11 @@ describe('message list room switching', () => {
     await scrollerWrapper.trigger('scroll')
 
     scroller.scrollTop = 700
-    store.setCurrentRoom('!room-b:localhost')
+    setCurrentRoom('!room-b:localhost')
     await nextTick()
     await flushPromises()
 
-    store.setCurrentRoom('!room-a:localhost')
+    setCurrentRoom('!room-a:localhost')
     await nextTick()
     await flushPromises()
     await nextTick()
@@ -360,8 +357,7 @@ describe('message list room switching', () => {
     timelines.set('!room-a:localhost', [createEvent('$a-old'), createEvent('$a-new')])
     timelines.set('!room-b:localhost', [createEvent('$b-new')])
 
-    const store = useChatStore()
-    store.setCurrentRoom('!room-a:localhost')
+    setCurrentRoom('!room-a:localhost')
 
     const MessageList = (await import('@/features/chat/components/MessageList.vue')).default
     const wrapper = mount(MessageList, {
@@ -388,11 +384,11 @@ describe('message list room switching', () => {
     await scrollerWrapper.trigger('scroll')
     expect(scroller.scrollTop).toBe(metrics.maxScrollTop)
 
-    store.setCurrentRoom('!room-b:localhost')
+    setCurrentRoom('!room-b:localhost')
     await nextTick()
     await flushPromises()
 
-    store.setCurrentRoom('!room-a:localhost')
+    setCurrentRoom('!room-a:localhost')
     await nextTick()
     await flushPromises()
     await nextTick()
@@ -425,8 +421,7 @@ describe('message list room switching', () => {
     timelines.set('!room-a:localhost', [createEvent('$a-new')])
     timelines.set('!room-b:localhost', [createEvent('$b-new')])
 
-    const store = useChatStore()
-    store.setCurrentRoom('!room-a:localhost')
+    setCurrentRoom('!room-a:localhost')
 
     const MessageList = (await import('@/features/chat/components/MessageList.vue')).default
     const wrapper = mount(MessageList, {
@@ -443,7 +438,7 @@ describe('message list room switching', () => {
     await flushPromises()
     expect(wrapper.text()).toContain('$a-new')
 
-    store.setCurrentRoom('!room-b:localhost')
+    setCurrentRoom('!room-b:localhost')
     await nextTick()
 
     const scrollerWrapper = wrapper.get('[data-testid="message-list-scroller"]')
@@ -481,8 +476,7 @@ describe('message list room switching', () => {
     timelines.set('!room-a:localhost', [createEvent('$a-new')])
     timelines.set('!room-uncached:localhost', [])
 
-    const store = useChatStore()
-    store.setCurrentRoom('!room-a:localhost')
+    setCurrentRoom('!room-a:localhost')
 
     const MessageList = (await import('@/features/chat/components/MessageList.vue')).default
     const wrapper = mount(MessageList, {
@@ -501,7 +495,7 @@ describe('message list room switching', () => {
     const scrollerWrapper = wrapper.get('[data-testid="message-list-scroller"]')
     expect((scrollerWrapper.element as HTMLElement).style.visibility).toBe('visible')
 
-    store.setCurrentRoom('!room-uncached:localhost')
+    setCurrentRoom('!room-uncached:localhost')
     await nextTick()
     await flushPromises()
     await nextTick()
@@ -537,8 +531,7 @@ describe('message list room switching', () => {
     timelines.set('!room-a:localhost', [createEvent('$a-old'), createEvent('$a-new')])
     timelines.set('!room-b:localhost', [createEvent('$b-new')])
 
-    const store = useChatStore()
-    store.setCurrentRoom('!room-a:localhost')
+    setCurrentRoom('!room-a:localhost')
 
     const MessageList = (await import('@/features/chat/components/MessageList.vue')).default
     const wrapper = mount(MessageList, {
@@ -560,11 +553,11 @@ describe('message list room switching', () => {
     scroller.scrollTop = scroller.scrollHeight
     await scrollerWrapper.trigger('scroll')
 
-    store.setCurrentRoom('!room-b:localhost')
+    setCurrentRoom('!room-b:localhost')
     await nextTick()
     await flushPromises()
 
-    store.setCurrentRoom('!room-a:localhost')
+    setCurrentRoom('!room-a:localhost')
     await nextTick()
     await flushPromises()
     await nextTick()
@@ -599,8 +592,7 @@ describe('message list room switching', () => {
     timelines.set('!room-a:localhost', [createEvent('$a-new')])
     timelines.set('!room-b:localhost', [createEvent('$b-new')])
 
-    const store = useChatStore()
-    store.setCurrentRoom('!room-a:localhost')
+    setCurrentRoom('!room-a:localhost')
 
     const MessageList = (await import('@/features/chat/components/MessageList.vue')).default
     const wrapper = mount(MessageList, {
@@ -623,7 +615,7 @@ describe('message list room switching', () => {
     await scrollerWrapper.trigger('scroll')
     expect(scroller.scrollTop).toBe(metrics.maxScrollTop)
 
-    store.setCurrentRoom('!room-b:localhost')
+    setCurrentRoom('!room-b:localhost')
     await nextTick()
     await flushPromises()
     await nextTick()
@@ -667,8 +659,7 @@ describe('message list room switching', () => {
     timelines.set('!room-a:localhost', [createEvent('$a-old'), createEvent('$a-new')])
     timelines.set('!room-b:localhost', [createEvent('$b-new')])
 
-    const store = useChatStore()
-    store.setCurrentRoom('!room-a:localhost')
+    setCurrentRoom('!room-a:localhost')
 
     const MessageList = (await import('@/features/chat/components/MessageList.vue')).default
     const wrapper = mount(MessageList, {
@@ -699,11 +690,11 @@ describe('message list room switching', () => {
     await scrollerWrapper.trigger('scroll')
     expect(scroller.scrollTop).toBe(metrics.maxScrollTop)
 
-    store.setCurrentRoom('!room-b:localhost')
+    setCurrentRoom('!room-b:localhost')
     await nextTick()
     await flushPromises()
 
-    store.setCurrentRoom('!room-a:localhost')
+    setCurrentRoom('!room-a:localhost')
     await nextTick()
     await flushPromises()
     await nextTick()
@@ -729,8 +720,7 @@ describe('message list room switching', () => {
 
     timelines.set('!room-a:localhost', [createEvent('$a-old'), createEvent('$a-middle'), createEvent('$a-new')])
 
-    const store = useChatStore()
-    store.setCurrentRoom('!room-a:localhost')
+    setCurrentRoom('!room-a:localhost')
 
     const MessageList = (await import('@/features/chat/components/MessageList.vue')).default
     const wrapper = mount(MessageList, {
