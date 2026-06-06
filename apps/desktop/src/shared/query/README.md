@@ -74,3 +74,29 @@ passes an id that exists in the list (the only safe source of ids anyway).
 
 `features/chat/{queries/{qaKeys,qaApi,useQaHistory},stores/qaStore}.ts` is the
 reference for this mixed split.
+
+### Variant: ephemeral runtime input + a build/refresh mutation (digestStore)
+
+`digestStore` is the heavier mixed store: the persisted list (`entries`) goes to
+vue-query, but the client half also owns **ephemeral runtime state** — live
+`sourceEvents` accumulated from a `matrixEvents.on('room.message')` subscription
+(never persisted) — plus the UI filter. A "build the away-window session"
+mutation materializes the persisted entries from those source events. Three
+patterns worth copying for any store that refreshes a cached list from a
+side-input on mount:
+
+- **Merge-on-empty without reading the cache:** the build mutation writes the
+  cache (`setQueryData`) only when materialization is non-empty; an empty result
+  writes nothing, so the hydrated entries are preserved. This reproduces the old
+  "if empty && current>0 keep, else replace" branch with no read of the prior
+  list and no ordering dependency for correctness.
+- **Hydrate-before-build, no race:** the entries query is `enabled: false` and
+  the panel's `onMounted` drives it explicitly — `await query.refetch()` (hydrate)
+  then `await buildSession.mutateAsync(...)`. This guarantees the build's
+  `setQueryData` lands _after_ hydration (an auto-fetching query could resolve
+  late and clobber a fresh session) and yields one Dexie read per mount.
+- **Background init stays visible but non-fatal:** a hydrate or build failure is
+  `console.error`-logged (never swallowed into a fake success) and short-circuits,
+  but the panel keeps rendering whatever was hydrated — the build is best-effort.
+
+`features/chat/{queries/{digestKeys,digestApi,useDigest},stores/digestStore}.ts`.
