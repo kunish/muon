@@ -12,11 +12,11 @@ describe('admin styles', () => {
   })
 
   it('keeps the admin content pane scrollable', () => {
-    const app = readRepoSource('apps/admin/src/AdminApp.vue')
+    const shell = readRepoSource('apps/admin/src/layouts/AppShell.vue')
 
-    expect(app).toMatch(/\.admin-shell\s*\{[^}]*height:\s*100vh/)
-    expect(app).toMatch(/\.admin-shell\s*\{[^}]*overflow:\s*hidden/)
-    expect(app).toMatch(/\.admin-content\s*\{[^}]*min-height:\s*0/)
-    expect(app).toMatch(/\.admin-content\s*\{[^}]*overflow-y:\s*auto/)
+    expect(shell).toMatch(/\.admin-shell\s*\{[^}]*height:\s*100vh/)
+    expect(shell).toMatch(/\.admin-shell\s*\{[^}]*overflow:\s*hidden/)
+    expect(shell).toMatch(/\.admin-sidebar\s*\{[^}]*min-height:\s*0/)
+    expect(shell).toMatch(/\.admin-sidebar\s*\{[^}]*overflow-y:\s*auto/)
   })
 })
