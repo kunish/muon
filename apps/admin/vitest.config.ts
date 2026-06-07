@@ -1,18 +1,19 @@
 import { resolve } from 'node:path'
-import tailwindcss from '@tailwindcss/vite'
 import vue from '@vitejs/plugin-vue'
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
-  plugins: [vue(), tailwindcss()],
+  root: __dirname,
+  plugins: [vue()],
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    include: ['tests/**/*.test.ts'],
+  },
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
       '@muon/enterprise-contracts': resolve(__dirname, '../../packages/enterprise-contracts/src/index.ts'),
     },
-  },
-  server: {
-    port: 4174,
-    strictPort: true,
   },
 })
