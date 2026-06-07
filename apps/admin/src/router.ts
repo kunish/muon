@@ -17,9 +17,11 @@ export const adminSections: Array<{
   { id: 'audit', label: '审计日志', routeName: 'admin-audit' },
 ]
 
-const AdminRoutePlaceholder = {
-  name: 'AdminRoutePlaceholder',
-  render: () => null,
+const adminSectionComponents: Record<AdminSection, () => Promise<unknown>> = {
+  organizations: () => import('@/pages/OrganizationsPage.vue'),
+  users: () => import('@/pages/UsersPage.vue'),
+  departments: () => import('@/pages/DepartmentsPage.vue'),
+  audit: () => import('@/pages/AuditPage.vue'),
 }
 
 export function isAdminSection(value: unknown): value is AdminSection {
@@ -34,7 +36,7 @@ export const adminRoutes: RouteRecordRaw[] = [
   ...adminSections.map((section) => ({
     path: `/${section.id}`,
     name: section.routeName,
-    component: AdminRoutePlaceholder,
+    component: adminSectionComponents[section.id],
     meta: { adminSection: section.id },
   })),
   {
