@@ -22,7 +22,7 @@ const API_BASE_URL = import.meta.env.VITE_MUON_API_BASE_URL ?? 'http://127.0.0.1
 
 function parseErrorPayload(response: Response) {
   return fromPromise(() => response.json() as Promise<{ error?: string }>).pipe(
-    Effect.catchAll(() => Effect.succeed({})),
+    Effect.catchAll(() => Effect.succeed<{ error?: string }>({})),
   )
 }
 
