@@ -4,6 +4,7 @@ import { createApp } from 'vue'
 import { getAdminMe, getInstallStatus } from './api'
 import App from './App.vue'
 import { fromPromise, fromSync, runAdminEffect } from './effect'
+import { isAuthenticationError } from './lib/authError'
 import { createAdminRouter, normalizeLegacyAdminHash } from './router'
 import { clearToken, sessionStore, setInstalled, setMustChangePassword } from './stores/sessionStore'
 import './main.css'
@@ -17,10 +18,6 @@ function createAdminQueryClient() {
       },
     },
   })
-}
-
-function isAuthenticationError(error: unknown): boolean {
-  return error instanceof Error && /authentication|credentials|required/i.test(error.message)
 }
 
 /**
