@@ -7,8 +7,6 @@ import { Switch } from '@muon/ui/switch';
 import { Textarea } from '@muon/ui/textarea';
 import { useSelector } from '@tanstack/vue-store';
 import { Bell, BellOff, Check, ChevronRight, Copy, Pin, Shield, X } from 'lucide-vue-next';
-import { computed, onUnmounted, ref } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
 import { ask } from '@/desktop/dialog';
 import {

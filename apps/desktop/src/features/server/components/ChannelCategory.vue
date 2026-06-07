@@ -3,8 +3,6 @@ import type { ChannelTreeCategory } from '@/features/server/stores/serverStore';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@muon/ui/tooltip';
 import { useSelector } from '@tanstack/vue-store';
 import { ChevronDown, Plus } from 'lucide-vue-next';
-import { computed } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { serverStore, toggleCategory } from '@/features/server/stores/serverStore';
 
 const props = defineProps<{

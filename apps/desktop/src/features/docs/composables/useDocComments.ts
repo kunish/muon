@@ -1,7 +1,6 @@
 import type { Doc } from 'yjs'
 import type { DocComment } from '../types/doc'
 import { nanoid } from 'nanoid'
-import { computed, onUnmounted, shallowRef } from 'vue'
 
 export function useDocComments(ydoc: () => Doc, currentUserId: string) {
   const draftText = shallowRef('')

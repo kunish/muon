@@ -2,8 +2,6 @@
 import { redactMessage } from '@matrix/index';
 import { useSelector } from '@tanstack/vue-store';
 import { Forward, Trash2, X } from 'lucide-vue-next';
-import { computed } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
 import { ask } from '@/desktop/dialog';
 import { chatStore, exitMultiSelect } from '../stores/chatStore';

@@ -1,6 +1,5 @@
 import type { Project } from '../types'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { computed } from 'vue'
 import { projectKeys } from './projectKeys'
 import {
   createProjectEntry,

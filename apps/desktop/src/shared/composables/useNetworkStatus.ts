@@ -1,6 +1,5 @@
 import type { DesktopEffect } from '@/shared/lib/effect'
 import { Effect } from 'effect'
-import { onUnmounted, ref } from 'vue'
 import { fetch } from '@/desktop/http'
 import { fromPromise, fromSync, runDesktopEffect } from '@/shared/lib/effect'
 

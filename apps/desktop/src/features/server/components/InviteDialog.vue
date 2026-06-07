@@ -4,8 +4,6 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from '@muon/ui/input';
 import { Label } from '@muon/ui/label';
 import { Check, Copy, Link } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
 import { getClient } from '@/matrix/client';
 

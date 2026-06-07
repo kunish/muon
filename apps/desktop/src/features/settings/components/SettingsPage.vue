@@ -1,8 +1,5 @@
 <script setup lang="ts">
 import { Bell, Info, Keyboard, Monitor, Settings, Shield, User } from 'lucide-vue-next';
-import { computed, ref, watch } from 'vue';
-import { useI18n } from 'vue-i18n';
-import { useRoute, useRouter } from 'vue-router';
 import WorkspaceResizablePane from '@/app/components/workspace/WorkspaceResizablePane.vue';
 import AboutPage from './AboutPage.vue';
 import AppearanceSettings from './AppearanceSettings.vue';

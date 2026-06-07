@@ -2,8 +2,6 @@
 import type { ConnectionStatus } from '@shared/composables/useNetworkStatus';
 import { useNetworkStatus } from '@shared/composables/useNetworkStatus';
 import { ServerOff, Wifi, WifiOff } from 'lucide-vue-next';
-import { onUnmounted, ref, watch } from 'vue';
-import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
 const { status } = useNetworkStatus();

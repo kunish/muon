@@ -9,8 +9,6 @@ import { ScrollArea } from '@muon/ui/scroll-area';
 import { Textarea } from '@muon/ui/textarea';
 import { useSelector } from '@tanstack/vue-store';
 import { ChevronDown, X } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
 import WorkspaceResizablePane from '@/app/components/workspace/WorkspaceResizablePane.vue';
 import ConversationList from '@/features/chat/components/ConversationList.vue';

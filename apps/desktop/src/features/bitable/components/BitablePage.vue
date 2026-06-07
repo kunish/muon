@@ -2,9 +2,6 @@
 import type { BitableRecord, BitableTable, CellValue, Field, FieldType } from '../types/bitable';
 import { useSelector } from '@tanstack/vue-store';
 import { Plus, Table2, Trash2 } from 'lucide-vue-next';
-import { computed, onMounted, shallowRef } from 'vue';
-import { useI18n } from 'vue-i18n';
-import { useRoute } from 'vue-router';
 import { toast } from 'vue-sonner';
 import WorkspacePageFrame from '@/app/components/workspace/WorkspacePageFrame.vue';
 import {

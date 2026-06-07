@@ -8,8 +8,6 @@ import {
 } from '@muon/ui/dropdown-menu';
 import { useSelector } from '@tanstack/vue-store';
 import { Bell, FolderPlus, Hash, LogOut, Settings, UserPlus } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { serverStore } from '@/features/server/stores/serverStore';
 import { useRoomPermissions } from '@/shared/composables/useRoomPermissions';
 

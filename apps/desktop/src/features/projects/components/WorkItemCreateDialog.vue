@@ -6,7 +6,6 @@ import { Label } from '@muon/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@muon/ui/select';
 import { Textarea } from '@muon/ui/textarea';
 import { useForm } from '@tanstack/vue-form';
-import { useI18n } from 'vue-i18n';
 import { z } from 'zod';
 import { createItem } from '../composables/useWorkItemStore';
 import { PRIORITIES, WORK_ITEM_TYPES } from '../types';

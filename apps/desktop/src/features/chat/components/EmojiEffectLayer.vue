@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from 'vue';
-
 const canvasRef = ref<HTMLCanvasElement | null>(null);
 let ctx: CanvasRenderingContext2D | null = null;
 let dpr = 1;

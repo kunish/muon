@@ -3,8 +3,6 @@ import type { Contact } from '../types';
 import { Avatar } from '@muon/ui/avatar';
 import { SearchBox } from '@muon/ui/search-box';
 import { useSelector } from '@tanstack/vue-store';
-import { computed } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { filterContacts, filterGroups } from '../queries/contactsApi';
 import { useContactsQuery, useGroupsQuery } from '../queries/useContacts';
 import { contactStore, getContactProfile, selectContact, setSearchQuery } from '../stores/contactStore';

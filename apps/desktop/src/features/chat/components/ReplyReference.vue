@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { Avatar } from '@muon/ui/avatar';
-import { computed } from 'vue';
 
 const props = defineProps<{
   replySenderName: string;

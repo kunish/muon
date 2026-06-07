@@ -2,8 +2,6 @@
 import { getClient } from '@matrix/client';
 import { getTimeline, matrixEvents } from '@matrix/index';
 import { MessageSquareText, X } from 'lucide-vue-next';
-import { computed, onMounted, onUnmounted, ref } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { closeSidePanel, openThread } from '../stores/chatStore';
 
 interface ThreadItem {

@@ -9,8 +9,6 @@ import {
 } from '@muon/ui/context-menu';
 import { useSelector } from '@tanstack/vue-store';
 import { BellOff, CheckCheck, Copy, Pencil, Trash2 } from 'lucide-vue-next';
-import { computed, shallowRef } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
 import { serverStore } from '@/features/server/stores/serverStore';
 import { useRoomPermissions } from '@/shared/composables/useRoomPermissions';

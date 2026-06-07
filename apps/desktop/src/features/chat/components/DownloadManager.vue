@@ -3,8 +3,6 @@ import type { DownloadItem } from '../stores/downloadStore';
 import { Progress } from '@muon/ui/progress';
 import { useSelector } from '@tanstack/vue-store';
 import { AlertCircle, CheckCircle2, Clock, Download, FileText, FolderOpen, Trash2, X } from 'lucide-vue-next';
-import { computed } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
 import { openPath, revealItemInDir } from '@/desktop/opener';
 import { clearCompleted, downloadStore, removeDownload } from '../stores/downloadStore';

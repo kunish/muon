@@ -5,8 +5,6 @@ import { matrixEvents } from '@matrix/events';
 import { getThreadReplies, sendThreadReply } from '@matrix/index';
 import { format } from 'date-fns';
 import { MessageSquare, Send, X } from 'lucide-vue-next';
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
 import { closeThread } from '../stores/chatStore';
 

@@ -1,9 +1,7 @@
 <script setup lang="ts">
 import type { MatrixEvent } from 'matrix-js-sdk';
 import { DialogClose, DialogContent, DialogTitle } from '@muon/ui/dialog';
-import { useClipboard } from '@vueuse/core';
 import { Copy } from 'lucide-vue-next';
-import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
 import { buildRawEventJson } from '../lib/rawEventJson';
 

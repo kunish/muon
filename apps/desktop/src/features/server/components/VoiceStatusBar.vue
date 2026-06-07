@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import { useSelector } from '@tanstack/vue-store';
 import { HeadphoneOff, Headphones, Mic, MicOff, PhoneOff } from 'lucide-vue-next';
-import { computed } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { useVoiceChannel } from '@/features/server/composables/useVoiceChannel';
 import { serverStore } from '@/features/server/stores/serverStore';
 

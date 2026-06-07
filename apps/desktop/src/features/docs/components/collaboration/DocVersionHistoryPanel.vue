@@ -3,8 +3,6 @@ import type { Editor } from '@tiptap/core';
 import type { DocVersion } from '../../db/docsDb';
 import { History, RotateCcw, Trash2, X } from 'lucide-vue-next';
 import { nanoid } from 'nanoid';
-import { onMounted, ref, shallowRef } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { docsRepo } from '../../db/docsDb';
 
 const props = defineProps<{

@@ -1,7 +1,5 @@
 <script setup lang="ts">
 import { useSelector } from '@tanstack/vue-store';
-import { computed, ref } from 'vue';
-import { useI18n } from 'vue-i18n';
 import {
   deferStore,
   markArchived,

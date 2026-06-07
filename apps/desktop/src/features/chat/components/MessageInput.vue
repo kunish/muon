@@ -2,8 +2,6 @@
 import { sendTextMessage } from '@matrix/index';
 import { useSelector } from '@tanstack/vue-store';
 import { Send } from 'lucide-vue-next';
-import { ref, watch } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { useTyping } from '../composables/useTyping';
 import { chatStore, getDraft, setDraft } from '../stores/chatStore';
 

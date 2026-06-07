@@ -1,9 +1,6 @@
 <script setup lang="ts">
 import type { ApprovalTemplate, BackendApproval } from '@/features/approvals/lib/approvalsApi';
-import { useStorage } from '@vueuse/core';
 import { CheckSquare, Clock3, FileCheck2, Plus, ShieldCheck, XCircle } from 'lucide-vue-next';
-import { computed, onMounted, ref, shallowRef, watch } from 'vue';
-import { useI18n } from 'vue-i18n';
 import WorkspacePageFrame from '@/app/components/workspace/WorkspacePageFrame.vue';
 import {
   commentApproval,

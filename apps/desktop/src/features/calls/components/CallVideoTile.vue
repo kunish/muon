@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { LocalVideoTrack, RemoteVideoTrack } from 'livekit-client';
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 const props = defineProps<{
   /** LiveKit 视频轨；为空时显示占位 */

@@ -3,7 +3,6 @@ import type { MessageAlignment, MessageFontScale, SendMessageShortcut, ThemeMode
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@muon/ui/select';
 import { useSelector } from '@tanstack/vue-store';
 import { Check } from 'lucide-vue-next';
-import { useI18n } from 'vue-i18n';
 import {
   MESSAGE_FONT_SCALE_VALUES,
   setLocale,

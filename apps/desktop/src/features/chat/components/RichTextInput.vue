@@ -23,9 +23,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useSelector } from '@tanstack/vue-store';
 import { EditorContent } from '@tiptap/vue-3';
 import { ALargeSmall, AtSign, ChevronDown, Maximize2, Minimize2, SendHorizontal, Smile } from 'lucide-vue-next';
-import { computed, nextTick, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue';
-import { useI18n } from 'vue-i18n';
-import { useRoute, useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
 import { captureScreen } from '@/desktop/screenshot';
 import { escapeHtml } from '@/shared/lib/utils';

@@ -3,8 +3,6 @@ import { findOrCreateDm } from '@matrix/index';
 import { useContactList } from '@shared/composables/useContactList';
 import { useSelector } from '@tanstack/vue-store';
 import { Mic, Phone, PhoneIncoming, PhoneMissed, PhoneOutgoing, Plus, Video } from 'lucide-vue-next';
-import { computed, onMounted, ref, watch } from 'vue';
-import { useI18n } from 'vue-i18n';
 import WorkspacePageFrame from '@/app/components/workspace/WorkspacePageFrame.vue';
 import { openUrl } from '@/desktop/opener';
 import GroupMemberPicker from '@/features/contacts/components/GroupMemberPicker.vue';

@@ -2,8 +2,6 @@
 import { getClient } from '@matrix/client';
 import { useSelector } from '@tanstack/vue-store';
 import { Download, FileText, Film, Image, Music, Search } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
 import { downloadMediaFile } from '@/shared/lib/download';
 import { chatStore } from '../stores/chatStore';

@@ -3,7 +3,6 @@ import { Label } from '@muon/ui/label';
 import { Switch } from '@muon/ui/switch';
 import { useForm } from '@tanstack/vue-form';
 import { Lock, X } from 'lucide-vue-next';
-import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
 import { z } from 'zod';
 import { useGroupManagement } from '../composables/useGroupManagement';

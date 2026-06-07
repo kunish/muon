@@ -3,7 +3,6 @@ import type { UnifiedInboxItem } from '../types/unifiedInbox'
 import { getClient } from '@matrix/client'
 import { getRoom, getRoomSummaries, invalidateRoomSummariesCache, matrixEvents } from '@matrix/index'
 import { useSelector } from '@tanstack/vue-store'
-import { computed, getCurrentInstance, onMounted, ref, shallowRef } from 'vue'
 import { registerSessionSubscriber } from '@/auth/lifecycleEvents'
 import { inboxStore, isProcessed } from '../stores/inboxStore'
 

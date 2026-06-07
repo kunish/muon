@@ -17,7 +17,6 @@ import {
   UserMinus,
   UserPlus,
 } from 'lucide-vue-next';
-import { computed } from 'vue';
 
 const props = defineProps<{
   event: MatrixEvent;

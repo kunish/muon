@@ -13,8 +13,6 @@ import { Avatar } from '@muon/ui/avatar';
 import { Textarea } from '@muon/ui/textarea';
 import { useRoomNavigation } from '@shared/composables/useRoomNavigation';
 import { Check, ImagePlus, LogOut, Megaphone, Pencil, Shield, UserMinus, UserPlus, X } from 'lucide-vue-next';
-import { computed, ref, toRef } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
 import { ask } from '@/desktop/dialog';
 import { useRoomPermissions } from '@/shared/composables/useRoomPermissions';

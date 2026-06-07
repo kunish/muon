@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { Smile } from 'lucide-vue-next';
-import { onBeforeUnmount, ref, watch } from 'vue';
 import EmojiPicker from './EmojiPicker.vue';
 
 const emit = defineEmits<{

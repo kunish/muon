@@ -1,7 +1,5 @@
 <script setup lang="ts">
 import { FilePlus2, FolderPlus, Upload } from 'lucide-vue-next';
-import { onBeforeUnmount, onMounted, ref } from 'vue';
-import { useI18n } from 'vue-i18n';
 
 const emit = defineEmits<{
   createDoc: [];

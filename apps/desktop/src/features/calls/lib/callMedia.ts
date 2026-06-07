@@ -1,6 +1,5 @@
 import type { LocalVideoTrack, Participant, RemoteTrack, RemoteVideoTrack, Room } from 'livekit-client'
 import type { CallMode } from '@/matrix/index'
-import { shallowRef } from 'vue'
 import { getLiveKitToken } from '@/features/server/lib/livekitToken'
 import { getClient } from '@/matrix/client'
 import { triggerBlobDownload } from '@/shared/lib/download'

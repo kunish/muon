@@ -2,8 +2,6 @@
 import type { MeetingRoom } from '../types/room';
 import { useSelector } from '@tanstack/vue-store';
 import { CalendarClock, Clock, DoorOpen, MapPin, Plus, Trash2, Users } from 'lucide-vue-next';
-import { computed, ref, shallowRef } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
 import WorkspacePageFrame from '@/app/components/workspace/WorkspacePageFrame.vue';
 import {

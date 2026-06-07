@@ -2,8 +2,6 @@
 import { getClient } from '@matrix/client';
 import { useSelector } from '@tanstack/vue-store';
 import { ArrowLeft, Download } from 'lucide-vue-next';
-import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue';
-import { useRouter } from 'vue-router';
 import MediaViewer from '@/features/chat/components/MediaViewer.vue';
 import { useMediaViewer } from '@/features/chat/composables/useMediaViewer';
 import { useDocComments } from '../../composables/useDocComments';

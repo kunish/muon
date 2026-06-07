@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
 import { getServerUnreadInfo } from '@/features/server/stores/serverStore';
 import { useAuthMedia } from '@/shared/composables/useAuthMedia';
 

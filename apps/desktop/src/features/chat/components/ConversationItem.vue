@@ -3,8 +3,6 @@ import type { RoomSummary } from '@matrix/types';
 import { Avatar } from '@muon/ui/avatar';
 import { useSelector } from '@tanstack/vue-store';
 import { BellOff, FileText, Film, Image, Lock, Mic, Pin } from 'lucide-vue-next';
-import { computed } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { formatMessageTime, messageTypeLabel as getTypeLabel, isLikelyBot } from '../lib/format';
 import { chatStore, selectIsMarkedUnread, selectIsMuted, selectIsPinned } from '../stores/chatStore';
 

@@ -2,7 +2,6 @@
 import type { ImageSticker } from '@/shared/data/stickerPacks';
 import type { GifResult } from '@/shared/lib/gifSearch';
 import { Smile, Sticker } from 'lucide-vue-next';
-import { reactive, ref, watch } from 'vue';
 import EmojiPicker from './EmojiPicker.vue';
 import GifPicker from './GifPicker.vue';
 import StickerPicker from './StickerPicker.vue';

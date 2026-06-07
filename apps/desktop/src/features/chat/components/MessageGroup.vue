@@ -5,7 +5,6 @@ import { getClient } from '@matrix/client';
 import { canMergeSystemEvents, isSystemEvent } from '@matrix/index';
 import { settingsStore } from '@shared/stores/settingsStore';
 import { useSelector } from '@tanstack/vue-store';
-import { computed } from 'vue';
 import ChatMessage from './ChatMessage.vue';
 import MessageGroupAvatar from './MessageGroupAvatar.vue';
 import NewMessageSeparator from './NewMessageSeparator.vue';

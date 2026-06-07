@@ -3,8 +3,6 @@ import type { ChannelInfo } from '@/matrix/spaces';
 import { Badge } from '@muon/ui/badge';
 import { useSelector } from '@tanstack/vue-store';
 import { UserPlus } from 'lucide-vue-next';
-import { computed } from 'vue';
-import { useRouter } from 'vue-router';
 import { selectChannel, serverStore } from '@/features/server/stores/serverStore';
 
 const props = defineProps<{

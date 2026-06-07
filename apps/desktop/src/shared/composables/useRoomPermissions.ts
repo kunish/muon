@@ -1,5 +1,3 @@
-import type { Ref } from 'vue'
-import { computed, toValue } from 'vue'
 import { getClient } from '@/matrix/client'
 
 export function useRoomPermissions(roomId: Ref<string | null> | string | null) {

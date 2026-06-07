@@ -1,5 +1,4 @@
 import { useQuery } from '@tanstack/vue-query'
-import { computed } from 'vue'
 import { contactKeys } from './contactKeys'
 import { loadContacts, loadGroups } from './contactsApi'
 

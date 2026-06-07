@@ -5,7 +5,7 @@ import vueI18n from '@intlify/unplugin-vue-i18n/vite'
 import tailwindcss from '@tailwindcss/vite'
 import vue from '@vitejs/plugin-vue'
 import { defineConfig } from 'electron-vite'
-import { autoImportPlugin, componentsPlugin } from './config/unplugins.js'
+import { autoImportPlugin, componentsPlugin, vueRouterPlugin } from './config/unplugins.js'
 
 const pkg = JSON.parse(readFileSync(resolve(__dirname, 'package.json'), 'utf8')) as { version: string }
 
@@ -73,6 +73,7 @@ export default defineConfig({
     },
     envDir: resolve(__dirname, '../..'),
     plugins: [
+      vueRouterPlugin(),
       vue(),
       autoImportPlugin(),
       componentsPlugin(),

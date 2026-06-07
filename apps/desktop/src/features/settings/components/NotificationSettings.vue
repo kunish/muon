@@ -4,7 +4,6 @@ import { Label } from '@muon/ui/label';
 import { Switch } from '@muon/ui/switch';
 import { useSelector } from '@tanstack/vue-store';
 import { AtSign, BellRing, CalendarDays, ClipboardCheck, MessageSquare, Volume2 } from 'lucide-vue-next';
-import { useI18n } from 'vue-i18n';
 import {
   selectActiveNotificationChannelCount,
   selectNormalizedNotificationChannels,

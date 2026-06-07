@@ -2,10 +2,7 @@
 import { leaveRoom, toggleRoomMute, toggleRoomPin } from '@matrix/index';
 import { isDirectRoom } from '@matrix/roomUtils';
 import { useSelector } from '@tanstack/vue-store';
-import { onClickOutside } from '@vueuse/core';
 import { Bell, BellOff, Clock, Eye, EyeOff, LogOut, Pin, PinOff } from 'lucide-vue-next';
-import { computed, ref, watch } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
 import { ask } from '@/desktop/dialog';
 import { useContextMenuScrollLock } from '@/shared/composables/useContextMenuScrollLock';

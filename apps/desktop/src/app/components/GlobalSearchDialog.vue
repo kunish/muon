@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { useI18n } from 'vue-i18n';
 import GlobalSearch from '@/features/chat/components/GlobalSearch.vue';
 
 const emit = defineEmits<{

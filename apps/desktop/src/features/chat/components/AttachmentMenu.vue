@@ -1,7 +1,5 @@
 <script setup lang="ts">
 import { Camera, FileUp, Image, ImagePlus, MapPin, Plus, Sticker, UserCircle, Video } from 'lucide-vue-next';
-import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
 import { open as openDialog } from '@/desktop/dialog';
 import { readFile } from '@/desktop/fs';

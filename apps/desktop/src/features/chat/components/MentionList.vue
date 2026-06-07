@@ -1,7 +1,5 @@
 <script setup lang="ts">
 import { fetchMediaBlobUrl } from '@matrix/media';
-import { nextTick, ref, watch } from 'vue';
-import { useI18n } from 'vue-i18n';
 
 const props = defineProps<{
   items: Array<{ id: string; label: string; avatar?: string; isInCurrentRoom?: boolean }>;

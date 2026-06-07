@@ -5,8 +5,6 @@ import {
   closeThread,
   exitMultiSelect,
 } from '@features/chat/stores/chatStore'
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
 import { getWorkspaceAppForPath, workspaceApps } from '../components/workspace/navigation'
 import {
   closeGlobalSearch,

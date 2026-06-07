@@ -2,8 +2,6 @@
 import type { MatrixEvent } from 'matrix-js-sdk';
 import { fetchMediaBlobUrl, getInstantMediaBlobUrl } from '@matrix/index';
 import { Play } from 'lucide-vue-next';
-import { computed, ref, watch } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { getMediaFrameStyle } from '@/features/chat/lib/mediaFrame';
 import { blurhashToDataUrl, readBlurhash } from '@/shared/lib/blurhash';
 import { useMediaViewer } from '../../composables/useMediaViewer';

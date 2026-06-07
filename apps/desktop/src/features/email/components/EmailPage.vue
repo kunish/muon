@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { useSelector } from '@tanstack/vue-store';
-import { useStorage } from '@vueuse/core';
 import {
   Archive,
   Inbox,
@@ -14,8 +13,6 @@ import {
   Star,
   Trash2,
 } from 'lucide-vue-next';
-import { computed, onMounted, ref, shallowRef } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
 import WorkspaceResizablePane from '@/app/components/workspace/WorkspaceResizablePane.vue';
 import { fetchInbox, isMailBridgeAvailable, sendMail } from '@/desktop/mail';

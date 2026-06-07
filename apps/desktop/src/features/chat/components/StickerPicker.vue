@@ -3,8 +3,6 @@ import type { RecentSticker } from '../stores/stickerStore';
 import type { ImageSticker } from '@/shared/data/stickerPacks';
 import { useSelector } from '@tanstack/vue-store';
 import { Settings } from 'lucide-vue-next';
-import { computed, defineComponent, h, ref, toRef } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { useAuthMedia } from '@/shared/composables/useAuthMedia';
 import { BUILTIN_STICKER_PACKS } from '@/shared/data/stickerPacks';
 import { addRecentEmoji, addRecentImage, stickerStore } from '../stores/stickerStore';

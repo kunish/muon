@@ -10,9 +10,7 @@ import {
   syncState,
 } from '@matrix/index'
 import { useSelector } from '@tanstack/vue-store'
-import { useDebounceFn } from '@vueuse/core'
 import { Effect } from 'effect'
-import { onMounted, onUnmounted, ref, shallowRef, watch } from 'vue'
 import { fromPromise, fromSync, runDesktopEffect } from '@/shared/lib/effect'
 import { chatStore } from '../stores/chatStore'
 

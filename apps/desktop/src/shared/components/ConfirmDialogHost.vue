@@ -1,7 +1,5 @@
 <script setup lang="ts">
 import type { DesktopDialogAskOptions } from '@/desktop/bridge';
-import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { registerConfirmDialogHandler } from '../services/confirmDialog';
 import ConfirmDialog from './ConfirmDialog.vue';
 

@@ -2,8 +2,6 @@ import type { MatrixEvent } from 'matrix-js-sdk'
 import { getClient } from '@matrix/client'
 import { matrixEvents } from '@matrix/index'
 import { selectNormalizedNotificationChannels, settingsStore } from '@shared/stores/settingsStore'
-import { onMounted, onUnmounted } from 'vue'
-import { useI18n } from 'vue-i18n'
 import { playNotificationSound } from '@/shared/lib/audio'
 import { chatStore, isMuted } from '../stores/chatStore'
 

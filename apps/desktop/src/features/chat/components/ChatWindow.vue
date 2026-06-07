@@ -1,7 +1,5 @@
 <script setup lang="ts">
 import { useSelector } from '@tanstack/vue-store';
-import { provide, ref, shallowRef, watch } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { useTyping } from '../composables/useTyping';
 import { chatStore, closeSidePanel, exitMultiSelect } from '../stores/chatStore';
 import ChatDocsList from './ChatDocsList.vue';

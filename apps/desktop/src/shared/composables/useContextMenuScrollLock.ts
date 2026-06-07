@@ -1,6 +1,3 @@
-import type { MaybeRefOrGetter } from 'vue'
-import { onUnmounted, toValue, watch } from 'vue'
-
 const SCROLL_KEYS = new Set([
   ' ',
   'ArrowDown',

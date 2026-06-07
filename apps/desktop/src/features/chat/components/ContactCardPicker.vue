@@ -2,8 +2,6 @@
 import { Avatar } from '@muon/ui/avatar';
 import { useContactList } from '@shared/composables/useContactList';
 import { Search } from 'lucide-vue-next';
-import { computed, onMounted, ref } from 'vue';
-import { useI18n } from 'vue-i18n';
 
 const emit = defineEmits<{
   select: [contact: { userId: string; displayName: string; avatarUrl?: string }];

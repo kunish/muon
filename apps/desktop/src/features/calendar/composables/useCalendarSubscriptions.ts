@@ -1,5 +1,3 @@
-import { useStorage } from '@vueuse/core'
-import { ref } from 'vue'
 import { fetch as desktopFetch } from '@/desktop/http'
 import { parseIcs } from '../lib/ics'
 import { replaceSubscriptionEvents } from '../stores/calendarStore'

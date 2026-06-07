@@ -17,7 +17,6 @@ import {
   Underline as UnderlineIcon,
   Undo2,
 } from 'lucide-vue-next';
-import { computed, shallowRef, watch } from 'vue';
 import { DEFAULT_DOC_CODE_LANGUAGE } from '../../lib/codeBlockLanguages';
 
 const props = defineProps<{ editor: Editor | null }>();

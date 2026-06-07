@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import { deleteDevice, getCurrentDeviceId, getDevices } from '@matrix/verification';
 import { LogOut, Monitor, Smartphone } from 'lucide-vue-next';
-import { onMounted, ref } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
 
 const { t } = useI18n();

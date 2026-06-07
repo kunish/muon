@@ -2,8 +2,6 @@
 import type { MatrixEvent } from 'matrix-js-sdk';
 import { getClient } from '@matrix/client';
 import { Pin, X } from 'lucide-vue-next';
-import { onMounted, ref } from 'vue';
-import { useI18n } from 'vue-i18n';
 
 const props = defineProps<{
   roomId: string;

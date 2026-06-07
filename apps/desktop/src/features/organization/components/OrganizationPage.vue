@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import type { Component } from 'vue';
 import type { Contact, GroupInfo } from '@/features/contacts/types';
 import { getClient } from '@matrix/client';
 import { Avatar } from '@muon/ui/avatar';
@@ -17,11 +16,10 @@ import {
   UsersRound,
   X,
 } from 'lucide-vue-next';
-import { computed, onMounted, ref, watch } from 'vue';
-import { useRoute } from 'vue-router';
 import WorkspaceResizablePane from '@/app/components/workspace/WorkspaceResizablePane.vue';
 import { openUrl } from '@/desktop/opener';
 import GroupMemberPicker from '@/features/contacts/components/GroupMemberPicker.vue';
+import { routeParam } from '@/shared/lib/routeParams';
 
 type OrganizationSection = 'overview' | 'members' | 'groups';
 
@@ -63,7 +61,7 @@ function routeSectionParamToSection(section: unknown): OrganizationSection {
   return value === 'members' || value === 'groups' ? value : 'overview';
 }
 
-const activeSection = ref<OrganizationSection>(routeSectionParamToSection(route.params.section));
+const activeSection = ref<OrganizationSection>(routeSectionParamToSection(routeParam(route, 'section')));
 const searchQuery = ref('');
 const actionMessage = ref('组织入口已就绪');
 
@@ -580,7 +578,7 @@ watch(searchQuery, (value) => {
 });
 
 watch(
-  () => route.params.section,
+  () => routeParam(route, 'section'),
   (section) => {
     const nextSection = routeSectionParamToSection(section);
     activeSection.value = nextSection;

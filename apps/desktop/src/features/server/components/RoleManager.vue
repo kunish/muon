@@ -4,8 +4,6 @@ import { Input } from '@muon/ui/input';
 import { Label } from '@muon/ui/label';
 import { Separator } from '@muon/ui/separator';
 import { Plus, Save, Trash2 } from 'lucide-vue-next';
-import { onMounted, ref } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
 import { getClient } from '@/matrix/client';
 

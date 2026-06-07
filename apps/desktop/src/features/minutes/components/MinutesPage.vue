@@ -2,9 +2,6 @@
 import type { Minute } from '../types/minute';
 import { useSelector } from '@tanstack/vue-store';
 import { CalendarClock, ChevronDown, Circle, CircleCheck, NotebookPen, Plus, Trash2, UserRound } from 'lucide-vue-next';
-import { computed, onMounted, ref, shallowRef } from 'vue';
-import { useI18n } from 'vue-i18n';
-import { useRoute } from 'vue-router';
 import { toast } from 'vue-sonner';
 import WorkspacePageFrame from '@/app/components/workspace/WorkspacePageFrame.vue';
 import {

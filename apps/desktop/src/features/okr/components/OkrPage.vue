@@ -2,9 +2,6 @@
 import type { KeyResultStatus, Objective, ObjectiveConfidence } from '../types/okr';
 import { useSelector } from '@tanstack/vue-store';
 import { ChevronDown, Plus, Target, Trash2 } from 'lucide-vue-next';
-import { computed, onMounted, ref, shallowRef } from 'vue';
-import { useI18n } from 'vue-i18n';
-import { useRoute } from 'vue-router';
 import { toast } from 'vue-sonner';
 import WorkspacePageFrame from '@/app/components/workspace/WorkspacePageFrame.vue';
 import {

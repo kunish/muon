@@ -3,8 +3,6 @@ import type { ChannelInfo } from '@/matrix/spaces';
 import { Avatar } from '@muon/ui/avatar';
 import { useSelector } from '@tanstack/vue-store';
 import { MicOff, Volume2 } from 'lucide-vue-next';
-import { computed } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { useVoiceChannel } from '@/features/server/composables/useVoiceChannel';
 import { serverStore } from '@/features/server/stores/serverStore';
 

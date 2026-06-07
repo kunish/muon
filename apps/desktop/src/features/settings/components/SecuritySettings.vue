@@ -3,7 +3,6 @@ import { Label } from '@muon/ui/label';
 import { Switch } from '@muon/ui/switch';
 import { useSelector } from '@tanstack/vue-store';
 import { Droplets, Shield, UserX } from 'lucide-vue-next';
-import { useI18n } from 'vue-i18n';
 import { useWatermark } from '@/shared/composables/useWatermark';
 import { settingsStore, setWatermarkEnabled } from '@/shared/stores/settingsStore';
 import BlockedUsers from './BlockedUsers.vue';

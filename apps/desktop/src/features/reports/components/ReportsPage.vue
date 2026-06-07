@@ -2,8 +2,6 @@
 import type { Report, ReportType } from '../types/report';
 import { useSelector } from '@tanstack/vue-store';
 import { ChevronDown, ClipboardCheck, FileBarChart, Plus, RotateCcw, Trash2 } from 'lucide-vue-next';
-import { computed, shallowRef } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
 import WorkspacePageFrame from '@/app/components/workspace/WorkspacePageFrame.vue';
 import {

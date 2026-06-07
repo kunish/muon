@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { useSelector } from '@tanstack/vue-store';
-import { watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { routeParam } from '@/shared/lib/routeParams';
 import { useNotificationSound } from '../composables/useNotificationSound';
 import { useScheduledMessageFlush } from '../composables/useScheduledMessageFlush';
 import { chatStore, setCurrentRoom, setCurrentRoomFromRoute } from '../stores/chatStore';
@@ -17,7 +16,7 @@ useNotificationSound();
 useScheduledMessageFlush();
 
 watch(
-  () => (route.params.roomId || route.params.channelId) as string | undefined,
+  () => routeParam(route, 'roomId') || routeParam(route, 'channelId'),
   (encodedRoomId) => {
     if (!encodedRoomId) {
       setCurrentRoom(null);
@@ -31,7 +30,7 @@ watch(
       roomId = encodedRoomId;
     }
 
-    if (route.params.roomId) setCurrentRoomFromRoute(roomId);
+    if (routeParam(route, 'roomId')) setCurrentRoomFromRoute(roomId);
     else setCurrentRoom(roomId);
   },
   { immediate: true },

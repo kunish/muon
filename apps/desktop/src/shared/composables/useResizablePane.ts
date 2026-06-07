@@ -1,6 +1,5 @@
 import type { DesktopEffect } from '@/shared/lib/effect'
 import { Effect } from 'effect'
-import { computed, onMounted, onUnmounted, shallowRef, watch } from 'vue'
 import { fromSync, runDesktopSync } from '@/shared/lib/effect'
 
 export interface ResizablePaneOptions {

@@ -3,7 +3,6 @@ import type { MatrixEvent } from 'matrix-js-sdk';
 import { fetchMediaBlobUrl } from '@matrix/index';
 import { Progress } from '@muon/ui/progress';
 import { Pause, Play } from 'lucide-vue-next';
-import { computed, ref, watch } from 'vue';
 
 const props = defineProps<{
   event: MatrixEvent;

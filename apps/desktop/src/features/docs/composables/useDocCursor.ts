@@ -1,6 +1,5 @@
 import type { MatrixSyncProvider } from '../services/matrixSyncProvider'
 import type { CursorData } from '../types/doc'
-import { computed, shallowRef, watchEffect } from 'vue'
 import { userColor } from '../types/doc'
 
 export function useDocCursor(provider: () => MatrixSyncProvider | null, userId: string, userName: string) {

@@ -5,10 +5,8 @@ import { normalizeRoomId } from '@matrix/roomUtils';
 import { Avatar } from '@muon/ui/avatar';
 import { useSelector } from '@tanstack/vue-store';
 import { CheckCheck, MessageSquarePlus, Search } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
-import { useI18n } from 'vue-i18n';
-import { useRoute, useRouter } from 'vue-router';
 import { openNewChat } from '@/app/stores/globalUiStore';
+import { routeParam } from '@/shared/lib/routeParams';
 import { useConversations } from '../composables/useConversations';
 import { useGlobalTyping } from '../composables/useGlobalTyping';
 import { chatStore, openContextMenu, selectRoomFromHistory, setFilter, setSearchQuery } from '../stores/chatStore';
@@ -87,7 +85,7 @@ function selectQuickContact(roomId: string) {
 const activeRoomId = computed(
   () =>
     normalizeRoomId(currentRoomId.value) ??
-    normalizeRoomId((route.params.roomId || route.params.channelId) as string | undefined),
+    normalizeRoomId(routeParam(route, 'roomId') || routeParam(route, 'channelId')),
 );
 
 function isConversationContextMenuOpen(roomId: string): boolean {

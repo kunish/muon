@@ -2,8 +2,6 @@
 import { findOrCreateDm } from '@matrix/index';
 import { Avatar } from '@muon/ui/avatar';
 import { Search, UserPlus, X } from 'lucide-vue-next';
-import { onBeforeUnmount, ref } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
 import { useContacts } from '../composables/useContacts';
 

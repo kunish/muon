@@ -13,7 +13,6 @@ import {
   Trash2,
   X,
 } from 'lucide-vue-next';
-import { computed, nextTick, ref, shallowRef, watch } from 'vue';
 
 const props = defineProps<{
   root: DocFolderNode;

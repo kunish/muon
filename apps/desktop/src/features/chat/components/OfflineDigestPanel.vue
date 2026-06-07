@@ -2,9 +2,6 @@
 import type { DigestFilter } from '../types/digest';
 import type { DigestRelevance } from '../types/knowledge';
 import { useSelector } from '@tanstack/vue-store';
-import { computed, onMounted, onUnmounted } from 'vue';
-import { useI18n } from 'vue-i18n';
-import { useRouter } from 'vue-router';
 import { useNetworkStatus } from '@/shared/composables/useNetworkStatus';
 import { preloadAndNavigate } from '@/shared/lib/contextPreload';
 import { selectVisibleDigestEntries } from '../queries/digestApi';

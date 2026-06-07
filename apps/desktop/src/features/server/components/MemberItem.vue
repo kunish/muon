@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import type { SpaceMember } from '@/matrix/spaces';
 import { Avatar } from '@muon/ui/avatar';
-import { computed } from 'vue';
 import { getUserPresenceInfo } from '@/matrix/profile';
 
 const props = defineProps<{

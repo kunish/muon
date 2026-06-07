@@ -1,7 +1,5 @@
 <script setup lang="ts">
 import { Button } from '@muon/ui/button';
-import { ref } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { checkForUpdates, installUpdate, updateAvailable, updateVersion, updating } from '@/desktop/updater';
 
 const { t } = useI18n();

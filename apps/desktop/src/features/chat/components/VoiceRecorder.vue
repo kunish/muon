@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { Mic, Square, X } from 'lucide-vue-next';
-import { computed } from 'vue';
 import { useVoiceRecorder } from '../composables/useVoiceRecorder';
 
 const emit = defineEmits<{

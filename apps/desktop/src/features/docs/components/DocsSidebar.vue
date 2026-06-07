@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import { useSelector } from '@tanstack/vue-store';
 import { Clock3, Star, Users } from 'lucide-vue-next';
-import { useI18n } from 'vue-i18n';
-import { useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
 import { ask } from '@/desktop/dialog';
 import {

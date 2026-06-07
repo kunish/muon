@@ -3,8 +3,6 @@ import type { MatrixEvent } from 'matrix-js-sdk';
 import { getClient } from '@matrix/client';
 import { forwardMessages } from '@matrix/messages';
 import { Check, Layers, Search, X } from 'lucide-vue-next';
-import { computed, reactive, ref } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
 
 const props = defineProps<{

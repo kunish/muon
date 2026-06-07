@@ -2,8 +2,6 @@
 import { Avatar } from '@muon/ui/avatar';
 import { useSelector } from '@tanstack/vue-store';
 import { Mic, MicOff, Phone, PhoneOff } from 'lucide-vue-next';
-import { computed, onUnmounted, ref, watch } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { acceptCall, callStore, declineCall, hangup, selectIsActive, toggleMute } from '../stores/callStore';
 
 const { t } = useI18n();

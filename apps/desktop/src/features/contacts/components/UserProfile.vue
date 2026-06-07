@@ -4,8 +4,6 @@ import { useSelector } from '@tanstack/vue-store';
 import { formatDistanceToNow } from 'date-fns';
 import { enUS, zhCN } from 'date-fns/locale';
 import { Ban, MessageSquare, Phone, Save, Star, StickyNote, Tag, Video } from 'lucide-vue-next';
-import { computed, ref, watch } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
 import { useContactsQuery } from '../queries/useContacts';
 import {

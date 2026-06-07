@@ -1,5 +1,4 @@
 import { useSelector } from '@tanstack/vue-store'
-import { onScopeDispose, watch } from 'vue'
 import { settingsStore } from '../stores/settingsStore'
 
 export function useTheme() {

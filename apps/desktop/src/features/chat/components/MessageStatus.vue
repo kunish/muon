@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { useI18n } from 'vue-i18n';
-
 defineProps<{
   status: 'sending' | 'sent' | 'delivered' | 'read' | 'failed';
 }>();

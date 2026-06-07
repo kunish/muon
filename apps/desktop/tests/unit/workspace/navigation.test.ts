@@ -63,9 +63,9 @@ describe('workspace navigation', () => {
   })
 
   it.each([
-    ['/organization', 'organization'],
-    ['/organization/members', 'organization-section'],
-    ['/organization/groups', 'organization-section'],
+    ['/organization', '/organization/'],
+    ['/organization/members', '/organization/[section]'],
+    ['/organization/groups', '/organization/[section]'],
   ])('keeps %s routable inside the workspace shell', (path, routeName) => {
     const route = router.resolve(path)
 

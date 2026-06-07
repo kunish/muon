@@ -1,6 +1,5 @@
 import { getClient } from '@matrix/client'
 import { matrixEvents } from '@matrix/index'
-import { onMounted, onUnmounted, reactive } from 'vue'
 
 /**
  * 全局 typing 状态 composable

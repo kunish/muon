@@ -1,7 +1,5 @@
 <script setup lang="ts">
 import type { KnowledgeTab } from '../types/knowledge';
-import { computed, ref } from 'vue';
-import { useI18n } from 'vue-i18n';
 import CrossSessionQaPanel from './CrossSessionQaPanel.vue';
 import DecisionPanel from './DecisionPanel.vue';
 import OfflineDigestPanel from './OfflineDigestPanel.vue';

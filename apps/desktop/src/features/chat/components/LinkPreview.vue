@@ -1,7 +1,5 @@
 <script setup lang="ts">
 import { ExternalLink, Link2 } from 'lucide-vue-next';
-import { computed, onMounted, onUnmounted, ref } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
 import { fetch } from '@/desktop/http';
 import { openUrl } from '@/desktop/opener';

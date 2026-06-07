@@ -2,9 +2,6 @@
 import type { TaskItem, TaskStatus } from '@/features/chat/types/task';
 import { useSelector } from '@tanstack/vue-store';
 import { CalendarClock, ListTodo, UserRound } from 'lucide-vue-next';
-import { computed, onMounted, shallowRef } from 'vue';
-import { useI18n } from 'vue-i18n';
-import { useRoute, useRouter } from 'vue-router';
 import WorkspacePageFrame from '@/app/components/workspace/WorkspacePageFrame.vue';
 import { selectTasksByStatus, taskStore, transitionStatus } from '@/features/chat/stores/taskStore';
 import { canTransitionTaskStatus } from '@/features/chat/types/task';

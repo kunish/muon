@@ -24,8 +24,6 @@ import {
   Users,
   Video,
 } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { callStore, selectIsActive, startCall } from '@/features/calls/stores/callStore';
 import { useCurrentRoom } from '../composables/useCurrentRoom';
 import { chatStore, toggleSidePanel } from '../stores/chatStore';

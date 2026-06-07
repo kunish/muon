@@ -1,5 +1,4 @@
 import { sendTextMessage } from '@matrix/index'
-import { onMounted, onUnmounted } from 'vue'
 import { dueMessages, remove } from '../stores/scheduledMessageStore'
 
 const FLUSH_INTERVAL_MS = 15_000

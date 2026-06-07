@@ -1,12 +1,8 @@
 <script setup lang="ts">
 import type { SpaceMember } from '@/matrix/spaces';
 import { useRoomNavigation } from '@shared/composables/useRoomNavigation';
-import { onClickOutside } from '@vueuse/core';
 import { AtSign, Ban, MessageCircle, MicOff, Pencil, User, UserX } from 'lucide-vue-next';
 import { EventType } from 'matrix-js-sdk';
-import { computed, ref } from 'vue';
-import { useI18n } from 'vue-i18n';
-import { useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
 import { ask } from '@/desktop/dialog';
 import { useConversations } from '@/features/chat/composables/useConversations';

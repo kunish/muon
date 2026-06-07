@@ -1,11 +1,14 @@
 import { resolve } from 'node:path'
 import vue from '@vitejs/plugin-vue'
 import { defineConfig } from 'vitest/config'
+import { autoImportPlugin, componentsPlugin, vueRouterPlugin } from './config/unplugins.js'
 
 export default defineConfig({
   root: __dirname,
   publicDir: resolve(__dirname, '../../public'),
-  plugins: [vue()],
+  // Share the auto-import / components / file-router factories with the build configs
+  // so tests resolve the same generated globals and the `vue-router/auto-routes` module.
+  plugins: [vueRouterPlugin(), vue(), autoImportPlugin(), componentsPlugin()],
   test: {
     globals: true,
     environment: 'jsdom',

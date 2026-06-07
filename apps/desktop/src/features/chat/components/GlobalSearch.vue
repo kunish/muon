@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import type { Component } from 'vue';
 import type { SidebarPreviewInput } from '@/features/chat/stores/chatStore';
 import { getClient } from '@matrix/client';
 import { findOrCreateDm, loadInboxEventContext } from '@matrix/index';
@@ -17,9 +16,6 @@ import {
   Table2,
   Target,
 } from 'lucide-vue-next';
-import { computed, nextTick, onMounted, onUnmounted, ref, useTemplateRef, watch } from 'vue';
-import { useI18n } from 'vue-i18n';
-import { useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
 import { workspaceApps } from '@/app/components/workspace/navigation';
 import { announcementStore, selectAnnouncements } from '@/features/announcements/stores/announcementStore';

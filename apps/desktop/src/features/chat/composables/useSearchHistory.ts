@@ -1,5 +1,3 @@
-import { ref } from 'vue'
-
 const STORAGE_KEY = 'muon_search_history'
 const MAX_ENTRIES = 8
 

@@ -4,9 +4,6 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Input } from '@muon/ui/input';
 import { Label } from '@muon/ui/label';
 import { useForm } from '@tanstack/vue-form';
-import { ref } from 'vue';
-import { useI18n } from 'vue-i18n';
-import { useRouter } from 'vue-router';
 import { z } from 'zod';
 import { useCreateProject } from '../queries/useProjects';
 

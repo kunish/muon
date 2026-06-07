@@ -2,9 +2,6 @@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@muon/ui/tooltip';
 import { useSelector } from '@tanstack/vue-store';
 import { Compass, MessageCircle, Plus } from 'lucide-vue-next';
-import { computed } from 'vue';
-import { useI18n } from 'vue-i18n';
-import { useRouter } from 'vue-router';
 import { useConversations } from '@/features/chat/composables/useConversations';
 import {
   getServerUnreadInfo,

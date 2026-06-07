@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { Doc } from 'yjs';
-import { nextTick, onMounted, onUnmounted, shallowRef, watch } from 'vue';
 
 const props = defineProps<{ ydoc: Doc; initialTitle?: string }>();
 const emit = defineEmits<{ updateTitle: [title: string] }>();

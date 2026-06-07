@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import type { Component } from 'vue';
 import { useSelector } from '@tanstack/vue-store';
 import {
   AppWindow,
@@ -23,9 +22,6 @@ import {
   UsersRound,
   Video,
 } from 'lucide-vue-next';
-import { computed, shallowRef } from 'vue';
-import { useI18n } from 'vue-i18n';
-import { useRouter } from 'vue-router';
 import WorkspaceResizablePane from '@/app/components/workspace/WorkspaceResizablePane.vue';
 import { bitableStore, selectTables } from '@/features/bitable/stores/bitableStore';
 import { selectTasksByStatus, taskStore } from '@/features/chat/stores/taskStore';

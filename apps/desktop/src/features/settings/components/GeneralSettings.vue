@@ -2,8 +2,6 @@
 import { Label } from '@muon/ui/label';
 import { Switch } from '@muon/ui/switch';
 import { useSelector } from '@tanstack/vue-store';
-import { watch } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { setAnalyticsEnabled as setAnalyticsEnabledLib } from '@/shared/lib/analytics';
 import {
   setAnalyticsEnabled,

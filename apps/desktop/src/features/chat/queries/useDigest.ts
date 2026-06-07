@@ -1,7 +1,6 @@
 import type { DigestSourceEvent } from '../types/digest'
 import type { DigestEntry } from '../types/knowledge'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { computed } from 'vue'
 import { buildDigestSession, loadDigestEntries } from './digestApi'
 import { digestKeys } from './digestKeys'
 

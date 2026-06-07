@@ -1,5 +1,3 @@
-import { useStorage } from '@vueuse/core'
-
 const enabled = useStorage('muon_watermark_enabled', false)
 
 function createWatermarkCanvas(text: string): string {

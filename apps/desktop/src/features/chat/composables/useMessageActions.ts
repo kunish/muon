@@ -1,9 +1,6 @@
 import type { MatrixEvent } from 'matrix-js-sdk'
-import type { MaybeRefOrGetter } from 'vue'
 import { redactMessage, sendReaction } from '@matrix/index'
 import { isMessagePinned, isMessageStarred, pinMessage, starMessage, unpinMessage, unstarMessage } from '@matrix/rooms'
-import { computed, toValue } from 'vue'
-import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import { ask } from '@/desktop/dialog'
 import {

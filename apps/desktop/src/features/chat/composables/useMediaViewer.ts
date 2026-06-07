@@ -1,5 +1,3 @@
-import { ref } from 'vue'
-
 const visible = ref(false)
 const currentUrl = ref('')
 const currentType = ref<'image' | 'video'>('image')

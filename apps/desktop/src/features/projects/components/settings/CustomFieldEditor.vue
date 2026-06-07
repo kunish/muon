@@ -3,8 +3,6 @@ import type { CustomField } from '../../types';
 import { Button } from '@muon/ui/button';
 import { Input } from '@muon/ui/input';
 import { Plus, Trash2 } from 'lucide-vue-next';
-import { onMounted, ref } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { projectRepo } from '../../db/projectDb';
 
 const props = defineProps<{ projectId: string }>();

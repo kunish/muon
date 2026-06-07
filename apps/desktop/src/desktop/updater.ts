@@ -1,6 +1,5 @@
 import type { DesktopEffect } from '@/shared/lib/effect'
 import { Effect } from 'effect'
-import { ref } from 'vue'
 import { fromPromise, fromSync, runDesktopEffect } from '@/shared/lib/effect'
 import { getDesktopBridge } from './bridge'
 

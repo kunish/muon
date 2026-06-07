@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import type { GifResult } from '@/shared/lib/gifSearch';
 import { Search } from 'lucide-vue-next';
-import { onMounted, onUnmounted, ref, watch } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { getTrendingGifs, searchGifs } from '@/shared/lib/gifSearch';
 
 const emit = defineEmits<{

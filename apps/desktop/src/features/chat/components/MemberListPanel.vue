@@ -3,8 +3,6 @@ import { getClient } from '@matrix/client';
 import { Avatar } from '@muon/ui/avatar';
 import { useSelector } from '@tanstack/vue-store';
 import { Crown, Search, Shield, ShieldCheck, X } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { chatStore, closeSidePanel } from '../stores/chatStore';
 import UserInfoPanel from './UserInfoPanel.vue';
 

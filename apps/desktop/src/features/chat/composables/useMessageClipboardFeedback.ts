@@ -1,6 +1,5 @@
 import type { DesktopEffect } from '@/shared/lib/effect'
 import { Effect } from 'effect'
-import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import { fromSync, runDesktopEffect } from '@/shared/lib/effect'
 import { copyMessageContentToClipboardEffect } from '../lib/messageClipboard'

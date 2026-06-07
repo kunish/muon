@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { useWatermark, useWatermarkGuard } from '@shared/composables/useWatermark';
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 const props = defineProps<{
   text: string;

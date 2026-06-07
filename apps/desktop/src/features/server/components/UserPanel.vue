@@ -3,9 +3,6 @@ import { getClient } from '@matrix/client';
 import { getMyAvatarUrl, getMyDisplayName } from '@matrix/index';
 import { Avatar } from '@muon/ui/avatar';
 import { Headphones, Mic, MicOff, Settings } from 'lucide-vue-next';
-import { computed } from 'vue';
-import { useI18n } from 'vue-i18n';
-import { useRouter } from 'vue-router';
 import { useVoiceChannel } from '@/features/server/composables/useVoiceChannel';
 
 const router = useRouter();

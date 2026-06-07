@@ -1,7 +1,6 @@
 import { getRoom } from '@matrix/index'
 import { useContactList } from '@shared/composables/useContactList'
 import { useSelector } from '@tanstack/vue-store'
-import { computed } from 'vue'
 import { localizedText } from '@/shared/lib/localizedText'
 import { chatStore } from '../stores/chatStore'
 

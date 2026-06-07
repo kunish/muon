@@ -6,8 +6,6 @@ import { Input } from '@muon/ui/input';
 import { Label } from '@muon/ui/label';
 import { Textarea } from '@muon/ui/textarea';
 import { GripVertical, Hash, Pencil, Trash2, Volume2 } from 'lucide-vue-next';
-import { onMounted, ref } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
 import { loadChannelTree } from '@/features/server/stores/serverStore';
 import { setRoomName, setRoomTopic } from '@/matrix/rooms';

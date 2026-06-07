@@ -3,8 +3,6 @@ import type { TaskStatus } from '../types/task';
 import { Label } from '@muon/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@muon/ui/select';
 import { useForm } from '@tanstack/vue-form';
-import { watch } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { z } from 'zod';
 import GroupMemberPicker from '@/features/contacts/components/GroupMemberPicker.vue';
 

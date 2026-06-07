@@ -15,9 +15,6 @@ import {
   Users,
   Video,
 } from 'lucide-vue-next';
-import { computed, onMounted, onUnmounted, ref, shallowRef } from 'vue';
-import { useI18n } from 'vue-i18n';
-import { useRoute } from 'vue-router';
 import { toast } from 'vue-sonner';
 import WorkspacePageFrame from '@/app/components/workspace/WorkspacePageFrame.vue';
 import { openUrl } from '@/desktop/opener';

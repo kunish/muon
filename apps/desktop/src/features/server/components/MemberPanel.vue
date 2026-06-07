@@ -3,8 +3,6 @@ import type { SpaceMember } from '@/matrix/spaces';
 import { useRoomNavigation } from '@shared/composables/useRoomNavigation';
 import { useSelector } from '@tanstack/vue-store';
 import { Search, X } from 'lucide-vue-next';
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { serverStore } from '@/features/server/stores/serverStore';
 import { matrixEvents } from '@/matrix/events';
 import { getUserPresenceInfo } from '@/matrix/profile';

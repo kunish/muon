@@ -3,8 +3,6 @@ import type { ReminderPreset } from '../types/defer';
 import type { InboxFilterType, UnifiedInboxItem } from '../types/unifiedInbox';
 import { useSelector } from '@tanstack/vue-store';
 import { useVirtualizer } from '@tanstack/vue-virtual';
-import { computed, ref } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { useUnifiedInbox } from '../composables/useUnifiedInbox';
 import { createDeferredItem } from '../stores/deferStore';
 import { inboxStore, markSelectedProcessed, selectAll, setFilter, toggleSelection } from '../stores/inboxStore';

@@ -8,7 +8,6 @@ import {
   AlertDialogTitle,
 } from '@muon/ui/alert-dialog';
 import { Button } from '@muon/ui/button';
-import { computed } from 'vue';
 
 type ConfirmDialogVariant = 'default' | 'destructive';
 

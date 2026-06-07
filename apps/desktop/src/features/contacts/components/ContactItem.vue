@@ -2,7 +2,6 @@
 import type { Contact } from '../types';
 import { getUserPresenceInfo } from '@matrix/index';
 import { Avatar } from '@muon/ui/avatar';
-import { computed } from 'vue';
 
 const props = defineProps<{
   contact: Contact;

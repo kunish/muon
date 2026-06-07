@@ -1,6 +1,5 @@
 import { getRoom } from '@matrix/index'
 import { useSelector } from '@tanstack/vue-store'
-import { computed } from 'vue'
 import { chatStore } from '../stores/chatStore'
 
 export function useCurrentRoom() {

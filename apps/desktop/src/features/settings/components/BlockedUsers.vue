@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import { getBlockedUsers, unblockUser } from '@matrix/index';
 import { UserX } from 'lucide-vue-next';
-import { ref } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
 
 const { t } = useI18n();

@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import type { TaskItem } from '../types/task';
 import { useSelector } from '@tanstack/vue-store';
-import { useI18n } from 'vue-i18n';
-import { useRouter } from 'vue-router';
 import { preloadAndNavigate } from '@/shared/lib/contextPreload';
 import { selectTasksByStatus, taskStore, transitionStatus } from '../stores/taskStore';
 import { canTransitionTaskStatus } from '../types/task';

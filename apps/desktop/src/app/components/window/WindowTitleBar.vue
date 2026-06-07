@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { computed } from 'vue';
 import { getDesktopBridge } from '@/desktop/bridge';
 
 const desktopPlatform = getDesktopBridge()?.platform;

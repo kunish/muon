@@ -2,9 +2,6 @@
 import type { AnswerValue, Question, QuestionType, Survey } from '../types/survey';
 import { useSelector } from '@tanstack/vue-store';
 import { ClipboardList, Plus, Star, Trash2 } from 'lucide-vue-next';
-import { computed, onMounted, ref, shallowRef, watch } from 'vue';
-import { useI18n } from 'vue-i18n';
-import { useRoute } from 'vue-router';
 import { toast } from 'vue-sonner';
 import WorkspacePageFrame from '@/app/components/workspace/WorkspacePageFrame.vue';
 import {

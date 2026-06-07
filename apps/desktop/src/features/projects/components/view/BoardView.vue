@@ -3,8 +3,6 @@ import type { Workflow, WorkflowStatus } from '../../types';
 import { Button } from '@muon/ui/button';
 import { useSelector } from '@tanstack/vue-store';
 import { Plus } from 'lucide-vue-next';
-import { onMounted, ref } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { useWorkflow } from '../../composables/useWorkflow';
 import { reorderItem, selectCurrentItems, workItemStore } from '../../composables/useWorkItemStore';
 import WorkItemCard from '../WorkItemCard.vue';

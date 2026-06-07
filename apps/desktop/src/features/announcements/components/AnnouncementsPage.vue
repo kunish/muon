@@ -2,9 +2,6 @@
 import type { Announcement } from '../types/announcement';
 import { useSelector } from '@tanstack/vue-store';
 import { CheckCheck, ChevronDown, Megaphone, Pin, PinOff, Plus, Trash2 } from 'lucide-vue-next';
-import { computed, onMounted, shallowRef } from 'vue';
-import { useI18n } from 'vue-i18n';
-import { useRoute } from 'vue-router';
 import { toast } from 'vue-sonner';
 import WorkspacePageFrame from '@/app/components/workspace/WorkspacePageFrame.vue';
 import {

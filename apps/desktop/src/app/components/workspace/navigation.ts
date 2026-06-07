@@ -1,4 +1,3 @@
-import type { Component } from 'vue'
 import {
   Building2,
   CalendarDays,

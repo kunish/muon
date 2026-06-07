@@ -1,7 +1,4 @@
 <script setup lang="ts">
-import { onErrorCaptured, ref } from 'vue';
-import { useI18n } from 'vue-i18n';
-
 const error = ref<Error | null>(null);
 const { t } = useI18n();
 

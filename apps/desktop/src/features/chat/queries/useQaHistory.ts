@@ -1,6 +1,5 @@
 import type { CrossSessionQaAnswer } from '../types/knowledge'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { computed } from 'vue'
 import { askQuestionEntry, loadQaHistory, upsertQaAnswer } from './qaApi'
 import { qaKeys } from './qaKeys'
 

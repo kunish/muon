@@ -4,8 +4,6 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from '@muon/ui/input';
 import { Label } from '@muon/ui/label';
 import { useForm } from '@tanstack/vue-form';
-import { ref } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
 import { z } from 'zod';
 import { loadServers, selectServer } from '@/features/server/stores/serverStore';

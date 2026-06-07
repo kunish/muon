@@ -1,7 +1,6 @@
 import type { Workflow, WorkflowStatus } from '../types'
 import type { DesktopEffect } from '@/shared/lib/effect'
 import { Effect } from 'effect'
-import { computed } from 'vue'
 import { fromPromise, fromSync, runDesktopEffect } from '@/shared/lib/effect'
 import { projectRepo } from '../db/projectDb'
 import { updateItem } from './useWorkItemStore'

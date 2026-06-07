@@ -5,8 +5,6 @@ import { Button } from '@muon/ui/button';
 import { useSelector } from '@tanstack/vue-store';
 import { createColumnHelper, getCoreRowModel, getSortedRowModel, useVueTable } from '@tanstack/vue-table';
 import { ArrowDown, ArrowUp, Plus } from 'lucide-vue-next';
-import { computed, ref, watch } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { useWorkflow } from '../../composables/useWorkflow';
 import { selectCurrentItems, workItemStore } from '../../composables/useWorkItemStore';
 import WorkItemCreateDialog from '../WorkItemCreateDialog.vue';

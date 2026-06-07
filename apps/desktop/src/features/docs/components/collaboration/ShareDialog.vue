@@ -2,7 +2,6 @@
 import { getClient } from '@matrix/client';
 import { useContactList } from '@shared/composables/useContactList';
 import { Check, Copy, Link2, Loader2, Send, Users, X } from 'lucide-vue-next';
-import { computed, onMounted, ref, shallowRef, watch } from 'vue';
 
 interface UserDirectoryResult {
   user_id: string;

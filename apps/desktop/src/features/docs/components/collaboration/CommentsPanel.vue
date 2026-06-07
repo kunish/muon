@@ -3,8 +3,6 @@ import type { DocComment } from '../../types/doc';
 import { getClient } from '@matrix/client';
 import { Avatar } from '@muon/ui/avatar';
 import { CheckCircle2, MessageSquare, X } from 'lucide-vue-next';
-import { shallowRef } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { useContactList } from '@/shared/composables/useContactList';
 
 defineProps<{

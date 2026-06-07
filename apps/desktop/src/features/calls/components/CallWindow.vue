@@ -2,8 +2,6 @@
 import type { LocalVideoTrack, RemoteVideoTrack } from 'livekit-client';
 import { useSelector } from '@tanstack/vue-store';
 import { Circle, Disc, Mic, MicOff, MonitorOff, MonitorUp, PhoneOff, Users, Video, VideoOff } from 'lucide-vue-next';
-import { computed, onUnmounted, ref, watch } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { callParticipants, localVideoTrack, remoteVideos } from '../lib/callMedia';
 import {
   callStore,

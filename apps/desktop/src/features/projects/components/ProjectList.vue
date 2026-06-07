@@ -1,9 +1,6 @@
 <script setup lang="ts">
 import { Button } from '@muon/ui/button';
 import { Plus } from 'lucide-vue-next';
-import { ref } from 'vue';
-import { useI18n } from 'vue-i18n';
-import { useRouter } from 'vue-router';
 import { setCurrentProject } from '../composables/useProjectStore';
 import { useProjectsQuery } from '../queries/useProjects';
 import ProjectCreateDialog from './ProjectCreateDialog.vue';

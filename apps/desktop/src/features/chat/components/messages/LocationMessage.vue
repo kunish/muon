@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { MapPin } from 'lucide-vue-next';
-import { computed } from 'vue';
 
 const props = defineProps<{
   geoUri: string;

@@ -14,7 +14,6 @@ import {
   StarOff,
   Trash2,
 } from 'lucide-vue-next';
-import { useI18n } from 'vue-i18n';
 
 defineProps<{
   isMine: boolean;

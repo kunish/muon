@@ -1,7 +1,5 @@
-import type { MaybeRefOrGetter, Ref } from 'vue'
 import type { DesktopEffect } from '@/shared/lib/effect'
 import { Effect } from 'effect'
-import { computed, nextTick, onMounted, onUnmounted, shallowRef, toValue, watch } from 'vue'
 import { fromPromise, fromSync, runDesktopEffect } from '@/shared/lib/effect'
 
 export interface ViewportPoint {

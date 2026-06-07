@@ -12,8 +12,6 @@ import { Textarea } from '@muon/ui/textarea';
 import { useSelector } from '@tanstack/vue-store';
 import { Trash2, X } from 'lucide-vue-next';
 import { RoomEvent } from 'matrix-js-sdk';
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { ask } from '@/desktop/dialog';
 import { getWorkItemComments, isWorkItemCommentEvent, sendWorkItemComment } from '@/matrix/projects';
 import { useContactList } from '@/shared/composables/useContactList';

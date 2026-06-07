@@ -3,8 +3,6 @@ import type { ImageSticker } from '@/shared/data/stickerPacks';
 import { uploadMedia } from '@matrix/media';
 import { useSelector } from '@tanstack/vue-store';
 import { ArrowLeft, ImagePlus, Plus, Trash2, X } from 'lucide-vue-next';
-import { computed, defineComponent, h, ref, toRef } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
 import { ask } from '@/desktop/dialog';
 import { useAuthMedia } from '@/shared/composables/useAuthMedia';

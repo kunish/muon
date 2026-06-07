@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import type { StatusCategory, WorkItem } from '../types';
 import { CalendarDays, User } from 'lucide-vue-next';
-import { computed } from 'vue';
-import { useI18n } from 'vue-i18n';
 
 const props = defineProps<{
   item: WorkItem;

@@ -1,9 +1,6 @@
 <script setup lang="ts">
 import { Textarea } from '@muon/ui/textarea';
 import { useSelector } from '@tanstack/vue-store';
-import { computed, ref, watch } from 'vue';
-import { useI18n } from 'vue-i18n';
-import { useRouter } from 'vue-router';
 import { preloadAndNavigate } from '@/shared/lib/contextPreload';
 import { useAskQuestion, useQaHistoryQuery } from '../queries/useQaHistory';
 import { qaStore, selectQaAnswer } from '../stores/qaStore';

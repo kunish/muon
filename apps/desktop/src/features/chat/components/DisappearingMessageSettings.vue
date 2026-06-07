@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import { getMessageRetention, setMessageRetention } from '@matrix/rooms';
 import { Timer } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
-import { useI18n } from 'vue-i18n';
 
 const props = defineProps<{ roomId: string }>();
 const emit = defineEmits<{ close: [] }>();

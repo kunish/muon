@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { AnimationItem } from 'lottie-web';
-import { onBeforeUnmount, onMounted, ref } from 'vue';
 import { fetchEmojiLottie, splitEmojis } from '@/shared/lib/emojiLottie';
 
 const props = defineProps<{

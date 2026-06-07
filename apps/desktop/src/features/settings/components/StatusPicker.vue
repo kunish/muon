@@ -2,8 +2,6 @@
 import type { PresenceState } from '@matrix/index';
 import { clearMyStatus, getMyPresence, getMyStatus, setMyStatus } from '@matrix/index';
 import { X } from 'lucide-vue-next';
-import { onMounted, ref } from 'vue';
-import { useI18n } from 'vue-i18n';
 
 const emit = defineEmits<{
   close: [];

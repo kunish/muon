@@ -2,8 +2,6 @@
 import type { MatrixEvent } from 'matrix-js-sdk';
 import { downloadMedia } from '@matrix/index';
 import { Copy, Download, FileText, Forward } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { save } from '@/desktop/dialog';
 import { writeFile } from '@/desktop/fs';
 import ForwardDialog from '@/features/chat/components/ForwardDialog.vue';

@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted } from 'vue';
-import { useRoute } from 'vue-router';
+import { routeParam } from '@/shared/lib/routeParams';
 import ProjectDetail from './components/ProjectDetail.vue';
 import ProjectList from './components/ProjectList.vue';
 import ProjectSettings from './components/ProjectSettings.vue';
@@ -8,7 +7,7 @@ import { subscribeToRemoteSync, unsubscribeFromRemoteSync } from './composables/
 
 const route = useRoute();
 
-const projectId = computed(() => route.params.projectId as string | undefined);
+const projectId = computed(() => routeParam(route, 'projectId'));
 const showSettings = computed(() => route.path.endsWith('/settings'));
 
 // 消费其他端通过 Matrix 广播的工作项变更，使协同真正生效

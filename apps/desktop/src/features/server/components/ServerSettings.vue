@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import { useSelector } from '@tanstack/vue-store';
 import { X } from 'lucide-vue-next';
-import { computed, onMounted, onUnmounted, ref } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { serverStore } from '@/features/server/stores/serverStore';
 import ChannelManager from './ChannelManager.vue';
 import MemberManager from './MemberManager.vue';

@@ -2,9 +2,6 @@
 import type { MindMap } from '../types/mindmap';
 import { useSelector } from '@tanstack/vue-store';
 import { ChevronDown, ListTree, Plus, Trash2 } from 'lucide-vue-next';
-import { computed, onMounted, shallowRef } from 'vue';
-import { useI18n } from 'vue-i18n';
-import { useRoute } from 'vue-router';
 import { toast } from 'vue-sonner';
 import WorkspacePageFrame from '@/app/components/workspace/WorkspacePageFrame.vue';
 import {

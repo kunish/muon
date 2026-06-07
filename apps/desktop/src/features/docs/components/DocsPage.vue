@@ -2,12 +2,10 @@
 import type { DocEntry, DocFolderNode } from '../types/doc';
 import { useSelector } from '@tanstack/vue-store';
 import { Check, Plus, Search, SlidersHorizontal, X } from 'lucide-vue-next';
-import { computed, shallowRef } from 'vue';
-import { useI18n } from 'vue-i18n';
-import { useRoute, useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
 import WorkspaceResizablePane from '@/app/components/workspace/WorkspaceResizablePane.vue';
 import { ask } from '@/desktop/dialog';
+import { routeParam } from '@/shared/lib/routeParams';
 import {
   createDocument,
   deleteDocument as deleteDocumentAction,
@@ -42,7 +40,7 @@ const searchQuery = computed({
   set: setSearchQuery,
 });
 
-const selectedDocId = computed(() => (route.params?.docId as string | undefined) ?? '');
+const selectedDocId = computed(() => routeParam(route, 'docId') ?? '');
 const renamingDocId = shallowRef('');
 const renameDraft = shallowRef('');
 const movingDocId = shallowRef('');

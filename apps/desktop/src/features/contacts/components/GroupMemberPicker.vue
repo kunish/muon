@@ -4,8 +4,6 @@ import { Avatar } from '@muon/ui/avatar';
 import { Checkbox } from '@muon/ui/checkbox';
 import { Label } from '@muon/ui/label';
 import { Check, Search, X } from 'lucide-vue-next';
-import { computed, onUnmounted, ref, watch } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { useContacts } from '../composables/useContacts';
 import { useContactsQuery } from '../queries/useContacts';
 

@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import type { Editor } from '@tiptap/core';
 import { Bold, Braces, Italic, Link2, List, ListOrdered, Quote, Strikethrough, Underline, X } from 'lucide-vue-next';
-import { ref } from 'vue';
-import { useI18n } from 'vue-i18n';
 
 const props = defineProps<{
   editor: Editor | null;

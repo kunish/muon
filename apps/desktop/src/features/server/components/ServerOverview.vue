@@ -5,8 +5,6 @@ import { Label } from '@muon/ui/label';
 import { Textarea } from '@muon/ui/textarea';
 import { useSelector } from '@tanstack/vue-store';
 import { Camera } from 'lucide-vue-next';
-import { computed, ref, watch } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
 import { loadChannelTree, loadServers, serverStore } from '@/features/server/stores/serverStore';
 import { getClient } from '@/matrix/client';

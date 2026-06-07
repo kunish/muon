@@ -4,8 +4,6 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from '@muon/ui/input';
 import { Label } from '@muon/ui/label';
 import { useSelector } from '@tanstack/vue-store';
-import { ref, watch } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
 import { loadChannelTree, serverStore } from '@/features/server/stores/serverStore';
 import { createSpace } from '@/matrix/spaces';

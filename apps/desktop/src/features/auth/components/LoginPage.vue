@@ -3,9 +3,6 @@ import { Input } from '@muon/ui/input';
 import { Label } from '@muon/ui/label';
 import { Tabs, TabsList, TabsTrigger } from '@muon/ui/tabs';
 import { useForm } from '@tanstack/vue-form';
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
-import { useI18n } from 'vue-i18n';
-import { useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
 import { z } from 'zod';
 import {

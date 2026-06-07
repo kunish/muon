@@ -249,6 +249,9 @@ catalogs:
     unplugin-vue-components:
       specifier: ^32.1.0
       version: 32.1.0
+    unplugin-vue-router:
+      specifier: ^0.19.2
+      version: 0.19.2
     vite:
       specifier: ^8.0.10
       version: 8.0.10
@@ -617,6 +620,9 @@ importers:
       unplugin-vue-components:
         specifier: 'catalog:'
         version: 32.1.0(vue@3.5.33(typescript@6.0.3))
+      unplugin-vue-router:
+        specifier: 'catalog:'
+        version: 0.19.2(@vue/compiler-sfc@3.5.33)(vue-router@5.0.6(@vue/compiler-sfc@3.5.33)(pinia@3.0.4(typescript@6.0.3)(vue@3.5.33(typescript@6.0.3)))(vue@3.5.33(typescript@6.0.3)))(vue@3.5.33(typescript@6.0.3))
       vite:
         specifier: 'catalog:'
         version: 8.0.10(@types/node@25.6.0)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.9.0)
@@ -6776,6 +6782,16 @@ packages:
       vue: ^3.0.0
     peerDependenciesMeta:
       '@nuxt/kit':
+        optional: true
+
+  unplugin-vue-router@0.19.2:
+    resolution: {integrity: sha512-u5dgLBarxE5cyDK/hzJGfpCTLIAyiTXGlo85COuD4Nssj6G7NxS+i9mhCWz/1p/ud1eMwdcUbTXehQe41jYZUA==}
+    deprecated: 'Merged into vuejs/router. Migrate: https://router.vuejs.org/guide/migration/v4-to-v5.html'
+    peerDependencies:
+      '@vue/compiler-sfc': ^3.5.17
+      vue-router: ^4.6.0
+    peerDependenciesMeta:
+      vue-router:
         optional: true
 
   unplugin@1.16.1:
@@ -13790,6 +13806,31 @@ snapshots:
       unplugin: 3.0.0
       unplugin-utils: 0.3.1
       vue: 3.5.33(typescript@6.0.3)
+
+  unplugin-vue-router@0.19.2(@vue/compiler-sfc@3.5.33)(vue-router@5.0.6(@vue/compiler-sfc@3.5.33)(pinia@3.0.4(typescript@6.0.3)(vue@3.5.33(typescript@6.0.3)))(vue@3.5.33(typescript@6.0.3)))(vue@3.5.33(typescript@6.0.3)):
+    dependencies:
+      '@babel/generator': 7.29.1
+      '@vue-macros/common': 3.1.2(vue@3.5.33(typescript@6.0.3))
+      '@vue/compiler-sfc': 3.5.33
+      '@vue/language-core': 3.2.7
+      ast-walker-scope: 0.8.3
+      chokidar: 5.0.0
+      json5: 2.2.3
+      local-pkg: 1.2.1
+      magic-string: 0.30.21
+      mlly: 1.8.2
+      muggle-string: 0.4.1
+      pathe: 2.0.3
+      picomatch: 4.0.4
+      scule: 1.3.0
+      tinyglobby: 0.2.16
+      unplugin: 2.3.11
+      unplugin-utils: 0.3.1
+      yaml: 2.9.0
+    optionalDependencies:
+      vue-router: 5.0.6(@vue/compiler-sfc@3.5.33)(pinia@3.0.4(typescript@6.0.3)(vue@3.5.33(typescript@6.0.3)))(vue@3.5.33(typescript@6.0.3))
+    transitivePeerDependencies:
+      - vue
 
   unplugin@1.16.1:
     dependencies:

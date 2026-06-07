@@ -1,6 +1,5 @@
 import type { Editor as EditorType } from '@tiptap/core'
 import type { EditorView } from '@tiptap/pm/view'
-import type { Ref } from 'vue'
 import type { Doc } from 'yjs'
 import { Editor } from '@tiptap/core'
 import { CodeBlockLowlight } from '@tiptap/extension-code-block-lowlight'
@@ -12,7 +11,6 @@ import { Table, TableCell, TableHeader, TableRow } from '@tiptap/extension-table
 import { Underline } from '@tiptap/extension-underline'
 import { StarterKit } from '@tiptap/starter-kit'
 import { common, createLowlight } from 'lowlight'
-import { onMounted, onUnmounted, shallowRef, watch } from 'vue'
 import { DEFAULT_DOC_CODE_LANGUAGE } from '../lib/codeBlockLanguages'
 import { createDocCodeBlockNodeView } from '../lib/codeBlockNodeView'
 

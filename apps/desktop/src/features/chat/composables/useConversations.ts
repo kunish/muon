@@ -11,7 +11,6 @@ import {
 } from '@matrix/index'
 import { useSelector } from '@tanstack/vue-store'
 import { Effect } from 'effect'
-import { computed, onMounted, ref, shallowRef } from 'vue'
 import { registerSessionSubscriber } from '@/auth/lifecycleEvents'
 import { fromPromise, fromSync, runDesktopEffect, runDesktopSync } from '@/shared/lib/effect'
 import {

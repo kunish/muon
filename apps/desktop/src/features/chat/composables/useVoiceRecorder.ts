@@ -1,6 +1,5 @@
 import type { DesktopEffect } from '@/shared/lib/effect'
 import { Effect } from 'effect'
-import { ref } from 'vue'
 import { toast } from 'vue-sonner'
 import { fromPromise, fromSync, runDesktopEffect, runDesktopSync } from '@/shared/lib/effect'
 import { localizedText } from '@/shared/lib/localizedText'

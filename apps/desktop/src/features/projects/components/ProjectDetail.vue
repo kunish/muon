@@ -2,9 +2,6 @@
 import type { ProjectView } from '../types';
 import { Button } from '@muon/ui/button';
 import { Kanban, LayoutList, Settings, Trash2 } from 'lucide-vue-next';
-import { computed, watch } from 'vue';
-import { useI18n } from 'vue-i18n';
-import { useRoute, useRouter } from 'vue-router';
 import { ask } from '@/desktop/dialog';
 import { setCurrentProject } from '../composables/useProjectStore';
 import { loadItems, setCurrentProject as setWorkItemProject } from '../composables/useWorkItemStore';

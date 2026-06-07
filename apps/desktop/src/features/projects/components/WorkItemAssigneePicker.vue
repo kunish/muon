@@ -3,8 +3,6 @@ import { getClient } from '@matrix/client';
 import { Avatar } from '@muon/ui/avatar';
 import { useContactList } from '@shared/composables/useContactList';
 import { Check, Search, X } from 'lucide-vue-next';
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
-import { useI18n } from 'vue-i18n';
 
 interface DirectoryUser {
   user_id: string;

@@ -1,9 +1,6 @@
 <script setup lang="ts">
 import type { DecisionStatus, DecisionSuggestion, SuggestionDisposition } from '../types/decision';
 import { Textarea } from '@muon/ui/textarea';
-import { reactive, ref, watch } from 'vue';
-import { useI18n } from 'vue-i18n';
-import { useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
 import GroupMemberPicker from '@/features/contacts/components/GroupMemberPicker.vue';
 import { preloadAndNavigate } from '@/shared/lib/contextPreload';

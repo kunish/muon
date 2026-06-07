@@ -11,11 +11,9 @@ import { getClient } from '@matrix/client';
 import { getMyDisplayName } from '@matrix/index';
 import { settingsStore } from '@shared/stores/settingsStore';
 import { useSelector } from '@tanstack/vue-store';
-import { computed, onMounted, ref, watch } from 'vue';
-import { useI18n } from 'vue-i18n';
-import { useRoute, useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue';
+import { routeParam } from '@/shared/lib/routeParams';
 import { useGlobalShortcuts } from '../composables/useGlobalShortcuts';
 import GlobalOverlayHost from './GlobalOverlayHost.vue';
 import NetworkStatusBar from './NetworkStatusBar.vue';
@@ -75,8 +73,8 @@ function openNotificationSettings(): void {
 }
 
 function syncServerSelectionFromRoute(): void {
-  const serverId = route.params.serverId as string | undefined;
-  const channelId = route.params.channelId as string | undefined;
+  const serverId = routeParam(route, 'serverId');
+  const channelId = routeParam(route, 'channelId');
 
   if (route.path.startsWith('/server') && serverId) {
     selectServer(serverId);

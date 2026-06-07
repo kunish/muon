@@ -1,5 +1,3 @@
-import { computed, onUnmounted, shallowRef } from 'vue'
-
 const activeMessagePopoverOwner = shallowRef<symbol | null>(null)
 
 export function useMessagePopoverSingleton() {
