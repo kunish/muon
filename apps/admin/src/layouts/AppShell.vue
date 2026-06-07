@@ -2,6 +2,9 @@
 import { computed } from 'vue';
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router';
 import { logoutAdmin } from '@/api';
+import { useAuditLogs } from '@/queries/useAuditLogs';
+import { useOrganizations } from '@/queries/useOrganizations';
+import { useUsers } from '@/queries/useUsers';
 import { adminSections } from '@/router';
 import { clearToken, sessionStore } from '@/stores/sessionStore';
 
@@ -9,6 +12,17 @@ const route = useRoute();
 const router = useRouter();
 
 const activeAdminSection = computed(() => route.meta?.adminSection);
+
+// 顶部概览：复用三个 section 各自的 query（vue-query 共享缓存，不会重复请求）。
+const { data: organizations } = useOrganizations();
+const { data: users } = useUsers();
+const { data: auditLogs } = useAuditLogs();
+
+const organizationCount = computed(() => organizations.value?.length ?? 0);
+const userCount = computed(() => users.value?.length ?? 0);
+const auditCount = computed(() => auditLogs.value?.length ?? 0);
+const activeUsers = computed(() => (users.value ?? []).filter((user) => user.status === 'active').length);
+const disabledUsers = computed(() => (users.value ?? []).filter((user) => user.status === 'disabled').length);
 
 async function logout() {
   const token = sessionStore.state.adminToken;
@@ -40,6 +54,22 @@ async function logout() {
           {{ section.label }}
         </RouterLink>
       </nav>
+      <div class="summary-grid" data-testid="admin-summary" aria-label="后台概览">
+        <div class="summary-card" data-testid="summary-organizations">
+          <span>组织</span>
+          <strong>{{ organizationCount }}</strong>
+        </div>
+        <div class="summary-card" data-testid="summary-users">
+          <span>用户</span>
+          <strong>{{ userCount }}</strong>
+          <small>{{ activeUsers }} 正常 / {{ disabledUsers }} 停用</small>
+        </div>
+        <div class="summary-card" data-testid="summary-audit">
+          <span>审计</span>
+          <strong>{{ auditCount }}</strong>
+        </div>
+      </div>
+
       <button type="button" class="logout-button" data-testid="logout-admin" @click="logout">退出登录</button>
     </aside>
 
@@ -101,8 +131,35 @@ async function logout() {
   font-weight: 700;
 }
 
-.logout-button {
+.summary-grid {
   margin-top: auto;
+  display: grid;
+  gap: 8px;
+  padding-top: 24px;
+}
+
+.summary-card {
+  display: grid;
+  gap: 2px;
+  padding: 12px;
+  border: 1px solid #e4e7ec;
+  border-radius: 8px;
+  background: #fbfcfe;
+}
+
+.summary-card span,
+.summary-card small {
+  color: #667085;
+  font-size: 12px;
+}
+
+.summary-card strong {
+  color: #1f2328;
+  font-size: 20px;
+}
+
+.logout-button {
+  margin-top: 16px;
   border: 0;
   background: transparent;
   color: #3d4656;
