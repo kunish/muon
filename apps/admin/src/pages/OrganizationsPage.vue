@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import type { Organization, UserStatus } from '@muon/enterprise-contracts';
+import type { Organization } from '@muon/enterprise-contracts';
 import { Button } from '@muon/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@muon/ui/card';
 import { Input } from '@muon/ui/input';
 import { computed, reactive, ref } from 'vue';
+import { statusLabel } from '@/lib/labels';
 import { useCreateOrganization, useOrganizations } from '@/queries/useOrganizations';
 
 const { data: organizations, error: queryError } = useOrganizations();
@@ -46,10 +47,6 @@ const organizationError = computed(() => {
   const err = createOrganization.error.value ?? queryError.value;
   return err instanceof Error ? err.message : '';
 });
-
-function statusLabel(status: UserStatus | Organization['status']) {
-  return status === 'active' ? '正常' : status === 'disabled' ? '已停用' : '已暂停';
-}
 
 function formatDate(value: string) {
   return new Date(value).toLocaleString();
