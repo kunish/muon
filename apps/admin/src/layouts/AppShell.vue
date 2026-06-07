@@ -1,11 +1,27 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { RouterLink, RouterView, useRoute } from 'vue-router';
+import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router';
+import { logoutAdmin } from '@/api';
 import { adminSections } from '@/router';
+import { clearToken, sessionStore } from '@/stores/sessionStore';
 
 const route = useRoute();
+const router = useRouter();
 
 const activeAdminSection = computed(() => route.meta?.adminSection);
+
+async function logout() {
+  const token = sessionStore.state.adminToken;
+  if (token) {
+    try {
+      await logoutAdmin(token);
+    } catch {
+      // Best-effort: server may already have invalidated the token.
+    }
+  }
+  clearToken();
+  await router.replace({ name: 'admin-login' });
+}
 </script>
 
 <template>
@@ -24,6 +40,7 @@ const activeAdminSection = computed(() => route.meta?.adminSection);
           {{ section.label }}
         </RouterLink>
       </nav>
+      <button type="button" class="logout-button" data-testid="logout-admin" @click="logout">退出登录</button>
     </aside>
 
     <RouterView />
@@ -44,6 +61,8 @@ const activeAdminSection = computed(() => route.meta?.adminSection);
 .admin-sidebar {
   min-height: 0;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
   background: #fff;
   border-right: 1px solid #e4e7ec;
   padding: 24px 18px;
@@ -80,5 +99,34 @@ const activeAdminSection = computed(() => route.meta?.adminSection);
 
 .nav-list a.active {
   font-weight: 700;
+}
+
+.logout-button {
+  margin-top: auto;
+  border: 0;
+  background: transparent;
+  color: #3d4656;
+  font: inherit;
+  cursor: pointer;
+  padding: 8px 10px;
+  border-radius: 6px;
+  text-align: left;
+}
+
+.logout-button:hover {
+  background: #f0f3f8;
+  color: #1f2328;
+}
+
+@media (max-width: 900px) {
+  .admin-shell {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .admin-sidebar {
+    border-right: 0;
+    border-bottom: 1px solid #e4e7ec;
+  }
 }
 </style>
