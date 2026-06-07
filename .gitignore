@@ -13,3 +13,8 @@ playwright-report/
 test-results/
 .superpowers/
 .worktrees/
+
+# unplugin generated artifacts (auto-import / components)
+apps/desktop/src/auto-imports.d.ts
+apps/desktop/src/components.d.ts
+apps/desktop/.eslintrc-auto-import.json

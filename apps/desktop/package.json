@@ -125,6 +125,8 @@
     "jsdom": "catalog:",
     "msw": "catalog:",
     "typescript": "catalog:",
+    "unplugin-auto-import": "catalog:",
+    "unplugin-vue-components": "catalog:",
     "vite": "catalog:",
     "vitest": "catalog:",
     "vue-tsc": "catalog:"

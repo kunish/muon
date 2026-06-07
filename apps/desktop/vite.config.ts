@@ -4,6 +4,7 @@ import vueI18n from '@intlify/unplugin-vue-i18n/vite'
 import tailwindcss from '@tailwindcss/vite'
 import vue from '@vitejs/plugin-vue'
 import { defineConfig } from 'vite'
+import { autoImportPlugin, componentsPlugin } from './config/unplugins.js'
 import pkg from './package.json'
 
 export default defineConfig({
@@ -13,6 +14,8 @@ export default defineConfig({
   envDir: resolve(__dirname, '../..'),
   plugins: [
     vue(),
+    autoImportPlugin(),
+    componentsPlugin(),
     tailwindcss(),
     vueI18n({
       compositionOnly: true,
