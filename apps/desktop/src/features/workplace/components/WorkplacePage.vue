@@ -6,10 +6,17 @@ import {
   BriefcaseBusiness,
   Brush,
   CalendarClock,
+  ClipboardList,
   Code2,
+  DoorOpen,
+  FileBarChart,
+  Fingerprint,
   Grid3X3,
+  ListTree,
+  Megaphone,
   MessageSquare,
   MoreHorizontal,
+  NotebookPen,
   Plus,
   Search,
   Table2,
@@ -20,6 +27,15 @@ import { computed, shallowRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import WorkspaceResizablePane from '@/app/components/workspace/WorkspaceResizablePane.vue';
+import { bitableStore, selectTables } from '@/features/bitable/stores/bitableStore';
+import { selectTasksByStatus, taskStore } from '@/features/chat/stores/taskStore';
+import { minuteStore, selectMinutes } from '@/features/minutes/stores/minuteStore';
+import { okrStore, selectObjectives } from '@/features/okr/stores/okrStore';
+import { currentPeriod } from '@/features/okr/types/okr';
+import { reportStore, selectReports } from '@/features/reports/stores/reportStore';
+import { isSubmitted } from '@/features/reports/types/report';
+import { roomStore, selectBookings } from '@/features/rooms/stores/roomStore';
+import { todayKey } from '@/features/rooms/types/room';
 import {
   addCustomApp as storeAddCustomApp,
   hideApp as storeHideApp,
@@ -34,6 +50,47 @@ const router = useRouter();
 const customApps = useSelector(workplaceStore, (s) => s.customApps);
 const appOrder = useSelector(workplaceStore, (s) => s.appOrder);
 const hiddenAppIds = useSelector(workplaceStore, (s) => s.hiddenAppIds);
+
+// ── 数据概览：聚合各功能模块的真实 store（飞书工作台呈现的是真实跨应用数据，而非占位） ──
+const taskGroups = useSelector(taskStore, selectTasksByStatus);
+const okrObjectives = useSelector(okrStore, selectObjectives);
+const bitableTables = useSelector(bitableStore, selectTables);
+const minutesList = useSelector(minuteStore, selectMinutes);
+const roomBookings = useSelector(roomStore, selectBookings);
+const reportsList = useSelector(reportStore, selectReports);
+
+const overviewStats = computed(() => {
+  const today = todayKey(Date.now());
+  const period = currentPeriod(Date.now());
+  return [
+    {
+      id: 'tasks',
+      label: '待办任务',
+      value: taskGroups.value.todo.length + taskGroups.value.doing.length,
+      path: '/tasks',
+    },
+    {
+      id: 'okr',
+      label: '本季 OKR',
+      value: okrObjectives.value.filter((objective) => objective.period === period).length,
+      path: '/okr',
+    },
+    { id: 'bitable', label: '多维表格', value: bitableTables.value.length, path: '/bitable' },
+    { id: 'minutes', label: '会议纪要', value: minutesList.value.length, path: '/minutes' },
+    {
+      id: 'rooms',
+      label: '今日预定',
+      value: roomBookings.value.filter((booking) => booking.date === today).length,
+      path: '/rooms',
+    },
+    {
+      id: 'reports',
+      label: '汇报草稿',
+      value: reportsList.value.filter((report) => !isSubmitted(report)).length,
+      path: '/reports',
+    },
+  ];
+});
 
 const WORKPLACE_WIDTH_STORAGE_KEY = 'muon_workplace_sidebar_width';
 const DEFAULT_WORKPLACE_WIDTH = 240;
@@ -107,8 +164,8 @@ const builtInApps: WorkplaceAppEntry[] = [
     category: 'operations',
     icon: Table2,
     accent: 'text-success',
-    moduleLabel: '工作台',
-    path: '/workplace',
+    moduleLabel: '多维表格',
+    path: '/bitable',
     actionLabel: '打开表格',
   },
   {
@@ -129,8 +186,8 @@ const builtInApps: WorkplaceAppEntry[] = [
     category: 'operations',
     icon: AppWindow,
     accent: 'text-warning',
-    moduleLabel: '工作台',
-    path: '/workplace',
+    moduleLabel: 'OKR',
+    path: '/okr',
     actionLabel: '查看 OKR',
   },
   {
@@ -140,8 +197,8 @@ const builtInApps: WorkplaceAppEntry[] = [
     category: 'operations',
     icon: AppWindow,
     accent: 'text-secondary',
-    moduleLabel: '审批',
-    path: '/approvals',
+    moduleLabel: '任务',
+    path: '/tasks',
     actionLabel: '查看待办',
   },
   {
@@ -154,6 +211,83 @@ const builtInApps: WorkplaceAppEntry[] = [
     moduleLabel: '消息',
     path: '/dm',
     actionLabel: '进入消息',
+  },
+  {
+    id: 'minutes',
+    name: '妙记',
+    desc: '会议纪要与行动项',
+    category: 'productivity',
+    icon: NotebookPen,
+    accent: 'text-primary',
+    moduleLabel: '妙记',
+    path: '/minutes',
+    actionLabel: '查看纪要',
+  },
+  {
+    id: 'rooms',
+    name: '会议室',
+    desc: '预定会议室与查看排期',
+    category: 'operations',
+    icon: DoorOpen,
+    accent: 'text-success',
+    moduleLabel: '会议室',
+    path: '/rooms',
+    actionLabel: '预定会议室',
+  },
+  {
+    id: 'survey',
+    name: '问卷',
+    desc: '收集反馈与统计结果',
+    category: 'operations',
+    icon: ClipboardList,
+    accent: 'text-secondary',
+    moduleLabel: '问卷',
+    path: '/survey',
+    actionLabel: '查看问卷',
+  },
+  {
+    id: 'reports',
+    name: '汇报',
+    desc: '日报与周报',
+    category: 'productivity',
+    icon: FileBarChart,
+    accent: 'text-primary',
+    moduleLabel: '汇报',
+    path: '/reports',
+    actionLabel: '写汇报',
+  },
+  {
+    id: 'attendance',
+    name: '考勤',
+    desc: '上下班打卡与统计',
+    category: 'operations',
+    icon: Fingerprint,
+    accent: 'text-warning',
+    moduleLabel: '考勤',
+    path: '/attendance',
+    actionLabel: '去打卡',
+  },
+  {
+    id: 'announcements',
+    name: '公告',
+    desc: '组织通知与全员公告',
+    category: 'operations',
+    icon: Megaphone,
+    accent: 'text-warning',
+    moduleLabel: '公告',
+    path: '/announcements',
+    actionLabel: '看公告',
+  },
+  {
+    id: 'mindmap',
+    name: '思维笔记',
+    desc: '层级化整理想法与大纲',
+    category: 'productivity',
+    icon: ListTree,
+    accent: 'text-primary',
+    moduleLabel: '思维笔记',
+    path: '/mindmap',
+    actionLabel: '打开笔记',
   },
 ];
 
@@ -442,6 +576,23 @@ function hideAppEntry(appId: string): void {
       <main class="min-h-0 flex-1 overflow-y-auto p-6">
         <div class="mx-auto grid w-full max-w-[1180px] gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
           <section class="flex min-w-0 flex-col gap-5">
+            <div data-testid="workplace-overview">
+              <h2 class="mb-3 text-[15px] font-semibold">数据概览</h2>
+              <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+                <button
+                  v-for="stat in overviewStats"
+                  :key="stat.id"
+                  type="button"
+                  class="workspace-surface flex flex-col items-start rounded-lg p-3 text-left transition hover:border-primary/40"
+                  :data-testid="`workplace-overview-${stat.id}`"
+                  @click="router.push(stat.path)"
+                >
+                  <span class="text-[12px] text-muted-foreground">{{ stat.label }}</span>
+                  <span class="mt-1 text-[20px] font-semibold leading-7 text-foreground">{{ stat.value }}</span>
+                </button>
+              </div>
+            </div>
+
             <div class="grid gap-3 md:grid-cols-3">
               <div class="workspace-surface rounded-lg p-4">
                 <div class="text-[11px] font-bold uppercase leading-4 tracking-[0.05em] text-muted-foreground">

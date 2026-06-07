@@ -3,13 +3,23 @@ import {
   Building2,
   CalendarDays,
   CheckSquare,
+  ClipboardList,
+  DoorOpen,
+  FileBarChart,
   FileText,
+  Fingerprint,
   FolderKanban,
   Grid3X3,
+  ListTodo,
+  ListTree,
   Mail,
+  Megaphone,
   MessageCircle,
+  NotebookPen,
   Phone,
   Settings,
+  Table2,
+  Target,
   Users,
 } from 'lucide-vue-next'
 
@@ -17,12 +27,22 @@ export type WorkspaceAppId =
   | 'messages'
   | 'contacts'
   | 'organization'
+  | 'announcements'
   | 'calendar'
   | 'docs'
+  | 'bitable'
+  | 'mindmap'
   | 'workplace'
   | 'approvals'
+  | 'survey'
+  | 'reports'
   | 'email'
   | 'calls'
+  | 'minutes'
+  | 'rooms'
+  | 'okr'
+  | 'tasks'
+  | 'attendance'
   | 'projects'
   | 'settings'
 
@@ -66,6 +86,20 @@ export const workspaceApps: WorkspaceApp[] = [
     match: (path) => matchesPrefix(path, '/docs'),
   },
   {
+    id: 'bitable',
+    labelKey: 'sidebar.bitable',
+    path: '/bitable',
+    icon: Table2,
+    match: (path) => matchesPrefix(path, '/bitable'),
+  },
+  {
+    id: 'mindmap',
+    labelKey: 'sidebar.mindmap',
+    path: '/mindmap',
+    icon: ListTree,
+    match: (path) => matchesPrefix(path, '/mindmap'),
+  },
+  {
     id: 'workplace',
     labelKey: 'sidebar.workplace',
     path: '/workplace',
@@ -87,11 +121,32 @@ export const workspaceApps: WorkspaceApp[] = [
     match: (path) => matchesPrefix(path, '/organization'),
   },
   {
+    id: 'announcements',
+    labelKey: 'sidebar.announcements',
+    path: '/announcements',
+    icon: Megaphone,
+    match: (path) => matchesPrefix(path, '/announcements'),
+  },
+  {
     id: 'calls',
     labelKey: 'sidebar.calls',
     path: '/calls',
     icon: Phone,
     match: (path) => matchesPrefix(path, '/calls'),
+  },
+  {
+    id: 'minutes',
+    labelKey: 'sidebar.minutes',
+    path: '/minutes',
+    icon: NotebookPen,
+    match: (path) => matchesPrefix(path, '/minutes'),
+  },
+  {
+    id: 'rooms',
+    labelKey: 'sidebar.rooms',
+    path: '/rooms',
+    icon: DoorOpen,
+    match: (path) => matchesPrefix(path, '/rooms'),
   },
   {
     id: 'email',
@@ -106,6 +161,41 @@ export const workspaceApps: WorkspaceApp[] = [
     path: '/approvals',
     icon: CheckSquare,
     match: (path) => matchesPrefix(path, '/approvals'),
+  },
+  {
+    id: 'survey',
+    labelKey: 'sidebar.survey',
+    path: '/survey',
+    icon: ClipboardList,
+    match: (path) => matchesPrefix(path, '/survey'),
+  },
+  {
+    id: 'reports',
+    labelKey: 'sidebar.reports',
+    path: '/reports',
+    icon: FileBarChart,
+    match: (path) => matchesPrefix(path, '/reports'),
+  },
+  {
+    id: 'okr',
+    labelKey: 'sidebar.okr',
+    path: '/okr',
+    icon: Target,
+    match: (path) => matchesPrefix(path, '/okr'),
+  },
+  {
+    id: 'tasks',
+    labelKey: 'sidebar.tasks',
+    path: '/tasks',
+    icon: ListTodo,
+    match: (path) => matchesPrefix(path, '/tasks'),
+  },
+  {
+    id: 'attendance',
+    labelKey: 'sidebar.attendance',
+    path: '/attendance',
+    icon: Fingerprint,
+    match: (path) => matchesPrefix(path, '/attendance'),
   },
   {
     id: 'projects',

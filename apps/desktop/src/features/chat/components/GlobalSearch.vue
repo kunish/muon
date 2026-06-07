@@ -1,16 +1,30 @@
 <script setup lang="ts">
+import type { Component } from 'vue';
 import type { SidebarPreviewInput } from '@/features/chat/stores/chatStore';
 import { getClient } from '@matrix/client';
 import { findOrCreateDm, loadInboxEventContext } from '@matrix/index';
 import { useContactList } from '@shared/composables/useContactList';
 import { useSelector } from '@tanstack/vue-store';
 import { useVirtualizer } from '@tanstack/vue-virtual';
-import { Search } from 'lucide-vue-next';
+import {
+  CalendarDays,
+  ClipboardList,
+  ListTodo,
+  ListTree,
+  Megaphone,
+  NotebookPen,
+  Search,
+  Table2,
+  Target,
+} from 'lucide-vue-next';
 import { computed, nextTick, onMounted, onUnmounted, ref, useTemplateRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
 import { workspaceApps } from '@/app/components/workspace/navigation';
+import { announcementStore, selectAnnouncements } from '@/features/announcements/stores/announcementStore';
+import { bitableStore, selectTables } from '@/features/bitable/stores/bitableStore';
+import { calendarStore, selectEvents } from '@/features/calendar/stores/calendarStore';
 import { useSearchHistory } from '@/features/chat/composables/useSearchHistory';
 import { setCurrentRoom } from '@/features/chat/stores/chatStore';
 import {
@@ -19,6 +33,11 @@ import {
   search as retrievalSearch,
   retrievalStore,
 } from '@/features/chat/stores/retrievalStore';
+import { taskStore } from '@/features/chat/stores/taskStore';
+import { mindmapStore, selectMaps } from '@/features/mindmap/stores/mindmapStore';
+import { minuteStore, selectMinutes } from '@/features/minutes/stores/minuteStore';
+import { okrStore, selectObjectives } from '@/features/okr/stores/okrStore';
+import { selectSurveys, surveyStore } from '@/features/survey/stores/surveyStore';
 
 const emit = defineEmits<{
   close: [];
@@ -94,9 +113,134 @@ const contactResults = computed(() => {
 });
 
 const messageHits = computed(() => retrieval.value.results.filter((hit) => joinedRoomIds.value.has(hit.roomId)));
+
+// 跨应用内容检索：在日历 / 任务 / OKR / 多维表格 / 妙记 / 问卷 等模块的真实条目里按标题匹配，命中后跳转对应模块。
+const calendarEventList = useSelector(calendarStore, selectEvents);
+const followUpTasks = useSelector(taskStore, (state) => state.tasks);
+const okrObjectives = useSelector(okrStore, selectObjectives);
+const bitableTables = useSelector(bitableStore, selectTables);
+const minutesList = useSelector(minuteStore, selectMinutes);
+const surveyList = useSelector(surveyStore, selectSurveys);
+const announcementList = useSelector(announcementStore, selectAnnouncements);
+const mindmapList = useSelector(mindmapStore, selectMaps);
+
+interface ContentResult {
+  id: string;
+  /** 目标条目的原始 id，作为 ?focus 传给目标页用于定位 */
+  focusId: string;
+  label: string;
+  source: string;
+  path: string;
+  icon: Component;
+}
+
+const contentResults = computed<ContentResult[]>(() => {
+  const q = normalizedQuery.value;
+  if (!q) return [];
+  const items: ContentResult[] = [];
+  for (const event of calendarEventList.value) {
+    if (event.title.toLowerCase().includes(q)) {
+      items.push({
+        id: `event:${event.id}`,
+        focusId: event.id,
+        label: event.title,
+        source: '日历',
+        path: '/calendar',
+        icon: CalendarDays,
+      });
+    }
+  }
+  for (const task of followUpTasks.value) {
+    if (task.title.toLowerCase().includes(q)) {
+      items.push({
+        id: `task:${task.id}`,
+        focusId: task.id,
+        label: task.title,
+        source: '任务',
+        path: '/tasks',
+        icon: ListTodo,
+      });
+    }
+  }
+  for (const objective of okrObjectives.value) {
+    if (objective.title.toLowerCase().includes(q)) {
+      items.push({
+        id: `okr:${objective.id}`,
+        focusId: objective.id,
+        label: objective.title,
+        source: 'OKR',
+        path: '/okr',
+        icon: Target,
+      });
+    }
+  }
+  for (const table of bitableTables.value) {
+    if (table.name.toLowerCase().includes(q)) {
+      items.push({
+        id: `bitable:${table.id}`,
+        focusId: table.id,
+        label: table.name,
+        source: '多维表格',
+        path: '/bitable',
+        icon: Table2,
+      });
+    }
+  }
+  for (const minute of minutesList.value) {
+    if (minute.title.toLowerCase().includes(q)) {
+      items.push({
+        id: `minute:${minute.id}`,
+        focusId: minute.id,
+        label: minute.title,
+        source: '妙记',
+        path: '/minutes',
+        icon: NotebookPen,
+      });
+    }
+  }
+  for (const survey of surveyList.value) {
+    if (survey.title.toLowerCase().includes(q)) {
+      items.push({
+        id: `survey:${survey.id}`,
+        focusId: survey.id,
+        label: survey.title,
+        source: '问卷',
+        path: '/survey',
+        icon: ClipboardList,
+      });
+    }
+  }
+  for (const announcement of announcementList.value) {
+    if (announcement.title.toLowerCase().includes(q)) {
+      items.push({
+        id: `announcement:${announcement.id}`,
+        focusId: announcement.id,
+        label: announcement.title,
+        source: '公告',
+        path: '/announcements',
+        icon: Megaphone,
+      });
+    }
+  }
+  for (const map of mindmapList.value) {
+    if (map.title.toLowerCase().includes(q)) {
+      items.push({
+        id: `mindmap:${map.id}`,
+        focusId: map.id,
+        label: map.title,
+        source: '思维笔记',
+        path: '/mindmap',
+        icon: ListTree,
+      });
+    }
+  }
+  return items.slice(0, 12);
+});
+
 const hasAnySearchResult = computed(
   () =>
     appResults.value.length > 0 ||
+    contentResults.value.length > 0 ||
     rooms.value.length > 0 ||
     contactResults.value.length > 0 ||
     messageHits.value.length > 0,
@@ -143,6 +287,12 @@ function roomLabel(roomId: string): string {
 
 async function openApp(path: string) {
   await router.push(path);
+  emit('close');
+}
+
+// 带 ?focus 跳转到目标模块，使支持的页面（OKR/多维表格/妙记/问卷）能定位到具体条目。
+async function openContent(item: ContentResult) {
+  await router.push({ path: item.path, query: { focus: item.focusId } });
   emit('close');
 }
 
@@ -225,6 +375,10 @@ const resultActions = computed<SearchResultAction[]>(() => [
   ...appResults.value.map((app) => ({
     id: `app:${app.id}`,
     execute: () => openApp(app.path),
+  })),
+  ...contentResults.value.map((item) => ({
+    id: `content:${item.id}`,
+    execute: () => openContent(item),
   })),
   ...rooms.value.map((room) => ({
     id: `room:${room.roomId}`,
@@ -400,6 +554,37 @@ onUnmounted(() => {
           <div class="min-w-0 flex-1">
             <div class="truncate text-sm">
               {{ app.label }}
+            </div>
+          </div>
+        </button>
+      </template>
+
+      <template v-if="contentResults.length > 0">
+        <div
+          class="px-3 py-2 text-xs font-medium text-muted-foreground"
+          :class="appResults.length > 0 ? 'border-t border-border/60 mt-1 pt-3' : ''"
+        >
+          {{ t('chat.search_workspace') }}
+        </div>
+        <button
+          v-for="item in contentResults"
+          :key="item.id"
+          type="button"
+          :data-testid="`global-search-content-${item.id}`"
+          class="flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors"
+          :class="isActiveResult(`content:${item.id}`) ? 'bg-accent text-foreground' : 'hover:bg-accent/50'"
+          :aria-selected="isActiveResult(`content:${item.id}`)"
+          @click="openContent(item)"
+        >
+          <div class="flex size-8 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <component :is="item.icon" :size="16" />
+          </div>
+          <div class="min-w-0 flex-1">
+            <div class="truncate text-sm">
+              {{ item.label }}
+            </div>
+            <div class="truncate text-xs text-muted-foreground">
+              {{ item.source }}
             </div>
           </div>
         </button>

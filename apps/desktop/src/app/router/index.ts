@@ -55,6 +55,11 @@ const router = createRouter({
           component: () => import('@features/organization/components/OrganizationPage.vue'),
         },
         {
+          path: 'announcements',
+          name: 'announcements',
+          component: () => import('@features/announcements/components/AnnouncementsPage.vue'),
+        },
+        {
           path: 'calendar',
           name: 'calendar',
           component: () => import('@features/calendar/components/CalendarPage.vue'),
@@ -63,6 +68,16 @@ const router = createRouter({
           path: 'docs',
           name: 'docs',
           component: () => import('@features/docs/components/DocsPage.vue'),
+        },
+        {
+          path: 'bitable',
+          name: 'bitable',
+          component: () => import('@features/bitable/components/BitablePage.vue'),
+        },
+        {
+          path: 'mindmap',
+          name: 'mindmap',
+          component: () => import('@features/mindmap/components/MindmapPage.vue'),
         },
         {
           path: 'docs/:docId',
@@ -80,6 +95,16 @@ const router = createRouter({
           component: () => import('@features/approvals/components/ApprovalsPage.vue'),
         },
         {
+          path: 'survey',
+          name: 'survey',
+          component: () => import('@features/survey/components/SurveyPage.vue'),
+        },
+        {
+          path: 'reports',
+          name: 'reports',
+          component: () => import('@features/reports/components/ReportsPage.vue'),
+        },
+        {
           path: 'email',
           name: 'email',
           component: () => import('@features/email/components/EmailPage.vue'),
@@ -88,6 +113,31 @@ const router = createRouter({
           path: 'calls',
           name: 'calls',
           component: () => import('@features/calls/components/CallsPage.vue'),
+        },
+        {
+          path: 'minutes',
+          name: 'minutes',
+          component: () => import('@features/minutes/components/MinutesPage.vue'),
+        },
+        {
+          path: 'rooms',
+          name: 'rooms',
+          component: () => import('@features/rooms/components/RoomsPage.vue'),
+        },
+        {
+          path: 'okr',
+          name: 'okr',
+          component: () => import('@features/okr/components/OkrPage.vue'),
+        },
+        {
+          path: 'attendance',
+          name: 'attendance',
+          component: () => import('@features/attendance/components/AttendancePage.vue'),
+        },
+        {
+          path: 'tasks',
+          name: 'tasks',
+          component: () => import('@features/tasks/components/TasksPage.vue'),
         },
         {
           path: 'projects',

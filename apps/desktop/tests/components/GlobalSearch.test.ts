@@ -1,5 +1,7 @@
 import { mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { addAnnouncement, resetAnnouncementStore } from '@/features/announcements/stores/announcementStore'
+import { addEvent as addCalendarEvent, resetCalendarStore } from '@/features/calendar/stores/calendarStore'
 import GlobalSearch from '@/features/chat/components/GlobalSearch.vue'
 import {
   chatStore,
@@ -11,6 +13,9 @@ import {
 } from '@/features/chat/stores/chatStore'
 import { resetRetrievalStore, retrievalStore } from '@/features/chat/stores/retrievalStore'
 import { resetContactStore } from '@/features/contacts/stores/contactStore'
+import { addMap, resetMindmapStore } from '@/features/mindmap/stores/mindmapStore'
+import { addObjective, resetOkrStore } from '@/features/okr/stores/okrStore'
+import { currentPeriod } from '@/features/okr/types/okr'
 
 const contactsSeed = vi.hoisted(() => ({ contacts: [] as any[], groups: [] as any[] }))
 vi.mock('@/features/contacts/queries/useContacts', () => ({
@@ -329,5 +334,83 @@ describe('globalSearch', () => {
     expect(findOrCreateDmMock).toHaveBeenCalledWith('@bob:muon.dev')
     expect(routerPush).toHaveBeenCalledWith('/dm/!bob%3Amuon.dev')
     expect(getSidebarPromotionTime('!bob:muon.dev')).toEqual(expect.any(Number))
+  })
+
+  it('surfaces matching workspace content from feature modules and navigates to it', async () => {
+    resetOkrStore()
+    addObjective({ id: 'okr-search-1', period: currentPeriod(Date.now()), title: 'Zephyr 北极星目标' })
+
+    const wrapper = mountGlobalSearch()
+
+    await wrapper.find('[data-testid="global-search-input"]').setValue('Zephyr')
+    await flushUi()
+
+    expect(wrapper.find('[data-testid="global-search-content-okr:okr-search-1"]').exists()).toBe(true)
+    expect(wrapper.text()).toContain('Zephyr 北极星目标')
+
+    await wrapper.find('[data-testid="global-search-content-okr:okr-search-1"]').trigger('click')
+    expect(routerPush).toHaveBeenCalledWith({ path: '/okr', query: { focus: 'okr-search-1' } })
+
+    resetOkrStore()
+  })
+
+  it('finds a calendar event by title in workspace content search', async () => {
+    resetCalendarStore()
+    addCalendarEvent({
+      id: 'evt-search-1',
+      title: 'Quasar 季度复盘会',
+      date: '2026-06-09',
+      time: '09:00',
+      participants: '我',
+    })
+
+    const wrapper = mountGlobalSearch()
+
+    await wrapper.find('[data-testid="global-search-input"]').setValue('Quasar')
+    await flushUi()
+
+    expect(wrapper.find('[data-testid="global-search-content-event:evt-search-1"]').exists()).toBe(true)
+    expect(wrapper.text()).toContain('Quasar 季度复盘会')
+
+    await wrapper.find('[data-testid="global-search-content-event:evt-search-1"]').trigger('click')
+    expect(routerPush).toHaveBeenCalledWith({ path: '/calendar', query: { focus: 'evt-search-1' } })
+
+    resetCalendarStore()
+  })
+
+  it('finds an announcement by title and deep-links to it', async () => {
+    resetAnnouncementStore()
+    addAnnouncement({ id: 'ann-search-1', title: 'Halley 年度全员会通知', body: '' })
+
+    const wrapper = mountGlobalSearch()
+
+    await wrapper.find('[data-testid="global-search-input"]').setValue('Halley')
+    await flushUi()
+
+    expect(wrapper.find('[data-testid="global-search-content-announcement:ann-search-1"]').exists()).toBe(true)
+    expect(wrapper.text()).toContain('Halley 年度全员会通知')
+
+    await wrapper.find('[data-testid="global-search-content-announcement:ann-search-1"]').trigger('click')
+    expect(routerPush).toHaveBeenCalledWith({ path: '/announcements', query: { focus: 'ann-search-1' } })
+
+    resetAnnouncementStore()
+  })
+
+  it('finds a mindmap by title and deep-links to it', async () => {
+    resetMindmapStore()
+    const map = addMap('Quark 产品脑图')
+
+    const wrapper = mountGlobalSearch()
+
+    await wrapper.find('[data-testid="global-search-input"]').setValue('Quark')
+    await flushUi()
+
+    expect(wrapper.find(`[data-testid="global-search-content-mindmap:${map.id}"]`).exists()).toBe(true)
+    expect(wrapper.text()).toContain('Quark 产品脑图')
+
+    await wrapper.find(`[data-testid="global-search-content-mindmap:${map.id}"]`).trigger('click')
+    expect(routerPush).toHaveBeenCalledWith({ path: '/mindmap', query: { focus: map.id } })
+
+    resetMindmapStore()
   })
 })

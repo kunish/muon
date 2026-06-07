@@ -190,7 +190,7 @@ describe('workspace secondary pages', () => {
   it('keeps workplace summary metrics derived from current state', async () => {
     const wrapper = mount(WorkplacePage)
 
-    expect(wrapper.get('[data-testid="workplace-stat-enabled-apps"]').text()).toBe('7')
+    expect(wrapper.get('[data-testid="workplace-stat-enabled-apps"]').text()).toBe('14')
     expect(wrapper.get('[data-testid="workplace-stat-used-apps"]').text()).toBe('今日使用 3 个')
     expect(wrapper.get('[data-testid="workplace-stat-priority-items"]').text()).toBe('3')
     expect(wrapper.get('[data-testid="workplace-stat-blocked-items"]').text()).toBe('1 项需跟进')
@@ -198,11 +198,11 @@ describe('workspace secondary pages', () => {
     expect(wrapper.get('[data-testid="workplace-stat-meeting-breakdown"]').text()).toBe('日程 1 个 · 通话 1 个')
 
     await wrapper.get('[data-testid="workplace-add-app"]').trigger('click')
-    expect(wrapper.get('[data-testid="workplace-stat-enabled-apps"]').text()).toBe('8')
+    expect(wrapper.get('[data-testid="workplace-stat-enabled-apps"]').text()).toBe('15')
 
     await wrapper.get('[data-testid="workplace-manage-apps"]').trigger('click')
     await wrapper.get('[data-testid="workplace-hide-standup"]').trigger('click')
-    expect(wrapper.get('[data-testid="workplace-stat-enabled-apps"]').text()).toBe('7')
+    expect(wrapper.get('[data-testid="workplace-stat-enabled-apps"]').text()).toBe('14')
     expect(wrapper.get('[data-testid="workplace-stat-used-apps"]').text()).toBe('今日使用 3 个')
   })
 
@@ -292,7 +292,7 @@ describe('workspace secondary pages', () => {
 
     expect(wrapper.text()).toContain('已打开重点：安全文档审批')
     expect(wrapper.text()).toContain('应用详情：任务中心')
-    expect(wrapper.text()).toContain('关联模块：审批')
+    expect(wrapper.text()).toContain('关联模块：任务')
   })
 
   it('lets workplace base app manage structured records locally', async () => {

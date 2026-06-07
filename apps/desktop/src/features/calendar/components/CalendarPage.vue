@@ -17,11 +17,13 @@ import {
 } from 'lucide-vue-next';
 import { computed, onMounted, onUnmounted, ref, shallowRef } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useRoute } from 'vue-router';
 import { toast } from 'vue-sonner';
 import WorkspacePageFrame from '@/app/components/workspace/WorkspacePageFrame.vue';
 import { openUrl } from '@/desktop/opener';
 import GroupMemberPicker from '@/features/contacts/components/GroupMemberPicker.vue';
 import { projectRepo } from '@/features/projects/db/projectDb';
+import { addBooking as addRoomBooking, roomStore, selectRooms } from '@/features/rooms/stores/roomStore';
 import { useContactList } from '@/shared/composables/useContactList';
 import { triggerBlobDownload } from '@/shared/lib/download';
 import { useCalendarSubscriptions } from '../composables/useCalendarSubscriptions';
@@ -323,6 +325,22 @@ const selectedEvent = computed(() => {
   return selectedDayEvents.value.find((e) => e.id === selectedEventId.value) ?? selectedDayEvents.value[0];
 });
 
+// 全局搜索深链：?focus=<eventId> 时跳到该日程所在日期并选中它。
+// route 在无路由上下文（如部分组件测试）可能为 undefined，防御式读取。
+const route = useRoute();
+onMounted(() => {
+  const focusParam = route?.query?.focus;
+  const focus = typeof focusParam === 'string' ? focusParam : null;
+  if (!focus) return;
+  const event = calendarStore.state.events.find((item) => item.id === focus);
+  if (!event) return;
+  const [year, month, day] = event.date.split('-').map(Number);
+  // 同时切换月份游标，使该日程所在月进入可见范围（expandedEvents 依赖 monthGrid）。
+  cursorDate.value = new Date(year, month - 1, 1);
+  selectedDate.value = new Date(year, month - 1, day);
+  selectedEventId.value = event.id;
+});
+
 // 项目任务事件（proj-*）只存在于 projectTaskEvents，不在 calendarStore，无法接受/改期
 const isProjectEvent = computed(() => selectedEvent.value?.id.startsWith('proj-') ?? false);
 
@@ -375,6 +393,8 @@ function selectDay(date: Date) {
 const showEventEditor = ref(false);
 type RecurrenceChoice = 'none' | RecurrenceFreq;
 
+const meetingRooms = useSelector(roomStore, selectRooms);
+
 const eventDraft = ref({
   title: '',
   date: '',
@@ -382,6 +402,7 @@ const eventDraft = ref({
   endTime: '',
   participantIds: [] as string[],
   location: '',
+  roomId: '',
   meetingUrl: '',
   recurrence: 'none' as RecurrenceChoice,
   reminderMinutes: 0,
@@ -402,6 +423,14 @@ const reminderOptions: { value: number; labelKey: string }[] = [
   { value: 60, labelKey: 'calendar.reminder_60' },
 ];
 
+const TIME_PATTERN = /^\d{2}:\d{2}$/;
+
+function addMinutesToTime(hhmm: string, minutes: number): string {
+  const [hours, mins] = hhmm.split(':').map(Number);
+  const total = Math.min(23 * 60 + 59, hours * 60 + mins + minutes);
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+}
+
 function openNewEvent() {
   eventDraft.value = {
     title: '',
@@ -410,6 +439,7 @@ function openNewEvent() {
     endTime: '10:00',
     participantIds: [],
     location: '',
+    roomId: '',
     meetingUrl: '',
     recurrence: 'none',
     reminderMinutes: 0,
@@ -430,13 +460,35 @@ function saveNewEvent() {
     eventDraft.value.recurrence === 'none' ? undefined : { freq: eventDraft.value.recurrence };
 
   const title = eventDraft.value.title;
+
+  // 选了会议室则同步创建一条预定；冲突时响亮失败并中止，避免静默忽略所选会议室。
+  // 表单仅暴露开始时间，结束时间不合法则按开始 +1 小时派生，保证预定时段有效。
+  let location = eventDraft.value.location;
+  if (eventDraft.value.roomId) {
+    const room = meetingRooms.value.find((item) => item.id === eventDraft.value.roomId);
+    const start = eventDraft.value.time;
+    if (!room || !TIME_PATTERN.test(start)) {
+      toast.error(t('calendar.room_booking_invalid'));
+      return;
+    }
+    const rawEnd = eventDraft.value.endTime;
+    const end = TIME_PATTERN.test(rawEnd) && rawEnd > start ? rawEnd : addMinutesToTime(start, 60);
+    try {
+      addRoomBooking({ roomId: room.id, title, date: eventDraft.value.date, start, end, organizer: '我' });
+      location = room.name;
+    } catch {
+      toast.error(t('calendar.room_booking_conflict'));
+      return;
+    }
+  }
+
   addCalendarEvent({
     title,
     date: eventDraft.value.date,
     time: eventDraft.value.time,
     endTime: eventDraft.value.endTime || undefined,
     participants,
-    location: eventDraft.value.location,
+    location,
     meetingUrl: eventDraft.value.meetingUrl,
     recurrence,
     reminderMinutes: eventDraft.value.reminderMinutes > 0 ? eventDraft.value.reminderMinutes : undefined,
@@ -1038,6 +1090,15 @@ function colorBg(color: string): string {
               :placeholder="t('calendar.location_placeholder')"
               class="h-9 rounded-md border border-border bg-background px-3 text-[13px] text-foreground outline-none focus:border-primary"
             />
+            <select
+              v-if="meetingRooms.length"
+              v-model="eventDraft.roomId"
+              data-testid="event-room-select"
+              class="h-9 rounded-md border border-border bg-background px-3 text-[13px] text-foreground outline-none focus:border-primary"
+            >
+              <option value="">{{ t('calendar.room_none') }}</option>
+              <option v-for="room in meetingRooms" :key="room.id" :value="room.id">{{ room.name }}</option>
+            </select>
             <input
               v-model="eventDraft.meetingUrl"
               data-testid="event-meeting-url-input"
