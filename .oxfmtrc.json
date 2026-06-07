@@ -1,0 +1,34 @@
+{
+  "printWidth": 120,
+  "semi": false,
+  "singleQuote": true,
+  "trailingComma": "all",
+  "endOfLine": "lf",
+  "sortPackageJson": false,
+  "overrides": [
+    {
+      "files": ["**/*.vue"],
+      "options": {
+        "semi": true
+      }
+    }
+  ],
+  "ignorePatterns": [
+    "node_modules",
+    "dist",
+    "out",
+    "release",
+    "coverage",
+    "playwright-report",
+    "test-results",
+    "docker/conduit_data",
+    "docker/minio_data",
+    "design/stitch",
+    "docs/superpowers",
+    ".superpowers",
+    ".worktrees",
+    "*.log",
+    "CHANGELOG.md",
+    "pnpm-lock.yaml"
+  ]
+}

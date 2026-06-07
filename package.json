@@ -45,8 +45,8 @@
     "commitlint": "commitlint --edit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
+    "format": "oxfmt .",
+    "format:check": "oxfmt --check .",
     "prepare": "husky",
     "type-check": "pnpm --filter @muon/desktop type-check",
     "services:up": "bash docker/start.sh",
@@ -69,17 +69,17 @@
     "eslint-config-prettier": "catalog:",
     "husky": "catalog:",
     "lint-staged": "catalog:",
-    "prettier": "catalog:",
+    "oxfmt": "catalog:",
     "tsx": "catalog:",
     "typescript": "catalog:"
   },
   "lint-staged": {
     "*.{cjs,cts,js,jsx,mjs,mts,ts,tsx,vue}": [
       "eslint --fix",
-      "prettier --write"
+      "oxfmt"
     ],
     "*.{css,html,json,jsonc,md,scss,yaml,yml}": [
-      "prettier --write"
+      "oxfmt"
     ]
   }
 }
