@@ -24,6 +24,7 @@
     "vue-router": "catalog:"
   },
   "devDependencies": {
+    "@types/node": "catalog:",
     "@vue/test-utils": "catalog:",
     "jsdom": "catalog:",
     "vitest": "catalog:",
