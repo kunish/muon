@@ -322,8 +322,8 @@ export function createPostgresEnterpriseRepositoryEffect(databaseUrl: string) {
       },
 
       findDeviceSessionByRefreshTokenHash(refreshTokenHash: string) {
-        return query('SELECT * FROM device_sessions WHERE refresh_token_hash = $1', [refreshTokenHash]).then(
-          (result) => (result.rows[0] ? deviceSessionFromRow(result.rows[0]) : null),
+        return query('SELECT * FROM device_sessions WHERE refresh_token_hash = $1', [refreshTokenHash]).then((result) =>
+          result.rows[0] ? deviceSessionFromRow(result.rows[0]) : null,
         )
       },
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-/**
+ /**
  * "NEW" 未读分割线
  * 红色水平线 + "NEW" 徽章
  */
