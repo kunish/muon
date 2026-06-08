@@ -1,0 +1,8 @@
+# Ignore file for oxfmt (reads .gitignore + .prettierignore by default).
+# unplugin-generated dts / eslint globals are committed for fresh-clone type-checking
+# but must not be reformatted: each vite build regenerates them unformatted, which
+# would otherwise break `format:check`. Kept in sync with eslint.config.js ignores.
+apps/desktop/src/auto-imports.d.ts
+apps/desktop/src/components.d.ts
+apps/desktop/src/typed-router.d.ts
+apps/desktop/.eslintrc-auto-import.json

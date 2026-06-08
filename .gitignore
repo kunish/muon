@@ -13,9 +13,3 @@ playwright-report/
 test-results/
 .superpowers/
 .worktrees/
-
-# unplugin generated artifacts (auto-import / components / file-based router)
-apps/desktop/src/auto-imports.d.ts
-apps/desktop/src/components.d.ts
-apps/desktop/src/typed-router.d.ts
-apps/desktop/.eslintrc-auto-import.json
