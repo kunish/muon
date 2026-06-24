@@ -19,6 +19,7 @@
     "unstar": "取消收藏",
     "connecting": "连接中...",
     "initializing_data": "正在初始化数据...",
+    "startup_syncing": "正在同步消息…",
     "sync_error": "同步错误",
     "network_error": "网络异常，请检查连接",
     "unexpected_error": "发生未知错误",
@@ -989,6 +990,10 @@
     "delete_node": "删除节点"
   },
   "sidebar": {
+    "allApps": "全部应用",
+    "pinApp": "固定到鸭栏",
+    "unpinApp": "取消固定",
+    "emptyPinnedHint": "去全部应用固定",
     "messages": "消息",
     "calendar": "日历",
     "docs": "文档",

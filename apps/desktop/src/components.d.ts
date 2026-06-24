@@ -11,6 +11,7 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    AllAppsPopover: typeof import('./app/components/workspace/AllAppsPopover.vue')['default']
     AppLayout: typeof import('./app/components/AppLayout.vue')['default']
     ConfirmDialog: typeof import('./shared/components/ConfirmDialog.vue')['default']
     ConfirmDialogHost: typeof import('./shared/components/ConfirmDialogHost.vue')['default']

@@ -2,6 +2,7 @@ import { mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import WorkspaceAppRail from '@/app/components/workspace/WorkspaceAppRail.vue'
 import { globalUiStore, resetGlobalUiStore } from '@/app/stores/globalUiStore'
+import { resetSettingsStore, settingsStore } from '@/shared/stores/settingsStore'
 
 const push = vi.hoisted(() => vi.fn())
 const route = vi.hoisted(() => ({
@@ -17,6 +18,7 @@ vi.mock('vue-router', () => ({
 describe('workspaceAppRail', () => {
   beforeEach(() => {
     localStorage.clear()
+    resetSettingsStore()
     route.fullPath = '/contacts'
     route.path = '/contacts'
     push.mockReset()
@@ -31,19 +33,39 @@ describe('workspaceAppRail', () => {
     expect(logo.attributes('src')).toContain('muon-logo')
   })
 
-  it('renders the Nexus-style icon rail and marks the active app', () => {
+  it('renders only the pinned apps and marks the active one', () => {
     const wrapper = mount(WorkspaceAppRail)
 
+    // default pinned set
     expect(wrapper.get('[data-testid="workspace-app-messages"]').attributes('aria-label')).toBe('消息')
-    expect(wrapper.get('[data-testid="workspace-app-contacts"]').attributes('aria-current')).toBe('page')
-    expect(wrapper.get('[data-testid="workspace-app-contacts"]').attributes('aria-label')).toBe('联系人')
-    expect(wrapper.get('[data-testid="workspace-app-organization"]').attributes('aria-label')).toBe('组织')
     expect(wrapper.get('[data-testid="workspace-app-calendar"]').attributes('aria-label')).toBe('日历')
     expect(wrapper.get('[data-testid="workspace-app-docs"]').attributes('aria-label')).toBe('文档')
     expect(wrapper.get('[data-testid="workspace-app-workplace"]').attributes('aria-label')).toBe('工作台')
-    expect(wrapper.get('[data-testid="workspace-app-approvals"]').attributes('aria-label')).toBe('审批')
-    expect(wrapper.get('[data-testid="workspace-app-email"]').attributes('aria-label')).toBe('邮件')
-    expect(wrapper.get('[data-testid="workspace-app-calls"]').attributes('aria-label')).toBe('通话')
+    expect(wrapper.get('[data-testid="workspace-app-contacts"]').attributes('aria-current')).toBe('page')
+    expect(wrapper.get('[data-testid="workspace-app-contacts"]').attributes('aria-label')).toBe('联系人')
+  })
+
+  it('does not render apps that are not pinned', () => {
+    const wrapper = mount(WorkspaceAppRail)
+
+    expect(wrapper.find('[data-testid="workspace-app-organization"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="workspace-app-email"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="workspace-app-calls"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="workspace-app-approvals"]').exists()).toBe(false)
+  })
+
+  it('renders the all-apps launcher button', () => {
+    const wrapper = mount(WorkspaceAppRail)
+
+    expect(wrapper.find('[data-testid="workspace-all-apps"]').exists()).toBe(true)
+  })
+
+  it('shows an empty hint when nothing is pinned', () => {
+    settingsStore.setState((s) => ({ ...s, pinnedApps: [] }))
+    const wrapper = mount(WorkspaceAppRail)
+
+    expect(wrapper.find('[data-testid="workspace-rail-empty"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="workspace-app-messages"]').exists()).toBe(false)
   })
 
   it('renders injected message unread count', () => {
@@ -54,7 +76,7 @@ describe('workspaceAppRail', () => {
     expect(wrapper.find('[data-testid="workspace-app-messages"]').text()).toContain('3')
   })
 
-  it('navigates when an app entry is clicked', async () => {
+  it('navigates when a pinned app entry is clicked', async () => {
     const wrapper = mount(WorkspaceAppRail)
 
     await wrapper.find('[data-testid="workspace-app-docs"]').trigger('click')
@@ -75,15 +97,7 @@ describe('workspaceAppRail', () => {
     expect(push).toHaveBeenCalledWith('/dm/!alice%3Alocalhost')
   })
 
-  it('navigates to the organization hub entry', async () => {
-    const wrapper = mount(WorkspaceAppRail)
-
-    await wrapper.find('[data-testid="workspace-app-organization"]').trigger('click')
-
-    expect(push).toHaveBeenCalledWith('/organization')
-  })
-
-  it('navigates to a missing Feishu secondary app entry', async () => {
+  it('navigates to a pinned Feishu secondary app entry', async () => {
     const wrapper = mount(WorkspaceAppRail)
 
     await wrapper.find('[data-testid="workspace-app-calendar"]').trigger('click')

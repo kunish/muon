@@ -1,8 +1,12 @@
 <script setup lang="ts">
 import type { WorkspaceApp } from './navigation';
-import { Search } from 'lucide-vue-next';
+import { Popover, PopoverContent, PopoverTrigger } from '@muon/ui/popover';
+import { useStore } from '@tanstack/vue-store';
+import { LayoutGrid, Search } from 'lucide-vue-next';
+import { settingsStore } from '@/shared/stores/settingsStore';
 import { openGlobalSearch } from '../../stores/globalUiStore';
-import { footerWorkspaceApps, getWorkspaceAppForPath, primaryWorkspaceApps } from './navigation';
+import AllAppsPopover from './AllAppsPopover.vue';
+import { footerWorkspaceApps, getWorkspaceAppForPath, resolvePinnedApps } from './navigation';
 
 withDefaults(
   defineProps<{
@@ -18,6 +22,10 @@ const router = useRouter();
 const { t } = useI18n();
 const lastMessagesPath = ref('/dm');
 
+const allAppsOpen = ref(false);
+const pinnedIds = useStore(settingsStore, (s) => s.pinnedApps);
+const pinnedApps = computed(() => resolvePinnedApps(pinnedIds.value));
+
 const activeApp = computed(() => getWorkspaceAppForPath(route.path));
 
 watch(
@@ -32,6 +40,11 @@ watch(
 
 function openApp(app: WorkspaceApp): void {
   router.push(app.id === 'messages' ? lastMessagesPath.value : app.path);
+}
+
+function onOpenApp(app: WorkspaceApp): void {
+  allAppsOpen.value = false;
+  openApp(app);
 }
 </script>
 
@@ -56,7 +69,7 @@ function openApp(app: WorkspaceApp): void {
 
       <div class="muon-scrollbar-hidden flex w-full flex-1 flex-col items-center gap-2 overflow-y-auto px-2">
         <button
-          v-for="app in primaryWorkspaceApps"
+          v-for="app in pinnedApps"
           :key="app.id"
           class="group relative flex h-10 w-full items-center justify-center rounded-md text-muted-foreground transition-colors duration-150 hover:bg-sidebar-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           :class="
@@ -78,9 +91,34 @@ function openApp(app: WorkspaceApp): void {
             {{ messageUnreadCount > 99 ? '99+' : messageUnreadCount }}
           </span>
         </button>
+
+        <div
+          v-if="pinnedApps.length === 0"
+          data-testid="workspace-rail-empty"
+          class="mt-2 flex flex-col items-center gap-1 px-1 text-center text-muted-foreground/60"
+        >
+          <LayoutGrid :size="18" aria-hidden="true" />
+          <span class="text-[10px] leading-tight">{{ t('sidebar.emptyPinnedHint') }}</span>
+        </div>
       </div>
 
       <div class="flex w-full flex-col items-center gap-2 px-2">
+        <Popover v-model:open="allAppsOpen">
+          <PopoverTrigger as-child>
+            <button
+              class="relative flex h-10 w-full items-center justify-center rounded-md text-muted-foreground transition-colors duration-150 hover:bg-sidebar-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              data-testid="workspace-all-apps"
+              :aria-label="t('sidebar.allApps')"
+              :title="t('sidebar.allApps')"
+            >
+              <LayoutGrid :size="16" aria-hidden="true" />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent side="right" align="end" class="w-auto p-0">
+            <AllAppsPopover @open="onOpenApp" />
+          </PopoverContent>
+        </Popover>
+
         <button
           class="relative flex h-10 w-full items-center justify-center rounded-md text-muted-foreground transition-colors duration-150 hover:bg-sidebar-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           data-testid="workspace-global-search"

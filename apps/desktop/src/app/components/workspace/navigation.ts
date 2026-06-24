@@ -218,3 +218,10 @@ export const footerWorkspaceApps = workspaceApps.filter((app) => app.id === 'set
 export function getWorkspaceAppForPath(path: string): WorkspaceApp {
   return workspaceApps.find((app) => app.match(path)) ?? workspaceApps[0]
 }
+
+// 把已固定的 id 列表解析成应用对象。按 primaryWorkspaceApps 原顺序过滤，
+// 顺带得到三个性质：固定顺序、剔除非法 id、settings 永不入选。
+export function resolvePinnedApps(ids: readonly string[]): WorkspaceApp[] {
+  const set = new Set(ids)
+  return primaryWorkspaceApps.filter((app) => set.has(app.id))
+}

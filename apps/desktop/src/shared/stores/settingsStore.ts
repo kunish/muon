@@ -22,6 +22,9 @@ const DEFAULT_NOTIFICATION_CHANNELS: NotificationChannels = {
   messages: true,
 }
 
+// 鸭栏默认固定集：飞书核心 + 有真实本地数据的 calendar/tasks。其余收进「全部应用」面板。
+const DEFAULT_PINNED_APPS: string[] = ['messages', 'calendar', 'docs', 'tasks', 'contacts', 'workplace']
+
 export interface SettingsState {
   theme: ThemeMode
   locale: string
@@ -40,6 +43,7 @@ export interface SettingsState {
   analyticsEnabled: boolean
   watermarkEnabled: boolean
   debugMode: boolean
+  pinnedApps: string[]
 }
 
 const STORAGE_KEYS = {
@@ -60,6 +64,7 @@ const STORAGE_KEYS = {
   analyticsEnabled: 'muon_analytics_enabled',
   watermarkEnabled: 'muon_watermark_enabled',
   debugMode: 'muon_debug_mode',
+  pinnedApps: 'muon_pinned_apps',
 } as const
 
 function readString<T extends string>(key: string, fallback: T): T {
@@ -70,6 +75,17 @@ function readString<T extends string>(key: string, fallback: T): T {
 function readBoolean(key: string, fallback: boolean): boolean {
   const raw = localStorage.getItem(key)
   return raw === null ? fallback : raw === 'true'
+}
+
+function readStringArray(key: string, fallback: string[]): string[] {
+  const raw = localStorage.getItem(key)
+  if (raw === null) return [...fallback]
+  try {
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) && parsed.every((x) => typeof x === 'string') ? parsed : [...fallback]
+  } catch {
+    return [...fallback]
+  }
 }
 
 function readChannels(): NotificationChannels {
@@ -101,6 +117,7 @@ function createInitialState(): SettingsState {
     analyticsEnabled: readBoolean(STORAGE_KEYS.analyticsEnabled, true),
     watermarkEnabled: readBoolean(STORAGE_KEYS.watermarkEnabled, false),
     debugMode: readBoolean(STORAGE_KEYS.debugMode, false),
+    pinnedApps: readStringArray(STORAGE_KEYS.pinnedApps, DEFAULT_PINNED_APPS),
   }
 }
 
@@ -123,6 +140,7 @@ function persist(state: SettingsState): void {
     localStorage.setItem(STORAGE_KEYS.analyticsEnabled, String(state.analyticsEnabled))
     localStorage.setItem(STORAGE_KEYS.watermarkEnabled, String(state.watermarkEnabled))
     localStorage.setItem(STORAGE_KEYS.debugMode, String(state.debugMode))
+    localStorage.setItem(STORAGE_KEYS.pinnedApps, JSON.stringify(state.pinnedApps))
   } catch (err) {
     console.warn('[settingsStore] Failed to persist settings:', err)
   }
@@ -181,6 +199,13 @@ export function setWatermarkEnabled(watermarkEnabled: boolean): void {
 }
 export function setDebugMode(debugMode: boolean): void {
   settingsStore.setState((s) => ({ ...s, debugMode }))
+}
+
+export function togglePinnedApp(id: string): void {
+  settingsStore.setState((s) => ({
+    ...s,
+    pinnedApps: s.pinnedApps.includes(id) ? s.pinnedApps.filter((x) => x !== id) : [...s.pinnedApps, id],
+  }))
 }
 
 export function setNotificationChannel(channel: NotificationChannelId, enabled: boolean): void {

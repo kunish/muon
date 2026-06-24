@@ -19,6 +19,7 @@
     "unstar": "Unstar",
     "connecting": "Connecting...",
     "initializing_data": "Initializing data...",
+    "startup_syncing": "Syncing your messages…",
     "sync_error": "Sync Error",
     "network_error": "Network error. Please check your connection.",
     "unexpected_error": "An unexpected error occurred",
@@ -989,6 +990,10 @@
     "delete_node": "Delete node"
   },
   "sidebar": {
+    "allApps": "All apps",
+    "pinApp": "Pin to rail",
+    "unpinApp": "Unpin",
+    "emptyPinnedHint": "Pin from All apps",
     "messages": "Messages",
     "calendar": "Calendar",
     "docs": "Docs",
