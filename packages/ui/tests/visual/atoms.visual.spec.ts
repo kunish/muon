@@ -31,7 +31,6 @@ const PORTAL_PREFIXES = [
   'components-dropdownmenu',
   'components-contextmenu',
   'components-tooltip',
-  'components-sheet',
   'components-select',
   'components-sonner',
   'components-contextmenu',
