@@ -137,9 +137,8 @@ describe('app native window frame runtime', () => {
     await nextTick()
 
     expect(wrapper.find('[data-testid="startup-skeleton"]').exists()).toBe(true)
-    expect(wrapper.find('[data-testid="startup-sidebar-skeleton"]').exists()).toBe(true)
-    expect(wrapper.find('[data-testid="startup-chat-skeleton"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="router-view"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="app-connecting"]').text()).toContain('正在初始化数据')
 
     resolveBootstrap({ restored: false })
     await flushPromises()
@@ -175,6 +174,7 @@ describe('app native window frame runtime', () => {
     expect(wrapper.find('[data-testid="router-view"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="app-connecting"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="startup-skeleton"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="app-connecting"]').text()).toContain('正在同步消息')
 
     matrixMocks.syncState!.value = 'PREPARED'
     await nextTick()

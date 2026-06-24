@@ -18,7 +18,8 @@ describe('electron security config', () => {
     const indexHtml = readDesktopSource('index.html')
 
     expect(indexHtml).toContain('data-testid="preload-startup-skeleton"')
-    expect(indexHtml).toContain('muon-boot-shimmer')
+    expect(indexHtml).toContain('muon-boot-logo')
+    expect(indexHtml).toContain('/muon-logo.svg')
     expect(indexHtml).not.toContain('<div id="app"></div>')
   })
 

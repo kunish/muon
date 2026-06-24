@@ -10,6 +10,25 @@
     />
     <title>Muon</title>
     <style>
+      /* Pre-mount logo splash. Mirrors src/app/components/StartupSkeleton.vue so
+         the handoff to the Vue app is seamless. The background is matched to the
+         app theme at first paint via prefers-color-scheme, because the bundle's
+         .dark class only lands after mount and inline scripts are blocked by the
+         renderer CSP (script-src 'self'). Explicit light/dark overrides that
+         differ from the OS are corrected by useTheme right after mount. */
+      :root {
+        --boot-bg: #ffffff;
+        --boot-muted: #646a73;
+        --boot-primary: #3370ff;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --boot-bg: #1a1a1a;
+          --boot-muted: #a6a6a6;
+        }
+      }
+
       html,
       body,
       #app {
@@ -20,152 +39,64 @@
 
       body {
         overflow: hidden;
-        background: #f6f7fb;
-        color: #1f2329;
+        background: var(--boot-bg);
+        color: var(--boot-muted);
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       }
 
       .muon-boot-shell {
-        position: relative;
-        display: grid;
+        display: flex;
         height: 100%;
         min-height: 0;
-        grid-template-columns: 68px minmax(220px, 320px) minmax(0, 1fr);
-        overflow: hidden;
-        background: #f6f7fb;
-      }
-
-      .muon-boot-rail,
-      .muon-boot-sidebar {
-        border-right: 1px solid #dee3eb;
-        background: #eef2f7;
-      }
-
-      .muon-boot-rail {
-        display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 12px;
-        padding: 18px 12px;
+        justify-content: center;
+        gap: 26px;
+        overflow: hidden;
+        background: var(--boot-bg);
       }
 
-      .muon-boot-brand {
+      .muon-boot-logo-wrap {
+        position: relative;
         display: grid;
-        width: 40px;
-        height: 40px;
         place-items: center;
-        border-radius: 10px;
-        background: #3370ff;
-        color: #fff;
-        font-size: 20px;
-        font-weight: 700;
+        animation: muon-boot-in 0.5s ease-out both;
       }
 
-      .muon-boot-sidebar {
-        min-height: 0;
-        overflow: hidden;
-        padding: 20px 14px;
+      .muon-boot-halo {
+        position: absolute;
+        height: 96px;
+        width: 96px;
+        border-radius: 28px;
+        background: var(--boot-primary);
+        filter: blur(26px);
+        opacity: 0.28;
+        animation: muon-boot-halo 2.4s ease-in-out infinite;
       }
 
-      .muon-boot-profile {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        margin-bottom: 18px;
-      }
-
-      .muon-boot-list {
-        display: grid;
-        gap: 14px;
-        margin-top: 18px;
-      }
-
-      .muon-boot-row {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-      }
-
-      .muon-boot-chat {
-        display: flex;
-        min-width: 0;
-        min-height: 0;
-        flex-direction: column;
-        background: #f8fafc;
-      }
-
-      .muon-boot-header {
-        display: flex;
-        height: 64px;
-        flex-shrink: 0;
-        align-items: center;
-        gap: 12px;
-        border-bottom: 1px solid #dee3eb;
-        padding: 0 20px;
-      }
-
-      .muon-boot-messages {
-        display: grid;
-        align-content: start;
-        gap: 20px;
-        min-height: 0;
-        flex: 1;
-        overflow: hidden;
-        padding: 24px 20px;
-      }
-
-      .muon-boot-message {
-        display: grid;
-        width: min(58%, 560px);
-        gap: 10px;
-        border: 1px solid #dee3eb;
-        border-radius: 14px;
-        background: #fff;
-        padding: 14px 16px;
-      }
-
-      .muon-boot-message:nth-child(2),
-      .muon-boot-message:nth-child(4) {
-        justify-self: end;
-      }
-
-      .muon-boot-composer {
-        flex-shrink: 0;
-        border-top: 1px solid #dee3eb;
-        padding: 16px 20px;
+      .muon-boot-logo {
+        position: relative;
+        height: 96px;
+        width: 96px;
+        border-radius: 24px;
+        animation: muon-boot-breathe 2.4s ease-in-out infinite;
       }
 
       .muon-boot-status {
-        position: absolute;
-        left: 50%;
-        bottom: 28px;
         display: flex;
-        transform: translateX(-50%);
         align-items: center;
         gap: 10px;
-        border: 1px solid #dee3eb;
-        border-radius: 999px;
-        background: rgba(255, 255, 255, 0.92);
-        padding: 9px 14px;
-        color: #646a73;
+        color: var(--boot-muted);
         font-size: 13px;
-        backdrop-filter: blur(12px);
       }
 
       .muon-boot-spinner {
-        width: 14px;
         height: 14px;
-        border: 2px solid #3370ff;
+        width: 14px;
+        border: 2px solid var(--boot-primary);
         border-top-color: transparent;
         border-radius: 999px;
         animation: muon-boot-spin 0.9s linear infinite;
-      }
-
-      .muon-boot-shimmer {
-        border-radius: 8px;
-        background: linear-gradient(90deg, #dfe5ee 0%, #edf2f8 42%, #dfe5ee 100%);
-        background-size: 200% 100%;
-        animation: muon-boot-shimmer 1.8s ease-in-out infinite;
       }
 
       @keyframes muon-boot-spin {
@@ -174,32 +105,45 @@
         }
       }
 
-      @keyframes muon-boot-shimmer {
-        0% {
-          background-position: -200% 0;
-        }
+      @keyframes muon-boot-breathe {
+        0%,
         100% {
-          background-position: 200% 0;
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.05);
         }
       }
 
-      @media (max-width: 760px) {
-        .muon-boot-shell {
-          grid-template-columns: 56px minmax(0, 1fr);
+      @keyframes muon-boot-halo {
+        0%,
+        100% {
+          opacity: 0.22;
+          transform: scale(0.92);
         }
-
-        .muon-boot-sidebar {
-          display: none;
+        50% {
+          opacity: 0.4;
+          transform: scale(1.12);
         }
+      }
 
-        .muon-boot-rail {
-          padding-inline: 8px;
+      @keyframes muon-boot-in {
+        from {
+          opacity: 0;
+          transform: scale(0.9);
         }
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
 
-        .muon-boot-status {
-          bottom: 18px;
-          max-width: calc(100% - 32px);
-          white-space: nowrap;
+      @media (prefers-reduced-motion: reduce) {
+        .muon-boot-logo,
+        .muon-boot-halo,
+        .muon-boot-spinner,
+        .muon-boot-logo-wrap {
+          animation: none;
         }
       }
     </style>
@@ -207,66 +151,13 @@
   <body>
     <div id="app">
       <div data-testid="preload-startup-skeleton" class="muon-boot-shell" role="status" aria-live="polite">
-        <aside class="muon-boot-rail" aria-hidden="true">
-          <div class="muon-boot-brand">M</div>
-          <div class="muon-boot-shimmer" style="width: 36px; height: 36px"></div>
-          <div class="muon-boot-shimmer" style="width: 36px; height: 36px"></div>
-          <div class="muon-boot-shimmer" style="width: 36px; height: 36px"></div>
-          <div class="muon-boot-shimmer" style="width: 36px; height: 36px"></div>
-        </aside>
-        <aside class="muon-boot-sidebar" aria-hidden="true">
-          <div class="muon-boot-profile">
-            <div class="muon-boot-shimmer" style="width: 36px; height: 36px; border-radius: 999px"></div>
-            <div style="flex: 1">
-              <div class="muon-boot-shimmer" style="width: 96px; height: 14px; margin-bottom: 8px"></div>
-              <div class="muon-boot-shimmer" style="width: 136px; height: 10px"></div>
-            </div>
-          </div>
-          <div class="muon-boot-shimmer" style="width: 100%; height: 32px"></div>
-          <div class="muon-boot-list">
-            <div class="muon-boot-row">
-              <div class="muon-boot-shimmer" style="width: 40px; height: 40px"></div>
-              <div class="muon-boot-shimmer" style="width: 70%; height: 12px"></div>
-            </div>
-            <div class="muon-boot-row">
-              <div class="muon-boot-shimmer" style="width: 40px; height: 40px"></div>
-              <div class="muon-boot-shimmer" style="width: 56%; height: 12px"></div>
-            </div>
-            <div class="muon-boot-row">
-              <div class="muon-boot-shimmer" style="width: 40px; height: 40px"></div>
-              <div class="muon-boot-shimmer" style="width: 64%; height: 12px"></div>
-            </div>
-          </div>
-        </aside>
-        <main class="muon-boot-chat" aria-hidden="true">
-          <header class="muon-boot-header">
-            <div class="muon-boot-shimmer" style="width: 40px; height: 40px; border-radius: 999px"></div>
-            <div style="flex: 1">
-              <div class="muon-boot-shimmer" style="width: 128px; height: 14px; margin-bottom: 8px"></div>
-              <div class="muon-boot-shimmer" style="width: 192px; height: 10px"></div>
-            </div>
-          </header>
-          <section class="muon-boot-messages">
-            <div class="muon-boot-message">
-              <div class="muon-boot-shimmer" style="width: 60%; height: 12px"></div>
-              <div class="muon-boot-shimmer" style="width: 100%; height: 10px"></div>
-            </div>
-            <div class="muon-boot-message">
-              <div class="muon-boot-shimmer" style="width: 54%; height: 12px"></div>
-              <div class="muon-boot-shimmer" style="width: 88%; height: 10px"></div>
-            </div>
-            <div class="muon-boot-message">
-              <div class="muon-boot-shimmer" style="width: 68%; height: 12px"></div>
-              <div class="muon-boot-shimmer" style="width: 94%; height: 10px"></div>
-            </div>
-          </section>
-          <div class="muon-boot-composer">
-            <div class="muon-boot-shimmer" style="width: 100%; height: 44px"></div>
-          </div>
-        </main>
+        <div class="muon-boot-logo-wrap">
+          <span class="muon-boot-halo" aria-hidden="true"></span>
+          <img class="muon-boot-logo" src="/muon-logo.svg" alt="Muon" width="96" height="96" />
+        </div>
         <div class="muon-boot-status">
-          <div class="muon-boot-spinner"></div>
-          <span>正在初始化数据...</span>
+          <span class="muon-boot-spinner"></span>
+          <span>正在启动…</span>
         </div>
       </div>
     </div>

@@ -101,7 +101,10 @@ onBeforeUnmount(() => {
             </button>
           </div>
         </div>
-        <StartupSkeleton v-else-if="restoredSession && !hasCompletedInitialSync" />
+        <StartupSkeleton
+          v-else-if="restoredSession && !hasCompletedInitialSync"
+          :status-text="t('common.startup_syncing')"
+        />
         <div v-else class="h-full">
           <RouterView />
         </div>
