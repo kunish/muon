@@ -11,10 +11,10 @@
   --B300-raw: 130, 167, 252;
   --B400: #4e83fd;
   --B400-raw: 78, 131, 253;
-  --B500: #3370ff;
-  --B500-raw: 51, 112, 255;
-  --B600: #245bdb;
-  --B600-raw: 36, 91, 219;
+  --B500: #007aff;
+  --B500-raw: 0, 122, 255; /* PRIMARY BRAND — macOS systemBlue */
+  --B600: #0067d6;
+  --B600-raw: 0, 103, 214;
   --B700: #1c4cba;
   --B700-raw: 28, 76, 186;
   --B800: #133c9a;
@@ -302,7 +302,7 @@
   --color-foreground: var(--N900);
   --color-muted: var(--N100);
   --color-muted-foreground: var(--N600);
-  --color-primary: var(--B500);
+  --color-primary: var(--system-accent, var(--B500));
   --color-primary-foreground: #ffffff;
   --color-accent: var(--fill-hover);
   --color-accent-foreground: var(--N900);
@@ -310,10 +310,10 @@
   --color-destructive-foreground: #ffffff;
   --color-border: rgba(var(--N900-raw), 0.15);
   --color-input: var(--N300);
-  --color-ring: var(--B500);
+  --color-ring: var(--system-accent, var(--B500));
   --color-card: var(--N00);
   --color-card-foreground: var(--N900);
-  --color-secondary: var(--B500);
+  --color-secondary: var(--system-accent, var(--B500));
   --color-secondary-foreground: #ffffff;
   --color-popover: var(--N00);
   --color-popover-foreground: var(--N900);
@@ -322,14 +322,14 @@
   --color-sidebar-border: rgba(var(--N900-raw), 0.15);
   --color-sidebar-accent: var(--N100);
   --color-sidebar-accent-foreground: var(--N900);
-  --color-sidebar-primary: var(--B500);
+  --color-sidebar-primary: var(--system-accent, var(--B500));
   --color-sidebar-primary-foreground: #ffffff;
-  --color-sidebar-ring: var(--B500);
+  --color-sidebar-ring: var(--system-accent, var(--B500));
   --color-server-bar: var(--N100);
   --color-success: var(--G500);
   --color-warning: var(--O500);
-  --color-info: var(--B500);
-  --color-chart-1: var(--B500);
+  --color-info: var(--system-accent, var(--B500));
+  --color-chart-1: var(--system-accent, var(--B500));
   --color-chart-2: var(--G500);
   --color-chart-3: var(--O500);
   --color-chart-4: var(--R500);
@@ -338,7 +338,7 @@
   /* Molecule-level aliases */
   --color-list-item-hover-bg: var(--fill-hover);
   --color-list-item-selected-bg: var(--fill-selected);
-  --color-list-item-active-rail: var(--B500);
+  --color-list-item-active-rail: var(--system-accent, var(--B500));
   --color-menu-item-hover-bg: var(--fill-hover);
   --color-file-chip-bg: var(--N50);
   --color-file-chip-hover-bg: var(--N100);
@@ -426,10 +426,10 @@
   --B300-raw: 40, 81, 163;
   --B400: #2e65d1;
   --B400-raw: 46, 101, 209;
-  --B500: #4c88ff;
-  --B500-raw: 76, 136, 255;
-  --B600: #70a0ff;
-  --B600-raw: 112, 160, 255;
+  --B500: #0a84ff;
+  --B500-raw: 10, 132, 255;
+  --B600: #409cff;
+  --B600-raw: 64, 156, 255;
   --B700: #99bbff;
   --B700-raw: 153, 187, 255;
   --B800: #b8cfff;
@@ -556,7 +556,7 @@
   --color-foreground: var(--N900);
   --color-muted: var(--N100);
   --color-muted-foreground: var(--N600);
-  --color-primary: var(--B500);
+  --color-primary: var(--system-accent, var(--B500));
   --color-primary-foreground: #ffffff;
   --color-accent: #25262b;
   --color-accent-foreground: var(--N900);
@@ -564,10 +564,10 @@
   --color-destructive-foreground: #ffffff;
   --color-border: rgba(var(--N900-raw), 0.15);
   --color-input: var(--N300);
-  --color-ring: var(--B500);
+  --color-ring: var(--system-accent, var(--B500));
   --color-card: var(--N100);
   --color-card-foreground: var(--N900);
-  --color-secondary: var(--B400);
+  --color-secondary: var(--system-accent, var(--B500));
   --color-secondary-foreground: #ffffff;
   --color-popover: #25262b;
   --color-popover-foreground: var(--N900);
@@ -576,14 +576,14 @@
   --color-sidebar-border: rgba(var(--N900-raw), 0.15);
   --color-sidebar-accent: #25262b;
   --color-sidebar-accent-foreground: var(--N900);
-  --color-sidebar-primary: var(--B500);
+  --color-sidebar-primary: var(--system-accent, var(--B500));
   --color-sidebar-primary-foreground: #ffffff;
-  --color-sidebar-ring: var(--B500);
+  --color-sidebar-ring: var(--system-accent, var(--B500));
   --color-server-bar: #0f1113;
   --color-success: var(--G400);
   --color-warning: var(--O400);
-  --color-info: var(--B400);
-  --color-chart-1: var(--B500);
+  --color-info: var(--system-accent, var(--B500));
+  --color-chart-1: var(--system-accent, var(--B500));
   --color-chart-2: var(--G400);
   --color-chart-3: var(--O400);
   --color-chart-4: var(--R400);
@@ -591,7 +591,7 @@
 
   --color-list-item-hover-bg: var(--fill-hover);
   --color-list-item-selected-bg: var(--fill-selected);
-  --color-list-item-active-rail: var(--B400);
+  --color-list-item-active-rail: var(--system-accent, var(--B500));
   --color-menu-item-hover-bg: var(--N200);
   --color-file-chip-bg: var(--N200);
   --color-file-chip-hover-bg: var(--N300);
