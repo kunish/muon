@@ -162,7 +162,7 @@ async function confirmDeleteChannel(): Promise<void> {
 <template>
   <WorkspaceResizablePane
     as="aside"
-    pane-test-id="channel-sidebar"
+    pane-test-id="channel-sidebar-surface"
     content-test-id="channel-sidebar-content"
     handle-test-id="channel-sidebar-resize-handle"
     :width-storage-key="SIDEBAR_WIDTH_STORAGE_KEY"
@@ -170,6 +170,7 @@ async function confirmDeleteChannel(): Promise<void> {
     :min-width="MIN_SIDEBAR_WIDTH"
     :max-width="MAX_SIDEBAR_WIDTH"
     :resize-label="resizeHandleLabel"
+    :style="{ background: 'var(--material-sidebar-bg)', backdropFilter: 'blur(24px) saturate(180%)' }"
   >
     <div v-show="isDmMode" data-testid="dm-conversation-sidebar" class="contents">
       <ConversationList />

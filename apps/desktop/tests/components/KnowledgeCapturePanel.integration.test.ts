@@ -336,7 +336,7 @@ describe('knowledgeCapturePanel integration', () => {
 
   it('supports Feishu-style message sidebar resizing with the mouse', async () => {
     const wrapper = mount(ChannelSidebar)
-    const sidebar = wrapper.get('[data-testid="channel-sidebar"]')
+    const sidebar = wrapper.get('[data-testid="channel-sidebar-surface"]')
     const handle = wrapper.get('[data-testid="channel-sidebar-resize-handle"]')
 
     expect(sidebar.attributes('style')).toContain('width: 260px')
@@ -381,7 +381,7 @@ describe('knowledgeCapturePanel integration', () => {
     localStorage.setItem('muon_message_sidebar_collapsed', 'true')
 
     const wrapper = mount(ChannelSidebar)
-    const sidebar = wrapper.get('[data-testid="channel-sidebar"]')
+    const sidebar = wrapper.get('[data-testid="channel-sidebar-surface"]')
 
     await nextTick()
 

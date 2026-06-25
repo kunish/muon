@@ -50,8 +50,9 @@ function onOpenApp(app: WorkspaceApp): void {
 
 <template>
   <nav
-    data-testid="workspace-app-rail"
-    class="workspace-rail relative flex h-full w-16 shrink-0 select-none flex-col items-center overflow-hidden border-r border-sidebar-border bg-server-bar py-4"
+    data-testid="workspace-rail-surface"
+    class="workspace-rail relative flex h-full w-16 shrink-0 select-none flex-col items-center overflow-hidden border-r border-sidebar-border py-4"
+    :style="{ background: 'var(--material-sidebar-bg)', backdropFilter: 'blur(24px) saturate(180%)' }"
   >
     <div data-testid="workspace-app-rail-content" class="flex h-full w-full flex-col items-center overflow-hidden">
       <div

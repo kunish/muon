@@ -112,4 +112,10 @@ describe('workspaceAppRail', () => {
 
     expect(globalUiStore.state.globalSearchOpen).toBe(true)
   })
+
+  it('renders the rail on a translucent vibrancy surface', () => {
+    const wrapper = mount(WorkspaceAppRail)
+    const surface = wrapper.get('[data-testid="workspace-rail-surface"]')
+    expect(surface.attributes('style')).toContain('var(--material-sidebar-bg)')
+  })
 })

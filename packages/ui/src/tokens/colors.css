@@ -350,6 +350,9 @@
   --color-bubble-other-bg: #e9e9eb;
   --color-bubble-other-fg: var(--color-foreground);
 
+  /* macOS vibrancy materials — translucent over OS sidebar vibrancy. Tune on real hardware. */
+  --material-sidebar-bg: rgba(246, 246, 248, 0.6);
+
   /* Backward-compat: old palette naming → new Feishu scales */
   --brand-50: var(--B50);
   --brand-100: var(--B100);
@@ -608,6 +611,9 @@
   --color-bubble-own-fg: #ffffff;
   --color-bubble-other-bg: #3b3b3d;
   --color-bubble-other-fg: var(--color-foreground);
+
+  /* macOS vibrancy materials — dark */
+  --material-sidebar-bg: rgba(30, 30, 32, 0.55);
 
   /* Backward-compat: old palette naming → new Feishu scales */
   --brand-50: var(--B50);
