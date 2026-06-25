@@ -1,5 +1,25 @@
 @import '@muon/ui/styles.css';
 
+/*
+ * macOS vibrancy — transparent shell wrappers.
+ * Unlayered (no @layer) so these rules beat the @layer-base bg-background
+ * utility classes on App.vue's root div and WorkspaceLayout.vue's flex wrapper.
+ * .platform-darwin is set on <html> pre-mount by applyPlatformClass() only on
+ * darwin. Windows/Linux never have this class — their bg-background is untouched.
+ *
+ * The App.vue outer div: "flex h-screen flex-col overflow-hidden bg-background"
+ * The WorkspaceLayout.vue flex wrapper: "flex h-full overflow-hidden bg-background"
+ * Both become transparent so OS vibrancy shows through the translucent rail/sidebar.
+ *
+ * WorkspaceLayout.vue's <main> (content area) keeps bg-background — it is NOT
+ * targeted here. Only the wrapper elements that surround the rail and sidebar
+ * are made transparent.
+ */
+.platform-darwin [data-app-shell],
+.platform-darwin [data-workspace-shell] {
+  background-color: transparent !important;
+}
+
 @layer base {
   :where(button, [role='button'], a, input, textarea, select, [tabindex]:not([tabindex='-1'])):not(
       [contenteditable]

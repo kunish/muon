@@ -19,6 +19,19 @@
 @import './tokens/density.css';
 @import './tokens/motion.css';
 
+/*
+ * macOS vibrancy transparency — unlayered so it beats the unlayered
+ * body{background:var(--boot-bg)} rule in index.html.
+ * Gate: .platform-darwin is set on <html> pre-mount by applyPlatformClass()
+ * only when window.muonDesktop?.platform === 'darwin'. Windows/Linux are
+ * completely unaffected (no .platform-darwin class).
+ */
+.platform-darwin,
+.platform-darwin body,
+.platform-darwin #app {
+  background: transparent !important;
+}
+
 @layer base {
   :root {
     --muon-scrollbar-size: 10px;

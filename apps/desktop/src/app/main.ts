@@ -2,12 +2,13 @@ import { fetchMediaBlobUrl } from '@matrix/media'
 import { setAuthMediaResolver } from '@muon/ui/media'
 import { toast } from 'vue-sonner'
 import App from './App.vue'
-import { applyBootTheme } from './bootTheme'
+import { applyBootTheme, applyPlatformClass } from './bootTheme'
 import { setupPlugins } from './plugins'
 import { i18n } from './plugins/i18n'
 import './main.css'
 
 applyBootTheme()
+applyPlatformClass()
 
 setAuthMediaResolver(fetchMediaBlobUrl)
 

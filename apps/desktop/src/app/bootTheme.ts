@@ -11,3 +11,22 @@ export function applyBootTheme(): void {
   const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
   document.documentElement.classList.toggle('dark', resolveBootDark(stored, prefersDark))
 }
+
+/**
+ * Returns true when the given platform string indicates macOS.
+ * Pure helper so it can be unit-tested without a DOM.
+ */
+export function shouldUseMacChrome(platform: string | undefined): boolean {
+  const p = platform?.toLowerCase()
+  return p === 'darwin' || p === 'mac' || p === 'macos' || p === 'osx'
+}
+
+/**
+ * Sets `platform-darwin` on <html> when running on macOS, enabling
+ * CSS-gated shell transparency for OS vibrancy. Must be called pre-mount
+ * so no layout flash occurs.
+ */
+export function applyPlatformClass(): void {
+  const platform = window.muonDesktop?.platform
+  document.documentElement.classList.toggle('platform-darwin', shouldUseMacChrome(platform))
+}
