@@ -1,6 +1,8 @@
 @theme {
   --radius-xs: 0.125rem; /* 2px — tags, chips */
   --radius-sm: 0.25rem; /* 4px — retained for compatibility */
+  --radius-bubble: 1.125rem; /* 18px — iMessage 气泡 */
+  --radius-window: 0.625rem; /* 10px — 原生窗口圆角 */
   --radius-md: 0.375rem; /* 6px — buttons, inputs, defaults */
   --radius-lg: 0.5rem; /* 8px — cards */
   --radius-xl: 0.75rem; /* 12px — large cards */

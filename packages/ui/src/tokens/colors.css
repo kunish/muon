@@ -344,6 +344,12 @@
   --color-file-chip-hover-bg: var(--N100);
   --color-breadcrumb-current-fg: var(--N900);
 
+  /* macOS iMessage bubbles */
+  --color-bubble-own-bg: var(--color-primary);
+  --color-bubble-own-fg: #ffffff;
+  --color-bubble-other-bg: #e9e9eb;
+  --color-bubble-other-fg: var(--color-foreground);
+
   /* Backward-compat: old palette naming → new Feishu scales */
   --brand-50: var(--B50);
   --brand-100: var(--B100);
@@ -596,6 +602,12 @@
   --color-file-chip-bg: var(--N200);
   --color-file-chip-hover-bg: var(--N300);
   --color-breadcrumb-current-fg: var(--N800);
+
+  /* macOS iMessage bubbles — dark */
+  --color-bubble-own-bg: var(--color-primary);
+  --color-bubble-own-fg: #ffffff;
+  --color-bubble-other-bg: #3b3b3d;
+  --color-bubble-other-fg: var(--color-foreground);
 
   /* Backward-compat: old palette naming → new Feishu scales */
   --brand-50: var(--B50);
