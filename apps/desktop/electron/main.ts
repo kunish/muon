@@ -511,7 +511,7 @@ function createMainWindow(): void {
 
   mainWindow = new BrowserWindow({
     ...(appIconPath ? { icon: appIconPath } : {}),
-    ...buildMainWindowOptions({ platform: process.platform, dark: false, accentHex: null }),
+    ...buildMainWindowOptions({ platform: process.platform, dark: false, accentHex: null }), // dark/accent wired in Task 6 (boot-parsed theme)
     frame: true,
     height: 768,
     minHeight: 600,

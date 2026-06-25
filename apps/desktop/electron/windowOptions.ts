@@ -29,6 +29,6 @@ export function buildMainWindowOptions(input: MainWindowChromeInput): Partial<Br
     backgroundColor,
     titleBarOverlay: { color: '#00000000', height: 36 },
     titleBarStyle: 'hidden',
-    trafficLightPosition: { x: 14, y: 12 },
+    trafficLightPosition: { x: 14, y: 12 }, // ignored on Windows/Linux; kept for parity with prior unconditional behavior
   }
 }

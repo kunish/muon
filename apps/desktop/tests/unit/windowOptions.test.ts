@@ -9,6 +9,7 @@ describe('buildMainWindowOptions', () => {
     expect(o.visualEffectState).toBe('active')
     expect(o.roundedCorners).toBe(true)
     expect(o.titleBarOverlay).toBeUndefined() // WCO overlay is a no-op on mac
+    expect(o.trafficLightPosition).toEqual({ x: 14, y: 12 })
   })
 
   it('darwin: backgroundColor follows theme (no white flash in dark)', () => {
@@ -21,5 +22,12 @@ describe('buildMainWindowOptions', () => {
     expect(o.titleBarStyle).toBe('hidden')
     expect(o.titleBarOverlay).toEqual({ color: '#00000000', height: 36 })
     expect(o.vibrancy).toBeUndefined()
+    // trafficLightPosition is ignored by Electron on Windows/Linux but kept for parity
+    expect(o.trafficLightPosition).toEqual({ x: 14, y: 12 })
+  })
+
+  it('win32: backgroundColor follows theme', () => {
+    expect(buildMainWindowOptions({ platform: 'win32', dark: true, accentHex: null }).backgroundColor).toBe('#1a1a1a')
+    expect(buildMainWindowOptions({ platform: 'win32', dark: false, accentHex: null }).backgroundColor).toBe('#ffffff')
   })
 })
