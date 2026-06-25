@@ -1,10 +1,6 @@
 import { mount } from '@vue/test-utils'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import WindowTitleBar from '@/app/components/window/WindowTitleBar.vue'
-
-function mockPlatform(platform: string) {
-  vi.stubGlobal('window', Object.assign(window, { muonDesktop: { isElectron: true, runtime: 'electron', platform } }))
-}
 
 describe('windowTitleBar', () => {
   beforeEach(() => {
@@ -41,14 +37,8 @@ describe('windowTitleBar', () => {
     expect(wrapper.get('[data-testid="window-titlebar"]').classes()).toContain('window-titlebar--mac')
   })
 
-  it('marks the titlebar as mac when platform is darwin', () => {
-    mockPlatform('darwin')
-    const wrapper = mount(WindowTitleBar)
-    expect(wrapper.get('[data-testid="window-titlebar"]').classes()).toContain('window-titlebar--mac')
-  })
-
   it('keeps the brand wordmark on non-mac', () => {
-    mockPlatform('win32')
+    window.muonDesktop = { isElectron: true, runtime: 'electron', platform: 'win32' } as never
     const wrapper = mount(WindowTitleBar)
     expect(wrapper.get('[data-testid="window-titlebar"]').classes()).not.toContain('window-titlebar--mac')
     expect(wrapper.find('[data-testid="window-titlebar-logo"]').exists()).toBe(true)
