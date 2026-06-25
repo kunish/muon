@@ -52,7 +52,9 @@ describe('chatMessage bubble style', () => {
     const wrapper = await mountMessage('@alice:localhost')
 
     const bubble = wrapper.get('.message-selectable-text')
-    expect(bubble.classes()).toEqual(expect.arrayContaining(['rounded-[20px]', 'px-4', 'py-2.5', 'bg-[var(--N200)]']))
+    expect(bubble.classes()).toEqual(
+      expect.arrayContaining(['rounded-[var(--radius-bubble)]', 'px-4', 'py-2.5', 'bg-[var(--color-bubble-other-bg)]']),
+    )
   })
 
   it('keeps text content padded inside outgoing message bubbles', async () => {
@@ -60,7 +62,13 @@ describe('chatMessage bubble style', () => {
 
     const bubble = wrapper.get('.message-selectable-text')
     expect(bubble.classes()).toEqual(
-      expect.arrayContaining(['rounded-[20px]', 'px-4', 'py-2.5', 'bg-[var(--B100)]', 'self-end']),
+      expect.arrayContaining([
+        'rounded-[var(--radius-bubble)]',
+        'px-4',
+        'py-2.5',
+        'bg-[var(--color-bubble-own-bg)]',
+        'self-end',
+      ]),
     )
   })
 })

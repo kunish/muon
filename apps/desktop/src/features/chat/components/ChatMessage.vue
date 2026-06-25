@@ -136,8 +136,10 @@ const myUserId = computed(() => getClient().getUserId() || '');
 const isMine = computed(() => !!sender.value && sender.value === myUserId.value);
 const isRightAligned = computed(() => messageAlignment.value === 'leftright' && isMine.value);
 const textBubbleClass = computed(() => [
-  'w-fit max-w-full rounded-[20px] px-4 py-2.5',
-  isRightAligned.value ? 'self-end bg-[var(--B100)]' : 'bg-[var(--N200)]',
+  'w-fit max-w-full rounded-[var(--radius-bubble)] px-4 py-2.5',
+  isRightAligned.value
+    ? 'self-end bg-[var(--color-bubble-own-bg)] text-[var(--color-bubble-own-fg)]'
+    : 'bg-[var(--color-bubble-other-bg)] text-[var(--color-bubble-other-fg)]',
 ]);
 
 const avatarColumnHidden = computed(() => props.hideAvatarColumn === true);
@@ -837,7 +839,7 @@ onUnmounted(() => {
         />
         <p
           v-else
-          class="message-selectable-text message-body-text text-foreground/90 whitespace-pre-wrap break-words"
+          class="message-selectable-text message-body-text whitespace-pre-wrap break-words"
           :class="textBubbleClass"
         >
           {{ body
