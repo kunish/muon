@@ -53,7 +53,13 @@ describe('chatMessage bubble style', () => {
 
     const bubble = wrapper.get('.message-selectable-text')
     expect(bubble.classes()).toEqual(
-      expect.arrayContaining(['rounded-[var(--radius-bubble)]', 'px-4', 'py-2.5', 'bg-[var(--color-bubble-other-bg)]']),
+      expect.arrayContaining([
+        'rounded-[var(--radius-bubble)]',
+        'px-4',
+        'py-2.5',
+        'bg-[var(--color-bubble-other-bg)]',
+        'text-[var(--color-bubble-other-fg)]',
+      ]),
     )
   })
 
@@ -67,6 +73,7 @@ describe('chatMessage bubble style', () => {
         'px-4',
         'py-2.5',
         'bg-[var(--color-bubble-own-bg)]',
+        'text-[var(--color-bubble-own-fg)]',
         'self-end',
       ]),
     )

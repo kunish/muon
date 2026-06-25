@@ -42,9 +42,22 @@ describe('chat bubble macOS tokens', () => {
     // After the fix, the plain-text <p> tag (which has message-selectable-text)
     // must NOT carry text-foreground/90 — color is now governed by textBubbleClass
     // (own-bubble=white, other-bubble=foreground via CSS var).
-    // The rich-text RichMessageContent branch may still have text-foreground/90
-    // on its inner content element — that's intentional and not what we're guarding.
     // Guard: the `message-selectable-text` element must not combine with text-foreground/90.
     expect(src).not.toContain('message-selectable-text message-body-text text-foreground/90')
+  })
+
+  it('uses --color-bubble-own-fg for own message text', () => {
+    expect(src).toContain('text-[var(--color-bubble-own-fg)]')
+  })
+
+  it('uses --color-bubble-other-fg for received message text', () => {
+    expect(src).toContain('text-[var(--color-bubble-other-fg)]')
+  })
+
+  it('does not have text-foreground/90 on the RichMessageContent branch (color governed by textBubbleClass)', () => {
+    // The rich-text branch wraps RichMessageContent in a div with textBubbleClass.
+    // RichMessageContent must NOT carry a base text-foreground/90 that would override
+    // the inherited white text on own (accent-colored) bubbles.
+    expect(src).not.toContain('message-body-text text-foreground/90')
   })
 })
