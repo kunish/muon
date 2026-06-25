@@ -1,7 +1,9 @@
 # macOS 原生视觉改版（macOS-Native Redesign）设计
 
 日期：2026-06-25
-状态：📝 设计中（待实现）
+状态：✅ 基座已实现（分支 `feat/macos-native-redesign`，Task 1–10）；Wave 2-4 待铺开
+
+> 基座自动化验收（2026-06-25）：`check:tokens` PASSED、`type-check` exit 0、desktop 单测 1504/1504、`@muon/ui` 单测 11/11、完整 `build` OK、重建的 `out/renderer/index.html` 已含暗色启动骨架。**待人工（需 macOS GUI）**：`pnpm --filter @muon/ui test:visual:update` 再生并肉眼审 atom 视觉基线；真机走查 G2（hiddenInset+圆角+红绿灯）、G3（亮暗/强调色跟随系统、暗色冷启动无白闪）、G4（侧栏毛玻璃透出）、G5（聊天气泡观感）。
 
 ## 背景
 
