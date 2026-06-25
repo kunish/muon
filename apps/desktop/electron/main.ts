@@ -10,6 +10,7 @@ import {
   extractEnterpriseAuthCallbackUrl,
   isEnterpriseAuthCallbackUrl,
 } from './authCallback.js'
+import { buildMainWindowOptions } from './windowOptions.js'
 
 let mainWindow: BrowserWindow | null = null
 const runtimeRequire = createRequire(__filename)
@@ -510,7 +511,7 @@ function createMainWindow(): void {
 
   mainWindow = new BrowserWindow({
     ...(appIconPath ? { icon: appIconPath } : {}),
-    backgroundColor: '#ffffff',
+    ...buildMainWindowOptions({ platform: process.platform, dark: false, accentHex: null }),
     frame: true,
     height: 768,
     minHeight: 600,
@@ -518,12 +519,6 @@ function createMainWindow(): void {
     resizable: true,
     show: false,
     title: 'Muon',
-    titleBarOverlay: {
-      color: '#00000000',
-      height: 36,
-    },
-    titleBarStyle: 'hidden',
-    trafficLightPosition: { x: 14, y: 12 },
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,

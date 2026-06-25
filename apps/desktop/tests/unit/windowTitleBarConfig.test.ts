@@ -6,15 +6,16 @@ describe('native window frame configuration', () => {
     const source = readDesktopSource('electron/main.ts')
 
     expect(source).toContain('frame: true')
-    expect(source).toContain("titleBarStyle: 'hidden'")
-    expect(source).toContain('titleBarOverlay:')
-    expect(source).toContain('trafficLightPosition:')
-    expect(source).toContain("backgroundColor: '#ffffff'")
     expect(source).not.toContain('frame: false')
     expect(source).not.toContain('transparent: true')
     expect(source).toContain('contextIsolation: true')
     expect(source).toContain('nodeIntegration: false')
     expect(source).toContain('preload: getPreloadEntry()')
+  })
+
+  it('delegates window chrome to buildMainWindowOptions', () => {
+    const mainSource = readDesktopSource('electron/main.ts')
+    expect(mainSource).toContain('buildMainWindowOptions({ platform: process.platform')
   })
 
   it('does not expose renderer-driven close, minimize, or maximize controls', () => {
