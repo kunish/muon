@@ -32,7 +32,6 @@ export function useNativeAppearance(): void {
     },
     { immediate: true },
   )
-  void themeBridge.getAccent().then(applyAccent)
   const off = themeBridge.onAccentChanged(applyAccent)
   onScopeDispose(off)
 }

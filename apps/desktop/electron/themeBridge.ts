@@ -15,9 +15,9 @@ export function normalizeAccentColor(raw: string | null | undefined): string | n
 }
 
 function readAccent(): string | null {
-  // eslint-disable-next-line ts/no-require-imports -- lazy require avoids electron resolution in jsdom tests
-  const { systemPreferences } = require('electron') as typeof import('electron')
   try {
+    // eslint-disable-next-line ts/no-require-imports -- lazy require avoids electron resolution in jsdom tests
+    const { systemPreferences } = require('electron') as typeof import('electron')
     return normalizeAccentColor(systemPreferences.getAccentColor?.())
   } catch {
     return null
