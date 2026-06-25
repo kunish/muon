@@ -44,6 +44,12 @@ contextBridge.exposeInMainWorld('muonDesktop', {
     openUrl: (url: string) => ipcRenderer.invoke('muon:shell:open-url', url),
     revealItemInDir: (targetPath: string) => ipcRenderer.invoke('muon:shell:reveal-item-in-dir', targetPath),
   },
+  theme: {
+    set: (mode: 'light' | 'dark' | 'system') => ipcRenderer.invoke('muon:theme:set', mode),
+    getAccent: () => ipcRenderer.invoke('muon:theme:get-accent'),
+    onAccentChanged: (callback: (hex: string | null) => void) =>
+      subscribeValue<string | null>('muon:theme:accent-changed', callback),
+  },
   updater: {
     check: () => ipcRenderer.invoke('muon:updater:check'),
     install: () => ipcRenderer.invoke('muon:updater:install'),

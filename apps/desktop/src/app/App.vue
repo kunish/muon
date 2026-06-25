@@ -8,6 +8,7 @@ import { useTheme } from '@/features/settings/composables/useTheme';
 import ErrorBoundary from './components/ErrorBoundary.vue';
 import StartupSkeleton from './components/StartupSkeleton.vue';
 import WindowTitleBar from './components/window/WindowTitleBar.vue';
+import { useNativeAppearance } from './composables/useNativeAppearance';
 
 const router = useRouter();
 const { t } = useI18n();
@@ -17,6 +18,7 @@ const restoredSession = ref(false);
 const hasCompletedInitialSync = ref(false);
 
 useTheme();
+useNativeAppearance();
 
 watch(
   syncState,

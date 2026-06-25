@@ -115,6 +115,11 @@ export interface MuonDesktopBridge {
     check: () => Promise<{ version: string } | null>
     install: () => Promise<void>
   }
+  theme?: {
+    set: (mode: 'light' | 'dark' | 'system') => Promise<string | null>
+    getAccent: () => Promise<string | null>
+    onAccentChanged: (callback: (hex: string | null) => void) => () => void
+  }
   window: {
     hide: () => Promise<void>
     setFocus: () => Promise<void>

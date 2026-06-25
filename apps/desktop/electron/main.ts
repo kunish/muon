@@ -10,6 +10,7 @@ import {
   extractEnterpriseAuthCallbackUrl,
   isEnterpriseAuthCallbackUrl,
 } from './authCallback.js'
+import { registerThemeIpc } from './themeBridge.js'
 import { buildMainWindowOptions } from './windowOptions.js'
 
 let mainWindow: BrowserWindow | null = null
@@ -504,6 +505,7 @@ function registerIpc(): void {
   registerUpdaterIpc()
   registerSafeStorageIpc()
   registerMailIpc()
+  registerThemeIpc(() => mainWindow)
 }
 
 function createMainWindow(): void {
