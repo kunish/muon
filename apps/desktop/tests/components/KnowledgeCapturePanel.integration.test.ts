@@ -340,6 +340,7 @@ describe('knowledgeCapturePanel integration', () => {
     const handle = wrapper.get('[data-testid="channel-sidebar-resize-handle"]')
 
     expect(sidebar.attributes('style')).toContain('width: 260px')
+    expect(sidebar.attributes('style')).toContain('var(--material-sidebar-bg)')
 
     handle.element.dispatchEvent(
       new MouseEvent('pointerdown', {

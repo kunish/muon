@@ -117,5 +117,6 @@ describe('workspaceAppRail', () => {
     const wrapper = mount(WorkspaceAppRail)
     const surface = wrapper.get('[data-testid="workspace-rail-surface"]')
     expect(surface.attributes('style')).toContain('var(--material-sidebar-bg)')
+    expect(surface.attributes('style')).toContain('blur(24px)')
   })
 })
