@@ -4,7 +4,7 @@ import { readFile, writeFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { join } from 'node:path'
 import process from 'node:process'
-import { app, BrowserWindow, desktopCapturer, dialog, ipcMain, net, safeStorage, shell } from 'electron'
+import { app, BrowserWindow, desktopCapturer, dialog, ipcMain, nativeTheme, net, safeStorage, shell } from 'electron'
 import {
   ENTERPRISE_AUTH_CALLBACK_CHANNEL,
   extractEnterpriseAuthCallbackUrl,
@@ -513,7 +513,7 @@ function createMainWindow(): void {
 
   mainWindow = new BrowserWindow({
     ...(appIconPath ? { icon: appIconPath } : {}),
-    ...buildMainWindowOptions({ platform: process.platform, dark: false, accentHex: null }), // dark/accent wired in Task 6 (boot-parsed theme)
+    ...buildMainWindowOptions({ platform: process.platform, dark: nativeTheme.shouldUseDarkColors, accentHex: null }),
     frame: true,
     height: 768,
     minHeight: 600,
