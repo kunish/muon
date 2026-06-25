@@ -288,7 +288,7 @@ onBeforeUnmount(() => {
 <template>
   <div
     ref="barRootRef"
-    class="action-bar flex items-center overflow-visible rounded-[10px] border border-[rgba(31,35,41,0.08)] bg-popover shadow-[var(--shadow-s1-down)]"
+    class="action-bar flex items-center overflow-visible rounded-md border border-border bg-popover shadow-[var(--shadow-s1-down)]"
   >
     <!-- Add Reaction (快捷表情回复) -->
     <ReactionPickerPopover :show-emoji-picker="showReactPicker" @toggle="toggleReactPicker" @react="onReact" />
