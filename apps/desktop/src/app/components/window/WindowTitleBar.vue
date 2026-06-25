@@ -113,4 +113,15 @@ function isMacPlatform(platform: string | undefined): boolean {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* macOS: quiet titlebar — hide brand, let window vibrancy show through */
+.window-titlebar--mac {
+  background-color: transparent;
+  background-image: none;
+  border-bottom: none;
+}
+
+.window-titlebar--mac .window-titlebar__brand {
+  display: none;
+}
 </style>
